@@ -1,14 +1,19 @@
 import { useState, useCallback } from 'react';
 import { useAppStore, type PluginContract } from '../../store';
+import { useRegisterPlugin, useRemovePlugin, useSyncPluginsFromBackend } from '../../api/hooks';
 import { Ic } from '../Icons';
 
 export default function PluginManager() {
   const plugins = useAppStore((s) => s.plugins);
-  const registerPlugin = useAppStore((s) => s.registerPlugin);
-  const removePlugin = useAppStore((s) => s.removePlugin);
+  const backendAvailable = useAppStore((s) => s.backendAvailable);
+  const registerMutation = useRegisterPlugin();
+  const removeMutation = useRemovePlugin();
   const [selected, setSelected] = useState<string | null>(null);
   const [newPlugin, setNewPlugin] = useState({ pluginId: '', contract: 'IEvaluator' as PluginContract, version: '1.0.0' });
   const [error, setError] = useState<string | null>(null);
+
+  // Sync plugins from backend on mount
+  useSyncPluginsFromBackend();
 
   const selectedPlugin = plugins.find((p) => p.pluginId === selected) ?? null;
 
@@ -21,20 +26,23 @@ export default function PluginManager() {
       setError(`Plugin "${newPlugin.pluginId}" is already registered`);
       return;
     }
-    registerPlugin({
-      ...newPlugin,
-      isConformant: true,
-      forcesSampledRegime: true, // plugins default to sampled
-    });
+    registerMutation.mutate(newPlugin);
     setNewPlugin({ pluginId: '', contract: 'IEvaluator', version: '1.0.0' });
     setError(null);
-  }, [newPlugin, plugins, registerPlugin]);
+  }, [newPlugin, plugins, registerMutation]);
 
   return (
     <div>
       <div className="panel-h">
         <span className="t">Plugin Management</span>
-        <span className="s">{plugins.length} registered</span>
+        <span className="s">
+          {backendAvailable ? (
+            <span style={{ color: 'var(--exact)' }}>● connected</span>
+          ) : (
+            <span style={{ color: 'var(--faint)' }}>○ offline</span>
+          )}
+          {' · '}{plugins.length} plugins
+        </span>
       </div>
       <div className="panel-body">
         {/* ── Plugin list ── */}
@@ -66,7 +74,7 @@ export default function PluginManager() {
               </div>
               <button
                 className="btn ghost sm icon"
-                onClick={(e) => { e.stopPropagation(); removePlugin(p.pluginId); if (selected === p.pluginId) setSelected(null); }}
+                onClick={(e) => { e.stopPropagation(); removeMutation.mutate(p.pluginId); if (selected === p.pluginId) setSelected(null); }}
                 title="Remove plugin"
               >
                 <Ic.x style={{ width: 12, height: 12 }} />

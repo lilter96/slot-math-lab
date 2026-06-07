@@ -125,11 +125,18 @@ export interface PluginsState {
   plugins: PluginEntry[];
   registerPlugin: (p: PluginEntry) => void;
   removePlugin: (id: string) => void;
+  setPluginsFromBackend: (plugins: PluginEntry[]) => void;
+  backendAvailable: boolean;
+  setBackendAvailable: (v: boolean) => void;
+}
+
+export interface MechanicsSyncState {
+  setMechanicsFromBackend: (mechanics: CustomMechanic[]) => void;
 }
 
 // ── Store ──────────────────────────────────────────────────────────
 
-export interface AppState extends GraphState, MechanicsState, PluginsState {
+export interface AppState extends GraphState, MechanicsState, PluginsState, MechanicsSyncState {
   tab: TabId;
   setTab: (tab: TabId) => void;
   configName: string | null;
@@ -261,6 +268,10 @@ export const useAppStore = create<AppState>((set, get) => ({
   ],
   registerPlugin: (p) => set((s) => ({ plugins: [...s.plugins, p] })),
   removePlugin: (id) => set((s) => ({ plugins: s.plugins.filter((p) => p.pluginId !== id) })),
+  setPluginsFromBackend: (plugins) => set({ plugins }),
+  backendAvailable: false,
+  setBackendAvailable: (v) => set({ backendAvailable: v }),
+  setMechanicsFromBackend: (mechanics) => set({ mechanics }),
 }));
 
 // ── Minimal Node/Edge change handlers (avoid heavy immer dependency) ─

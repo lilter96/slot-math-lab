@@ -1,11 +1,15 @@
 import { useState, useCallback } from 'react';
 import { useAppStore, type CustomMechanic, type GraphNode, type GraphEdge } from '../../store';
+import { useSaveConfig } from '../../api/hooks';
 import { Ic } from '../Icons';
 
 export default function MechanicManager() {
   const mechanics = useAppStore((s) => s.mechanics);
   const nodes = useAppStore((s) => s.nodes);
   const edges = useAppStore((s) => s.edges);
+  const backendAvailable = useAppStore((s) => s.backendAvailable);
+  const saveConfig = useSaveConfig();
+  const [configId] = useState<string | undefined>();
   const selectedNodeId = useAppStore((s) => s.selectedNodeId);
   const addMechanic = useAppStore((s) => s.addMechanic);
   const removeMechanic = useAppStore((s) => s.removeMechanic);
@@ -61,12 +65,18 @@ export default function MechanicManager() {
       edges: subEdges.map((e) => ({ ...e })),
       createdAt: new Date().toISOString(),
     });
+    // Save to backend config API (async, fire-and-forget)
+    saveConfig.mutate({
+      id: configId,
+      name: name.trim(),
+      mechanics: [...mechanics, { id, name: name.trim(), description: desc.trim() || undefined, nodes: subNodes, edges: subEdges, createdAt: new Date().toISOString() }],
+    });
     setName('');
     setDesc('');
     setError(null);
     setSavedMsg(`Mechanic "${name.trim()}" saved! Drag it from the palette to reuse.`);
     setTimeout(() => setSavedMsg(null), 3000);
-  }, [name, desc, nodes, edges, selectedNodeId, addMechanic]);
+  }, [name, desc, nodes, edges, selectedNodeId, addMechanic, configId, mechanics, saveConfig]);
 
   const handleAddToCanvas = useCallback((mechanic: CustomMechanic) => {
     const idOffset = Date.now();
@@ -90,7 +100,14 @@ export default function MechanicManager() {
     <div>
       <div className="panel-h">
         <span className="t">Custom Mechanics</span>
-        <span className="s">{mechanics.length} saved</span>
+        <span className="s">
+          {backendAvailable ? (
+            <span style={{ color: 'var(--exact)' }}>● api</span>
+          ) : (
+            <span style={{ color: 'var(--faint)' }}>○ offline</span>
+          )}
+          {' · '}{mechanics.length} saved
+        </span>
       </div>
       <div className="panel-body">
         {/* ── Save current subgraph ── */}

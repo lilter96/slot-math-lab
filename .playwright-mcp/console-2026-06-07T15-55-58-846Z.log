@@ -1,1 +1,17 @@
 [     737ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:5199/node_modules/.vite/deps/react-dom_client.js?v=e2ae260e:14337
+[  134704ms] [ERROR] Failed to load resource: the server responded with a status of 500 (Internal Server Error) @ http://localhost:5199/src/store/index.ts?t=1780847893463:0
+[  134706ms] [ERROR] [vite] Failed to reload /src/components/mechanics/MechanicManager.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:5199/@vite/client:524
+[  134709ms] [ERROR] [vite] Failed to reload /src/components/mechanics/PluginManager.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:5199/@vite/client:524
+[  134709ms] [ERROR] [vite] Failed to reload /src/components/TweaksPanel.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:5199/@vite/client:524
+[  134709ms] [ERROR] [vite] Failed to reload /src/components/Layout.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:5199/@vite/client:524
+[  134709ms] [ERROR] [vite] Failed to reload /src/pages/Build.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:5199/@vite/client:524
+[  134709ms] [ERROR] [vite] Failed to reload /src/components/canvas/SlotCanvas.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:5199/@vite/client:524
+[  134710ms] [ERROR] [vite] Failed to reload /src/components/Inspector.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:5199/@vite/client:524
+[  156305ms] [ERROR] Failed to load resource: the server responded with a status of 500 (Internal Server Error) @ http://localhost:5199/src/store/index.ts?t=1780847915111:0
+[  156305ms] [ERROR] [vite] Failed to reload /src/components/canvas/SlotCanvas.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:5199/@vite/client:524
+[  156305ms] [ERROR] [vite] Failed to reload /src/pages/Build.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:5199/@vite/client:524
+[  156305ms] [ERROR] [vite] Failed to reload /src/components/Layout.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:5199/@vite/client:524
+[  156306ms] [ERROR] [vite] Failed to reload /src/components/TweaksPanel.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:5199/@vite/client:524
+[  156306ms] [ERROR] [vite] Failed to reload /src/components/mechanics/MechanicManager.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:5199/@vite/client:524
+[  156306ms] [ERROR] [vite] Failed to reload /src/components/Inspector.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:5199/@vite/client:524
+[  156306ms] [ERROR] [vite] Failed to reload /src/components/mechanics/PluginManager.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:5199/@vite/client:524
