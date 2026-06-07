@@ -1,0 +1,11 @@
+[     275ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:5199/node_modules/.vite/deps/react-dom_client.js?v=e27a10e4:14337
+[   16780ms] [ERROR] Access to fetch at 'http://localhost:5152/api/plugins' from origin 'http://localhost:5199' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource. @ http://localhost:5199/build:0
+[   16780ms] [ERROR] Failed to load resource: net::ERR_FAILED @ http://localhost:5152/api/plugins:0
+[   16781ms] [ERROR] Access to fetch at 'http://localhost:5152/api/plugins' from origin 'http://localhost:5199' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource. @ http://localhost:5199/build:0
+[   16781ms] [ERROR] Failed to load resource: net::ERR_FAILED @ http://localhost:5152/api/plugins:0
+[   47050ms] [LOG] [vite] server connection lost. Polling for restart... @ http://localhost:5199/@vite/client:992
+[   47480ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:5199/node_modules/.vite/deps/react-dom_client.js?v=e27a10e4:14337
+[   54748ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:5199/node_modules/.vite/deps/react-dom_client.js?v=e27a10e4:14337
+[   61856ms] [ERROR] WebSocket connection to 'ws://localhost:5199/?token=HKMa_5lEj3Lf' failed:  @ http://localhost:5199/@vite/client:864
+[   61868ms] [LOG] [vite] server connection lost. Polling for restart... @ http://localhost:5199/@vite/client:992
+[   64090ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:5199/node_modules/.vite/deps/react-dom_client.js?v=e27a10e4:14337

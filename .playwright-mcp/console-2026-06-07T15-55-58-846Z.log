@@ -15,3 +15,6 @@
 [  156306ms] [ERROR] [vite] Failed to reload /src/components/mechanics/MechanicManager.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:5199/@vite/client:524
 [  156306ms] [ERROR] [vite] Failed to reload /src/components/Inspector.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:5199/@vite/client:524
 [  156306ms] [ERROR] [vite] Failed to reload /src/components/mechanics/PluginManager.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:5199/@vite/client:524
+[  556845ms] [ERROR] WebSocket connection to 'ws://localhost:5199/?token=T6W2M844GW99' failed:  @ http://localhost:5199/@vite/client:864
+[  556917ms] [LOG] [vite] server connection lost. Polling for restart... @ http://localhost:5199/@vite/client:992
+[  574151ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:5199/node_modules/.vite/deps/react-dom_client.js?v=e27a10e4:14337

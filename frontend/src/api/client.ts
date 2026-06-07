@@ -2,7 +2,7 @@ import { QueryClient } from '@tanstack/react-query';
 import createClient from 'openapi-fetch';
 import type { paths } from './generated-types';
 
-const BASE_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:5152';
+const BASE_URL = import.meta.env.VITE_API_URL ?? '';
 
 /**
  * Typed fetch client generated from the OpenAPI contract.
