@@ -282,9 +282,20 @@ public sealed class GraphCompiler
     private Slot<Dictionary<string, object?>, object?> CompileDraw(
         DrawNode drawNode, GraphConfig config)
     {
+        // ── Inline weighted draw (custom outcomes, no ReelSets required) ──
+        if (drawNode.DrawWeights is { Length: > 0 })
+        {
+            var dw = drawNode.DrawWeights;
+            var weights = WeightSet.FromIntegers(dw.Select(w => w.Weight).ToArray());
+            return Slot.Draw<Dictionary<string, object?>, object?>(
+                _ => weights,
+                idx => (object?)new BigInteger(dw[idx].Value));
+        }
+
+        // ── Reel-strip draw (slot machine) ──
         var reelSet = config.ReelSets.FirstOrDefault()
             ?? throw new CompilationException(drawNode.Id, ErrorCodes.InvalidGraph,
-                "No ReelSet defined in graph config.");
+                "No ReelSet defined in graph config. Add reel strips or configure inline draw weights.");
 
         var strips = reelSet.StripIds
             .Select(sid => config.ReelStrips.FirstOrDefault(s => s.Id == sid))

@@ -16,6 +16,13 @@ export interface Tweaks {
 
 // ── Graph state (for @xyflow/react canvas) ──────────────────────────
 
+export interface DrawWeightEntry {
+  outcomeId: string;
+  weight: number;
+  /** Numeric value produced when this outcome is drawn. Any integer — not necessarily monetary. */
+  value: number;
+}
+
 export interface GraphNodeData {
   label: string;
   nodeType: 'draw' | 'state' | 'loop' | 'branch' | 'map' | 'evaluator' | 'transform' | 'sink';
@@ -28,6 +35,8 @@ export interface GraphNodeData {
   evaluatorKind?: 'lines' | 'ways' | 'cluster' | 'scatter';
   /** Expression on weight/multiplier ports */
   expression?: string;
+  /** Draw node: inline weighted outcomes (no ReelSets needed) */
+  drawWeights?: DrawWeightEntry[];
   [key: string]: unknown;
 }
 

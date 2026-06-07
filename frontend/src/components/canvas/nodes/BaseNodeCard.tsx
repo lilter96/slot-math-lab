@@ -40,9 +40,20 @@ const BaseNodeCard: FC<BaseNodeProps> = ({ data, selected }) => {
         <span className={lvlCls}>{lvlTxt}</span>
       </div>
       <div className="node-body">
-        {data.nodeType === 'draw' && (
-          <div className="mini-row"><span className="k">reels</span><span className="v">base</span></div>
-        )}
+        {data.nodeType === 'draw' && (() => {
+          const dw = Array.isArray(data.drawWeights) ? data.drawWeights as { outcomeId: string; weight: number; value: number }[] : [];
+          if (dw.length === 0) {
+            return <div className="mini-row"><span className="k">mode</span><span className="v" style={{ color: 'var(--faint)' }}>unconfigured</span></div>;
+          }
+          const total = dw.reduce((s, w) => s + w.weight, 0);
+          const exp = total > 0 ? dw.reduce((s, w) => s + w.value * w.weight, 0) / total : 0;
+          return (
+            <>
+              <div className="mini-row"><span className="k">outcomes</span><span className="v">{dw.length}</span></div>
+              <div className="mini-row"><span className="k">E[value]</span><span className="v" style={{ color: 'var(--exact)' }}>{exp.toFixed(2)}</span></div>
+            </>
+          );
+        })()}
         {data.nodeType === 'loop' && (
           <>
             <div className="mini-row"><span className="k">iterations</span><span className="v">{data.iterations ?? '—'}</span></div>

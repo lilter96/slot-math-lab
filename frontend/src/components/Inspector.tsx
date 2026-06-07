@@ -1,5 +1,5 @@
 import { useCallback } from 'react';
-import { useAppStore } from '../store';
+import { useAppStore, type DrawWeightEntry } from '../store';
 import { Ic } from './Icons';
 import ExprEditor from './editor/ExprEditor';
 
@@ -48,6 +48,102 @@ export default function Inspector() {
             onChange={(e) => setNodeData(node.id, { label: e.target.value })}
           />
         </div>
+
+        {/* ── Draw node config ── */}
+        {data.nodeType === 'draw' && (
+          <>
+            <div className="divider" />
+            <div className="section-label">Draw Weights</div>
+            <div className="hint" style={{ marginBottom: 6 }}>
+              Each outcome has a relative weight and a numeric value. Value can be any integer — points, balance change, etc.
+            </div>
+            {(() => {
+              const weights: DrawWeightEntry[] = Array.isArray(data.drawWeights) ? data.drawWeights as DrawWeightEntry[] : [];
+              const totalWeight = weights.reduce((s, w) => s + w.weight, 0);
+              const expectedValue = totalWeight > 0
+                ? weights.reduce((s, w) => s + w.value * w.weight, 0) / totalWeight
+                : 0;
+              const updateWeights = (next: DrawWeightEntry[]) =>
+                setNodeData(node.id, { drawWeights: next });
+              return (
+                <>
+                  <div style={{ overflowX: 'auto' }}>
+                    <table style={{ width: '100%', fontSize: 11, borderCollapse: 'collapse' }}>
+                      <thead>
+                        <tr style={{ color: 'var(--faint)' }}>
+                          <th style={{ textAlign: 'left', padding: '2px 4px', fontWeight: 400 }}>Outcome</th>
+                          <th style={{ textAlign: 'right', padding: '2px 4px', fontWeight: 400, width: 52 }}>Weight</th>
+                          <th style={{ textAlign: 'right', padding: '2px 4px', fontWeight: 400, width: 52 }}>Value</th>
+                          <th style={{ width: 20 }} />
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {weights.map((w, i) => (
+                          <tr key={i}>
+                            <td style={{ padding: '2px 4px' }}>
+                              <input
+                                className="inp"
+                                style={{ fontSize: 11, padding: '2px 4px', width: '100%' }}
+                                value={w.outcomeId}
+                                onChange={(e) => {
+                                  const next = weights.map((x, j) => j === i ? { ...x, outcomeId: e.target.value } : x);
+                                  updateWeights(next);
+                                }}
+                              />
+                            </td>
+                            <td style={{ padding: '2px 4px' }}>
+                              <input
+                                className="inp"
+                                style={{ fontSize: 11, padding: '2px 4px', width: '100%', textAlign: 'right' }}
+                                type="number" min={1}
+                                value={w.weight}
+                                onChange={(e) => {
+                                  const next = weights.map((x, j) => j === i ? { ...x, weight: parseInt(e.target.value) || 1 } : x);
+                                  updateWeights(next);
+                                }}
+                              />
+                            </td>
+                            <td style={{ padding: '2px 4px' }}>
+                              <input
+                                className="inp"
+                                style={{ fontSize: 11, padding: '2px 4px', width: '100%', textAlign: 'right' }}
+                                type="number"
+                                value={w.value}
+                                onChange={(e) => {
+                                  const next = weights.map((x, j) => j === i ? { ...x, value: parseInt(e.target.value) || 0 } : x);
+                                  updateWeights(next);
+                                }}
+                              />
+                            </td>
+                            <td style={{ padding: '2px 2px', textAlign: 'center' }}>
+                              <button
+                                style={{ background: 'none', border: 'none', color: 'var(--danger)', cursor: 'pointer', fontSize: 13, lineHeight: 1 }}
+                                onClick={() => updateWeights(weights.filter((_, j) => j !== i))}
+                              >×</button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                  <button
+                    className="btn sm"
+                    style={{ marginTop: 6, width: '100%' }}
+                    onClick={() => updateWeights([...weights, { outcomeId: `outcome${weights.length + 1}`, weight: 1, value: 0 }])}
+                  >
+                    + Add outcome
+                  </button>
+                  {weights.length > 0 && (
+                    <div style={{ display: 'flex', gap: 12, marginTop: 6, fontSize: 11, color: 'var(--faint)', fontFamily: 'var(--mono)' }}>
+                      <span>Total weight: {totalWeight}</span>
+                      <span>E[value]: {expectedValue.toFixed(4)}</span>
+                    </div>
+                  )}
+                </>
+              );
+            })()}
+          </>
+        )}
 
         {/* ── Loop node config ── */}
         {data.nodeType === 'loop' && (
