@@ -1,0 +1,351 @@
+- generic [ref=e2]:
+  - generic [ref=e3]:
+    - link "Skip to main content" [ref=e4] [cursor=pointer]:
+      - /url: "#main-content"
+    - generic [ref=e5]:
+      - generic [ref=e8]: Slot Math Lab
+      - generic [ref=e9]: Untitled
+      - tablist "Main navigation" [ref=e11]:
+        - tab "Build" [selected] [ref=e12] [cursor=pointer]:
+          - img [ref=e13]
+          - text: Build
+        - tab "Simulate" [ref=e18] [cursor=pointer]:
+          - img [ref=e19]
+          - text: Simulate
+        - tab "Results" [ref=e21] [cursor=pointer]:
+          - img [ref=e22]
+          - text: Results
+        - tab "Export" [ref=e25] [cursor=pointer]:
+          - img [ref=e26]
+          - text: Export
+      - generic [ref=e29]:
+        - generic [ref=e30]:
+          - generic [ref=e31]: Exact
+          - generic [ref=e33]: ε-pruned
+          - generic [ref=e35]: Sampled
+        - button "AI assist" [ref=e37] [cursor=pointer]:
+          - img [ref=e39]
+          - text: AI assist
+    - main [ref=e42]:
+      - generic [ref=e43]:
+        - generic [ref=e45]: Primitives
+        - generic "Draw — Weighted choice" [ref=e46]:
+          - img [ref=e48]
+          - generic [ref=e53]:
+            - generic [ref=e54]: Draw
+            - generic [ref=e55]: Weighted choice
+        - generic "State — Get / Put / Modify" [ref=e56]:
+          - img [ref=e58]
+          - generic [ref=e61]:
+            - generic [ref=e62]: State
+            - generic [ref=e63]: Get / Put / Modify
+        - generic "Loop — Fixpoint + stop" [ref=e64]:
+          - img [ref=e66]
+          - generic [ref=e69]:
+            - generic [ref=e70]: Loop
+            - generic [ref=e71]: Fixpoint + stop
+        - generic "Branch — Bind + conditional" [ref=e72]:
+          - img [ref=e74]
+          - generic [ref=e77]:
+            - generic [ref=e78]: Branch
+            - generic [ref=e79]: Bind + conditional
+        - generic "Map — Transform result" [ref=e80]:
+          - img [ref=e82]
+          - generic [ref=e84]:
+            - generic [ref=e85]: Map
+            - generic [ref=e86]: Transform result
+        - generic [ref=e88]: Library
+        - generic "Line Evaluator — IEvaluator" [ref=e89]:
+          - img [ref=e91]
+          - generic [ref=e94]:
+            - generic [ref=e95]: Line Evaluator
+            - generic [ref=e96]: IEvaluator
+        - generic "Ways Evaluator — IEvaluator" [ref=e97]:
+          - img [ref=e99]
+          - generic [ref=e102]:
+            - generic [ref=e103]: Ways Evaluator
+            - generic [ref=e104]: IEvaluator
+        - generic "Cluster Evaluator — IEvaluator" [ref=e105]:
+          - img [ref=e107]
+          - generic [ref=e110]:
+            - generic [ref=e111]: Cluster Evaluator
+            - generic [ref=e112]: IEvaluator
+        - generic "Scatter — IEvaluator" [ref=e113]:
+          - img [ref=e115]
+          - generic [ref=e118]:
+            - generic [ref=e119]: Scatter
+            - generic [ref=e120]: IEvaluator
+        - generic "Reveal — ITransform" [ref=e121]:
+          - img [ref=e123]
+          - generic [ref=e128]:
+            - generic [ref=e129]: Reveal
+            - generic [ref=e130]: ITransform
+        - generic "Expand / Explode — ITransform" [ref=e131]:
+          - img [ref=e133]
+          - generic [ref=e135]:
+            - generic [ref=e136]: Expand / Explode
+            - generic [ref=e137]: ITransform
+        - generic "Lock / Sticky — ITransform" [ref=e138]:
+          - img [ref=e140]
+          - generic [ref=e142]:
+            - generic [ref=e143]: Lock / Sticky
+            - generic [ref=e144]: ITransform
+        - generic "Morph / Upgrade — ITransform" [ref=e145]:
+          - img [ref=e147]
+          - generic [ref=e150]:
+            - generic [ref=e151]: Morph / Upgrade
+            - generic [ref=e152]: ITransform
+        - generic "Refill / Tumble — ITransform" [ref=e153]:
+          - img [ref=e155]
+          - generic [ref=e157]:
+            - generic [ref=e158]: Refill / Tumble
+            - generic [ref=e159]: ITransform
+        - generic "Metrics Sink — Output" [ref=e160]:
+          - img [ref=e162]
+          - generic [ref=e164]:
+            - generic [ref=e165]: Metrics Sink
+            - generic [ref=e166]: Output
+      - generic [ref=e167]:
+        - generic [ref=e168]:
+          - application [ref=e169]:
+            - img
+            - generic "Control Panel" [ref=e172]:
+              - button "Zoom In" [ref=e173] [cursor=pointer]:
+                - img [ref=e174]
+              - button "Zoom Out" [ref=e176] [cursor=pointer]:
+                - img [ref=e177]
+              - button "Fit View" [ref=e179] [cursor=pointer]:
+                - img [ref=e180]
+              - button "Toggle Interactivity" [ref=e182] [cursor=pointer]:
+                - img [ref=e183]
+            - link "React Flow attribution" [ref=e186] [cursor=pointer]:
+              - /url: https://reactflow.dev
+              - text: React Flow
+          - generic [ref=e188]:
+            - button "Zoom out" [ref=e189] [cursor=pointer]:
+              - img [ref=e190]
+            - button "Zoom in" [ref=e191] [cursor=pointer]:
+              - img [ref=e192]
+            - button "Reset view" [ref=e194] [cursor=pointer]:
+              - img [ref=e195]
+          - generic: drag nodes · scroll to zoom · hold space to pan
+        - generic [ref=e197]:
+          - generic [ref=e198]:
+            - generic:
+              - generic: Return to player
+              - generic "Exact rational — closed form, no sampling" [ref=e199]: Exact
+            - generic:
+              - text: —
+              - generic [ref=e201]: "%"
+            - generic: —
+          - generic [ref=e202]:
+            - generic:
+              - generic: Hit frequency
+              - generic "Exact rational — closed form, no sampling" [ref=e203]: Exact
+            - generic:
+              - text: —
+              - generic [ref=e205]: "%"
+            - generic: —
+          - generic [ref=e206]:
+            - generic:
+              - generic: Base volatility
+              - generic "Exact rational — closed form, no sampling" [ref=e207]: Exact
+            - generic:
+              - text: —
+              - generic [ref=e209]: σ
+            - generic: — · base game
+          - generic [ref=e210]:
+            - generic:
+              - generic: Feature trigger
+              - generic "Exact rational — closed form, no sampling" [ref=e211]: Exact
+            - generic:
+              - text: —
+              - generic [ref=e213]: "%"
+            - generic: ~1 in — spins
+          - generic [ref=e214]:
+            - generic:
+              - generic: Status
+              - generic "Exact rational — closed form, no sampling" [ref=e215]: Exact
+            - generic: —
+            - generic: —
+      - generic [ref=e217]:
+        - generic [ref=e218]:
+          - button "Symbols" [ref=e219] [cursor=pointer]
+          - button "Paytable" [ref=e220] [cursor=pointer]
+          - button "Reels" [ref=e221] [cursor=pointer]
+          - button "Board" [ref=e222] [cursor=pointer]
+        - generic [ref=e224]:
+          - generic [ref=e225]:
+            - generic [ref=e226]: Symbols
+            - generic [ref=e227]: 5 symbols
+          - generic [ref=e228]:
+            - table [ref=e229]:
+              - rowgroup [ref=e230]:
+                - row "ID Name Kind Color" [ref=e231]:
+                  - columnheader "ID" [ref=e232]
+                  - columnheader "Name" [ref=e233]
+                  - columnheader "Kind" [ref=e234]
+                  - columnheader "Color" [ref=e235]
+                  - columnheader [ref=e236]
+              - rowgroup [ref=e237]:
+                - 'row "S1 Cherry Standard #e03131 ×" [ref=e238]':
+                  - cell "S1" [ref=e239]:
+                    - textbox [ref=e240]: S1
+                  - cell "Cherry" [ref=e241]:
+                    - textbox [ref=e242]: Cherry
+                  - cell "Standard" [ref=e243]:
+                    - combobox [ref=e244]:
+                      - option "Standard" [selected]
+                      - option "Wild"
+                      - option "Scatter"
+                      - option "Bonus"
+                      - option "Multiplier"
+                      - option "Money"
+                      - option "Jackpot"
+                  - cell "#e03131" [ref=e245]:
+                    - textbox [ref=e248]: "#e03131"
+                  - cell "×" [ref=e249]:
+                    - button "×" [ref=e250] [cursor=pointer]
+                - 'row "S2 Lemon Standard #f08c00 ×" [ref=e251]':
+                  - cell "S2" [ref=e252]:
+                    - textbox [ref=e253]: S2
+                  - cell "Lemon" [ref=e254]:
+                    - textbox [ref=e255]: Lemon
+                  - cell "Standard" [ref=e256]:
+                    - combobox [ref=e257]:
+                      - option "Standard" [selected]
+                      - option "Wild"
+                      - option "Scatter"
+                      - option "Bonus"
+                      - option "Multiplier"
+                      - option "Money"
+                      - option "Jackpot"
+                  - cell "#f08c00" [ref=e258]:
+                    - textbox [ref=e261]: "#f08c00"
+                  - cell "×" [ref=e262]:
+                    - button "×" [ref=e263] [cursor=pointer]
+                - 'row "S3 Bell Standard #f06595 ×" [ref=e264]':
+                  - cell "S3" [ref=e265]:
+                    - textbox [ref=e266]: S3
+                  - cell "Bell" [ref=e267]:
+                    - textbox [ref=e268]: Bell
+                  - cell "Standard" [ref=e269]:
+                    - combobox [ref=e270]:
+                      - option "Standard" [selected]
+                      - option "Wild"
+                      - option "Scatter"
+                      - option "Bonus"
+                      - option "Multiplier"
+                      - option "Money"
+                      - option "Jackpot"
+                  - cell "#f06595" [ref=e271]:
+                    - textbox [ref=e274]: "#f06595"
+                  - cell "×" [ref=e275]:
+                    - button "×" [ref=e276] [cursor=pointer]
+                - 'row "W1 Wild Wild #2f9e44 ×" [ref=e277]':
+                  - cell "W1" [ref=e278]:
+                    - textbox [ref=e279]: W1
+                  - cell "Wild" [ref=e280]:
+                    - textbox [ref=e281]: Wild
+                  - cell "Wild" [ref=e282]:
+                    - combobox [ref=e283]:
+                      - option "Standard"
+                      - option "Wild" [selected]
+                      - option "Scatter"
+                      - option "Bonus"
+                      - option "Multiplier"
+                      - option "Money"
+                      - option "Jackpot"
+                  - cell "#2f9e44" [ref=e284]:
+                    - textbox [ref=e287]: "#2f9e44"
+                  - cell "×" [ref=e288]:
+                    - button "×" [ref=e289] [cursor=pointer]
+                - 'row "SC1 Scatter Scatter #7950f2 ×" [ref=e290]':
+                  - cell "SC1" [ref=e291]:
+                    - textbox [ref=e292]: SC1
+                  - cell "Scatter" [ref=e293]:
+                    - textbox [ref=e294]: Scatter
+                  - cell "Scatter" [ref=e295]:
+                    - combobox [ref=e296]:
+                      - option "Standard"
+                      - option "Wild"
+                      - option "Scatter" [selected]
+                      - option "Bonus"
+                      - option "Multiplier"
+                      - option "Money"
+                      - option "Jackpot"
+                  - cell "#7950f2" [ref=e297]:
+                    - textbox [ref=e300]: "#7950f2"
+                  - cell "×" [ref=e301]:
+                    - button "×" [ref=e302] [cursor=pointer]
+            - generic [ref=e303]:
+              - generic [ref=e304]:
+                - button "+ Add symbol" [ref=e305] [cursor=pointer]
+                - generic [ref=e306]: Paste TSV data (ID→Name→Kind→Color) from clipboard
+              - generic [ref=e307]: ✅ All 5 symbols valid
+      - generic [ref=e308]:
+        - generic [ref=e309]:
+          - button "Custom Mechanics" [ref=e310] [cursor=pointer]
+          - button "Plugins" [ref=e311] [cursor=pointer]
+        - generic [ref=e313]:
+          - generic [ref=e314]:
+            - generic [ref=e315]: Custom Mechanics
+            - generic [ref=e316]: ○ offline · 1 saved
+          - generic [ref=e317]:
+            - generic [ref=e318]: Save as Custom Mechanic
+            - generic [ref=e319]:
+              - generic [ref=e320]: Name
+              - textbox "e.g. Hold & Win, Free Spins Cascade" [ref=e321]
+            - generic [ref=e322]:
+              - generic [ref=e323]: Description (optional)
+              - textbox "What this mechanic does" [ref=e324]
+            - generic [ref=e325]: Select a node to save its subgraph, or save all nodes
+            - button "Save Mechanic" [disabled]:
+              - img
+              - text: Save Mechanic
+            - generic [ref=e327]: Saved Mechanics
+            - generic [ref=e329]:
+              - generic [ref=e330]:
+                - img [ref=e332]
+                - generic [ref=e335]:
+                  - generic [ref=e336]: Free Spins
+                  - generic [ref=e337]: 0 nodes · 0 edges
+                - button "Use" [ref=e338] [cursor=pointer]:
+                  - img [ref=e339]
+                  - text: Use
+                - button "Delete mechanic" [ref=e341] [cursor=pointer]:
+                  - img [ref=e342]
+              - generic [ref=e344]: Scatter-triggered free spins with retrigger and multiplier
+  - generic [ref=e345]:
+    - generic [ref=e346] [cursor=pointer]:
+      - generic [ref=e347]: Tweaks
+      - generic [ref=e348]: ▼
+    - generic [ref=e349]:
+      - generic [ref=e350]:
+        - generic [ref=e351]: Accent
+        - generic [ref=e352]:
+          - 'button "Accent color #46d39a" [ref=e353] [cursor=pointer]'
+          - 'button "Accent color #34d3c2" [ref=e354] [cursor=pointer]'
+          - 'button "Accent color #7ed35a" [ref=e355] [cursor=pointer]'
+          - 'button "Accent color #37c6e0" [ref=e356] [cursor=pointer]'
+      - generic [ref=e357]:
+        - generic [ref=e358]: Surface mood
+        - generic [ref=e359]:
+          - button "Slate" [ref=e360] [cursor=pointer]
+          - button "Ocean" [ref=e361] [cursor=pointer]
+          - button "Violet" [ref=e362] [cursor=pointer]
+          - button "Steel" [ref=e363] [cursor=pointer]
+      - generic [ref=e364]:
+        - generic [ref=e365]: Canvas
+        - generic [ref=e366]:
+          - generic [ref=e367]:
+            - text: Dot grid
+            - switch "Dot grid" [checked] [ref=e368] [cursor=pointer]
+          - generic [ref=e370]:
+            - text: Animated edges
+            - switch "Animated edges" [checked] [ref=e371] [cursor=pointer]
+      - generic [ref=e373]:
+        - generic [ref=e374]: Layout
+        - generic [ref=e375]:
+          - button "Regular" [ref=e376] [cursor=pointer]
+          - button "Compact" [ref=e377] [cursor=pointer]

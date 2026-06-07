@@ -136,7 +136,19 @@ export interface MechanicsSyncState {
 
 // ── Store ──────────────────────────────────────────────────────────
 
-export interface AppState extends GraphState, MechanicsState, PluginsState, MechanicsSyncState {
+export interface TableSymbol {
+  id: string;
+  name: string;
+  kind: string;
+  color: string;
+}
+
+export interface TableState {
+  tableSymbols: TableSymbol[];
+  setTableSymbols: (s: TableSymbol[]) => void;
+}
+
+export interface AppState extends GraphState, MechanicsState, PluginsState, MechanicsSyncState, TableState {
   tab: TabId;
   setTab: (tab: TabId) => void;
   configName: string | null;
@@ -272,6 +284,16 @@ export const useAppStore = create<AppState>((set, get) => ({
   backendAvailable: false,
   setBackendAvailable: (v) => set({ backendAvailable: v }),
   setMechanicsFromBackend: (mechanics) => set({ mechanics }),
+
+  // ── Table data (used by live metrics) ───────────────────────────
+  tableSymbols: [
+    { id: 'S1', name: 'Cherry', kind: 'Standard', color: '#e03131' },
+    { id: 'S2', name: 'Lemon', kind: 'Standard', color: '#f08c00' },
+    { id: 'S3', name: 'Bell', kind: 'Standard', color: '#f06595' },
+    { id: 'W1', name: 'Wild', kind: 'Wild', color: '#2f9e44' },
+    { id: 'SC1', name: 'Scatter', kind: 'Scatter', color: '#7950f2' },
+  ],
+  setTableSymbols: (symbols) => set({ tableSymbols: symbols }),
 }));
 
 // ── Minimal Node/Edge change handlers (avoid heavy immer dependency) ─

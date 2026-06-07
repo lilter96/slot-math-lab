@@ -1,1 +1,4 @@
 [     503ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:5199/node_modules/.vite/deps/react-dom_client.js?v=e27a10e4:14337
+[  224339ms] [ERROR] WebSocket connection to 'ws://localhost:5199/?token=9_nq14HFKhHT' failed:  @ http://localhost:5199/@vite/client:864
+[  224349ms] [LOG] [vite] server connection lost. Polling for restart... @ http://localhost:5199/@vite/client:992
+[  225743ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:5199/node_modules/.vite/deps/react-dom_client.js?v=e27a10e4:14337
