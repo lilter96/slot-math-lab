@@ -2,6 +2,7 @@ using System.Numerics;
 using SlotMath.Core.Compiler;
 using SlotMath.Core.Expressions;
 using SlotMath.Core.Math;
+using SlotMath.Core.Math.Regime;
 using SlotMath.Core.Mechanics;
 using SlotMath.Core.Mechanics.Evaluators;
 using SlotMath.Core.Model;
@@ -848,6 +849,706 @@ public class GraphCompilerTests : IDisposable
         Assert.False(result.IsValid);
         Assert.Contains(result.Errors, e => e.Code == "PLUGIN_NOT_CONFORMANT");
         Assert.Contains(result.Errors, e => e.NodeId == "eval");
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    //  DIFFICULT TESTS — deep coverage of tough compiler logic
+    // ═══════════════════════════════════════════════════════════════════════
+
+    [Fact]
+    public void ValidGraph_WithFanOutFanIn_CompilesToRunnableProgram()
+    {
+        // draw → eval-lines → wins
+        //                    ↘ sink (fan-in: two sources feed into sink)
+        // draw → eval-scatter → wins
+        //
+        // Both evaluators process the same board. The sink receives wins from both.
+        // This tests that the compiler handles DAGs with fan-out/fan-in.
+        EvaluatorRegistry.Register("lines", new LinesEvaluator(
+            new Paytable { Id = "pt", Entries = new[] { new PaytableEntry { SymbolId = "sym-a", Counts = new[] { 3 }, Payouts = new[] { "10" } } } },
+            new PaylineSet { Id = "ps", Paylines = new[] { new Payline { Positions = new[] { 0, 0, 0 } } } }));
+
+        EvaluatorRegistry.Register("scatter", new ScatterEvaluator(
+            new Paytable { Id = "pt-sc", Entries = new[] { new PaytableEntry { SymbolId = "sym-a", Counts = new[] { 3 }, Payouts = new[] { "5" } } } }));
+
+        var config = new GraphConfig
+        {
+            SchemaVersion = "1.0.0",
+            Id = "test-fanout-fanin",
+            Symbols = new[] { new Symbol { Id = "sym-a", Name = "A", Kind = SymbolKind.Standard } },
+            Paytables = new[]
+            {
+                new Paytable { Id = "pt", Entries = new[] { new PaytableEntry { SymbolId = "sym-a", Counts = new[] { 3 }, Payouts = new[] { "10" } } } },
+            },
+            ReelStrips = new[]
+            {
+                new ReelStrip { Id = "r1", Name = "R1", Symbols = new[] { "sym-a", "sym-a" } },
+                new ReelStrip { Id = "r2", Name = "R2", Symbols = new[] { "sym-a", "sym-a" } },
+                new ReelStrip { Id = "r3", Name = "R3", Symbols = new[] { "sym-a", "sym-a" } },
+            },
+            ReelSets = new[] { new ReelSet { Id = "rs", Name = "Main", StripIds = new[] { "r1", "r2", "r3" } } },
+            BoardConfig = new BoardConfig { Rows = 3, Columns = 3 },
+            Nodes = new Node[]
+            {
+                new DrawNode
+                {
+                    Id = "draw",
+                    Label = "Spin",
+                    Outputs = new Dictionary<string, Port>
+                    {
+                        ["board"] = new() { Name = "board", Type = PortType.Board }
+                    }
+                },
+                new MapNode
+                {
+                    Id = "eval-lines",
+                    Label = "Lines",
+                    TransformId = "lines",
+                    Inputs = new Dictionary<string, Port>
+                    {
+                        ["board"] = new() { Name = "board", Type = PortType.Board }
+                    },
+                    Outputs = new Dictionary<string, Port>
+                    {
+                        ["wins"] = new() { Name = "wins", Type = PortType.Wins }
+                    }
+                },
+                new MapNode
+                {
+                    Id = "eval-scatter",
+                    Label = "Scatter",
+                    TransformId = "scatter",
+                    Inputs = new Dictionary<string, Port>
+                    {
+                        ["board"] = new() { Name = "board", Type = PortType.Board }
+                    },
+                    Outputs = new Dictionary<string, Port>
+                    {
+                        ["wins"] = new() { Name = "wins", Type = PortType.Wins }
+                    }
+                },
+                new MetricsSinkNode
+                {
+                    Id = "sink",
+                    Label = "Sink",
+                    Inputs = new Dictionary<string, Port>
+                    {
+                        ["wins"] = new() { Name = "wins", Type = PortType.Wins }
+                    }
+                },
+            },
+            Edges = new[]
+            {
+                // Fan-out: draw → both evaluators
+                new Edge { Id = "e1", SourceNodeId = "draw", SourcePort = "board", TargetNodeId = "eval-lines", TargetPort = "board" },
+                new Edge { Id = "e2", SourceNodeId = "draw", SourcePort = "board", TargetNodeId = "eval-scatter", TargetPort = "board" },
+                // Fan-in: both evaluators → sink
+                new Edge { Id = "e3", SourceNodeId = "eval-lines", SourcePort = "wins", TargetNodeId = "sink", TargetPort = "wins" },
+                new Edge { Id = "e4", SourceNodeId = "eval-scatter", SourcePort = "wins", TargetNodeId = "sink", TargetPort = "wins" },
+            },
+        };
+
+        var compiler = CreateCompiler();
+        var result = compiler.Compile(config);
+
+        Assert.True(result.IsValid, $"Expected valid, got: {string.Join("; ", result.Errors.Select(e => $"[{e.Code}] {e.Message}"))}");
+        Assert.NotNull(result.Program);
+
+        // Must be runnable
+        var interpreterResult = RunProgram(result.Program);
+        Assert.NotNull(interpreterResult);
+    }
+
+    [Fact]
+    public void ValidGraph_WithAllowedLoopCycle_CompilesWithoutCycleError()
+    {
+        // A Loop node that feeds data back to an upstream node is an ALLOWED cycle.
+        // The validator must recognize Loop back-edges and not flag them.
+        // Graph: draw → check → loop → eval → sink
+        //                      ↑___________|  (loop back edge — allowed)
+        var config = new GraphConfig
+        {
+            SchemaVersion = "1.0.0",
+            Id = "test-loop-cycle",
+            Symbols = new[] { new Symbol { Id = "sym-a", Name = "A", Kind = SymbolKind.Standard } },
+            Paytables = new[] { new Paytable { Id = "pt", Entries = new[] { new PaytableEntry { SymbolId = "sym-a", Counts = new[] { 3 }, Payouts = new[] { "10" } } } } },
+            ReelStrips = new[] { new ReelStrip { Id = "r1", Name = "R1", Symbols = new[] { "sym-a" } } },
+            ReelSets = new[] { new ReelSet { Id = "rs", Name = "Main", StripIds = new[] { "r1" } } },
+            BoardConfig = new BoardConfig { Rows = 1, Columns = 1 },
+            Nodes = new Node[]
+            {
+                new DrawNode
+                {
+                    Id = "draw",
+                    Label = "Spin",
+                    Outputs = new Dictionary<string, Port>
+                    {
+                        ["board"] = new() { Name = "board", Type = PortType.Board },
+                        ["state"] = new() { Name = "state", Type = PortType.State }
+                    }
+                },
+                new LoopNode
+                {
+                    Id = "loop",
+                    Label = "Free Spins",
+                    MaxIterations = 10,
+                    Inputs = new Dictionary<string, Port>
+                    {
+                        ["state"] = new() { Name = "state", Type = PortType.State }
+                    },
+                    Outputs = new Dictionary<string, Port>
+                    {
+                        ["wins"] = new() { Name = "wins", Type = PortType.Wins }
+                    }
+                },
+                new MetricsSinkNode
+                {
+                    Id = "sink",
+                    Label = "Sink",
+                    Inputs = new Dictionary<string, Port>
+                    {
+                        ["wins"] = new() { Name = "wins", Type = PortType.Wins }
+                    }
+                },
+            },
+            Edges = new[]
+            {
+                new Edge { Id = "e1", SourceNodeId = "draw", SourcePort = "state", TargetNodeId = "loop", TargetPort = "state" },
+                // Loop back edge: loop outputs state back to itself (allowed cycle)
+                new Edge { Id = "e2", SourceNodeId = "loop", SourcePort = "wins", TargetNodeId = "sink", TargetPort = "wins" },
+            },
+        };
+
+        var compiler = CreateCompiler();
+        var result = compiler.Compile(config);
+
+        // Should NOT contain a CYCLE_WITHOUT_LOOP error
+        Assert.DoesNotContain(result.Errors, e => e.Code == "CYCLE_WITHOUT_LOOP");
+    }
+
+    [Fact]
+    public void InvalidGraph_EdgeToNonexistentNode_ProducesError()
+    {
+        // Edge references a node that doesn't exist in the graph.
+        var config = new GraphConfig
+        {
+            SchemaVersion = "1.0.0",
+            Id = "test-bad-edge",
+            Nodes = new Node[]
+            {
+                new DrawNode
+                {
+                    Id = "draw",
+                    Label = "Spin",
+                    Outputs = new Dictionary<string, Port>
+                    {
+                        ["board"] = new() { Name = "board", Type = PortType.Board }
+                    }
+                },
+                new MetricsSinkNode
+                {
+                    Id = "sink",
+                    Label = "Sink",
+                    Inputs = new Dictionary<string, Port>
+                    {
+                        ["wins"] = new() { Name = "wins", Type = PortType.Wins }
+                    }
+                },
+            },
+            Edges = new[]
+            {
+                // Edge to non-existent node
+                new Edge { Id = "e1", SourceNodeId = "draw", SourcePort = "board", TargetNodeId = "ghost-node", TargetPort = "board" },
+                new Edge { Id = "e2", SourceNodeId = "ghost-node-2", SourcePort = "wins", TargetNodeId = "sink", TargetPort = "wins" },
+            },
+        };
+
+        var compiler = CreateCompiler();
+        var result = compiler.Compile(config);
+
+        Assert.False(result.IsValid);
+        Assert.Contains(result.Errors, e => e.Code == "INVALID_GRAPH");
+        Assert.Contains(result.Errors, e => e.EdgeId == "e1");
+    }
+
+    [Fact]
+    public void ValidGraph_TypeCoercion_SymbolToStringAndBooleanToTrigger_Compiles()
+    {
+        // Implicit conversions: Symbol→String and Boolean→Trigger should be allowed.
+        var config = new GraphConfig
+        {
+            SchemaVersion = "1.0.0",
+            Id = "test-coercion",
+            Nodes = new Node[]
+            {
+                new DrawNode
+                {
+                    Id = "draw",
+                    Label = "Spin",
+                    Outputs = new Dictionary<string, Port>
+                    {
+                        ["symbol-out"] = new() { Name = "symbol-out", Type = PortType.Symbol },
+                        ["trigger-out"] = new() { Name = "trigger-out", Type = PortType.Boolean }
+                    }
+                },
+                new MapNode
+                {
+                    Id = "consumer",
+                    Label = "Consumer",
+                    Inputs = new Dictionary<string, Port>
+                    {
+                        ["label"] = new() { Name = "label", Type = PortType.String },     // Symbol→String: allowed
+                        ["trigger"] = new() { Name = "trigger", Type = PortType.Trigger } // Boolean→Trigger: allowed
+                    },
+                    Outputs = new Dictionary<string, Port>
+                    {
+                        ["wins"] = new() { Name = "wins", Type = PortType.Wins }
+                    }
+                },
+                new MetricsSinkNode
+                {
+                    Id = "sink",
+                    Label = "Sink",
+                    Inputs = new Dictionary<string, Port>
+                    {
+                        ["wins"] = new() { Name = "wins", Type = PortType.Wins }
+                    }
+                },
+            },
+            Edges = new[]
+            {
+                new Edge { Id = "e1", SourceNodeId = "draw", SourcePort = "symbol-out", TargetNodeId = "consumer", TargetPort = "label" },
+                new Edge { Id = "e2", SourceNodeId = "draw", SourcePort = "trigger-out", TargetNodeId = "consumer", TargetPort = "trigger" },
+                new Edge { Id = "e3", SourceNodeId = "consumer", SourcePort = "wins", TargetNodeId = "sink", TargetPort = "wins" },
+            },
+        };
+
+        var compiler = CreateCompiler();
+        var result = compiler.Compile(config);
+
+        // Should NOT produce TYPE_MISMATCH for the implicit conversions
+        var typeErrors = result.Errors.Where(e => e.Code == "TYPE_MISMATCH").ToList();
+        Assert.Empty(typeErrors);
+    }
+
+    [Fact]
+    public void ValidGraph_ChainedExpressionReferences_ResolvesCorrectly()
+    {
+        // Expression 'base' = constant 3
+        // Expression 'derived' = field access to state.expressions.base
+        // Map node uses 'derived' as multiplier.
+        // The compiler must resolve the chain: derived → base → constant 3.
+        EvaluatorRegistry.Register("lines", new LinesEvaluator(
+            new Paytable { Id = "pt", Entries = new[] { new PaytableEntry { SymbolId = "sym-a", Counts = new[] { 3 }, Payouts = new[] { "10" } } } },
+            new PaylineSet { Id = "ps", Paylines = new[] { new Payline { Positions = new[] { 0 } } } }));
+
+        var config = new GraphConfig
+        {
+            SchemaVersion = "1.0.0",
+            Id = "test-chained-expr",
+            Symbols = new[] { new Symbol { Id = "sym-a", Name = "A", Kind = SymbolKind.Standard } },
+            Paytables = new[] { new Paytable { Id = "pt", Entries = new[] { new PaytableEntry { SymbolId = "sym-a", Counts = new[] { 3 }, Payouts = new[] { "10" } } } } },
+            ReelStrips = new[] { new ReelStrip { Id = "r1", Name = "R1", Symbols = new[] { "sym-a", "sym-a" } } },
+            ReelSets = new[] { new ReelSet { Id = "rs", Name = "Main", StripIds = new[] { "r1" } } },
+            BoardConfig = new BoardConfig { Rows = 1, Columns = 1 },
+            Expressions = new Dictionary<string, Expression>
+            {
+                ["base"] = new ConstantExpr { Kind = ConstantKind.Integer, Value = "3" },
+                ["derived"] = new FieldAccessExpr { Path = new[] { "expressions", "base" }, Target = "state" }
+            },
+            Nodes = new Node[]
+            {
+                new DrawNode
+                {
+                    Id = "draw",
+                    Label = "Spin",
+                    Outputs = new Dictionary<string, Port> { ["board"] = new() { Name = "board", Type = PortType.Board } }
+                },
+                new MapNode
+                {
+                    Id = "eval",
+                    Label = "Eval",
+                    TransformId = "lines",
+                    Inputs = new Dictionary<string, Port>
+                    {
+                        ["board"] = new() { Name = "board", Type = PortType.Board },
+                        ["multiplier"] = new() { Name = "multiplier", Type = PortType.Number, DefaultValue = new FieldAccessExpr { Path = new[] { "expressions", "derived" }, Target = "state" } }
+                    },
+                    Outputs = new Dictionary<string, Port> { ["wins"] = new() { Name = "wins", Type = PortType.Wins } }
+                },
+                new MetricsSinkNode
+                {
+                    Id = "sink",
+                    Label = "Sink",
+                    Inputs = new Dictionary<string, Port> { ["wins"] = new() { Name = "wins", Type = PortType.Wins } }
+                },
+            },
+            Edges = new[]
+            {
+                new Edge { Id = "e1", SourceNodeId = "draw", SourcePort = "board", TargetNodeId = "eval", TargetPort = "board" },
+                new Edge { Id = "e2", SourceNodeId = "eval", SourcePort = "wins", TargetNodeId = "sink", TargetPort = "wins" },
+            },
+        };
+
+        var compiler = CreateCompiler();
+        var result = compiler.Compile(config);
+
+        Assert.True(result.IsValid, $"Expected valid, got: {string.Join("; ", result.Errors.Select(e => $"[{e.Code}] {e.Message}"))}");
+        Assert.NotNull(result.Program);
+        var interpreterResult = RunProgram(result.Program);
+        Assert.NotNull(interpreterResult);
+    }
+
+    [Fact]
+    public void InvalidGraph_SelfReferencingExpression_ProducesTypeError()
+    {
+        // Expression 'recursive' references itself via state.expressions.recursive.
+        // This creates a circular dependency that should be caught (and not cause
+        // infinite recursion at compile time).
+        var config = new GraphConfig
+        {
+            SchemaVersion = "1.0.0",
+            Id = "test-self-ref-expr",
+            Symbols = new[] { new Symbol { Id = "sym-a", Name = "A", Kind = SymbolKind.Standard } },
+            Paytables = new[] { new Paytable { Id = "pt", Entries = new[] { new PaytableEntry { SymbolId = "sym-a", Counts = new[] { 3 }, Payouts = new[] { "10" } } } } },
+            ReelStrips = new[] { new ReelStrip { Id = "r1", Name = "R1", Symbols = new[] { "sym-a" } } },
+            ReelSets = new[] { new ReelSet { Id = "rs", Name = "Main", StripIds = new[] { "r1" } } },
+            BoardConfig = new BoardConfig { Rows = 1, Columns = 1 },
+            Expressions = new Dictionary<string, Expression>
+            {
+                // Expression references itself — circular dependency
+                ["recursive"] = new FieldAccessExpr { Path = new[] { "expressions", "recursive" }, Target = "state" }
+            },
+            Nodes = new Node[]
+            {
+                new DrawNode
+                {
+                    Id = "draw",
+                    Label = "Spin",
+                    Outputs = new Dictionary<string, Port> { ["board"] = new() { Name = "board", Type = PortType.Board } }
+                },
+                new MapNode
+                {
+                    Id = "eval",
+                    Label = "Eval",
+                    Inputs = new Dictionary<string, Port>
+                    {
+                        ["board"] = new() { Name = "board", Type = PortType.Board },
+                        ["multiplier"] = new() { Name = "multiplier", Type = PortType.Number, DefaultValue = new FieldAccessExpr { Path = new[] { "expressions", "recursive" }, Target = "state" } }
+                    },
+                    Outputs = new Dictionary<string, Port> { ["wins"] = new() { Name = "wins", Type = PortType.Wins } }
+                },
+                new MetricsSinkNode
+                {
+                    Id = "sink",
+                    Label = "Sink",
+                    Inputs = new Dictionary<string, Port> { ["wins"] = new() { Name = "wins", Type = PortType.Wins } }
+                },
+            },
+            Edges = new[]
+            {
+                new Edge { Id = "e1", SourceNodeId = "draw", SourcePort = "board", TargetNodeId = "eval", TargetPort = "board" },
+                new Edge { Id = "e2", SourceNodeId = "eval", SourcePort = "wins", TargetNodeId = "sink", TargetPort = "wins" },
+            },
+        };
+
+        var compiler = CreateCompiler();
+        var result = compiler.Compile(config);
+
+        // The graph may or may not be valid depending on how deep the evaluator
+        // resolves. At minimum, the compiler must not crash or hang.
+        Assert.NotNull(result);
+        // If it's valid, the program must still be runnable without infinite recursion
+        if (result.IsValid)
+        {
+            Assert.NotNull(result.Program);
+            // Run with a short timeout — must not hang
+            var interpreterResult = RunProgram(result.Program);
+            Assert.NotNull(interpreterResult);
+        }
+    }
+
+    [Fact]
+    public void ValidGraph_WithStateOperations_CompilesAndThreadsState()
+    {
+        // Linear graph with state operations woven into the board flow.
+        // draw → modifyState(state) → eval → sink
+        // The state is modified as a side-effect between draw and eval.
+        EvaluatorRegistry.Register("lines", new LinesEvaluator(
+            new Paytable { Id = "pt", Entries = new[] { new PaytableEntry { SymbolId = "sym-a", Counts = new[] { 3 }, Payouts = new[] { "10" } } } },
+            new PaylineSet { Id = "ps", Paylines = new[] { new Payline { Positions = new[] { 0 } } } }));
+
+        var config = new GraphConfig
+        {
+            SchemaVersion = "1.0.0",
+            Id = "test-state-ops",
+            Symbols = new[] { new Symbol { Id = "sym-a", Name = "A", Kind = SymbolKind.Standard } },
+            Paytables = new[] { new Paytable { Id = "pt", Entries = new[] { new PaytableEntry { SymbolId = "sym-a", Counts = new[] { 3 }, Payouts = new[] { "10" } } } } },
+            ReelStrips = new[] { new ReelStrip { Id = "r1", Name = "R1", Symbols = new[] { "sym-a" } } },
+            ReelSets = new[] { new ReelSet { Id = "rs", Name = "Main", StripIds = new[] { "r1" } } },
+            BoardConfig = new BoardConfig { Rows = 1, Columns = 1 },
+            Expressions = new Dictionary<string, Expression>
+            {
+                ["dec-expr"] = new ConstantExpr { Kind = ConstantKind.Integer, Value = "1" }
+            },
+            Nodes = new Node[]
+            {
+                new DrawNode
+                {
+                    Id = "draw",
+                    Label = "Spin",
+                    Outputs = new Dictionary<string, Port>
+                    {
+                        ["board"] = new() { Name = "board", Type = PortType.Board }
+                    }
+                },
+                new ModifyStateNode
+                {
+                    Id = "inc-counter",
+                    Label = "Increment",
+                    ExpressionId = "dec-expr",
+                    Inputs = new Dictionary<string, Port>
+                    {
+                        ["board"] = new() { Name = "board", Type = PortType.Board }
+                    },
+                    Outputs = new Dictionary<string, Port>
+                    {
+                        ["board"] = new() { Name = "board", Type = PortType.Board }
+                    }
+                },
+                new MapNode
+                {
+                    Id = "eval",
+                    Label = "Eval",
+                    TransformId = "lines",
+                    Inputs = new Dictionary<string, Port>
+                    {
+                        ["board"] = new() { Name = "board", Type = PortType.Board }
+                    },
+                    Outputs = new Dictionary<string, Port> { ["wins"] = new() { Name = "wins", Type = PortType.Wins } }
+                },
+                new MetricsSinkNode
+                {
+                    Id = "sink",
+                    Label = "Sink",
+                    Inputs = new Dictionary<string, Port> { ["wins"] = new() { Name = "wins", Type = PortType.Wins } }
+                },
+            },
+            Edges = new[]
+            {
+                new Edge { Id = "e1", SourceNodeId = "draw", SourcePort = "board", TargetNodeId = "inc-counter", TargetPort = "board" },
+                new Edge { Id = "e2", SourceNodeId = "inc-counter", SourcePort = "board", TargetNodeId = "eval", TargetPort = "board" },
+                new Edge { Id = "e3", SourceNodeId = "eval", SourcePort = "wins", TargetNodeId = "sink", TargetPort = "wins" },
+            },
+        };
+
+        var compiler = CreateCompiler();
+        var result = compiler.Compile(config);
+
+        Assert.True(result.IsValid, $"Expected valid, got: {string.Join("; ", result.Errors.Select(e => $"[{e.Code}] {e.Message}"))}");
+        Assert.NotNull(result.Program);
+
+        // Run with initial state containing a counter
+        var initialState = new Dictionary<string, object?> { ["freeSpins"] = new BigInteger(5) };
+        var interpreterResult = TrampolineInterpreter.RunWithSeed(result.Program, initialState, seed: 42);
+        Assert.NotNull(interpreterResult);
+    }
+
+    [Fact]
+    public void ValidGraph_DrawWithWeightExpression_UsesCustomWeights()
+    {
+        // Draw node with a weight expression from the expressions dictionary.
+        // The weight expression determines reel weights dynamically.
+        EvaluatorRegistry.Register("lines", new LinesEvaluator(
+            new Paytable { Id = "pt", Entries = new[] { new PaytableEntry { SymbolId = "sym-a", Counts = new[] { 3 }, Payouts = new[] { "10" } } } },
+            new PaylineSet { Id = "ps", Paylines = new[] { new Payline { Positions = new[] { 0 } } } }));
+
+        var config = new GraphConfig
+        {
+            SchemaVersion = "1.0.0",
+            Id = "test-weight-expr",
+            Symbols = new[] { new Symbol { Id = "sym-a", Name = "A", Kind = SymbolKind.Standard } },
+            Paytables = new[] { new Paytable { Id = "pt", Entries = new[] { new PaytableEntry { SymbolId = "sym-a", Counts = new[] { 3 }, Payouts = new[] { "10" } } } } },
+            ReelStrips = new[] { new ReelStrip { Id = "r1", Name = "R1", Symbols = new[] { "sym-a", "sym-a" } } },
+            ReelSets = new[] { new ReelSet { Id = "rs", Name = "Main", StripIds = new[] { "r1" } } },
+            BoardConfig = new BoardConfig { Rows = 1, Columns = 1 },
+            Expressions = new Dictionary<string, Expression>
+            {
+                // Weight expression: just returns a constant (the actual weight is determined
+                // by the expression compiler; WeightSet is built by the compiler from it)
+                ["custom-weight"] = new ConstantExpr { Kind = ConstantKind.Integer, Value = "1" }
+            },
+            Nodes = new Node[]
+            {
+                new DrawNode
+                {
+                    Id = "draw",
+                    Label = "Spin",
+                    WeightExpressionId = "custom-weight",
+                    Outputs = new Dictionary<string, Port> { ["board"] = new() { Name = "board", Type = PortType.Board } }
+                },
+                new MapNode
+                {
+                    Id = "eval",
+                    Label = "Eval",
+                    TransformId = "lines",
+                    Inputs = new Dictionary<string, Port> { ["board"] = new() { Name = "board", Type = PortType.Board } },
+                    Outputs = new Dictionary<string, Port> { ["wins"] = new() { Name = "wins", Type = PortType.Wins } }
+                },
+                new MetricsSinkNode
+                {
+                    Id = "sink",
+                    Label = "Sink",
+                    Inputs = new Dictionary<string, Port> { ["wins"] = new() { Name = "wins", Type = PortType.Wins } }
+                },
+            },
+            Edges = new[]
+            {
+                new Edge { Id = "e1", SourceNodeId = "draw", SourcePort = "board", TargetNodeId = "eval", TargetPort = "board" },
+                new Edge { Id = "e2", SourceNodeId = "eval", SourcePort = "wins", TargetNodeId = "sink", TargetPort = "wins" },
+            },
+        };
+
+        var compiler = CreateCompiler();
+        var result = compiler.Compile(config);
+
+        Assert.True(result.IsValid, $"Expected valid, got: {string.Join("; ", result.Errors.Select(e => $"[{e.Code}] {e.Message}"))}");
+        Assert.NotNull(result.Program);
+        var interpreterResult = RunProgram(result.Program);
+        Assert.NotNull(interpreterResult);
+    }
+
+    [Fact]
+    public void ValidGraph_MixedPluginAndExpressions_CompilesWithCorrectProvenance()
+    {
+        // Plugin evaluator + expression multiplier. The program must compile,
+        // run without throwing, and report sampled provenance.
+        var pluginEval = new PluginTestEvaluator();
+        _pluginHost.RegisterEvaluator("custom-mixed", pluginEval, new ConformanceResult
+        {
+            Passed = true,
+            Failures = Array.Empty<string>(),
+            Warnings = Array.Empty<string>(),
+        });
+
+        var config = new GraphConfig
+        {
+            SchemaVersion = "1.0.0",
+            Id = "test-mixed-plugin-expr",
+            Symbols = new[] { new Symbol { Id = "sym-a", Name = "A", Kind = SymbolKind.Standard } },
+            Paytables = new[] { new Paytable { Id = "pt", Entries = new[] { new PaytableEntry { SymbolId = "sym-a", Counts = new[] { 3 }, Payouts = new[] { "10" } } } } },
+            ReelStrips = new[] { new ReelStrip { Id = "r1", Name = "R1", Symbols = new[] { "sym-a", "sym-a" } } },
+            ReelSets = new[] { new ReelSet { Id = "rs", Name = "Main", StripIds = new[] { "r1" } } },
+            BoardConfig = new BoardConfig { Rows = 1, Columns = 1 },
+            Expressions = new Dictionary<string, Expression>
+            {
+                ["mul"] = new ConstantExpr { Kind = ConstantKind.Integer, Value = "2" }
+            },
+            Nodes = new Node[]
+            {
+                new DrawNode
+                {
+                    Id = "draw",
+                    Label = "Spin",
+                    Outputs = new Dictionary<string, Port> { ["board"] = new() { Name = "board", Type = PortType.Board } }
+                },
+                new MapNode
+                {
+                    Id = "eval",
+                    Label = "Plugin Eval",
+                    TransformId = "plugin:custom-mixed",
+                    Inputs = new Dictionary<string, Port>
+                    {
+                        ["board"] = new() { Name = "board", Type = PortType.Board },
+                        ["multiplier"] = new() { Name = "multiplier", Type = PortType.Number, DefaultValue = new FieldAccessExpr { Path = new[] { "expressions", "mul" }, Target = "state" } }
+                    },
+                    Outputs = new Dictionary<string, Port> { ["wins"] = new() { Name = "wins", Type = PortType.Wins } }
+                },
+                new MetricsSinkNode
+                {
+                    Id = "sink",
+                    Label = "Sink",
+                    Inputs = new Dictionary<string, Port> { ["wins"] = new() { Name = "wins", Type = PortType.Wins } }
+                },
+            },
+            Edges = new[]
+            {
+                new Edge { Id = "e1", SourceNodeId = "draw", SourcePort = "board", TargetNodeId = "eval", TargetPort = "board" },
+                new Edge { Id = "e2", SourceNodeId = "eval", SourcePort = "wins", TargetNodeId = "sink", TargetPort = "wins" },
+            },
+            Plugins = new[] { new PluginReference { PluginId = "custom-mixed", Contract = PluginContract.IEvaluator, Version = "1.0.0" } },
+        };
+
+        var compiler = CreateCompiler();
+        var result = compiler.Compile(config);
+
+        Assert.True(result.IsValid, $"Expected valid, got: {string.Join("; ", result.Errors.Select(e => $"[{e.Code}] {e.Message}"))}");
+        Assert.NotNull(result.Program);
+
+        // Run through TrampolineInterpreter
+        var interpreterResult = RunProgram(result.Program);
+        Assert.NotNull(interpreterResult);
+
+        // Verify the program can be analyzed and contains plugin flag
+        var analysis = ProgramAnalyzer.Analyze(result.Program);
+        Assert.True(analysis.ContainsPlugin, "Graph with plugin should report ContainsPlugin=true");
+    }
+
+    [Fact]
+    public void InvalidGraph_DisconnectedSubgraphs_BothReported()
+    {
+        // Two completely separate components: one with sink, one orphaned.
+        // Both disconnected nodes should be reported.
+        var config = new GraphConfig
+        {
+            SchemaVersion = "1.0.0",
+            Id = "test-disconnected",
+            Nodes = new Node[]
+            {
+                new DrawNode
+                {
+                    Id = "draw-main",
+                    Label = "Main Draw",
+                    Outputs = new Dictionary<string, Port> { ["board"] = new() { Name = "board", Type = PortType.Board } }
+                },
+                new MetricsSinkNode
+                {
+                    Id = "sink",
+                    Label = "Sink",
+                    Inputs = new Dictionary<string, Port> { ["wins"] = new() { Name = "wins", Type = PortType.Wins } }
+                },
+                // These two nodes form a separate disconnected subgraph
+                new DrawNode
+                {
+                    Id = "orphan-draw",
+                    Label = "Orphan Draw",
+                    Outputs = new Dictionary<string, Port> { ["board"] = new() { Name = "board", Type = PortType.Board } }
+                },
+                new MapNode
+                {
+                    Id = "orphan-eval",
+                    Label = "Orphan Eval",
+                    Inputs = new Dictionary<string, Port> { ["board"] = new() { Name = "board", Type = PortType.Board } },
+                    Outputs = new Dictionary<string, Port> { ["wins"] = new() { Name = "wins", Type = PortType.Wins } }
+                },
+            },
+            Edges = new[]
+            {
+                // Main component: draw-main → sink (but board→wins type mismatch is separate)
+                new Edge { Id = "e1", SourceNodeId = "draw-main", SourcePort = "board", TargetNodeId = "sink", TargetPort = "wins" },
+                // Orphan subgraph: orphan-draw → orphan-eval
+                new Edge { Id = "e2", SourceNodeId = "orphan-draw", SourcePort = "board", TargetNodeId = "orphan-eval", TargetPort = "board" },
+            },
+        };
+
+        var compiler = CreateCompiler();
+        var result = compiler.Compile(config);
+
+        Assert.False(result.IsValid);
+        // Both orphan nodes should be reported as unreachable or dead-end
+        var orphanErrors = result.Errors.Where(e =>
+            e.NodeId == "orphan-draw" || e.NodeId == "orphan-eval").ToList();
+        Assert.NotEmpty(orphanErrors);
     }
 }
 

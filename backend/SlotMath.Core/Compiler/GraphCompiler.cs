@@ -212,8 +212,21 @@ public sealed class GraphCompiler
     {
         return previous.SelectMany(prevOutput =>
         {
-            // Build input values for this node from the previous output and expressions
             var node = nodeMap[nodeId];
+
+            // State operations are side-effects — execute them and pass through prevOutput.
+            if (node is GetStateNode or PutStateNode or ModifyStateNode)
+            {
+                // State ops receive the current data flow value and return it unchanged
+                // after performing their state side-effect.
+                return CompileNodeOutput(node, new Dictionary<string, object?>
+                {
+                    ["__data__"] = prevOutput
+                }, config, nodeMap, incoming, outgoing)
+                .SelectMany(_ => Slot.Pure<Dictionary<string, object?>, object?>(prevOutput));
+            }
+
+            // Build input values for this node from the previous output and expressions
             var inputValues = new Dictionary<string, object?>();
 
             // Map the previous output to the appropriate input port
@@ -491,9 +504,9 @@ public sealed class GraphCompiler
     private Slot<Dictionary<string, object?>, object?> CompileModifyState(
         ModifyStateNode node, GraphConfig config)
     {
+        // Modify state as side-effect, return null (caller passes through prevOutput).
         return Slot.Modify<Dictionary<string, object?>>(state =>
         {
-            // Apply expression if specified
             if (node.ExpressionId != null && config.Expressions != null &&
                 config.Expressions.TryGetValue(node.ExpressionId, out var expr))
             {
@@ -502,7 +515,7 @@ public sealed class GraphCompiler
                 state["__modified__"] = val;
             }
             return state;
-        }).SelectMany(_ => Slot.Pure<Dictionary<string, object?>, object?>(null));
+        }).SelectMany(_ => Slot.Pure<Dictionary<string, object?>, object?>(null!));
     }
 
     // ── Branch / Loop compilers (stubs for valid graph support) ─────────

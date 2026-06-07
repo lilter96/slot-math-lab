@@ -41,12 +41,12 @@ public static class GraphValidator
         // 1. MetricsSink count
         ValidateMetricsSink(config, errors);
 
-        // 2. Build adjacency and validate cycles / reachability
+        // 2. Edge type compatibility (catches non-existent nodes early)
+        ValidateEdgeTypes(config, errors);
+
+        // 3. Build adjacency and validate cycles / reachability
         var adjacency = BuildAdjacency(config);
         ValidateAcyclicityAndReachability(config, adjacency, errors);
-
-        // 3. Edge type compatibility
-        ValidateEdgeTypes(config, errors);
 
         // 4. Expression type-checking
         ValidateExpressions(config, typeCheckContext, errors);
@@ -110,16 +110,27 @@ public static class GraphValidator
 
         foreach (var edge in config.Edges)
         {
+            // Add source and target to the node set even if they're not in config.Nodes
+            // (they'll be flagged as invalid edges, but we need to not crash on them)
             if (!outgoing.ContainsKey(edge.SourceNodeId))
                 outgoing[edge.SourceNodeId] = new List<Edge>();
+            if (!outgoing.ContainsKey(edge.TargetNodeId))
+                outgoing[edge.TargetNodeId] = new List<Edge>();
+            if (!incoming.ContainsKey(edge.SourceNodeId))
+                incoming[edge.SourceNodeId] = new List<Edge>();
             if (!incoming.ContainsKey(edge.TargetNodeId))
                 incoming[edge.TargetNodeId] = new List<Edge>();
+            if (!allNodes.Contains(edge.SourceNodeId))
+                allNodes.Add(edge.SourceNodeId);
+            if (!allNodes.Contains(edge.TargetNodeId))
+                allNodes.Add(edge.TargetNodeId);
 
             outgoing[edge.SourceNodeId].Add(edge);
             incoming[edge.TargetNodeId].Add(edge);
         }
 
-        var entryNodes = new HashSet<string>(allNodes.Where(n => incoming[n].Count == 0));
+        var entryNodes = new HashSet<string>(allNodes.Where(n =>
+            incoming.ContainsKey(n) && incoming[n].Count == 0));
 
         return new AdjacencyInfo(incoming, outgoing, allNodes) { EntryNodes = entryNodes };
     }
@@ -152,6 +163,7 @@ public static class GraphValidator
 
         void Dfs(string nodeId)
         {
+            if (!state.ContainsKey(nodeId)) return; // ghost node (referenced by edge but not in graph)
             if (state[nodeId] == NodeColor.Black) return;
             if (state[nodeId] == NodeColor.Gray)
             {
@@ -237,7 +249,11 @@ public static class GraphValidator
             {
                 if (nodeId == sinkNode.Id) continue;
 
-                var node = config.Nodes.First(n => n.Id == nodeId);
+                var node = config.Nodes.FirstOrDefault(n => n.Id == nodeId);
+
+                // Skip ghost nodes (referenced by edges but not in config.Nodes)
+                // — they've already been reported by ValidateEdgeTypes.
+                if (node == null) continue;
 
                 // Skip MetricsSink (already handled)
                 if (node is MetricsSinkNode) continue;
