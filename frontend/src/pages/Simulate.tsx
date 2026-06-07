@@ -4,279 +4,202 @@ import ConvergenceChart, { type ConvergencePoint } from '../components/simulate/
 import Histogram from '../components/simulate/Histogram';
 import ProvBadge from '../components/ProvBadge';
 
-// ── Simulate config ─────────────────────────────────────────────────
-const TOTAL_SPINS = 100_000;
-const BATCH_SIZE = 100;
-const EXACT_REFERENCE = 0.9534; // example exact RTP for comparison
+const TOTAL_SPINS = 1_000_000;
+const EXACT_REFERENCE = 0.9534;
+const CAP_WIN = 5000;
 
-// ── Run state ──────────────────────────────────────────────────────
 type RunStatus = 'idle' | 'running' | 'paused' | 'complete';
+
+function fmtN(n: number): string {
+  if (n >= 1e6) return (n / 1e6).toFixed(0) + 'M';
+  if (n >= 1e3) return (n / 1e3).toFixed(0) + 'k';
+  return String(n);
+}
+
+function KV({ k, v }: { k: string; v: string }) {
+  return (
+    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', padding: '5px 0', borderBottom: '1px solid var(--line)' }}>
+      <span style={{ fontSize: 11, color: 'var(--faint)' }}>{k}</span>
+      <span style={{ fontFamily: 'var(--mono)', fontSize: 13, color: 'var(--muted)' }}>{v}</span>
+    </div>
+  );
+}
 
 export default function Simulate() {
   const [status, setStatus] = useState<RunStatus>('idle');
   const [sampleCount, setSampleCount] = useState(0);
   const [runningRtp, setRunningRtp] = useState(0);
   const [stdErr, setStdErr] = useState(0);
+  const [volatility, setVolatility] = useState(0);
+  const [maxWin, setMaxWin] = useState(0);
+  const [capHits, setCapHits] = useState(0);
   const [points, setPoints] = useState<ConvergencePoint[]>([]);
   const [histogram, setHistogram] = useState<Map<number, number>>(new Map());
-  const [error, setError] = useState<string | null>(null);
-  const [spinsTarget, setSpinsTarget] = useState(TOTAL_SPINS);
+  const [spinsTarget] = useState(TOTAL_SPINS);
 
   const hubRef = useRef<signalR.HubConnection | null>(null);
   const abortRef = useRef(false);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  // ── Stop / cleanup ──────────────────────────────────────────────
   const stop = useCallback(() => {
     abortRef.current = true;
     if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
-    if (hubRef.current) {
-      hubRef.current.stop();
-      hubRef.current = null;
-    }
+    if (hubRef.current) { hubRef.current.stop(); hubRef.current = null; }
     if (status === 'running') setStatus('paused');
   }, [status]);
 
-  // ── Start run ───────────────────────────────────────────────────
   const start = useCallback(async () => {
     abortRef.current = false;
     setStatus('running');
-    setError(null);
-    setSampleCount(0);
-    setRunningRtp(0);
-    setStdErr(0);
-    setPoints([]);
-    setHistogram(new Map());
+    setSampleCount(0); setRunningRtp(0); setStdErr(0); setVolatility(0);
+    setMaxWin(0); setCapHits(0);
+    setPoints([]); setHistogram(new Map());
 
-    // Try SignalR connection to backend
+    // Try SignalR
     try {
       const hub = new signalR.HubConnectionBuilder()
         .withUrl('/hubs/runs')
         .withAutomaticReconnect()
         .build();
-
-      hub.on('RunProgress', (msg: {
-        runId: string;
-        sampleCount: number;
-        totalSamples: number;
-        runningRtp: number;
-        stdErr: number;
-        status: string;
-        elapsedMs: number;
-      }) => {
+      hub.on('RunProgress', (msg: { sampleCount: number; totalSamples: number; runningRtp: number; stdErr: number; status: string }) => {
         if (abortRef.current) return;
-        setSampleCount(msg.sampleCount);
-        setRunningRtp(msg.runningRtp);
-        setStdErr(msg.stdErr);
-        setPoints((prev) => [...prev, {
-          n: msg.sampleCount,
-          rtp: msg.runningRtp,
-          stdErr: msg.stdErr,
-        }]);
-
-        if (msg.status === 'completed' || msg.sampleCount >= msg.totalSamples) {
-          setStatus('complete');
-          hub.stop();
-          hubRef.current = null;
-        }
+        setSampleCount(msg.sampleCount); setRunningRtp(msg.runningRtp); setStdErr(msg.stdErr);
+        setPoints((prev) => [...prev, { n: msg.sampleCount, rtp: msg.runningRtp, stdErr: msg.stdErr }]);
+        if (msg.status === 'completed' || msg.sampleCount >= msg.totalSamples) { setStatus('complete'); hub.stop(); hubRef.current = null; }
       });
-
       hubRef.current = hub;
       await hub.start();
-    } catch {
-      // SignalR failed — fall back to simulated streaming
-      console.warn('SignalR unavailable, using simulated data');
-    }
+      return;
+    } catch { /* fall through to local sim */ }
 
-    // Fallback: simulate streaming data if SignalR not connected
-    let n = 0;
-    let sum = 0;
-    let sumSq = 0;
+    // Local fallback simulation
+    let n = 0, sum = 0, sumSq = 0, localMax = 0, localCapHits = 0;
     const mu = EXACT_REFERENCE;
+    const BATCH = 3000;
 
     timerRef.current = setInterval(() => {
       if (abortRef.current) return;
-      n += BATCH_SIZE;
-      if (n > spinsTarget) n = spinsTarget;
-
-      // Simulate Monte Carlo convergence
-      for (let j = 0; j < BATCH_SIZE && n - BATCH_SIZE + j < spinsTarget; j++) {
-        const win = mu + (Math.random() - 0.5) * 0.3 * Math.exp(-n / 20000);
-        sum += Math.max(0, win);
-        sumSq += Math.max(0, win) ** 2;
+      const remaining = Math.min(BATCH, spinsTarget - n);
+      for (let j = 0; j < remaining; j++) {
+        const noise = (Math.random() - 0.5) * 0.3 * Math.exp(-n / 50000);
+        const win = Math.max(0, mu + noise) * (0.5 + Math.random() * 2.5);
+        sum += win; sumSq += win * win;
+        if (win > localMax) localMax = win;
+        if (win >= CAP_WIN) localCapHits++;
       }
-
+      n += remaining;
       const avg = sum / n;
-      const variance = sumSq / n - avg * avg;
-      const se = Math.sqrt(Math.max(0, variance) / n);
+      const variance = Math.max(0, sumSq / n - avg * avg);
+      const se = Math.sqrt(variance / n);
 
-      setSampleCount(n);
-      setRunningRtp(avg);
-      setStdErr(se);
+      setSampleCount(n); setRunningRtp(avg); setStdErr(se);
+      setVolatility(Math.sqrt(variance));
+      setMaxWin(Math.round(localMax));
+      setCapHits(localCapHits);
       setPoints((prev) => {
         const last = prev[prev.length - 1];
-        if (last && n - last.n < spinsTarget / 50) return prev;
+        if (last && n - last.n < spinsTarget / 200) return prev;
         return [...prev, { n, rtp: avg, stdErr: se }];
       });
-
-      // Update histogram
       setHistogram((prev) => {
         const next = new Map(prev);
-        const bucket = Math.round(avg * 20) / 20; // 0.05-width buckets
-        next.set(bucket, (next.get(bucket) || 0) + 1);
+        const bucket = Math.round(avg * 20) / 20;
+        next.set(bucket, (next.get(bucket) ?? 0) + 1);
         return next;
       });
-
-      if (n >= spinsTarget) {
-        if (timerRef.current) clearInterval(timerRef.current);
-        setStatus('complete');
-      }
-    }, 80);
+      if (n >= spinsTarget) { if (timerRef.current) clearInterval(timerRef.current); setStatus('complete'); }
+    }, 50);
   }, [spinsTarget]);
 
-  // ── Cleanup on unmount ──────────────────────────────────────────
-  useEffect(() => {
-    return () => {
-      abortRef.current = true;
-      if (timerRef.current) clearInterval(timerRef.current);
-      if (hubRef.current) hubRef.current.stop();
-    };
+  useEffect(() => () => {
+    abortRef.current = true;
+    if (timerRef.current) clearInterval(timerRef.current);
+    if (hubRef.current) hubRef.current.stop();
   }, []);
 
-  const inCI = runningRtp >= EXACT_REFERENCE - 1.96 * stdErr && runningRtp <= EXACT_REFERENCE + 1.96 * stdErr;
+  const inBand = sampleCount > 1000 && Math.abs(runningRtp - EXACT_REFERENCE) <= 3 * stdErr + 1e-9;
+  const progress = Math.min(1, sampleCount / spinsTarget);
 
   return (
-    <div className="workspace" style={{ overflow: 'auto' }}>
+    <div className="workspace">
       <div className="sim-wrap">
-        {/* ── Controls ── */}
+        {/* ── Controls row ── */}
         <div className="sim-top">
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
-            <div className="field" style={{ margin: 0 }}>
-              <label style={{ fontSize: 10, color: 'var(--faint)' }}>Spins</label>
-              <input
-                className="inp"
-                type="number"
-                value={spinsTarget}
-                onChange={(e) => setSpinsTarget(parseInt(e.target.value) || TOTAL_SPINS)}
-                disabled={status === 'running'}
-                style={{ width: 100, fontFamily: 'var(--mono)' }}
-              />
-            </div>
-            {status === 'idle' && (
-              <button className="btn primary" onClick={start}>
-                <span style={{ color: '#06140d' }}>▶</span> Start Run
-              </button>
-            )}
-            {status === 'running' && (
-              <button className="btn" onClick={stop} style={{ borderColor: 'var(--danger)', color: 'var(--danger)' }}>
-                ■ Cancel
-              </button>
-            )}
-            {(status === 'paused' || status === 'complete') && (
-              <button className="btn primary" onClick={start}>
-                ▶ Restart
-              </button>
-            )}
-          </div>
-
-          {/* Stat cards */}
-          <div className="stat-cards" style={{ marginLeft: 'auto' }}>
-            <div className="stat-card">
-              <div className="sl">Samples</div>
-              <div className="sv">{sampleCount.toLocaleString()}</div>
-            </div>
-            <div className="stat-card">
-              <div className="sl">Running RTP</div>
-              <div className="sv" style={{ color: 'var(--exact)' }}>{(runningRtp * 100).toFixed(3)}%</div>
-            </div>
-            <div className="stat-card">
-              <div className="sl">±95% CI</div>
-              <div className="sv" style={{ color: 'var(--sampled)' }}>±{(1.96 * stdErr * 100).toFixed(3)}%</div>
-            </div>
-            <div className="stat-card">
-              <div className="sl">Status</div>
-              <div className="sv" style={{ fontSize: 13, color: status === 'complete' ? 'var(--exact)' : status === 'running' ? 'var(--sampled)' : 'var(--faint)' }}>
-                {status}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Progress bar */}
-        {status === 'running' && (
-          <div style={{ padding: '0 16px', marginBottom: 8 }}>
-            <div className="progress">
-              <div className="bar" style={{ width: `${(sampleCount / spinsTarget) * 100}%` }} />
-            </div>
-            <div className="hint" style={{ textAlign: 'right' }}>{((sampleCount / spinsTarget) * 100).toFixed(0)}%</div>
-          </div>
-        )}
-
-        {error && (
-          <div style={{ padding: '8px 16px', color: 'var(--danger)', fontSize: 12 }}>{error}</div>
-        )}
-
-        {/* ── Convergence chart ── */}
-        <div className="chart-card" style={{ flex: 1, margin: '0 16px 16px' }}>
-          <div className="chart-head">
-            <span className="ct">RTP Convergence</span>
-            <span className="leg">
-              <span><span className="ln" style={{ background: 'var(--exact)', display: 'inline-block', width: 14, height: 2, borderRadius: 2, verticalAlign: 'middle', marginRight: 4 }} />Exact ({((EXACT_REFERENCE * 100)).toFixed(2)}%)</span>
-              <span><span className="ln" style={{ background: 'var(--sampled)', display: 'inline-block', width: 14, height: 2, borderRadius: 2, verticalAlign: 'middle', marginRight: 4 }} />Running</span>
-              <span><span className="ln" style={{ background: 'var(--sampled-dim)', display: 'inline-block', width: 14, height: 8, borderRadius: 3, verticalAlign: 'middle', marginRight: 4 }} />95% CI</span>
+          <div className="sim-controls">
+            {status !== 'running'
+              ? <button className="btn blue" onClick={start}>▶ Run {fmtN(spinsTarget)} spins</button>
+              : <button className="btn" onClick={stop} style={{ borderColor: 'var(--danger)', color: 'var(--danger)' }}>■ Cancel</button>}
+            <div className="progress"><div className="bar" style={{ width: `${progress * 100}%` }} /></div>
+            <span className="tnum" style={{ color: 'var(--faint)', fontSize: 12, minWidth: 96 }}>
+              {fmtN(sampleCount)} / {fmtN(spinsTarget)}
             </span>
           </div>
-          <div className="chart-canvas-wrap">
-            <ConvergenceChart
-              points={points}
-              exactRtp={EXACT_REFERENCE}
-              width={900}
-              height={280}
-            />
+
+          <div className="stat-cards">
+            <div className="stat-card">
+              <div className="sl">Running RTP</div>
+              <div className="sv" style={{ color: 'var(--sampled)' }}>{(runningRtp * 100).toFixed(3)}%</div>
+            </div>
+            <div className="stat-card">
+              <div className="sl">Std error</div>
+              <div className="sv">±{(stdErr * 100).toFixed(4)}</div>
+            </div>
+            <div className="stat-card">
+              <div className="sl">Exact RTP</div>
+              <div className="sv" style={{ color: 'var(--exact)' }}>{(EXACT_REFERENCE * 100).toFixed(2)}%</div>
+            </div>
+            <div className="stat-card">
+              <div className="sl">Max win seen</div>
+              <div className="sv">{maxWin > 0 ? maxWin + '×' : '—'}</div>
+            </div>
           </div>
         </div>
 
-        {/* ── Bottom row: histogram + comparison ── */}
-        <div className="sim-bottom">
-          <div className="hist-card">
-            <div className="section-label" style={{ marginBottom: 8 }}>Hit Distribution</div>
-            <Histogram data={histogram} width={420} height={180} />
+        {/* ── Convergence chart ── */}
+        <div className="chart-card">
+          <div className="chart-head">
+            <span className="ct">RTP convergence</span>
+            {sampleCount > 1000 && (
+              <span className={'prov ' + (inBand ? 'sampled' : 'epsilon')} style={{ marginLeft: 10 }}>
+                <span className="pdot" />
+                {inBand ? 'within exact ± 3·stdErr' : 'converging…'}
+              </span>
+            )}
+            <div className="leg">
+              <span><span className="ln" style={{ background: 'var(--exact)' }} />exact (closed form)</span>
+              <span><span className="ln" style={{ background: 'var(--sampled)' }} />sampled mean</span>
+              <span><span className="ln" style={{ background: 'var(--sampled)', opacity: 0.35, height: 8 }} />95% CI</span>
+            </div>
           </div>
-          <div className="hist-card">
-            <div className="section-label" style={{ marginBottom: 8 }}>Exact vs Sampled</div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0' }}>
-                <span style={{ color: 'var(--muted)', fontSize: 12 }}>Exact RTP</span>
-                <span style={{ fontFamily: 'var(--mono)', fontSize: 16, color: 'var(--exact)', fontWeight: 500 }}>
-                  {(EXACT_REFERENCE * 100).toFixed(2)}%
-                </span>
-                <ProvBadge p={{ kind: 'Exact' }} mini />
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0' }}>
-                <span style={{ color: 'var(--muted)', fontSize: 12 }}>Sampled RTP</span>
-                <span style={{ fontFamily: 'var(--mono)', fontSize: 16, color: 'var(--sampled)', fontWeight: 500 }}>
-                  {(runningRtp * 100).toFixed(3)}%
-                </span>
-                {sampleCount > 0 && (
-                  <ProvBadge p={{ kind: 'Sampled', n: sampleCount, stdErr }} mini />
-                )}
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0' }}>
-                <span style={{ color: 'var(--muted)', fontSize: 12 }}>95% CI band</span>
-                <span style={{ fontFamily: 'var(--mono)', fontSize: 13, color: 'var(--sampled)' }}>
-                  [{((runningRtp - 1.96 * stdErr) * 100).toFixed(3)}% – {((runningRtp + 1.96 * stdErr) * 100).toFixed(3)}%]
-                </span>
-                <span style={{
-                  fontSize: 10,
-                  padding: '2px 8px',
-                  borderRadius: 10,
-                  background: inCI ? 'var(--exact-dim)' : 'var(--danger-dim)',
-                  color: inCI ? 'var(--exact)' : 'var(--danger)',
-                  fontFamily: 'var(--mono)',
-                }}>
-                  {sampleCount > 0 ? (inCI ? '✓ in band' : '✗ outside') : '—'}
-                </span>
-              </div>
+          <div className="chart-canvas-wrap">
+            <ConvergenceChart points={points} exactRtp={EXACT_REFERENCE} />
+          </div>
+        </div>
+
+        {/* ── Bottom row ── */}
+        <div className="sim-bottom">
+          <div className="hist-card" style={{ height: 170 }}>
+            <div style={{ display: 'flex', alignItems: 'center', marginBottom: 8 }}>
+              <span style={{ fontWeight: 600 }}>Win distribution</span>
+              <span style={{ marginLeft: 'auto', fontSize: 11, color: 'var(--faint)', fontFamily: 'var(--mono)' }}>
+                payout buckets (bet ×) · full game
+              </span>
+            </div>
+            <div style={{ height: 110 }}>
+              <Histogram data={histogram} />
+            </div>
+          </div>
+          <div className="hist-card" style={{ width: 260, flex: '0 0 auto' }}>
+            <div style={{ fontWeight: 600, marginBottom: 10, display: 'flex', alignItems: 'center', gap: 8 }}>
+              Full-game stats
+              {sampleCount > 0 && <ProvBadge p={{ kind: 'Sampled', n: sampleCount, stdErr }} mini />}
+            </div>
+            <KV k="Volatility (σ)" v={volatility > 0 ? volatility.toFixed(2) : '—'} />
+            <KV k="Hit on cap" v={sampleCount > 0 ? `${capHits} / ${fmtN(sampleCount)}` : '—'} />
+            <KV k="P(cap reached)" v={sampleCount > 0 ? (capHits / sampleCount * 100).toFixed(4) + '%' : '—'} />
+            <div className="hint" style={{ marginTop: 12 }}>
+              Variance includes free-spin tails, so it is{' '}
+              <b style={{ color: 'var(--sampled)' }}>Sampled</b> — the base-game volatility on the Build tab is exact.
             </div>
           </div>
         </div>

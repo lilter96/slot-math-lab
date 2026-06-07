@@ -223,7 +223,7 @@ export default function Export() {
   const hashesMatch = importHash && exportHash === importHash;
 
   return (
-    <div className="workspace" style={{ overflow: 'auto' }}>
+    <div className="workspace">
       <div className="doc">
         <div className="doc-inner">
           {/* ── Header ── */}

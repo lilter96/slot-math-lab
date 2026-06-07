@@ -423,3 +423,46 @@ body.compact .panel-body { padding: 11px; }
 .ac-item.sel { background: var(--bg-3); }
 .ac-item .ac-k { font-family: var(--mono); }
 .ac-item .ac-t { margin-left:auto; font-size: 10px; color: var(--faint); font-family: var(--mono); }
+
+/* ── Simulate ───────────────────────────────────────────────────── */
+.sim-wrap { flex:1; display:flex; flex-direction:column; overflow:hidden; }
+.sim-top { display:flex; gap:14px; padding:16px; flex-shrink:0; align-items:stretch; }
+.sim-controls { display:flex; align-items:center; gap:12px; flex-wrap:wrap; }
+.stat-cards { display:flex; gap:0; background:var(--bg-1); border:1px solid var(--line); border-radius:10px; overflow:hidden; margin-left:auto; }
+.stat-card { padding:10px 16px; border-right:1px solid var(--line); min-width:110px; }
+.stat-card:last-child { border-right:0; }
+.stat-card .sl { font-size:10px; text-transform:uppercase; letter-spacing:.07em; color:var(--faint); margin-bottom:3px; }
+.stat-card .sv { font-family:var(--mono); font-size:18px; font-weight:500; }
+.chart-card { flex:1; min-width:0; min-height:0; background:var(--bg-1); border:1px solid var(--line); border-radius:12px; display:flex; flex-direction:column; margin:0 16px 16px; overflow:hidden; }
+.chart-head { display:flex; align-items:center; gap:10px; padding:12px 16px; border-bottom:1px solid var(--line); flex-shrink:0; }
+.chart-head .ct { font-weight:600; }
+.chart-head .leg { margin-left:auto; display:flex; gap:14px; font-size:11px; color:var(--muted); align-items:center; }
+.chart-head .leg .ln { width:16px; height:2px; border-radius:2px; display:inline-block; margin-right:5px; vertical-align:middle; }
+.chart-canvas-wrap { flex:1; min-height:0; position:relative; padding:8px; }
+canvas.chart { width:100%; height:100%; display:block; }
+.sim-bottom { display:flex; gap:16px; padding:0 16px 16px; flex-shrink:0; }
+.hist-card { flex:1; background:var(--bg-1); border:1px solid var(--line); border-radius:12px; padding:12px 16px; }
+.progress { height:5px; background:var(--bg-3); border-radius:3px; overflow:hidden; flex:1; min-width:120px; }
+.progress .bar { height:100%; background:var(--sampled); border-radius:3px; transition:width .15s; }
+
+/* ── Results / Export doc ───────────────────────────────────────── */
+.doc { flex:1; overflow-y:auto; padding:28px 32px; }
+.doc-inner { max-width:920px; margin:0 auto; }
+.par-h { display:flex; align-items:baseline; gap:12px; margin-bottom:4px; }
+.par-h h1 { font-size:22px; font-weight:600; margin:0; letter-spacing:-0.01em; }
+.par-meta { color:var(--faint); font-size:12px; font-family:var(--mono); margin-bottom:22px; }
+.par-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:1px; background:var(--line); border:1px solid var(--line); border-radius:12px; overflow:hidden; margin-bottom:22px; }
+.par-cell { background:var(--bg-1); padding:14px 16px; }
+.par-cell .pl { font-size:10.5px; text-transform:uppercase; letter-spacing:.07em; color:var(--faint); margin-bottom:6px; display:flex; gap:6px; align-items:center; flex-wrap:wrap; }
+.par-cell .pv { font-family:var(--mono); font-size:20px; font-weight:500; }
+.par-section { margin-bottom:24px; }
+.par-section h2 { font-size:13px; text-transform:uppercase; letter-spacing:.06em; color:var(--muted); margin:0 0 12px; font-weight:600; }
+.par-table { width:100%; border-collapse:collapse; font-size:12px; }
+.par-table th { text-align:left; color:var(--faint); font-weight:500; padding:8px 12px; border-bottom:1px solid var(--line); font-size:11px; text-transform:uppercase; letter-spacing:.04em; }
+.par-table td { padding:9px 12px; border-bottom:1px solid oklch(0.31 0.014 255 / .5); font-family:var(--mono); }
+.par-table td:first-child, .par-table th:first-child { font-family:var(--sans); }
+.code-block { background:var(--bg); border:1px solid var(--line); border-radius:10px; padding:16px; font-family:var(--mono); font-size:11.5px; color:var(--muted); overflow:auto; max-height:460px; white-space:pre; line-height:1.6; }
+
+/* ── Blue button variant ─────────────────────────────────────────── */
+.btn.blue { background: var(--sampled); color: #04101f; border-color: transparent; font-weight: 600; }
+.btn.blue:hover { background: oklch(0.78 0.135 250); }
