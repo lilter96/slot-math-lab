@@ -30,7 +30,7 @@ const LIBRARY: PaletteItem[] = [
 
 export default function Palette() {
   return (
-    <div className="palette">
+    <div className="palette" tabIndex={0}>
       <div className="grp">
         <div className="section-label">Primitives</div>
       </div>

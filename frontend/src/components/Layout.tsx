@@ -96,9 +96,9 @@ export default function Layout() {
         </div>
       </div>
 
-      <div className="body" id="main-content">
+      <main className="body" id="main-content">
         <Outlet />
-      </div>
+      </main>
     </div>
   );
 }

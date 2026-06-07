@@ -11,7 +11,7 @@
   --line-2: oklch(0.40 0.016 var(--hue));
   --text: oklch(0.95 0.006 var(--hue));
   --muted: oklch(0.72 0.012 var(--hue));
-  --faint: oklch(0.56 0.012 var(--hue));
+  --faint: oklch(0.62 0.012 var(--hue));
 
   /* provenance / accent language (shared chroma) */
   --exact: oklch(0.80 0.15 158);     /* green  */

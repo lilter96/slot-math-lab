@@ -82,6 +82,7 @@ export default function TweaksPanel() {
               {ACCENT_OPTIONS.map((color) => (
                 <button
                   key={color}
+                  aria-label={`Accent color ${color}`}
                   onClick={() => setTweak('accent', color)}
                   style={{
                     width: 26,
