@@ -297,3 +297,15 @@ body.compact .panel-body { padding: 11px; }
 .toggle::after { content:""; position:absolute; top:2px; left:2px; width:16px;height:16px; border-radius:50%; background:#fff; transition: transform .15s; }
 .toggle.on::after { transform: translateX(16px); }
 .toggle:focus-visible { outline: 2px solid var(--sampled); outline-offset: 2px; }
+
+/* ── Expression editor ───────────────────────────────────────────── */
+.expr-editor { position: relative; }
+.expr-status { display:flex; align-items:center; gap:7px; margin-top: 7px; font-size: 11px; font-family: var(--mono); }
+.expr-status.ok { color: var(--exact); }
+.expr-status.err { color: var(--danger); }
+.expr-status .tag { margin-left:auto; color: var(--faint); }
+.autocomplete { position: absolute; z-index: 50; background: var(--bg-2); border: 1px solid var(--line-2); border-radius: 8px; box-shadow: var(--shadow-pop); overflow: hidden; min-width: 200px; }
+.ac-item { padding: 7px 11px; display:flex; align-items:center; gap:9px; cursor:pointer; font-size: 12px; }
+.ac-item.sel { background: var(--bg-3); }
+.ac-item .ac-k { font-family: var(--mono); }
+.ac-item .ac-t { margin-left:auto; font-size: 10px; color: var(--faint); font-family: var(--mono); }

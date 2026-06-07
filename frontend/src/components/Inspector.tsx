@@ -1,6 +1,7 @@
 import { useCallback } from 'react';
 import { useAppStore } from '../store';
 import { Ic } from './Icons';
+import ExprEditor from './editor/ExprEditor';
 
 export default function Inspector() {
   const selectedNodeId = useAppStore((s) => s.selectedNodeId);
@@ -72,13 +73,10 @@ export default function Inspector() {
             </div>
             <div className="field">
               <label>Termination predicate (level b)</label>
-              <textarea
-                className="inp"
-                rows={3}
-                style={{ resize: 'vertical', minHeight: 50 }}
+              <ExprEditor
                 value={typeof data.terminationExpr === 'string' ? data.terminationExpr : ''}
+                onChange={(v) => setNodeData(node.id, { terminationExpr: v })}
                 placeholder="e.g. spins_left == 0"
-                onChange={(e) => setNodeData(node.id, { terminationExpr: e.target.value })}
               />
               <div className="hint">Expression that stops the loop when true. Leave empty for fixed-count only.</div>
             </div>
@@ -113,13 +111,10 @@ export default function Inspector() {
             <div className="section-label">Expression (level b)</div>
             <div className="field">
               <label>{data.nodeType === 'branch' ? 'Predicate' : 'Transform expression'}</label>
-              <textarea
-                className="inp"
-                rows={3}
-                style={{ resize: 'vertical', minHeight: 50, fontFamily: 'var(--mono)' }}
+              <ExprEditor
                 value={typeof data.expression === 'string' ? data.expression : ''}
+                onChange={(v) => setNodeData(node.id, { expression: v })}
                 placeholder={data.nodeType === 'branch' ? 'e.g. scatter_count >= 3' : 'e.g. sum(board, multiplier)'}
-                onChange={(e) => setNodeData(node.id, { expression: e.target.value })}
               />
             </div>
           </>
