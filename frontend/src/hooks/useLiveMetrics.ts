@@ -5,6 +5,7 @@ import { useAppStore, type GraphNode, type GraphEdge } from '../store';
 // Types
 // ═══════════════════════════════════════════════════════════════════
 
+
 export interface LiveMetric {
   rtp: number;
   hitFrequency: number;
@@ -42,6 +43,90 @@ const EMPTY: LiveMetricsState = {
 // Hook
 // ═══════════════════════════════════════════════════════════════════
 
+/** Map a frontend node to a backend-serializable node object with nodeType discriminator. */
+function mapNodeToBackend(n: GraphNode): Record<string, unknown> {
+  const base = { id: n.id, label: n.data.label };
+  switch (n.data.nodeType) {
+    case 'draw':
+      return {
+        ...base,
+        nodeType: 'draw',
+        inputs: {},
+        outputs: { out: { name: 'out', type: 'Wins' } },
+        ...(n.data.drawWeights?.length ? { drawWeights: n.data.drawWeights } : {}),
+        ...(n.data.weightExpressionId ? { weightExpressionId: n.data.weightExpressionId } : {}),
+      };
+    case 'state': {
+      const op = (n.data.stateOp as string) ?? 'get';
+      const key = (n.data.stateKey as string) || '__default__';
+      if (op === 'put') return { ...base, nodeType: 'putState', stateKey: key, inputs: { in: { name: 'in', type: 'Wins' } }, outputs: { out: { name: 'out', type: 'Wins' } } };
+      if (op === 'modify') return { ...base, nodeType: 'modifyState', expressionId: n.data.expression as string ?? undefined, inputs: { in: { name: 'in', type: 'Wins' } }, outputs: { out: { name: 'out', type: 'Wins' } } };
+      return { ...base, nodeType: 'getState', stateKey: key, inputs: { in: { name: 'in', type: 'Wins' } }, outputs: { out: { name: 'out', type: 'Wins' } } };
+    }
+    case 'loop':
+      return {
+        ...base,
+        nodeType: 'loop',
+        inputs: { in: { name: 'in', type: 'Wins' } },
+        outputs: { out: { name: 'out', type: 'Wins' } },
+        maxIterations: (n.data.iterations as number) ?? 5,
+        ...(n.data.terminationExpr ? { stopConditionId: n.data.terminationExpr } : {}),
+      };
+    case 'branch':
+      return {
+        ...base,
+        nodeType: 'branch',
+        inputs: { in: { name: 'in', type: 'Wins' } },
+        outputs: { out: { name: 'out', type: 'Wins' } },
+        ...(n.data.expression ? { conditionId: n.data.expression } : {}),
+      };
+    case 'map':
+      return {
+        ...base,
+        nodeType: 'map',
+        inputs: { in: { name: 'in', type: 'Wins' } },
+        outputs: { out: { name: 'out', type: 'Wins' } },
+        ...(n.data.transformId ? { transformId: n.data.transformId } : {}),
+        ...(n.data.expression ? { transformId: n.data.expression } : {}),
+      };
+    case 'evaluator': {
+      const kind = (n.data.evaluatorKind as string) ?? 'lines';
+      const transformId = kind === 'plugin'
+        ? `plugin:${(n.data.pluginId as string) ?? ''}`
+        : kind;
+      return {
+        ...base,
+        nodeType: 'map',
+        inputs: { in: { name: 'in', type: 'Board' } },
+        outputs: { out: { name: 'out', type: 'Wins' } },
+        transformId,
+      };
+    }
+    case 'transform':
+      return {
+        ...base,
+        nodeType: 'map',
+        inputs: { in: { name: 'in', type: 'Board' } },
+        outputs: { out: { name: 'out', type: 'Board' } },
+        ...(n.data.sub ? { transformId: n.data.sub } : {}),
+      };
+    case 'sink':
+      return {
+        ...base,
+        nodeType: 'metricsSink',
+        inputs: { in: { name: 'in', type: 'Wins' } },
+        outputs: {},
+      };
+    default:
+      return {
+        ...base,
+        nodeType: n.data.nodeType,
+        inputs: {},
+        outputs: { out: { name: 'out', type: 'Wins' } },
+      };
+  }
+}
+
 /** Build a config object from the current graph state. Returns null if not enough data. */
 function buildConfigPayload(
   nodes: GraphNode[],
@@ -60,12 +145,7 @@ function buildConfigPayload(
       kind: s.kind,
     })) : undefined,
     boardConfig: { rows: 3, columns: 5 },
-    nodes: nodes.map((n) => ({
-      id: n.id,
-      label: n.data.label,
-      inputs: {},
-      outputs: { out: { name: 'out', type: 'Weights' } },
-    })),
+    nodes: nodes.map(mapNodeToBackend),
     edges: edges.map((e) => ({
       id: e.id,
       sourceNodeId: e.source,

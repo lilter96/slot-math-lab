@@ -58,11 +58,23 @@ public abstract record Node
     public Dictionary<string, Port> Outputs { get; init; } = new();
 }
 
+// ── Draw weight ────────────────────────────────────────────────────────
+
+public sealed record DrawWeight
+{
+    public required string OutcomeId { get; init; }
+    public long Weight { get; init; }
+    /// <summary>Numeric value produced when this outcome is drawn. Can be any integer — not necessarily monetary.</summary>
+    public long Value { get; init; }
+}
+
 // ── Primitive nodes ────────────────────────────────────────────────────
 
 public sealed record DrawNode : Node
 {
     public string? WeightExpressionId { get; init; }
+    /// <summary>Inline weighted outcomes. When present, used instead of ReelSets.</summary>
+    public DrawWeight[]? DrawWeights { get; init; }
 }
 
 public sealed record GetStateNode : Node
