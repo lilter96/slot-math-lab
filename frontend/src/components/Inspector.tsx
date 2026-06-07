@@ -142,6 +142,16 @@ export default function Inspector() {
                 </>
               );
             })()}
+            <div className="divider" />
+            <div className="field">
+              <label>Weight expression <span className="node-lvl b" style={{ marginLeft: 4 }}>expr</span></label>
+              <ExprEditor
+                value={(data.weightExpressionId as string) ?? ''}
+                onChange={(v) => setNodeData(node.id, { weightExpressionId: v })}
+                placeholder="e.g. if scatter_count >= 3 then [2,8,4,36] else [1,9,4,36]"
+              />
+              <div className="hint">Overrides per-outcome weights when set (state-dependent draw).</div>
+            </div>
           </>
         )}
 
@@ -187,28 +197,111 @@ export default function Inspector() {
               <select
                 className="inp"
                 value={typeof data.evaluatorKind === 'string' ? data.evaluatorKind : 'lines'}
-                onChange={(e) => setNodeData(node.id, { evaluatorKind: e.target.value as 'lines' | 'ways' | 'cluster' | 'scatter' })}
+                onChange={(e) => setNodeData(node.id, { evaluatorKind: e.target.value as 'lines' | 'ways' | 'cluster' | 'scatter' | 'plugin' })}
               >
                 <option value="lines">Lines</option>
                 <option value="ways">Ways</option>
                 <option value="cluster">Cluster (flood-fill)</option>
                 <option value="scatter">Scatter (pays anywhere)</option>
+                <option value="plugin">Plugin (level c)</option>
               </select>
+            </div>
+            {(data.evaluatorKind as string) === 'plugin' && (
+              <>
+                <div className="field">
+                  <label>Plugin ID <span className="node-lvl plugin" style={{ marginLeft: 4 }}>plugin</span></label>
+                  <input
+                    className="inp"
+                    value={(data.pluginId as string) ?? ''}
+                    placeholder="e.g. megaways-evaluator"
+                    onChange={(e) => setNodeData(node.id, { pluginId: e.target.value })}
+                  />
+                  <div className="hint" style={{ color: 'var(--sampled)' }}>Plugin forces sampled regime — exact RTP unavailable.</div>
+                </div>
+              </>
+            )}
+          </>
+        )}
+
+        {/* ── State node config ── */}
+        {data.nodeType === 'state' && (
+          <>
+            <div className="divider" />
+            <div className="section-label">State Operation <span className="node-lvl" style={{ marginLeft: 6 }}>L0</span></div>
+            <div className="field">
+              <label>Operation</label>
+              <select
+                className="inp"
+                value={(data.stateOp as string) ?? 'get'}
+                onChange={(e) => setNodeData(node.id, { stateOp: e.target.value as 'get' | 'put' | 'modify' })}
+              >
+                <option value="get">Get State</option>
+                <option value="put">Put State</option>
+                <option value="modify">Modify State</option>
+              </select>
+            </div>
+            <div className="field">
+              <label>State Key</label>
+              <input
+                className="inp"
+                value={(data.stateKey as string) ?? ''}
+                placeholder="e.g. spin_count"
+                onChange={(e) => setNodeData(node.id, { stateKey: e.target.value })}
+              />
+              <div className="hint">Key in the shared state dictionary.</div>
+            </div>
+            {(data.stateOp as string) === 'modify' && (
+              <div className="field">
+                <label>Modify expression <span className="node-lvl b" style={{ marginLeft: 4 }}>expr</span></label>
+                <ExprEditor
+                  value={(data.expression as string) ?? ''}
+                  onChange={(v) => setNodeData(node.id, { expression: v })}
+                  placeholder="e.g. spin_count + 1"
+                />
+                <div className="hint">Expression evaluated and stored back to the key.</div>
+              </div>
+            )}
+          </>
+        )}
+
+        {/* ── Branch node config ── */}
+        {data.nodeType === 'branch' && (
+          <>
+            <div className="divider" />
+            <div className="section-label">Condition <span className="node-lvl b" style={{ marginLeft: 6 }}>expr</span></div>
+            <div className="field">
+              <label>Predicate expression</label>
+              <ExprEditor
+                value={typeof data.expression === 'string' ? data.expression : ''}
+                onChange={(v) => setNodeData(node.id, { expression: v })}
+                placeholder="e.g. scatter_count >= 3"
+              />
+              <div className="hint">Pass through if true, return 0 if false.</div>
             </div>
           </>
         )}
 
-        {/* ── Expression config ── */}
-        {(data.nodeType === 'branch' || data.nodeType === 'map') && (
+        {/* ── Map node config ── */}
+        {data.nodeType === 'map' && (
           <>
             <div className="divider" />
-            <div className="section-label">Expression (level b)</div>
+            <div className="section-label">Transform <span className="node-lvl" style={{ marginLeft: 6 }}>L0/b/c</span></div>
             <div className="field">
-              <label>{data.nodeType === 'branch' ? 'Predicate' : 'Transform expression'}</label>
+              <label>Transform / Evaluator ID</label>
+              <input
+                className="inp"
+                value={(data.transformId as string) ?? ''}
+                placeholder="e.g. tumble, or plugin:my-eval"
+                onChange={(e) => setNodeData(node.id, { transformId: e.target.value })}
+              />
+              <div className="hint">Registry ID (level a), or <code>plugin:id</code> (level c). Prefix <code>plugin:</code> forces sampled regime.</div>
+            </div>
+            <div className="field">
+              <label>Output expression <span className="node-lvl b" style={{ marginLeft: 4 }}>expr</span></label>
               <ExprEditor
                 value={typeof data.expression === 'string' ? data.expression : ''}
                 onChange={(v) => setNodeData(node.id, { expression: v })}
-                placeholder={data.nodeType === 'branch' ? 'e.g. scatter_count >= 3' : 'e.g. sum(board, multiplier)'}
+                placeholder="e.g. sum(board, multiplier)"
               />
             </div>
           </>

@@ -282,17 +282,30 @@ public sealed class GraphCompiler
     private Slot<Dictionary<string, object?>, object?> CompileDraw(
         DrawNode drawNode, GraphConfig config)
     {
-        // ── Inline weighted draw (custom outcomes, no ReelSets required) ──
-        if (drawNode.DrawWeights is { Length: > 0 })
+        // Level (b): expression-driven weights + inline outcome values
+        if (drawNode.WeightExpressionId != null
+            && config.Expressions != null
+            && config.Expressions.TryGetValue(drawNode.WeightExpressionId, out var weightExpr)
+            && drawNode.DrawWeights is { Length: > 0 })
         {
             var dw = drawNode.DrawWeights;
-            var weights = WeightSet.FromIntegers(dw.Select(w => w.Weight).ToArray());
+            var compiledWeights = ExpressionCompiler.CompileWeights(weightExpr);
             return Slot.Draw<Dictionary<string, object?>, object?>(
-                _ => weights,
+                state => compiledWeights(state),
                 idx => (object?)new BigInteger(dw[idx].Value));
         }
 
-        // ── Reel-strip draw (slot machine) ──
+        // Level (a): inline weighted draw (custom outcomes, no ReelSets required)
+        if (drawNode.DrawWeights is { Length: > 0 })
+        {
+            var dw = drawNode.DrawWeights;
+            var inlineWeights = WeightSet.FromIntegers(dw.Select(w => w.Weight).ToArray());
+            return Slot.Draw<Dictionary<string, object?>, object?>(
+                _ => inlineWeights,
+                idx => (object?)new BigInteger(dw[idx].Value));
+        }
+
+        // Level (a): reel-strip draw (slot machine)
         var reelSet = config.ReelSets.FirstOrDefault()
             ?? throw new CompilationException(drawNode.Id, ErrorCodes.InvalidGraph,
                 "No ReelSet defined in graph config. Add reel strips or configure inline draw weights.");
@@ -529,15 +542,33 @@ public sealed class GraphCompiler
         }).SelectMany(_ => Slot.Pure<Dictionary<string, object?>, object?>(null!));
     }
 
-    // ── Branch / Loop compilers (stubs for valid graph support) ─────────
+    // ── Branch / Loop compilers ─────────────────────────────────────────
 
     private Slot<Dictionary<string, object?>, object?> CompileBranch(
         BranchNode node, Dictionary<string, object?> inputs,
         GraphConfig config, Dictionary<string, Node> nodeMap,
         Dictionary<string, List<Edge>> incoming, Dictionary<string, List<Edge>> outgoing)
     {
-        // Default: pass through input
         var value = inputs.Values.FirstOrDefault();
+
+        // Level (b): expression-based condition
+        if (node.ConditionId != null
+            && config.Expressions != null
+            && config.Expressions.TryGetValue(node.ConditionId, out var condExpr))
+        {
+            var compiledCond = ExpressionCompiler.CompileBoolean(condExpr);
+            var capturedValue = value;
+            return Slot.GetState<Dictionary<string, object?>>()
+                .SelectMany(state =>
+                {
+                    var board = capturedValue as Board;
+                    var pass = compiledCond(board, state);
+                    return Slot.Pure<Dictionary<string, object?>, object?>(
+                        pass ? capturedValue : (object?)new BigInteger(0));
+                });
+        }
+
+        // Level (a): pass through (no condition configured)
         return Slot.Pure<Dictionary<string, object?>, object?>(value);
     }
 
@@ -546,8 +577,33 @@ public sealed class GraphCompiler
         Dictionary<string, Node> nodeMap,
         Dictionary<string, List<Edge>> incoming, Dictionary<string, List<Edge>> outgoing)
     {
-        // Default: return empty wins
-        return Slot.Pure<Dictionary<string, object?>, object?>(Array.Empty<Win>());
+        int maxIter = node.MaxIterations > 0 && node.MaxIterations <= 500
+            ? node.MaxIterations : 5;
+
+        // Find the loop body: the node feeding into the loop
+        var bodyEdges = incoming[node.Id];
+        if (!bodyEdges.Any())
+            return Slot.Pure<Dictionary<string, object?>, object?>((object?)new BigInteger(0));
+
+        var bodyNodeId = bodyEdges.First().SourceNodeId;
+        var bodyNode = nodeMap[bodyNodeId];
+
+        // Build N iterations via SelectMany chain (unrolled loop)
+        Slot<Dictionary<string, object?>, object?> acc =
+            Slot.Pure<Dictionary<string, object?>, object?>((object?)new BigInteger(0));
+
+        for (int i = 0; i < maxIter; i++)
+        {
+            var body = CompileNodeOutput(bodyNode, new Dictionary<string, object?>(),
+                config, nodeMap, incoming, outgoing);
+            acc = acc.SelectMany(total =>
+                body.SelectMany(val =>
+                    Slot.Pure<Dictionary<string, object?>, object?>(
+                        (object?)((total is BigInteger t ? t : BigInteger.Zero) +
+                         (val is BigInteger v ? v : BigInteger.Zero)))));
+        }
+
+        return acc;
     }
 
     // ── Sink compiler ───────────────────────────────────────────────────

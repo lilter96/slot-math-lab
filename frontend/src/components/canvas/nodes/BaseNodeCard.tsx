@@ -70,7 +70,10 @@ const BaseNodeCard: FC<BaseNodeProps> = ({ data, selected }) => {
           <div className="expr-peek">{data.expression}</div>
         )}
         {data.nodeType === 'state' && (
-          <div className="mini-row"><span className="k">state</span><span className="v">user-defined</span></div>
+          <>
+            <div className="mini-row"><span className="k">op</span><span className="v">{(data.stateOp as string) ?? 'get'}</span></div>
+            {data.stateKey && <div className="mini-row"><span className="k">key</span><span className="v">{data.stateKey as string}</span></div>}
+          </>
         )}
         {data.nodeType === 'transform' && (
           <div className="mini-row"><span className="k">transform</span><span className="v">{data.sub ?? 'ITransform'}</span></div>

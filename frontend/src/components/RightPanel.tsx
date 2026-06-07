@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useAppStore } from '../store';
 import Inspector from './Inspector';
 import SymbolEditor from './tables/SymbolEditor';
@@ -16,34 +16,32 @@ const SYMBOL_IDS = ['S1', 'S2', 'S3', 'W1', 'SC1'];
 
 export default function RightPanel() {
   const selectedNodeId = useAppStore((s) => s.selectedNodeId);
-  const [mainTab, setMainTab] = useState<MainTab>('inspector');
+  const [preferredTab, setPreferredTab] = useState<MainTab>('inspector');
   const [tableSection, setTableSection] = useState<TableSection>('symbols');
   const [mechanicsTab, setMechanicsTab] = useState<MechanicsTab>('mechanics');
 
-  useEffect(() => {
-    if (selectedNodeId) setMainTab('inspector');
-  }, [selectedNodeId]);
+  const mainTab: MainTab = selectedNodeId ? 'inspector' : preferredTab;
 
   return (
     <div className="panel" style={{ width: 360, flexShrink: 0, display: 'flex', flexDirection: 'column' }}>
       <div className="panel-h" style={{ padding: '6px 8px', gap: 2 }}>
         <button
           className={'tab' + (mainTab === 'inspector' ? ' active' : '')}
-          onClick={() => setMainTab('inspector')}
+          onClick={() => setPreferredTab('inspector')}
           style={{ fontSize: 11 }}
         >
           Inspector
         </button>
         <button
           className={'tab' + (mainTab === 'tables' ? ' active' : '')}
-          onClick={() => setMainTab('tables')}
+          onClick={() => setPreferredTab('tables')}
           style={{ fontSize: 11 }}
         >
           Tables
         </button>
         <button
           className={'tab' + (mainTab === 'mechanics' ? ' active' : '')}
-          onClick={() => setMainTab('mechanics')}
+          onClick={() => setPreferredTab('mechanics')}
           style={{ fontSize: 11 }}
         >
           Mechanics

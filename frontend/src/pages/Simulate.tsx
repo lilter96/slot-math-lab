@@ -59,17 +59,42 @@ function mapNodeToBackend(n: GraphNode): Record<string, unknown> {
         inputs: {},
         outputs: { out: { name: 'out', type: 'Wins' } },
         ...(n.data.drawWeights?.length ? { drawWeights: n.data.drawWeights } : {}),
+        ...(n.data.weightExpressionId ? { weightExpressionId: n.data.weightExpressionId } : {}),
       };
-    case 'state':
-      return { ...base, nodeType: 'getState', inputs: { in: { name: 'in', type: 'Wins' } }, outputs: { out: { name: 'out', type: 'Wins' } } };
+    case 'state': {
+      const op = (n.data.stateOp as string) ?? 'get';
+      const key = (n.data.stateKey as string) || '__default__';
+      if (op === 'put') return { ...base, nodeType: 'putState', stateKey: key, inputs: { in: { name: 'in', type: 'Wins' } }, outputs: { out: { name: 'out', type: 'Wins' } } };
+      if (op === 'modify') return { ...base, nodeType: 'modifyState', expressionId: n.data.expression as string ?? undefined, inputs: { in: { name: 'in', type: 'Wins' } }, outputs: { out: { name: 'out', type: 'Wins' } } };
+      return { ...base, nodeType: 'getState', stateKey: key, inputs: { in: { name: 'in', type: 'Wins' } }, outputs: { out: { name: 'out', type: 'Wins' } } };
+    }
     case 'loop':
-      return { ...base, nodeType: 'loop', inputs: { in: { name: 'in', type: 'Wins' } }, outputs: { out: { name: 'out', type: 'Wins' } }, maxIterations: n.data.iterations ?? 5 };
+      return {
+        ...base,
+        nodeType: 'loop',
+        inputs: { in: { name: 'in', type: 'Wins' } },
+        outputs: { out: { name: 'out', type: 'Wins' } },
+        maxIterations: (n.data.iterations as number) ?? 5,
+        ...(n.data.terminationExpr ? { stopConditionId: n.data.terminationExpr } : {}),
+      };
     case 'branch':
       return { ...base, nodeType: 'branch', inputs: { in: { name: 'in', type: 'Wins' } }, outputs: { out: { name: 'out', type: 'Wins' } } };
     case 'map':
-      return { ...base, nodeType: 'map', inputs: { in: { name: 'in', type: 'Wins' } }, outputs: { out: { name: 'out', type: 'Wins' } }, ...(n.data.expression ? { transformId: n.data.expression } : {}) };
-    case 'evaluator':
-      return { ...base, nodeType: 'map', inputs: { in: { name: 'in', type: 'Board' } }, outputs: { out: { name: 'out', type: 'Wins' } }, transformId: n.data.evaluatorKind ?? 'lines' };
+      return {
+        ...base,
+        nodeType: 'map',
+        inputs: { in: { name: 'in', type: 'Wins' } },
+        outputs: { out: { name: 'out', type: 'Wins' } },
+        ...(n.data.transformId ? { transformId: n.data.transformId } : {}),
+        ...(n.data.expression ? { transformId: n.data.expression } : {}),
+      };
+    case 'evaluator': {
+      const kind = (n.data.evaluatorKind as string) ?? 'lines';
+      const transformId = kind === 'plugin'
+        ? `plugin:${(n.data.pluginId as string) ?? ''}`
+        : kind;
+      return { ...base, nodeType: 'map', inputs: { in: { name: 'in', type: 'Board' } }, outputs: { out: { name: 'out', type: 'Wins' } }, transformId };
+    }
     case 'transform':
       return { ...base, nodeType: 'map', inputs: { in: { name: 'in', type: 'Board' } }, outputs: { out: { name: 'out', type: 'Board' } } };
     case 'sink':

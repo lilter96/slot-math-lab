@@ -32,11 +32,21 @@ export interface GraphNodeData {
   iterations?: number;
   terminationExpr?: string;
   /** Evaluator config */
-  evaluatorKind?: 'lines' | 'ways' | 'cluster' | 'scatter';
+  evaluatorKind?: 'lines' | 'ways' | 'cluster' | 'scatter' | 'plugin';
   /** Expression on weight/multiplier ports */
   expression?: string;
   /** Draw node: inline weighted outcomes (no ReelSets needed) */
   drawWeights?: DrawWeightEntry[];
+  /** State node operation */
+  stateOp?: 'get' | 'put' | 'modify';
+  /** State key for Get/Put/Modify nodes */
+  stateKey?: string;
+  /** Transform/evaluator ID for Map nodes (level a: 'lines'|'ways'|etc; level c: 'plugin:pluginId') */
+  transformId?: string;
+  /** Weight expression ID for Draw level (b) */
+  weightExpressionId?: string;
+  /** Plugin ID when evaluatorKind === 'plugin' */
+  pluginId?: string;
   [key: string]: unknown;
 }
 
@@ -66,7 +76,7 @@ export interface GraphState {
 
 export const NODE_DEFAULTS: Record<string, Partial<GraphNodeData>> = {
   draw: { label: 'Draw', sub: 'Weighted choice', level: 'a' },
-  state: { label: 'State', sub: 'Get / Put / Modify', level: 'a' },
+  state: { label: 'State', sub: 'Get / Put / Modify', level: 'a', stateOp: 'get', stateKey: '' },
   loop: { label: 'Loop', sub: 'Fixpoint + stop', level: 'a', iterations: 5, terminationExpr: '' },
   branch: { label: 'Branch', sub: 'Bind + conditional', level: 'a' },
   map: { label: 'Map', sub: 'Transform result', level: 'a' },
