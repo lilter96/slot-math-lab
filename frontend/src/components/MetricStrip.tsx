@@ -74,12 +74,15 @@ export default function MetricStrip({ liveMetrics }: MetricStripProps) {
 
   // Error state — show error in first cell, dashes in rest
   if (error && !m) {
+    const isOffline = error.includes('502') || error.includes('503') || error.includes('Failed to fetch') || error.includes('NetworkError');
     return (
       <div className="metric-strip">
         <div className="metric-cell">
           <div className="metric-label"><span>Return to player</span></div>
-          <div className="metric-value" style={{ color: 'var(--danger)', fontSize: 13 }}>{error}</div>
-          <div className="metric-sub">Check backend logs</div>
+          <div className="metric-value" style={{ color: 'var(--epsilon)', fontSize: 13 }}>
+            {isOffline ? 'Backend offline' : error}
+          </div>
+          <div className="metric-sub">{isOffline ? 'start the API server' : 'check backend logs'}</div>
         </div>
         {['Hit frequency', 'Base volatility', 'Feature trigger', 'Status'].map((label, i) => (
           <div key={i} className="metric-cell">

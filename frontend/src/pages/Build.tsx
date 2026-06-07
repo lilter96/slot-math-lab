@@ -2,16 +2,13 @@ import { useMemo, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useAppStore } from '../store';
 import Palette from '../components/Palette';
-import Inspector from '../components/Inspector';
 import MetricStrip from '../components/MetricStrip';
 import SlotCanvas from '../components/canvas/SlotCanvas';
-import TablesPanel from '../components/tables/TablesPanel';
-import MechanicsPanel from '../components/mechanics/MechanicsPanel';
+import RightPanel from '../components/RightPanel';
 import { useLiveMetrics } from '../hooks/useLiveMetrics';
 import ErrorBoundary from '../components/ErrorBoundary';
 
 export default function Build() {
-  const selectedNodeId = useAppStore((s) => s.selectedNodeId);
   const symbols = useAppStore((s) => s.tableSymbols);
   const setTableSymbols = useAppStore((s) => s.setTableSymbols);
   const addNode = useAppStore((s) => s.addNode);
@@ -64,9 +61,7 @@ export default function Build() {
         </ErrorBoundary>
         <MetricStrip liveMetrics={liveMetrics} />
       </div>
-      <TablesPanel />
-      <MechanicsPanel />
-      {selectedNodeId && <Inspector />}
+      <RightPanel />
     </>
   );
 }

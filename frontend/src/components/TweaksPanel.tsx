@@ -16,13 +16,13 @@ const DENSITY_OPTIONS: { value: Density; label: string }[] = [
 export default function TweaksPanel() {
   const tweaks = useAppStore((s) => s.tweaks);
   const setTweak = useAppStore((s) => s.setTweak);
-  const [collapsed, setCollapsed] = useState(false);
+  const [collapsed, setCollapsed] = useState(true);
 
   return (
     <div
       style={{
         position: 'fixed',
-        right: 16,
+        left: 16,
         bottom: 16,
         zIndex: 100,
         width: 240,

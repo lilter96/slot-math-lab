@@ -19,14 +19,12 @@ export default function Inspector() {
 
   if (!node) {
     return (
-      <div className="panel" style={{ width: 320, flexShrink: 0 }}>
-        <div className="empty-inspector">
-          <Ic.target style={{ width: 32, height: 32, opacity: 0.3 }} />
-          <span>Select a node to inspect</span>
-          <span style={{ fontSize: 11, color: 'var(--faint)' }}>
-            Drag from palette to add nodes
-          </span>
-        </div>
+      <div className="empty-inspector" style={{ flex: 1 }}>
+        <Ic.target style={{ width: 32, height: 32, opacity: 0.3 }} />
+        <span>Select a node to inspect</span>
+        <span style={{ fontSize: 11, color: 'var(--faint)' }}>
+          Drag from palette to add nodes
+        </span>
       </div>
     );
   }
@@ -34,7 +32,7 @@ export default function Inspector() {
   const data = node.data;
 
   return (
-    <div className="panel" style={{ width: 320, flexShrink: 0 }}>
+    <>
       <div className="panel-h">
         <span className="t">{data.label}</span>
         <span className="s">{data.nodeType}</span>
@@ -138,6 +136,6 @@ export default function Inspector() {
           </button>
         </div>
       </div>
-    </div>
+    </>
   );
 }

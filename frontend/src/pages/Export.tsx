@@ -1,5 +1,6 @@
 import { useState, useCallback, useRef, useMemo } from 'react';
 import { useAppStore } from '../store';
+import { useSaveConfig } from '../api/hooks';
 import { configHash } from '../lib/hash';
 import { Ic } from '../components/Icons';
 import ProvBadge from '../components/ProvBadge';
@@ -118,12 +119,16 @@ export default function Export() {
   const edges = useAppStore((s) => s.edges);
   const symbols = useAppStore((s) => s.tableSymbols);
   const mechanics = useAppStore((s) => s.mechanics);
+  const configName = useAppStore((s) => s.configName);
   const [imported, setImported] = useState<Record<string, unknown> | null>(null);
   const [importError, setImportError] = useState<string | null>(null);
   const [importHash, setImportHash] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [shareUrl, setShareUrl] = useState<string | null>(null);
+  const [savedConfigId, setSavedConfigId] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+
+  const saveConfig = useSaveConfig();
 
   const exportPayload = useMemo(() => buildExportPayload(nodes, edges, symbols, mechanics), [nodes, edges, symbols, mechanics]);
   const exportHash = useMemo(() => configHash(exportPayload), [exportPayload]);
@@ -223,7 +228,7 @@ export default function Export() {
   const hashesMatch = importHash && exportHash === importHash;
 
   return (
-    <div className="workspace" style={{ overflow: 'auto' }}>
+    <div className="workspace">
       <div className="doc">
         <div className="doc-inner">
           {/* ── Header ── */}
@@ -249,7 +254,32 @@ export default function Export() {
               <button className="btn" onClick={handleShareLink}>
                 <Ic.target style={{ width: 14, height: 14 }} /> Shareable link
               </button>
+              <button
+                className="btn"
+                disabled={saveConfig.isPending}
+                onClick={() =>
+                  saveConfig.mutate(
+                    { name: configName ?? 'Untitled', nodes, edges, mechanics },
+                    { onSuccess: (data) => { if (data?.id) setSavedConfigId(data.id); } },
+                  )
+                }
+              >
+                <Ic.results style={{ width: 14, height: 14 }} />
+                {saveConfig.isPending ? 'Saving…' : 'Save to server'}
+              </button>
             </div>
+            {savedConfigId && (
+              <div style={{ marginTop: 10, padding: '8px 12px', background: 'var(--bg-2)', border: '1px solid var(--line)', borderRadius: 7 }}>
+                <div className="hint">
+                  Saved · config id: <span className="mono" style={{ color: 'var(--exact)' }}>{savedConfigId}</span>
+                </div>
+              </div>
+            )}
+            {saveConfig.isError && (
+              <div style={{ marginTop: 8, padding: '6px 12px', background: 'var(--danger-dim)', border: '1px solid var(--danger)', borderRadius: 6, fontSize: 11, color: 'var(--danger)', fontFamily: 'var(--mono)' }}>
+                {saveConfig.error instanceof Error ? saveConfig.error.message : 'Save failed'}
+              </div>
+            )}
             {shareUrl && (
               <div style={{ marginTop: 10, padding: '8px 12px', background: 'var(--bg-2)', border: '1px solid var(--line)', borderRadius: 7 }}>
                 <div className="mono" style={{ fontSize: 10, color: 'var(--faint)', wordBreak: 'break-all' }}>{shareUrl}</div>
