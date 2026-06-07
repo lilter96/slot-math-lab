@@ -298,6 +298,120 @@ body.compact .panel-body { padding: 11px; }
 .toggle.on::after { transform: translateX(16px); }
 .toggle:focus-visible { outline: 2px solid var(--sampled); outline-offset: 2px; }
 
+/* ── Responsive ──────────────────────────────────────────────────── */
+/* Tablet and below: stack panels below canvas */
+@media (max-width: 1200px) {
+  .body {
+    flex-direction: column;
+  }
+
+  .palette {
+    width: 100%;
+    max-height: 140px;
+    flex-direction: row;
+    flex-wrap: wrap;
+    overflow-x: auto;
+    border-right: none;
+    border-bottom: 1px solid var(--line);
+    flex-shrink: 0;
+  }
+
+  .palette .grp {
+    display: none;
+  }
+
+  .pal-item {
+    flex-shrink: 0;
+    margin: 2px;
+  }
+
+  .workspace {
+    min-height: 300px;
+    max-height: 50vh;
+  }
+
+  .panel {
+    width: 100% !important;
+    max-height: 300px;
+    border-left: none;
+    border-top: 1px solid var(--line);
+  }
+}
+
+/* Mobile: collapse topbar, hide legend */
+@media (max-width: 768px) {
+  .topbar {
+    gap: 8px;
+    padding: 0 8px;
+    flex-wrap: wrap;
+    height: auto;
+    min-height: 50px;
+    padding-top: 6px;
+    padding-bottom: 6px;
+  }
+
+  .legend {
+    display: none;
+  }
+
+  .brand-name {
+    font-size: 12px;
+  }
+
+  .tabs {
+    order: 3;
+    width: 100%;
+    margin-left: 0;
+    justify-content: center;
+    margin-top: 4px;
+  }
+
+  .topbar-right {
+    margin-left: 0;
+  }
+
+  .project-pill {
+    display: none;
+  }
+
+  .tab {
+    padding: 5px 10px;
+    font-size: 11px;
+  }
+
+  .metric-strip {
+    height: auto;
+    flex-wrap: wrap;
+  }
+
+  .metric-cell {
+    flex: 1 1 50%;
+    min-width: 140px;
+    padding: 8px 12px;
+    border-right: none;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .metric-value {
+    font-size: 17px;
+  }
+
+  .canvas-hint {
+    display: none;
+  }
+
+  .canvas-toolbar {
+    left: 8px;
+    bottom: 8px;
+  }
+}
+
+/* Wide desktop: ensure panels don't overflow */
+@media (min-width: 1600px) {
+  .palette { width: 220px; }
+  .panel { width: 360px !important; }
+}
+
 /* ── Expression editor ───────────────────────────────────────────── */
 .expr-editor { position: relative; }
 .expr-status { display:flex; align-items:center; gap:7px; margin-top: 7px; font-size: 11px; font-family: var(--mono); }
