@@ -6,12 +6,10 @@ export default function CanvasToolbar() {
 
   return (
     <div className="canvas-toolbar" onMouseDown={(e) => e.stopPropagation()}>
-      <button onClick={() => zoomOut()} title="Zoom out"><Ic.minus /></button>
-      <span className="zoom-label">
-        {/* zoom level shown via CSS or external state if needed */}
-      </span>
-      <button onClick={() => zoomIn()} title="Zoom in"><Ic.plus /></button>
-      <button onClick={() => fitView({ padding: 0.2 })} title="Reset view"><Ic.fit /></button>
+      <button onClick={() => zoomOut()} title="Zoom out" aria-label="Zoom out"><Ic.minus /></button>
+      <span className="zoom-label" />
+      <button onClick={() => zoomIn()} title="Zoom in" aria-label="Zoom in"><Ic.plus /></button>
+      <button onClick={() => fitView({ padding: 0.2 })} title="Reset view" aria-label="Reset view"><Ic.fit /></button>
     </div>
   );
 }
