@@ -1,0 +1,441 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Slot Math Lab API",
+    "version": "1.0.0",
+    "description": "No-code slot math constructor API"
+  },
+  "servers": [{ "url": "http://localhost:5152" }],
+  "paths": {
+    "/api/configs": {
+      "get": {
+        "operationId": "listConfigs",
+        "summary": "List all configs",
+        "responses": {
+          "200": {
+            "description": "Config list",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": { "$ref": "#/components/schemas/ConfigSummary" }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "createConfig",
+        "summary": "Create a new config",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/CreateConfigRequest" }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Config created",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/CreateConfigResponse" }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid JSON"
+          }
+        }
+      }
+    },
+    "/api/configs/{id}": {
+      "get": {
+        "operationId": "getConfig",
+        "summary": "Get a config by ID",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "Config detail",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ConfigDetail" }
+              }
+            }
+          },
+          "404": { "description": "Not found" }
+        }
+      },
+      "put": {
+        "operationId": "updateConfig",
+        "summary": "Update a config",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/UpdateConfigRequest" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/CreateConfigResponse" }
+              }
+            }
+          },
+          "404": { "description": "Not found" }
+        }
+      },
+      "delete": {
+        "operationId": "deleteConfig",
+        "summary": "Delete a config",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "204": { "description": "Deleted" },
+          "404": { "description": "Not found" }
+        }
+      }
+    },
+    "/api/configs/{id}/versions": {
+      "get": {
+        "operationId": "listConfigVersions",
+        "summary": "List all versions of a config",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "Version list",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": { "$ref": "#/components/schemas/VersionEntry" }
+                }
+              }
+            }
+          },
+          "404": { "description": "Not found" }
+        }
+      }
+    },
+    "/api/configs/{id}/versions/{version}": {
+      "get": {
+        "operationId": "getConfigVersion",
+        "summary": "Get a specific config version",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } },
+          { "name": "version", "in": "path", "required": true, "schema": { "type": "integer" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "Config version detail",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ConfigDetail" }
+              }
+            }
+          },
+          "404": { "description": "Not found" }
+        }
+      }
+    },
+    "/api/validate": {
+      "post": {
+        "operationId": "validateConfig",
+        "summary": "Validate a graph config",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/ValidateRequest" }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "OK" },
+          "400": { "description": "Invalid JSON" }
+        }
+      }
+    },
+    "/api/evaluate/light": {
+      "post": {
+        "operationId": "evaluateLight",
+        "summary": "Fast regime-aware evaluation",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/EvaluateLightRequest" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Evaluation result",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/EvaluateLightResponse" }
+              }
+            }
+          },
+          "400": { "description": "Invalid JSON" }
+        }
+      }
+    },
+    "/api/runs": {
+      "post": {
+        "operationId": "createRun",
+        "summary": "Create a new evaluation run",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/CreateRunRequest" }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Run enqueued",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/RunResponse" }
+              }
+            }
+          },
+          "404": { "description": "Config not found" }
+        }
+      }
+    },
+    "/api/runs/{id}": {
+      "get": {
+        "operationId": "getRun",
+        "summary": "Get run status and progress",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "Run status",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/RunResponse" }
+              }
+            }
+          },
+          "404": { "description": "Not found" }
+        }
+      },
+      "delete": {
+        "operationId": "cancelRun",
+        "summary": "Cancel a running job",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": { "description": "Cancelling" },
+          "404": { "description": "Not found" },
+          "409": { "description": "Already completed/failed/cancelled" }
+        }
+      }
+    },
+    "/api/plugins": {
+      "get": {
+        "operationId": "listPlugins",
+        "summary": "List all registered plugins",
+        "responses": {
+          "200": {
+            "description": "Plugin list",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": { "$ref": "#/components/schemas/PluginEntry" }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "registerPlugin",
+        "summary": "Register a new plugin",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/RegisterPluginRequest" }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Registered" },
+          "409": { "description": "Already registered" }
+        }
+      }
+    },
+    "/api/plugins/{id}": {
+      "get": {
+        "operationId": "getPlugin",
+        "summary": "Get a plugin by ID",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "Plugin detail",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/PluginEntry" }
+              }
+            }
+          },
+          "404": { "description": "Not found" }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "ConfigSummary": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string" },
+          "name": { "type": "string" },
+          "latestVersion": { "type": "integer" },
+          "updatedAt": { "type": "string" }
+        }
+      },
+      "ConfigDetail": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string" },
+          "version": { "type": "integer" },
+          "config": { "type": "object", "additionalProperties": true },
+          "createdAt": { "type": "string" }
+        }
+      },
+      "CreateConfigRequest": {
+        "type": "object",
+        "properties": {
+          "config": { "type": "object", "additionalProperties": true }
+        },
+        "required": ["config"]
+      },
+      "UpdateConfigRequest": {
+        "type": "object",
+        "properties": {
+          "config": { "type": "object", "additionalProperties": true }
+        },
+        "required": ["config"]
+      },
+      "CreateConfigResponse": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string" },
+          "version": { "type": "integer" }
+        }
+      },
+      "VersionEntry": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string" },
+          "version": { "type": "integer" },
+          "createdAt": { "type": "string" }
+        }
+      },
+      "ValidateRequest": {
+        "type": "object",
+        "properties": {
+          "config": { "type": "object", "additionalProperties": true }
+        },
+        "required": ["config"]
+      },
+      "EvaluateLightRequest": {
+        "type": "object",
+        "properties": {
+          "config": { "type": "object", "additionalProperties": true },
+          "maxBranches": { "type": "integer" },
+          "sampleSize": { "type": "integer" }
+        },
+        "required": ["config"]
+      },
+      "EvaluateLightResponse": {
+        "type": "object",
+        "properties": {
+          "strategy": { "type": "string" },
+          "rtp": { "type": "number" },
+          "hitFrequency": { "type": "number" },
+          "volatility": { "type": "number" },
+          "stdErr": { "type": "number" },
+          "ci95": { "type": "string" },
+          "provenance": { "type": "string" },
+          "sampleCount": { "type": "integer" },
+          "elapsedMs": { "type": "number" }
+        }
+      },
+      "CreateRunRequest": {
+        "type": "object",
+        "properties": {
+          "configId": { "type": "string" },
+          "sampleSize": { "type": "integer" },
+          "progressBatchSize": { "type": "integer" }
+        },
+        "required": ["configId"]
+      },
+      "RunProgressMessage": {
+        "type": "object",
+        "properties": {
+          "runId": { "type": "string" },
+          "sampleCount": { "type": "integer" },
+          "totalSamples": { "type": "integer" },
+          "runningRtp": { "type": "number" },
+          "stdErr": { "type": "number" },
+          "status": { "type": "string" },
+          "elapsedMs": { "type": "number" }
+        }
+      },
+      "RunResponse": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string" },
+          "configId": { "type": "string" },
+          "status": { "type": "string" },
+          "createdAt": { "type": "string" },
+          "completedAt": { "type": "string" },
+          "resultJson": { "type": "string" },
+          "progress": { "$ref": "#/components/schemas/RunProgressMessage" }
+        }
+      },
+      "PluginEntry": {
+        "type": "object",
+        "properties": {
+          "pluginId": { "type": "string" },
+          "contract": { "type": "string" },
+          "isConformant": { "type": "boolean" },
+          "version": { "type": "string" }
+        }
+      },
+      "RegisterPluginRequest": {
+        "type": "object",
+        "properties": {
+          "pluginId": { "type": "string" }
+        },
+        "required": ["pluginId"]
+      }
+    }
+  }
+}

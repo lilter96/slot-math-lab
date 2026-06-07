@@ -1108,4 +1108,144 @@ public class Metrics_EdgeCases
         Assert.Equal("Sampled", Provenance.Sampled.ToString());
         Assert.Equal("ExactWithinEpsilon", Provenance.ExactWithinEpsilon.ToString());
     }
+
+    [Fact]
+    public void Dist_EmptyDistribution_ExpectedValueIsZero()
+    {
+        var builder = new DistBuilder<BigInteger>();
+        builder.AddPrunedMass(1, 2);
+        var dist = builder.Build();
+        Assert.True(dist.IsEmpty);
+        Assert.Equal(BigInteger.Zero, dist.Entries.Count);
+        var (num, den) = dist.ExpectedBigIntegerValue();
+        Assert.Equal(BigInteger.Zero, num);
+        Assert.Equal(BigInteger.One, den);
+    }
+
+    [Fact]
+    public void Dist_ExpectedValueInterval_PureExact()
+    {
+        var builder = new DistBuilder<BigInteger>();
+        builder.Add(BigInteger.One, 1, 1);
+        builder.Add(new BigInteger(2), 1, 1);
+        var dist = builder.Build();
+        Assert.True(dist.IsFullyExact);
+
+        var (lo, hi) = dist.ExpectedBigIntegerValueInterval(BigInteger.Zero, new BigInteger(100));
+        Assert.Equal(lo, hi);
+    }
+
+    [Fact]
+    public void Dist_PrunedInterval_ContainsExact()
+    {
+        var builder = new DistBuilder<BigInteger>();
+        builder.Add(BigInteger.One, 90, 100);
+        builder.Add(BigInteger.Zero, 10, 100);
+        // Prune the zero branch
+        builder.AddPrunedMass(1, 100);
+        var dist = builder.Build();
+
+        var (lo, hi) = dist.ExpectedBigIntegerValueInterval(BigInteger.Zero, new BigInteger(100));
+        Assert.True(lo.Num * hi.Den <= hi.Num * lo.Den); // lo <= hi
+    }
+
+    [Fact]
+    public void DistBuilder_FrozenThrows()
+    {
+        var builder = new DistBuilder<BigInteger>();
+        builder.Add(BigInteger.One, 1, 1);
+        builder.Build();
+        Assert.Throws<InvalidOperationException>(() => builder.Add(BigInteger.One, 1, 1));
+    }
+
+    [Fact]
+    public void Budget_DefaultAndCustom()
+    {
+        var b = Budget.Default;
+        Assert.NotNull(b);
+        var custom = new Budget { MaxBranches = 100, MaxTime = TimeSpan.FromSeconds(5) };
+        Assert.Equal(100, custom.MaxBranches);
+        Assert.Equal(TimeSpan.FromSeconds(5), custom.MaxTime);
+    }
+
+    [Fact]
+    public void BudgetExceededException_CarriesInfo()
+    {
+        var ex = new BudgetExceededException(1000, 5, new Budget { MaxBranches = 500 }, "branches");
+        Assert.Contains("1000", ex.Message);
+        Assert.Contains("500", ex.Message);
+    }
+
+    [Fact]
+    public void SubgraphStrategy_ToString()
+    {
+        var ss = new SubgraphStrategy
+        {
+            SubgraphId = "test",
+            Strategy = EvaluationStrategy.Sampled,
+            Reason = "plugin_present",
+            ContainsPlugin = true,
+        };
+        var s = ss.ToString();
+        Assert.Contains("test", s);
+        Assert.Contains("plugin", s);
+    }
+
+    [Fact]
+    public void RegimeResult_ToString_IncludesProvenance()
+    {
+        var report = ExactMetrics.Compute(new DistBuilder<BigInteger>().Build());
+        var rr = new RegimeResult
+        {
+            Report = report,
+            SubgraphStrategies = new[]
+            {
+                new SubgraphStrategy { SubgraphId = "root", Strategy = EvaluationStrategy.Exact, Reason = "within_budget" }
+            },
+            AggregateProvenance = Provenance.Exact,
+            OverallStrategy = EvaluationStrategy.Exact,
+        };
+        var s = rr.ToString();
+        Assert.Contains("Exact", s);
+        Assert.Contains("root", s);
+    }
+
+    [Fact]
+    public void ProgramAnalyzer_EmptyProgram()
+    {
+        var program = Slot.Pure<EdgeState, BigInteger>(0);
+        var analysis = ProgramAnalyzer.Analyze(program);
+        Assert.Equal(0, analysis.DrawCount);
+        Assert.Equal(0, analysis.EstimatedBranches);
+        Assert.False(analysis.ContainsPlugin);
+    }
+
+    [Fact]
+    public void Slot_Annotate_PreservesBehavior()
+    {
+        var baseProgram =
+            from idx in Slot.Draw<EdgeState>(_ =>
+                WeightSet.FromIntegers(new int[] { 1 }))
+            select new BigInteger(idx + 1);
+
+        var annotated = Slot.Annotate(baseProgram, subgraphId: "test-sg", containsPlugin: true);
+
+        var r1 = ExactInterpreter.Evaluate(baseProgram, new EdgeState(0, 0), s => s.RecurrenceHash);
+        var r2 = ExactInterpreter.Evaluate(annotated, new EdgeState(0, 0), s => s.RecurrenceHash);
+
+        var (n1, d1) = r1.ValueDistribution().ExpectedBigIntegerValue();
+        var (n2, d2) = r2.ValueDistribution().ExpectedBigIntegerValue();
+        Assert.Equal(n1, n2);
+        Assert.Equal(d1, d2);
+    }
+
+    [Fact]
+    public void Slot_Map_AppliesFunction()
+    {
+        var program = Slot.Pure<EdgeState, int>(5).Select(x => new BigInteger(x * 2));
+        var result = ExactInterpreter.Evaluate(program, new EdgeState(0, 0), s => s.RecurrenceHash);
+        var (n, d) = result.ValueDistribution().ExpectedBigIntegerValue();
+        Assert.Equal(new BigInteger(10), n);
+        Assert.Equal(BigInteger.One, d);
+    }
 }

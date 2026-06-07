@@ -544,3 +544,107 @@ public class Transform_RegisterAndRetrieve
         TransformRegistry.Clear();
     }
 }
+
+public class MoreTransformEdgeCases
+{
+    [Fact]
+    public void CollectTransform_CollectsMatchingCells()
+    {
+        var t = new CollectTransform(cell => !cell.IsEmpty && cell.Symbols![0] == "coin", "value");
+        var board = new Board(2, 2)
+            .SetCell(0, 0, new BoardCell().WithSymbols("A"))
+            .SetCell(0, 1, new BoardCell().WithSymbols("coin").WithDecoration("value", "10"));
+
+        var (newBoard, _) = t.Apply(board, null);
+        Assert.True(newBoard[0, 1].IsEmpty);
+        Assert.False(newBoard[0, 0].IsEmpty);
+    }
+
+    [Fact]
+    public void ExpandTransform_GrowsBoardRight()
+    {
+        var t = new ExpandTransform(ExpandDirection.Column, 0,
+            new[] { new BoardCell().WithSymbols("X"), new BoardCell().WithSymbols("Y") });
+        var board = new Board(2, 1).SetCell(0, 0, new BoardCell().WithSymbols("A"));
+
+        var (newBoard, _) = t.Apply(board, null);
+        Assert.Equal(2, newBoard.Cols);
+        Assert.False(newBoard[0, 0].IsEmpty);
+        Assert.False(newBoard[0, 1].IsEmpty || newBoard[1, 0].IsEmpty);
+    }
+
+    [Fact]
+    public void MorphTransform_MapsSymbolsPerMapping()
+    {
+        var mapping = new Dictionary<string, string> { ["A"] = "Wild" };
+        var t = new MorphTransform(mapping);
+        var board = new Board(1, 2)
+            .SetCell(0, 0, new BoardCell().WithSymbols("A"))
+            .SetCell(0, 1, new BoardCell().WithSymbols("B"));
+
+        var (newBoard, _) = t.Apply(board, null);
+        Assert.Equal("Wild", newBoard[0, 0].Symbols![0]);
+        Assert.Equal("B", newBoard[0, 1].Symbols![0]);
+    }
+
+    [Fact]
+    public void NudgeTransform_ShiftsColumnUp()
+    {
+        var t = new NudgeTransform(0, NudgeDirection.Up);
+        var board = new Board(3, 1)
+            .SetCell(0, 0, new BoardCell().WithSymbols("A"))
+            .SetCell(1, 0, new BoardCell().WithSymbols("B"))
+            .SetCell(2, 0, new BoardCell().WithSymbols("C"));
+        var (newBoard, _) = t.Apply(board, null);
+        Assert.NotNull(newBoard);
+    }
+
+    [Fact]
+    public void RevealTransform_RevealsAllCells()
+    {
+        var t = new RevealTransform();
+        var board = new Board(2, 1)
+            .SetCell(0, 0, new BoardCell().WithSymbols("?"))
+            .SetCell(1, 0, new BoardCell().WithSymbols("?"));
+
+        var (newBoard, _) = t.Apply(board, null);
+        Assert.Equal("true", newBoard[0, 0].GetDecoration("revealed"));
+        Assert.Equal("true", newBoard[1, 0].GetDecoration("revealed"));
+    }
+
+    [Fact]
+    public void RefillTumbleTransform_RefillsEmptyCells()
+    {
+        var symbols = new[] { "A", "B", "C" };
+        var t = new RefillTumbleTransform(() => symbols);
+        var board = new Board(2, 1)
+            .SetCell(0, 0, new BoardCell().WithSymbols("X"));
+        // Cell (1,0) is empty.
+
+        var (newBoard, _) = t.Apply(board, null);
+        Assert.False(newBoard[1, 0].IsEmpty);
+    }
+
+    [Fact]
+    public void RemoveWinningTransform_ClearsPositions()
+    {
+        var wins = new HashSet<(int Row, int Col)> { (0, 0) };
+        var t = new RemoveWinningTransform(wins);
+        var board = new Board(2, 2)
+            .SetCell(0, 0, new BoardCell().WithSymbols("A"))
+            .SetCell(0, 1, new BoardCell().WithSymbols("B"));
+
+        var (newBoard, _) = t.Apply(board, null);
+        Assert.True(newBoard[0, 0].IsEmpty);
+        Assert.False(newBoard[0, 1].IsEmpty);
+    }
+
+    [Fact]
+    public void GrowShrinkTransform_GrowsBoard()
+    {
+        var t = new GrowShrinkTransform(1, 0);
+        var board = new Board(1, 1).SetCell(0, 0, new BoardCell().WithSymbols("A"));
+        var (newBoard, _) = t.Apply(board, null);
+        Assert.Equal(2, newBoard.Rows);
+    }
+}

@@ -1,0 +1,17 @@
+- generic [ref=e2]:
+  - link "Skip to main content" [ref=e3] [cursor=pointer]:
+    - /url: "#main-content"
+  - banner [ref=e4]:
+    - heading "Slot Math Lab" [level=1] [ref=e5]
+    - navigation "Main navigation" [ref=e6]:
+      - tablist [ref=e7]:
+        - tab "Build" [ref=e8] [cursor=pointer]
+        - tab "Simulate" [ref=e9] [cursor=pointer]
+        - tab "Results" [selected] [ref=e10] [cursor=pointer]
+        - tab "Export" [ref=e11] [cursor=pointer]
+  - main "Main content" [active] [ref=e12]:
+    - region "Results" [ref=e21]:
+      - heading "Results" [level=2] [ref=e22]
+      - paragraph [ref=e23]: View saved runs, compare results, and inspect provenance.
+  - contentinfo [ref=e16]:
+    - paragraph [ref=e17]: Slot Math Lab — No-code slot math constructor

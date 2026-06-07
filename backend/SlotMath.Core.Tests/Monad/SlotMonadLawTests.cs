@@ -786,3 +786,60 @@ public class SlotDeterminismTests
         Assert.NotEqual(result1.Trace, result3.Trace);
     }
 }
+
+public class TrampolineInterpreterTests
+{
+    [Fact]
+    public void Run_WithDrawChoices_UsesExplicitChoices()
+    {
+        var program =
+            from a in Slot.Draw<object>(_ => WeightSet.FromIntegers(new int[] { 1, 1, 1 }))
+            from b in Slot.Draw<object>(_ => WeightSet.FromIntegers(new int[] { 1, 1 }))
+            select a * 10 + b;
+
+        var result = TrampolineInterpreter.Run(program, new object(),
+            new Queue<int>(new[] { 2, 1 }));
+
+        Assert.Equal(21, result.Value);
+        Assert.Equal(2, result.Trace.OfType<InterpreterTrace.DrawRequested>().Count());
+    }
+
+    [Fact]
+    public void RunWithSeed_DeterministicOutput()
+    {
+        var program =
+            from a in Slot.Draw<object>(_ => WeightSet.FromIntegers(new int[] { 1, 1 }))
+            select a;
+
+        var r1 = TrampolineInterpreter.RunWithSeed(program, new object(), 42);
+        var r2 = TrampolineInterpreter.RunWithSeed(program, new object(), 42);
+
+        Assert.Equal(r1.Value, r2.Value);
+    }
+
+    [Fact]
+    public void CountDraws_CountsStaticalyReachableDraws()
+    {
+        var program =
+            from a in Slot.Draw<object>(_ => WeightSet.FromIntegers(new int[] { 1 }))
+            select a;
+
+        var count = TrampolineInterpreter.CountDraws(program);
+        Assert.Equal(1, count);
+    }
+
+    [Fact]
+    public void Run_RecordsStateReadsAndWrites()
+    {
+        var program =
+            from _ in Slot.PutState<object>("updated")
+            from s in Slot.GetState<object>()
+            select s;
+
+        var result = TrampolineInterpreter.Run(program, "initial", null);
+        Assert.Equal("updated", result.Value);
+        Assert.Equal("updated", result.FinalState);
+        Assert.Contains(result.Trace, t => t is InterpreterTrace.StateWritten);
+        Assert.Contains(result.Trace, t => t is InterpreterTrace.StateRead);
+    }
+}
