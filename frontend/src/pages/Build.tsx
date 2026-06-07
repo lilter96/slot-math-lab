@@ -8,6 +8,7 @@ import SlotCanvas from '../components/canvas/SlotCanvas';
 import TablesPanel from '../components/tables/TablesPanel';
 import MechanicsPanel from '../components/mechanics/MechanicsPanel';
 import { useLiveMetrics } from '../hooks/useLiveMetrics';
+import ErrorBoundary from '../components/ErrorBoundary';
 
 export default function Build() {
   const selectedNodeId = useAppStore((s) => s.selectedNodeId);
@@ -58,7 +59,9 @@ export default function Build() {
     <>
       <Palette />
       <div className="workspace">
-        <SlotCanvas />
+        <ErrorBoundary>
+          <SlotCanvas />
+        </ErrorBoundary>
         <MetricStrip liveMetrics={liveMetrics} />
       </div>
       <TablesPanel />
