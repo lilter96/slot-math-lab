@@ -13,14 +13,14 @@ const TABS: { id: TabId; label: string; to: string }[] = [
 export default function Layout() {
   const mainRef = useRef<HTMLElement>(null);
   const location = useLocation();
-  const setActiveTab = useAppStore((s) => s.setActiveTab);
+  const setTab = useAppStore((s) => s.setTab);
 
   // Sync tab state with route and focus main content on route change
   useEffect(() => {
     const tab = TABS.find((t) => location.pathname.startsWith(t.to));
-    if (tab) setActiveTab(tab.id);
+    if (tab) setTab(tab.id);
     mainRef.current?.focus();
-  }, [location.pathname, setActiveTab]);
+  }, [location.pathname, setTab]);
 
   return (
     <>
