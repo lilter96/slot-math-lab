@@ -90,9 +90,46 @@ export function validateConnection(
   return null;
 }
 
+// ── Custom Mechanics ───────────────────────────────────────────────
+
+export interface CustomMechanic {
+  id: string;
+  name: string;
+  description?: string;
+  nodes: GraphNode[];
+  edges: GraphEdge[];
+  createdAt: string;
+}
+
+export interface MechanicsState {
+  mechanics: CustomMechanic[];
+  addMechanic: (m: CustomMechanic) => void;
+  removeMechanic: (id: string) => void;
+}
+
+// ── Plugins ────────────────────────────────────────────────────────
+
+export type PluginContract = 'IEvaluator' | 'ITransform' | 'WeightSource';
+
+export interface PluginEntry {
+  pluginId: string;
+  contract: PluginContract;
+  version?: string;
+  isConformant: boolean;
+  conformanceNote?: string;
+  /** When a plugin is used, the game must be flagged sampled-regime */
+  forcesSampledRegime: boolean;
+}
+
+export interface PluginsState {
+  plugins: PluginEntry[];
+  registerPlugin: (p: PluginEntry) => void;
+  removePlugin: (id: string) => void;
+}
+
 // ── Store ──────────────────────────────────────────────────────────
 
-export interface AppState extends GraphState {
+export interface AppState extends GraphState, MechanicsState, PluginsState {
   tab: TabId;
   setTab: (tab: TabId) => void;
   configName: string | null;
@@ -182,6 +219,48 @@ export const useAppStore = create<AppState>((set, get) => ({
         n.id === id ? { ...n, data: { ...n.data, ...data } } : n,
       ),
     })),
+
+  // ── Mechanics ───────────────────────────────────────────────────
+  mechanics: [
+    {
+      id: 'free-spins',
+      name: 'Free Spins',
+      description: 'Scatter-triggered free spins with retrigger and multiplier',
+      nodes: [],
+      edges: [],
+      createdAt: new Date().toISOString(),
+    },
+  ],
+  addMechanic: (m) => set((s) => ({ mechanics: [...s.mechanics, m] })),
+  removeMechanic: (id) => set((s) => ({ mechanics: s.mechanics.filter((m) => m.id !== id) })),
+
+  // ── Plugins ─────────────────────────────────────────────────────
+  plugins: [
+    {
+      pluginId: 'megaways-evaluator',
+      contract: 'IEvaluator' as const,
+      version: '1.0.0',
+      isConformant: true,
+      forcesSampledRegime: false,
+    },
+    {
+      pluginId: 'custom-cascade',
+      contract: 'ITransform' as const,
+      version: '0.9.0',
+      isConformant: false,
+      conformanceNote: 'Purity test failed — plugin performs non-deterministic operations',
+      forcesSampledRegime: true,
+    },
+    {
+      pluginId: 'exotic-evaluator',
+      contract: 'IEvaluator' as const,
+      version: '1.2.0',
+      isConformant: true,
+      forcesSampledRegime: true,
+    },
+  ],
+  registerPlugin: (p) => set((s) => ({ plugins: [...s.plugins, p] })),
+  removePlugin: (id) => set((s) => ({ plugins: s.plugins.filter((p) => p.pluginId !== id) })),
 }));
 
 // ── Minimal Node/Edge change handlers (avoid heavy immer dependency) ─
