@@ -30,6 +30,7 @@ builder.Services.AddOpenTelemetry()
     {
         m.AddAspNetCoreInstrumentation();
         m.AddConsoleExporter();
+        m.AddPrometheusExporter();
     });
 
 // Structured logging via OTEL (traces + metrics already configured above)
@@ -121,6 +122,9 @@ using (var scope = app.Services.CreateScope())
     var db = scope.ServiceProvider.GetRequiredService<SlotMathDbContext>();
     await db.Database.EnsureCreatedAsync();
 }
+
+// ── Prometheus metrics endpoint ───────────────────────────────────────
+app.UseOpenTelemetryPrometheusScrapingEndpoint();
 
 // ── OpenAPI ───────────────────────────────────────────────────────────
 app.MapOpenApi();
