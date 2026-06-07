@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import Layout from './components/Layout';
+import TweaksPanel from './components/TweaksPanel';
 import Build from './pages/Build';
 import Simulate from './pages/Simulate';
 import Results from './pages/Results';
@@ -17,6 +18,7 @@ export default function App() {
           <Route path="export" element={<Export />} />
         </Route>
       </Routes>
+      <TweaksPanel />
     </BrowserRouter>
   );
 }
