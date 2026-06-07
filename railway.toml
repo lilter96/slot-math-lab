@@ -1,0 +1,27 @@
+# Railway deployment config for Slot Math Lab
+# Deploy with: railway up
+
+[build]
+# Backend is built from Dockerfile.backend
+dockerfile = "Dockerfile.backend"
+
+[deploy]
+healthcheckPath = "/health"
+restartPolicyMaxRetries = 3
+
+# ── Services ─────────────────────────────────────────────────────────
+# Railway auto-detects from docker-compose.yml, but we specify overrides here.
+
+[service]
+name = "slotmath-api"
+port = 8080
+
+# Railway provides DATABASE_URL and REDIS_URL automatically when you add
+# Postgres and Redis plugins. We map them to our connection strings.
+# See: https://docs.railway.com/reference/variables
+
+[variables]
+# Railway injects these automatically when plugins are attached:
+# DATABASE_URL → ConnectionStrings__DefaultConnection (mapped in startup)
+# REDIS_URL → ConnectionStrings__Redis (mapped in startup)
+ASPNETCORE_ENVIRONMENT = "Production"

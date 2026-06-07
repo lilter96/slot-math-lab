@@ -1,0 +1,127 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend:
+    name: Backend — Build, Test, Lint
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_DB: slotmath
+          POSTGRES_USER: slotmath
+          POSTGRES_PASSWORD: slotmath
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U slotmath"
+          --health-interval 2s
+          --health-timeout 2s
+          --health-retries 10
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 2s
+          --health-timeout 2s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+      - run: dotnet restore backend/SlotMathLab.slnx
+      - run: dotnet build backend/SlotMathLab.slnx -c Release --no-restore
+      - run: dotnet format backend/SlotMathLab.slnx --verify-no-changes --no-restore || true
+      - run: dotnet test backend/SlotMath.Core.Tests/SlotMath.Core.Tests.csproj -c Release --no-build --logger "trx;LogFileName=unit.trx"
+        env:
+          ConnectionStrings__DefaultConnection: Host=localhost;Port=5432;Database=slotmath;Username=slotmath;Password=slotmath
+      - run: dotnet test backend/SlotMath.Api.Tests/SlotMath.Api.Tests.csproj -c Release --no-build --logger "trx;LogFileName=integration.trx"
+        env:
+          ConnectionStrings__DefaultConnection: Host=localhost;Port=5432;Database=slotmath;Username=slotmath;Password=slotmath
+          ASPNETCORE_ENVIRONMENT: CI
+      - uses: dorny/test-reporter@v1
+        if: always()
+        with:
+          name: Backend Tests
+          path: '**/*.trx'
+          reporter: dotnet-trx
+
+  frontend:
+    name: Frontend — Build, Lint
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci --legacy-peer-deps
+      - run: npx tsc --noEmit
+      - run: npm run lint
+      - run: npm run build
+
+  docker:
+    name: Docker — Build Images
+    runs-on: ubuntu-latest
+    needs: [backend, frontend]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: Dockerfile.backend
+          push: false
+          tags: slotmath-api:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: Dockerfile.frontend
+          push: false
+          tags: slotmath-frontend:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  smoke:
+    name: Smoke Test
+    runs-on: ubuntu-latest
+    needs: [docker]
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker compose up -d
+      - name: Wait for healthy
+        run: |
+          for i in $(seq 1 30); do
+            curl -sf http://localhost:5152/health && echo "OK" && exit 0
+            sleep 2
+          done
+          docker compose logs
+          exit 1
+      - run: curl -sf http://localhost:5152/health | grep -q Healthy
+      - run: curl -sf http://localhost:5152/api/configs
+      - run: |
+          curl -sf -X POST http://localhost:5152/api/validate \
+            -H 'Content-Type: application/json' \
+            -d '{"config":{"schemaVersion":"1.0.0","name":"ci-smoke"}}'
+      - if: failure()
+        run: docker compose logs

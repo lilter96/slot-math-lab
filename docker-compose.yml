@@ -1,4 +1,5 @@
 services:
+  # ── Infrastructure ──────────────────────────────────────────────────
   postgres:
     image: postgres:17-alpine
     environment:
@@ -25,6 +26,58 @@ services:
       timeout: 2s
       retries: 10
 
+  # ── Seed data ──────────────────────────────────────────────────────
+  db-init:
+    image: postgres:17-alpine
+    depends_on:
+      postgres:
+        condition: service_healthy
+    entrypoint: |
+      bash -c '
+        echo "Seeding database..."
+        PGPASSWORD=slotmath psql -h postgres -U slotmath -d slotmath -c "
+          CREATE TABLE IF NOT EXISTS __seed_log (id SERIAL PRIMARY KEY, seeded_at TIMESTAMPTZ DEFAULT NOW());
+          INSERT INTO __seed_log (seeded_at) VALUES (NOW());
+        "
+        echo "Seed complete."
+      '
+    restart: "no"
+
+  # ── Backend API ────────────────────────────────────────────────────
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+    ports:
+      - "5152:8080"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - ConnectionStrings__DefaultConnection=Host=postgres;Port=5432;Database=slotmath;Username=slotmath;Password=slotmath
+      - ConnectionStrings__Redis=redis:6379
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      db-init:
+        condition: service_completed_successfully
+
+  # ── Frontend ───────────────────────────────────────────────────────
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+    ports:
+      - "5199:80"
+    depends_on:
+      - api
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:80/ || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  # ── Observability ──────────────────────────────────────────────────
   prometheus:
     image: prom/prometheus:latest
     ports:
@@ -38,11 +91,10 @@ services:
 
   grafana:
     image: grafana/grafana:latest
-    ports:
-      - "3000:3000"
     environment:
       - GF_AUTH_ANONYMOUS_ENABLED=true
       - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
+      - GF_SERVER_HTTP_PORT=3000
     depends_on:
       - prometheus
 
