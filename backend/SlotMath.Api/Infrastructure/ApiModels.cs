@@ -79,6 +79,7 @@ public sealed record CreateRunRequest
 {
     public required string ConfigId { get; init; }
     public int? SampleSize { get; init; }
+    public int? ProgressBatchSize { get; init; }
 }
 
 public sealed record RunResponse
@@ -89,6 +90,23 @@ public sealed record RunResponse
     public string? ResultJson { get; init; }
     public DateTimeOffset CreatedAt { get; init; }
     public DateTimeOffset? CompletedAt { get; init; }
+    /// <summary>Current progress, non-null when the run is "running".</summary>
+    public RunProgressMessage? Progress { get; init; }
+}
+
+/// <summary>
+/// Progress update pushed from server to client via SignalR.
+/// Also included in RunResponse when a run is in-flight.
+/// </summary>
+public sealed record RunProgressMessage
+{
+    public required string RunId { get; init; }
+    public required long SampleCount { get; init; }
+    public required long TotalSamples { get; init; }
+    public required double RunningRtp { get; init; }
+    public required double StdErr { get; init; }
+    public required string Status { get; init; }
+    public required long ElapsedMs { get; init; }
 }
 
 public sealed record PluginEntryResponse

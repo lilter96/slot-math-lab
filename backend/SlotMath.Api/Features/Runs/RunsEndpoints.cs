@@ -1,5 +1,6 @@
 using System.Numerics;
 using System.Text.Json;
+using Hangfire;
 using SlotMath.Api.Infrastructure;
 using SlotMath.Core.Compiler;
 using SlotMath.Core.Math.Regime;
@@ -9,24 +10,38 @@ using SlotMath.Core.Plugins;
 namespace SlotMath.Api.Features.Runs;
 
 /// <summary>
-/// POST /runs + GET /runs/{id} — heavy evaluation runs.
+/// POST /runs + GET /runs/{id} + DELETE /runs/{id} — heavy evaluation runs
+/// backed by Hangfire with progress streamed via SignalR (G17).
 /// </summary>
 public static class RunsEndpoints
 {
-    public static RouteGroupBuilder MapRuns(this IEndpointRouteBuilder app, InMemoryConfigStore configStore, InMemoryRunStore runStore, PluginHost pluginHost)
+    public static RouteGroupBuilder MapRuns(
+        this IEndpointRouteBuilder app,
+        InMemoryConfigStore configStore,
+        InMemoryRunStore runStore,
+        PluginHost pluginHost)
     {
         var group = app.MapGroup("/api/runs");
 
-        group.MapPost("/", (CreateRunRequest request) =>
+        // ── POST: create & enqueue a run ─────────────────────────────────
+        group.MapPost("/", (
+            CreateRunRequest request,
+            IBackgroundJobClient jobClient) =>
         {
             var configEntry = configStore.GetLatest(request.ConfigId);
             if (configEntry is null)
                 return Results.NotFound(new { error = $"Config '{request.ConfigId}' not found." });
 
             var run = runStore.Create(request.ConfigId);
+            var sampleSize = request.SampleSize ?? 100_000;
+            var batchSize = request.ProgressBatchSize ?? Math.Max(100, sampleSize / 100);
 
-            // Fire-and-forget: run evaluation in background
-            _ = Task.Run(() => ExecuteRun(run.Id, configEntry.Config, request.SampleSize ?? 100_000, runStore, pluginHost));
+            // Pre-create the CTS so cancellation works even before the job starts.
+            runStore.CreateCancellationToken(run.Id);
+
+            // Enqueue via Hangfire — the job uses the pre-created CTS.
+            jobClient.Enqueue<RunJobService>(s =>
+                s.ExecuteRunAsync(run.Id, sampleSize, batchSize));
 
             return Results.Accepted($"/api/runs/{run.Id}", new RunResponse
             {
@@ -37,11 +52,27 @@ public static class RunsEndpoints
             });
         });
 
+        // ── GET: poll run status + progress ──────────────────────────────
         group.MapGet("/{id}", (string id) =>
         {
             var run = runStore.Get(id);
             if (run is null)
                 return Results.NotFound(new { error = $"Run '{id}' not found." });
+
+            RunProgressMessage? progress = null;
+            if (run.Status == "running" && run.SampleCount.HasValue)
+            {
+                progress = new RunProgressMessage
+                {
+                    RunId = run.Id,
+                    SampleCount = run.SampleCount.Value,
+                    TotalSamples = run.TotalSamples ?? 0,
+                    RunningRtp = run.RunningRtp ?? 0,
+                    StdErr = run.StdErr ?? 0,
+                    Status = run.Status,
+                    ElapsedMs = run.ElapsedMs ?? 0,
+                };
+            }
 
             return Results.Ok(new RunResponse
             {
@@ -51,56 +82,37 @@ public static class RunsEndpoints
                 ResultJson = run.ResultJson,
                 CreatedAt = run.CreatedAt,
                 CompletedAt = run.CompletedAt,
+                Progress = progress,
             });
         });
 
-        return group;
-    }
-
-    private static void ExecuteRun(string runId, GraphConfig config, int sampleSize,
-        InMemoryRunStore runStore, PluginHost pluginHost)
-    {
-        try
+        // ── DELETE: cancel a running job ─────────────────────────────────
+        group.MapDelete("/{id}", (string id) =>
         {
-            runStore.Update(runId, "running", null);
+            var run = runStore.Get(id);
+            if (run is null)
+                return Results.NotFound(new { error = $"Run '{id}' not found." });
 
-            var compiler = new GraphCompiler(pluginHost);
-            var compileResult = compiler.Compile(config);
-
-            if (!compileResult.IsValid)
+            if (run.Status is "completed" or "failed" or "cancelled")
             {
-                runStore.Update(runId, "failed",
-                    JsonSerializer.Serialize(new { error = "Validation failed", details = compileResult.Errors }));
-                return;
+                return Results.Conflict(new
+                {
+                    error = $"Run '{id}' is already {run.Status} and cannot be cancelled.",
+                });
             }
 
-            var regimeConfig = new RegimeConfig
+            var cancelled = runStore.Cancel(id);
+            if (!cancelled)
             {
-                SampledSpins = sampleSize,
-                ForceSampled = true,
-                SampledSeed = DateTimeOffset.UtcNow.Ticks,
-            };
-
-            var result = HybridEvaluator.Evaluate(
-                compileResult.Program!,
-                new Dictionary<string, object?>(),
-                state => new BigInteger(state.GetHashCode()),
-                regimeConfig);
-
-            runStore.Update(runId, "completed",
-                JsonSerializer.Serialize(new
+                return Results.Conflict(new
                 {
-                    rtp = result.Report.Rtp.DisplayValue,
-                    hitFrequency = result.Report.HitFrequency.DisplayValue,
-                    volatility = result.Report.Volatility.StdDev,
-                    sampleCount = sampleSize,
-                    provenance = result.AggregateProvenance.ToString(),
-                }));
-        }
-        catch (Exception ex)
-        {
-            runStore.Update(runId, "failed",
-                JsonSerializer.Serialize(new { error = ex.Message }));
-        }
+                    error = $"Run '{id}' has no active cancellation token.",
+                });
+            }
+
+            return Results.Ok(new { id, status = "cancelling" });
+        });
+
+        return group;
     }
 }

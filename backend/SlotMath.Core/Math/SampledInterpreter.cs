@@ -47,8 +47,19 @@ public sealed class SampledConfig
     /// <summary>
     /// How often to check the cancellation token, in number of spins.
     /// Default 1000 balances responsiveness with overhead.
+    /// Set to 1 for API runs requiring sub-500ms cancellation.
     /// </summary>
     public int CancellationCheckInterval { get; init; } = 1000;
+
+    /// <summary>How often to report progress, in number of spins (default 1000).</summary>
+    public int ProgressReportInterval { get; init; } = 1000;
+
+    /// <summary>
+    /// Optional callback invoked every <see cref="ProgressReportInterval"/> spins
+    /// with a snapshot of current statistics.  Invoked synchronously on the
+    /// worker thread — callers should keep it fast and not block.
+    /// </summary>
+    public Action<SampledProgress>? ProgressCallback { get; init; }
 }
 
 /// <summary>
@@ -126,9 +137,34 @@ public static class SampledInterpreter
             // ── Run one spin ────────────────────────────────────────────
             var win = RunOneSpin(program, initialState, rng);
             stats.Add(win);
+
+            // ── Progress callback ──────────────────────────────────────
+            if (spin > 0 && spin % config.ProgressReportInterval == 0
+                && config.ProgressCallback is not null)
+            {
+                config.ProgressCallback(new SampledProgress
+                {
+                    SpinsCompleted = spin + 1,
+                    TotalSpins = config.MaxSpins,
+                    Stats = stats.Snapshot(),
+                    Elapsed = Stopwatch.GetElapsedTime(startedAt),
+                });
+            }
         }
 
         var elapsed = Stopwatch.GetElapsedTime(startedAt);
+
+        // Final progress callback with complete stats
+        if (!cancelled && config.ProgressCallback is not null)
+        {
+            config.ProgressCallback(new SampledProgress
+            {
+                SpinsCompleted = spin,
+                TotalSpins = config.MaxSpins,
+                Stats = stats.Snapshot(),
+                Elapsed = elapsed,
+            });
+        }
 
         // If we were cancelled before any spin completed, spin is 0.
         return new SampledResult<S>(stats, spin, cancelled, config.Seed, elapsed);
@@ -163,9 +199,35 @@ public static class SampledInterpreter
 
             var value = RunOneSpin(program, initialState, rng);
             stats.Add(selector(value));
+
+            // ── Progress callback ──────────────────────────────────────
+            if (spin > 0 && spin % config.ProgressReportInterval == 0
+                && config.ProgressCallback is not null)
+            {
+                config.ProgressCallback(new SampledProgress
+                {
+                    SpinsCompleted = spin + 1,
+                    TotalSpins = config.MaxSpins,
+                    Stats = stats.Snapshot(),
+                    Elapsed = Stopwatch.GetElapsedTime(startedAt),
+                });
+            }
         }
 
         var elapsed = Stopwatch.GetElapsedTime(startedAt);
+
+        // Final progress callback with complete stats
+        if (!cancelled && config.ProgressCallback is not null)
+        {
+            config.ProgressCallback(new SampledProgress
+            {
+                SpinsCompleted = spin,
+                TotalSpins = config.MaxSpins,
+                Stats = stats.Snapshot(),
+                Elapsed = elapsed,
+            });
+        }
+
         return new SampledResult<S>(stats, spin, cancelled, config.Seed, elapsed);
     }
 

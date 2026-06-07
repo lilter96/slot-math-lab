@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using SlotMath.Core.Model;
 
 namespace SlotMath.Api.Infrastructure;
@@ -102,18 +103,26 @@ public sealed record RunEntry
 {
     public required string Id { get; init; }
     public required string ConfigId { get; init; }
-    public required string Status { get; init; } // "pending", "running", "completed", "failed"
+    public required string Status { get; init; } // "pending", "running", "completed", "failed", "cancelled"
     public string? ResultJson { get; init; }
     public DateTimeOffset CreatedAt { get; init; }
     public DateTimeOffset? CompletedAt { get; init; }
+
+    // ── Progress fields (populated during "running" state) ─────────────
+    public long? TotalSamples { get; init; }
+    public long? SampleCount { get; init; }
+    public double? RunningRtp { get; init; }
+    public double? StdErr { get; init; }
+    public long? ElapsedMs { get; init; }
 }
 
 /// <summary>
-/// In-memory run store.
+/// In-memory run store with cancellation support and progress tracking.
 /// </summary>
 public sealed class InMemoryRunStore
 {
     private readonly Dictionary<string, RunEntry> _runs = new();
+    private readonly ConcurrentDictionary<string, CancellationTokenSource> _cts = new();
     private int _counter;
 
     public RunEntry Create(string configId)
@@ -145,10 +154,73 @@ public sealed class InMemoryRunStore
         {
             Status = status,
             ResultJson = resultJson ?? entry.ResultJson,
-            CompletedAt = status is "completed" or "failed" ? DateTimeOffset.UtcNow : entry.CompletedAt,
+            CompletedAt = status is "completed" or "failed" or "cancelled" ? DateTimeOffset.UtcNow : entry.CompletedAt,
         };
         _runs[id] = updated;
         return updated;
+    }
+
+    /// <summary>
+    /// Update progress fields on a running entry.  Progress updates are frequent
+    /// and lightweight — only the progress fields are touched.
+    /// </summary>
+    public void UpdateProgress(string id, long sampleCount, long totalSamples,
+        double runningRtp, double stdErr, long elapsedMs)
+    {
+        if (!_runs.TryGetValue(id, out var entry))
+            return;
+
+        _runs[id] = entry with
+        {
+            SampleCount = sampleCount,
+            TotalSamples = totalSamples,
+            RunningRtp = runningRtp,
+            StdErr = stdErr,
+            ElapsedMs = elapsedMs,
+            Status = "running",
+        };
+    }
+
+    /// <summary>
+    /// Create and store a <see cref="CancellationTokenSource"/> for the given run.
+    /// The job layer uses this token; the cancel endpoint cancels it.
+    /// If a CTS already exists for this run, returns the existing one.
+    /// </summary>
+    public CancellationTokenSource CreateCancellationToken(string runId)
+    {
+        return _cts.GetOrAdd(runId, _ => new CancellationTokenSource());
+    }
+
+    /// <summary>
+    /// Cancel a running job.  Returns true if a CTS was found and cancelled,
+    /// false if the run was not found or had no active CTS.
+    /// </summary>
+    public bool Cancel(string runId)
+    {
+        if (_cts.TryRemove(runId, out var cts))
+        {
+            try
+            {
+                cts.Cancel();
+            }
+            finally
+            {
+                cts.Dispose();
+            }
+            return true;
+        }
+        return false;
+    }
+
+    /// <summary>
+    /// Remove and dispose the CTS for a run (called on normal completion).
+    /// </summary>
+    public void RemoveCancellationToken(string runId)
+    {
+        if (_cts.TryRemove(runId, out var cts))
+        {
+            try { cts.Dispose(); } catch { /* already disposed */ }
+        }
     }
 
     public IReadOnlyList<RunEntry> List(string? configId = null)

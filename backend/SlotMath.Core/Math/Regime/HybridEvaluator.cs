@@ -41,6 +41,15 @@ public sealed class RegimeConfig
     /// <summary>Cancellation token.</summary>
     public CancellationToken CancellationToken { get; init; } = CancellationToken.None;
 
+    /// <summary>How often to report progress, in number of spins (default 1000).</summary>
+    public int ProgressReportInterval { get; init; } = 1000;
+
+    /// <summary>
+    /// Optional callback invoked every <see cref="ProgressReportInterval"/> spins
+    /// with a snapshot of current statistics.
+    /// </summary>
+    public Action<SampledProgress>? ProgressCallback { get; init; }
+
     /// <summary>
     /// When true, always uses sampled (skip exact attempt).
     /// Useful for testing the fallback path.
@@ -240,7 +249,10 @@ public static class HybridEvaluator
             MaxSpins = config.SampledSpins,
             MaxWinCap = config.MaxWinCap,
             HistogramBins = config.HistogramBins,
-            CancellationToken = config.CancellationToken
+            CancellationToken = config.CancellationToken,
+            CancellationCheckInterval = config.ProgressCallback is not null ? 1 : 1000,
+            ProgressReportInterval = config.ProgressReportInterval,
+            ProgressCallback = config.ProgressCallback
         };
 
         var sampledResult = SampledInterpreter.Evaluate(

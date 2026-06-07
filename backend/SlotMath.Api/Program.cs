@@ -1,3 +1,5 @@
+using Hangfire;
+using Hangfire.MemoryStorage;
 using Microsoft.EntityFrameworkCore;
 using SlotMath.Api.Features.Configs;
 using SlotMath.Api.Features.Evaluate;
@@ -17,6 +19,20 @@ builder.Services.AddSingleton<InMemoryConfigStore>();
 builder.Services.AddSingleton<InMemoryRunStore>();
 builder.Services.AddSingleton<PluginHost>();
 builder.Services.AddSingleton<IResultCache, InMemoryResultCache>();
+
+// Hangfire (job runner)
+builder.Services.AddHangfire(config =>
+    config.UseMemoryStorage());
+builder.Services.AddHangfireServer(options =>
+{
+    options.WorkerCount = Math.Min(4, Environment.ProcessorCount);
+});
+
+// SignalR (real-time progress streaming)
+builder.Services.AddSignalR();
+
+// Run job service (transient — Hangfire resolves a new instance per job)
+builder.Services.AddTransient<RunJobService>();
 
 // EF Core + Postgres (persistence path)
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
@@ -50,6 +66,12 @@ using (var scope = app.Services.CreateScope())
 
 // ── OpenAPI ───────────────────────────────────────────────────────────
 app.MapOpenApi();
+
+// ── Hangfire dashboard (dev only) ──────────────────────────────────────
+app.UseHangfireDashboard();
+
+// ── SignalR hub ────────────────────────────────────────────────────────
+app.MapHub<RunHub>("/hubs/runs");
 
 // ── Vertical slices ───────────────────────────────────────────────────
 var configStore = app.Services.GetRequiredService<InMemoryConfigStore>();

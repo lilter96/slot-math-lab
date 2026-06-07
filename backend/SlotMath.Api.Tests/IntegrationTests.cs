@@ -12,6 +12,7 @@ namespace SlotMath.Api.Tests;
 /// <summary>
 /// G15 integration tests — cover all vertical slices (happy + error paths).
 /// </summary>
+[Collection("SerialTests")]
 public class IntegrationTests : IClassFixture<WebApplicationFactory<Program>>, IDisposable
 {
     private readonly WebApplicationFactory<Program> _factory;
@@ -33,7 +34,19 @@ public class IntegrationTests : IClassFixture<WebApplicationFactory<Program>>, I
     {
         _client.Dispose();
         _factory.Dispose();
-        EvaluatorRegistry.Clear();
+        lock (TestRegistryLock.Lock)
+        {
+            EvaluatorRegistry.Clear();
+        }
+    }
+
+    private static void SafeRegisterEvaluator(string name, IEvaluator evaluator)
+    {
+        lock (TestRegistryLock.Lock)
+        {
+            try { EvaluatorRegistry.Register(name, evaluator); }
+            catch (InvalidOperationException) { /* already registered by a parallel test */ }
+        }
     }
 
     // ── Helpers ──────────────────────────────────────────────────────────
@@ -257,7 +270,7 @@ public class IntegrationTests : IClassFixture<WebApplicationFactory<Program>>, I
     public async Task Validate_ValidConfig_ReturnsIsValid()
     {
         // Register the lines evaluator so the config compiles
-        EvaluatorRegistry.Register("lines", new LinesEvaluator(
+        SafeRegisterEvaluator("lines", new LinesEvaluator(
             new Paytable
             {
                 Id = "pt",
@@ -295,7 +308,7 @@ public class IntegrationTests : IClassFixture<WebApplicationFactory<Program>>, I
     [Fact]
     public async Task Validate_ReturnsSameErrorsAsCompiler()
     {
-        EvaluatorRegistry.Register("lines", new LinesEvaluator(
+        SafeRegisterEvaluator("lines", new LinesEvaluator(
             new Paytable { Id = "pt", Entries = new[] { new PaytableEntry { SymbolId = "sym-a", Counts = new[] { 3 }, Payouts = new[] { "10" } } } },
             new PaylineSet { Id = "ps", Paylines = new[] { new Payline { Positions = new[] { 0, 0, 0 } } } }));
 
@@ -315,7 +328,7 @@ public class IntegrationTests : IClassFixture<WebApplicationFactory<Program>>, I
     [Fact]
     public async Task EvaluateLight_ValidMvpConfig_ReturnsExactOrSampled()
     {
-        EvaluatorRegistry.Register("lines", new LinesEvaluator(
+        SafeRegisterEvaluator("lines", new LinesEvaluator(
             new Paytable { Id = "pt", Entries = new[] { new PaytableEntry { SymbolId = "sym-a", Counts = new[] { 3 }, Payouts = new[] { "10" } } } },
             new PaylineSet { Id = "ps", Paylines = new[] { new Payline { Positions = new[] { 0, 0, 0 } } } }));
 
@@ -358,7 +371,7 @@ public class IntegrationTests : IClassFixture<WebApplicationFactory<Program>>, I
     [Fact]
     public async Task EvaluateLight_WithSampleSize_ReturnsSampled()
     {
-        EvaluatorRegistry.Register("lines", new LinesEvaluator(
+        SafeRegisterEvaluator("lines", new LinesEvaluator(
             new Paytable { Id = "pt", Entries = new[] { new PaytableEntry { SymbolId = "sym-a", Counts = new[] { 3 }, Payouts = new[] { "10" } } } },
             new PaylineSet { Id = "ps", Paylines = new[] { new Payline { Positions = new[] { 0, 0, 0 } } } }));
 
@@ -389,7 +402,7 @@ public class IntegrationTests : IClassFixture<WebApplicationFactory<Program>>, I
     [Fact]
     public async Task Runs_CreateAndCheckStatus()
     {
-        EvaluatorRegistry.Register("lines", new LinesEvaluator(
+        SafeRegisterEvaluator("lines", new LinesEvaluator(
             new Paytable { Id = "pt", Entries = new[] { new PaytableEntry { SymbolId = "sym-a", Counts = new[] { 3 }, Payouts = new[] { "10" } } } },
             new PaylineSet { Id = "ps", Paylines = new[] { new Payline { Positions = new[] { 0, 0, 0 } } } }));
 
