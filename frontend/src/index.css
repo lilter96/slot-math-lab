@@ -203,13 +203,50 @@ button { font-family: inherit; color: inherit; cursor: pointer; }
 .pal-item .pt { font-size: 12px; font-weight: 500; }
 .pal-item .ps { font-size: 9.5px; color: var(--faint); font-family: var(--mono); }
 
-/* ── Canvas (placeholder for G19) ───────────────────────────────── */
-.canvas-wrap { flex: 1; position: relative; overflow: hidden; background: var(--bg-canvas); cursor: default; }
+/* ── Canvas ─────────────────────────────────────────────────────── */
+.canvas-wrap { flex: 1; position: relative; overflow: hidden; background: var(--bg-canvas); }
 .canvas-grid { position: absolute; inset: 0;
   background-image: radial-gradient(circle, oklch(0.32 0.014 255) 1px, transparent 1.2px);
   background-size: 26px 26px; pointer-events: none;
 }
-.canvas-placeholder { display:flex; align-items:center; justify-content:center; height:100%; color: var(--faint); font-size: 13px; }
+
+/* ── Nodes (matching prototype) ──────────────────────────────────── */
+.node {
+  background: var(--bg-2); border: 1px solid var(--line);
+  border-radius: var(--radius-lg); box-shadow: var(--shadow);
+  user-select: none; transition: box-shadow .12s, border-color .12s;
+  min-width: 160px;
+}
+.node:hover { border-color: var(--line-2); }
+.node.selected { border-color: var(--sel, var(--sampled)); box-shadow: 0 0 0 1px var(--sel, var(--sampled)), var(--shadow-pop); }
+.node-head { display:flex; align-items:center; gap: 9px; padding: 10px 12px; cursor: grab; border-bottom: 1px solid var(--line); }
+.node-ic { width: 26px; height: 26px; border-radius: 7px; display:grid; place-items:center; flex-shrink:0; background: var(--bg-3); color: var(--nc, var(--text)); }
+.node-ic svg { width: 15px; height: 15px; }
+.node-tt { min-width: 0; }
+.node-title { font-weight: 600; font-size: 12.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--text); }
+.node-sub { font-size: 10px; color: var(--faint); font-family: var(--mono); white-space: nowrap; overflow:hidden; text-overflow: ellipsis; }
+.node-lvl { margin-left: auto; font-family: var(--mono); font-size: 9.5px; padding: 1px 6px; border-radius: 5px; background: var(--bg); color: var(--faint); border: 1px solid var(--line); flex-shrink:0; }
+.node-lvl.b { color: var(--epsilon); border-color: oklch(0.82 0.135 78 / 0.35); }
+.node-lvl.plugin { color: var(--n-loop); border-color: oklch(0.78 0.15 305 / 0.35); }
+.node-body { padding: 9px 12px; }
+.node-body .mini-row { display:flex; align-items:center; justify-content:space-between; font-size: 11px; padding: 2px 0; }
+.node-body .mini-row .k { color: var(--faint); }
+.node-body .mini-row .v { font-family: var(--mono); color: var(--muted); }
+.node-body .expr-peek { font-family: var(--mono); font-size: 11px; color: var(--exact); background: var(--bg); padding: 6px 8px; border-radius: 5px; border: 1px solid var(--line); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:200px; }
+
+/* ports */
+.port { width: 11px; height: 11px; border-radius: 50%; background: var(--bg-1); border: 2px solid var(--line-2); }
+.port:hover { border-color: var(--sampled); background: var(--sampled-dim); }
+
+/* ── Canvas toolbar ─────────────────────────────────────────────── */
+.canvas-toolbar { position: absolute; left: 14px; bottom: 14px; display:flex; gap:6px; align-items:center; background: var(--bg-1); border: 1px solid var(--line); border-radius: 9px; padding: 4px; box-shadow: var(--shadow); z-index: 5; }
+.canvas-toolbar button { width: 30px; height: 30px; border-radius: 6px; background: transparent; border: 0; color: var(--muted); display:grid; place-items:center; cursor: pointer; }
+.canvas-toolbar button:hover { background: var(--bg-3); color: var(--text); }
+.canvas-toolbar .zoom-label { font-family: var(--mono); font-size: 11px; color: var(--faint); padding: 0 8px; min-width: 46px; text-align:center; }
+.canvas-hint { position:absolute; right:14px; bottom:14px; font-size:11px; color:var(--faint); background:var(--bg-1); border:1px solid var(--line); border-radius:7px; padding:6px 10px; z-index:5; pointer-events: none; }
+
+/* override @xyflow attribution (keep it subtle) */
+.react-flow__attribution { background: transparent !important; color: var(--faint) !important; font-size: 9px !important; opacity: 0.5; }
 
 /* ── Tweak states ───────────────────────────────────────────────── */
 body.no-grid .canvas-grid { display: none; }
