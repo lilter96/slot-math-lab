@@ -1,5 +1,6 @@
 import { useAppStore } from '../store';
-import ProvBadge from '../components/ProvBadge';
+import ProvBadge, { type Provenance } from '../components/ProvBadge';
+import { useLiveMetrics } from '../hooks/useLiveMetrics';
 
 export default function Results() {
   const configName = useAppStore((s) => s.configName);
@@ -7,6 +8,20 @@ export default function Results() {
   const nodes = useAppStore((s) => s.nodes);
   const edges = useAppStore((s) => s.edges);
   const today = new Date().toISOString().slice(0, 10);
+
+  // Live metrics from POST /api/evaluate/light (debounced, falls back gracefully)
+  const { overall, loading, error: metricsError } = useLiveMetrics(symbols);
+
+  // Map backend provenance to ProvBadge shape
+  const prov: Provenance | null =
+    overall?.provenance === 'Exact' ? { kind: 'Exact' }
+    : overall?.provenance === 'Sampled' ? { kind: 'Sampled', n: overall.sampleCount, stdErr: overall.stdErr }
+    : null;
+
+  const fmtPct = (v?: number, digits = 2) =>
+    v != null ? (v * 100).toFixed(digits) + '%' : '—';
+  const fmtNum = (v?: number, digits = 2) =>
+    v != null ? v.toFixed(digits) : '—';
 
   const paySymbols = symbols.filter((s) => s.kind === 'Standard' || s.kind === 'pay');
 
@@ -21,25 +36,50 @@ export default function Results() {
           </div>
           <div className="par-meta">
             {nodes.length} nodes · {edges.length} edges · {symbols.length} symbols · generated {today} · schema v1.0.0
+            {loading && <span style={{ marginLeft: 8, color: 'var(--sampled)' }}>· computing…</span>}
           </div>
+
+          {metricsError && (
+            <div style={{
+              marginBottom: 16, padding: '8px 12px', background: 'var(--epsilon-dim)',
+              border: '1px solid var(--epsilon)', borderRadius: 6,
+              fontSize: 11, fontFamily: 'var(--mono)', color: 'var(--epsilon)',
+            }}>
+              {metricsError} — add nodes on the Build tab to compute metrics
+            </div>
+          )}
+
+          {overall?.provenance === 'NeedsFullRun' && (
+            <div style={{
+              marginBottom: 16, padding: '8px 12px', background: 'var(--epsilon-dim)',
+              border: '1px solid var(--epsilon)', borderRadius: 6,
+              fontSize: 11, color: 'var(--epsilon)',
+            }}>
+              Graph is too expensive for a light evaluation — use the <b>Simulate</b> tab for a full run.
+            </div>
+          )}
 
           {/* ── Key metrics grid ── */}
           <div className="par-grid">
             <div className="par-cell">
-              <div className="pl">Return to player <ProvBadge p={{ kind: 'Exact' }} mini /></div>
-              <div className="pv" style={{ color: 'var(--exact)' }}>—</div>
+              <div className="pl">Return to player {prov && <ProvBadge p={prov} mini />}</div>
+              <div className="pv" style={{ color: overall ? 'var(--exact)' : undefined }}>
+                {fmtPct(overall?.rtp)}
+              </div>
             </div>
             <div className="par-cell">
-              <div className="pl">Hit frequency <ProvBadge p={{ kind: 'Exact' }} mini /></div>
-              <div className="pv">—</div>
+              <div className="pl">Hit frequency {prov && <ProvBadge p={prov} mini />}</div>
+              <div className="pv">{fmtPct(overall?.hitFrequency)}</div>
             </div>
             <div className="par-cell">
-              <div className="pl">Base volatility <ProvBadge p={{ kind: 'Exact' }} mini /></div>
-              <div className="pv">—</div>
+              <div className="pl">Base volatility {prov && <ProvBadge p={prov} mini />}</div>
+              <div className="pv">{fmtNum(overall?.volatility)}<span style={{ fontSize: 13, color: 'var(--muted)' }}>{overall ? ' σ' : ''}</span></div>
             </div>
             <div className="par-cell">
-              <div className="pl">Feature trigger <ProvBadge p={{ kind: 'Exact' }} mini /></div>
-              <div className="pv">—</div>
+              <div className="pl">95% CI</div>
+              <div className="pv" style={{ fontSize: 14 }}>
+                {overall?.ci95 ?? '—'}
+              </div>
             </div>
           </div>
 
@@ -60,25 +100,26 @@ export default function Results() {
                   <td>Base game</td>
                   <td style={{ color: 'var(--faint)' }}>—</td>
                   <td style={{ color: 'var(--faint)' }}>—</td>
-                  <td><ProvBadge p={{ kind: 'Exact' }} mini /></td>
+                  <td>{prov ? <ProvBadge p={prov} mini /> : <span style={{ color: 'var(--faint)' }}>—</span>}</td>
                 </tr>
                 <tr>
                   <td>Feature contribution</td>
                   <td style={{ color: 'var(--faint)' }}>—</td>
                   <td style={{ color: 'var(--faint)' }}>—</td>
-                  <td><ProvBadge p={{ kind: 'Exact' }} mini /></td>
+                  <td>{prov ? <ProvBadge p={prov} mini /> : <span style={{ color: 'var(--faint)' }}>—</span>}</td>
                 </tr>
                 <tr style={{ fontWeight: 600 }}>
                   <td>Total</td>
-                  <td style={{ color: 'var(--exact)' }}>—</td>
-                  <td>—</td>
-                  <td><ProvBadge p={{ kind: 'Exact' }} mini /></td>
+                  <td style={{ color: overall ? 'var(--exact)' : undefined }}>
+                    {fmtPct(overall?.rtp)}
+                  </td>
+                  <td style={{ color: 'var(--faint)' }}>100.0%</td>
+                  <td>{prov ? <ProvBadge p={prov} mini /> : <span style={{ color: 'var(--faint)' }}>—</span>}</td>
                 </tr>
               </tbody>
             </table>
             <div className="hint" style={{ marginTop: 10 }}>
-              Run the exact interpreter or a simulation to compute RTP contributions.
-              Use the <b>Simulate</b> tab for Monte Carlo estimates.
+              Per-component breakdown requires the exact interpreter. Run the Simulate tab for a full Monte Carlo estimate.
             </div>
           </div>
 
@@ -130,10 +171,16 @@ export default function Results() {
               </thead>
               <tbody>
                 {symbols.length === 0 ? (
-                  <tr><td colSpan={4} style={{ color: 'var(--faint)', fontStyle: 'italic' }}>No symbols defined yet — add them in Build → Tables.</td></tr>
+                  <tr>
+                    <td colSpan={4} style={{ color: 'var(--faint)', fontStyle: 'italic' }}>
+                      No symbols defined — add them in Build → Tables.
+                    </td>
+                  </tr>
                 ) : symbols.map((s) => (
                   <tr key={s.id}>
-                    <td><span style={{ width: 14, height: 14, borderRadius: 4, background: s.color, display: 'inline-block', verticalAlign: 'middle' }} /></td>
+                    <td>
+                      <span style={{ width: 14, height: 14, borderRadius: 4, background: s.color, display: 'inline-block', verticalAlign: 'middle' }} />
+                    </td>
                     <td>{s.id}</td>
                     <td>{s.name}</td>
                     <td>{s.kind}</td>
@@ -146,7 +193,7 @@ export default function Results() {
           {/* ── Graph summary ── */}
           <div className="par-section">
             <h2>Graph summary</h2>
-            <div className="par-grid" style={{ gridTemplateColumns: 'repeat(3,1fr)' }}>
+            <div className="par-grid" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}>
               <div className="par-cell">
                 <div className="pl">Nodes</div>
                 <div className="pv">{nodes.length}</div>
@@ -162,12 +209,12 @@ export default function Results() {
             </div>
           </div>
 
-          {/* ── Provenance note ── */}
+          {/* ── Provenance legend ── */}
           <div className="par-section">
             <h2>Provenance</h2>
-            <div className="code-block">{`Exact path  — rational closed-form (BigInteger numerator / denominator).
-ε-pruned    — exact within bounds; prunedMass and [lo, hi] interval reported.
-Sampled     — Monte Carlo with n samples; stdErr and 95% CI reported.
+            <div className="code-block">{`Exact           — rational closed-form (BigInteger numerator / denominator).
+ε-pruned        — exact within bounds; prunedMass and [lo, hi] interval reported.
+Sampled         — Monte Carlo with n samples; stdErr and 95% CI reported.
 
 All displayed metric values carry a provenance tag.
 Floats are display-only; the rational ratio is the source of truth on the exact path.`}</div>

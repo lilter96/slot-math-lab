@@ -1,15 +1,39 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 import * as signalR from '@microsoft/signalr';
+import { useAppStore, type GraphNode, type GraphEdge, type TableSymbol } from '../store';
 import ConvergenceChart, { type ConvergencePoint } from '../components/simulate/ConvergenceChart';
 import Histogram from '../components/simulate/Histogram';
 import ProvBadge from '../components/ProvBadge';
 
-const TOTAL_SPINS = 1_000_000;
-const EXACT_REFERENCE = 0.9534;
+// ── Constants ─────────────────────────────────────────────────────────
+const DEFAULT_SPINS = 1_000_000;
+const FALLBACK_EXACT_RTP = 0.9534;
 const CAP_WIN = 5000;
+const API_BASE: string = (import.meta.env.VITE_API_URL as string | undefined) ?? '';
 
+// ── Types ─────────────────────────────────────────────────────────────
 type RunStatus = 'idle' | 'running' | 'paused' | 'complete';
 
+interface BackendProgress {
+  runId?: string;
+  sampleCount?: number;
+  totalSamples?: number;
+  runningRtp?: number;
+  stdErr?: number;
+  status?: string;
+  elapsedMs?: number;
+}
+
+interface RunResult {
+  rtp?: number;
+  hitFrequency?: number;
+  volatility?: number;
+  maxWin?: number;
+  sampleCount?: number;
+  provenance?: string;
+}
+
+// ── Helpers ───────────────────────────────────────────────────────────
 function fmtN(n: number): string {
   if (n >= 1e6) return (n / 1e6).toFixed(0) + 'M';
   if (n >= 1e3) return (n / 1e3).toFixed(0) + 'k';
@@ -25,6 +49,36 @@ function KV({ k, v }: { k: string; v: string }) {
   );
 }
 
+/** Build the graph config payload that the backend compiler accepts. */
+function buildConfigPayload(
+  nodes: GraphNode[],
+  edges: GraphEdge[],
+  symbols: TableSymbol[],
+  name: string,
+): Record<string, unknown> | null {
+  if (nodes.length === 0) return null;
+  return {
+    schemaVersion: '1.0.0',
+    name,
+    symbols: symbols.length > 0 ? symbols.map((s) => ({ id: s.id, name: s.name, kind: s.kind })) : undefined,
+    boardConfig: { rows: 3, columns: 5 },
+    nodes: nodes.map((n) => ({
+      id: n.id,
+      label: n.data.label,
+      inputs: {},
+      outputs: { out: { name: 'out', type: 'Weights' } },
+    })),
+    edges: edges.map((e) => ({
+      id: e.id,
+      sourceNodeId: e.source,
+      sourcePort: 'out',
+      targetNodeId: e.target,
+      targetPort: 'in',
+    })),
+  };
+}
+
+// ── Component ─────────────────────────────────────────────────────────
 export default function Simulate() {
   const [status, setStatus] = useState<RunStatus>('idle');
   const [sampleCount, setSampleCount] = useState(0);
@@ -35,46 +89,141 @@ export default function Simulate() {
   const [capHits, setCapHits] = useState(0);
   const [points, setPoints] = useState<ConvergencePoint[]>([]);
   const [histogram, setHistogram] = useState<Map<number, number>>(new Map());
-  const [spinsTarget] = useState(TOTAL_SPINS);
+  const [error, setError] = useState<string | null>(null);
+  const [exactRtp, setExactRtp] = useState(FALLBACK_EXACT_RTP);
+  const [spinsTarget] = useState(DEFAULT_SPINS);
+
+  // Store data used to build the config payload
+  const nodes = useAppStore((s) => s.nodes);
+  const edges = useAppStore((s) => s.edges);
+  const symbols = useAppStore((s) => s.tableSymbols);
+  const configName = useAppStore((s) => s.configName);
 
   const hubRef = useRef<signalR.HubConnection | null>(null);
   const abortRef = useRef(false);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const runIdRef = useRef<string | null>(null);
 
+  // ── Cancel / stop ───────────────────────────────────────────────────
   const stop = useCallback(() => {
     abortRef.current = true;
     if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
-    if (hubRef.current) { hubRef.current.stop(); hubRef.current = null; }
-    if (status === 'running') setStatus('paused');
-  }, [status]);
 
+    if (runIdRef.current) {
+      const id = runIdRef.current;
+      runIdRef.current = null;
+      fetch(`${API_BASE}/api/runs/${id}`, { method: 'DELETE' }).catch(() => {});
+    }
+
+    if (hubRef.current) { void hubRef.current.stop(); hubRef.current = null; }
+    setStatus((s) => (s === 'running' ? 'paused' : s));
+  }, []);
+
+  // ── Start run ───────────────────────────────────────────────────────
   const start = useCallback(async () => {
     abortRef.current = false;
+    runIdRef.current = null;
     setStatus('running');
-    setSampleCount(0); setRunningRtp(0); setStdErr(0); setVolatility(0);
-    setMaxWin(0); setCapHits(0);
+    setError(null);
+    setSampleCount(0); setRunningRtp(0); setStdErr(0);
+    setVolatility(0); setMaxWin(0); setCapHits(0);
     setPoints([]); setHistogram(new Map());
 
-    // Try SignalR
-    try {
-      const hub = new signalR.HubConnectionBuilder()
-        .withUrl('/hubs/runs')
-        .withAutomaticReconnect()
-        .build();
-      hub.on('RunProgress', (msg: { sampleCount: number; totalSamples: number; runningRtp: number; stdErr: number; status: string }) => {
-        if (abortRef.current) return;
-        setSampleCount(msg.sampleCount); setRunningRtp(msg.runningRtp); setStdErr(msg.stdErr);
-        setPoints((prev) => [...prev, { n: msg.sampleCount, rtp: msg.runningRtp, stdErr: msg.stdErr }]);
-        if (msg.status === 'completed' || msg.sampleCount >= msg.totalSamples) { setStatus('complete'); hub.stop(); hubRef.current = null; }
-      });
-      hubRef.current = hub;
-      await hub.start();
-      return;
-    } catch { /* fall through to local sim */ }
+    // ── Try backend flow ──────────────────────────────────────────────
+    const configPayload = buildConfigPayload(nodes, edges, symbols, configName ?? 'Untitled');
+    if (configPayload) {
+      try {
+        // 1. Persist config → get configId
+        const configRes = await fetch(`${API_BASE}/api/configs`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ config: configPayload }),
+        });
+        if (!configRes.ok) throw new Error(`Config save HTTP ${configRes.status}`);
+        const configData = (await configRes.json()) as { id?: string };
+        const configId = configData.id;
+        if (!configId) throw new Error('Config save returned no id');
 
-    // Local fallback simulation
+        // 2. Create evaluation run → get runId
+        const batchSize = Math.max(100, Math.floor(spinsTarget / 100));
+        const runRes = await fetch(`${API_BASE}/api/runs`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ configId, sampleSize: spinsTarget, progressBatchSize: batchSize }),
+        });
+        if (!runRes.ok) throw new Error(`Run create HTTP ${runRes.status}`);
+        const runData = (await runRes.json()) as { id?: string };
+        const runId = runData.id;
+        if (!runId) throw new Error('Run create returned no id');
+        runIdRef.current = runId;
+
+        // 3. Connect to SignalR and subscribe to this run's group
+        const hub = new signalR.HubConnectionBuilder()
+          .withUrl(`${API_BASE}/hubs/runs`)
+          .withAutomaticReconnect()
+          .build();
+
+        hub.on('ProgressUpdate', (msg: BackendProgress) => {
+          if (abortRef.current) return;
+          const n = msg.sampleCount ?? 0;
+          const rtp = msg.runningRtp ?? 0;
+          const se = msg.stdErr ?? 0;
+          setSampleCount(n);
+          setRunningRtp(rtp);
+          setStdErr(se);
+          setPoints((prev) => {
+            const last = prev[prev.length - 1];
+            if (last && n - last.n < spinsTarget / 200) return prev;
+            return [...prev, { n, rtp, stdErr: se }];
+          });
+          setHistogram((prev) => {
+            const next = new Map(prev);
+            const bucket = Math.round(rtp * 20) / 20;
+            next.set(bucket, (next.get(bucket) ?? 0) + 1);
+            return next;
+          });
+
+          const terminal = msg.status === 'completed' || msg.status === 'cancelled' || msg.status === 'failed';
+          if (terminal) {
+            setStatus(msg.status === 'completed' ? 'complete' : 'paused');
+            if (msg.status === 'failed') setError('Run failed on the server');
+
+            // On completion, fetch full result for volatility and maxWin
+            if (msg.status === 'completed') {
+              const finishedId = runIdRef.current ?? runId;
+              fetch(`${API_BASE}/api/runs/${finishedId}`)
+                .then((r) => r.json())
+                .then((data: { resultJson?: string }) => {
+                  if (data.resultJson) {
+                    const result = JSON.parse(data.resultJson) as RunResult;
+                    if (result.volatility != null) setVolatility(result.volatility);
+                    if (result.maxWin != null) setMaxWin(Math.round(result.maxWin));
+                    if (result.rtp != null) setExactRtp(result.rtp);
+                  }
+                })
+                .catch(() => {});
+            }
+            hub.stop();
+            hubRef.current = null;
+            runIdRef.current = null;
+          }
+        });
+
+        hubRef.current = hub;
+        await hub.start();
+        await hub.invoke('SubscribeToRun', runId);
+        return; // backend flow is live
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        console.warn('[Simulate] Backend unavailable, falling back to local simulation:', msg);
+        runIdRef.current = null;
+        if (hubRef.current) { void hubRef.current.stop(); hubRef.current = null; }
+      }
+    }
+
+    // ── Local fallback Monte Carlo simulation ─────────────────────────
     let n = 0, sum = 0, sumSq = 0, localMax = 0, localCapHits = 0;
-    const mu = EXACT_REFERENCE;
+    const mu = exactRtp;
     const BATCH = 3000;
 
     timerRef.current = setInterval(() => {
@@ -107,17 +256,20 @@ export default function Simulate() {
         next.set(bucket, (next.get(bucket) ?? 0) + 1);
         return next;
       });
-      if (n >= spinsTarget) { if (timerRef.current) clearInterval(timerRef.current); setStatus('complete'); }
+      if (n >= spinsTarget) {
+        if (timerRef.current) clearInterval(timerRef.current);
+        setStatus('complete');
+      }
     }, 50);
-  }, [spinsTarget]);
+  }, [nodes, edges, symbols, configName, spinsTarget, exactRtp]);
 
   useEffect(() => () => {
     abortRef.current = true;
     if (timerRef.current) clearInterval(timerRef.current);
-    if (hubRef.current) hubRef.current.stop();
+    if (hubRef.current) void hubRef.current.stop();
   }, []);
 
-  const inBand = sampleCount > 1000 && Math.abs(runningRtp - EXACT_REFERENCE) <= 3 * stdErr + 1e-9;
+  const inBand = sampleCount > 1000 && Math.abs(runningRtp - exactRtp) <= 3 * stdErr + 1e-9;
   const progress = Math.min(1, sampleCount / spinsTarget);
 
   return (
@@ -138,15 +290,21 @@ export default function Simulate() {
           <div className="stat-cards">
             <div className="stat-card">
               <div className="sl">Running RTP</div>
-              <div className="sv" style={{ color: 'var(--sampled)' }}>{(runningRtp * 100).toFixed(3)}%</div>
+              <div className="sv" style={{ color: 'var(--sampled)' }}>
+                {sampleCount > 0 ? (runningRtp * 100).toFixed(3) + '%' : '—'}
+              </div>
             </div>
             <div className="stat-card">
               <div className="sl">Std error</div>
-              <div className="sv">±{(stdErr * 100).toFixed(4)}</div>
+              <div className="sv">
+                {sampleCount > 0 ? '±' + (stdErr * 100).toFixed(4) : '—'}
+              </div>
             </div>
             <div className="stat-card">
               <div className="sl">Exact RTP</div>
-              <div className="sv" style={{ color: 'var(--exact)' }}>{(EXACT_REFERENCE * 100).toFixed(2)}%</div>
+              <div className="sv" style={{ color: 'var(--exact)' }}>
+                {(exactRtp * 100).toFixed(2)}%
+              </div>
             </div>
             <div className="stat-card">
               <div className="sl">Max win seen</div>
@@ -154,6 +312,12 @@ export default function Simulate() {
             </div>
           </div>
         </div>
+
+        {error && (
+          <div style={{ padding: '4px 16px 0', color: 'var(--danger)', fontSize: 11, fontFamily: 'var(--mono)' }}>
+            {error}
+          </div>
+        )}
 
         {/* ── Convergence chart ── */}
         <div className="chart-card">
@@ -166,13 +330,13 @@ export default function Simulate() {
               </span>
             )}
             <div className="leg">
-              <span><span className="ln" style={{ background: 'var(--exact)' }} />exact (closed form)</span>
+              <span><span className="ln" style={{ background: 'var(--exact)' }} />exact</span>
               <span><span className="ln" style={{ background: 'var(--sampled)' }} />sampled mean</span>
               <span><span className="ln" style={{ background: 'var(--sampled)', opacity: 0.35, height: 8 }} />95% CI</span>
             </div>
           </div>
           <div className="chart-canvas-wrap">
-            <ConvergenceChart points={points} exactRtp={EXACT_REFERENCE} />
+            <ConvergenceChart points={points} exactRtp={exactRtp} />
           </div>
         </div>
 
