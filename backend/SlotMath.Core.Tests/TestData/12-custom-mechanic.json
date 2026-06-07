@@ -1,0 +1,35 @@
+{
+  "schemaVersion": "1.0.0", "id": "sample-12", "name": "Custom Mechanic",
+  "description": "A named reusable sub-graph (custom mechanic) composed from primitives + expressions.",
+  "symbols": [{ "id":"sym-std","name":"Standard","kind":"Standard" },{ "id":"sym-wild","name":"Wild","kind":"Wild" }],
+  "paytables": [{ "id":"pt","entries":[{ "symbolId":"sym-std","counts":[3,4,5],"payouts":["5","25","100"] }]}],
+  "reelStrips": [{ "id":"r1","name":"R1","symbols":["sym-std","sym-std","sym-wild","sym-std"] },{ "id":"r2","name":"R2","symbols":["sym-std","sym-wild","sym-std","sym-std"] }],
+  "reelSets": [{ "id":"rs","name":"Main","stripIds":["r1","r2"] }],
+  "boardConfig": { "rows": 2, "columns": 2 },
+  "mechanics": {
+    "wild-expander": {
+      "name": "Wild Expander",
+      "description": "Wild symbol expands to fill its reel when it lands.",
+      "nodes": [
+        { "nodeType":"map","id":"find-wilds","label":"Find Wilds","inputs":{"board":{"name":"board","type":"Board"}},"outputs":{"cells":{"name":"cells","type":"State"}} },
+        { "nodeType":"map","id":"expand","label":"Expand Wild","inputs":{"board":{"name":"board","type":"Board"},"cells":{"name":"cells","type":"State"}},"outputs":{"board":{"name":"board","type":"Board"}} },
+        { "nodeType":"map","id":"re-eval","label":"Re-Evaluate","inputs":{"board":{"name":"board","type":"Board"}},"outputs":{"wins":{"name":"wins","type":"Wins"}} }
+      ],
+      "edges": [
+        { "id":"me1","sourceNodeId":"find-wilds","sourcePort":"cells","targetNodeId":"expand","targetPort":"cells" },
+        { "id":"me2","sourceNodeId":"expand","sourcePort":"board","targetNodeId":"re-eval","targetPort":"board" }
+      ],
+      "expressions": {}
+    }
+  },
+  "nodes": [
+    { "nodeType":"draw","id":"spin","label":"Spin","outputs":{"board":{"name":"board","type":"Board"}} },
+    { "nodeType":"library","id":"wild-exp","label":"Wild Expander","mechanicName":"wild-expander","inputs":{"board":{"name":"board","type":"Board"}},"outputs":{"board":{"name":"board","type":"Board"},"wins":{"name":"wins","type":"Wins"}} },
+    { "nodeType":"metricsSink","id":"sink","label":"Metrics","inputs":{"wins":{"name":"wins","type":"Wins"}} }
+  ],
+  "edges": [
+    { "id":"e1","sourceNodeId":"spin","sourcePort":"board","targetNodeId":"wild-exp","targetPort":"board" },
+    { "id":"e2","sourceNodeId":"wild-exp","sourcePort":"wins","targetNodeId":"sink","targetPort":"wins" }
+  ],
+  "plugins": []
+}

@@ -1,0 +1,121 @@
+using SlotMath.Core.Model;
+
+namespace SlotMath.Core.Mechanics.Evaluators;
+
+/// <summary>
+/// Evaluates wins using flood-fill clustering with orthogonal adjacency.
+///
+/// Symbols of the same kind that are orthogonally adjacent (up/down/left/right)
+/// form a cluster.  WILD symbols connect with any other symbol, extending
+/// the cluster.  Clusters below the minimum size are ignored.
+///
+/// Payout is per-cluster from the paytable lookup by cluster size.
+/// </summary>
+public sealed class ClusterEvaluator : IEvaluator
+{
+    private readonly Paytable _paytable;
+    private readonly int _minClusterSize;
+    private readonly string? _wildSymbolId;
+
+    public ClusterEvaluator(Paytable paytable, int minClusterSize = 3, string? wildSymbolId = null)
+    {
+        _paytable = paytable;
+        _minClusterSize = minClusterSize;
+        _wildSymbolId = wildSymbolId;
+    }
+
+    public Win[] Evaluate(Board board, object? state)
+    {
+        ArgumentNullException.ThrowIfNull(board);
+        var visited = new bool[board.Rows, board.Cols];
+        var wins = new List<Win>();
+
+        for (var r = 0; r < board.Rows; r++)
+            for (var c = 0; c < board.Cols; c++)
+            {
+                if (visited[r, c]) continue;
+                var cell = board[r, c];
+                if (cell.IsEmpty) continue;
+
+                var sym = cell.Symbols![0];
+                if (sym == _wildSymbolId) continue; // wilds are connectors, not cluster starters
+
+                // Flood-fill this cluster
+                var cluster = FloodFill(board, r, c, sym, visited);
+                if (cluster.Count >= _minClusterSize)
+                {
+                    var payout = LookupPayout(sym, cluster.Count);
+                    if (payout > 0)
+                    {
+                        wins.Add(new Win
+                        {
+                            SymbolId = sym,
+                            Count = cluster.Count,
+                            Positions = cluster.Select(p => (p.Row, p.Col)).ToArray(),
+                            Payout = payout,
+                            EvaluatorName = "Cluster"
+                        });
+                    }
+                }
+            }
+
+        return wins.ToArray();
+    }
+
+    private List<(int Row, int Col)> FloodFill(Board board, int startR, int startC,
+        string targetSymbol, bool[,] visited)
+    {
+        var cluster = new List<(int Row, int Col)>();
+        var queue = new Queue<(int Row, int Col)>();
+        queue.Enqueue((startR, startC));
+        visited[startR, startC] = true;
+
+        var rows = board.Rows;
+        var cols = board.Cols;
+        var dirs = new[] { (-1, 0), (1, 0), (0, -1), (0, 1) }; // orthogonal only
+
+        while (queue.Count > 0)
+        {
+            var (r, c) = queue.Dequeue();
+            cluster.Add((r, c));
+
+            foreach (var (dr, dc) in dirs)
+            {
+                var nr = r + dr;
+                var nc = c + dc;
+                if (nr < 0 || nr >= rows || nc < 0 || nc >= cols) continue;
+                if (visited[nr, nc]) continue;
+
+                var cell = board[nr, nc];
+                if (cell.IsEmpty) continue;
+
+                var sym = cell.Symbols![0];
+                if (sym == targetSymbol || sym == _wildSymbolId)
+                {
+                    visited[nr, nc] = true;
+                    queue.Enqueue((nr, nc));
+                }
+            }
+        }
+
+        return cluster;
+    }
+
+    private decimal LookupPayout(string symbolId, int count)
+    {
+        var entry = _paytable.Entries.FirstOrDefault(e => e.SymbolId == symbolId);
+        if (entry == null) return 0;
+        var idx = Array.IndexOf(entry.Counts, count);
+        if (idx < 0)
+        {
+            // Use the largest count that doesn't exceed the cluster size
+            var best = -1;
+            for (var i = 0; i < entry.Counts.Length; i++)
+                if (entry.Counts[i] <= count && (best < 0 || entry.Counts[i] > entry.Counts[best]))
+                    best = i;
+            if (best < 0) return 0;
+            idx = best;
+        }
+        return decimal.Parse(entry.Payouts[idx]);
+    }
+}

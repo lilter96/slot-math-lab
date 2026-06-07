@@ -1,0 +1,19 @@
+{
+  "schemaVersion": "1.0.0", "id": "sample-06", "name": "Cluster Pays",
+  "description": "Cluster pay evaluator: groups of 5+ connected symbols pay.",
+  "symbols": [{ "id":"s-red","name":"Red","kind":"Standard" },{ "id":"s-blue","name":"Blue","kind":"Standard" },{ "id":"s-green","name":"Green","kind":"Standard" }],
+  "paytables": [{ "id":"pt","entries":[{ "symbolId":"s-red","counts":[5,6,7,8,9],"payouts":["10","25","50","100","250"] },{ "symbolId":"s-blue","counts":[5,6,7,8,9],"payouts":["5","15","30","60","150"] },{ "symbolId":"s-green","counts":[5,6,7,8,9],"payouts":["2","10","20","40","100"] }]}],
+  "reelStrips": [{ "id":"r1","name":"R1","symbols":["s-red","s-blue","s-green","s-red","s-blue"] },{ "id":"r2","name":"R2","symbols":["s-blue","s-green","s-red","s-blue","s-green"] },{ "id":"r3","name":"R3","symbols":["s-green","s-red","s-blue","s-green","s-red"] }],
+  "reelSets": [{ "id":"rs","name":"Main","stripIds":["r1","r2","r3"] }],
+  "boardConfig": { "rows": 5, "columns": 5 },
+  "nodes": [
+    { "nodeType":"draw","id":"spin","label":"Spin","outputs":{"board":{"name":"board","type":"Board"}} },
+    { "nodeType":"map","id":"cluster-eval","label":"Cluster Eval","inputs":{"board":{"name":"board","type":"Board"}},"outputs":{"wins":{"name":"wins","type":"Wins"}} },
+    { "nodeType":"metricsSink","id":"sink","label":"Metrics","inputs":{"wins":{"name":"wins","type":"Wins"}} }
+  ],
+  "edges": [
+    { "id":"e1","sourceNodeId":"spin","sourcePort":"board","targetNodeId":"cluster-eval","targetPort":"board" },
+    { "id":"e2","sourceNodeId":"cluster-eval","sourcePort":"wins","targetNodeId":"sink","targetPort":"wins" }
+  ],
+  "plugins": []
+}

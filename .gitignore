@@ -1,0 +1,29 @@
+# .NET
+bin/
+obj/
+*.user
+*.suo
+*.DotSettings.user
+
+# Node
+node_modules/
+dist/
+
+# IDE
+.idea/
+.vs/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Coverage
+coverage*.xml
+coverage*.json
+TestResults/
+
+# Secrets
+*.env
+appsettings.*.json
+!appsettings.json
+!appsettings.Development.json

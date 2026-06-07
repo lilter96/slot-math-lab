@@ -1,0 +1,19 @@
+{
+  "schemaVersion": "1.0.0", "id": "sample-07", "name": "Megaways",
+  "description": "Megaways with variable reel heights (2-7 symbols per reel).",
+  "symbols": [{ "id":"sym-a","name":"A","kind":"Standard" },{ "id":"sym-b","name":"B","kind":"Standard" },{ "id":"sym-c","name":"C","kind":"Standard" }],
+  "paytables": [{ "id":"pt","entries":[{ "symbolId":"sym-a","counts":[3,4,5,6],"payouts":["2","5","15","50"] },{ "symbolId":"sym-b","counts":[3,4,5,6],"payouts":["1","3","10","25"] },{ "symbolId":"sym-c","counts":[3,4,5,6],"payouts":["1","2","5","15"] }]}],
+  "reelStrips": [{ "id":"r1","name":"R1","symbols":["sym-a","sym-b","sym-c","sym-a","sym-b","sym-c","sym-a"] },{ "id":"r2","name":"R2","symbols":["sym-b","sym-c","sym-a","sym-b","sym-c","sym-a","sym-b"] },{ "id":"r3","name":"R3","symbols":["sym-c","sym-a","sym-b","sym-c","sym-a","sym-b","sym-c"] }],
+  "reelSets": [{ "id":"rs","name":"Main","stripIds":["r1","r2","r3"] }],
+  "boardConfig": { "rows": 7, "columns": 6, "growable": true },
+  "nodes": [
+    { "nodeType":"draw","id":"spin","label":"Spin (Variable Height)","outputs":{"board":{"name":"board","type":"Board"}} },
+    { "nodeType":"map","id":"mega-eval","label":"Megaways Eval","inputs":{"board":{"name":"board","type":"Board"}},"outputs":{"wins":{"name":"wins","type":"Wins"}} },
+    { "nodeType":"metricsSink","id":"sink","label":"Metrics","inputs":{"wins":{"name":"wins","type":"Wins"}} }
+  ],
+  "edges": [
+    { "id":"e1","sourceNodeId":"spin","sourcePort":"board","targetNodeId":"mega-eval","targetPort":"board" },
+    { "id":"e2","sourceNodeId":"mega-eval","sourcePort":"wins","targetNodeId":"sink","targetPort":"wins" }
+  ],
+  "plugins": []
+}

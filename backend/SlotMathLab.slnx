@@ -1,0 +1,5 @@
+<Solution>
+  <Project Path="SlotMath.Api/SlotMath.Api.csproj" />
+  <Project Path="SlotMath.Core.Tests/SlotMath.Core.Tests.csproj" />
+  <Project Path="SlotMath.Core/SlotMath.Core.csproj" />
+</Solution>

@@ -1,0 +1,58 @@
+{
+  "schemaVersion": "1.0.0",
+  "id": "sample-10",
+  "name": "Plugin Evaluator",
+  "description": "Uses a level-(c) plugin implementing IEvaluator for a custom spatial evaluation. The engine flags this as sampled-regime.",
+  "symbols": [
+    { "id": "sym-a", "name": "Symbol A", "kind": "Standard" },
+    { "id": "sym-b", "name": "Symbol B", "kind": "Standard" },
+    { "id": "sym-bonus", "name": "Bonus", "kind": "Bonus" }
+  ],
+  "paytables": [
+    { "id": "pt", "entries": [
+      { "symbolId": "sym-a", "counts": [3,4,5], "payouts": ["15","60","300"] },
+      { "symbolId": "sym-b", "counts": [3,4,5], "payouts": ["10","40","150"] }
+    ]}
+  ],
+  "reelStrips": [
+    { "id": "r1", "name": "R1", "symbols": ["sym-a","sym-b","sym-b","sym-bonus","sym-a","sym-b"] },
+    { "id": "r2", "name": "R2", "symbols": ["sym-b","sym-a","sym-b","sym-bonus","sym-b","sym-a"] },
+    { "id": "r3", "name": "R3", "symbols": ["sym-b","sym-b","sym-a","sym-bonus","sym-a","sym-b"] }
+  ],
+  "reelSets": [{ "id": "rs", "name": "Main", "stripIds": ["r1","r2","r3"] }],
+  "boardConfig": { "rows": 3, "columns": 3 },
+  "nodes": [
+    {
+      "nodeType": "draw",
+      "id": "spin",
+      "label": "Spin",
+      "outputs": { "board": { "name": "board", "type": "Board" } }
+    },
+    {
+      "nodeType": "map",
+      "id": "eval",
+      "label": "Custom Evaluator (Plugin)",
+      "transformId": "plugin-custom-eval",
+      "inputs": { "board": { "name": "board", "type": "Board" } },
+      "outputs": { "wins": { "name": "wins", "type": "Wins" } }
+    },
+    {
+      "nodeType": "metricsSink",
+      "id": "sink",
+      "label": "Metrics",
+      "inputs": { "wins": { "name": "wins", "type": "Wins" } }
+    }
+  ],
+  "edges": [
+    { "id": "e1", "sourceNodeId": "spin", "sourcePort": "board", "targetNodeId": "eval", "targetPort": "board" },
+    { "id": "e2", "sourceNodeId": "eval", "sourcePort": "wins", "targetNodeId": "sink", "targetPort": "wins" }
+  ],
+  "plugins": [
+    {
+      "pluginId": "custom-spatial-evaluator",
+      "contract": "IEvaluator",
+      "version": "1.0.0",
+      "config": { "shape": "diamond", "radius": "2" }
+    }
+  ]
+}

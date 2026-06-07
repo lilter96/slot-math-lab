@@ -1,0 +1,65 @@
+{
+  "schemaVersion": "1.0.0",
+  "id": "sample-01",
+  "name": "Simple Lines Base Game",
+  "description": "A basic 5x3 slot with 20 paylines using the lines evaluator.",
+  "symbols": [
+    { "id": "sym-9", "name": "Nine", "kind": "Standard" },
+    { "id": "sym-10", "name": "Ten", "kind": "Standard" },
+    { "id": "sym-j", "name": "Jack", "kind": "Standard" },
+    { "id": "sym-q", "name": "Queen", "kind": "Standard" },
+    { "id": "sym-k", "name": "King", "kind": "Standard" },
+    { "id": "sym-a", "name": "Ace", "kind": "Standard" },
+    { "id": "sym-wild", "name": "Wild", "kind": "Wild" }
+  ],
+  "paytables": [
+    {
+      "id": "main-paytable",
+      "entries": [
+        { "symbolId": "sym-9", "counts": [3, 4, 5], "payouts": ["5", "20", "100"] },
+        { "symbolId": "sym-10", "counts": [3, 4, 5], "payouts": ["5", "20", "100"] },
+        { "symbolId": "sym-j", "counts": [3, 4, 5], "payouts": ["10", "40", "150"] },
+        { "symbolId": "sym-q", "counts": [3, 4, 5], "payouts": ["10", "40", "150"] },
+        { "symbolId": "sym-k", "counts": [3, 4, 5], "payouts": ["15", "50", "200"] },
+        { "symbolId": "sym-a", "counts": [3, 4, 5], "payouts": ["15", "50", "200"] }
+      ]
+    }
+  ],
+  "reelStrips": [
+    { "id": "strip-1", "name": "Reel 1", "symbols": ["sym-9","sym-10","sym-j","sym-q","sym-k","sym-a","sym-wild","sym-9","sym-10","sym-j","sym-q","sym-k"] },
+    { "id": "strip-2", "name": "Reel 2", "symbols": ["sym-10","sym-j","sym-q","sym-k","sym-a","sym-wild","sym-9","sym-10","sym-j","sym-q","sym-k","sym-a"] },
+    { "id": "strip-3", "name": "Reel 3", "symbols": ["sym-j","sym-q","sym-k","sym-a","sym-wild","sym-9","sym-10","sym-j","sym-q","sym-k","sym-a","sym-wild"] },
+    { "id": "strip-4", "name": "Reel 4", "symbols": ["sym-q","sym-k","sym-a","sym-wild","sym-9","sym-10","sym-j","sym-q","sym-k","sym-a","sym-wild","sym-9"] },
+    { "id": "strip-5", "name": "Reel 5", "symbols": ["sym-k","sym-a","sym-wild","sym-9","sym-10","sym-j","sym-q","sym-k","sym-a","sym-wild","sym-9","sym-10"] }
+  ],
+  "reelSets": [
+    { "id": "main-reels", "name": "Main Reel Set", "stripIds": ["strip-1","strip-2","strip-3","strip-4","strip-5"] }
+  ],
+  "boardConfig": { "rows": 3, "columns": 5 },
+  "nodes": [
+    {
+      "nodeType": "draw",
+      "id": "spin-reels",
+      "label": "Spin Reels",
+      "outputs": { "board": { "name": "board", "type": "Board" } }
+    },
+    {
+      "nodeType": "map",
+      "id": "evaluate-lines",
+      "label": "Evaluate Lines",
+      "inputs": { "board": { "name": "board", "type": "Board" } },
+      "outputs": { "wins": { "name": "wins", "type": "Wins" } }
+    },
+    {
+      "nodeType": "metricsSink",
+      "id": "sink",
+      "label": "Metrics",
+      "inputs": { "wins": { "name": "wins", "type": "Wins" } }
+    }
+  ],
+  "edges": [
+    { "id": "e1", "sourceNodeId": "spin-reels", "sourcePort": "board", "targetNodeId": "evaluate-lines", "targetPort": "board" },
+    { "id": "e2", "sourceNodeId": "evaluate-lines", "sourcePort": "wins", "targetNodeId": "sink", "targetPort": "wins" }
+  ],
+  "plugins": []
+}

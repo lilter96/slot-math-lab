@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "1.0.0", "id": "sample-09", "name": "Expression-Driven Weights",
+  "description": "Level-(b) expression selects Draw weights based on state, enabling dynamic reel composition.",
+  "symbols": [{ "id":"sym-lo","name":"Low","kind":"Standard" },{ "id":"sym-hi","name":"High","kind":"Standard" }],
+  "paytables": [{ "id":"pt","entries":[{ "symbolId":"sym-lo","counts":[3],"payouts":["5"] },{ "symbolId":"sym-hi","counts":[3],"payouts":["20"] }]}],
+  "reelStrips": [{ "id":"r1","name":"R1","symbols":["sym-lo","sym-hi","sym-lo","sym-hi"] },{ "id":"r2","name":"R2","symbols":["sym-lo","sym-hi","sym-lo","sym-hi"] }],
+  "reelSets": [{ "id":"rs","name":"Main","stripIds":["r1","r2"] }],
+  "boardConfig": { "rows": 2, "columns": 2 },
+  "expressions": {
+    "weight-fn": {
+      "exprType": "if",
+      "condition": { "exprType": "compare", "op": "Gt", "left": { "exprType": "fieldAccess", "path":["spinCount"],"target":"state" }, "right": { "exprType": "constant", "kind": "Integer", "value": "10" } },
+      "thenExpr": { "exprType": "constant", "kind": "Rational", "value": "3/1" },
+      "elseExpr": { "exprType": "constant", "kind": "Rational", "value": "1/1" }
+    }
+  },
+  "nodes": [
+    { "nodeType":"draw","id":"spin","label":"Weighted Spin","weightExpressionId":"weight-fn","outputs":{"board":{"name":"board","type":"Board"}} },
+    { "nodeType":"map","id":"eval","label":"Eval","inputs":{"board":{"name":"board","type":"Board"}},"outputs":{"wins":{"name":"wins","type":"Wins"}} },
+    { "nodeType":"metricsSink","id":"sink","label":"Metrics","inputs":{"wins":{"name":"wins","type":"Wins"}} }
+  ],
+  "edges": [
+    { "id":"e1","sourceNodeId":"spin","sourcePort":"board","targetNodeId":"eval","targetPort":"board" },
+    { "id":"e2","sourceNodeId":"eval","sourcePort":"wins","targetNodeId":"sink","targetPort":"wins" }
+  ],
+  "plugins": []
+}

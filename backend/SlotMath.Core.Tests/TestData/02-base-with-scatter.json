@@ -1,0 +1,72 @@
+{
+  "schemaVersion": "1.0.0",
+  "id": "sample-02",
+  "name": "Base Game with Scatter",
+  "description": "A 5x3 game evaluating both line wins and scatter pays-anywhere.",
+  "symbols": [
+    { "id": "sym-hi", "name": "High", "kind": "Standard" },
+    { "id": "sym-lo", "name": "Low", "kind": "Standard" },
+    { "id": "sym-scatter", "name": "Scatter", "kind": "Scatter" }
+  ],
+  "paytables": [
+    {
+      "id": "line-pays",
+      "entries": [
+        { "symbolId": "sym-hi", "counts": [3, 4, 5], "payouts": ["20", "50", "200"] },
+        { "symbolId": "sym-lo", "counts": [3, 4, 5], "payouts": ["5", "15", "50"] }
+      ]
+    },
+    {
+      "id": "scatter-pays",
+      "entries": [
+        { "symbolId": "sym-scatter", "counts": [3, 4, 5], "payouts": ["2", "10", "50"] }
+      ]
+    }
+  ],
+  "reelStrips": [
+    { "id": "r1", "name": "Reel 1", "symbols": ["sym-hi","sym-lo","sym-lo","sym-lo","sym-scatter","sym-hi","sym-lo","sym-lo"] },
+    { "id": "r2", "name": "Reel 2", "symbols": ["sym-lo","sym-hi","sym-lo","sym-lo","sym-scatter","sym-lo","sym-hi","sym-lo"] },
+    { "id": "r3", "name": "Reel 3", "symbols": ["sym-lo","sym-lo","sym-hi","sym-lo","sym-scatter","sym-lo","sym-lo","sym-hi"] },
+    { "id": "r4", "name": "Reel 4", "symbols": ["sym-lo","sym-lo","sym-lo","sym-hi","sym-scatter","sym-lo","sym-hi","sym-lo"] },
+    { "id": "r5", "name": "Reel 5", "symbols": ["sym-hi","sym-lo","sym-lo","sym-lo","sym-scatter","sym-hi","sym-lo","sym-lo"] }
+  ],
+  "reelSets": [
+    { "id": "main-reels", "name": "Main", "stripIds": ["r1","r2","r3","r4","r5"] }
+  ],
+  "boardConfig": { "rows": 3, "columns": 5 },
+  "nodes": [
+    {
+      "nodeType": "draw",
+      "id": "spin",
+      "label": "Spin",
+      "outputs": { "board": { "name": "board", "type": "Board" } }
+    },
+    {
+      "nodeType": "map",
+      "id": "eval-lines",
+      "label": "Lines",
+      "inputs": { "board": { "name": "board", "type": "Board" } },
+      "outputs": { "wins": { "name": "wins", "type": "Wins" } }
+    },
+    {
+      "nodeType": "map",
+      "id": "eval-scatter",
+      "label": "Scatter",
+      "inputs": { "board": { "name": "board", "type": "Board" } },
+      "outputs": { "wins": { "name": "wins", "type": "Wins" } }
+    },
+    {
+      "nodeType": "metricsSink",
+      "id": "sink",
+      "label": "Metrics",
+      "inputs": { "wins": { "name": "wins", "type": "Wins" } }
+    }
+  ],
+  "edges": [
+    { "id": "e1", "sourceNodeId": "spin", "sourcePort": "board", "targetNodeId": "eval-lines", "targetPort": "board" },
+    { "id": "e2", "sourceNodeId": "spin", "sourcePort": "board", "targetNodeId": "eval-scatter", "targetPort": "board" },
+    { "id": "e3", "sourceNodeId": "eval-lines", "sourcePort": "wins", "targetNodeId": "sink", "targetPort": "wins" },
+    { "id": "e4", "sourceNodeId": "eval-scatter", "sourcePort": "wins", "targetNodeId": "sink", "targetPort": "wins" }
+  ],
+  "plugins": []
+}

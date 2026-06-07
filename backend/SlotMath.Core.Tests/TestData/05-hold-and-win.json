@@ -1,0 +1,22 @@
+{
+  "schemaVersion": "1.0.0", "id": "sample-05", "name": "Hold & Win",
+  "description": "Hold & Win bonus: money symbols lock, 3 respins reset to 3. Uses Loop with state-dependent stop.",
+  "symbols": [{ "id":"sym-reg","name":"Regular","kind":"Standard" },{ "id":"sym-money","name":"Money","kind":"Bonus" }],
+  "paytables": [{ "id":"pt","entries":[{ "symbolId":"sym-reg","counts":[3,4,5],"payouts":["5","20","100"] }]}],
+  "reelStrips": [{ "id":"r1","name":"R1","symbols":["sym-reg","sym-reg","sym-money","sym-reg","sym-reg"] },{ "id":"r2","name":"R2","symbols":["sym-reg","sym-money","sym-reg","sym-reg","sym-reg"] },{ "id":"r3","name":"R3","symbols":["sym-money","sym-reg","sym-reg","sym-money","sym-reg"] }],
+  "reelSets": [{ "id":"rs","name":"Main","stripIds":["r1","r2","r3"] }],
+  "boardConfig": { "rows": 3, "columns": 3 },
+  "nodes": [
+    { "nodeType":"draw","id":"base","label":"Base Spin","outputs":{"board":{"name":"board","type":"Board"}} },
+    { "nodeType":"branch","id":"trigger","label":"Money Symbol?","inputs":{"board":{"name":"board","type":"Board"}} },
+    { "nodeType":"putState","id":"init-respins","label":"Set Respin Count","stateKey":"respins","inputs":{"value":{"name":"value","type":"Number","defaultValue":{"exprType":"constant","kind":"Integer","value":"3"}}} },
+    { "nodeType":"loop","id":"hold-loop","label":"Hold & Win Loop","maxIterations":200,"inputs":{"state":{"name":"state","type":"State"}},"outputs":{"wins":{"name":"wins","type":"Wins"}} },
+    { "nodeType":"metricsSink","id":"sink","label":"Metrics","inputs":{"wins":{"name":"wins","type":"Wins"}} }
+  ],
+  "edges": [
+    { "id":"e1","sourceNodeId":"base","sourcePort":"board","targetNodeId":"trigger","targetPort":"board" },
+    { "id":"e3","sourceNodeId":"trigger","sourcePort":"state","targetNodeId":"hold-loop","targetPort":"state" },
+    { "id":"e4","sourceNodeId":"hold-loop","sourcePort":"wins","targetNodeId":"sink","targetPort":"wins" }
+  ],
+  "plugins": []
+}

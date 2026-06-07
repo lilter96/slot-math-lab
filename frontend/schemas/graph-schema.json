@@ -1,0 +1,427 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Slot Math Lab Graph Schema",
+  "description": "Canonical schema for slot math graph configuration.",
+  "type": "object",
+  "properties": {
+    "schemaVersion": {
+      "type": "string"
+    },
+    "id": {
+      "type": [
+        "null",
+        "string"
+      ]
+    },
+    "name": {
+      "type": [
+        "null",
+        "string"
+      ]
+    },
+    "description": {
+      "type": [
+        "null",
+        "string"
+      ]
+    },
+    "symbols": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "Standard",
+              "Wild",
+              "Scatter",
+              "Bonus",
+              "Multiplier",
+              "Money",
+              "Jackpot"
+            ]
+          },
+          "properties": {
+            "type": [
+              "null",
+              "object"
+            ],
+            "additionalProperties": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "id",
+          "name"
+        ]
+      }
+    },
+    "paytables": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "entries": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "symbolId": {
+                  "type": "string"
+                },
+                "counts": {
+                  "$ref": "#/$defs/arrayOfInteger"
+                },
+                "payouts": {
+                  "$ref": "#/$defs/arrayOfString"
+                }
+              },
+              "required": [
+                "symbolId",
+                "counts",
+                "payouts"
+              ]
+            }
+          }
+        },
+        "required": [
+          "id",
+          "entries"
+        ]
+      }
+    },
+    "paylineSets": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "paylines": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "positions": {
+                  "$ref": "#/$defs/arrayOfInteger"
+                }
+              },
+              "required": [
+                "positions"
+              ]
+            }
+          }
+        },
+        "required": [
+          "id",
+          "paylines"
+        ]
+      }
+    },
+    "reelStrips": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "symbols": {
+            "$ref": "#/$defs/arrayOfString"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "symbols"
+        ]
+      }
+    },
+    "reelSets": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "stripIds": {
+            "$ref": "#/$defs/arrayOfString"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "stripIds"
+        ]
+      }
+    },
+    "boardConfig": {
+      "type": [
+        "null",
+        "object"
+      ],
+      "properties": {
+        "rows": {
+          "type": "integer"
+        },
+        "columns": {
+          "type": "integer"
+        },
+        "allowMultiSymbol": {
+          "type": "boolean"
+        },
+        "allowEmpty": {
+          "type": "boolean"
+        },
+        "allowLocked": {
+          "type": "boolean"
+        },
+        "growable": {
+          "type": "boolean"
+        }
+      }
+    },
+    "nodes": {
+      "$ref": "#/$defs/arrayOfNode"
+    },
+    "edges": {
+      "$ref": "#/$defs/arrayOfEdge"
+    },
+    "expressions": {
+      "type": [
+        "null",
+        "object"
+      ],
+      "additionalProperties": {
+        "$ref": "#/$defs/expression"
+      }
+    },
+    "mechanics": {
+      "type": [
+        "null",
+        "object"
+      ],
+      "additionalProperties": {
+        "$ref": "#/$defs/customMechanic"
+      }
+    },
+    "plugins": {
+      "$ref": "#/$defs/arrayOfPluginReference"
+    }
+  },
+  "required": [
+    "schemaVersion"
+  ],
+  "$defs": {
+    "arrayOfInteger": {
+      "type": "array",
+      "items": {
+        "type": "integer"
+      }
+    },
+    "arrayOfString": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "arrayOfNode": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "label": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "inputs": {
+            "$ref": "#/$defs/dictionaryOfStringAndPort"
+          },
+          "outputs": {
+            "$ref": "#/$defs/dictionaryOfStringAndPort"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    "dictionaryOfStringAndPort": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "type": {
+            "enum": [
+              "Board",
+              "State",
+              "Weights",
+              "Wins",
+              "Number",
+              "Boolean",
+              "String",
+              "Symbol",
+              "Trigger"
+            ]
+          },
+          "defaultValue": {
+            "type": [
+              "null",
+              "object"
+            ],
+            "properties": {
+              "annotation": {
+                "type": [
+                  "null",
+                  "string"
+                ]
+              }
+            }
+          }
+        },
+        "required": [
+          "name"
+        ]
+      }
+    },
+    "expression": {
+      "type": "object",
+      "properties": {
+        "annotation": {
+          "type": [
+            "null",
+            "string"
+          ]
+        }
+      }
+    },
+    "arrayOfEdge": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "sourceNodeId": {
+            "type": "string"
+          },
+          "sourcePort": {
+            "type": "string"
+          },
+          "targetNodeId": {
+            "type": "string"
+          },
+          "targetPort": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "sourceNodeId",
+          "sourcePort",
+          "targetNodeId",
+          "targetPort"
+        ]
+      }
+    },
+    "customMechanic": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "description": {
+          "type": [
+            "null",
+            "string"
+          ]
+        },
+        "nodes": {
+          "$ref": "#/$defs/arrayOfNode"
+        },
+        "edges": {
+          "$ref": "#/$defs/arrayOfEdge"
+        },
+        "expressions": {
+          "type": [
+            "null",
+            "object"
+          ],
+          "additionalProperties": {
+            "$ref": "#/$defs/expression"
+          }
+        },
+        "plugins": {
+          "$ref": "#/$defs/arrayOfPluginReference"
+        }
+      },
+      "required": [
+        "name"
+      ]
+    },
+    "arrayOfPluginReference": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "pluginId": {
+            "type": "string"
+          },
+          "contract": {
+            "enum": [
+              "IEvaluator",
+              "ITransform",
+              "WeightSource"
+            ]
+          },
+          "version": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "config": {
+            "type": [
+              "null",
+              "object"
+            ],
+            "additionalProperties": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "pluginId",
+          "contract"
+        ]
+      }
+    }
+  }
+}

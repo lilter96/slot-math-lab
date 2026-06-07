@@ -1,0 +1,29 @@
+{
+  "schemaVersion": "1.0.0", "id": "sample-11", "name": "Expression + Plugin Combined",
+  "description": "Combines a level-(b) expression multiplier with a level-(c) plugin evaluator.",
+  "symbols": [{ "id":"sym-a","name":"A","kind":"Standard" },{ "id":"sym-mul","name":"Multiplier","kind":"Multiplier" }],
+  "paytables": [{ "id":"pt","entries":[{ "symbolId":"sym-a","counts":[3,4,5],"payouts":["10","50","200"] }]}],
+  "reelStrips": [{ "id":"r1","name":"R1","symbols":["sym-a","sym-a","sym-mul","sym-a","sym-a"] },{ "id":"r2","name":"R2","symbols":["sym-a","sym-mul","sym-a","sym-a","sym-a"] },{ "id":"r3","name":"R3","symbols":["sym-mul","sym-a","sym-a","sym-mul","sym-a"] }],
+  "reelSets": [{ "id":"rs","name":"Main","stripIds":["r1","r2","r3"] }],
+  "boardConfig": { "rows": 3, "columns": 3 },
+  "expressions": {
+    "global-mul": {
+      "exprType": "aggregate",
+      "func": "Sum",
+      "target": "board",
+      "predicate": { "exprType": "compare", "op": "Eq", "left": { "exprType": "fieldAccess","path":["symbol","kind"],"target":"board" }, "right": { "exprType": "constant","kind":"String","value":"Multiplier" } }
+    }
+  },
+  "nodes": [
+    { "nodeType":"draw","id":"spin","label":"Spin","outputs":{"board":{"name":"board","type":"Board"}} },
+    { "nodeType":"map","id":"plugin-eval","label":"Plugin Eval","inputs":{"board":{"name":"board","type":"Board"}},"outputs":{"wins":{"name":"wins","type":"Wins"}} },
+    { "nodeType":"map","id":"apply-mul","label":"Apply Expression Multiplier","inputs":{"wins":{"name":"wins","type":"Wins"},"multiplier":{"name":"multiplier","type":"Number"}},"outputs":{"wins":{"name":"wins","type":"Wins"}} },
+    { "nodeType":"metricsSink","id":"sink","label":"Metrics","inputs":{"wins":{"name":"wins","type":"Wins"}} }
+  ],
+  "edges": [
+    { "id":"e1","sourceNodeId":"spin","sourcePort":"board","targetNodeId":"plugin-eval","targetPort":"board" },
+    { "id":"e2","sourceNodeId":"plugin-eval","sourcePort":"wins","targetNodeId":"apply-mul","targetPort":"wins" },
+    { "id":"e3","sourceNodeId":"apply-mul","sourcePort":"wins","targetNodeId":"sink","targetPort":"wins" }
+  ],
+  "plugins": [{ "pluginId":"custom-cluster-v2","contract":"IEvaluator","version":"2.0.0" }]
+}

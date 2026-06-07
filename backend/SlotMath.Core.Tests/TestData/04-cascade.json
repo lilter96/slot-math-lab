@@ -1,0 +1,21 @@
+{
+  "schemaVersion": "1.0.0",
+  "id": "sample-04",
+  "name": "Cascade Tumble",
+  "description": "Cascade mechanic: winning symbols removed, board refilled, repeat until no wins. Uses Loop for the tumble cycle.",
+  "symbols": [{ "id": "s1", "name": "Gem1", "kind": "Standard" },{ "id": "s2", "name": "Gem2", "kind": "Standard" }],
+  "paytables": [{ "id": "pt", "entries": [{ "symbolId": "s1", "counts": [3], "payouts": ["5"] },{ "symbolId": "s2", "counts": [3], "payouts": ["10"] }]}],
+  "reelStrips": [{ "id": "r1","name": "R1","symbols": ["s1","s2","s1","s2"] },{ "id": "r2","name": "R2","symbols": ["s2","s1","s2","s1"] },{ "id": "r3","name": "R3","symbols": ["s1","s2","s1","s2"] }],
+  "reelSets": [{ "id": "rs","name": "Main","stripIds": ["r1","r2","r3"] }],
+  "boardConfig": { "rows": 3, "columns": 3 },
+  "nodes": [
+    { "nodeType": "draw", "id": "spin", "label": "Initial Spin", "outputs": { "board": { "name": "board", "type": "Board" } } },
+    { "nodeType": "loop", "id": "tumble", "label": "Tumble Loop", "maxIterations": 50, "inputs": { "board": { "name": "board", "type": "Board" } }, "outputs": { "board": { "name": "board", "type": "Board" }, "wins": { "name": "wins", "type": "Wins" } } },
+    { "nodeType": "metricsSink", "id": "sink", "label": "Metrics", "inputs": { "wins": { "name": "wins", "type": "Wins" } } }
+  ],
+  "edges": [
+    { "id": "e1", "sourceNodeId": "spin", "sourcePort": "board", "targetNodeId": "tumble", "targetPort": "board" },
+    { "id": "e2", "sourceNodeId": "tumble", "sourcePort": "wins", "targetNodeId": "sink", "targetPort": "wins" }
+  ],
+  "plugins": []
+}

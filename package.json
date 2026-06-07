@@ -1,0 +1,9 @@
+{
+  "devDependencies": {
+    "json-schema-to-typescript": "^15.0.4",
+    "json-schema-to-zod": "^2.8.1"
+  },
+  "dependencies": {
+    "zod": "^4.4.3"
+  }
+}

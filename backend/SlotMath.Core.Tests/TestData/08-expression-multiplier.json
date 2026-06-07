@@ -1,0 +1,64 @@
+{
+  "schemaVersion": "1.0.0",
+  "id": "sample-08",
+  "name": "Expression-Driven Multiplier",
+  "description": "Uses a level-(b) expression to compute a multiplier based on board state — product of all multiplier symbols.",
+  "symbols": [
+    { "id": "sym-std", "name": "Standard", "kind": "Standard" },
+    { "id": "sym-mul", "name": "Multiplier", "kind": "Multiplier" }
+  ],
+  "paytables": [
+    { "id": "pt", "entries": [
+      { "symbolId": "sym-std", "counts": [3,4,5], "payouts": ["10","50","200"] }
+    ]}
+  ],
+  "reelStrips": [
+    { "id": "r1", "name": "R1", "symbols": ["sym-std","sym-std","sym-std","sym-mul","sym-std","sym-std"] },
+    { "id": "r2", "name": "R2", "symbols": ["sym-std","sym-mul","sym-std","sym-std","sym-std","sym-std"] },
+    { "id": "r3", "name": "R3", "symbols": ["sym-std","sym-std","sym-std","sym-std","sym-mul","sym-std"] }
+  ],
+  "reelSets": [{ "id": "rs", "name": "Main", "stripIds": ["r1","r2","r3"] }],
+  "boardConfig": { "rows": 3, "columns": 3 },
+  "expressions": {
+    "mul-expr": {
+      "exprType": "aggregate",
+      "func": "Product",
+      "target": "board",
+      "predicate": {
+        "exprType": "compare",
+        "op": "Eq",
+        "left": { "exprType": "fieldAccess", "path": ["cell","symbol","kind"], "target": "board" },
+        "right": { "exprType": "constant", "kind": "String", "value": "Multiplier" }
+      }
+    }
+  },
+  "nodes": [
+    {
+      "nodeType": "draw",
+      "id": "spin",
+      "label": "Spin",
+      "outputs": { "board": { "name": "board", "type": "Board" } }
+    },
+    {
+      "nodeType": "map",
+      "id": "eval",
+      "label": "Lines",
+      "inputs": {
+        "board": { "name": "board", "type": "Board" },
+        "multiplier": { "name": "multiplier", "type": "Number", "defaultValue": { "exprType": "fieldAccess", "path": ["expressions","mul-expr"], "target": "state" } }
+      },
+      "outputs": { "wins": { "name": "wins", "type": "Wins" } }
+    },
+    {
+      "nodeType": "metricsSink",
+      "id": "sink",
+      "label": "Metrics",
+      "inputs": { "wins": { "name": "wins", "type": "Wins" } }
+    }
+  ],
+  "edges": [
+    { "id": "e1", "sourceNodeId": "spin", "sourcePort": "board", "targetNodeId": "eval", "targetPort": "board" },
+    { "id": "e2", "sourceNodeId": "eval", "sourcePort": "wins", "targetNodeId": "sink", "targetPort": "wins" }
+  ],
+  "plugins": []
+}

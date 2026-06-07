@@ -1,0 +1,58 @@
+{
+  "schemaVersion": "1.0.0",
+  "id": "sample-03",
+  "name": "Free Spins with Retrigger",
+  "description": "Base game that triggers free spins on 3+ scatters. Free spins loop with retrigger via the Loop node.",
+  "symbols": [
+    { "id": "sym-lo", "name": "Low", "kind": "Standard" },
+    { "id": "sym-hi", "name": "High", "kind": "Standard" },
+    { "id": "sym-sc", "name": "Scatter", "kind": "Scatter" }
+  ],
+  "paytables": [
+    { "id": "pt", "entries": [
+      { "symbolId": "sym-lo", "counts": [3,4,5], "payouts": ["5","20","100"] },
+      { "symbolId": "sym-hi", "counts": [3,4,5], "payouts": ["10","50","250"] }
+    ]}
+  ],
+  "reelStrips": [
+    { "id": "r1", "name": "R1", "symbols": ["sym-lo","sym-lo","sym-hi","sym-sc","sym-lo","sym-lo","sym-hi","sym-lo"] },
+    { "id": "r2", "name": "R2", "symbols": ["sym-lo","sym-hi","sym-lo","sym-sc","sym-lo","sym-hi","sym-lo","sym-lo"] },
+    { "id": "r3", "name": "R3", "symbols": ["sym-hi","sym-lo","sym-lo","sym-sc","sym-hi","sym-lo","sym-lo","sym-hi"] }
+  ],
+  "reelSets": [{ "id": "rs", "name": "Main", "stripIds": ["r1","r2","r3"] }],
+  "boardConfig": { "rows": 3, "columns": 3 },
+  "nodes": [
+    {
+      "nodeType": "draw",
+      "id": "base-spin",
+      "label": "Base Spin",
+      "outputs": { "board": { "name": "board", "type": "Board" } }
+    },
+    {
+      "nodeType": "branch",
+      "id": "check-scatter",
+      "label": "3+ Scatters?",
+      "inputs": { "board": { "name": "board", "type": "Board" } }
+    },
+    {
+      "nodeType": "loop",
+      "id": "free-spins",
+      "label": "Free Spins Loop",
+      "maxIterations": 100,
+      "inputs": { "state": { "name": "state", "type": "State" } },
+      "outputs": { "wins": { "name": "wins", "type": "Wins" } }
+    },
+    {
+      "nodeType": "metricsSink",
+      "id": "sink",
+      "label": "Metrics",
+      "inputs": { "wins": { "name": "wins", "type": "Wins" } }
+    }
+  ],
+  "edges": [
+    { "id": "e1", "sourceNodeId": "base-spin", "sourcePort": "board", "targetNodeId": "check-scatter", "targetPort": "board" },
+    { "id": "e2", "sourceNodeId": "check-scatter", "sourcePort": "state", "targetNodeId": "free-spins", "targetPort": "state" },
+    { "id": "e3", "sourceNodeId": "free-spins", "sourcePort": "wins", "targetNodeId": "sink", "targetPort": "wins" }
+  ],
+  "plugins": []
+}
