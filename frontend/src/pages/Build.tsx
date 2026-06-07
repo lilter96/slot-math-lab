@@ -1,4 +1,5 @@
-import { useMemo } from 'react';
+import { useMemo, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useAppStore } from '../store';
 import Palette from '../components/Palette';
 import Inspector from '../components/Inspector';
@@ -11,7 +12,30 @@ import { useLiveMetrics } from '../hooks/useLiveMetrics';
 export default function Build() {
   const selectedNodeId = useAppStore((s) => s.selectedNodeId);
   const symbols = useAppStore((s) => s.tableSymbols);
+  const setTableSymbols = useAppStore((s) => s.setTableSymbols);
+  const addNode = useAppStore((s) => s.addNode);
   const nodes = useAppStore((s) => s.nodes);
+  const [searchParams] = useSearchParams();
+
+  // Load shared config from URL (?load=...)
+  useEffect(() => {
+    const encoded = searchParams.get('load');
+    if (!encoded || nodes.length > 0) return; // don't overwrite existing graph
+    try {
+      const json = decodeURIComponent(atob(encoded));
+      const data = JSON.parse(json);
+      if (data.schemaVersion && data.symbols) {
+        setTableSymbols(data.symbols);
+      }
+      if (data.nodes) {
+        for (const n of data.nodes) {
+          addNode({ ...n, position: n.position || { x: 100, y: 100 } });
+        }
+      }
+    } catch {
+      // Invalid share link — ignore
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Collect expressions from branch/map nodes
   const expressions = useMemo(() => {

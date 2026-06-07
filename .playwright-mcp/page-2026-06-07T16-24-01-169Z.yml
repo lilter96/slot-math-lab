@@ -1,0 +1,154 @@
+- generic [ref=e2]:
+  - generic [ref=e3]:
+    - link "Skip to main content" [ref=e4] [cursor=pointer]:
+      - /url: "#main-content"
+    - generic [ref=e5]:
+      - generic [ref=e8]: Slot Math Lab
+      - generic [ref=e9]: Untitled
+      - tablist "Main navigation" [ref=e11]:
+        - tab "Build" [ref=e12] [cursor=pointer]:
+          - img [ref=e13]
+          - text: Build
+        - tab "Simulate" [ref=e18] [cursor=pointer]:
+          - img [ref=e19]
+          - text: Simulate
+        - tab "Results" [ref=e21] [cursor=pointer]:
+          - img [ref=e22]
+          - text: Results
+        - tab "Export" [selected] [ref=e25] [cursor=pointer]:
+          - img [ref=e26]
+          - text: Export
+      - generic [ref=e29]:
+        - generic [ref=e30]:
+          - generic [ref=e31]: Exact
+          - generic [ref=e33]: ε-pruned
+          - generic [ref=e35]: Sampled
+        - button "AI assist" [ref=e37] [cursor=pointer]:
+          - img [ref=e39]
+          - text: AI assist
+    - main [ref=e42]:
+      - generic [ref=e45]:
+        - generic [ref=e46]:
+          - heading "Export / Import" [level=1] [ref=e47]
+          - generic "Exact rational — closed form, no sampling" [ref=e48]: Exact
+        - generic [ref=e50]: "Config hash: 6a551cdc · 0 nodes · 0 edges · 5 symbols · 1 mechanics"
+        - generic [ref=e51]:
+          - heading "Export" [level=2] [ref=e52]
+          - generic [ref=e53]:
+            - button "Download JSON" [ref=e54] [cursor=pointer]:
+              - img [ref=e55]
+              - text: Download JSON
+            - button "Copy to clipboard" [ref=e58] [cursor=pointer]:
+              - img [ref=e59]
+              - text: Copy to clipboard
+            - button "Shareable link" [ref=e62] [cursor=pointer]:
+              - img [ref=e63]
+              - text: Shareable link
+        - generic [ref=e66]:
+          - heading "Import" [level=2] [ref=e67]
+          - button "Load JSON file" [ref=e69] [cursor=pointer]:
+            - img [ref=e70]
+            - text: Load JSON file
+        - generic [ref=e72]:
+          - heading "PAR Sheet Export" [level=2] [ref=e73]
+          - generic [ref=e74]:
+            - button "Download CSV" [ref=e75] [cursor=pointer]:
+              - img [ref=e76]
+              - text: Download CSV
+            - button "Download printable summary (HTML)" [ref=e79] [cursor=pointer]:
+              - img [ref=e80]
+              - text: Download printable summary (HTML)
+        - generic [ref=e83]:
+          - heading "JSON Preview" [level=2] [ref=e84]
+          - generic [ref=e85]: "{ \"schemaVersion\": \"1.0.0\", \"name\": \"Slot Math Lab Export\", \"exportedAt\": \"2026-06-07T16:24:00.755Z\", \"symbols\": [ { \"id\": \"S1\", \"name\": \"Cherry\", \"kind\": \"Standard\", \"color\": \"#e03131\" }, { \"id\": \"S2\", \"name\": \"Lemon\", \"kind\": \"Standard\", \"color\": \"#f08c00\" }, { \"id\": \"S3\", \"name\": \"Bell\", \"kind\": \"Standard\", \"color\": \"#f06595\" }, { \"id\": \"W1\", \"name\": \"Wild\", \"kind\": \"Wild\", \"color\": \"#2f9e44\" }, { \"id\": \"SC1\", \"name\": \"Scatter\", \"kind\": \"Scatter\", \"color\": \"#7950f2\" } ], \"nodes\": [], \"edges\": [], \"mechanics\": [ { \"id\": \"free-spins\", \"name\": \"Free Spins\", \"description\": \"Scatter-triggered free spins with retrigger and multiplier\", \"nodes\": [], \"edges\": [] } ] }"
+        - generic [ref=e86]:
+          - heading "Metric Breakdown" [level=2] [ref=e87]
+          - generic [ref=e88]:
+            - generic [ref=e89]:
+              - generic [ref=e90]:
+                - text: Symbols
+                - generic "Exact rational — closed form, no sampling" [ref=e91]: Exact
+              - generic [ref=e93]: "5"
+            - generic [ref=e94]:
+              - generic [ref=e95]:
+                - text: Nodes
+                - generic "Exact rational — closed form, no sampling" [ref=e96]: Exact
+              - generic [ref=e98]: "0"
+            - generic [ref=e99]:
+              - generic [ref=e100]:
+                - text: Edges
+                - generic "Exact rational — closed form, no sampling" [ref=e101]: Exact
+              - generic [ref=e103]: "0"
+            - generic [ref=e104]:
+              - generic [ref=e105]:
+                - text: Mechanics
+                - generic "Exact rational — closed form, no sampling" [ref=e106]: Exact
+              - generic [ref=e108]: "1"
+        - generic [ref=e109]:
+          - heading "Symbols" [level=2] [ref=e110]
+          - table [ref=e111]:
+            - rowgroup [ref=e112]:
+              - row "Symbol ID Name Kind" [ref=e113]:
+                - columnheader "Symbol" [ref=e114]
+                - columnheader "ID" [ref=e115]
+                - columnheader "Name" [ref=e116]
+                - columnheader "Kind" [ref=e117]
+            - rowgroup [ref=e118]:
+              - row "S1 Cherry Standard" [ref=e119]:
+                - cell [ref=e120]
+                - cell "S1" [ref=e123]
+                - cell "Cherry" [ref=e124]
+                - cell "Standard" [ref=e125]
+              - row "S2 Lemon Standard" [ref=e126]:
+                - cell [ref=e127]
+                - cell "S2" [ref=e130]
+                - cell "Lemon" [ref=e131]
+                - cell "Standard" [ref=e132]
+              - row "S3 Bell Standard" [ref=e133]:
+                - cell [ref=e134]
+                - cell "S3" [ref=e137]
+                - cell "Bell" [ref=e138]
+                - cell "Standard" [ref=e139]
+              - row "W1 Wild Wild" [ref=e140]:
+                - cell [ref=e141]
+                - cell "W1" [ref=e144]
+                - cell "Wild" [ref=e145]
+                - cell "Wild" [ref=e146]
+              - row "SC1 Scatter Scatter" [ref=e147]:
+                - cell [ref=e148]
+                - cell "SC1" [ref=e151]
+                - cell "Scatter" [ref=e152]
+                - cell "Scatter" [ref=e153]
+  - generic [ref=e154]:
+    - generic [ref=e155] [cursor=pointer]:
+      - generic [ref=e156]: Tweaks
+      - generic [ref=e157]: ▼
+    - generic [ref=e158]:
+      - generic [ref=e159]:
+        - generic [ref=e160]: Accent
+        - generic [ref=e161]:
+          - 'button "Accent color #46d39a" [ref=e162] [cursor=pointer]'
+          - 'button "Accent color #34d3c2" [ref=e163] [cursor=pointer]'
+          - 'button "Accent color #7ed35a" [ref=e164] [cursor=pointer]'
+          - 'button "Accent color #37c6e0" [ref=e165] [cursor=pointer]'
+      - generic [ref=e166]:
+        - generic [ref=e167]: Surface mood
+        - generic [ref=e168]:
+          - button "Slate" [ref=e169] [cursor=pointer]
+          - button "Ocean" [ref=e170] [cursor=pointer]
+          - button "Violet" [ref=e171] [cursor=pointer]
+          - button "Steel" [ref=e172] [cursor=pointer]
+      - generic [ref=e173]:
+        - generic [ref=e174]: Canvas
+        - generic [ref=e175]:
+          - generic [ref=e176]:
+            - text: Dot grid
+            - switch "Dot grid" [checked] [ref=e177] [cursor=pointer]
+          - generic [ref=e179]:
+            - text: Animated edges
+            - switch "Animated edges" [checked] [ref=e180] [cursor=pointer]
+      - generic [ref=e182]:
+        - generic [ref=e183]: Layout
+        - generic [ref=e184]:
+          - button "Regular" [ref=e185] [cursor=pointer]
+          - button "Compact" [ref=e186] [cursor=pointer]
