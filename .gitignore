@@ -27,3 +27,5 @@ TestResults/
 appsettings.*.json
 !appsettings.json
 !appsettings.Development.json
+.playwright-mcp/
+*.png
