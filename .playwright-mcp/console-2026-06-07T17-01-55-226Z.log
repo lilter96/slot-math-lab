@@ -1,0 +1,10 @@
+[   14335ms] [INFO] [2026-06-07T17:02:09.544Z] Information: Normalizing '/hubs/runs' to 'http://localhost:5199/hubs/runs'. @ http://localhost:5199/assets/index-CHmuRu6O.js:91
+[   17963ms] [INFO] [2026-06-07T17:02:13.188Z] Information: WebSocket connected to ws://localhost:5199/hubs/runs?id=qrrohpGLOUsgL9XnEyYbPA. @ http://localhost:5199/assets/index-CHmuRu6O.js:91
+[   17964ms] [ERROR] [2026-06-07T17:02:13.189Z] Error: Failed to start the HttpConnection before stop() was called. @ http://localhost:5199/assets/index-CHmuRu6O.js:91
+[   17965ms] [INFO] [2026-06-07T17:02:13.190Z] Information: Connection disconnected. @ http://localhost:5199/assets/index-CHmuRu6O.js:91
+[   17970ms] [WARNING] SignalR unavailable, using simulated data @ http://localhost:5199/assets/index-CHmuRu6O.js:91
+[   42777ms] [INFO] [2026-06-07T17:02:37.999Z] Information: Normalizing '/hubs/runs' to 'http://localhost:5199/hubs/runs'. @ http://localhost:5199/assets/index-CHmuRu6O.js:91
+[   47052ms] [INFO] [2026-06-07T17:02:42.278Z] Information: WebSocket connected to ws://localhost:5199/hubs/runs?id=6w5g3EE6w6GOcOC3RR6-yQ. @ http://localhost:5199/assets/index-CHmuRu6O.js:91
+[   47053ms] [ERROR] [2026-06-07T17:02:42.278Z] Error: Failed to start the HttpConnection before stop() was called. @ http://localhost:5199/assets/index-CHmuRu6O.js:91
+[   47053ms] [INFO] [2026-06-07T17:02:42.279Z] Information: Connection disconnected. @ http://localhost:5199/assets/index-CHmuRu6O.js:91
+[   47055ms] [WARNING] SignalR unavailable, using simulated data @ http://localhost:5199/assets/index-CHmuRu6O.js:91

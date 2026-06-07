@@ -1,0 +1,106 @@
+- generic [ref=e2]:
+  - generic [ref=e3]:
+    - link "Skip to main content" [ref=e4] [cursor=pointer]:
+      - /url: "#main-content"
+    - generic [ref=e5]:
+      - generic [ref=e8]: Slot Math Lab
+      - generic [ref=e9]: Untitled
+      - tablist "Main navigation" [ref=e11]:
+        - tab "Build" [ref=e12] [cursor=pointer]:
+          - img [ref=e13]
+          - text: Build
+        - tab "Simulate" [selected] [ref=e18] [cursor=pointer]:
+          - img [ref=e19]
+          - text: Simulate
+        - tab "Results" [ref=e21] [cursor=pointer]:
+          - img [ref=e22]
+          - text: Results
+        - tab "Export" [ref=e25] [cursor=pointer]:
+          - img [ref=e26]
+          - text: Export
+      - generic [ref=e29]:
+        - generic [ref=e30]:
+          - generic [ref=e31]: Exact
+          - generic [ref=e33]: ε-pruned
+          - generic [ref=e35]: Sampled
+        - button "AI assist" [ref=e37] [cursor=pointer]:
+          - img [ref=e39]
+          - text: AI assist
+    - main [ref=e42]:
+      - generic [ref=e44]:
+        - generic [ref=e45]:
+          - generic [ref=e46]:
+            - generic [ref=e47]:
+              - generic [ref=e48]: Spins
+              - spinbutton [ref=e49]: "100000"
+            - button "▶ Start Run" [ref=e50] [cursor=pointer]:
+              - generic [ref=e51]: ▶
+              - text: Start Run
+          - generic [ref=e52]:
+            - generic [ref=e53]:
+              - generic [ref=e54]: Samples
+              - generic [ref=e55]: "0"
+            - generic [ref=e56]:
+              - generic [ref=e57]: Running RTP
+              - generic [ref=e58]: 0.000%
+            - generic [ref=e59]:
+              - generic [ref=e60]: ±95% CI
+              - generic [ref=e61]: ±0.000%
+            - generic [ref=e62]:
+              - generic [ref=e63]: Status
+              - generic [ref=e64]: idle
+        - generic [ref=e66]:
+          - text: RTP Convergence
+          - generic [ref=e67]:
+            - generic [ref=e68]: Exact (95.34%)
+            - generic [ref=e70]: Running
+            - generic [ref=e72]: 95% CI
+        - generic [ref=e76]:
+          - generic [ref=e78]: Hit Distribution
+          - generic [ref=e80]:
+            - generic [ref=e81]: Exact vs Sampled
+            - generic [ref=e82]:
+              - generic [ref=e83]:
+                - generic [ref=e84]: Exact RTP
+                - generic [ref=e85]: 95.34%
+                - generic "Exact rational — closed form, no sampling" [ref=e86]: Exact
+              - generic [ref=e88]:
+                - generic [ref=e89]: Sampled RTP
+                - generic [ref=e90]: 0.000%
+              - generic [ref=e91]:
+                - generic [ref=e92]: 95% CI band
+                - generic [ref=e93]: "[0.000% – 0.000%]"
+                - generic [ref=e94]: —
+  - generic [ref=e95]:
+    - generic [ref=e96] [cursor=pointer]:
+      - generic [ref=e97]: Tweaks
+      - generic [ref=e98]: ▼
+    - generic [ref=e99]:
+      - generic [ref=e100]:
+        - generic [ref=e101]: Accent
+        - generic [ref=e102]:
+          - 'button "Accent color #46d39a" [ref=e103] [cursor=pointer]'
+          - 'button "Accent color #34d3c2" [ref=e104] [cursor=pointer]'
+          - 'button "Accent color #7ed35a" [ref=e105] [cursor=pointer]'
+          - 'button "Accent color #37c6e0" [ref=e106] [cursor=pointer]'
+      - generic [ref=e107]:
+        - generic [ref=e108]: Surface mood
+        - generic [ref=e109]:
+          - button "Slate" [ref=e110] [cursor=pointer]
+          - button "Ocean" [ref=e111] [cursor=pointer]
+          - button "Violet" [ref=e112] [cursor=pointer]
+          - button "Steel" [ref=e113] [cursor=pointer]
+      - generic [ref=e114]:
+        - generic [ref=e115]: Canvas
+        - generic [ref=e116]:
+          - generic [ref=e117]:
+            - text: Dot grid
+            - switch "Dot grid" [checked] [ref=e118] [cursor=pointer]
+          - generic [ref=e120]:
+            - text: Animated edges
+            - switch "Animated edges" [checked] [ref=e121] [cursor=pointer]
+      - generic [ref=e123]:
+        - generic [ref=e124]: Layout
+        - generic [ref=e125]:
+          - button "Regular" [ref=e126] [cursor=pointer]
+          - button "Compact" [ref=e127] [cursor=pointer]
