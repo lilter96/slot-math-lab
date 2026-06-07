@@ -14,6 +14,9 @@ using SlotMath.Core.Plugins;
 var builder = WebApplication.CreateBuilder(args);
 
 // ── DI ────────────────────────────────────────────────────────────────
+// Rate limiter + validation
+builder.Services.AddSingleton<SimpleRateLimiter>();
+
 // In-memory stores (fast path, always available)
 builder.Services.AddSingleton<InMemoryConfigStore>();
 builder.Services.AddSingleton<InMemoryRunStore>();

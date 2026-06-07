@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { LIMITS } from '../lib/limits';
 import type { Node, Edge, Connection, OnNodesChange, OnEdgesChange, NodeChange, EdgeChange } from '@xyflow/react';
 
 export type TabId = 'build' | 'simulate' | 'results' | 'export';
@@ -46,6 +47,12 @@ export interface GraphState {
   setNodeData: (id: string, data: Partial<GraphNodeData>) => void;
   edgeValidationError: string | null;
   setEdgeValidationError: (err: string | null) => void;
+  limitError: string | null;
+  setLimitError: (err: string | null) => void;
+  /** Auth state for multi-tenancy */
+  isAuthenticated: boolean;
+  userDisplayName: string | null;
+  setAuth: (authenticated: boolean, name?: string | null) => void;
 }
 
 export const NODE_DEFAULTS: Record<string, Partial<GraphNodeData>> = {
@@ -186,6 +193,11 @@ export const useAppStore = create<AppState>((set, get) => ({
   selectNode: (id) => set({ selectedNodeId: id }),
   edgeValidationError: null,
   setEdgeValidationError: (err) => set({ edgeValidationError: err }),
+  limitError: null,
+  setLimitError: (err) => set({ limitError: err }),
+  isAuthenticated: false,
+  userDisplayName: null,
+  setAuth: (authenticated, name) => set({ isAuthenticated: authenticated, userDisplayName: name ?? null }),
 
   onNodesChange: (changes: NodeChange<GraphNode>[]) =>
     set((s) => ({ nodes: applyNodeChanges(changes, s.nodes) })),
@@ -193,7 +205,14 @@ export const useAppStore = create<AppState>((set, get) => ({
   onEdgesChange: (changes: EdgeChange<GraphEdge>[]) =>
     set((s) => ({ edges: applyEdgeChanges(changes, s.edges) })),
 
-  addNode: (node) => set((s) => ({ nodes: [...s.nodes, node] })),
+  addNode: (node) => {
+    const s = get();
+    if (s.nodes.length >= LIMITS.maxNodes) {
+      set({ limitError: `Cannot add node: max ${LIMITS.maxNodes} nodes reached. Simplify the graph.` });
+      return;
+    }
+    set({ nodes: [...s.nodes, node], limitError: null });
+  },
 
   removeNode: (id) =>
     set((s) => ({
@@ -207,6 +226,12 @@ export const useAppStore = create<AppState>((set, get) => ({
     const source = nodes.find((n) => n.id === connection.source);
     const target = nodes.find((n) => n.id === connection.target);
     if (!source || !target) return;
+
+    const edgeCount = get().edges.length;
+    if (edgeCount >= LIMITS.maxEdges) {
+      set({ limitError: `Cannot add edge: max ${LIMITS.maxEdges} edges reached. Reduce connections.` });
+      return;
+    }
 
     const err = validateConnection(
       source.data?.nodeType ?? 'draw',
