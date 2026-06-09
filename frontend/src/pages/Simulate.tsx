@@ -16,12 +16,14 @@ type RunStatus = 'idle' | 'running' | 'paused' | 'complete';
 
 function mapNodeToBackend(n: GraphNode): Record<string, unknown> {
   const base = { id: n.id, label: n.data.label };
+  // IMPORTANT: nodeType must be FIRST — STJ's [JsonPolymorphic] requires the discriminator
+  // to appear before all other properties for its streaming deserializer.
   switch (n.data.nodeType) {
     case 'draw':
       return {
-        ...base,
         nodeType: 'draw',
-        inputs: {},
+        ...base,
+        inputs: { in: { name: 'in', type: 'Wins' } },
         outputs: { out: { name: 'out', type: 'Wins' } },
         ...(n.data.drawWeights?.length ? { drawWeights: n.data.drawWeights } : {}),
         ...(n.data.weightExpressionId ? { weightExpressionId: n.data.weightExpressionId } : {}),
@@ -30,14 +32,14 @@ function mapNodeToBackend(n: GraphNode): Record<string, unknown> {
     case 'state': {
       const op = (n.data.stateOp as string) ?? 'get';
       const key = (n.data.stateKey as string) || '__default__';
-      if (op === 'put') return { ...base, nodeType: 'putState', stateKey: key, inputs: { in: { name: 'in', type: 'Wins' } }, outputs: { out: { name: 'out', type: 'Wins' } } };
-      if (op === 'modify') return { ...base, nodeType: 'modifyState', expressionId: n.data.expression as string ?? undefined, inputs: { in: { name: 'in', type: 'Wins' } }, outputs: { out: { name: 'out', type: 'Wins' } } };
-      return { ...base, nodeType: 'getState', stateKey: key, inputs: { in: { name: 'in', type: 'Wins' } }, outputs: { out: { name: 'out', type: 'Wins' } } };
+      if (op === 'put') return { nodeType: 'putState', ...base, stateKey: key, inputs: { in: { name: 'in', type: 'Wins' } }, outputs: { out: { name: 'out', type: 'Wins' } } };
+      if (op === 'modify') return { nodeType: 'modifyState', ...base, expressionId: n.data.expression as string ?? undefined, inputs: { in: { name: 'in', type: 'Wins' } }, outputs: { out: { name: 'out', type: 'Wins' } } };
+      return { nodeType: 'getState', ...base, stateKey: key, inputs: { in: { name: 'in', type: 'Wins' } }, outputs: { out: { name: 'out', type: 'Wins' } } };
     }
     case 'loop':
       return {
-        ...base,
         nodeType: 'loop',
+        ...base,
         inputs: { in: { name: 'in', type: 'Wins' } },
         outputs: {
           body: { name: 'body', type: 'Wins' },
@@ -48,16 +50,16 @@ function mapNodeToBackend(n: GraphNode): Record<string, unknown> {
       };
     case 'branch':
       return {
-        ...base,
         nodeType: 'branch',
+        ...base,
         inputs: { in: { name: 'in', type: 'Wins' } },
         outputs: { out: { name: 'out', type: 'Wins' } },
         ...(n.data.expression ? { conditionId: n.data.expression } : {}),
       };
     case 'map':
       return {
-        ...base,
         nodeType: 'map',
+        ...base,
         inputs: { in: { name: 'in', type: 'Wins' } },
         outputs: { out: { name: 'out', type: 'Wins' } },
         ...(n.data.transformId ? { transformId: n.data.transformId } : {}),
@@ -68,14 +70,14 @@ function mapNodeToBackend(n: GraphNode): Record<string, unknown> {
       const transformId = kind === 'plugin'
         ? `plugin:${(n.data.pluginId as string) ?? ''}`
         : kind;
-      return { ...base, nodeType: 'map', inputs: { in: { name: 'in', type: 'Board' } }, outputs: { out: { name: 'out', type: 'Wins' } }, transformId };
+      return { nodeType: 'map', ...base, inputs: { in: { name: 'in', type: 'Board' } }, outputs: { out: { name: 'out', type: 'Wins' } }, transformId };
     }
     case 'transform':
-      return { ...base, nodeType: 'map', inputs: { in: { name: 'in', type: 'Board' } }, outputs: { out: { name: 'out', type: 'Board' } } };
+      return { nodeType: 'map', ...base, inputs: { in: { name: 'in', type: 'Board' } }, outputs: { out: { name: 'out', type: 'Board' } } };
     case 'sink':
-      return { ...base, nodeType: 'metricsSink', inputs: { in: { name: 'in', type: 'Wins' } }, outputs: {} };
+      return { nodeType: 'metricsSink', ...base, inputs: { in: { name: 'in', type: 'Wins' } }, outputs: {} };
     default:
-      return { ...base, nodeType: n.data.nodeType, inputs: {}, outputs: { out: { name: 'out', type: 'Wins' } } };
+      return { nodeType: n.data.nodeType, ...base, inputs: {}, outputs: { out: { name: 'out', type: 'Wins' } } };
   }
 }
 

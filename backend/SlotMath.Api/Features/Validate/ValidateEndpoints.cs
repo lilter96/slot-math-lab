@@ -22,7 +22,7 @@ public static class ValidateEndpoints
             {
                 config = ConfigsEndpoints.DeserializeConfig(request.Config);
             }
-            catch (JsonException ex)
+            catch (Exception ex) when (ex is JsonException or NotSupportedException or InvalidOperationException)
             {
                 return Results.BadRequest(new ValidateResponse
                 {
