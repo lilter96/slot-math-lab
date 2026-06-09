@@ -47,7 +47,7 @@ public static class ConfigsEndpoints
             {
                 config = DeserializeConfig(request.Config);
             }
-            catch (JsonException ex)
+            catch (Exception ex) when (ex is JsonException or NotSupportedException or InvalidOperationException)
             {
                 return Results.BadRequest(new { error = $"Invalid config JSON: {ex.Message}" });
             }
@@ -67,7 +67,7 @@ public static class ConfigsEndpoints
             {
                 config = DeserializeConfig(request.Config);
             }
-            catch (JsonException ex)
+            catch (Exception ex) when (ex is JsonException or NotSupportedException or InvalidOperationException)
             {
                 return Results.BadRequest(new { error = $"Invalid config JSON: {ex.Message}" });
             }

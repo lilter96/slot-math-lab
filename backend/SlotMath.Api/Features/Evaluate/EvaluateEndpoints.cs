@@ -30,7 +30,7 @@ public static class EvaluateEndpoints
             {
                 config = ConfigsEndpoints.DeserializeConfig(request.Config);
             }
-            catch (JsonException)
+            catch (Exception) when (true)
             {
                 return Results.BadRequest(new EvaluateLightResponse
                 {
