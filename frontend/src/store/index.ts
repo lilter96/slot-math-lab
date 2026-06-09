@@ -89,7 +89,7 @@ export const NODE_DEFAULTS: Record<string, Partial<GraphNodeData>> = {
 
 // ── Connection validation ──────────────────────────────────────────
 
-/** Valid port-to-port connections. sink has no output, draw has no input. */
+/** Valid port-to-port connections. sink has no output. */
 const VALID_CONNECTIONS: Record<string, string[]> = {
   draw: ['evaluator', 'transform', 'loop', 'branch'],
   state: ['draw', 'evaluator', 'transform', 'loop', 'branch', 'map', 'sink'],
@@ -107,9 +107,6 @@ export function validateConnection(
 ): string | null {
   if (sourceType === 'sink') {
     return 'Sink nodes have no output ports.';
-  }
-  if (targetType === 'draw') {
-    return 'Draw nodes have no input ports.';
   }
   const valid = VALID_CONNECTIONS[sourceType];
   if (!valid || !valid.includes(targetType)) {
