@@ -214,6 +214,26 @@
         "$ref": "#/$defs/expression"
       }
     },
+    "stateSchema": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "type": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        },
+        "required": [
+          "name"
+        ]
+      }
+    },
     "mechanics": {
       "type": [
         "null",
