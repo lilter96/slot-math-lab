@@ -26,7 +26,7 @@ const BaseNodeCard: FC<BaseNodeProps> = ({ data, selected }) => {
   const lvlCls = data.level === 'b' ? 'node-lvl b' : data.level === 'c' ? 'node-lvl plugin' : 'node-lvl';
   const lvlTxt = data.level === 'b' ? 'expr' : data.level === 'c' ? 'plugin' : 'L0';
   const hasIn = data.nodeType !== 'draw';
-  const hasOut = data.nodeType !== 'sink';
+  const hasOut = data.nodeType !== 'sink' && data.nodeType !== 'branch' && data.nodeType !== 'loop';
 
   return (
     <div className={'node' + (selected ? ' selected' : '')} style={{ '--sel': accent } as React.CSSProperties}>
@@ -51,20 +51,31 @@ const BaseNodeCard: FC<BaseNodeProps> = ({ data, selected }) => {
             <>
               <div className="mini-row"><span className="k">outcomes</span><span className="v">{dw.length}</span></div>
               <div className="mini-row"><span className="k">E[value]</span><span className="v" style={{ color: 'var(--exact)' }}>{exp.toFixed(2)}</span></div>
+              {data.stateWriteKey && (
+                <div className="mini-row">
+                  <span className="k">→ state</span>
+                  <span className="v" style={{ color: 'var(--sampled)' }}>{data.stateWriteKey as string}</span>
+                </div>
+              )}
             </>
           );
         })()}
         {data.nodeType === 'loop' && (
           <>
             <div className="mini-row"><span className="k">iterations</span><span className="v">{data.iterations ?? '—'}</span></div>
-            <div className="mini-row"><span className="k">termination</span><span className="v" style={{ color: data.terminationExpr ? 'var(--exact)' : 'var(--faint)' }}>{data.terminationExpr || 'none'}</span></div>
+            <div className="mini-row"><span className="k">stop</span><span className="v" style={{ color: data.terminationExpr ? 'var(--exact)' : 'var(--faint)' }}>{(data.terminationExpr as string) || 'none'}</span></div>
           </>
         )}
         {data.nodeType === 'evaluator' && (
           <div className="mini-row"><span className="k">kind</span><span className="v">{data.evaluatorKind ?? 'lines'}</span></div>
         )}
-        {data.nodeType === 'branch' && data.expression && (
-          <div className="expr-peek">{data.expression}</div>
+        {data.nodeType === 'branch' && (
+          <div className="mini-row">
+            <span className="k">condition</span>
+            <span className="v" style={{ color: data.expression ? 'var(--exact)' : 'var(--faint)' }}>
+              {(data.expression as string) || 'none'}
+            </span>
+          </div>
         )}
         {data.nodeType === 'map' && data.expression && (
           <div className="expr-peek">{data.expression}</div>
@@ -83,6 +94,22 @@ const BaseNodeCard: FC<BaseNodeProps> = ({ data, selected }) => {
         )}
       </div>
       {hasOut && <Handle type="source" position={Position.Right} className="port out" />}
+      {data.nodeType === 'branch' && (
+        <>
+          <Handle id="true" type="source" position={Position.Right}
+            style={{ top: '33%' }} className="port out" />
+          <Handle id="false" type="source" position={Position.Right}
+            style={{ top: '67%' }} className="port out" />
+        </>
+      )}
+      {data.nodeType === 'loop' && (
+        <>
+          <Handle id="body" type="source" position={Position.Right}
+            style={{ top: '35%' }} className="port out" />
+          <Handle id="exit" type="source" position={Position.Right}
+            style={{ top: '65%' }} className="port out" />
+        </>
+      )}
     </div>
   );
 };

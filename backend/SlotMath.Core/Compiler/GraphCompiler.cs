@@ -14,9 +14,11 @@ namespace SlotMath.Core.Compiler;
 //
 //  Compilation strategy:
 //    - Validate the graph structure
-//    - Build adjacency and find entry nodes
-//    - Walk forward from entry to MetricsSink along the unique path
-//    - Chain nodes via SelectMany, threading values through the Slot monad
+//    - Build adjacency and find entry nodes (no incoming edges)
+//    - Recursively compile subgraphs via CompileSubgraph, threading values
+//      through the Slot monad (SelectMany chains)
+//    - Branch forks route to true/false output ports
+//    - Loop nodes use Slot.Loop fixpoint with body/exit ports
 //    - Expression-valued ports are compiled using ExpressionCompiler
 //    - Plugin references are resolved through PluginHost
 // ═══════════════════════════════════════════════════════════════════════════
@@ -68,21 +70,44 @@ public sealed class GraphCompiler
         var incoming = BuildIncomingMap(config);
         var outgoing = BuildOutgoingMap(config);
 
-        // Find entry nodes (no incoming edges)
-        var entryNodes = config.Nodes
+        // Entry nodes = nodes with no incoming edges
+        var entryNodeIds = config.Nodes
             .Where(n => incoming[n.Id].Count == 0)
             .Select(n => n.Id)
-            .ToArray();
+            .ToList();
 
-        if (entryNodes.Length == 0)
-            throw new CompilationException(null, ErrorCodes.InvalidGraph,
-                "Graph has no entry nodes.");
+        if (entryNodeIds.Count == 0)
+            throw new CompilationException(null, ErrorCodes.InvalidGraph, "Graph has no entry nodes.");
 
-        var sinkNode = config.Nodes.OfType<MetricsSinkNode>().First();
+        var sinkId = config.Nodes.OfType<MetricsSinkNode>().First().Id;
 
-        // Walk from entry to sink along the unique path, compiling each node
-        return CompileLinearPath(entryNodes[0], sinkNode.Id, nodeMap, incoming, outgoing, config);
+        if (entryNodeIds.Count == 1)
+        {
+            var raw = CompileSubgraph(entryNodeIds[0], sinkId, null, nodeMap, incoming, outgoing, config);
+            return raw.SelectMany(v => Slot.Pure<Dictionary<string, object?>, BigInteger>(ExtractBigInteger(v)));
+        }
+
+        // Multiple entry nodes: compose all programs and sum
+        Slot<Dictionary<string, object?>, BigInteger> composed =
+            Slot.Pure<Dictionary<string, object?>, BigInteger>(BigInteger.Zero);
+        foreach (var entryId in entryNodeIds)
+        {
+            var capturedEntryId = entryId;
+            var capturedComposed = composed;
+            composed = capturedComposed.SelectMany(acc =>
+                CompileSubgraph(capturedEntryId, sinkId, null, nodeMap, incoming, outgoing, config)
+                    .SelectMany(v =>
+                        Slot.Pure<Dictionary<string, object?>, BigInteger>(acc + ExtractBigInteger(v))));
+        }
+
+        return composed;
     }
+
+    private static BigInteger ExtractBigInteger(object? value) =>
+        value is BigInteger bi ? bi :
+        value is Win[] wins ? wins.Aggregate(BigInteger.Zero, (acc, w) => acc + new BigInteger(w.TotalWin)) :
+        value is decimal d ? new BigInteger((long)d) :
+        BigInteger.Zero;
 
     private Dictionary<string, List<Edge>> BuildIncomingMap(GraphConfig config)
     {
@@ -104,152 +129,206 @@ public sealed class GraphCompiler
         return map;
     }
 
+    // ── Recursive subgraph compiler ─────────────────────────────────────
+
     /// <summary>
-    /// Compile a linear path from entryNodeId to sinkNodeId.
-    /// Each node's output feeds into the next node via SelectMany.
+    /// Recursively compile the subgraph starting at nodeId, threading inputValue forward.
+    /// Stops when nodeId==sinkId (returns value), or when there are no more outgoing edges (dead end).
+    /// sinkId may be null for loop bodies (compile to dead end).
     /// </summary>
-    private Slot<Dictionary<string, object?>, BigInteger> CompileLinearPath(
-        string entryNodeId,
-        string sinkNodeId,
+    private Slot<Dictionary<string, object?>, object?> CompileSubgraph(
+        string nodeId,
+        string? sinkId,
+        object? inputValue,
         Dictionary<string, Node> nodeMap,
         Dictionary<string, List<Edge>> incoming,
         Dictionary<string, List<Edge>> outgoing,
         GraphConfig config)
     {
-        // Find the unique path from entry to sink
-        var path = FindPath(entryNodeId, sinkNodeId, outgoing, nodeMap);
-        if (path == null)
-            throw new CompilationException(entryNodeId, ErrorCodes.InvalidGraph,
-                $"No path from entry node '{entryNodeId}' to MetricsSink.");
-
-        // Compile the first node (entry) — produces object?
-        var program = CompileEntryNode(path[0], config, nodeMap, incoming, outgoing);
-
-        // Chain through intermediate nodes
-        for (int i = 1; i < path.Count; i++)
-        {
-            var nodeId = path[i];
-            program = ChainNode(program, nodeId, config, nodeMap, incoming, outgoing);
-        }
-
-        // The last node is the sink — extract total
-        return program.SelectMany(lastOutput =>
-        {
-            if (lastOutput is Win[] wins)
-            {
-                var total = wins.Aggregate(BigInteger.Zero, (acc, w) => acc + new BigInteger(w.TotalWin));
-                return Slot.Pure<Dictionary<string, object?>, BigInteger>(total);
-            }
-            if (lastOutput is BigInteger bi)
-                return Slot.Pure<Dictionary<string, object?>, BigInteger>(bi);
-            if (lastOutput is decimal d)
-                return Slot.Pure<Dictionary<string, object?>, BigInteger>(new BigInteger(d));
-            return Slot.Pure<Dictionary<string, object?>, BigInteger>(BigInteger.Zero);
-        });
-    }
-
-    /// <summary>
-    /// Find the unique path from start to end using BFS.
-    /// </summary>
-    private List<string>? FindPath(
-        string start, string end,
-        Dictionary<string, List<Edge>> outgoing,
-        Dictionary<string, Node> nodeMap)
-    {
-        var queue = new Queue<List<string>>();
-        queue.Enqueue(new List<string> { start });
-        var visited = new HashSet<string> { start };
-
-        while (queue.Count > 0)
-        {
-            var path = queue.Dequeue();
-            var last = path[^1];
-
-            if (last == end)
-                return path;
-
-            foreach (var edge in outgoing[last])
-            {
-                if (visited.Add(edge.TargetNodeId))
-                {
-                    var newPath = new List<string>(path) { edge.TargetNodeId };
-                    queue.Enqueue(newPath);
-                }
-            }
-        }
-
-        return null;
-    }
-
-    // ── Node compilation ────────────────────────────────────────────────
-
-    /// <summary>
-    /// Compile an entry node — the first node in the graph.
-    /// Returns a Slot that produces the node's output value.
-    /// </summary>
-    private Slot<Dictionary<string, object?>, object?> CompileEntryNode(
-        string nodeId,
-        GraphConfig config,
-        Dictionary<string, Node> nodeMap,
-        Dictionary<string, List<Edge>> incoming,
-        Dictionary<string, List<Edge>> outgoing)
-    {
         var node = nodeMap[nodeId];
-        return CompileNodeOutput(node, new Dictionary<string, object?>(), config, nodeMap, incoming, outgoing);
+
+        // Base case: reached sink
+        if (sinkId != null && nodeId == sinkId)
+            return Slot.Pure<Dictionary<string, object?>, object?>(inputValue);
+
+        var inputs = inputValue != null
+            ? new Dictionary<string, object?> { ["in"] = inputValue }
+            : new Dictionary<string, object?>();
+
+        // Special: Branch with true/false output ports
+        if (node is BranchNode branch)
+        {
+            var trueEdge = outgoing[nodeId].FirstOrDefault(e => e.SourcePort == "true");
+            var falseEdge = outgoing[nodeId].FirstOrDefault(e => e.SourcePort == "false");
+            if (trueEdge != null || falseEdge != null)
+            {
+                return CompileBranchFork(branch, inputValue, sinkId, trueEdge, falseEdge,
+                    nodeMap, incoming, outgoing, config);
+            }
+        }
+
+        // Special: Loop with body/exit output ports
+        if (node is LoopNode loop)
+        {
+            var bodyEdge = outgoing[nodeId].FirstOrDefault(e => e.SourcePort == "body");
+            if (bodyEdge != null)
+            {
+                var exitEdge = outgoing[nodeId].FirstOrDefault(e =>
+                    e.SourcePort == "exit" || e.SourcePort == "out");
+                return CompileLoopNode(loop, inputValue, sinkId, bodyEdge, exitEdge,
+                    nodeMap, incoming, outgoing, config);
+            }
+        }
+
+        // Regular node: compile then follow single outgoing edge
+        var nodeSlot = CompileNodeOutput(node, inputs, config, nodeMap, incoming, outgoing);
+
+        var nextEdges = outgoing[nodeId];
+        if (!nextEdges.Any())
+            return nodeSlot; // dead end (loop body terminal)
+
+        var nextNodeId = nextEdges.First().TargetNodeId;
+
+        // State operations are side-effects: the data-flow value passes through unchanged.
+        if (node is GetStateNode or PutStateNode or ModifyStateNode)
+        {
+            var capturedInput = inputValue;
+            return nodeSlot.SelectMany(_ =>
+                CompileSubgraph(nextNodeId, sinkId, capturedInput, nodeMap, incoming, outgoing, config));
+        }
+
+        return nodeSlot.SelectMany(value =>
+            CompileSubgraph(nextNodeId, sinkId, value, nodeMap, incoming, outgoing, config));
     }
 
-    /// <summary>
-    /// Chain a previously compiled program into the next node.
-    /// The previous output becomes the input to the next node.
-    /// </summary>
-    private Slot<Dictionary<string, object?>, object?> ChainNode(
-        Slot<Dictionary<string, object?>, object?> previous,
-        string nodeId,
-        GraphConfig config,
+    // ── Branch fork compiler ────────────────────────────────────────────
+
+    private Slot<Dictionary<string, object?>, object?> CompileBranchFork(
+        BranchNode node,
+        object? inputValue,
+        string? sinkId,
+        Edge? trueEdge,
+        Edge? falseEdge,
         Dictionary<string, Node> nodeMap,
         Dictionary<string, List<Edge>> incoming,
-        Dictionary<string, List<Edge>> outgoing)
+        Dictionary<string, List<Edge>> outgoing,
+        GraphConfig config)
     {
-        return previous.SelectMany(prevOutput =>
+        Func<Board?, Dictionary<string, object?>, bool>? compiledCond = null;
+        if (node.ConditionId != null
+            && config.Expressions != null
+            && config.Expressions.TryGetValue(node.ConditionId, out var condExpr))
         {
-            var node = nodeMap[nodeId];
+            compiledCond = ExpressionCompiler.CompileBoolean(condExpr);
+        }
 
-            // State operations are side-effects — execute them and pass through prevOutput.
-            if (node is GetStateNode or PutStateNode or ModifyStateNode)
+        var capturedInput = inputValue;
+        var capturedCond = compiledCond;
+        return Slot.GetState<Dictionary<string, object?>>()
+            .SelectMany(state =>
             {
-                // State ops receive the current data flow value and return it unchanged
-                // after performing their state side-effect.
-                return CompileNodeOutput(node, new Dictionary<string, object?>
-                {
-                    ["__data__"] = prevOutput
-                }, config, nodeMap, incoming, outgoing)
-                .SelectMany(_ => Slot.Pure<Dictionary<string, object?>, object?>(prevOutput));
-            }
+                var board = capturedInput as Board;
+                bool pass = capturedCond?.Invoke(board, state) ?? false;
 
-            // Build input values for this node from the previous output and expressions
-            var inputValues = new Dictionary<string, object?>();
+                if (pass && trueEdge != null)
+                    return CompileSubgraph(trueEdge.TargetNodeId, sinkId, capturedInput,
+                        nodeMap, incoming, outgoing, config);
+                if (!pass && falseEdge != null)
+                    return CompileSubgraph(falseEdge.TargetNodeId, sinkId, capturedInput,
+                        nodeMap, incoming, outgoing, config);
 
-            // Map the previous output to the appropriate input port
-            var incEdges = incoming[nodeId];
-            foreach (var edge in incEdges)
-            {
-                inputValues[edge.TargetPort] = prevOutput;
-            }
-
-            // Compile expression-valued ports
-            foreach (var (portName, port) in node.Inputs)
-            {
-                if (port.DefaultValue != null && !inputValues.ContainsKey(portName))
-                {
-                    var board = prevOutput as Board;
-                    var value = EvaluateExpression(port.DefaultValue, board, config);
-                    inputValues[portName] = value;
-                }
-            }
-
-            return CompileNodeOutput(node, inputValues, config, nodeMap, incoming, outgoing);
-        });
+                return Slot.Pure<Dictionary<string, object?>, object?>((object?)BigInteger.Zero);
+            });
     }
+
+    // ── Loop node compiler (proper Slot.Loop fixpoint) ──────────────────
+
+    private Slot<Dictionary<string, object?>, object?> CompileLoopNode(
+        LoopNode node,
+        object? inputValue,
+        string? sinkId,
+        Edge bodyEdge,
+        Edge? exitEdge,
+        Dictionary<string, Node> nodeMap,
+        Dictionary<string, List<Edge>> incoming,
+        Dictionary<string, List<Edge>> outgoing,
+        GraphConfig config)
+    {
+        var iterKey = $"__iter_{node.Id}__";
+        var winsKey = $"__wins_{node.Id}__";
+        var maxIter = node.MaxIterations > 0 && node.MaxIterations <= 10000
+            ? node.MaxIterations : 100;
+        var capturedMaxIter = maxIter;
+        var capturedIterKey = iterKey;
+        var capturedWinsKey = winsKey;
+
+        // Build stop condition: MaxIterations safety cap + optional expression
+        Func<Dictionary<string, object?>, bool> stopFn = s =>
+        {
+            var iter = s.TryGetValue(capturedIterKey, out var v) && v is int i ? i : 0;
+            return iter >= capturedMaxIter;
+        };
+
+        if (node.StopConditionId != null
+            && config.Expressions != null
+            && config.Expressions.TryGetValue(node.StopConditionId, out var stopExpr))
+        {
+            var compiledStop = ExpressionCompiler.CompileBoolean(stopExpr);
+            var prevStop = stopFn;
+            stopFn = s => prevStop(s) || compiledStop(null, s);
+        }
+
+        var capturedStop = stopFn;
+        var bodyStartId = bodyEdge.TargetNodeId;
+
+        // Body program: compile body subgraph + accumulate result + increment counter
+        Slot<Dictionary<string, object?>, Unit> body =
+            CompileSubgraph(bodyStartId, null, null, nodeMap, incoming, outgoing, config)
+                .SelectMany(result =>
+                    Slot.Modify<Dictionary<string, object?>>(s =>
+                    {
+                        var next = new Dictionary<string, object?>(s);
+                        var iter = s.TryGetValue(capturedIterKey, out var v) && v is int i ? i : 0;
+                        next[capturedIterKey] = iter + 1;
+                        if (result is BigInteger val)
+                        {
+                            var acc = s.TryGetValue(capturedWinsKey, out var w) && w is BigInteger ew
+                                ? ew : BigInteger.Zero;
+                            next[capturedWinsKey] = acc + val;
+                        }
+                        else if (result is Win[] wins)
+                        {
+                            var total = wins.Aggregate(BigInteger.Zero,
+                                (a, win) => a + new BigInteger(win.TotalWin));
+                            var acc = s.TryGetValue(capturedWinsKey, out var w) && w is BigInteger ew
+                                ? ew : BigInteger.Zero;
+                            next[capturedWinsKey] = acc + total;
+                        }
+
+                        return next;
+                    }));
+
+        // Initialize state, run loop, then continue or return wins
+        return Slot.Modify<Dictionary<string, object?>>(s =>
+            {
+                var next = new Dictionary<string, object?>(s);
+                next[capturedIterKey] = 0;
+                next[capturedWinsKey] = BigInteger.Zero;
+                return next;
+            })
+            .SelectMany(_ => Slot.Loop<Dictionary<string, object?>>(capturedStop, body))
+            .SelectMany(_ =>
+            {
+                if (exitEdge != null)
+                    return CompileSubgraph(exitEdge.TargetNodeId, sinkId,
+                        (object?)BigInteger.Zero, nodeMap, incoming, outgoing, config);
+
+                return Slot.GetState<Dictionary<string, object?>, object?>(s =>
+                    s.TryGetValue(capturedWinsKey, out var w) ? w : (object?)BigInteger.Zero);
+            });
+    }
+
+    // ── CompileNodeOutput dispatch ───────────────────────────────────────
 
     /// <summary>
     /// Compile a single node's output from its input values.
@@ -271,7 +350,7 @@ public sealed class GraphCompiler
             PutStateNode ps => CompilePutState(ps, inputs),
             ModifyStateNode ms => CompileModifyState(ms, config),
             BranchNode b => CompileBranch(b, inputs, config, nodeMap, incoming, outgoing),
-            LoopNode l => CompileLoop(l, config, nodeMap, incoming, outgoing),
+            LoopNode l => CompileLegacyLoop(l, config, nodeMap, incoming, outgoing),
             MetricsSinkNode s => CompileSink(s, inputs),
             _ => Slot.Pure<Dictionary<string, object?>, object?>(null),
         };
@@ -289,7 +368,26 @@ public sealed class GraphCompiler
             && drawNode.DrawWeights is { Length: > 0 })
         {
             var dw = drawNode.DrawWeights;
+            var stateWriteKey = drawNode.StateWriteKey;
             var compiledWeights = ExpressionCompiler.CompileWeights(weightExpr);
+
+            if (stateWriteKey != null)
+            {
+                var capturedDw = dw;
+                var capturedKey = stateWriteKey;
+                return Slot.Draw<Dictionary<string, object?>>(state => compiledWeights(state))
+                    .SelectMany(idx =>
+                        Slot.Modify<Dictionary<string, object?>>(s =>
+                            {
+                                var next = new Dictionary<string, object?>(s);
+                                next[capturedKey] = capturedDw[idx].OutcomeId;
+                                return next;
+                            })
+                            .SelectMany(_ =>
+                                Slot.Pure<Dictionary<string, object?>, object?>(
+                                    (object?)new BigInteger(capturedDw[idx].Value))));
+            }
+
             return Slot.Draw<Dictionary<string, object?>, object?>(
                 state => compiledWeights(state),
                 idx => (object?)new BigInteger(dw[idx].Value));
@@ -299,7 +397,26 @@ public sealed class GraphCompiler
         if (drawNode.DrawWeights is { Length: > 0 })
         {
             var dw = drawNode.DrawWeights;
+            var stateWriteKey = drawNode.StateWriteKey;
             var inlineWeights = WeightSet.FromIntegers(dw.Select(w => w.Weight).ToArray());
+
+            if (stateWriteKey != null)
+            {
+                var capturedDw = dw;
+                var capturedKey = stateWriteKey;
+                return Slot.Draw<Dictionary<string, object?>>(_ => inlineWeights)
+                    .SelectMany(idx =>
+                        Slot.Modify<Dictionary<string, object?>>(s =>
+                            {
+                                var next = new Dictionary<string, object?>(s);
+                                next[capturedKey] = capturedDw[idx].OutcomeId;
+                                return next;
+                            })
+                            .SelectMany(_ =>
+                                Slot.Pure<Dictionary<string, object?>, object?>(
+                                    (object?)new BigInteger(capturedDw[idx].Value))));
+            }
+
             return Slot.Draw<Dictionary<string, object?>, object?>(
                 _ => inlineWeights,
                 idx => (object?)new BigInteger(dw[idx].Value));
@@ -538,20 +655,26 @@ public sealed class GraphCompiler
                 var val = compiled(null, state);
                 state["__modified__"] = val;
             }
+
             return state;
         }).SelectMany(_ => Slot.Pure<Dictionary<string, object?>, object?>(null!));
     }
 
     // ── Branch / Loop compilers ─────────────────────────────────────────
 
+    /// <summary>
+    /// Fallback branch compiler (used via CompileNodeOutput when no true/false ports).
+    /// </summary>
     private Slot<Dictionary<string, object?>, object?> CompileBranch(
-        BranchNode node, Dictionary<string, object?> inputs,
-        GraphConfig config, Dictionary<string, Node> nodeMap,
-        Dictionary<string, List<Edge>> incoming, Dictionary<string, List<Edge>> outgoing)
+        BranchNode node,
+        Dictionary<string, object?> inputs,
+        GraphConfig config,
+        Dictionary<string, Node> nodeMap,
+        Dictionary<string, List<Edge>> incoming,
+        Dictionary<string, List<Edge>> outgoing)
     {
         var value = inputs.Values.FirstOrDefault();
 
-        // Level (b): expression-based condition
         if (node.ConditionId != null
             && config.Expressions != null
             && config.Expressions.TryGetValue(node.ConditionId, out var condExpr))
@@ -562,48 +685,86 @@ public sealed class GraphCompiler
                 .SelectMany(state =>
                 {
                     var board = capturedValue as Board;
-                    var pass = compiledCond(board, state);
+                    bool pass = compiledCond(board, state);
                     return Slot.Pure<Dictionary<string, object?>, object?>(
-                        pass ? capturedValue : (object?)new BigInteger(0));
+                        pass ? capturedValue : (object?)BigInteger.Zero);
                 });
         }
 
-        // Level (a): pass through (no condition configured)
         return Slot.Pure<Dictionary<string, object?>, object?>(value);
     }
 
-    private Slot<Dictionary<string, object?>, object?> CompileLoop(
-        LoopNode node, GraphConfig config,
+    /// <summary>
+    /// Legacy loop compiler (used via CompileNodeOutput when no body port — backward compat).
+    /// </summary>
+    private Slot<Dictionary<string, object?>, object?> CompileLegacyLoop(
+        LoopNode node,
+        GraphConfig config,
         Dictionary<string, Node> nodeMap,
-        Dictionary<string, List<Edge>> incoming, Dictionary<string, List<Edge>> outgoing)
+        Dictionary<string, List<Edge>> incoming,
+        Dictionary<string, List<Edge>> outgoing)
     {
         int maxIter = node.MaxIterations > 0 && node.MaxIterations <= 500
             ? node.MaxIterations : 5;
+        var capturedMaxIter = maxIter;
 
-        // Find the loop body: the node feeding into the loop
+        var iterKey2 = $"__legacyiter_{node.Id}__";
+        Func<Dictionary<string, object?>, bool> stopFn = s =>
+        {
+            var iter = s.TryGetValue(iterKey2, out var v) && v is int i ? i : 0;
+            return iter >= capturedMaxIter;
+        };
+
+        if (node.StopConditionId != null
+            && config.Expressions != null
+            && config.Expressions.TryGetValue(node.StopConditionId, out var stopExpr))
+        {
+            var compiledStop = ExpressionCompiler.CompileBoolean(stopExpr);
+            var prevStop2 = stopFn;
+            stopFn = s => prevStop2(s) || compiledStop(null, s);
+        }
+
+        var capturedStop2 = stopFn;
+        var capturedIterKey2 = iterKey2;
+
+        // Find the body node from incoming edges
         var bodyEdges = incoming[node.Id];
         if (!bodyEdges.Any())
-            return Slot.Pure<Dictionary<string, object?>, object?>((object?)new BigInteger(0));
+            return Slot.Pure<Dictionary<string, object?>, object?>((object?)BigInteger.Zero);
 
         var bodyNodeId = bodyEdges.First().SourceNodeId;
         var bodyNode = nodeMap[bodyNodeId];
 
-        // Build N iterations via SelectMany chain (unrolled loop)
-        Slot<Dictionary<string, object?>, object?> acc =
-            Slot.Pure<Dictionary<string, object?>, object?>((object?)new BigInteger(0));
+        var winsKey2 = $"__legacywins_{node.Id}__";
+        var capturedWinsKey2 = winsKey2;
 
-        for (int i = 0; i < maxIter; i++)
-        {
-            var body = CompileNodeOutput(bodyNode, new Dictionary<string, object?>(),
-                config, nodeMap, incoming, outgoing);
-            acc = acc.SelectMany(total =>
-                body.SelectMany(val =>
-                    Slot.Pure<Dictionary<string, object?>, object?>(
-                        (object?)((total is BigInteger t ? t : BigInteger.Zero) +
-                         (val is BigInteger v ? v : BigInteger.Zero)))));
-        }
+        Slot<Dictionary<string, object?>, Unit> body2 =
+            CompileNodeOutput(bodyNode, new Dictionary<string, object?>(),
+                config, nodeMap, incoming, outgoing)
+                .SelectMany(result =>
+                    Slot.Modify<Dictionary<string, object?>>(s =>
+                    {
+                        var next = new Dictionary<string, object?>(s);
+                        var iter = s.TryGetValue(capturedIterKey2, out var v) && v is int i ? i : 0;
+                        next[capturedIterKey2] = iter + 1;
+                        var val = result is BigInteger bi ? bi : BigInteger.Zero;
+                        var acc = s.TryGetValue(capturedWinsKey2, out var w) && w is BigInteger ew
+                            ? ew : BigInteger.Zero;
+                        next[capturedWinsKey2] = acc + val;
+                        return next;
+                    }));
 
-        return acc;
+        return Slot.Modify<Dictionary<string, object?>>(s =>
+            {
+                var next = new Dictionary<string, object?>(s);
+                next[capturedIterKey2] = 0;
+                next[capturedWinsKey2] = BigInteger.Zero;
+                return next;
+            })
+            .SelectMany(_ => Slot.Loop<Dictionary<string, object?>>(capturedStop2, body2))
+            .SelectMany(_ =>
+                Slot.GetState<Dictionary<string, object?>, object?>(s =>
+                    s.TryGetValue(capturedWinsKey2, out var w) ? w : (object?)BigInteger.Zero));
     }
 
     // ── Sink compiler ───────────────────────────────────────────────────

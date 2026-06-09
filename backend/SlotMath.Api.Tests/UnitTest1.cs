@@ -1,4 +1,4 @@
-﻿namespace SlotMath.Api.Tests;
+namespace SlotMath.Api.Tests;
 
 public class UnitTest1
 {

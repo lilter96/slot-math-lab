@@ -565,7 +565,8 @@ public class Evaluator_EdgeCases
     {
         var eval = new ScatterEvaluator(new Paytable
         {
-            Id = "t", Entries = new[] { new PaytableEntry { SymbolId = "S", Counts = new[] { 3 }, Payouts = new[] { "10" } } }
+            Id = "t",
+            Entries = new[] { new PaytableEntry { SymbolId = "S", Counts = new[] { 3 }, Payouts = new[] { "10" } } }
         });
         var board = new Board(3, 3)
             .SetCell(0, 0, new BoardCell().WithSymbols("A"))
@@ -579,7 +580,8 @@ public class Evaluator_EdgeCases
     {
         var eval = new WaysEvaluator(new Paytable
         {
-            Id = "t", Entries = new[] { new PaytableEntry { SymbolId = "A", Counts = new[] { 3 }, Payouts = new[] { "5" } } }
+            Id = "t",
+            Entries = new[] { new PaytableEntry { SymbolId = "A", Counts = new[] { 3 }, Payouts = new[] { "5" } } }
         });
         var board = new Board(3, 3)
             .SetCell(0, 0, new BoardCell().WithSymbols("A"))
@@ -594,7 +596,8 @@ public class Evaluator_EdgeCases
     {
         var eval = new ClusterEvaluator(new Paytable
         {
-            Id = "t", Entries = new[] { new PaytableEntry { SymbolId = "X", Counts = new[] { 5 }, Payouts = new[] { "50" } } }
+            Id = "t",
+            Entries = new[] { new PaytableEntry { SymbolId = "X", Counts = new[] { 5 }, Payouts = new[] { "50" } } }
         }, minClusterSize: 5);
         var board = new Board(3, 3)
             .SetCell(0, 0, new BoardCell().WithSymbols("X"))
@@ -608,7 +611,8 @@ public class Evaluator_EdgeCases
     {
         var eval = new MegawaysEvaluator(new Paytable
         {
-            Id = "t", Entries = new[] { new PaytableEntry { SymbolId = "A", Counts = new[] { 3 }, Payouts = new[] { "5" } } }
+            Id = "t",
+            Entries = new[] { new PaytableEntry { SymbolId = "A", Counts = new[] { 3 }, Payouts = new[] { "5" } } }
         }, reelHeights: new[] { 3, 3, 3 });
         var board = new Board(3, 3)
             .SetCell(0, 0, new BoardCell().WithSymbols("A"))

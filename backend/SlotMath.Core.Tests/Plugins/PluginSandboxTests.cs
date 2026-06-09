@@ -1,12 +1,12 @@
-using SlotMath.Core.Mechanics;
-using SlotMath.Core.Mechanics.Evaluators;
+using System.Numerics;
 using SlotMath.Core.Math;
 using SlotMath.Core.Math.Regime;
+using SlotMath.Core.Mechanics;
+using SlotMath.Core.Mechanics.Evaluators;
 using SlotMath.Core.Model;
 using SlotMath.Core.Monad;
 using SlotMath.Core.Plugins;
 using SlotMath.Core.Random;
-using System.Numerics;
 using Xunit;
 using Xunit.Abstractions;
 

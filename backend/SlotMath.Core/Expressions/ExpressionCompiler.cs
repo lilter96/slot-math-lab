@@ -121,23 +121,27 @@ public static class ExpressionCompiler
             {
                 var ctx = new EvalContext { Board = board, State = state };
                 return ExactExpressionEvaluator.EvaluateAsInteger(expr, ctx);
-            },
+            }
+            ,
             ExprType.Boolean => (board, state) =>
             {
                 var ctx = new EvalContext { Board = board, State = state };
                 return ExactExpressionEvaluator.EvaluateAsBool(expr, ctx);
-            },
+            }
+            ,
             ExprType.String or ExprType.Symbol => (board, state) =>
             {
                 var ctx = new EvalContext { Board = board, State = state };
                 var v = ExactExpressionEvaluator.Evaluate(expr, ctx);
                 return v.Kind == ExprType.String ? v.StringValue! : v.ToString();
-            },
+            }
+            ,
             ExprType.Weights => (board, state) =>
             {
                 var ctx = new EvalContext { Board = board, State = state };
                 return ExactExpressionEvaluator.EvaluateAsWeights(expr, ctx);
-            },
+            }
+            ,
             _ => (board, state) => 0,
         };
     }
