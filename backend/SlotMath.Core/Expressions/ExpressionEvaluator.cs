@@ -190,6 +190,26 @@ public static class ExactExpressionEvaluator
     {
         if (state == null) return ExprValue.Number(0);
 
+        // Handle Dictionary<string, object?> state (used by GraphCompiler)
+        if (state is IDictionary<string, object?> dict)
+        {
+            var key = path[0];
+            if (dict.TryGetValue(key, out var dictVal))
+            {
+                return dictVal switch
+                {
+                    BigInteger bi => ExprValue.Number(bi),
+                    int i => ExprValue.Number(i),
+                    long l => ExprValue.Number(l),
+                    string s => ExprValue.String(s),
+                    bool b => ExprValue.Bool(b),
+                    null => ExprValue.Number(0),
+                    _ => ExprValue.Number(0),
+                };
+            }
+            return ExprValue.Number(0);
+        }
+
         var t = state.GetType();
         var prop = t.GetProperty(string.Join("", path.Select(s =>
             s.Length > 0 ? char.ToUpper(s[0]) + s[1..] : s)));

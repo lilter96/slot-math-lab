@@ -231,17 +231,44 @@ public static class GraphValidator
         {
             // Build reverse reachability from sink
             var reachesSink = new HashSet<string>();
-            var queue = new Queue<string>();
-            queue.Enqueue(sinkNode.Id);
+            var sinkQueue = new Queue<string>();
+            sinkQueue.Enqueue(sinkNode.Id);
             reachesSink.Add(sinkNode.Id);
 
-            while (queue.Count > 0)
+            while (sinkQueue.Count > 0)
             {
-                var current = queue.Dequeue();
+                var current = sinkQueue.Dequeue();
                 foreach (var edge in adj.Incoming[current])
                 {
                     if (reachesSink.Add(edge.SourceNodeId))
-                        queue.Enqueue(edge.SourceNodeId);
+                        sinkQueue.Enqueue(edge.SourceNodeId);
+                }
+            }
+
+            // Collect nodes that are loop-body interior nodes — they don't need
+            // to reach the sink because the Loop node's exit edge carries their
+            // accumulated result out.
+            var loopBodyNodes = new HashSet<string>();
+            foreach (var loopNode in config.Nodes.OfType<LoopNode>())
+            {
+                var bodyStartEdge = adj.Outgoing[loopNode.Id]
+                    .FirstOrDefault(e => e.SourcePort == "body");
+                if (bodyStartEdge == null) continue;
+
+                var bodyQueue = new Queue<string>();
+                bodyQueue.Enqueue(bodyStartEdge.TargetNodeId);
+                loopBodyNodes.Add(bodyStartEdge.TargetNodeId);
+
+                while (bodyQueue.Count > 0)
+                {
+                    var curr = bodyQueue.Dequeue();
+                    foreach (var edge in adj.Outgoing[curr])
+                    {
+                        // Don't follow edges that exit to the main graph (exit/out port)
+                        if (edge.SourcePort == "exit" || edge.SourcePort == "out") continue;
+                        if (loopBodyNodes.Add(edge.TargetNodeId))
+                            bodyQueue.Enqueue(edge.TargetNodeId);
+                    }
                 }
             }
 
@@ -257,6 +284,9 @@ public static class GraphValidator
 
                 // Skip MetricsSink (already handled)
                 if (node is MetricsSinkNode) continue;
+
+                // Skip loop body interior nodes — they terminate in the loop, not at sink
+                if (loopBodyNodes.Contains(nodeId)) continue;
 
                 if (!reachesSink.Contains(nodeId))
                 {
@@ -533,6 +563,18 @@ public static class GraphValidator
                 Type = ExprType.Number,
                 Description = "Named expressions accessible via expressions.<name>",
             });
+        }
+
+        // Add declared state keys (StateSchema) so expressions can read them
+        foreach (var sf in config.StateSchema)
+        {
+            var type = sf.Type switch
+            {
+                "string" => ExprType.String,
+                "boolean" => ExprType.Boolean,
+                _ => ExprType.Number,
+            };
+            stateFields.Add(new FieldDescriptor { Name = sf.Name, Type = type });
         }
 
         return new TypeCheckContext

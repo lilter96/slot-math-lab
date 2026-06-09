@@ -320,8 +320,10 @@ public sealed class GraphCompiler
             .SelectMany(_ =>
             {
                 if (exitEdge != null)
-                    return CompileSubgraph(exitEdge.TargetNodeId, sinkId,
-                        (object?)BigInteger.Zero, nodeMap, incoming, outgoing, config);
+                    return Slot.GetState<Dictionary<string, object?>, object?>(s =>
+                        s.TryGetValue(capturedWinsKey, out var w) ? w : (object?)BigInteger.Zero)
+                        .SelectMany(wins =>
+                            CompileSubgraph(exitEdge.TargetNodeId, sinkId, wins, nodeMap, incoming, outgoing, config));
 
                 return Slot.GetState<Dictionary<string, object?>, object?>(s =>
                     s.TryGetValue(capturedWinsKey, out var w) ? w : (object?)BigInteger.Zero);
