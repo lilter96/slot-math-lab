@@ -25,7 +25,7 @@ const BaseNodeCard: FC<BaseNodeProps> = ({ data, selected }) => {
   const IconC = Ic[iconKey];
   const lvlCls = data.level === 'b' ? 'node-lvl b' : data.level === 'c' ? 'node-lvl plugin' : 'node-lvl';
   const lvlTxt = data.level === 'b' ? 'expr' : data.level === 'c' ? 'plugin' : 'L0';
-  const hasIn = data.nodeType !== 'draw';
+  const hasIn = data.nodeType !== 'sink';
   const hasOut = data.nodeType !== 'sink' && data.nodeType !== 'branch' && data.nodeType !== 'loop';
 
   return (
