@@ -4,11 +4,10 @@ import { useAppStore, type GraphNode, type GraphEdge, type TableSymbol } from '.
 import ConvergenceChart, { type ConvergencePoint } from '../components/simulate/ConvergenceChart';
 import Histogram from '../components/simulate/Histogram';
 import ProvBadge from '../components/ProvBadge';
+import type { components } from '../api/generated-types';
 
-// ── Simulate config ─────────────────────────────────────────────────
-const TOTAL_SPINS = 100_000;
-const BATCH_SIZE = 100;
-const EXACT_REFERENCE = 0.9534; // example exact RTP for comparison
+type RunProgressMessage = components['schemas']['RunProgressMessage'];
+type EvaluateLightResponse = components['schemas']['EvaluateLightResponse'];
 
 // ── Run state ──────────────────────────────────────────────────────
 type RunStatus = 'idle' | 'running' | 'paused' | 'complete';
@@ -80,7 +79,6 @@ function mapNodeToBackend(n: GraphNode): Record<string, unknown> {
   }
 }
 
-/** Build the graph config payload that the backend compiler accepts. */
 function buildConfigPayload(
   nodes: GraphNode[],
   edges: GraphEdge[],
@@ -105,7 +103,6 @@ function buildConfigPayload(
 }
 
 export default function Simulate() {
-  // Store data used to build the config payload
   const nodes = useAppStore((s) => s.nodes);
   const edges = useAppStore((s) => s.edges);
   const symbols = useAppStore((s) => s.tableSymbols);
@@ -118,16 +115,19 @@ export default function Simulate() {
   const [points, setPoints] = useState<ConvergencePoint[]>([]);
   const [histogram, setHistogram] = useState<Map<number, number>>(new Map());
   const [error, setError] = useState<string | null>(null);
-  const [spinsTarget, setSpinsTarget] = useState(TOTAL_SPINS);
+  const [spinsTarget, setSpinsTarget] = useState(100_000);
+
+  // Exact RTP from /api/evaluate/light — null until fetched
+  const [exactRtp, setExactRtp] = useState<number | null>(null);
+  const [exactProvenance, setExactProvenance] = useState<string | null>(null);
+  const [needsFullRun, setNeedsFullRun] = useState(false);
 
   const hubRef = useRef<signalR.HubConnection | null>(null);
   const abortRef = useRef(false);
-  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // ── Stop / cleanup ──────────────────────────────────────────────
   const stop = useCallback(() => {
     abortRef.current = true;
-    if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
     if (hubRef.current) {
       hubRef.current.stop();
       hubRef.current = null;
@@ -145,141 +145,125 @@ export default function Simulate() {
     setStdErr(0);
     setPoints([]);
     setHistogram(new Map());
+    setExactRtp(null);
+    setExactProvenance(null);
+    setNeedsFullRun(false);
 
-    // Try backend flow using the graph config
     const configPayload = buildConfigPayload(nodes, edges, symbols, configName ?? 'Untitled');
-    if (configPayload) {
+    if (!configPayload) {
+      setError('No graph nodes. Build a graph in the Build tab first.');
+      setStatus('idle');
+      return;
+    }
+
+    try {
+      // ── Step 1: get exact RTP from /api/evaluate/light ──────────
       try {
-        // 1. Persist config → get configId
-        const configRes = await fetch('/api/configs', {
+        const evalRes = await fetch('/api/evaluate/light', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ config: configPayload }),
         });
-        if (!configRes.ok) throw new Error(`Config save HTTP ${configRes.status}`);
-        const configData = (await configRes.json()) as { id?: string };
-        const configId = configData.id;
-        if (!configId) throw new Error('Config save returned no id');
-
-        // 2. Create evaluation run
-        const runRes = await fetch('/api/runs', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ configId, sampleSize: spinsTarget, progressBatchSize: Math.max(100, Math.floor(spinsTarget / 100)) }),
-        });
-        if (!runRes.ok) throw new Error(`Run create HTTP ${runRes.status}`);
-        const runData = (await runRes.json()) as { id?: string };
-        const runId = runData.id;
-        if (!runId) throw new Error('Run create returned no id');
-
-        // 3. Connect to SignalR
-        const hub = new signalR.HubConnectionBuilder()
-          .withUrl('/hubs/runs')
-          .withAutomaticReconnect()
-          .build();
-
-        hub.on('ProgressUpdate', (msg: {
-          sampleCount?: number;
-          totalSamples?: number;
-          runningRtp?: number;
-          stdErr?: number;
-          status?: string;
-        }) => {
-          if (abortRef.current) return;
-          const n = msg.sampleCount ?? 0;
-          const rtp = msg.runningRtp ?? 0;
-          const se = msg.stdErr ?? 0;
-          setSampleCount(n);
-          setRunningRtp(rtp);
-          setStdErr(se);
-          setPoints((prev) => {
-            const last = prev[prev.length - 1];
-            if (last && n - last.n < spinsTarget / 200) return prev;
-            return [...prev, { n, rtp, stdErr: se }];
-          });
-          setHistogram((prev) => {
-            const next = new Map(prev);
-            const bucket = Math.round(rtp * 20) / 20;
-            next.set(bucket, (next.get(bucket) ?? 0) + 1);
-            return next;
-          });
-
-          const terminal = msg.status === 'completed' || msg.status === 'cancelled' || msg.status === 'failed';
-          if (terminal) {
-            setStatus(msg.status === 'completed' ? 'complete' : 'paused');
-            if (msg.status === 'failed') setError('Run failed on the server');
-            hub.stop();
-            hubRef.current = null;
+        if (evalRes.ok) {
+          const evalData = (await evalRes.json()) as EvaluateLightResponse;
+          const strat = (evalData.strategy ?? '').toLowerCase();
+          if (strat === 'needsfullrun') {
+            setNeedsFullRun(true);
+          } else if (evalData.rtp != null) {
+            setExactRtp(evalData.rtp);
+            setExactProvenance(evalData.provenance ?? evalData.strategy ?? 'Exact');
           }
+        }
+      } catch {
+        // evaluate/light failure is non-fatal — continue without exact reference
+      }
+
+      // ── Step 2: persist config ──────────────────────────────────
+      const configRes = await fetch('/api/configs', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ config: configPayload }),
+      });
+      if (!configRes.ok) throw new Error(`Config save failed: HTTP ${configRes.status}`);
+      const configData = (await configRes.json()) as { id?: string };
+      const configId = configData.id;
+      if (!configId) throw new Error('Config save returned no id');
+
+      // ── Step 3: create run ──────────────────────────────────────
+      const runRes = await fetch('/api/runs', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          configId,
+          sampleSize: spinsTarget,
+          progressBatchSize: Math.max(100, Math.floor(spinsTarget / 100)),
+        }),
+      });
+      if (!runRes.ok) throw new Error(`Run create failed: HTTP ${runRes.status}`);
+      const runData = (await runRes.json()) as { id?: string };
+      const runId = runData.id;
+      if (!runId) throw new Error('Run returned no id');
+
+      // ── Step 4: SignalR streaming ───────────────────────────────
+      const hub = new signalR.HubConnectionBuilder()
+        .withUrl('/hubs/runs')
+        .withAutomaticReconnect()
+        .build();
+
+      hub.on('ProgressUpdate', (msg: RunProgressMessage) => {
+        if (abortRef.current) return;
+        const n = msg.sampleCount ?? 0;
+        const rtp = msg.runningRtp ?? 0;
+        const se = msg.stdErr ?? 0;
+        setSampleCount(n);
+        setRunningRtp(rtp);
+        setStdErr(se);
+        setPoints((prev) => {
+          const last = prev[prev.length - 1];
+          if (last && n - last.n < spinsTarget / 200) return prev;
+          return [...prev, { n, rtp, stdErr: se }];
+        });
+        setHistogram((prev) => {
+          const next = new Map(prev);
+          const bucket = Math.round(rtp * 20) / 20;
+          next.set(bucket, (next.get(bucket) ?? 0) + 1);
+          return next;
         });
 
-        hubRef.current = hub;
-        await hub.start();
-        await hub.invoke('SubscribeToRun', runId);
-        return; // backend flow is live
-      } catch (err) {
-        const msg = err instanceof Error ? err.message : String(err);
-        console.warn('[Simulate] Backend unavailable, falling back to local simulation:', msg);
-        if (hubRef.current) { void hubRef.current.stop(); hubRef.current = null; }
-      }
+        const terminal =
+          msg.status === 'completed' || msg.status === 'cancelled' || msg.status === 'failed';
+        if (terminal) {
+          setStatus(msg.status === 'completed' ? 'complete' : 'paused');
+          if (msg.status === 'failed') setError('Run failed on the server.');
+          hub.stop();
+          hubRef.current = null;
+        }
+      });
+
+      hubRef.current = hub;
+      await hub.start();
+      await hub.invoke('SubscribeToRun', runId);
+
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      setError(`Backend error: ${msg}. Is the backend running on this host?`);
+      setStatus('idle');
+      if (hubRef.current) { void hubRef.current.stop(); hubRef.current = null; }
     }
-
-    // Fallback: simulate streaming data if SignalR not connected
-    let n = 0;
-    let sum = 0;
-    let sumSq = 0;
-    const mu = EXACT_REFERENCE;
-
-    timerRef.current = setInterval(() => {
-      if (abortRef.current) return;
-      n += BATCH_SIZE;
-      if (n > spinsTarget) n = spinsTarget;
-
-      // Simulate Monte Carlo convergence
-      for (let j = 0; j < BATCH_SIZE && n - BATCH_SIZE + j < spinsTarget; j++) {
-        const win = mu + (Math.random() - 0.5) * 0.3 * Math.exp(-n / 20000);
-        sum += Math.max(0, win);
-        sumSq += Math.max(0, win) ** 2;
-      }
-
-      const avg = sum / n;
-      const variance = sumSq / n - avg * avg;
-      const se = Math.sqrt(Math.max(0, variance) / n);
-
-      setSampleCount(n);
-      setRunningRtp(avg);
-      setStdErr(se);
-      setPoints((prev) => {
-        const last = prev[prev.length - 1];
-        if (last && n - last.n < spinsTarget / 50) return prev;
-        return [...prev, { n, rtp: avg, stdErr: se }];
-      });
-
-      // Update histogram
-      setHistogram((prev) => {
-        const next = new Map(prev);
-        const bucket = Math.round(avg * 20) / 20; // 0.05-width buckets
-        next.set(bucket, (next.get(bucket) || 0) + 1);
-        return next;
-      });
-
-      if (n >= spinsTarget) {
-        if (timerRef.current) clearInterval(timerRef.current);
-        setStatus('complete');
-      }
-    }, 80);
   }, [spinsTarget, nodes, edges, symbols, configName]);
 
   // ── Cleanup on unmount ──────────────────────────────────────────
   useEffect(() => {
     return () => {
       abortRef.current = true;
-      if (timerRef.current) clearInterval(timerRef.current);
       if (hubRef.current) hubRef.current.stop();
     };
   }, []);
 
-  const inCI = runningRtp >= EXACT_REFERENCE - 1.96 * stdErr && runningRtp <= EXACT_REFERENCE + 1.96 * stdErr;
+  const inCI =
+    exactRtp != null &&
+    runningRtp >= exactRtp - 1.96 * stdErr &&
+    runningRtp <= exactRtp + 1.96 * stdErr;
 
   return (
     <div className="workspace" style={{ overflow: 'auto' }}>
@@ -293,7 +277,7 @@ export default function Simulate() {
                 className="inp"
                 type="number"
                 value={spinsTarget}
-                onChange={(e) => setSpinsTarget(parseInt(e.target.value) || TOTAL_SPINS)}
+                onChange={(e) => setSpinsTarget(parseInt(e.target.value) || 100_000)}
                 disabled={status === 'running'}
                 style={{ width: 100, fontFamily: 'var(--mono)' }}
               />
@@ -323,15 +307,24 @@ export default function Simulate() {
             </div>
             <div className="stat-card">
               <div className="sl">Running RTP</div>
-              <div className="sv" style={{ color: 'var(--exact)' }}>{(runningRtp * 100).toFixed(3)}%</div>
+              <div className="sv" style={{ color: 'var(--exact)' }}>
+                {sampleCount > 0 ? `${(runningRtp * 100).toFixed(3)}%` : '—'}
+              </div>
             </div>
             <div className="stat-card">
               <div className="sl">±95% CI</div>
-              <div className="sv" style={{ color: 'var(--sampled)' }}>±{(1.96 * stdErr * 100).toFixed(3)}%</div>
+              <div className="sv" style={{ color: 'var(--sampled)' }}>
+                {sampleCount > 0 ? `±${(1.96 * stdErr * 100).toFixed(3)}%` : '—'}
+              </div>
             </div>
             <div className="stat-card">
               <div className="sl">Status</div>
-              <div className="sv" style={{ fontSize: 13, color: status === 'complete' ? 'var(--exact)' : status === 'running' ? 'var(--sampled)' : 'var(--faint)' }}>
+              <div className="sv" style={{
+                fontSize: 13,
+                color: status === 'complete' ? 'var(--exact)'
+                  : status === 'running' ? 'var(--sampled)'
+                  : 'var(--faint)',
+              }}>
                 {status}
               </div>
             </div>
@@ -344,12 +337,22 @@ export default function Simulate() {
             <div className="progress">
               <div className="bar" style={{ width: `${(sampleCount / spinsTarget) * 100}%` }} />
             </div>
-            <div className="hint" style={{ textAlign: 'right' }}>{((sampleCount / spinsTarget) * 100).toFixed(0)}%</div>
+            <div className="hint" style={{ textAlign: 'right' }}>
+              {((sampleCount / spinsTarget) * 100).toFixed(0)}%
+            </div>
           </div>
         )}
 
         {error && (
-          <div style={{ padding: '8px 16px', color: 'var(--danger)', fontSize: 12 }}>{error}</div>
+          <div style={{ padding: '8px 16px', color: 'var(--danger)', fontSize: 12, fontFamily: 'var(--mono)' }}>
+            {error}
+          </div>
+        )}
+
+        {needsFullRun && !error && (
+          <div style={{ padding: '4px 16px', color: 'var(--epsilon)', fontSize: 11, fontFamily: 'var(--mono)' }}>
+            Graph is too complex for exact evaluation — exact reference line unavailable; sampled only.
+          </div>
         )}
 
         {/* ── Convergence chart ── */}
@@ -357,15 +360,26 @@ export default function Simulate() {
           <div className="chart-head">
             <span className="ct">RTP Convergence</span>
             <span className="leg">
-              <span><span className="ln" style={{ background: 'var(--exact)', display: 'inline-block', width: 14, height: 2, borderRadius: 2, verticalAlign: 'middle', marginRight: 4 }} />Exact ({((EXACT_REFERENCE * 100)).toFixed(2)}%)</span>
-              <span><span className="ln" style={{ background: 'var(--sampled)', display: 'inline-block', width: 14, height: 2, borderRadius: 2, verticalAlign: 'middle', marginRight: 4 }} />Running</span>
-              <span><span className="ln" style={{ background: 'var(--sampled-dim)', display: 'inline-block', width: 14, height: 8, borderRadius: 3, verticalAlign: 'middle', marginRight: 4 }} />95% CI</span>
+              {exactRtp != null && (
+                <span>
+                  <span className="ln" style={{ background: 'var(--exact)', display: 'inline-block', width: 14, height: 2, borderRadius: 2, verticalAlign: 'middle', marginRight: 4 }} />
+                  Exact ({(exactRtp * 100).toFixed(2)}%)
+                </span>
+              )}
+              <span>
+                <span className="ln" style={{ background: 'var(--sampled)', display: 'inline-block', width: 14, height: 2, borderRadius: 2, verticalAlign: 'middle', marginRight: 4 }} />
+                Running
+              </span>
+              <span>
+                <span className="ln" style={{ background: 'var(--sampled-dim)', display: 'inline-block', width: 14, height: 8, borderRadius: 3, verticalAlign: 'middle', marginRight: 4 }} />
+                95% CI
+              </span>
             </span>
           </div>
           <div className="chart-canvas-wrap">
             <ConvergenceChart
               points={points}
-              exactRtp={EXACT_REFERENCE}
+              exactRtp={exactRtp}
               width={900}
               height={280}
             />
@@ -384,14 +398,16 @@ export default function Simulate() {
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0' }}>
                 <span style={{ color: 'var(--muted)', fontSize: 12 }}>Exact RTP</span>
                 <span style={{ fontFamily: 'var(--mono)', fontSize: 16, color: 'var(--exact)', fontWeight: 500 }}>
-                  {(EXACT_REFERENCE * 100).toFixed(2)}%
+                  {exactRtp != null ? `${(exactRtp * 100).toFixed(2)}%` : needsFullRun ? 'needs full run' : '—'}
                 </span>
-                <ProvBadge p={{ kind: 'Exact' }} mini />
+                {exactRtp != null && (
+                  <ProvBadge p={{ kind: exactProvenance?.toLowerCase().includes('sampled') ? 'Sampled' : 'Exact' }} mini />
+                )}
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0' }}>
                 <span style={{ color: 'var(--muted)', fontSize: 12 }}>Sampled RTP</span>
                 <span style={{ fontFamily: 'var(--mono)', fontSize: 16, color: 'var(--sampled)', fontWeight: 500 }}>
-                  {(runningRtp * 100).toFixed(3)}%
+                  {sampleCount > 0 ? `${(runningRtp * 100).toFixed(3)}%` : '—'}
                 </span>
                 {sampleCount > 0 && (
                   <ProvBadge p={{ kind: 'Sampled', n: sampleCount, stdErr }} mini />
@@ -400,17 +416,25 @@ export default function Simulate() {
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0' }}>
                 <span style={{ color: 'var(--muted)', fontSize: 12 }}>95% CI band</span>
                 <span style={{ fontFamily: 'var(--mono)', fontSize: 13, color: 'var(--sampled)' }}>
-                  [{((runningRtp - 1.96 * stdErr) * 100).toFixed(3)}% – {((runningRtp + 1.96 * stdErr) * 100).toFixed(3)}%]
+                  {sampleCount > 0
+                    ? `[${((runningRtp - 1.96 * stdErr) * 100).toFixed(3)}% – ${((runningRtp + 1.96 * stdErr) * 100).toFixed(3)}%]`
+                    : '—'}
                 </span>
                 <span style={{
                   fontSize: 10,
                   padding: '2px 8px',
                   borderRadius: 10,
-                  background: inCI ? 'var(--exact-dim)' : 'var(--danger-dim)',
-                  color: inCI ? 'var(--exact)' : 'var(--danger)',
+                  background: sampleCount === 0 ? 'transparent'
+                    : exactRtp == null ? 'var(--sampled-dim)'
+                    : inCI ? 'var(--exact-dim)' : 'var(--danger-dim)',
+                  color: sampleCount === 0 ? 'var(--faint)'
+                    : exactRtp == null ? 'var(--sampled)'
+                    : inCI ? 'var(--exact)' : 'var(--danger)',
                   fontFamily: 'var(--mono)',
                 }}>
-                  {sampleCount > 0 ? (inCI ? '✓ in band' : '✗ outside') : '—'}
+                  {sampleCount === 0 ? '—'
+                    : exactRtp == null ? 'no ref'
+                    : inCI ? '✓ in band' : '✗ outside'}
                 </span>
               </div>
             </div>
