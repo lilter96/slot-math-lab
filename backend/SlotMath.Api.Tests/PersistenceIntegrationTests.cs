@@ -33,9 +33,12 @@ public class PersistenceIntegrationTests : IDisposable
             PropertyNameCaseInsensitive = true,
         };
 
+        var connStr = Environment.GetEnvironmentVariable("ConnectionStrings__DefaultConnection")
+            ?? "Host=localhost;Port=5432;Database=slotmath;Username=slotmath;Password=slotmath";
+
         var services = new ServiceCollection();
         services.AddDbContext<SlotMathDbContext>(options =>
-            options.UseNpgsql("Host=localhost;Port=5433;Database=slotmath;Username=slotmath;Password=slotmath"));
+            options.UseNpgsql(connStr));
         services.AddSingleton<IResultCache, InMemoryResultCache>();
         services.AddScoped<ConfigPersistenceService>();
 
