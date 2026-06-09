@@ -89,6 +89,11 @@ export interface SlotMathLabGraphSchema {
   expressions?: null | {
     [k: string]: Expression;
   };
+  stateSchema?: {
+    name: string;
+    type?: null | string;
+    [k: string]: unknown;
+  }[];
   mechanics?: null | {
     [k: string]: CustomMechanic;
   };
