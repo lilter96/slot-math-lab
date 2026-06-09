@@ -75,6 +75,8 @@ public sealed record DrawNode : Node
     public string? WeightExpressionId { get; init; }
     /// <summary>Inline weighted outcomes. When present, used instead of ReelSets.</summary>
     public DrawWeight[]? DrawWeights { get; init; }
+    /// <summary>When set, the drawn outcomeId is written to this state key after each draw.</summary>
+    public string? StateWriteKey { get; init; }
 }
 
 public sealed record GetStateNode : Node

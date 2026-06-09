@@ -152,6 +152,16 @@ export default function Inspector() {
               />
               <div className="hint">Overrides per-outcome weights when set (state-dependent draw).</div>
             </div>
+            <div className="field">
+              <label>State write key <span className="node-lvl" style={{ marginLeft: 4 }}>optional</span></label>
+              <input
+                className="inp"
+                value={(data.stateWriteKey as string) ?? ''}
+                placeholder="e.g. outcome (writes drawn outcomeId to state)"
+                onChange={(e) => setNodeData(node.id, { stateWriteKey: e.target.value || undefined })}
+              />
+              <div className="hint">After drawing, writes the chosen outcome ID to this state key. Enables string-based routing via Branch.</div>
+            </div>
           </>
         )}
 
@@ -184,6 +194,7 @@ export default function Inspector() {
               />
               <div className="hint">Expression that stops the loop when true. Leave empty for fixed-count only.</div>
             </div>
+            <div className="hint" style={{ marginTop: 6 }}>Connect <strong>body</strong> port to loop body (dead-end sub-graph that accumulates to state). Connect <strong>exit</strong> port to continuation after loop.</div>
           </>
         )}
 
@@ -276,7 +287,7 @@ export default function Inspector() {
                 onChange={(v) => setNodeData(node.id, { expression: v })}
                 placeholder="e.g. scatter_count >= 3"
               />
-              <div className="hint">Pass through if true, return 0 if false.</div>
+              <div className="hint">Condition routes to <strong>true</strong> or <strong>false</strong> output port. Connect each port to a different sub-graph.</div>
             </div>
           </>
         )}

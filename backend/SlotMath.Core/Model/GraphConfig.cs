@@ -1,5 +1,18 @@
 namespace SlotMath.Core.Model;
 
+// ── State field schema ─────────────────────────────────────────────────
+
+/// <summary>
+/// Declares a named key in the game's recurrence state dictionary,
+/// making it visible to the expression type-checker.
+/// </summary>
+public sealed record StateFieldSchema
+{
+    public required string Name { get; init; }
+    /// <summary>"string" | "number" | "boolean". Defaults to "number".</summary>
+    public string? Type { get; init; }
+}
+
 // ── Top-level graph config ─────────────────────────────────────────────
 
 public sealed record GraphConfig
@@ -23,6 +36,9 @@ public sealed record GraphConfig
 
     // Shared expression definitions (referenced by id from ports/nodes)
     public Dictionary<string, Expression>? Expressions { get; init; }
+
+    // Declared state keys — makes them visible to the expression type-checker
+    public StateFieldSchema[] StateSchema { get; init; } = Array.Empty<StateFieldSchema>();
 
     // Custom sub-graph mechanics (named, reusable)
     public Dictionary<string, CustomMechanic>? Mechanics { get; init; }

@@ -22,6 +22,9 @@ coverage*.xml
 coverage*.json
 TestResults/
 
+# Claude Code
+.claude/
+
 # Secrets
 *.env
 appsettings.*.json

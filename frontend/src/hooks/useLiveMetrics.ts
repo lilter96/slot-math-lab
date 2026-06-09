@@ -55,6 +55,7 @@ function mapNodeToBackend(n: GraphNode): Record<string, unknown> {
         outputs: { out: { name: 'out', type: 'Wins' } },
         ...(n.data.drawWeights?.length ? { drawWeights: n.data.drawWeights } : {}),
         ...(n.data.weightExpressionId ? { weightExpressionId: n.data.weightExpressionId } : {}),
+        ...(n.data.stateWriteKey ? { stateWriteKey: n.data.stateWriteKey } : {}),
       };
     case 'state': {
       const op = (n.data.stateOp as string) ?? 'get';
@@ -68,7 +69,10 @@ function mapNodeToBackend(n: GraphNode): Record<string, unknown> {
         ...base,
         nodeType: 'loop',
         inputs: { in: { name: 'in', type: 'Wins' } },
-        outputs: { out: { name: 'out', type: 'Wins' } },
+        outputs: {
+          body: { name: 'body', type: 'Wins' },
+          exit: { name: 'exit', type: 'Wins' },
+        },
         maxIterations: (n.data.iterations as number) ?? 5,
         ...(n.data.terminationExpr ? { stopConditionId: n.data.terminationExpr } : {}),
       };
@@ -149,9 +153,9 @@ function buildConfigPayload(
     edges: edges.map((e) => ({
       id: e.id,
       sourceNodeId: e.source,
-      sourcePort: 'out',
+      sourcePort: e.sourceHandle ?? 'out',
       targetNodeId: e.target,
-      targetPort: 'in',
+      targetPort: e.targetHandle ?? 'in',
     })),
     expressions: Object.keys(expressions).length > 0 ? expressions : undefined,
   };

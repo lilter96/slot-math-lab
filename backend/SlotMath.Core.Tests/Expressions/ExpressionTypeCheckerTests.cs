@@ -403,15 +403,18 @@ public class TypeCheckError_PrecisionTests(ITestOutputHelper output)
             },
             ["type mismatch"] = new ConstantExpr
             {
-                Kind = ConstantKind.Integer, Value = "1",
+                Kind = ConstantKind.Integer,
+                Value = "1",
             },
             ["unknown field"] = new FieldAccessExpr
             {
-                Path = ["bogus"], Target = "board",
+                Path = ["bogus"],
+                Target = "board",
             },
             ["unknown function"] = new CallExpr
             {
-                Function = "bogus_fn", Args = [],
+                Function = "bogus_fn",
+                Args = [],
             },
             ["wrong arg count"] = new CallExpr
             {

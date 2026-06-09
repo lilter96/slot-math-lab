@@ -79,7 +79,7 @@ public static class ConfigGenerator
         Category = "simple-draw",
         Program = from idx in Slot.Draw<CrossCheckState>(_ =>
                 WeightSet.FromIntegers([3, 2, 1]))
-            select idx switch { 0 => BigInteger.Zero, 1 => new BigInteger(10), 2 => new BigInteger(25), _ => BigInteger.Zero },
+                  select idx switch { 0 => BigInteger.Zero, 1 => new BigInteger(10), 2 => new BigInteger(25), _ => BigInteger.Zero },
         InitialState = new CrossCheckState(0, 0, 0),
     };
 
@@ -90,9 +90,9 @@ public static class ConfigGenerator
         Category = "sequential-draws",
         Program = from a in Slot.Draw<CrossCheckState>(_ =>
                 WeightSet.FromIntegers(PickWeights(id, 2)))
-            from b in Slot.Draw<CrossCheckState>(_ =>
-                WeightSet.FromIntegers(PickWeights(id + 7, 3)))
-            select new BigInteger((a + 1) * (b + 1) * 5),
+                  from b in Slot.Draw<CrossCheckState>(_ =>
+                      WeightSet.FromIntegers(PickWeights(id + 7, 3)))
+                  select new BigInteger((a + 1) * (b + 1) * 5),
         InitialState = new CrossCheckState(0, 0, 0),
     };
 
@@ -103,11 +103,11 @@ public static class ConfigGenerator
         Category = "state-dependent",
         Program = from _ in Slot.Draw<CrossCheckState>(_ =>
                 WeightSet.FromIntegers([2, 1, 1]))
-            from __ in Slot.Modify<CrossCheckState>(s => s.Inc())
-            from s in Slot.GetState<CrossCheckState>()
-            from payout in Slot.Draw<CrossCheckState>(st =>
-                WeightSet.FromIntegers(st.Round == 1 ? new int[] { 3, 1 } : new int[] { 1, 3 }))
-            select payout == 0 ? BigInteger.Zero : new BigInteger(10 * s.Round),
+                  from __ in Slot.Modify<CrossCheckState>(s => s.Inc())
+                  from s in Slot.GetState<CrossCheckState>()
+                  from payout in Slot.Draw<CrossCheckState>(st =>
+                      WeightSet.FromIntegers(st.Round == 1 ? new int[] { 3, 1 } : new int[] { 1, 3 }))
+                  select payout == 0 ? BigInteger.Zero : new BigInteger(10 * s.Round),
         InitialState = new CrossCheckState(0, 0, 0),
     };
 
@@ -117,11 +117,11 @@ public static class ConfigGenerator
     {
         var thenBranch = from a in Slot.Draw<CrossCheckState>(_ =>
                 WeightSet.FromIntegers([2, 1]))
-            select a == 0 ? BigInteger.Zero : new BigInteger(15);
+                         select a == 0 ? BigInteger.Zero : new BigInteger(15);
 
         var elseBranch = from b in Slot.Draw<CrossCheckState>(_ =>
                 WeightSet.FromIntegers([1, 3]))
-            select new BigInteger(b * 5);
+                         select new BigInteger(b * 5);
 
         return new GeneratedConfig
         {
@@ -129,10 +129,10 @@ public static class ConfigGenerator
             Description = "Branch on state then draw",
             Category = "branch",
             Program = from state in Slot.GetState<CrossCheckState>()
-                from result in Slot.Branch<CrossCheckState, BigInteger>(
-                    (CrossCheckState s) => s.Round % 2 == 0,
-                    thenBranch, elseBranch)
-                select result,
+                      from result in Slot.Branch<CrossCheckState, BigInteger>(
+                          (CrossCheckState s) => s.Round % 2 == 0,
+                          thenBranch, elseBranch)
+                      select result,
             InitialState = new CrossCheckState(0, 0, 0),
         };
     }
@@ -144,12 +144,12 @@ public static class ConfigGenerator
         Category = "modifier",
         Program = from idx in Slot.Draw<CrossCheckState>(_ =>
                 WeightSet.FromIntegers([1, 1, 1]))
-            from _ in Slot.Modify<CrossCheckState>(s =>
-                s with { Round = idx })
-            from s in Slot.GetState<CrossCheckState>()
-            from payout in Slot.Draw<CrossCheckState>(_ =>
-                WeightSet.FromIntegers([1, 2, 3]))
-            select new BigInteger(s.Round * 10 + payout),
+                  from _ in Slot.Modify<CrossCheckState>(s =>
+                      s with { Round = idx })
+                  from s in Slot.GetState<CrossCheckState>()
+                  from payout in Slot.Draw<CrossCheckState>(_ =>
+                      WeightSet.FromIntegers([1, 2, 3]))
+                  select new BigInteger(s.Round * 10 + payout),
         InitialState = new CrossCheckState(0, 0, 0),
     };
 
@@ -162,12 +162,12 @@ public static class ConfigGenerator
         Category = "accumulator",
         Program = from a in Slot.Draw<CrossCheckState>(_ =>
                 WeightSet.FromIntegers(PickWeights(id, 3)))
-            from _ in Slot.Modify<CrossCheckState>(s =>
-                s.AddAccumulator(new BigInteger(a * 5)))
-            from b in Slot.Draw<CrossCheckState>(_ =>
-                WeightSet.FromIntegers(PickWeights(id + 3, 2)))
-            from s in Slot.GetState<CrossCheckState>()
-            select s.Accumulator + new BigInteger(b * 3),
+                  from _ in Slot.Modify<CrossCheckState>(s =>
+                      s.AddAccumulator(new BigInteger(a * 5)))
+                  from b in Slot.Draw<CrossCheckState>(_ =>
+                      WeightSet.FromIntegers(PickWeights(id + 3, 2)))
+                  from s in Slot.GetState<CrossCheckState>()
+                  select s.Accumulator + new BigInteger(b * 3),
         InitialState = new CrossCheckState(0, 0, 0),
     };
 
@@ -180,11 +180,11 @@ public static class ConfigGenerator
                 s => s.Round >= 3,
                 from a in Slot.Draw<CrossCheckState>(_ =>
                     WeightSet.FromIntegers([1, 1]))
-                    from __ in Slot.Modify<CrossCheckState>(st =>
-                        st.Inc().AddAccumulator(a == 0 ? 0 : new BigInteger(5)))
-                    select Unit.Value)
-            from s in Slot.GetState<CrossCheckState>()
-            select s.Accumulator,
+                from __ in Slot.Modify<CrossCheckState>(st =>
+                    st.Inc().AddAccumulator(a == 0 ? 0 : new BigInteger(5)))
+                select Unit.Value)
+                  from s in Slot.GetState<CrossCheckState>()
+                  select s.Accumulator,
         InitialState = new CrossCheckState(0, 0, 0),
     };
 
@@ -197,13 +197,13 @@ public static class ConfigGenerator
                 s => s.Round >= 2,
                 from a in Slot.Draw<CrossCheckState>(_ =>
                     WeightSet.FromIntegers([2, 1]))
-                    from b in Slot.Draw<CrossCheckState>(_ =>
-                        WeightSet.FromIntegers([1, 2]))
-                    from __ in Slot.Modify<CrossCheckState>(st =>
-                        st.Inc().AddAccumulator(new BigInteger((a + b) * 3)))
-                    select Unit.Value)
-            from s in Slot.GetState<CrossCheckState>()
-            select s.Accumulator,
+                from b in Slot.Draw<CrossCheckState>(_ =>
+                    WeightSet.FromIntegers([1, 2]))
+                from __ in Slot.Modify<CrossCheckState>(st =>
+                    st.Inc().AddAccumulator(new BigInteger((a + b) * 3)))
+                select Unit.Value)
+                  from s in Slot.GetState<CrossCheckState>()
+                  select s.Accumulator,
         InitialState = new CrossCheckState(0, 0, 0),
     };
 
@@ -216,13 +216,13 @@ public static class ConfigGenerator
         Category = "expression-like",
         // Use a dynamic weight function — the "expression" is a lambda.
         Program = from s in Slot.GetState<CrossCheckState>()
-            from idx in Slot.Draw<CrossCheckState>(_ =>
-            {
-                var w = (s.Round + 1) * 2;
-                return WeightSet.FromNumerators([new BigInteger(w), new BigInteger(w / 2 + 1)]);
-            })
-            from _ in Slot.Modify<CrossCheckState>(st => st.Inc())
-            select new BigInteger(idx * 10 + 5),
+                  from idx in Slot.Draw<CrossCheckState>(_ =>
+                  {
+                      var w = (s.Round + 1) * 2;
+                      return WeightSet.FromNumerators([new BigInteger(w), new BigInteger(w / 2 + 1)]);
+                  })
+                  from _ in Slot.Modify<CrossCheckState>(st => st.Inc())
+                  select new BigInteger(idx * 10 + 5),
         InitialState = new CrossCheckState(0, 0, 0),
     };
 
@@ -232,14 +232,14 @@ public static class ConfigGenerator
         Description = $"Large outcome space with {5 + id % 5} outcomes",
         Category = "multi-outcome",
         Program = from s in Slot.GetState<CrossCheckState>()
-            from idx in Slot.Draw<CrossCheckState>(_ =>
-            {
-                var n = 5 + (id % 5);
-                var weights = new int[n];
-                for (var i = 0; i < n; i++) weights[i] = n - i;
-                return WeightSet.FromIntegers(weights);
-            })
-            select new BigInteger(idx * 2 + 1),
+                  from idx in Slot.Draw<CrossCheckState>(_ =>
+                  {
+                      var n = 5 + (id % 5);
+                      var weights = new int[n];
+                      for (var i = 0; i < n; i++) weights[i] = n - i;
+                      return WeightSet.FromIntegers(weights);
+                  })
+                  select new BigInteger(idx * 2 + 1),
         InitialState = new CrossCheckState(0, 0, 0),
     };
 

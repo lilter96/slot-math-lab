@@ -1,11 +1,11 @@
 using System.Net.Http.Json;
 using System.Text.Json;
 using Microsoft.AspNetCore.Mvc.Testing;
+using SlotMath.Api.Infrastructure;
 using SlotMath.Core.Mechanics;
 using SlotMath.Core.Mechanics.Evaluators;
 using SlotMath.Core.Model;
 using SlotMath.Core.Plugins;
-using SlotMath.Api.Infrastructure;
 
 namespace SlotMath.Api.Tests;
 

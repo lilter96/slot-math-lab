@@ -45,6 +45,8 @@ export interface GraphNodeData {
   transformId?: string;
   /** Weight expression ID for Draw level (b) */
   weightExpressionId?: string;
+  /** Draw node: when set, writes the drawn outcomeId to this state key */
+  stateWriteKey?: string;
   /** Plugin ID when evaluatorKind === 'plugin' */
   pluginId?: string;
   [key: string]: unknown;

@@ -155,7 +155,7 @@ public class FreeSpins_HandComputed(ITestOutputHelper output)
                 _ => WeightSet.FromIntegers(new int[] { 1, 1, 1 }))
             from c in Slot.Draw<SimpleState>(
                 _ => WeightSet.FromIntegers(new int[] { 1, 1, 1 }))
-            // Count retriggers from base spins.
+                // Count retriggers from base spins.
             let retriggerCount = (a == 2 ? 1 : 0) + (b == 2 ? 1 : 0) + (c == 2 ? 1 : 0)
             // Extra spin (if any retrigger) — model just 1 extra for boundedness.
             from extra in retriggerCount > 0
@@ -239,7 +239,7 @@ public class HoldAndWin_HandComputed(ITestOutputHelper output)
             from r2 in r1 == 1
                 ? from x in Slot.Draw<SimpleState>(
                     _ => WeightSet.FromIntegers(new int[] { 1, 1 }))
-                    select x == 1 ? new BigInteger(5) : BigInteger.Zero
+                  select x == 1 ? new BigInteger(5) : BigInteger.Zero
                 : Slot.Pure<SimpleState, BigInteger>(0)
             let w1 = r1 == 1 ? new BigInteger(10) : BigInteger.Zero
             select w1 + r2;
@@ -292,13 +292,13 @@ public class ClusterTumbleRisingMultiplier_HandComputed(ITestOutputHelper output
                 ? Slot.Pure<SimpleState, BigInteger>(0)
                 : from idx2 in Slot.Draw<SimpleState>(
                     _ => WeightSet.FromIntegers(new int[] { 2, 1, 1 }))
-                    select idx2 switch
-                    {
-                        0 => BigInteger.Zero,
-                        1 => new BigInteger(10 * 2), // multiplier ×2
-                        2 => new BigInteger(30 * 2),
-                        _ => BigInteger.Zero,
-                    }
+                  select idx2 switch
+                  {
+                      0 => BigInteger.Zero,
+                      1 => new BigInteger(10 * 2), // multiplier ×2
+                      2 => new BigInteger(30 * 2),
+                      _ => BigInteger.Zero,
+                  }
             select baseWin + cascadeWin;
 
         var result = ExactInterpreter.Evaluate(

@@ -14,6 +14,9 @@ jobs:
   backend:
     name: Backend — Build, Test, Lint
     runs-on: ubuntu-latest
+    permissions:
+      checks: write
+      pull-requests: write
     services:
       postgres:
         image: postgres:17-alpine
@@ -42,6 +45,13 @@ jobs:
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '10.0.x'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci --legacy-peer-deps
+        working-directory: frontend
       - run: dotnet restore backend/SlotMathLab.slnx
       - run: dotnet build backend/SlotMathLab.slnx -c Release --no-restore
       - run: dotnet format backend/SlotMathLab.slnx --verify-no-changes --no-restore || true
