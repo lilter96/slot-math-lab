@@ -62,11 +62,16 @@ jobs:
         env:
           ConnectionStrings__DefaultConnection: Host=localhost;Port=5432;Database=slotmath;Username=slotmath;Password=slotmath
           ASPNETCORE_ENVIRONMENT: CI
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-results
+          path: '**/TestResults/*.trx'
       - uses: dorny/test-reporter@v1
         if: always()
         with:
           name: Backend Tests
-          path: '**/*.trx'
+          artifact: test-results
           reporter: dotnet-trx
 
   frontend:
