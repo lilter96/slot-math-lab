@@ -54,6 +54,19 @@ Run("sampled-reels (5k spins, 3×32-symbol reels)", () =>
     return $"mean={r.Stats.Mean:F3}";
 });
 
+Run($"sampled-parallel (500k spins × 100 iters, {Environment.ProcessorCount} cores)", () =>
+{
+    var program = BuildHandLoop(iterations: 100);
+    var config = new SampledConfig
+    {
+        Seed = 7,
+        MaxSpins = 500_000,
+        DegreeOfParallelism = Environment.ProcessorCount,
+    };
+    var r = SampledInterpreter.Evaluate(program, new LoopState(0, BigInteger.Zero), config);
+    return $"mean={r.Stats.Mean:F3}";
+});
+
 Run("exact-retrigger (free spins, start=8, award cap=40)", () =>
 {
     var program = BuildRetriggerGame(startSpins: 8, maxAwarded: 40);

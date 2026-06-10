@@ -20,9 +20,33 @@ public static class EvaluateEndpoints
     {
         var group = app.MapGroup("/api/evaluate");
 
-        group.MapPost("/light", (EvaluateLightRequest request, PluginHost pluginHost) =>
+        group.MapPost("/light", async (EvaluateLightRequest request, PluginHost pluginHost, IResultCache cache) =>
         {
             var sw = Stopwatch.StartNew();
+
+            // 0. Cache lookup — the debounced UI re-sends identical configs
+            //    constantly; identical (config, knobs) returns the cached
+            //    response without recompiling or re-evaluating.
+            var cacheKey = "light:" + CanonicalHash.Compute(new
+            {
+                config = request.Config,
+                maxBranches = request.MaxBranches,
+                sampleSize = request.SampleSize,
+            });
+            var cached = await cache.GetAsync(cacheKey);
+            if (cached is not null)
+            {
+                var hit = JsonSerializer.Deserialize<EvaluateLightResponse>(cached);
+                if (hit is not null)
+                    return Results.Ok(hit with { ElapsedMs = sw.Elapsed.TotalMilliseconds });
+            }
+
+            async Task<IResult> CacheAndReturnAsync(EvaluateLightResponse response)
+            {
+                await cache.SetAsync(cacheKey, JsonSerializer.Serialize(response),
+                    TimeSpan.FromMinutes(2));
+                return Results.Ok(response);
+            }
 
             // 1. Deserialize config
             GraphConfig config;
@@ -67,6 +91,11 @@ public static class EvaluateEndpoints
                     {
                         Budget = new Budget { MaxBranches = maxBranches },
                         ForceSampled = false,
+                        // If the exact attempt blows the budget mid-flight,
+                        // the hybrid evaluator falls back internally — that
+                        // fallback must use the light sample size, not the
+                        // heavy-run default.
+                        SampledSpins = request.SampleSize ?? 10_000,
                     };
 
                     var result = HybridEvaluator.Evaluate(
@@ -76,12 +105,16 @@ public static class EvaluateEndpoints
                         exactConfig);
 
                     var report = result.Report;
-                    return Results.Ok(new EvaluateLightResponse
+                    // The hybrid evaluator may have fallen back to sampled —
+                    // the reported strategy must reflect what actually ran.
+                    var ranExact = result.OverallStrategy == EvaluationStrategy.Exact;
+                    return await CacheAndReturnAsync(new EvaluateLightResponse
                     {
-                        Strategy = "Exact",
+                        Strategy = ranExact ? "Exact" : "Sampled",
                         Rtp = report.Rtp.DisplayValue,
                         HitFrequency = report.HitFrequency.DisplayValue,
                         Volatility = report.Volatility.VolatilityIndex,
+                        SampleCount = ranExact ? null : request.SampleSize ?? 10_000,
                         Provenance = result.AggregateProvenance.ToString(),
                         ElapsedMs = sw.Elapsed.TotalMilliseconds,
                     });
@@ -113,7 +146,7 @@ public static class EvaluateEndpoints
                 var rtp = report.Rtp.DisplayValue;
                 var stdDev = report.Volatility.StdDev;
                 var stdErr = stdDev / Math.Sqrt(sampleSize);
-                return Results.Ok(new EvaluateLightResponse
+                return await CacheAndReturnAsync(new EvaluateLightResponse
                 {
                     Strategy = "Sampled",
                     Rtp = rtp,

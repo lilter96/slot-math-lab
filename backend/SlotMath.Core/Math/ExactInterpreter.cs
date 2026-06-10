@@ -251,6 +251,14 @@ public static class ExactInterpreter
                 continue;
             }
 
+            // ── ModifyState (fused get+put) ──────────────────────────────
+            if (current is IModifyStateNode modify)
+            {
+                state = (S)modify.ApplyUntyped(state!);
+                current = modify.NextUntyped;
+                continue;
+            }
+
             // ── Draw ─────────────────────────────────────────────────────
             if (current is IDrawNode draw)
             {

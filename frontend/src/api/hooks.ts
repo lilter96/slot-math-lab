@@ -1,7 +1,8 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useEffect } from 'react';
 import { apiClient } from './client';
-import { useAppStore, type PluginEntry, type CustomMechanic } from '../store';
+import { useAppStore, type PluginEntry, type CustomMechanic, type GraphNode, type GraphEdge } from '../store';
+import { mapNodeToBackend } from '../lib/configPayload';
 
 // ═══════════════════════════════════════════════════════════════════
 // Plugins API hooks
@@ -40,7 +41,7 @@ export function useSyncPluginsFromBackend() {
             version: String(p.version ?? '1.0.0'),
             isConformant: Boolean(p.isConformant),
             conformanceNote: p.conformanceNote ? String(p.conformanceNote) : undefined,
-            forcesSampledRegime: true,
+            forcesSampledRegime: Boolean(p.forcesSampledRegime ?? true),
           }));
           setPluginsFromBackend(plugins);
         } else {
@@ -115,21 +116,40 @@ export function useConfigsQuery() {
   });
 }
 
+/** Map frontend graph edges to the backend Edge shape. */
+function mapEdgesToBackend(edges: GraphEdge[]): Record<string, unknown>[] {
+  return edges.map((e) => ({
+    id: e.id,
+    sourceNodeId: e.source,
+    sourcePort: e.sourceHandle ?? 'out',
+    targetNodeId: e.target,
+    targetPort: e.targetHandle ?? 'in',
+  }));
+}
+
 /** Save a config (including mechanics) to the backend. */
 export function useSaveConfig() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (config: { id?: string; name: string; mechanics?: CustomMechanic[]; nodes?: unknown[]; edges?: unknown[] }) => {
+    mutationFn: async (config: { id?: string; name: string; mechanics?: CustomMechanic[]; nodes?: GraphNode[]; edges?: GraphEdge[] }) => {
+      // The backend deserializes nodes/edges into strongly-typed polymorphic
+      // models — raw React Flow shapes are rejected, so everything must go
+      // through the canonical mapping.
       const body = {
         config: {
           schemaVersion: '1.0.0',
           name: config.name,
           mechanics: config.mechanics ? Object.fromEntries(
-            config.mechanics.map((m) => [m.id, { name: m.name, description: m.description, nodes: m.nodes, edges: m.edges }])
+            config.mechanics.map((m) => [m.id, {
+              name: m.name,
+              description: m.description,
+              nodes: m.nodes.map(mapNodeToBackend),
+              edges: mapEdgesToBackend(m.edges),
+            }])
           ) : undefined,
-          nodes: config.nodes,
-          edges: config.edges,
+          nodes: config.nodes ? config.nodes.map(mapNodeToBackend) : undefined,
+          edges: config.edges ? mapEdgesToBackend(config.edges) : undefined,
         },
       };
 

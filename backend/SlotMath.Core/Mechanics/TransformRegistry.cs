@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Collections.Frozen;
 
 namespace SlotMath.Core.Mechanics;
@@ -15,7 +16,7 @@ namespace SlotMath.Core.Mechanics;
 /// </summary>
 public static class TransformRegistry
 {
-    private static readonly Dictionary<string, ITransform> _transforms = new();
+    private static readonly ConcurrentDictionary<string, ITransform> _transforms = new();
 
     /// <summary>
     /// All currently registered transforms.  Returns a frozen snapshot; callers
@@ -34,11 +35,11 @@ public static class TransformRegistry
         ArgumentNullException.ThrowIfNull(name);
         ArgumentNullException.ThrowIfNull(transform);
 
-        if (_transforms.ContainsKey(name))
+        // TryAdd is atomic — a concurrent duplicate registration cannot
+        // slip between a contains-check and the write.
+        if (!_transforms.TryAdd(name, transform))
             throw new InvalidOperationException(
                 $"Transform '{name}' is already registered.");
-
-        _transforms[name] = transform;
     }
 
     /// <summary>

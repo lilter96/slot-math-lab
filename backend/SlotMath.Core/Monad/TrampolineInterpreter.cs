@@ -99,6 +99,10 @@ public static class TrampolineInterpreter
             {
                 queue.Enqueue(ps.NextUntyped);
             }
+            else if (p is IModifyStateNode ms)
+            {
+                queue.Enqueue(ms.NextUntyped);
+            }
         }
 
         return count;
@@ -183,6 +187,16 @@ public static class TrampolineInterpreter
                 trace.Add(new InterpreterTrace.StateWritten(putState.ValueUntyped));
                 state = (S)putState.ValueUntyped;
                 current = putState.NextUntyped;
+                continue;
+            }
+
+            // ── ModifyState: fused get+put, traced as read + write ─────
+            if (current is IModifyStateNode modify)
+            {
+                trace.Add(new InterpreterTrace.StateRead(state!));
+                state = (S)modify.ApplyUntyped(state!);
+                trace.Add(new InterpreterTrace.StateWritten(state!));
+                current = modify.NextUntyped;
                 continue;
             }
 
