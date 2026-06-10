@@ -25,6 +25,7 @@ export default function Simulate() {
   const [stdErr, setStdErr] = useState(0);
   const [points, setPoints] = useState<ConvergencePoint[]>([]);
   const [histogram, setHistogram] = useState<Map<number, number>>(new Map());
+  const [winHistogram, setWinHistogram] = useState<Map<number, number> | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [spinsTarget, setSpinsTarget] = useState(100_000);
 
@@ -63,6 +64,7 @@ export default function Simulate() {
     setStdErr(0);
     setPoints([]);
     setHistogram(new Map());
+    setWinHistogram(null);
     setExactRtp(null);
     setExactProvenance(null);
     setNeedsFullRun(false);
@@ -135,6 +137,25 @@ export default function Simulate() {
         runIdRef.current = null;
         hub.stop();
         hubRef.current = null;
+
+        // The persisted result carries the real per-spin win histogram.
+        if (runStatus === 'completed') {
+          void fetch(`/api/runs/${runId}`)
+            .then((r) => (r.ok ? r.json() : null))
+            .then((run: { resultJson?: string } | null) => {
+              if (!run?.resultJson) return;
+              const result = JSON.parse(run.resultJson) as {
+                histogram?: { lo: number; hi: number; count: number }[];
+              };
+              if (!result.histogram?.length) return;
+              const bins = new Map<number, number>();
+              for (const b of result.histogram) {
+                if (b.count > 0) bins.set((b.lo + b.hi) / 2, b.count);
+              }
+              if (bins.size > 0) setWinHistogram(bins);
+            })
+            .catch(() => {});
+        }
       };
 
       hub.on('ProgressUpdate', (msg: RunProgressMessage) => {
@@ -337,8 +358,10 @@ export default function Simulate() {
         {/* ── Bottom row: histogram + comparison ── */}
         <div className="sim-bottom">
           <div className="hist-card">
-            <div className="section-label" style={{ marginBottom: 8 }}>Running RTP Distribution</div>
-            <Histogram data={histogram} width={420} height={180} />
+            <div className="section-label" style={{ marginBottom: 8 }}>
+              {winHistogram ? 'Win Distribution (per spin)' : 'Running RTP Distribution'}
+            </div>
+            <Histogram data={winHistogram ?? histogram} width={420} height={180} />
           </div>
           <div className="hist-card">
             <div className="section-label" style={{ marginBottom: 8 }}>Exact vs Sampled</div>

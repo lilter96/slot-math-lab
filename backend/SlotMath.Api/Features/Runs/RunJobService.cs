@@ -108,6 +108,7 @@ public class RunJobService
                 // Heavy runs use every core; per-seed determinism is
                 // unaffected (fixed logical stream count).
                 DegreeOfParallelism = Environment.ProcessorCount,
+                WinScale = compileResult.WinScale,
                 ProgressReportInterval = progressBatchSize,
                 ProgressCallback = progress =>
                 {
@@ -153,6 +154,10 @@ public class RunJobService
                 sampleCount = sampleSize,
                 provenance = result.AggregateProvenance.ToString(),
                 elapsedMs = (long)(DateTimeOffset.UtcNow - run.CreatedAt).TotalMilliseconds,
+                // Real per-spin win histogram (in credits) for the UI.
+                histogram = report.Histogram.Bins
+                    .Select(b => new { lo = b.LowerBound, hi = b.UpperBound, count = b.Count })
+                    .ToArray(),
             });
 
             _runStore.Update(runId, "completed", resultJson);

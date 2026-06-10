@@ -71,6 +71,14 @@ public sealed class SampledConfig
     /// available cores.
     /// </summary>
     public int DegreeOfParallelism { get; init; } = 1;
+
+    /// <summary>
+    /// Sub-credit scale of the program's win amounts.  The compiler emits
+    /// wins multiplied by this factor when fractional paytable payouts are
+    /// present; sampled statistics divide it back out per spin so all stats
+    /// are in credit units.
+    /// </summary>
+    public double WinScale { get; init; } = 1.0;
 }
 
 /// <summary>
@@ -151,7 +159,7 @@ public static class SampledInterpreter
 
             // ── Run one spin ────────────────────────────────────────────
             var win = RunOneSpin(program, initialState, rng, stack);
-            stats.Add(win);
+            stats.Add((double)win / config.WinScale);
 
             // ── Progress callback ──────────────────────────────────────
             if (spin > 0 && spin % config.ProgressReportInterval == 0
@@ -306,7 +314,7 @@ public static class SampledInterpreter
                     break;
                 }
 
-                stats.Add(RunOneSpin(program, initialState, rng, stack));
+                stats.Add((double)RunOneSpin(program, initialState, rng, stack) / config.WinScale);
                 done++;
 
                 if (config.ProgressCallback is not null

@@ -63,6 +63,45 @@ public sealed class EvalStats
     public int MaxRecursionDepth { get; set; }
 }
 
+// ═══════════════════════════════════════════════════════════════════════════
+//  AccumulatorSpec — invariant #4's "win accumulator held separate"
+//
+//  When a game accumulates wins inside its state, two paths can reach the
+//  same recurrence state with different accumulated totals.  Distributions
+//  in the memo cache hold absolute final values, so reusing one across
+//  accumulator values would be wrong — and including the accumulator in the
+//  recurrence hash destroys the collapse the cache exists for.
+//
+//  The spec tells the interpreter how to separate the accumulator: before
+//  keying/evaluating a draw, the accumulator is normalised to zero; the
+//  cached distribution is therefore in *delta* form, and each reuse shifts
+//  it by the caller's current accumulator (the convolution step).
+//
+//  Contract: the program's future behaviour must not depend on the
+//  accumulator (no weights, stop conditions or branches may read it) — the
+//  same contract invariant #4 places on the recurrence state itself.
+// ═══════════════════════════════════════════════════════════════════════════
+
+/// <summary>
+/// Describes how the win accumulator is embedded in the state <typeparamref name="S"/>
+/// and how a final value <typeparamref name="T"/> shifts when the accumulator does.
+/// </summary>
+public sealed class AccumulatorSpec<S, T>
+{
+    /// <summary>Read the accumulator from a state.</summary>
+    public required Func<S, BigInteger> Get { get; init; }
+
+    /// <summary>Return a state with the accumulator replaced (copy-on-write).</summary>
+    public required Func<S, BigInteger, S> Set { get; init; }
+
+    /// <summary>
+    /// Shift a final value by an accumulator delta.  For win programs whose
+    /// result is read from the accumulator this is addition; for results
+    /// independent of the accumulator it is the identity.
+    /// </summary>
+    public required Func<T, BigInteger, T> ShiftValue { get; init; }
+}
+
 public static class ExactInterpreter
 {
     public static ExactResult<S, T> Evaluate<S, T>(
@@ -72,10 +111,27 @@ public static class ExactInterpreter
         ExactConfig? config = null)
         where S : notnull
         where T : notnull
+        => Evaluate(program, initialState, recurrenceHasher, accumulator: null, config);
+
+    /// <summary>
+    /// Evaluate with an explicit accumulator specification (invariant #4):
+    /// the recurrence hasher may then exclude the accumulator entirely —
+    /// cached sub-distributions are stored in delta form and shifted by the
+    /// caller's accumulator on every reuse, so convergent recurrence states
+    /// share work regardless of how much win they have already banked.
+    /// </summary>
+    public static ExactResult<S, T> Evaluate<S, T>(
+        Slot<S, T> program,
+        S initialState,
+        Func<S, BigInteger> recurrenceHasher,
+        AccumulatorSpec<S, T>? accumulator,
+        ExactConfig? config = null)
+        where S : notnull
+        where T : notnull
     {
         config ??= new ExactConfig();
         var stats = new EvalStats();
-        var dist = EvalCore<S, T>(program, initialState, config, recurrenceHasher, stats);
+        var dist = EvalCore(program, initialState, config, recurrenceHasher, accumulator, stats);
         return new ExactResult<S, T>(dist, stats);
     }
 
@@ -128,6 +184,13 @@ public static class ExactInterpreter
         public required ContChain Cont;
         public required MemoKey Key;
         public int Index = -1; // index of the branch currently being evaluated
+
+        /// <summary>
+        /// Accumulator value at frame entry (the frame evaluates with the
+        /// accumulator normalised to zero; the finished delta-distribution
+        /// is shifted back by this amount before being folded upward).
+        /// </summary>
+        public BigInteger AccShift;
     }
 
     private readonly record struct MemoKey(int NodeId, int ContId, BigInteger StateHash);
@@ -139,6 +202,7 @@ public static class ExactInterpreter
         S initialState,
         ExactConfig config,
         Func<S, BigInteger> recurrenceHasher,
+        AccumulatorSpec<S, T>? accumulator,
         EvalStats stats)
         where S : notnull
     {
@@ -180,7 +244,7 @@ public static class ExactInterpreter
                 }
                 else
                 {
-                    completed = FinishFrame(frames, cache);
+                    completed = FinishFrame(frames, cache, accumulator);
                 }
                 continue;
             }
@@ -231,7 +295,7 @@ public static class ExactInterpreter
                 }
                 else
                 {
-                    completed = FinishFrame(frames, cache);
+                    completed = FinishFrame(frames, cache, accumulator);
                 }
                 continue;
             }
@@ -264,13 +328,24 @@ public static class ExactInterpreter
             {
                 stats.DrawsEvaluated++;
 
+                // Separate the accumulator (invariant #4): evaluate and cache
+                // from the zero-accumulator state so the cached distribution
+                // is in delta form, then shift it back by the current value.
+                var accShift = BigInteger.Zero;
+                if (accumulator is not null)
+                {
+                    accShift = accumulator.Get(state);
+                    if (accShift != 0)
+                        state = accumulator.Set(state, BigInteger.Zero);
+                }
+
                 var key = new MemoKey(
                     GetOrAssignId(draw, nodeIds), cont.Id, recurrenceHasher(state));
 
                 if (cache.TryGetValue(key, out var hit))
                 {
                     stats.CacheHits++;
-                    completed = hit;
+                    completed = ShiftByAccumulator(hit, accShift, accumulator);
                     continue;
                 }
                 stats.CacheMisses++;
@@ -303,6 +378,7 @@ public static class ExactInterpreter
                     State = state,
                     Cont = cont,
                     Key = key,
+                    AccShift = accShift,
                 };
                 frames.Push(frame);
                 if (frames.Count > stats.MaxRecursionDepth)
@@ -312,11 +388,12 @@ public static class ExactInterpreter
                 {
                     current = draw.NextUntyped(frame.Index);
                     // state and cont stay as they are — branches start from
-                    // the draw's state and share its continuation chain.
+                    // the draw's (accumulator-normalised) state and share its
+                    // continuation chain.
                 }
                 else
                 {
-                    completed = FinishFrame(frames, cache);
+                    completed = FinishFrame(frames, cache, accumulator);
                 }
                 continue;
             }
@@ -355,17 +432,52 @@ public static class ExactInterpreter
     }
 
     /// <summary>
-    /// Build the finished frame's distribution, cache it, and pop the frame.
+    /// Build the finished frame's distribution, cache it (in delta form),
+    /// pop the frame, and return the distribution shifted back by the
+    /// frame's entry accumulator.
     /// </summary>
     private static Dist<(S, T)> FinishFrame<S, T>(
         Stack<DrawFrame<S, T>> frames,
-        Dictionary<MemoKey, Dist<(S, T)>> cache)
+        Dictionary<MemoKey, Dist<(S, T)>> cache,
+        AccumulatorSpec<S, T>? accumulator)
         where S : notnull
     {
         var frame = frames.Pop();
         var dist = frame.Builder.Build();
         cache[frame.Key] = dist;
-        return dist;
+        return ShiftByAccumulator(dist, frame.AccShift, accumulator);
+    }
+
+    /// <summary>
+    /// The convolution step: translate every outcome of a delta-form
+    /// distribution by <paramref name="shift"/> — accumulator in the final
+    /// state, and the final value via the spec's value shift.  Probabilities
+    /// and pruned mass are untouched.  Shifting is injective, so entries
+    /// never merge.
+    /// </summary>
+    private static Dist<(S, T)> ShiftByAccumulator<S, T>(
+        Dist<(S, T)> dist,
+        BigInteger shift,
+        AccumulatorSpec<S, T>? accumulator)
+        where S : notnull
+    {
+        if (accumulator is null || shift == 0 || dist.IsEmpty)
+            return dist;
+
+        var source = dist.Entries;
+        var entries = new Dist<(S, T)>.Entry[source.Count];
+        for (var i = 0; i < entries.Length; i++)
+        {
+            var ((finalState, value), numerator) = (source[i].Value, source[i].Numerator);
+            var shifted = (
+                accumulator.Set(finalState, accumulator.Get(finalState) + shift),
+                accumulator.ShiftValue(value, shift));
+            entries[i] = new Dist<(S, T)>.Entry(shifted, numerator);
+        }
+
+        return new Dist<(S, T)>(
+            entries, dist.Denominator, dist.TotalNumerator,
+            dist.PrunedNumerator, dist.PrunedDenominator);
     }
 
     private static int GetOrAssignId(object node, Dictionary<object, int> nodeIds)

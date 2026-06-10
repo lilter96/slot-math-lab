@@ -62,6 +62,13 @@ public sealed class RegimeConfig
     /// deterministic per seed regardless of this value.
     /// </summary>
     public int DegreeOfParallelism { get; init; } = 1;
+
+    /// <summary>
+    /// Sub-credit scale of the program's win amounts (from
+    /// <see cref="SlotMath.Core.Compiler.CompileResult.WinScale"/>).  Reports
+    /// are converted back to credit units — exactly on the exact path.
+    /// </summary>
+    public BigInteger WinScale { get; init; } = BigInteger.One;
 }
 
 /// <summary>
@@ -181,7 +188,8 @@ public static class HybridEvaluator
                 report = ExactMetrics.Compute(
                     exactResult.ValueDistribution(),
                     config.MaxWinCap,
-                    numHistogramBins: config.HistogramBins);
+                    numHistogramBins: config.HistogramBins,
+                    winScale: config.WinScale);
 
                 aggregateProvenance = report.AggregateProvenance;
 
@@ -260,7 +268,10 @@ public static class HybridEvaluator
             CancellationCheckInterval = config.ProgressCallback is not null ? 1 : 1000,
             ProgressReportInterval = config.ProgressReportInterval,
             ProgressCallback = config.ProgressCallback,
-            DegreeOfParallelism = config.DegreeOfParallelism
+            DegreeOfParallelism = config.DegreeOfParallelism,
+            // Sampled stats divide the scale out per spin, so the cap and
+            // all reported values stay in credit units.
+            WinScale = (double)config.WinScale
         };
 
         var sampledResult = SampledInterpreter.Evaluate(
