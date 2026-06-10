@@ -12,11 +12,11 @@ namespace SlotMath.Core.Random;
 /// </remarks>
 public sealed class AliasMethod
 {
-    private readonly double[] _prob;  // threshold for each bucket
-    private readonly int[] _alias;    // alias index for each bucket
-    private readonly int _n;          // number of outcomes
+    private readonly double[]? _prob;  // threshold for each bucket (null for uniform sets)
+    private readonly int[]? _alias;    // alias index for each bucket (null for uniform sets)
+    private readonly int _n;           // number of outcomes
 
-    private AliasMethod(double[] prob, int[] alias, int n)
+    private AliasMethod(double[]? prob, int[]? alias, int n)
     {
         _prob = prob;
         _alias = alias;
@@ -40,6 +40,13 @@ public sealed class AliasMethod
             // Single outcome always selected.
             return new AliasMethod([1.0], [0], 1);
         }
+
+        // Uniform sets need no table: every bucket would be prob=1.0,
+        // alias=self, so sampling reduces to a single bounded uniform draw.
+        // The RNG consumption (one Next + one NextDouble) is kept identical
+        // to the table path so seeded sequences do not change.
+        if (weights.IsUniform)
+            return new AliasMethod(null, null, weights.Count);
 
         var totalNum = weights.NumeratorSum;
         if (totalNum == 0)
@@ -117,12 +124,30 @@ public sealed class AliasMethod
     public int Sample(SeededRandom rng)
     {
         var i = rng.Next(_n);
-        return rng.NextDouble() < _prob[i] ? i : _alias[i];
+        if (_prob is null)
+        {
+            // Uniform set — NextDouble() is always < 1.0, so the bucket is
+            // always accepted.  Consumed anyway to keep sequences identical.
+            rng.NextDouble();
+            return i;
+        }
+        return rng.NextDouble() < _prob[i] ? i : _alias![i];
     }
 
     /// <summary>
     /// Return the alias table for inspection/testing.
     /// prob[i] is the acceptance threshold, alias[i] is the fallback index.
     /// </summary>
-    public (double[] prob, int[] alias) GetTables() => (_prob.ToArray(), _alias.ToArray());
+    public (double[] prob, int[] alias) GetTables()
+    {
+        if (_prob is null)
+        {
+            var prob = new double[_n];
+            Array.Fill(prob, 1.0);
+            var alias = new int[_n];
+            for (var i = 0; i < _n; i++) alias[i] = i;
+            return (prob, alias);
+        }
+        return (_prob.ToArray(), _alias!.ToArray());
+    }
 }

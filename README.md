@@ -39,6 +39,17 @@ npm run lint
 npm run dev        # start dev server
 ```
 
+### Engine benchmarks
+
+```bash
+cd backend
+dotnet run -c Release --project SlotMath.Benchmarks
+```
+
+Stopwatch-based throughput scenarios for both interpreters (Monte Carlo
+loops, graph-compiled programs, reel draws, exact free-spin retrigger
+memoisation).
+
 ### Project structure
 
 ```
@@ -47,6 +58,7 @@ slot-math-lab/
 │   ├── SlotMath.Core/         # Pure math kernel
 │   ├── SlotMath.Api/          # Web API host
 │   ├── SlotMath.Core.Tests/   # xUnit tests
+│   ├── SlotMath.Benchmarks/   # Engine throughput benchmarks
 │   └── SlotMathLab.sln
 ├── frontend/                  # React 19 + TypeScript + Vite
 ├── docs/

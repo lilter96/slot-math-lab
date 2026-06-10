@@ -59,12 +59,27 @@ public sealed record SubgraphAnnotation
 public static class ProgramAnalyzer
 {
     /// <summary>
+    /// Maximum number of outcome branches expanded per Draw node.  Draws wider
+    /// than this still contribute their full outcome count to the branch
+    /// estimate, but only the first few branch programs are walked — enough
+    /// to find annotations without materialising e.g. a million reel boards.
+    /// </summary>
+    private const int MaxOutcomesExpandedPerDraw = 16;
+
+    /// <summary>
+    /// Maximum number of program nodes visited before the walk stops.  The
+    /// estimate accumulated so far is kept; by construction it is already far
+    /// beyond any practical exact-evaluation budget when this limit is hit.
+    /// </summary>
+    private const int MaxNodesVisited = 10_000;
+
+    /// <summary>
     /// Analyze a program tree, collecting annotations and estimating branch count.
     /// </summary>
     public static ProgramAnalysis Analyze<S, T>(Slot<S, T> program) where S : notnull
     {
         var subgraphs = new List<SubgraphAnnotation>();
-        var visited = new HashSet<object>();
+        var visited = new HashSet<object>(ReferenceEqualityComparer.Instance);
         long estimatedBranches = 0;
         int drawCount = 0;
         int loopCount = 0;
@@ -82,6 +97,9 @@ public static class ProgramAnalyzer
                 loopCount++;
                 continue;
             }
+
+            if (visited.Count > MaxNodesVisited)
+                break;
 
             // ── Dispatch on node type ──────────────────────────────
 
@@ -124,16 +142,19 @@ public static class ProgramAnalyzer
                 catch { /* can't get weights without state */ }
 
                 var outcomes = ws?.Count ?? 2; // default to 2 if unknown
-                estimatedBranches += outcomes * multiplier;
+                estimatedBranches = SaturatingAdd(
+                    estimatedBranches, SaturatingMultiply(outcomes, multiplier));
 
-                // Each outcome branch may lead to more nodes.
-                for (var i = 0; i < outcomes; i++)
+                // Each outcome branch may lead to more nodes; walking a bounded
+                // sample is enough to discover annotations and downstream draws.
+                var childMultiplier = SaturatingMultiply(outcomes, multiplier);
+                var toExpand = System.Math.Min(outcomes, MaxOutcomesExpandedPerDraw);
+                for (var i = 0; i < toExpand; i++)
                 {
                     try
                     {
                         var next = draw.NextUntyped(i);
-                        queue.Enqueue((next, parentSubgraphId,
-                            multiplier * (long)outcomes));
+                        queue.Enqueue((next, parentSubgraphId, childMultiplier));
                     }
                     catch { break; }
                 }
@@ -173,4 +194,13 @@ public static class ProgramAnalyzer
             LoopCount = loopCount
         };
     }
+
+    private static long SaturatingMultiply(long a, long b)
+    {
+        if (a == 0 || b == 0) return 0;
+        return a > long.MaxValue / b ? long.MaxValue : a * b;
+    }
+
+    private static long SaturatingAdd(long a, long b) =>
+        a > long.MaxValue - b ? long.MaxValue : a + b;
 }

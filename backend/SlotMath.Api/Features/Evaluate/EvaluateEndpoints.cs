@@ -72,7 +72,7 @@ public static class EvaluateEndpoints
                     var result = HybridEvaluator.Evaluate(
                         compileResult.Program!,
                         new Dictionary<string, object?>(),
-                        state => new BigInteger(state.GetHashCode()),
+                        SlotMath.Core.Math.StateHasher.CanonicalHash,
                         exactConfig);
 
                     var report = result.Report;
@@ -106,7 +106,7 @@ public static class EvaluateEndpoints
                 var result = HybridEvaluator.Evaluate(
                     compileResult.Program!,
                     new Dictionary<string, object?>(),
-                    state => new BigInteger(state.GetHashCode()),
+                    SlotMath.Core.Math.StateHasher.CanonicalHash,
                     sampledConfig);
 
                 var report = result.Report;

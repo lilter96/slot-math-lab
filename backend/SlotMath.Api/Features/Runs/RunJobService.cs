@@ -134,7 +134,7 @@ public class RunJobService
             var result = HybridEvaluator.Evaluate(
                 compileResult.Program!,
                 new Dictionary<string, object?>(),
-                state => new BigInteger(state.GetHashCode()),
+                SlotMath.Core.Math.StateHasher.CanonicalHash,
                 regimeConfig);
 
             var report = result.Report;

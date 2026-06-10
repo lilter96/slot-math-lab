@@ -506,7 +506,7 @@ public sealed class BranchLoopStateKeyTests : IDisposable
             ["color-eq-black"] = new CompareExpr
             {
                 Op = CompareOp.Eq,
-                Left  = new FieldAccessExpr { Target = "state", Path = new[] { "color" } },
+                Left = new FieldAccessExpr { Target = "state", Path = new[] { "color" } },
                 Right = new ConstantExpr { Kind = ConstantKind.String, Value = "black" }
             }
         },
