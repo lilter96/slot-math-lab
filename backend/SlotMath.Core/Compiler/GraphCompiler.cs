@@ -477,26 +477,38 @@ public sealed class GraphCompiler
             DrawWeight[] dw,
             string? stateWriteKey)
         {
+            // Outcome programs are pre-built once per compile, so taking a
+            // branch at run time allocates nothing.
+            var outcomes = new Slot<Dictionary<string, object?>, object?>[dw.Length];
+
             if (stateWriteKey == null)
             {
-                return Slot.Draw<Dictionary<string, object?>, object?>(
-                    weights, idx => (object?)new BigInteger(dw[idx].Value));
+                for (var i = 0; i < dw.Length; i++)
+                {
+                    outcomes[i] = Slot.Pure<Dictionary<string, object?>, object?>(
+                        (object?)new BigInteger(dw[i].Value));
+                }
+                return Slot.DrawFrom(weights, outcomes);
             }
 
             // Record the drawn outcome id under the user-defined state key.
             // Copy-on-write: branches of the exact interpreter share the
             // pre-draw state object, so it must never be mutated in place.
-            return Slot.Draw<Dictionary<string, object?>>(weights)
-                .SelectMany(idx =>
-                    Slot.Modify<Dictionary<string, object?>>(s =>
-                        {
-                            var next = new Dictionary<string, object?>(s);
-                            next[stateWriteKey] = dw[idx].OutcomeId;
-                            return next;
-                        })
-                        .SelectMany(_ =>
-                            Slot.Pure<Dictionary<string, object?>, object?>(
-                                (object?)new BigInteger(dw[idx].Value))));
+            for (var i = 0; i < dw.Length; i++)
+            {
+                var outcomeId = dw[i].OutcomeId;
+                var value = Slot.Pure<Dictionary<string, object?>, object?>(
+                    (object?)new BigInteger(dw[i].Value));
+                outcomes[i] = new ModifyState<Dictionary<string, object?>, object?>(
+                    s =>
+                    {
+                        var next = new Dictionary<string, object?>(s);
+                        next[stateWriteKey] = outcomeId;
+                        return next;
+                    },
+                    value);
+            }
+            return Slot.DrawFrom(weights, outcomes);
         }
 
         private static WeightSet BuildReelWeights(ReelStrip[] strips, string nodeId)

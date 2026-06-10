@@ -105,6 +105,9 @@ public class RunJobService
                 ForceSampled = true,
                 SampledSeed = DateTimeOffset.UtcNow.Ticks,
                 CancellationToken = runCts.Token,
+                // Heavy runs use every core; per-seed determinism is
+                // unaffected (fixed logical stream count).
+                DegreeOfParallelism = Environment.ProcessorCount,
                 ProgressReportInterval = progressBatchSize,
                 ProgressCallback = progress =>
                 {

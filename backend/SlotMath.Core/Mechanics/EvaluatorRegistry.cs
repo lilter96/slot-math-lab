@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Collections.Frozen;
 
 namespace SlotMath.Core.Mechanics;
@@ -12,7 +13,7 @@ namespace SlotMath.Core.Mechanics;
 /// </summary>
 public static class EvaluatorRegistry
 {
-    private static readonly Dictionary<string, IEvaluator> _evaluators = new();
+    private static readonly ConcurrentDictionary<string, IEvaluator> _evaluators = new();
 
     /// <summary>All currently registered evaluators (frozen snapshot).</summary>
     public static IReadOnlyDictionary<string, IEvaluator> All =>
@@ -24,11 +25,11 @@ public static class EvaluatorRegistry
         ArgumentNullException.ThrowIfNull(name);
         ArgumentNullException.ThrowIfNull(evaluator);
 
-        if (_evaluators.ContainsKey(name))
+        // TryAdd is atomic — a concurrent duplicate registration cannot
+        // slip between a contains-check and the write.
+        if (!_evaluators.TryAdd(name, evaluator))
             throw new InvalidOperationException(
                 $"Evaluator '{name}' is already registered.");
-
-        _evaluators[name] = evaluator;
     }
 
     /// <summary>Look up an evaluator by name. Returns null if not found.</summary>

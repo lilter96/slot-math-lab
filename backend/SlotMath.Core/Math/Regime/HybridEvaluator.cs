@@ -55,6 +55,13 @@ public sealed class RegimeConfig
     /// Useful for testing the fallback path.
     /// </summary>
     public bool ForceSampled { get; init; }
+
+    /// <summary>
+    /// Worker threads for sampled evaluation (see
+    /// <see cref="SampledConfig.DegreeOfParallelism"/>).  Results stay
+    /// deterministic per seed regardless of this value.
+    /// </summary>
+    public int DegreeOfParallelism { get; init; } = 1;
 }
 
 /// <summary>
@@ -252,7 +259,8 @@ public static class HybridEvaluator
             CancellationToken = config.CancellationToken,
             CancellationCheckInterval = config.ProgressCallback is not null ? 1 : 1000,
             ProgressReportInterval = config.ProgressReportInterval,
-            ProgressCallback = config.ProgressCallback
+            ProgressCallback = config.ProgressCallback,
+            DegreeOfParallelism = config.DegreeOfParallelism
         };
 
         var sampledResult = SampledInterpreter.Evaluate(

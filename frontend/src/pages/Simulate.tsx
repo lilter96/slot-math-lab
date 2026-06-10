@@ -1,6 +1,7 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 import * as signalR from '@microsoft/signalr';
-import { useAppStore, type GraphNode, type GraphEdge, type TableSymbol } from '../store';
+import { useAppStore } from '../store';
+import { buildConfigPayload } from '../lib/configPayload';
 import ConvergenceChart, { type ConvergencePoint } from '../components/simulate/ConvergenceChart';
 import Histogram from '../components/simulate/Histogram';
 import ProvBadge from '../components/ProvBadge';
@@ -11,98 +12,6 @@ type EvaluateLightResponse = components['schemas']['EvaluateLightResponse'];
 
 // ── Run state ──────────────────────────────────────────────────────
 type RunStatus = 'idle' | 'running' | 'paused' | 'complete';
-
-// ── Backend config helpers ────────────────────────────────────────
-
-function mapNodeToBackend(n: GraphNode): Record<string, unknown> {
-  const base = { id: n.id, label: n.data.label };
-  // IMPORTANT: nodeType must be FIRST — STJ's [JsonPolymorphic] requires the discriminator
-  // to appear before all other properties for its streaming deserializer.
-  switch (n.data.nodeType) {
-    case 'draw':
-      return {
-        nodeType: 'draw',
-        ...base,
-        inputs: { in: { name: 'in', type: 'Wins' } },
-        outputs: { out: { name: 'out', type: 'Wins' } },
-        ...(n.data.drawWeights?.length ? { drawWeights: n.data.drawWeights } : {}),
-        ...(n.data.weightExpressionId ? { weightExpressionId: n.data.weightExpressionId } : {}),
-        ...(n.data.stateWriteKey ? { stateWriteKey: n.data.stateWriteKey } : {}),
-      };
-    case 'state': {
-      const op = (n.data.stateOp as string) ?? 'get';
-      const key = (n.data.stateKey as string) || '__default__';
-      if (op === 'put') return { nodeType: 'putState', ...base, stateKey: key, inputs: { in: { name: 'in', type: 'Wins' } }, outputs: { out: { name: 'out', type: 'Wins' } } };
-      if (op === 'modify') return { nodeType: 'modifyState', ...base, expressionId: n.data.expression as string ?? undefined, inputs: { in: { name: 'in', type: 'Wins' } }, outputs: { out: { name: 'out', type: 'Wins' } } };
-      return { nodeType: 'getState', ...base, stateKey: key, inputs: { in: { name: 'in', type: 'Wins' } }, outputs: { out: { name: 'out', type: 'Wins' } } };
-    }
-    case 'loop':
-      return {
-        nodeType: 'loop',
-        ...base,
-        inputs: { in: { name: 'in', type: 'Wins' } },
-        outputs: {
-          body: { name: 'body', type: 'Wins' },
-          exit: { name: 'exit', type: 'Wins' },
-        },
-        maxIterations: (n.data.iterations as number) ?? 5,
-        ...(n.data.terminationExpr ? { stopConditionId: n.data.terminationExpr } : {}),
-      };
-    case 'branch':
-      return {
-        nodeType: 'branch',
-        ...base,
-        inputs: { in: { name: 'in', type: 'Wins' } },
-        outputs: { out: { name: 'out', type: 'Wins' } },
-        ...(n.data.expression ? { conditionId: n.data.expression } : {}),
-      };
-    case 'map':
-      return {
-        nodeType: 'map',
-        ...base,
-        inputs: { in: { name: 'in', type: 'Wins' } },
-        outputs: { out: { name: 'out', type: 'Wins' } },
-        ...(n.data.transformId ? { transformId: n.data.transformId } : {}),
-        ...(n.data.expression ? { transformId: n.data.expression } : {}),
-      };
-    case 'evaluator': {
-      const kind = (n.data.evaluatorKind as string) ?? 'lines';
-      const transformId = kind === 'plugin'
-        ? `plugin:${(n.data.pluginId as string) ?? ''}`
-        : kind;
-      return { nodeType: 'map', ...base, inputs: { in: { name: 'in', type: 'Board' } }, outputs: { out: { name: 'out', type: 'Wins' } }, transformId };
-    }
-    case 'transform':
-      return { nodeType: 'map', ...base, inputs: { in: { name: 'in', type: 'Board' } }, outputs: { out: { name: 'out', type: 'Board' } } };
-    case 'sink':
-      return { nodeType: 'metricsSink', ...base, inputs: { in: { name: 'in', type: 'Wins' } }, outputs: {} };
-    default:
-      return { nodeType: n.data.nodeType, ...base, inputs: {}, outputs: { out: { name: 'out', type: 'Wins' } } };
-  }
-}
-
-function buildConfigPayload(
-  nodes: GraphNode[],
-  edges: GraphEdge[],
-  symbols: TableSymbol[],
-  name: string,
-): Record<string, unknown> | null {
-  if (nodes.length === 0) return null;
-  return {
-    schemaVersion: '1.0.0',
-    name,
-    symbols: symbols.length > 0 ? symbols.map((s) => ({ id: s.id, name: s.name, kind: s.kind })) : undefined,
-    boardConfig: { rows: 3, columns: 5 },
-    nodes: nodes.map(mapNodeToBackend),
-    edges: edges.map((e) => ({
-      id: e.id,
-      sourceNodeId: e.source,
-      sourcePort: e.sourceHandle ?? 'out',
-      targetNodeId: e.target,
-      targetPort: e.targetHandle ?? 'in',
-    })),
-  };
-}
 
 export default function Simulate() {
   const nodes = useAppStore((s) => s.nodes);
@@ -126,10 +35,17 @@ export default function Simulate() {
 
   const hubRef = useRef<signalR.HubConnection | null>(null);
   const abortRef = useRef(false);
+  const runIdRef = useRef<string | null>(null);
 
   // ── Stop / cleanup ──────────────────────────────────────────────
   const stop = useCallback(() => {
     abortRef.current = true;
+    // Cancel the run server-side too — closing the socket alone would
+    // leave the job burning CPU on the backend.
+    if (runIdRef.current) {
+      void fetch(`/api/runs/${runIdRef.current}`, { method: 'DELETE' }).catch(() => {});
+      runIdRef.current = null;
+    }
     if (hubRef.current) {
       hubRef.current.stop();
       hubRef.current = null;
@@ -151,7 +67,7 @@ export default function Simulate() {
     setExactProvenance(null);
     setNeedsFullRun(false);
 
-    const configPayload = buildConfigPayload(nodes, edges, symbols, configName ?? 'Untitled');
+    const configPayload = buildConfigPayload(nodes, edges, symbols, { name: configName ?? 'Untitled' });
     if (!configPayload) {
       setError('No graph nodes. Build a graph in the Build tab first.');
       setStatus('idle');
@@ -205,12 +121,21 @@ export default function Simulate() {
       const runData = (await runRes.json()) as { id?: string };
       const runId = runData.id;
       if (!runId) throw new Error('Run returned no id');
+      runIdRef.current = runId;
 
       // ── Step 4: SignalR streaming ───────────────────────────────
       const hub = new signalR.HubConnectionBuilder()
         .withUrl('/hubs/runs')
         .withAutomaticReconnect()
         .build();
+
+      const finishRun = (runStatus: string) => {
+        setStatus(runStatus === 'completed' ? 'complete' : 'paused');
+        if (runStatus === 'failed') setError('Run failed on the server.');
+        runIdRef.current = null;
+        hub.stop();
+        hubRef.current = null;
+      };
 
       hub.on('ProgressUpdate', (msg: RunProgressMessage) => {
         if (abortRef.current) return;
@@ -234,17 +159,38 @@ export default function Simulate() {
 
         const terminal =
           msg.status === 'completed' || msg.status === 'cancelled' || msg.status === 'failed';
-        if (terminal) {
-          setStatus(msg.status === 'completed' ? 'complete' : 'paused');
-          if (msg.status === 'failed') setError('Run failed on the server.');
-          hub.stop();
-          hubRef.current = null;
-        }
+        if (terminal) finishRun(msg.status ?? 'completed');
+      });
+
+      // Groups are connection-scoped: a reconnected connection has a new
+      // id and must re-join the run's group or it goes silent.
+      hub.onreconnected(() => {
+        if (runIdRef.current) void hub.invoke('SubscribeToRun', runIdRef.current);
       });
 
       hubRef.current = hub;
       await hub.start();
       await hub.invoke('SubscribeToRun', runId);
+
+      // Fast runs can finish before the subscription lands and their
+      // terminal broadcast is gone — poll once to catch up.
+      try {
+        const statusRes = await fetch(`/api/runs/${runId}`);
+        if (statusRes.ok) {
+          const run = (await statusRes.json()) as {
+            status?: string; sampleCount?: number; runningRtp?: number; stdErr?: number;
+          };
+          const s = run.status ?? '';
+          if (s === 'completed' || s === 'cancelled' || s === 'failed') {
+            if (run.sampleCount != null) setSampleCount(run.sampleCount);
+            if (run.runningRtp != null) setRunningRtp(run.runningRtp);
+            if (run.stdErr != null) setStdErr(run.stdErr);
+            finishRun(s);
+          }
+        }
+      } catch {
+        // status catch-up is best-effort; progress events remain authoritative
+      }
 
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
@@ -391,7 +337,7 @@ export default function Simulate() {
         {/* ── Bottom row: histogram + comparison ── */}
         <div className="sim-bottom">
           <div className="hist-card">
-            <div className="section-label" style={{ marginBottom: 8 }}>Hit Distribution</div>
+            <div className="section-label" style={{ marginBottom: 8 }}>Running RTP Distribution</div>
             <Histogram data={histogram} width={420} height={180} />
           </div>
           <div className="hist-card">

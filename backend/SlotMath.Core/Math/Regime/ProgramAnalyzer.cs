@@ -178,6 +178,12 @@ public static class ProgramAnalyzer
                 continue;
             }
 
+            if (node is IModifyStateNode ms)
+            {
+                queue.Enqueue((ms.NextUntyped, parentSubgraphId, multiplier));
+                continue;
+            }
+
             if (node is IPureNode)
             {
                 // Leaf — nothing to follow.

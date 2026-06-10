@@ -23,76 +23,102 @@ public sealed record ConfigEntry
 /// </summary>
 public sealed class InMemoryConfigStore
 {
+    // Served concurrently by the API; every read-modify-write (version
+    // increment, list append) must be atomic, so all access is serialized
+    // through one gate.  Entries are immutable records, so returned
+    // snapshots are safe to use outside the lock.
+    private readonly object _gate = new();
     private readonly Dictionary<string, List<ConfigEntry>> _configs = new();
 
     public string Create(GraphConfig config)
     {
         var id = config.Id ?? Guid.NewGuid().ToString("N");
-        var entry = new ConfigEntry
+        lock (_gate)
         {
-            Id = id,
-            Version = 1,
-            Config = config with { Id = id },
-            CreatedAt = DateTimeOffset.UtcNow,
-        };
+            if (!_configs.TryGetValue(id, out var entries))
+            {
+                entries = new List<ConfigEntry>();
+                _configs[id] = entries;
+            }
 
-        if (!_configs.ContainsKey(id))
-            _configs[id] = new List<ConfigEntry>();
-        _configs[id].Add(entry);
+            entries.Add(new ConfigEntry
+            {
+                Id = id,
+                Version = entries.Count == 0 ? 1 : entries[^1].Version + 1,
+                Config = config with { Id = id },
+                CreatedAt = DateTimeOffset.UtcNow,
+            });
+        }
 
         return id;
     }
 
     public ConfigEntry? GetLatest(string id)
     {
-        if (!_configs.TryGetValue(id, out var entries) || entries.Count == 0)
-            return null;
-        return entries[^1];
+        lock (_gate)
+        {
+            if (!_configs.TryGetValue(id, out var entries) || entries.Count == 0)
+                return null;
+            return entries[^1];
+        }
     }
 
     public ConfigEntry? GetVersion(string id, int version)
     {
-        if (!_configs.TryGetValue(id, out var entries))
-            return null;
-        return entries.FirstOrDefault(e => e.Version == version);
+        lock (_gate)
+        {
+            if (!_configs.TryGetValue(id, out var entries))
+                return null;
+            return entries.FirstOrDefault(e => e.Version == version);
+        }
     }
 
     public string Update(string id, GraphConfig config)
     {
-        if (!_configs.TryGetValue(id, out var entries) || entries.Count == 0)
-            throw new KeyNotFoundException($"Config '{id}' not found.");
-
-        var latestVersion = entries[^1].Version;
-        var entry = new ConfigEntry
+        lock (_gate)
         {
-            Id = id,
-            Version = latestVersion + 1,
-            Config = config with { Id = id },
-            CreatedAt = DateTimeOffset.UtcNow,
-        };
-        entries.Add(entry);
+            if (!_configs.TryGetValue(id, out var entries) || entries.Count == 0)
+                throw new KeyNotFoundException($"Config '{id}' not found.");
+
+            entries.Add(new ConfigEntry
+            {
+                Id = id,
+                Version = entries[^1].Version + 1,
+                Config = config with { Id = id },
+                CreatedAt = DateTimeOffset.UtcNow,
+            });
+        }
         return id;
     }
 
     public IReadOnlyList<ConfigEntry> GetVersions(string id)
     {
-        if (!_configs.TryGetValue(id, out var entries))
-            return Array.Empty<ConfigEntry>();
-        return entries.AsReadOnly();
+        lock (_gate)
+        {
+            if (!_configs.TryGetValue(id, out var entries))
+                return Array.Empty<ConfigEntry>();
+            return entries.ToArray();
+        }
     }
 
     public IReadOnlyList<ConfigEntry> List()
     {
-        return _configs.Values
-            .Where(v => v.Count > 0)
-            .Select(v => v[^1])
-            .ToList()
-            .AsReadOnly();
+        lock (_gate)
+        {
+            return _configs.Values
+                .Where(v => v.Count > 0)
+                .Select(v => v[^1])
+                .ToList()
+                .AsReadOnly();
+        }
     }
 
     public bool Delete(string id)
     {
-        return _configs.Remove(id);
+        lock (_gate)
+        {
+            return _configs.Remove(id);
+        }
     }
 }
 
@@ -121,6 +147,10 @@ public sealed record RunEntry
 /// </summary>
 public sealed class InMemoryRunStore
 {
+    // Run entries are updated from job worker threads (progress callbacks
+    // may fire from parallel sampling workers) while the API reads them —
+    // all read-modify-write sequences are serialized through one gate.
+    private readonly object _gate = new();
     private readonly Dictionary<string, RunEntry> _runs = new();
     private readonly ConcurrentDictionary<string, CancellationTokenSource> _cts = new();
     private int _counter;
@@ -135,50 +165,66 @@ public sealed class InMemoryRunStore
             Status = "pending",
             CreatedAt = DateTimeOffset.UtcNow,
         };
-        _runs[id] = entry;
+        lock (_gate)
+        {
+            _runs[id] = entry;
+        }
         return entry;
     }
 
     public RunEntry? Get(string id)
     {
-        _runs.TryGetValue(id, out var entry);
-        return entry;
+        lock (_gate)
+        {
+            _runs.TryGetValue(id, out var entry);
+            return entry;
+        }
     }
 
     public RunEntry Update(string id, string status, string? resultJson)
     {
-        if (!_runs.TryGetValue(id, out var entry))
-            throw new KeyNotFoundException($"Run '{id}' not found.");
-
-        var updated = entry with
+        lock (_gate)
         {
-            Status = status,
-            ResultJson = resultJson ?? entry.ResultJson,
-            CompletedAt = status is "completed" or "failed" or "cancelled" ? DateTimeOffset.UtcNow : entry.CompletedAt,
-        };
-        _runs[id] = updated;
-        return updated;
+            if (!_runs.TryGetValue(id, out var entry))
+                throw new KeyNotFoundException($"Run '{id}' not found.");
+
+            var updated = entry with
+            {
+                Status = status,
+                ResultJson = resultJson ?? entry.ResultJson,
+                CompletedAt = status is "completed" or "failed" or "cancelled" ? DateTimeOffset.UtcNow : entry.CompletedAt,
+            };
+            _runs[id] = updated;
+            return updated;
+        }
     }
 
     /// <summary>
     /// Update progress fields on a running entry.  Progress updates are frequent
-    /// and lightweight — only the progress fields are touched.
+    /// and lightweight — only the progress fields are touched.  Terminal
+    /// entries are left untouched so a late progress report can never
+    /// resurrect a completed/cancelled run back to "running".
     /// </summary>
     public void UpdateProgress(string id, long sampleCount, long totalSamples,
         double runningRtp, double stdErr, long elapsedMs)
     {
-        if (!_runs.TryGetValue(id, out var entry))
-            return;
-
-        _runs[id] = entry with
+        lock (_gate)
         {
-            SampleCount = sampleCount,
-            TotalSamples = totalSamples,
-            RunningRtp = runningRtp,
-            StdErr = stdErr,
-            ElapsedMs = elapsedMs,
-            Status = "running",
-        };
+            if (!_runs.TryGetValue(id, out var entry))
+                return;
+            if (entry.Status is "completed" or "failed" or "cancelled")
+                return;
+
+            _runs[id] = entry with
+            {
+                SampleCount = sampleCount,
+                TotalSamples = totalSamples,
+                RunningRtp = runningRtp,
+                StdErr = stdErr,
+                ElapsedMs = elapsedMs,
+                Status = "running",
+            };
+        }
     }
 
     /// <summary>
@@ -225,9 +271,12 @@ public sealed class InMemoryRunStore
 
     public IReadOnlyList<RunEntry> List(string? configId = null)
     {
-        var runs = _runs.Values.AsEnumerable();
-        if (configId != null)
-            runs = runs.Where(r => r.ConfigId == configId);
-        return runs.OrderByDescending(r => r.CreatedAt).ToList().AsReadOnly();
+        lock (_gate)
+        {
+            var runs = _runs.Values.AsEnumerable();
+            if (configId != null)
+                runs = runs.Where(r => r.ConfigId == configId);
+            return runs.OrderByDescending(r => r.CreatedAt).ToList().AsReadOnly();
+        }
     }
 }

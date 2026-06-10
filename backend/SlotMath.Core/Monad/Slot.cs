@@ -70,6 +70,12 @@ internal interface IPutStateNode
     object NextUntyped { get; }
 }
 
+internal interface IModifyStateNode
+{
+    object ApplyUntyped(object state);
+    object NextUntyped { get; }
+}
+
 internal interface IFlatMapNode
 {
     object SourceUntyped { get; }
@@ -120,6 +126,26 @@ public sealed class PutState<S, T> : Slot<S, T>, IPutStateNode
 
     object IPutStateNode.ValueUntyped => Value!;
     object IPutStateNode.NextUntyped => Next!;
+}
+
+/// <summary>
+/// Fused state update: state ← f(state), then continue with Next.
+/// Equivalent to GetState ∘ PutState but evaluated as a single step with
+/// no intermediate node allocations — the hot primitive for loop bodies.
+/// </summary>
+public sealed class ModifyState<S, T> : Slot<S, T>, IModifyStateNode
+{
+    public Func<S, S> F { get; }
+    public Slot<S, T> Next { get; }
+
+    public ModifyState(Func<S, S> f, Slot<S, T> next)
+    {
+        F = f;
+        Next = next;
+    }
+
+    object IModifyStateNode.ApplyUntyped(object state) => F((S)state)!;
+    object IModifyStateNode.NextUntyped => Next!;
 }
 
 /// <summary>
@@ -178,6 +204,15 @@ public static class Slot
     public static Slot<S, T> Draw<S, T>(Func<S, WeightSet> weights, Func<int, T> map) =>
         new Draw<S, T>(weights, i => Pure<S, T>(map(i)));
 
+    /// <summary>
+    /// Weighted draw over a fixed set of pre-built outcome programs.
+    /// The per-outcome programs are constructed once, so taking a branch
+    /// allocates nothing and branch program identity is stable — which both
+    /// interpreters exploit.
+    /// </summary>
+    public static Slot<S, T> DrawFrom<S, T>(Func<S, WeightSet> weights, Slot<S, T>[] outcomes) =>
+        new Draw<S, T>(weights, i => outcomes[i]);
+
     public static Slot<S, S> GetState<S>() =>
         new GetState<S, S>(s => Pure<S, S>(s));
 
@@ -188,7 +223,12 @@ public static class Slot
         new PutState<S, Unit>(value, Pure<S, Unit>(Unit.Value));
 
     public static Slot<S, Unit> Modify<S>(Func<S, S> f) =>
-        GetState<S>().SelectMany(s => PutState<S>(f(s)));
+        new ModifyState<S, Unit>(f, PureUnitCache<S>.Instance);
+
+    private static class PureUnitCache<S>
+    {
+        public static readonly Slot<S, Unit> Instance = new Pure<S, Unit>(Unit.Value);
+    }
 
     /// <summary>
     /// Fixpoint loop: run <paramref name="body"/> until <paramref name="stopCondition"/>

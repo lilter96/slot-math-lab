@@ -323,37 +323,130 @@ public sealed class StreamingStats
     }
 
     /// <summary>
-    /// Merge another StreamingStats into this one (combines Welford accumulators
-    /// using Chan's parallel algorithm).  Histogram bins are NOT merged — the
-    /// caller should rebuild from the combined distribution.
+    /// Merge another StreamingStats into this one: Welford accumulators are
+    /// combined with Chan's parallel algorithm, and histograms are merged
+    /// when the layouts are compatible.
+    ///
+    /// Histogram merging:
+    /// - Identical fixed-cap layouts (same cap, same bin count) add exactly.
+    /// - Dynamic histograms merge exactly while the other side is still
+    ///   buffering raw samples; a frozen dynamic histogram merges
+    ///   approximately by re-binning its counts at bin midpoints.
     /// </summary>
     public void Merge(StreamingStats other)
     {
         if (other._n == 0) return;
 
+        // ── Welford (Chan) ───────────────────────────────────────────
         if (_n == 0)
         {
-            _n = other._n;
             _mean = other._mean;
             _m2 = other._m2;
-            _minObserved = other._minObserved;
-            _maxObserved = other._maxObserved;
-            _capHitCount = other._capHitCount;
-            _nonZeroCount = other._nonZeroCount;
-            return;
+            _n = other._n;
         }
-
-        // Chan's parallel Welford merge.
-        var totalN = _n + other._n;
-        var delta = other._mean - _mean;
-        _m2 = _m2 + other._m2 + delta * delta * _n * other._n / totalN;
-        _mean = (_n * _mean + other._n * other._mean) / totalN;
-        _n = totalN;
+        else
+        {
+            var totalN = _n + other._n;
+            var delta = other._mean - _mean;
+            _m2 = _m2 + other._m2 + delta * delta * _n * other._n / totalN;
+            _mean = (_n * _mean + other._n * other._mean) / totalN;
+            _n = totalN;
+        }
 
         if (other._minObserved < _minObserved) _minObserved = other._minObserved;
         if (other._maxObserved > _maxObserved) _maxObserved = other._maxObserved;
         _capHitCount += other._capHitCount;
         _nonZeroCount += other._nonZeroCount;
+
+        // ── Histogram ────────────────────────────────────────────────
+        if (_hasFixedHistogram && other._hasFixedHistogram
+            && _fixedBinWidth == other._fixedBinWidth
+            && _binCounts.Length == other._binCounts.Length)
+        {
+            for (var i = 0; i < _binCounts.Length; i++)
+                _binCounts[i] += other._binCounts[i];
+            return;
+        }
+
+        if (_hasFixedHistogram || other._hasFixedHistogram)
+        {
+            // Mismatched layouts: re-bin the other side approximately.
+            RebinFrom(other);
+            return;
+        }
+
+        // Both dynamic.
+        if (!other._dynamicRangeFrozen)
+        {
+            // The other side still holds raw samples — merge exactly.
+            var buffer = other._dynamicBuffer;
+            for (var i = 0; i < other._dynamicBuffered; i++)
+                AddSampleToHistogram(buffer![i]);
+        }
+        else
+        {
+            RebinFrom(other);
+        }
+    }
+
+    /// <summary>
+    /// Approximate merge of another histogram into this one by adding each
+    /// of its bin counts at the bin midpoint.
+    /// </summary>
+    private void RebinFrom(StreamingStats other)
+    {
+        foreach (var bin in other.BuildHistogram())
+        {
+            if (bin.Count == 0) continue;
+
+            // Buffering targets take samples one by one until the range
+            // freezes; frozen/fixed targets take the whole count at once.
+            var remaining = bin.Count;
+            while (remaining > 0 && !_hasFixedHistogram && !_dynamicRangeFrozen)
+            {
+                AddSampleToHistogram(bin.Midpoint);
+                remaining--;
+            }
+            if (remaining == 0) continue;
+
+            if (_hasFixedHistogram)
+            {
+                var binIndex = (int)(bin.Midpoint / _fixedBinWidth);
+                if (binIndex >= _histogramBins) binIndex = _histogramBins - 1;
+                if (binIndex < 0) binIndex = 0;
+                _binCounts[binIndex] += remaining;
+            }
+            else
+            {
+                _binCounts[DynamicBinIndex(bin.Midpoint)] += remaining;
+            }
+        }
+    }
+
+    /// <summary>
+    /// Route a value into this instance's histogram without touching the
+    /// Welford accumulators (used by merging).
+    /// </summary>
+    private void AddSampleToHistogram(double value)
+    {
+        if (_hasFixedHistogram)
+        {
+            var binIndex = (int)(value / _fixedBinWidth);
+            if (binIndex >= _histogramBins) binIndex = _histogramBins - 1;
+            if (binIndex < 0) binIndex = 0;
+            _binCounts[binIndex]++;
+        }
+        else if (_dynamicRangeFrozen)
+        {
+            _binCounts[DynamicBinIndex(value)]++;
+        }
+        else
+        {
+            _dynamicBuffer ??= new double[DynamicHistogramBufferSize];
+            _dynamicBuffer[_dynamicBuffered++] = value;
+            if (_dynamicBuffered == DynamicHistogramBufferSize)
+                FreezeDynamicRange();
+        }
     }
 
     // ── Snapshot ─────────────────────────────────────────────────────────

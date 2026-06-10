@@ -578,11 +578,14 @@ public class G17IntegrationTests : IClassFixture<WebApplicationFactory<Program>>
         var configId = await CreateConfigAsync();
 
         // ── Create run ─────────────────────────────────────────────────
+        // Large enough that the run is still in flight when the SignalR
+        // subscription lands — the engine is fast (and parallel), so a small
+        // run can finish before the client joins the group.
         var runResponse = await _client.PostAsJsonAsync("/api/runs", new
         {
             configId,
-            sampleSize = 50_000,
-            progressBatchSize = 5000,
+            sampleSize = 2_000_000,
+            progressBatchSize = 100_000,
         });
         Assert.Equal(System.Net.HttpStatusCode.Accepted, runResponse.StatusCode);
         var runBody = await runResponse.Content.ReadFromJsonAsync<JsonElement>();
@@ -635,7 +638,7 @@ public class G17IntegrationTests : IClassFixture<WebApplicationFactory<Program>>
 
         // Final message should have status "completed"
         Assert.Equal("completed", messages[^1].GetProperty("status").GetString());
-        Assert.Equal(50_000, messages[^1].GetProperty("totalSamples").GetInt64());
+        Assert.Equal(2_000_000, messages[^1].GetProperty("totalSamples").GetInt64());
     }
 
     // ═══════════════════════════════════════════════════════════════════════

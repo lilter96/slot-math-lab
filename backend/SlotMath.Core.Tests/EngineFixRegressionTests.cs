@@ -521,3 +521,76 @@ public class WeightSet_UniformAndCaching
             () => WeightSet.FromRationalStrings(new[] { "1/2", "-1/2" }));
     }
 }
+
+public class SampledInterpreter_Parallel
+{
+    private sealed record PState(int N);
+
+    private static Slot<PState, BigInteger> BuildGame()
+    {
+        var weights = WeightSet.FromIntegers(new[] { 3, 2, 1 });
+        return
+            from a in Slot.Draw<PState>(_ => weights)
+            from b in Slot.Draw<PState>(_ => weights)
+            select new BigInteger(a * 10 + b);
+    }
+
+    [Fact]
+    public void ParallelResults_AreIdenticalAcrossThreadCounts()
+    {
+        var program = BuildGame();
+
+        SampledResult<PState> Run(int dop) => SampledInterpreter.Evaluate(
+            program, new PState(0),
+            new SampledConfig { Seed = 1234, MaxSpins = 40_000, DegreeOfParallelism = dop });
+
+        var two = Run(2);
+        var eight = Run(8);
+
+        // Fixed logical stream count ⇒ stats are a pure function of
+        // (seed, spins), not of how many workers happened to run them.
+        Assert.Equal(two.SpinsCompleted, eight.SpinsCompleted);
+        Assert.Equal(two.Stats.Mean, eight.Stats.Mean);
+        Assert.Equal(two.Stats.Variance, eight.Stats.Variance);
+        Assert.Equal(two.Stats.NonZeroCount, eight.Stats.NonZeroCount);
+        Assert.Equal(two.Stats.MinObserved, eight.Stats.MinObserved);
+        Assert.Equal(two.Stats.MaxObserved, eight.Stats.MaxObserved);
+    }
+
+    [Fact]
+    public void ParallelMean_AgreesWithSequentialWithinError()
+    {
+        var program = BuildGame();
+
+        var sequential = SampledInterpreter.Evaluate(
+            program, new PState(0),
+            new SampledConfig { Seed = 77, MaxSpins = 60_000 });
+        var parallel = SampledInterpreter.Evaluate(
+            program, new PState(0),
+            new SampledConfig { Seed = 77, MaxSpins = 60_000, DegreeOfParallelism = 4 });
+
+        // Different stream layout ⇒ different sample sequence, but the same
+        // distribution: means agree within combined standard error.
+        var tolerance = 4 * (sequential.Stats.StdErr + parallel.Stats.StdErr);
+        Assert.InRange(parallel.Stats.Mean,
+            sequential.Stats.Mean - tolerance, sequential.Stats.Mean + tolerance);
+        Assert.Equal(60_000, parallel.SpinsCompleted);
+    }
+
+    [Fact]
+    public void ParallelHistogram_WithCap_CountsAllSamples()
+    {
+        var program = BuildGame();
+        var result = SampledInterpreter.Evaluate(
+            program, new PState(0),
+            new SampledConfig
+            {
+                Seed = 5,
+                MaxSpins = 20_000,
+                DegreeOfParallelism = 4,
+                MaxWinCap = new BigInteger(25),
+            });
+
+        Assert.Equal(20_000, result.Stats.Histogram.Sum(b => b.Count));
+    }
+}

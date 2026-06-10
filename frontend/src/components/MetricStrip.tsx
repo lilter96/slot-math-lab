@@ -7,10 +7,10 @@ interface MetricStripProps {
   liveMetrics?: LiveMetricsState | null;
 }
 
-function provFromLive(p: string): Provenance {
+function provFromLive(p: string, sampleCount?: number, stdErr?: number): Provenance {
   switch (p) {
     case 'Exact': return { kind: 'Exact' };
-    case 'Sampled': return { kind: 'Sampled', n: 5000 };
+    case 'Sampled': return { kind: 'Sampled', n: sampleCount ?? 0, stdErr };
     case 'NeedsFullRun': return { kind: 'Sampled', n: 0, note: 'needs full run' };
     default: return { kind: 'Exact' };
   }
@@ -39,9 +39,9 @@ export default function MetricStrip({ liveMetrics }: MetricStripProps) {
     prevRtp.current = m.rtp;
   }, [m?.rtp]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const rtpProv = m ? provFromLive(m.provenance) : { kind: 'Exact' as const };
-  const hfProv = m ? provFromLive(m.provenance) : { kind: 'Exact' as const };
-  const volProv = m ? provFromLive(m.provenance) : { kind: 'Exact' as const };
+  const rtpProv = m ? provFromLive(m.provenance, m.sampleCount, m.stdErr) : { kind: 'Exact' as const };
+  const hfProv = m ? provFromLive(m.provenance, m.sampleCount) : { kind: 'Exact' as const };
+  const volProv = m ? provFromLive(m.provenance, m.sampleCount) : { kind: 'Exact' as const };
 
   // Loading skeleton
   if (loading && !m) {

@@ -395,6 +395,99 @@ public class IntegrationTests : IClassFixture<WebApplicationFactory<Program>>, I
         }
     }
 
+    [Fact]
+    public async Task EvaluateLight_InternalSampledFallback_IsLabelledSampled()
+    {
+        // A loop game whose exact state space exceeds the branch budget mid-
+        // evaluation: the analyzer estimate passes, the exact attempt blows
+        // the budget, and the hybrid evaluator falls back internally.  The
+        // response must say "Sampled" (it used to claim "Exact") and the
+        // fallback must use the light sample size, not the heavy default.
+        var config = CreateLoopConfig(maxIterations: 100);
+        var response = await _client.PostAsJsonAsync("/api/evaluate/light", new
+        {
+            config,
+            sampleSize = 2_000,
+            maxBranches = 1_000,
+        });
+
+        Assert.True(response.IsSuccessStatusCode);
+        var body = await response.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal("Sampled", body.GetProperty("strategy").GetString());
+        Assert.Equal("Sampled", body.GetProperty("provenance").GetString());
+        // RTP of the coin-flip×100 game is ~100; a sampled estimate lands near it.
+        var rtp = body.GetProperty("rtp").GetDouble();
+        Assert.InRange(rtp, 80, 120);
+    }
+
+    [Fact]
+    public async Task EvaluateLight_IdenticalConfig_IsServedFromCache()
+    {
+        // Sampled light evals use a tick-derived seed, so two uncached calls
+        // would essentially never agree bit-for-bit.  A cached repeat returns
+        // the stored response — identical rtp proves the cache hit.
+        var config = CreateLoopConfig(maxIterations: 50);
+        var request = new { config, sampleSize = 3_000, maxBranches = 500 };
+
+        var first = await (await _client.PostAsJsonAsync("/api/evaluate/light", request))
+            .Content.ReadFromJsonAsync<JsonElement>();
+        var second = await (await _client.PostAsJsonAsync("/api/evaluate/light", request))
+            .Content.ReadFromJsonAsync<JsonElement>();
+
+        Assert.Equal("Sampled", first.GetProperty("strategy").GetString());
+        Assert.Equal(
+            first.GetProperty("rtp").GetDouble(),
+            second.GetProperty("rtp").GetDouble());
+    }
+
+    private static object CreateLoopConfig(int maxIterations) => new
+    {
+        schemaVersion = "1.0.0",
+        name = "loop-game",
+        nodes = new object[]
+        {
+            new
+            {
+                nodeType = "loop",
+                id = "loop",
+                label = "Loop",
+                maxIterations,
+                inputs = new { },
+                outputs = new
+                {
+                    body = new { name = "body", type = "Wins" },
+                    exit = new { name = "exit", type = "Wins" },
+                },
+            },
+            new
+            {
+                nodeType = "draw",
+                id = "draw",
+                label = "Flip",
+                drawWeights = new object[]
+                {
+                    new { outcomeId = "h", weight = 1, value = 2 },
+                    new { outcomeId = "t", weight = 1, value = 0 },
+                },
+                inputs = new { @in = new { name = "in", type = "Wins" } },
+                outputs = new { value = new { name = "value", type = "Wins" } },
+            },
+            new
+            {
+                nodeType = "metricsSink",
+                id = "sink",
+                label = "Sink",
+                inputs = new { @in = new { name = "in", type = "Wins" } },
+                outputs = new { },
+            },
+        },
+        edges = new object[]
+        {
+            new { id = "e1", sourceNodeId = "loop", sourcePort = "body", targetNodeId = "draw", targetPort = "in" },
+            new { id = "e2", sourceNodeId = "loop", sourcePort = "exit", targetNodeId = "sink", targetPort = "in" },
+        },
+    };
+
     // ═══════════════════════════════════════════════════════════════════════
     //  RUNS
     // ═══════════════════════════════════════════════════════════════════════

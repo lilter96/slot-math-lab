@@ -102,9 +102,15 @@ public readonly struct ExprValue : IEquatable<ExprValue>
         return Rational(num, den);
     }
 
-    /// <summary>Arithmetic divide.</summary>
+    /// <summary>
+    /// Arithmetic divide.  Total: division by zero yields 0 — level-(b)
+    /// expressions must never throw, so x/0 is defined rather than partial.
+    /// </summary>
     public static ExprValue Div(ExprValue a, ExprValue b)
     {
+        if (b.NumberNumerator == 0)
+            return Number(0);
+
         var num = a.NumberNumerator * b.NumberDenominator;
         var den = a.NumberDenominator * b.NumberNumerator;
         return Rational(num, den);

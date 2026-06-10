@@ -327,7 +327,7 @@ public static class ExactMetrics
 
         var contributions = new List<FeatureRtpContribution>();
         BigInteger sumNum = 0;
-        var commonDen = totalDen;
+        BigInteger sumDen = 1;
 
         foreach (var (name, featureDist) in featureBreakdowns)
         {
@@ -356,23 +356,23 @@ public static class ExactMetrics
                 FeatureHitFrequency = featureHitFreq
             });
 
-            // Accumulate for sum verification (scale to common denominator).
-            var scaled = fNum * (commonDen / fDen);
-            sumNum += scaled;
+            // Accumulate the exact rational sum.  Denominators of individual
+            // features need not divide each other, so the running sum keeps
+            // its own LCM denominator — naive scaling by (totalDen / fDen)
+            // truncates whenever fDen ∤ totalDen.
+            var newDen = Rational.Lcm(sumDen, fDen);
+            sumNum = sumNum * (newDen / sumDen) + fNum * (newDen / fDen);
+            sumDen = newDen;
         }
 
-        // Verify: sum of per-feature contributions equals total RTP (rational equality).
-        // sumNum / commonDen should equal totalNum / totalDen.
-        // i.e., sumNum * totalDen == totalNum * commonDen.
-        var left = sumNum * totalDen;
-        var right = totalNum * commonDen;
+        var (reducedSumNum, reducedSumDen) = Rational.Reduce(sumNum, sumDen);
 
         var metric = new PerFeatureBreakdownMetric(provenance)
         {
             Features = contributions.ToArray(),
-            TotalRtpDisplay = (double)sumNum / (double)commonDen,
-            TotalRtpRationalNumerator = sumNum,
-            TotalRtpRationalDenominator = commonDen
+            TotalRtpDisplay = (double)reducedSumNum / (double)reducedSumDen,
+            TotalRtpRationalNumerator = reducedSumNum,
+            TotalRtpRationalDenominator = reducedSumDen
         };
 
         return metric;

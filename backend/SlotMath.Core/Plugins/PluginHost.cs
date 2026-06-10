@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using SlotMath.Core.Mechanics;
 
 namespace SlotMath.Core.Plugins;
@@ -31,10 +32,13 @@ public sealed record PluginEntry
 /// </summary>
 public sealed class PluginHost
 {
-    private readonly Dictionary<string, PluginEntry> _plugins = new();
+    // The host is registered as a singleton and serves concurrent requests:
+    // registration/validation race against lookups, so the map must be
+    // a concurrent dictionary (PluginEntry itself is an immutable record).
+    private readonly ConcurrentDictionary<string, PluginEntry> _plugins = new();
 
-    /// <summary>All registered plugin IDs.</summary>
-    public IReadOnlyCollection<string> PluginIds => _plugins.Keys;
+    /// <summary>All registered plugin IDs (point-in-time snapshot).</summary>
+    public IReadOnlyCollection<string> PluginIds => _plugins.Keys.ToArray();
 
     /// <summary>
     /// Register an evaluator as a named plugin.
