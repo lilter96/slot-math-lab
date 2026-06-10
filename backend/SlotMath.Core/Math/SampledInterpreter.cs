@@ -122,6 +122,7 @@ public static class SampledInterpreter
         double? maxWinCapDouble = maxWinCap.HasValue ? (double)maxWinCap.Value : null;
         var stats = new StreamingStats(config.HistogramBins, maxWinCapDouble);
         var cancelled = false;
+        var stack = new Stack<IFlatMapNode>();
         long spin;
 
         for (spin = 0; spin < config.MaxSpins; spin++)
@@ -135,7 +136,7 @@ public static class SampledInterpreter
             }
 
             // ── Run one spin ────────────────────────────────────────────
-            var win = RunOneSpin(program, initialState, rng);
+            var win = RunOneSpin(program, initialState, rng, stack);
             stats.Add(win);
 
             // ── Progress callback ──────────────────────────────────────
@@ -186,6 +187,7 @@ public static class SampledInterpreter
         double? maxWinCapDouble = maxWinCap.HasValue ? (double)maxWinCap.Value : null;
         var stats = new StreamingStats(config.HistogramBins, maxWinCapDouble);
         var cancelled = false;
+        var stack = new Stack<IFlatMapNode>();
         long spin;
 
         for (spin = 0; spin < config.MaxSpins; spin++)
@@ -197,7 +199,7 @@ public static class SampledInterpreter
                 break;
             }
 
-            var value = RunOneSpin(program, initialState, rng);
+            var value = RunOneSpin(program, initialState, rng, stack);
             stats.Add(selector(value));
 
             // ── Progress callback ──────────────────────────────────────
@@ -247,33 +249,34 @@ public static class SampledInterpreter
         S initialState,
         SeededRandom rng)
         where S : notnull
+        => RunOneSpin(program, initialState, rng, new Stack<IFlatMapNode>());
+
+    /// <summary>
+    /// Hot-path overload reusing a caller-provided continuation stack across
+    /// spins.  The pending FlatMap nodes are pushed directly (no closure
+    /// allocation per bind), and alias tables come pre-built from the
+    /// <see cref="WeightSet.AliasTable"/> cache.
+    /// </summary>
+    internal static T RunOneSpin<S, T>(
+        Slot<S, T> program,
+        S initialState,
+        SeededRandom rng,
+        Stack<IFlatMapNode> stack)
+        where S : notnull
     {
         var state = initialState;
         object current = program!;
-
-        // Continuation stack: (bound value) → next program node.
-        // Using Stack<object→object> so the trampoline is type-erased.
-        var stack = new Stack<Func<object, object>>();
+        stack.Clear();
 
         while (true)
         {
-            // ── Unwrap FlatMap and annotation layers ──────────────────
-            bool unwrapped;
-            do
+            // ── FlatMap: push the node itself as the continuation ──────
+            if (current is IFlatMapNode fm)
             {
-                unwrapped = false;
-                while (current is IFlatMapNode fm)
-                {
-                    stack.Push(v => fm.ApplyUntyped(v));
-                    current = fm.SourceUntyped;
-                    unwrapped = true;
-                }
-                while (current is IAnnotationNode ann)
-                {
-                    current = ann.InnerUntyped;
-                    unwrapped = true;
-                }
-            } while (unwrapped);
+                stack.Push(fm);
+                current = fm.SourceUntyped;
+                continue;
+            }
 
             // ── Pure: terminal value ───────────────────────────────────
             if (current is IPureNode pure)
@@ -281,21 +284,15 @@ public static class SampledInterpreter
                 if (stack.Count == 0)
                     return (T)pure.ValueUntyped;
 
-                var cont = stack.Pop();
-                current = cont(pure.ValueUntyped);
+                current = stack.Pop().ApplyUntyped(pure.ValueUntyped);
                 continue;
             }
 
-            // ── Draw: weighted random choice via AliasMethod ───────────
+            // ── Draw: weighted random choice via cached alias table ────
             if (current is IDrawNode draw)
             {
                 var weightSet = (WeightSet)draw.WeightsUntyped(state!);
-
-                // Build alias table and sample.
-                // For single-outcome or degenerate weight sets the alias
-                // method handles them gracefully.
-                var alias = AliasMethod.Build(weightSet);
-                var choice = alias.Sample(rng);
+                var choice = weightSet.AliasTable.Sample(rng);
                 current = draw.NextUntyped(choice);
                 continue;
             }
@@ -312,6 +309,13 @@ public static class SampledInterpreter
             {
                 state = (S)putState.ValueUntyped;
                 current = putState.NextUntyped;
+                continue;
+            }
+
+            // ── Annotation: transparent pass-through ───────────────────
+            if (current is IAnnotationNode ann)
+            {
+                current = ann.InnerUntyped;
                 continue;
             }
 

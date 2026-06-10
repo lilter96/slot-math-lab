@@ -58,6 +58,19 @@ public sealed class StreamingStats
     private double _fixedBinWidth;
     private readonly long[] _binCounts;
 
+    // ── Dynamic (no-cap) histogram ──────────────────────────────────────
+    // Without a cap the bin range is unknown up front, so the first
+    // DynamicHistogramBufferSize samples are buffered.  When the buffer
+    // fills, the observed [min, max] range is frozen, the buffer is binned
+    // and dropped, and later samples are binned live (outliers clamp into
+    // the edge bins).  Bounded memory, non-empty counts.
+    internal const int DynamicHistogramBufferSize = 65_536;
+    private double[]? _dynamicBuffer;
+    private int _dynamicBuffered;
+    private bool _dynamicRangeFrozen;
+    private double _dynamicMin;
+    private double _dynamicWidth;
+
     /// <summary>Number of samples accumulated.</summary>
     public long Count => _n;
 
@@ -181,14 +194,16 @@ public sealed class StreamingStats
                 binIndex = 0;
             _binCounts[binIndex]++;
         }
+        else if (_dynamicRangeFrozen)
+        {
+            _binCounts[DynamicBinIndex(clamped)]++;
+        }
         else
         {
-            // Without a fixed cap we defer binning — store counts in a
-            // dynamically-sized structure that we build at the end.
-            // For streaming we use a simple approach: track min/max and
-            // build equal-width bins on demand.
-            // We still increment into _binCounts but they will be rebuilt
-            // in BuildHistogram using the final range.
+            _dynamicBuffer ??= new double[DynamicHistogramBufferSize];
+            _dynamicBuffer[_dynamicBuffered++] = clamped;
+            if (_dynamicBuffered == DynamicHistogramBufferSize)
+                FreezeDynamicRange();
         }
     }
 
@@ -197,6 +212,36 @@ public sealed class StreamingStats
     /// which is acceptable for Monte Carlo statistics).
     /// </summary>
     public void Add(BigInteger value) => Add((double)value);
+
+    /// <summary>
+    /// Freeze the dynamic histogram range at the currently observed
+    /// [min, max], bin the buffered samples, and drop the buffer.
+    /// </summary>
+    private void FreezeDynamicRange()
+    {
+        var range = _maxObserved - _minObserved;
+        if (range <= 0)
+            range = 1.0;
+
+        _dynamicMin = _minObserved;
+        _dynamicWidth = range / _histogramBins;
+        _dynamicRangeFrozen = true;
+
+        var buffer = _dynamicBuffer!;
+        for (var i = 0; i < _dynamicBuffered; i++)
+            _binCounts[DynamicBinIndex(buffer[i])]++;
+
+        _dynamicBuffer = null;
+        _dynamicBuffered = 0;
+    }
+
+    private int DynamicBinIndex(double value)
+    {
+        var binIndex = (int)((value - _dynamicMin) / _dynamicWidth);
+        if (binIndex >= _histogramBins) return _histogramBins - 1;
+        if (binIndex < 0) return 0;
+        return binIndex;
+    }
 
     // ── Histogram ────────────────────────────────────────────────────────
 
@@ -231,25 +276,47 @@ public sealed class StreamingStats
             return bins;
         }
 
-        // ── Dynamic binning: equal-width bins over [minObserved, maxObserved] ──
+        // ── Dynamic binning (no cap) ──────────────────────────────────────
+        if (_dynamicRangeFrozen)
+        {
+            // Range frozen: live bin counts are authoritative.
+            for (var i = 0; i < _histogramBins; i++)
+            {
+                bins[i] = new HistogramBin(
+                    _dynamicMin + i * _dynamicWidth,
+                    _dynamicMin + (i + 1) * _dynamicWidth)
+                {
+                    Count = _binCounts[i]
+                };
+            }
+            return bins;
+        }
+
+        // Still buffering: bin the buffered samples over the current
+        // [min, max] range without freezing it.
         var range = _maxObserved - _minObserved;
         if (range <= 0)
             range = 1.0;
-
         var binWidth = range / _histogramBins;
-        var dynCounts = new long[_histogramBins];
 
-        // We can't recover individual values, but we stored nothing.
-        // Instead, rebuild by re-scanning... which we can't do without stored values.
-        //
-        // For the dynamic (no-cap) case we fall back to a reasonable default
-        // and rely on the caller setting a cap for production slot-math usage.
-        // Return empty bins with an annotation.
+        var counts = new long[_histogramBins];
+        var buffer = _dynamicBuffer;
+        for (var i = 0; i < _dynamicBuffered; i++)
+        {
+            var binIndex = (int)((buffer![i] - _minObserved) / binWidth);
+            if (binIndex >= _histogramBins) binIndex = _histogramBins - 1;
+            if (binIndex < 0) binIndex = 0;
+            counts[binIndex]++;
+        }
+
         for (var i = 0; i < _histogramBins; i++)
         {
             bins[i] = new HistogramBin(
                 _minObserved + i * binWidth,
-                _minObserved + (i + 1) * binWidth);
+                _minObserved + (i + 1) * binWidth)
+            {
+                Count = counts[i]
+            };
         }
 
         return bins;

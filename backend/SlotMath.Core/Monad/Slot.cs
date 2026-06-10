@@ -190,11 +190,26 @@ public static class Slot
     public static Slot<S, Unit> Modify<S>(Func<S, S> f) =>
         GetState<S>().SelectMany(s => PutState<S>(f(s)));
 
-    public static Slot<S, Unit> Loop<S>(Func<S, bool> stopCondition, Slot<S, Unit> body) =>
-        GetState<S>().SelectMany(state =>
-            stopCondition(state)
-                ? Pure<S, Unit>(Unit.Value)
-                : body.SelectMany(_ => Loop(stopCondition, body)));
+    /// <summary>
+    /// Fixpoint loop: run <paramref name="body"/> until <paramref name="stopCondition"/>
+    /// holds on the current state.
+    ///
+    /// The loop is built as a self-referential structure: a single GetState node
+    /// and a single FlatMap node are shared by every iteration.  Stable node
+    /// identity is what lets the exact interpreter memoise recurrent
+    /// (state, continuation) pairs across iterations and collapse the
+    /// exponential iteration tree into a DAG.
+    /// </summary>
+    public static Slot<S, Unit> Loop<S>(Func<S, bool> stopCondition, Slot<S, Unit> body)
+    {
+        var exit = Pure<S, Unit>(Unit.Value);
+        Slot<S, Unit>? loop = null;
+        // Built explicitly (not via SelectMany) so construction is deferred even
+        // when body is a Pure — the lambda must not run while loop is still null.
+        var iterate = new FlatMap<S, Unit, Unit>(body, _ => loop!);
+        loop = new GetState<S, Unit>(s => stopCondition(s) ? exit : iterate);
+        return loop;
+    }
 
     public static Slot<S, T> Branch<S, T>(
         Func<S, bool> condition, Slot<S, T> thenBranch, Slot<S, T> elseBranch) =>

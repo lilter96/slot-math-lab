@@ -39,6 +39,20 @@ public sealed class Board : IEquatable<Board>
         _cells = cells;
     }
 
+    /// <summary>
+    /// Create a board directly from a cell array in one step.  The array is
+    /// taken over by the board — callers must not mutate it afterwards.
+    /// Avoids the O(cells²) cost of building a board through repeated
+    /// <see cref="SetCell"/> calls.
+    /// </summary>
+    public static Board FromCells(BoardCell[,] cells)
+    {
+        ArgumentNullException.ThrowIfNull(cells);
+        if (cells.GetLength(0) == 0 || cells.GetLength(1) == 0)
+            throw new ArgumentException("Board must have at least one row and column.", nameof(cells));
+        return new Board(cells);
+    }
+
     // ── Indexer ───────────────────────────────────────────────────────────
 
     /// <summary>
