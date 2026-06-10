@@ -594,3 +594,258 @@ public class SampledInterpreter_Parallel
         Assert.Equal(20_000, result.Stats.Histogram.Sum(b => b.Count));
     }
 }
+
+public class ExactInterpreter_AccumulatorConvolution
+{
+    // The Dog-House pattern from the bug report: a base spin banks a win
+    // BEFORE a free-spins loop runs.  Two paths then reach the same
+    // recurrence state (spins left) with different banked totals.  Per
+    // invariant #4 the accumulator is excluded from the recurrence hash and
+    // declared via AccumulatorSpec — cached distributions are deltas,
+    // shifted by the caller's banked total on reuse (convolution).
+    private sealed record DhState(int Left, BigInteger Total);
+
+    private static readonly AccumulatorSpec<DhState, BigInteger> Spec = new()
+    {
+        Get = s => s.Total,
+        Set = (s, v) => s with { Total = v },
+        ShiftValue = (v, d) => v + d,
+    };
+
+    private static Slot<DhState, BigInteger> BuildBaseThenLoopGame(
+        int[] baseWeights, int[] loopWeights)
+    {
+        var baseWs = WeightSet.FromIntegers(baseWeights);
+        var loopWs = WeightSet.FromIntegers(loopWeights);
+
+        var baseSpin =
+            from i in Slot.Draw<DhState>(_ => baseWs)
+            from _ in Slot.Modify<DhState>(s => s with { Total = s.Total + i * 10 })
+            select Unit.Value;
+
+        var loopBody =
+            from i in Slot.Draw<DhState>(_ => loopWs)
+            from _ in Slot.Modify<DhState>(s =>
+                s with { Left = s.Left - 1, Total = s.Total + i * 10 })
+            select Unit.Value;
+
+        return baseSpin
+            .SelectMany(_ => Slot.Loop<DhState>(s => s.Left <= 0, loopBody))
+            .SelectMany(_ => Slot.GetState<DhState, BigInteger>(s => s.Total));
+    }
+
+    private static void AssertSameValueDistribution(
+        ExactResult<DhState, BigInteger> actual,
+        ExactResult<DhState, BigInteger> expected)
+    {
+        var actualDist = actual.ValueDistribution();
+        var expectedDist = expected.ValueDistribution();
+
+        var actualMap = actualDist.Entries.ToDictionary(
+            e => e.Value,
+            e => Rational.Reduce(e.Numerator, actualDist.Denominator));
+        var expectedMap = expectedDist.Entries.ToDictionary(
+            e => e.Value,
+            e => Rational.Reduce(e.Numerator, expectedDist.Denominator));
+
+        Assert.Equal(expectedMap.Count, actualMap.Count);
+        foreach (var (value, prob) in expectedMap)
+        {
+            Assert.True(actualMap.TryGetValue(value, out var actualProb),
+                $"missing outcome {value}");
+            Assert.Equal(prob, actualProb);
+        }
+    }
+
+    [Fact]
+    public void BaseSpinThenLoop_AccumulatorExcludedFromHash_MatchesNaive()
+    {
+        // Recurrence hash EXCLUDES Total — without the spec this pattern
+        // returned half the EV (the first path's absolute totals were reused
+        // for paths that had banked a different base win).
+        var withSpec = ExactInterpreter.Evaluate(
+            BuildBaseThenLoopGame(new[] { 1, 1 }, new[] { 1, 1 }),
+            new DhState(2, BigInteger.Zero),
+            s => s.Left,
+            Spec);
+
+        // Ground truth: unique hash per visit forces full tree enumeration.
+        var counter = BigInteger.Zero;
+        var naive = ExactInterpreter.Evaluate(
+            BuildBaseThenLoopGame(new[] { 1, 1 }, new[] { 1, 1 }),
+            new DhState(2, BigInteger.Zero),
+            _ => counter++);
+
+        AssertSameValueDistribution(withSpec, naive);
+
+        // EV = base 5 + 2 iterations × 5 = 15 exactly.
+        var (num, den) = withSpec.ValueDistribution().ExpectedBigIntegerValue();
+        Assert.Equal(new BigInteger(15), num);
+        Assert.Equal(BigInteger.One, den);
+
+        // The sharing must be real: states differing only in banked total
+        // hit the delta cache.
+        Assert.True(withSpec.Stats.CacheHits > 0, "expected delta-cache hits");
+    }
+
+    [Fact]
+    public void DifferentBaseAndLoopBodies_AccumulatorSeparated_MatchesNaive()
+    {
+        // Test-3 shape from the report: distinct body programs.
+        var withSpec = ExactInterpreter.Evaluate(
+            BuildBaseThenLoopGame(new[] { 3, 1 }, new[] { 1, 2 }),
+            new DhState(3, BigInteger.Zero),
+            s => s.Left,
+            Spec);
+
+        var counter = BigInteger.Zero;
+        var naive = ExactInterpreter.Evaluate(
+            BuildBaseThenLoopGame(new[] { 3, 1 }, new[] { 1, 2 }),
+            new DhState(3, BigInteger.Zero),
+            _ => counter++);
+
+        AssertSameValueDistribution(withSpec, naive);
+    }
+
+    private sealed record RtState(int Left, int Awarded, BigInteger Total);
+
+    [Fact]
+    public void RetriggerLoop_WithAccumulatorSpec_CollapsesFurtherThanTotalInHash()
+    {
+        // Free spins with a capped retrigger: with the accumulator separated,
+        // states collapse on (Left, Awarded) alone — strictly fewer branches
+        // than hashing the banked total into the key, identical results.
+        var weights = WeightSet.FromIntegers(new[] { 7, 2, 1 });
+        var spec = new AccumulatorSpec<RtState, BigInteger>
+        {
+            Get = s => s.Total,
+            Set = (s, v) => s with { Total = v },
+            ShiftValue = (v, d) => v + d,
+        };
+
+        Slot<RtState, BigInteger> Build() =>
+            Slot.Loop<RtState>(s => s.Left <= 0,
+                from outcome in Slot.Draw<RtState>(_ => weights)
+                from _ in Slot.Modify<RtState>(s =>
+                {
+                    if (outcome == 0) return s with { Left = s.Left - 1 };
+                    if (outcome == 1) return s with { Left = s.Left - 1, Total = s.Total + 5 };
+                    var extra = System.Math.Min(2, 16 - s.Awarded);
+                    return s with { Left = s.Left - 1 + extra, Awarded = s.Awarded + extra };
+                })
+                select Unit.Value)
+            .SelectMany(_ => Slot.GetState<RtState, BigInteger>(s => s.Total));
+
+        var separated = ExactInterpreter.Evaluate(
+            Build(), new RtState(6, 6, BigInteger.Zero),
+            s => new BigInteger(s.Awarded) * 1024 + s.Left,
+            spec);
+
+        var totalInHash = ExactInterpreter.Evaluate(
+            Build(), new RtState(6, 6, BigInteger.Zero),
+            s => (new BigInteger(s.Awarded) * 1024 + s.Left) * 1_000_003 + s.Total);
+
+        var (sepNum, sepDen) = separated.ValueDistribution().ExpectedBigIntegerValue();
+        var (refNum, refDen) = totalInHash.ValueDistribution().ExpectedBigIntegerValue();
+        Assert.Equal(refNum, sepNum);
+        Assert.Equal(refDen, sepDen);
+
+        Assert.True(
+            separated.Stats.TotalBranchesEvaluated < totalInHash.Stats.TotalBranchesEvaluated,
+            $"separated {separated.Stats.TotalBranchesEvaluated} should beat " +
+            $"total-in-hash {totalInHash.Stats.TotalBranchesEvaluated}");
+    }
+}
+
+public class Compiler_FractionalPayouts : IDisposable
+{
+    public void Dispose() => SlotMath.Core.Mechanics.EvaluatorRegistry.Clear();
+
+    [Fact]
+    public void FractionalPaytablePayout_YieldsExactRationalRtp()
+    {
+        // Every spin lands sym-a on a single-row board and pays 2.5 — the
+        // exact RTP must be exactly 5/2.  Before win scaling, the decimal
+        // total was silently truncated to 2 at the BigInteger boundary.
+        SlotMath.Core.Mechanics.EvaluatorRegistry.Register("lines", new SlotMath.Core.Mechanics.Evaluators.LinesEvaluator(
+            new Paytable
+            {
+                Id = "pt",
+                Entries = new[]
+                {
+                    new PaytableEntry { SymbolId = "sym-a", Counts = new[] { 3 }, Payouts = new[] { "2.5" } },
+                },
+            },
+            new PaylineSet { Id = "ps", Paylines = new[] { new Payline { Positions = new[] { 0, 0, 0 } } } }));
+
+        var config = new GraphConfig
+        {
+            SchemaVersion = "1.0.0",
+            Id = "fractional-payout",
+            Symbols = new[] { new Symbol { Id = "sym-a", Name = "A", Kind = SymbolKind.Standard } },
+            Paytables = new[]
+            {
+                new Paytable
+                {
+                    Id = "pt",
+                    Entries = new[]
+                    {
+                        new PaytableEntry { SymbolId = "sym-a", Counts = new[] { 3 }, Payouts = new[] { "2.5" } },
+                    },
+                },
+            },
+            ReelStrips = new[]
+            {
+                new ReelStrip { Id = "r1", Name = "R1", Symbols = new[] { "sym-a", "sym-a" } },
+                new ReelStrip { Id = "r2", Name = "R2", Symbols = new[] { "sym-a", "sym-a" } },
+                new ReelStrip { Id = "r3", Name = "R3", Symbols = new[] { "sym-a", "sym-a" } },
+            },
+            ReelSets = new[] { new ReelSet { Id = "rs", Name = "Main", StripIds = new[] { "r1", "r2", "r3" } } },
+            BoardConfig = new BoardConfig { Rows = 1, Columns = 3 },
+            Nodes = new Node[]
+            {
+                new DrawNode
+                {
+                    Id = "draw",
+                    Label = "Spin",
+                    Outputs = new Dictionary<string, Port> { ["board"] = new() { Name = "board", Type = PortType.Board } },
+                },
+                new MapNode
+                {
+                    Id = "eval",
+                    Label = "Lines",
+                    TransformId = "lines",
+                    Inputs = new Dictionary<string, Port> { ["board"] = new() { Name = "board", Type = PortType.Board } },
+                    Outputs = new Dictionary<string, Port> { ["wins"] = new() { Name = "wins", Type = PortType.Wins } },
+                },
+                new MetricsSinkNode
+                {
+                    Id = "sink",
+                    Label = "Sink",
+                    Inputs = new Dictionary<string, Port> { ["wins"] = new() { Name = "wins", Type = PortType.Wins } },
+                },
+            },
+            Edges = new[]
+            {
+                new Edge { Id = "e1", SourceNodeId = "draw", SourcePort = "board", TargetNodeId = "eval", TargetPort = "board" },
+                new Edge { Id = "e2", SourceNodeId = "eval", SourcePort = "wins", TargetNodeId = "sink", TargetPort = "wins" },
+            },
+        };
+
+        var compiled = new GraphCompiler().Compile(config);
+        Assert.True(compiled.IsValid, string.Join("; ", compiled.Errors.Select(e => e.Message)));
+        Assert.Equal(new BigInteger(10), compiled.WinScale);
+
+        var result = HybridEvaluator.Evaluate(
+            compiled.Program!,
+            new Dictionary<string, object?>(),
+            StateHasher.CanonicalHash,
+            new RegimeConfig { WinScale = compiled.WinScale });
+
+        // Exact rational RTP = 5/2 — no truncation, no floats in the ratio.
+        Assert.Equal(EvaluationStrategy.Exact, result.OverallStrategy);
+        Assert.Equal(new BigInteger(5), result.Report.Rtp.RationalNumerator);
+        Assert.Equal(new BigInteger(2), result.Report.Rtp.RationalDenominator);
+        Assert.Equal(2.5, result.Report.Rtp.DisplayValue, 12);
+    }
+}

@@ -19,31 +19,41 @@ public static class ExactMetrics
     /// Compute the full SlotMathReport from an exact BigInteger-valued distribution.
     /// </summary>
     /// <param name="dist">The exact win distribution from the interpreter.</param>
-    /// <param name="maxWinCap">Optional max-win cap for cap-hit probability.</param>
+    /// <param name="maxWinCap">Optional max-win cap for cap-hit probability (in credits).</param>
     /// <param name="featureBreakdowns">
     /// Optional per-feature distributions.  Each feature's dist is summed to produce
     /// the per-feature RTP breakdown.  The sum of per-feature expected values must
     /// equal the total expected value exactly.
     /// </param>
     /// <param name="numHistogramBins">Number of histogram bins (default 50).</param>
+    /// <param name="winScale">
+    /// Sub-credit scale of the distribution's values.  The compiler emits win
+    /// amounts multiplied by this factor so fractional paytable payouts stay
+    /// exact integers; the report converts back to credits (rationals get the
+    /// scale folded into their denominators — exactness is preserved).
+    /// </param>
     public static SlotMathReport Compute(
         Dist<BigInteger> dist,
         BigInteger? maxWinCap = null,
         IReadOnlyDictionary<string, Dist<BigInteger>>? featureBreakdowns = null,
-        int numHistogramBins = 50)
+        int numHistogramBins = 50,
+        BigInteger? winScale = null)
     {
         var provenance = dist.IsFullyExact
             ? ProvenanceTag.Exact
             : ProvenanceTag.ExactWithinEpsilon;
 
+        var scale = winScale is { } s && s > 1 ? s : BigInteger.One;
+        var capScaled = maxWinCap * scale;
+
         var rtp = ComputeRtp(dist);
         var hitFreq = ComputeHitFrequency(dist);
         var volatility = ComputeVolatility(dist, rtp.DisplayValue);
-        var maxWin = ComputeMaxWin(dist, maxWinCap);
-        var histogram = ComputeHistogram(dist, maxWinCap, numHistogramBins);
+        var maxWin = ComputeMaxWin(dist, capScaled);
+        var histogram = ComputeHistogram(dist, capScaled, numHistogramBins);
         var perFeature = ComputePerFeatureBreakdown(dist, featureBreakdowns, rtp);
 
-        return new SlotMathReport
+        var report = new SlotMathReport
         {
             AggregateProvenance = provenance.Provenance,
             Rtp = rtp,
@@ -52,6 +62,100 @@ public static class ExactMetrics
             MaxWin = maxWin,
             Histogram = histogram,
             PerFeatureBreakdown = perFeature
+        };
+
+        return scale == BigInteger.One ? report : ScaleToCredits(report, scale);
+    }
+
+    /// <summary>
+    /// Convert a report computed over scale-multiplied integer win amounts
+    /// back into credit units.  Rational values stay exact (the scale folds
+    /// into denominators); displays divide; probabilities are unaffected.
+    /// </summary>
+    private static SlotMathReport ScaleToCredits(SlotMathReport report, BigInteger scale)
+    {
+        var s = (double)scale;
+
+        var rtp = report.Rtp;
+        if (rtp.RationalNumerator is { } num && rtp.RationalDenominator is { } den)
+        {
+            var (rNum, rDen) = Rational.Reduce(num, den * scale);
+            rtp = rtp with { RationalNumerator = rNum, RationalDenominator = rDen };
+        }
+        rtp = rtp with
+        {
+            DisplayValue = rtp.DisplayValue / s,
+            LoDisplay = rtp.LoDisplay / s,
+            HiDisplay = rtp.HiDisplay / s,
+        };
+
+        var volatility = report.Volatility with
+        {
+            Variance = report.Volatility.Variance / (s * s),
+            StdDev = report.Volatility.StdDev / s,
+            // VolatilityIndex = StdDev / Mean is scale-invariant.
+        };
+
+        var maxWin = report.MaxWin with
+        {
+            MaxWin = report.MaxWin.MaxWin / s,
+            // Exact value only stays exact when the scale divides it.
+            MaxWinExact = report.MaxWin.MaxWinExact is { } mw && mw % scale == 0
+                ? mw / scale
+                : null,
+        };
+
+        var histogram = report.Histogram with
+        {
+            Bins = Array.ConvertAll(report.Histogram.Bins, b => b with
+            {
+                LowerBound = b.LowerBound / s,
+                UpperBound = b.UpperBound / s,
+            }),
+        };
+
+        var perFeature = report.PerFeatureBreakdown;
+        if (perFeature is not null)
+        {
+            var features = Array.ConvertAll(perFeature.Features, f =>
+            {
+                var scaled = f with
+                {
+                    RtpContribution = f.RtpContribution / s,
+                    // FractionOfTotal and FeatureHitFrequency are ratios —
+                    // scale-invariant.
+                };
+                if (f.RationalNumerator is { } fn && f.RationalDenominator is { } fd)
+                {
+                    var (fNum, fDen) = Rational.Reduce(fn, fd * scale);
+                    scaled = scaled with { RationalNumerator = fNum, RationalDenominator = fDen };
+                }
+                return scaled;
+            });
+            perFeature = perFeature with
+            {
+                Features = features,
+                TotalRtpDisplay = perFeature.TotalRtpDisplay / s,
+            };
+            if (perFeature.TotalRtpRationalNumerator is { } tn
+                && perFeature.TotalRtpRationalDenominator is { } td)
+            {
+                var (tNum, tDen) = Rational.Reduce(tn, td * scale);
+                perFeature = perFeature with
+                {
+                    TotalRtpRationalNumerator = tNum,
+                    TotalRtpRationalDenominator = tDen,
+                };
+            }
+        }
+
+        return report with
+        {
+            Rtp = rtp,
+            Volatility = volatility,
+            MaxWin = maxWin,
+            Histogram = histogram,
+            PerFeatureBreakdown = perFeature,
         };
     }
 

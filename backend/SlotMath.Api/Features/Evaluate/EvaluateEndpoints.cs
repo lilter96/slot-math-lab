@@ -96,6 +96,7 @@ public static class EvaluateEndpoints
                         // fallback must use the light sample size, not the
                         // heavy-run default.
                         SampledSpins = request.SampleSize ?? 10_000,
+                        WinScale = compileResult.WinScale,
                     };
 
                     var result = HybridEvaluator.Evaluate(
@@ -134,6 +135,7 @@ public static class EvaluateEndpoints
                     SampledSpins = sampleSize,
                     ForceSampled = true,
                     SampledSeed = DateTimeOffset.UtcNow.Ticks,
+                    WinScale = compileResult.WinScale,
                 };
 
                 var result = HybridEvaluator.Evaluate(

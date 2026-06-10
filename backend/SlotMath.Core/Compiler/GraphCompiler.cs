@@ -56,11 +56,12 @@ public sealed class GraphCompiler
         // Phase 2: Compile
         try
         {
-            var program = new ProgramBuilder(config, _pluginHost).Build();
+            var builder = new ProgramBuilder(config, _pluginHost);
+            var program = builder.Build();
             if (config.Plugins is { Length: > 0 })
                 program = Slot.Annotate(program, "compiled-graph", containsPlugin: true);
 
-            return CompileResult.Success(program);
+            return CompileResult.Success(program) with { WinScale = builder.WinScale };
         }
         catch (CompilationException ex)
         {
@@ -89,6 +90,9 @@ public sealed class GraphCompiler
         private readonly Dictionary<(string NodeId, string? SinkId), Func<object?, Slot<Dictionary<string, object?>, object?>>> _chains = new();
         private readonly HashSet<(string NodeId, string? SinkId)> _compiling = new();
 
+        private readonly BigInteger _winScale;
+        private readonly decimal _winScaleDecimal;
+
         public ProgramBuilder(GraphConfig config, PluginHost? pluginHost)
         {
             _config = config;
@@ -96,6 +100,58 @@ public sealed class GraphCompiler
             _nodeMap = config.Nodes.ToDictionary(n => n.Id);
             _incoming = BuildEdgeMap(config, e => e.TargetNodeId);
             _outgoing = BuildEdgeMap(config, e => e.SourceNodeId);
+            _winScale = DetectWinScale(config);
+            _winScaleDecimal = (decimal)_winScale;
+        }
+
+        /// <summary>Sub-credit scale applied to all win sources (1 = none).</summary>
+        public BigInteger WinScale => _winScale;
+
+        /// <summary>
+        /// Determine the win scale: 10^(max decimal places over all paytable
+        /// payouts).  Fractional payouts like "2.5" used to be silently
+        /// truncated at the BigInteger boundary; scaling keeps them exact.
+        /// </summary>
+        private static BigInteger DetectWinScale(GraphConfig config)
+        {
+            var maxDecimals = 0;
+            foreach (var paytable in config.Paytables ?? Array.Empty<Paytable>())
+            {
+                foreach (var entry in paytable.Entries)
+                {
+                    foreach (var payout in entry.Payouts)
+                    {
+                        if (!decimal.TryParse(payout,
+                                System.Globalization.NumberStyles.Number,
+                                System.Globalization.CultureInfo.InvariantCulture,
+                                out var value))
+                        {
+                            continue; // evaluators report unparseable payouts themselves
+                        }
+
+                        var decimals = DecimalPlaces(value);
+                        if (decimals > 9)
+                            throw new CompilationException(null, ErrorCodes.InvalidGraph,
+                                $"Paytable payout '{payout}' has more than 9 decimal places.");
+                        if (decimals > maxDecimals)
+                            maxDecimals = decimals;
+                    }
+                }
+            }
+
+            return BigInteger.Pow(10, maxDecimals);
+        }
+
+        private static int DecimalPlaces(decimal value)
+        {
+            value = System.Math.Abs(value);
+            var places = 0;
+            while (value != decimal.Truncate(value) && places < 10)
+            {
+                value *= 10m;
+                places++;
+            }
+            return places;
         }
 
         private static Dictionary<string, List<Edge>> BuildEdgeMap(
@@ -129,7 +185,7 @@ public sealed class GraphCompiler
             if (entryNodeIds.Count == 1)
             {
                 var chain = GetChain(entryNodeIds[0], sinkId);
-                return chain(null).SelectMany(static v =>
+                return chain(null).SelectMany(v =>
                     Slot.Pure<Dictionary<string, object?>, BigInteger>(ExtractBigInteger(v)));
             }
 
@@ -353,12 +409,9 @@ public sealed class GraphCompiler
                     }
                     else if (result is Win[] wins)
                     {
-                        var total = BigInteger.Zero;
-                        foreach (var win in wins)
-                            total += new BigInteger(win.TotalWin);
                         var acc = s.TryGetValue(winsKey, out var w) && w is BigInteger ew
                             ? ew : BigInteger.Zero;
-                        next[winsKey] = acc + total;
+                        next[winsKey] = acc + SumWins(wins);
                     }
 
                     return next;
@@ -472,13 +525,14 @@ public sealed class GraphCompiler
                 choiceIndex => BuildBoardFromChoice(choiceIndex, strips, rows));
         }
 
-        private static Slot<Dictionary<string, object?>, object?> BuildDrawSlot(
+        private Slot<Dictionary<string, object?>, object?> BuildDrawSlot(
             Func<Dictionary<string, object?>, WeightSet> weights,
             DrawWeight[] dw,
             string? stateWriteKey)
         {
             // Outcome programs are pre-built once per compile, so taking a
-            // branch at run time allocates nothing.
+            // branch at run time allocates nothing.  Values are emitted in
+            // sub-credit units (multiplied by the win scale).
             var outcomes = new Slot<Dictionary<string, object?>, object?>[dw.Length];
 
             if (stateWriteKey == null)
@@ -486,7 +540,7 @@ public sealed class GraphCompiler
                 for (var i = 0; i < dw.Length; i++)
                 {
                     outcomes[i] = Slot.Pure<Dictionary<string, object?>, object?>(
-                        (object?)new BigInteger(dw[i].Value));
+                        (object?)(new BigInteger(dw[i].Value) * _winScale));
                 }
                 return Slot.DrawFrom(weights, outcomes);
             }
@@ -498,7 +552,7 @@ public sealed class GraphCompiler
             {
                 var outcomeId = dw[i].OutcomeId;
                 var value = Slot.Pure<Dictionary<string, object?>, object?>(
-                    (object?)new BigInteger(dw[i].Value));
+                    (object?)(new BigInteger(dw[i].Value) * _winScale));
                 outcomes[i] = new ModifyState<Dictionary<string, object?>, object?>(
                     s =>
                     {
@@ -804,24 +858,41 @@ public sealed class GraphCompiler
 
         // ── Helpers ─────────────────────────────────────────────────────
 
-        private static BigInteger ExtractBigInteger(object? value)
+        private BigInteger ExtractBigInteger(object? value)
         {
             switch (value)
             {
                 case BigInteger bi:
+                    // Already in sub-credit units (scaled at its source).
                     return bi;
                 case Win[] wins:
-                    {
-                        var total = BigInteger.Zero;
-                        foreach (var w in wins)
-                            total += new BigInteger(w.TotalWin);
-                        return total;
-                    }
+                    return SumWins(wins);
                 case decimal d:
-                    return new BigInteger((long)d);
+                    return ToScaledWin(d);
                 default:
                     return BigInteger.Zero;
             }
+        }
+
+        private BigInteger SumWins(Win[] wins)
+        {
+            var total = 0m;
+            foreach (var w in wins)
+                total += w.TotalWin;
+            return ToScaledWin(total);
+        }
+
+        /// <summary>
+        /// Convert a credit amount (exact decimal) to sub-credit integer
+        /// units.  Paytable-derived totals are integral after scaling by
+        /// construction; anything else (e.g. plugin multipliers, which are
+        /// sampled-regime anyway) rounds half-to-even instead of silently
+        /// truncating.
+        /// </summary>
+        private BigInteger ToScaledWin(decimal credits)
+        {
+            var scaled = credits * _winScaleDecimal;
+            return new BigInteger(decimal.Round(scaled, 0, MidpointRounding.ToEven));
         }
     }
 }
