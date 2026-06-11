@@ -180,7 +180,28 @@ public sealed class GraphCompiler
             if (entryNodeIds.Count == 0)
                 throw new CompilationException(null, ErrorCodes.InvalidGraph, "Graph has no entry nodes.");
 
-            var sinkId = _config.Nodes.OfType<MetricsSinkNode>().First().Id;
+            var sinkNode = _config.Nodes.OfType<MetricsSinkNode>().First();
+            var sinkId = sinkNode.Id;
+
+            // Sink reads the win from a named state key: run the whole program
+            // for its state effects, then read state[key].  This is the pure
+            // atom + expression win path (no Win[]-producing molecule).
+            if (sinkNode.WinStateKey is { } winKey)
+            {
+                Slot<Dictionary<string, object?>, object?> program =
+                    Slot.Pure<Dictionary<string, object?>, object?>((object?)BigInteger.Zero);
+                foreach (var entryId in entryNodeIds)
+                {
+                    var entryChain = GetChain(entryId, sinkId);
+                    var captured = program;
+                    program = captured.SelectMany(_ => entryChain(null));
+                }
+
+                return program.SelectMany(_ =>
+                    Slot.GetState<Dictionary<string, object?>>().SelectMany(state =>
+                        Slot.Pure<Dictionary<string, object?>, BigInteger>(
+                            ReadStateWin(state, winKey))));
+            }
 
             if (entryNodeIds.Count == 1)
             {
@@ -202,6 +223,24 @@ public sealed class GraphCompiler
             }
 
             return composed;
+        }
+
+        /// <summary>
+        /// Read a win amount from the recurrence state and scale it to
+        /// sub-credit units (consistent with Draw/paytable win sources).
+        /// </summary>
+        private BigInteger ReadStateWin(Dictionary<string, object?> state, string key)
+        {
+            if (!state.TryGetValue(key, out var raw))
+                return BigInteger.Zero;
+            var amount = raw switch
+            {
+                BigInteger bi => bi,
+                int i => i,
+                long l => l,
+                _ => BigInteger.Zero,
+            };
+            return amount * _winScale;
         }
 
         // ── Chain compiler ──────────────────────────────────────────────
@@ -787,25 +826,59 @@ public sealed class GraphCompiler
 
         private Slot<Dictionary<string, object?>, object?> CompileModifyState(ModifyStateNode node)
         {
-            Func<Board?, object?, BigInteger>? compiled = null;
-            if (node.ExpressionId != null && _config.Expressions != null &&
-                _config.Expressions.TryGetValue(node.ExpressionId, out var expr))
-            {
-                compiled = ExpressionCompiler.CompileNumber(expr);
-            }
+            Expression? expr = null;
+            if (node.ExpressionId != null && _config.Expressions != null)
+                _config.Expressions.TryGetValue(node.ExpressionId, out expr);
 
             // Modify state as a side effect, return null (caller passes through
-            // the previous output).  Copy-on-write when writing.
+            // the previous output).  Copy-on-write when writing — the incoming
+            // state object is shared across exact-path branches and spins.
+            if (expr is null)
+                return Slot.Modify<Dictionary<string, object?>>(static state => state)
+                    .SelectMany(static _ => Slot.Pure<Dictionary<string, object?>, object?>(null!));
+
+            // Atom path: write the expression's TYPED result to a named key.
+            // This is what lets a graph compute a value over state (a fold
+            // producing a win symbol, a conditional producing a payout) with no
+            // evaluator/transform molecule.
+            if (node.OutputKey is { } outputKey)
+            {
+                var capturedExpr = expr;
+                return Slot.Modify<Dictionary<string, object?>>(state =>
+                    {
+                        var next = new Dictionary<string, object?>(state);
+                        next[outputKey] = EvaluateToStateObject(capturedExpr, state);
+                        return next;
+                    })
+                    .SelectMany(static _ => Slot.Pure<Dictionary<string, object?>, object?>(null!));
+            }
+
+            // Legacy path: numeric result written to the internal "__modified__".
+            var compiled = ExpressionCompiler.CompileNumber(expr);
             return Slot.Modify<Dictionary<string, object?>>(state =>
                 {
-                    if (compiled is null)
-                        return state;
-
                     var next = new Dictionary<string, object?>(state);
                     next["__modified__"] = compiled(null, state);
                     return next;
                 })
                 .SelectMany(static _ => Slot.Pure<Dictionary<string, object?>, object?>(null!));
+        }
+
+        /// <summary>
+        /// Evaluate an expression over the current state to its natural CLR
+        /// value for storage in the state dictionary: BigInteger for amounts,
+        /// string for symbols, bool for predicates.  Exact (rational) path.
+        /// </summary>
+        private static object? EvaluateToStateObject(
+            Expression expr, Dictionary<string, object?> state)
+        {
+            var v = ExactExpressionEvaluator.Evaluate(expr, new EvalContext { State = state });
+            return v.Kind switch
+            {
+                ExprType.Boolean => v.BoolValue,
+                ExprType.String or ExprType.Symbol => v.StringValue,
+                _ => v.AsInteger(),
+            };
         }
 
         // ── Branch fallback (no true/false ports) ───────────────────────

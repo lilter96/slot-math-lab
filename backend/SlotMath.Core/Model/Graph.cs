@@ -92,6 +92,17 @@ public sealed record PutStateNode : Node
 public sealed record ModifyStateNode : Node
 {
     public string? ExpressionId { get; init; }
+
+    /// <summary>
+    /// When set, the expression's typed result (string / number / boolean) is
+    /// written to this state key.  When null, legacy behaviour applies: the
+    /// numeric result is written to the internal "__modified__" key.
+    ///
+    /// This is the atom that lets a graph compute a value over state — e.g. a
+    /// fold producing a win symbol, or a conditional producing a payout — with
+    /// no evaluator/transform molecule.
+    /// </summary>
+    public string? OutputKey { get; init; }
 }
 
 public sealed record LoopNode : Node
@@ -115,6 +126,14 @@ public sealed record MapNode : Node
 public sealed record MetricsSinkNode : Node
 {
     public string? MetricId { get; init; }
+
+    /// <summary>
+    /// When set, the spin's win amount is read from this state key instead of
+    /// the data-flow input value.  This lets a pure atom + expression pipeline
+    /// (Draw → Modify(expression) → Sink) deliver its win with no
+    /// evaluator/transform molecule producing a Win[].
+    /// </summary>
+    public string? WinStateKey { get; init; }
 }
 
 // ── Library node ───────────────────────────────────────────────────────
