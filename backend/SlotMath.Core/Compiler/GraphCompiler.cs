@@ -687,6 +687,20 @@ public sealed class GraphCompiler
             if (transformId.StartsWith("plugin:"))
             {
                 var pluginId = transformId["plugin:".Length..];
+
+                // ITransform plugin — may read and write state
+                var pluginTransform = _pluginHost?.TryGetTransform(pluginId);
+                if (pluginTransform != null)
+                {
+                    return (board, state, _) =>
+                    {
+                        var (newBoard, newStateObj) = pluginTransform.Apply(board!, state);
+                        var newState = newStateObj as Dictionary<string, object?> ?? state;
+                        return (newBoard, newState);
+                    };
+                }
+
+                // IEvaluator plugin — reads state, does not modify it
                 var pluginEvaluator = _pluginHost?.TryGetEvaluator(pluginId);
                 if (pluginEvaluator == null)
                     throw new CompilationException(nodeId, ErrorCodes.PluginNotFound,

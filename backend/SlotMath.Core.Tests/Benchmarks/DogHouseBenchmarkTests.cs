@@ -41,11 +41,13 @@ namespace SlotMath.Core.Tests.Benchmarks;
 //      loopFS.exit ──[wins]──► sink
 //
 //  Items registered in Register():
-//    "lines"                    → LinesEvaluator(linesPaytable, paylineSet, wildSymbolId="sym-wild")
-//    "scatter"                  → ScatterEvaluator(scatterPaytable)
-//    "accumulate-wild-positions"→ StickyWildsPlugin (user plugin, see bottom of file)
+//    "lines"           → EvaluatorRegistry: LinesEvaluator(linesPaytable, paylineSet, wildSymbolId="sym-wild")
+//    "scatter"         → EvaluatorRegistry: ScatterEvaluator(scatterPaytable)
+//    "sticky-wilds"    → PluginHost: StickyWildsPlugin (user-provided ITransform, see bottom of file)
+//                        referenced in graph as TransformId = "plugin:sticky-wilds"
 // ═══════════════════════════════════════════════════════════════════════════
 
+[Collection("DogHouse")]
 public sealed class DogHouseBenchmarkTests : IDisposable
 {
     private readonly PluginHost _pluginHost = new();
@@ -53,6 +55,8 @@ public sealed class DogHouseBenchmarkTests : IDisposable
     public void Dispose()
     {
         EvaluatorRegistry.Clear();
+        // PluginHost is per-instance (not static), so no cleanup needed for it.
+        // TransformRegistry is not used by the plugin approach but cleared defensively.
         TransformRegistry.Clear();
     }
 
@@ -383,18 +387,16 @@ public sealed class DogHouseBenchmarkTests : IDisposable
                     }
                 },
 
-                // ── Symbol accumulator transform (free-spin loop body) ────
-                // Generic standard-library primitive configured to accumulate
-                // wild positions in state["stickyPositions"].  Each iteration
-                // sees all wilds from previous iterations overlaid on the board.
-                // The same SymbolAccumulatorTransform can be reused for any game
-                // with "sticking" symbols (Hold & Win money, etc.) by changing
-                // symbolId and stateKey in the node configuration.
+                // ── Sticky wilds transform (free-spin loop body) ──────────
+                // User-provided ITransform plugin: "plugin:sticky-wilds".
+                // Accumulates wild positions in state["stickyPositions"] and
+                // re-overlays them on the board every iteration.
+                // A user uploads this via the plugin UI; no engine changes needed.
                 new MapNode
                 {
                     Id          = "map-sticky-wilds",
-                    Label       = "Accumulate Wild Positions",
-                    TransformId = "accumulate-wild-positions",
+                    Label       = "Sticky Wilds (user plugin)",
+                    TransformId = "plugin:sticky-wilds",
                     Inputs = new Dictionary<string, Port>
                     {
                         ["board"] = new() { Name = "board", Type = PortType.Board }
@@ -485,7 +487,7 @@ public sealed class DogHouseBenchmarkTests : IDisposable
     /// by string ID.  This is configuration, not custom logic — all
     /// implementations live in the standard library.
     /// </summary>
-    private static void Register()
+    private void Register()
     {
         EvaluatorRegistry.Register(
             "lines",
@@ -496,10 +498,9 @@ public sealed class DogHouseBenchmarkTests : IDisposable
             new ScatterEvaluator(CreateScatterPaytable()));
 
         // StickyWildsPlugin is a user-provided level-(c) ITransform plugin.
-        // Registered here to simulate uploading it through the plugin UI.
-        // The engine has no built-in sticky-wilds mechanic — users build it themselves.
-        TransformRegistry.Register(
-            "accumulate-wild-positions",
+        // Registered via _pluginHost, NOT TransformRegistry — it's user code, not
+        // a standard library primitive.  The graph references it as "plugin:sticky-wilds".
+        _pluginHost.RegisterTransform("sticky-wilds",
             new StickyWildsPlugin(symbolId: Wild, stateKey: "stickyPositions"));
     }
 
@@ -1002,7 +1003,7 @@ public sealed class DogHouseBenchmarkTests : IDisposable
         var stickyNode = config.Nodes.OfType<MapNode>()
             .FirstOrDefault(n => n.Id == "map-sticky-wilds");
         Assert.NotNull(stickyNode);
-        Assert.Equal("accumulate-wild-positions", stickyNode.TransformId);
+        Assert.Equal("plugin:sticky-wilds", stickyNode.TransformId);
         Assert.Single(stickyNode.Inputs.Values.Where(p => p.Type == PortType.Board));
         Assert.Single(stickyNode.Outputs.Values.Where(p => p.Type == PortType.Board));
 
