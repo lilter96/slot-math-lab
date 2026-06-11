@@ -12,10 +12,11 @@ target RTP).
 
 **The flexibility thesis (the whole point).** The engine is a *tiny universal substrate*; every
 mechanic — including ones nobody has shipped yet — is **composed** on top, and the mechanic
-catalog is an **open, pluggable library**, never a fixed enum. Lines, ways, cluster, scatter,
+catalog is an **open set of named subgraphs**, never a fixed enum. Lines, ways, cluster, scatter,
 Megaways, cascades, free spins, Hold & Win, walking/expanding wilds, collection, jackpots —
-all of these are *library entries built from primitives and pluggable interfaces*, not engine
-features. Designers extend the catalog without an engineering release wherever possible.
+all of these are *subgraph definitions built from substrate atoms + expressions*, not engine
+features and not C# classes. Designers extend the catalog with **zero C# code** — a new
+mechanic is a new subgraph definition.
 
 ---
 
@@ -37,77 +38,94 @@ features. Designers extend the catalog without an engineering release wherever p
   `Draw(weights)` (weighted choice; weights may depend on state), `GetState / PutState / Modify`
   (arbitrary, user-defined game state), and `Loop` (fixpoint with a state-dependent stop
   condition). Branch is sugar over bind. The substrate is **generic over the user's state type
-  `S`** — the engine hardcodes no "multiplier", "free spins" or "board" field.
+  `S`** — the engine hardcodes no "multiplier", "free spins", "board", or any other game concept.
 - **Two interpreters, one program.** `Exact` is the natural transformation `Slot → Dist`: it
   folds every branch into a distribution with **exact rational** probabilities, memoized into a
   DAG and ε-pruned. `Sampled` is a stack-safe Monte Carlo interpreter with streaming statistics.
   A **regime/budget** layer picks exact, sampled, or hybrid per subgraph and tags every metric
   with **provenance**.
-- **Mechanic layer = three stable interfaces, open to extension.**
-  `IEvaluator : Board × State → Wins`, `ITransform : Board × State → (Board, State)` (pure),
-  and weight sources `State → Weights`. The **standard library** implements them; **plugins**
-  implement the *same* interfaces; the interpreters and compiler are agnostic to which.
-- **Board** is just part of the generic state — a flexible structure (variable dimensions,
-  multi/empty/locked/decorated cells, growable), manipulated only through `ITransform`s.
+- **Mechanic layer = atoms + expressions + named subgraphs.**
+  Mechanics are **composed**, never coded into the engine. The catalog is a set of **named
+  subgraphs** stored as data (JSON) — built entirely from substrate atoms (`Draw`, `State`,
+  `Loop`, `Branch`, `Map`) and bounded fold/map expressions. There are **no C# molecule classes**
+  in the standard library. `IEvaluator` / `ITransform` exist as **plugin contracts only** (level
+  c, the escape hatch) — not as a standard library interface to implement. Optional C# **fast-paths**
+  (lines, ways, cluster) may exist for performance, paired with equivalence tests proving they
+  match the canonical subgraph.
+- **Game state is fully user-defined.** The engine has no `Board` type. A "board" (reel grid,
+  tile field, etc.) is just a user-defined array in the state `S`. State shape is expressed
+  through data tables and subgraph wiring.
 
 ## Authoring capability model — the a + b + c flexibility contract
 
 Capability lives on the **leaves**, as a dial, not as three separate products:
 
-- **Level 0 — config.** A library node parameterised by finite **tables / constants**
-  (paytable, payline set, reel strips, thresholds, stepped multiplier tables). Fully
-  declarative. Covers the majority of real games; the simple path stays simple.
+- **Level (a) — subgraph config.** A **named subgraph** from the catalog, parameterised by
+  finite **tables / constants** (paytable, payline set, reel strips, thresholds, stepped
+  multiplier tables). The subgraph is **data** (JSON) — not a C# class. Fully declarative.
+  Covers the majority of real games; the simple path stays simple.
 - **Level (b) — typed expression.** A small, **pure, total, deterministic** expression on
-  specific node ports: `Draw` weights, multiplier/payout values, trigger predicates, transform
-  output fields, payout adjustments. Grammar: arithmetic, boolean, comparison, conditional, plus
-  **board aggregations** (`sum / product / count / min / max` with a predicate) and field/index
-  access over board and state. **No loops or recursion**, so it stays analysable by the exact
-  engine. Amount-typed expressions evaluate in **exact rationals** on the exact path. Compiles to
-  the *same internal function type* the library and plugins produce.
+  specific node ports: `Draw` weights, multiplier/payout values, trigger predicates, payout
+  adjustments, state-array transforms. Grammar: arithmetic, boolean, comparison, conditional,
+  **state-array aggregations** (`sum / product / count / min / max` with a predicate), **bounded
+  `fold / map / filter`** over state arrays (one level; no nested fold; bounded by array size →
+  stays exact-analysable), and field/index access over state. **No unbounded loops or recursion.**
+  Amount-typed expressions evaluate in **exact rationals** on the exact path. Compiles to the
+  same internal function type that plugins produce.
 - **Level (c) — typed plugin escape hatch.** A compiled, **pure** plugin implementing
-  `IEvaluator` / `ITransform` / a weight source — the same contracts as the standard library.
-  **Sandboxed** (no I/O, time + memory caps, isolated load context), server-side, trusted, and
-  **test-gated**. A game that uses a plugin is **flagged sampled-regime** (the engine never
-  claims `Exact` for it). The rare path, reserved for brand-new evaluators / exotic spatial logic.
-- **Custom mechanic** = a **named, reusable sub-graph** composed from primitives + library +
-  expressions (pure no-code), optionally backed by a plugin for a novel evaluator. This is how
-  the catalog grows without touching the engine.
+  `IEvaluator : State → Wins` / `ITransform : State → State` / a weight source — these are the
+  **only** uses of these interfaces; the standard library ships none. **Sandboxed** (no I/O, time
+  + memory caps, isolated load context), server-side, trusted, and **test-gated**. A game that
+  uses a plugin is **flagged sampled-regime** (the engine never claims `Exact` for it). The rare
+  path, reserved for brand-new spatial evaluators or exotic logic unrepresentable in expressions.
+- **Custom mechanic** = a **named, reusable subgraph** composed from primitives + catalog +
+  expressions (pure no-code). This is how the catalog grows without touching C# code.
 
 ## Non-negotiable invariants
 
 1. **Exact path stays exact.** Probabilities and amounts on the exact path are rational
    (`BigInteger` numerator over a positive denominator); floats are display-only and never derive
    the RTP ratio. Level-(b) expressions on the exact path evaluate in rationals.
-2. **Mechanics are an open, pluggable library — never a closed enum.** Evaluators, transforms and
-   weight sources are interfaces; standard library and plugins share one shape; adding an
-   implementation requires no change to the interpreters or compiler.
-3. **Layered authoring holds.** Level 0 is declarative; level (b) expressions are pure, total and
-   loop-free; level (c) plugins are pure, sandboxed and test-gated, and force the sampled regime.
-4. **Generic state.** The **recurrence state** (everything that affects the future distribution)
-   is hashable and is the memoization key; the **win accumulator** is held separate and combined
-   by convolution. State is user-defined, not a fixed struct.
+2. **No hardcoded mechanic molecules.** Mechanics are subgraphs (data, not C# classes). `IEvaluator`
+   and `ITransform` are plugin contracts (level c) only — the standard library ships zero
+   implementations of these interfaces. Adding a catalog mechanic requires zero C# code and zero
+   interpreter/compiler changes.
+3. **Layered authoring holds.** Level (a) is declarative subgraph config; level (b) expressions
+   are pure, total, and loop-free (except bounded fold/map over fixed-size arrays); level (c)
+   plugins are pure, sandboxed and test-gated, and force the sampled regime.
+4. **Generic state, no engine types.** The recurrence state (everything that affects the future
+   distribution) is hashable and is the memoization key; the win accumulator is held separate and
+   combined by convolution. State is fully user-defined — the engine has **no `Board` type**; a
+   "board" is just a user-defined array in `S`.
 5. **Every metric carries provenance**: `Exact`, `ExactWithinEpsilon { prunedMass, bound }`, or
    `Sampled { n, stdErr, ci95 }`. No silent mixing.
 6. **Determinism.** A given seed yields an identical sample sequence and identical stats anywhere.
-7. **Tables, not nodes, for data.** Symbols, paytable, reel strips and board config are tables,
-   never graph nodes.
-8. **Loops only via explicit `Loop`/fixpoint nodes.** The graph is otherwise acyclic.
+7. **Tables, not nodes, for data.** Symbols, paytable, reel strips, and state structure config
+   are tables, never graph nodes.
+8. **Loops only via explicit `Loop`/fixpoint nodes.** The graph is otherwise acyclic. Bounded
+   fold/map/filter in expressions are not graph loops — they operate over a fixed-size array in
+   a single evaluation step.
 9. **No secrets client-side.** The AI key and plugin execution live only on the backend.
 10. **The kernel is pure.** No I/O, no framework, no shared mutation. Everything else is the shell.
+11. **Fast-paths are proven equivalent.** Any optional C# performance implementation of a catalog
+    subgraph must be accompanied by a passing equivalence test against the canonical subgraph on
+    ≥20 random inputs. The canonical subgraph is the source of truth; the fast-path is an
+    optimization detail.
 
 ## Tech stack
 
 **Backend (.NET 10)** — C# math kernel `SlotMath.Core` (substrate + interpreters + the level-(b)
-expression compiler/evaluator, all pure); the mechanic interfaces + standard library; a sandboxed
-plugin host (isolated `AssemblyLoadContext`, no I/O, time/memory limits). C# host `SlotMath.Api`
-(Minimal APIs + Vertical Slice). EF Core 10 + Npgsql + PostgreSQL; Redis (result cache by config
-hash, job coordination); Hangfire (heavy runs); SignalR (streaming); built-in OpenAPI. Tests:
-xUnit + property-based (FsCheck or CsCheck); OpenTelemetry.
+expression compiler/evaluator including fold/map/filter, all pure); the **standard mechanic
+catalog** (curated subgraph definitions as JSON data, no C# molecule classes); a sandboxed plugin
+host (isolated `AssemblyLoadContext`, no I/O, time/memory limits) for level-(c) plugins only.
+C# host `SlotMath.Api` (Minimal APIs + Vertical Slice). EF Core 10 + Npgsql + PostgreSQL; Redis
+(result cache by config hash, job coordination); Hangfire (heavy runs); SignalR (streaming);
+built-in OpenAPI. Tests: xUnit + property-based (FsCheck or CsCheck); OpenTelemetry.
 
 **Frontend** — React 19 + TypeScript (strict), Vite; `@xyflow/react` (canvas, confirm latest
 major at scaffold); Zustand + TanStack Query; **CodeMirror 6** for the typed expression editor
-(lint + autocomplete over board/state fields); uPlot (streaming convergence) + visx (histograms);
-Zod + `openapi-typescript` (generated types) + a thin typed client.
+(lint + autocomplete over state fields + fold/map syntax); uPlot (streaming convergence) + visx
+(histograms); Zod + `openapi-typescript` (generated types) + a thin typed client.
 
 **Infra** — Docker (multi-stage), docker-compose (api + postgres + redis); GitHub Actions CI/CD;
 deploy backend + Postgres + Redis on Railway, frontend on Vercel (or Railway).
@@ -120,7 +138,7 @@ deploy backend + Postgres + Redis on Railway, frontend on Vercel (or Railway).
 |------|-------|-------|
 | 0 | Foundations & contract | G1–G2 |
 | 1 | Universal substrate + interpreters | G3–G8 |
-| 2 | Pluggable mechanic layer + expressions + plugins | G9–G13 |
+| 2 | Atomic mechanic layer + expressions + plugins | G9–G13 |
 | 3 | Compiler, API, persistence, jobs | G14–G17 |
 | 4 | Frontend: canvas, authoring, live metrics | G18–G25 |
 | 5 | AI: NL→graph, auto-tune, explain | G26–G28 |
@@ -143,14 +161,15 @@ deploy backend + Postgres + Redis on Railway, frontend on Vercel (or Railway).
 ### G2 — Canonical schema + contract generation
 **Objective.** One source-of-truth schema, no backend/frontend drift, expressive enough for the
 whole authoring model.
-**Deliverables.** C# model covering: data tables (Symbol, Paytable, ReelStrip, ReelSet, board
-config); **primitive nodes** (Draw, GetState/PutState/Modify, Loop, Branch, Map); **library
-nodes** (parameterised); **expression-valued ports** (the level-(b) expression AST stored as
-data); **plugin references** (level-(c), by id + contract); typed edges. Polymorphic
-System.Text.Json; emitted JSON Schema; TS types + Zod mirror.
+**Deliverables.** C# model covering: data tables (Symbol, Paytable, ReelStrip, ReelSet, state
+structure config); **primitive nodes** (Draw, GetState/PutState/Modify, Loop, Branch, Map);
+**subgraph references** (catalog subgraphs, parameterised by tables/constants); **expression-valued
+ports** (the level-(b) expression AST stored as data, including fold/map/filter nodes);
+**plugin references** (level-(c), by id + contract); typed edges. Polymorphic System.Text.Json;
+emitted JSON Schema; TS types + Zod mirror.
 **Definition of Done.**
-- [ ] A corpus of ≥12 sample graphs — including expression-valued ports and a plugin reference —
-      round-trips losslessly in .NET.
+- [ ] A corpus of ≥12 sample graphs — including expression-valued ports, a subgraph reference,
+      and a plugin reference — round-trips losslessly in .NET.
 - [ ] TS types regenerate from one command; build fails on drift.
 - [ ] **Drift-guard test:** the corpus validates identically under the .NET validator and the Zod
       schema.
@@ -232,96 +251,135 @@ per-subgraph strategy and aggregate provenance.
 
 ---
 
-# Phase 2 — Pluggable mechanic layer + expressions + plugins
+# Phase 2 — Atomic mechanic layer + expressions + plugins
 
-### G9 — Board model + `ITransform` + standard transform library
-**Objective.** A flexible board and an **open** set of pure transforms.
-**Deliverables.** Generic board (variable dimensions; multi-symbol / empty / locked / decorated
-cells; growable). `ITransform : Board × State → (Board, State)`, pure. Standard library: reveal,
-expand/explode, lock/sticky, morph/upgrade, collect, nudge, grow/shrink, remove-winning,
-refill/tumble. **Open registry** — implementations register without engine changes.
+### G9 — Subgraph mechanism + bounded iteration in expressions
+**Objective.** Prove the substrate is sufficient: any mechanic is composable from atoms +
+expressions + subgraphs. No hardcoded C# molecule classes in the standard library.
+**Deliverables.**
+- **Named subgraph** as a first-class graph construct: a subgraph has a name, typed input and
+  output ports, is stored as data (JSON), and is placed on the canvas like any primitive node.
+  Subgraphs are the unit of reuse and the catalog entry format. The compiler inlines a subgraph
+  reference to its constituent `Slot` program at compile time.
+- **Bounded `fold / map / filter`** added to the level-(b) expression language:
+  `fold(arr, init, (acc, x) => expr)`, `map(arr, x => expr)`, `filter(arr, x => pred)`.
+  Bounded by the array's size at evaluation time (no infinite recursion); evaluates in rationals
+  on the exact path; one level of nesting maximum (no nested fold). These atoms cover: line-scan
+  (fold over payline set), cascade filter (filter over cell array), sticky-wild accumulate (fold
+  over positions).
+- **State-array read/write**: `Modify` nodes accept expressions that produce array values;
+  expressions may index into state arrays. This lets subgraphs accumulate and transform
+  collections (symbol positions, collected values, multiplier stacks) without any C# class.
 **Definition of Done.**
-- [ ] Each transform passes hand-computed cases; transforms are pure (no `Draw`, no I/O), verified.
-- [ ] A board grows and shrinks correctly (e.g. infinity-reel style) under the relevant transforms.
-- [ ] Registering a trivial **new** transform requires no change to the interpreters or compiler
-      (proven by a test that registers and runs one).
+- [ ] A novel mechanic (not in any catalog) is built as a pure subgraph from Draw/State/Loop/
+      Branch/Map + fold/map/filter expressions — **zero C# code**, zero interpreter/compiler
+      changes required (proven by a test that authors and runs one).
+- [ ] `fold`, `map`, `filter` produce correct values on hand cases; evaluation on the exact path
+      is in rationals; the grammar prevents unbounded recursion (test: ill-formed nested fold
+      rejected with a precise error).
+- [ ] A subgraph round-trips through JSON serialisation without loss; the compiler resolves a
+      subgraph reference to a runnable `Slot` program; a 10-level-deep subgraph nesting evaluates
+      without stack overflow.
+- [ ] An expression-driven mechanic built with fold/map yields an **exact** RTP equal to a
+      hand-computed fraction under the exact interpreter.
 
-### G10 — `IEvaluator` + standard evaluator library
-**Objective.** Win scoring as **one pluggable interface**, with the common evaluators shipped.
-**Deliverables.** `IEvaluator : Board × State → Wins`. Standard library: lines (configurable N
-paylines), ways, cluster (flood-fill), scatter / pays-anywhere, Megaways-ways (variable reel
-heights). Config-driven dimensions. Open registry.
+### G10 — Standard mechanic catalog (subgraphs, not C# molecules)
+**Objective.** Ship the common mechanics as curated, reusable subgraphs — data, not code.
+**Deliverables.**
+- **Catalog** of named subgraphs stored as JSON (no accompanying C# molecule class): **lines**
+  (fold over payline set, compare each line against paytable, accumulate wins), **ways** (fold
+  over columns, multiply per-column matching-symbol counts), **scatter** (filter cells by symbol,
+  count matches, look up paytable), **cascade/tumble** (filter-remove winning cells + refill from
+  above via state-array mutation in a Loop), **sticky-wild** (fold to accumulate wild positions
+  into state across spins; map to overlay at stored positions on the next spin), **hold-and-win**
+  (Loop with state-dependent stop checking collected positions).
+- Each catalog subgraph is authored entirely in the graph schema — no C# class required.
+- **Optional fast-path C# implementations** (Lines, Ways, Cluster) for performance, each paired
+  with a **passing equivalence test** against the canonical subgraph (invariant 11).
 **Definition of Done.**
-- [ ] Each evaluator passes hand-computed wins on small boards; a 6×4 game and a variable-height
-      Megaways board both evaluate with no code change (tests).
-- [ ] Evaluators are pure maps over board+state (no `Draw`).
-- [ ] Registering a trivial **new** evaluator requires no interpreter/compiler change (test).
+- [ ] Each catalog subgraph produces correct wins on ≥3 hand-computed cases (unit tests).
+- [ ] A 6×5 game using the lines subgraph and a variable-height game using the ways subgraph both
+      evaluate correctly — **no C# code change** required.
+- [ ] Adding a **new** catalog subgraph requires **no change** to the interpreter, compiler, or
+      any existing C# class (test: register and run a trivial new catalog entry).
+- [ ] For every fast-path that exists: the fast-path and canonical subgraph produce identical
+      results on ≥20 random state inputs (equivalence test, invariant 11).
 
 ### G11 — Expression language (level b)
 **Objective.** Pure, total, deterministic expressions that make ~95% of novel mechanics authorable
-without code, while staying exact-friendly.
-**Deliverables.** A small DSL (AST + type-checker + evaluator): arithmetic, boolean, comparison,
-conditional, **board aggregations** (`sum/product/count/min/max` with a predicate), field/index
-access over board+state. **No loops/recursion.** Amount results evaluate in **rationals** on the
-exact path and `double` on the sampled path; weight results may be rational. Compiles to the same
-internal function type as library/plugins. Used for: `Draw` weights, multiplier/payout values,
-trigger predicates, transform output fields, payout adjustments.
+without code, while staying exact-friendly. (Bounded fold/map/filter delivered in G9; this goal
+adds the full surface: parsing, type-checking, tooling, and higher-level aggregations.)
+**Deliverables.** A complete DSL (AST + type-checker + evaluator): arithmetic, boolean,
+comparison, conditional, **state-array aggregations** (`sum / product / count / min / max` with a
+predicate), **bounded `fold / map / filter`** (from G9), field/index access over state. **No
+unbounded loops or recursion.** Amount results evaluate in **exact rationals** on the exact path
+and `double` on the sampled path; weight results may be rational. Compiles to the same internal
+function type that plugins produce. Used for: `Draw` weights, multiplier/payout values, trigger
+predicates, state-array transforms, payout adjustments.
 **Definition of Done.**
 - [ ] Parses + type-checks an expression corpus; ill-typed expressions are rejected with precise
-      errors; the grammar makes loops/recursion unrepresentable.
+      errors; the grammar makes unbounded loops/recursion unrepresentable.
 - [ ] Pure/total/deterministic: identical inputs → identical output; no I/O.
-- [ ] Board aggregations produce correct values on hand cases (e.g. product of all multiplier
-      symbols; sum of all money symbols).
-- [ ] An **expression-driven multiplier** yields an **exact** RTP equal to a hand-computed fraction
-      under the exact interpreter, and the sampled estimate converges to it.
-- [ ] An **expression-driven `Draw` weight** (e.g. selected by a state counter) evaluates correctly
-      under both interpreters.
+- [ ] State-array aggregations produce correct values on hand cases (e.g. product of all
+      multiplier entries; sum of all money-symbol values; filter to non-empty positions).
+- [ ] A **fold-driven line-scan** (fold over payline set, compare against paytable) yields an
+      **exact** RTP equal to a hand-computed fraction under the exact interpreter, and the sampled
+      estimate converges to it.
+- [ ] An **expression-driven `Draw` weight** (e.g. selected by a state counter) evaluates
+      correctly under both interpreters.
 
 ### G12 — Plugin escape hatch (level c)
 **Objective.** "Anything is possible" for brand-new evaluators/transforms, safely and without
 re-architecting.
-**Deliverables.** A typed plugin contract = the **same** `IEvaluator` / `ITransform` / weight-source
-interfaces. Sandboxed host: isolated `AssemblyLoadContext`, **no I/O**, time + memory caps,
-cancellation. Registration/discovery + a **conformance harness** (purity, determinism, no-I/O,
-within-limits). A game using a plugin is flagged sampled-regime.
+**Deliverables.** A typed plugin contract = `IEvaluator : State → Wins` / `ITransform : State → State`
+/ weight-source interfaces — these are the **only** uses of these interfaces in the codebase.
+Sandboxed host: isolated `AssemblyLoadContext`, **no I/O**, time + memory caps, cancellation.
+Registration/discovery + a **conformance harness** (purity, determinism, no-I/O, within-limits).
+A game using a plugin is flagged sampled-regime.
 **Definition of Done.**
-- [ ] A sample custom-evaluator plugin passes the conformance harness and produces correct wins on
-      a hand case.
+- [ ] A sample custom-evaluator plugin passes the conformance harness and produces correct wins
+      on a hand case.
 - [ ] A misbehaving plugin (infinite loop, exception, attempted I/O) is contained and reported —
       it never crashes or hangs the host (test).
-- [ ] Because the contract equals the standard library's, the same evaluator runs through the same
-      interpreter path whether shipped or plugged (test runs both).
 - [ ] A game using a plugin reports provenance `Sampled`; the engine refuses to claim `Exact`.
+- [ ] The standard catalog ships **zero** implementations of `IEvaluator` / `ITransform` —
+      plugins are the only implementors (verified by a test that scans for non-plugin
+      `IEvaluator`/`ITransform` implementations and asserts none exist outside the plugin host).
 
 ### G13 — Mechanic correctness harness (credibility gate)
 **Objective.** Prove the *whole* mechanic layer is right, not just the substrate.
 **Deliverables.** (a) **Exact-vs-sampled cross-check** over generated configs exercising
-primitives + library + **expression** leaves; (b) hand-computed full games incl. cascade,
-free-spins-with-retrigger, Hold & Win (loop-until-condition), cluster+tumble+rising-multiplier;
-(c) determinism; (d) serialization round-trip; (e) plugin conformance.
+primitives + catalog subgraphs + **fold/map expression** leaves; (b) hand-computed full games
+incl. cascade (Loop + filter-remove + refill subgraphs), free-spins-with-retrigger (Loop +
+scatter-trigger subgraph), Hold & Win (loop-until-no-new-lands subgraph), cluster+tumble+rising-
+multiplier (fold flood-fill + cascade + state-multiplier); (c) determinism; (d) serialization
+round-trip; (e) plugin conformance; (f) **fast-path equivalence** for any fast-path that exists.
 **Definition of Done.**
-- [ ] Cross-check passes over ≥50 generated configs × ≥20 seeds (sampled RTP within exact ± 3·stdErr).
+- [ ] Cross-check passes over ≥50 generated configs × ≥20 seeds (sampled RTP within exact ±
+      3·stdErr).
 - [ ] Every hand-computed game matches exactly (exact path) or within CI (when a plugin forces
       sampled).
-- [ ] Round-trip yields identical config hash and identical metrics; coverage ≥ 90% on the kernel +
-      mechanic layer.
+- [ ] Round-trip yields identical config hash and identical metrics; coverage ≥ 90% on the kernel
+      + catalog subgraph layer.
 
 ---
 
 # Phase 3 — Compiler, API, persistence, jobs
 
 ### G14 — Graph → program compiler + validation
-**Objective.** Compile the visual graph (primitives + library + expressions + plugin refs) to a
-runnable program, with strict validation.
-**Deliverables.** Compiler emitting `Slot<S,T>`; compiles expression-valued ports and resolves +
-sandboxes plugin references. Validation: acyclic except through `Loop`; edge type compatibility;
-**expression type-checking**; **plugin signature/conformance** check; exactly one MetricsSink;
-unreachable/dead-node detection; precise located errors.
+**Objective.** Compile the visual graph (primitives + catalog subgraphs + expressions + plugin
+refs) to a runnable program, with strict validation.
+**Deliverables.** Compiler emitting `Slot<S,T>`; inlines subgraph references; compiles
+expression-valued ports (including fold/map/filter) and resolves + sandboxes plugin references.
+Validation: acyclic except through `Loop`; edge type compatibility; **expression type-checking**
+(including fold/map lambda bodies); **plugin signature/conformance** check; exactly one
+MetricsSink; unreachable/dead-node detection; precise located errors.
 **Definition of Done.**
-- [ ] Valid graphs (incl. expressions and a plugin) compile to a runnable program.
+- [ ] Valid graphs (incl. catalog subgraphs, fold/map expressions, and a plugin) compile to a
+      runnable program.
 - [ ] Each invalid case — cycle without `Loop`, type-mismatched edge, ill-typed expression,
-      non-conformant/missing plugin, missing/duplicate sink, dead node — is rejected with a precise
-      error naming the offending node id.
+      non-conformant/missing plugin, missing/duplicate sink, dead node — is rejected with a
+      precise error naming the offending node id.
 
 ### G15 — Minimal API (vertical slices)
 **Objective.** The HTTP surface.
@@ -330,8 +388,8 @@ unreachable/dead-node detection; precise located errors.
 **Definition of Done.**
 - [ ] OpenAPI generates and is served; integration tests cover each slice (happy + error).
 - [ ] `/validate` returns the same errors as the compiler.
-- [ ] `/evaluate/light` p95 < 300 ms for MVP-class configs; returns exact when cheap, else a small-N
-      sampled estimate with CI, else `needsFullRun`.
+- [ ] `/evaluate/light` p95 < 300 ms for MVP-class configs; returns exact when cheap, else a
+      small-N sampled estimate with CI, else `needsFullRun`.
 
 ### G16 — Persistence + result cache
 **Objective.** Durable configs and memoised results.
@@ -340,8 +398,8 @@ migrations; Redis result cache keyed by canonical config hash.
 **Definition of Done.**
 - [ ] Migrations apply cleanly to an empty DB in CI (real Postgres container).
 - [ ] Save → load → re-save preserves all versions; history queryable.
-- [ ] An identical config (same canonical hash) returns a cache hit with no recomputation (internal
-      counter).
+- [ ] An identical config (same canonical hash) returns a cache hit with no recomputation
+      (internal counter).
 
 ### G17 — Heavy-run jobs + SignalR streaming
 **Objective.** Long runs streamed live and cancellable.
@@ -349,8 +407,8 @@ migrations; Redis result cache keyed by canonical config hash.
 batched `(sampleCount, runningRtp, stdErr)`; cancellation threaded into the sampler; result
 persisted + cached.
 **Definition of Done.**
-- [ ] A 1,000,000-spin run streams progress and persists a result; running RTP within 0.5% of exact
-      by 100,000 spins on the reference game.
+- [ ] A 1,000,000-spin run streams progress and persists a result; running RTP within 0.5% of
+      exact by 100,000 spins on the reference game.
 - [ ] Cancel stops within 500 ms and persists partial stats; a reconnecting client re-attaches.
 
 ---
@@ -366,22 +424,24 @@ transcript only and cannot judge how the UI looks.)*
 TanStack Query; generated typed API client; Zod; design baseline.
 **Definition of Done.**
 - [ ] `npm run build`, `tsc --noEmit`, `npm run lint` exit 0; four tabs route and render.
-- [ ] API client is generated from the OpenAPI contract (regenerate script; no hand-written request
-      types); axe/Lighthouse a11y ≥ 90 on the shell.
+- [ ] API client is generated from the OpenAPI contract (regenerate script; no hand-written
+      request types); axe/Lighthouse a11y ≥ 90 on the shell.
 
 ### G19 — Node canvas
-**Objective.** The mechanic graph with primitive + library nodes.
+**Objective.** The mechanic graph with primitive nodes and catalog subgraphs.
 **Deliverables.** `@xyflow/react` canvas; palette of **primitive** nodes (Draw/State/Loop/Branch/
-Map) and **library** nodes; edge connection with visual type-checking; explicit `Loop` node UX;
-inline validation.
+Map) and **catalog subgraph** nodes; edge connection with visual type-checking; explicit `Loop`
+node UX; inline validation; subgraph collapse/expand.
 **Definition of Done.**
-- [ ] A user can build a base + scatter→free-spins + cascade graph visually.
+- [ ] A user can build a base + scatter→free-spins + cascade graph visually using primitives and
+      catalog subgraphs.
 - [ ] Invalid connections are blocked or flagged inline with the compiler message.
 - [ ] Editing stays responsive (no main-thread block > 50 ms on node/edge changes).
 
 ### G20 — Table data editors
 **Objective.** Replace Excel for data with good table UX (invariant #7).
-**Deliverables.** Symbol editor + paytable grid; reel-strip builder; board config; ReelSet assembly.
+**Deliverables.** Symbol editor + paytable grid; reel-strip builder; state structure config;
+ReelSet assembly.
 **Definition of Done.**
 - [ ] Symbols/paytable/strips edit fluidly with keyboard nav and bulk clipboard paste; edits
       validate against the Zod schema before submit.
@@ -389,21 +449,23 @@ inline validation.
 ### G21 — Expression editor (level b)
 **Objective.** The authoring surface that makes the constructor flexible without code.
 **Deliverables.** CodeMirror-6 typed expression inputs on expression-valued ports (multiplier,
-weight, predicate, transform output, payout adjust); **autocomplete over board/state fields**, live
-type-checking, inline errors mirroring the backend type-checker.
+weight, predicate, state-array transform, payout adjust); **autocomplete over state fields and
+array operations (fold/map/filter syntax)**, live type-checking, inline errors mirroring the
+backend type-checker.
 **Definition of Done.**
-- [ ] A user can write `product of all multiplier symbols` and a compound predicate, and see live
-      validation; an ill-typed expression is flagged with the same message the backend gives.
+- [ ] A user can write `fold(paylines, 0, (acc, line) => acc + ...)` and a compound predicate,
+      and see live validation; an ill-typed expression is flagged with the same message the
+      backend gives.
 - [ ] A saved expression round-trips and drives the live metric for that node.
 
 ### G22 — Custom-mechanic authoring + plugin management
-**Objective.** Grow the catalog in-product (level a composition) and govern plugins (level c).
-**Deliverables.** Compose + **name a reusable sub-graph** as a custom mechanic, reusable on the
-canvas. Plugin management UI: register/select a plugin, view its contract and **conformance
+**Objective.** Grow the catalog in-product (level a/b composition) and govern plugins (level c).
+**Deliverables.** Compose + **name a reusable subgraph** as a custom catalog entry, reusable on
+the canvas. Plugin management UI: register/select a plugin, view its contract and **conformance
 status**, and surface that a game using it is sampled-regime.
 **Definition of Done.**
-- [ ] A user composes a named custom mechanic from primitives + library + expressions and reuses it
-      in another graph (test/E2E).
+- [ ] A user composes a named custom mechanic from primitives + catalog subgraphs + expressions
+      and reuses it in another graph (test/E2E).
 - [ ] Selecting a non-conformant plugin is blocked with the reason; a conformant one shows its
       contract and the sampled-regime flag.
 
@@ -421,8 +483,9 @@ RTP / hit-freq / variance badges; **provenance** badge on every value.
 **Deliverables.** Run trigger; live uPlot RTP convergence (SignalR); visx hit histogram; progress +
 cancel; exact-vs-sampled comparison view.
 **Definition of Done.**
-- [ ] The convergence curve streams smoothly to ≥1M points without jank; cancel freezes the partial
-      curve; the comparison shows the sampled mean inside the exact CI band on the reference game.
+- [ ] The convergence curve streams smoothly to ≥1M points without jank; cancel freezes the
+      partial curve; the comparison shows the sampled mean inside the exact CI band on the
+      reference game.
 
 ### G25 — Export / import + PAR sheet
 **Objective.** Get the math out, share it, hand it off.
@@ -439,8 +502,8 @@ export (CSV + printable summary with full metric breakdown and provenance).
 ### G26 — AI gateway + NL → graph
 **Objective.** Describe a game in words, get a starting graph (including expression leaves).
 **Deliverables.** Backend AI gateway (server-side key). Structured output: NL → graph JSON
-(library nodes + expression-valued ports) validated against the schema; one repair pass on
-validation failure; reject after.
+(catalog subgraph references + expression-valued ports) validated against the schema; one repair
+pass on validation failure; reject after.
 **Definition of Done.**
 - [ ] A valid NL spec yields a graph that passes the G14 compiler validation, including any
       generated expressions.
@@ -463,13 +526,13 @@ n); streamed best-so-far; "apply suggestion" mutates the graph.
 ### G28 — Explain + compliance lint
 **Objective.** Tell the mathematician why, and catch mistakes.
 **Deliverables.** Explain: AI reads the distribution + graph for variance drivers / RTP
-concentration in plain language. Lint: rule-based checks (RTP out of band, max-win-cap probability,
-dead/unreachable symbol, paytable anomaly) + AI qualitative notes.
+concentration in plain language. Lint: rule-based checks (RTP out of band, max-win-cap
+probability, dead/unreachable symbol, paytable anomaly) + AI qualitative notes.
 **Definition of Done.**
 - [ ] Explain output only cites numbers passed in from the current distribution (no invented
       figures).
-- [ ] Each lint rule fires on a crafted failing config and stays silent on a clean one, and links to
-      the offending node/symbol.
+- [ ] Each lint rule fires on a crafted failing config and stays silent on a clean one, and links
+      to the offending node/symbol.
 
 ---
 
@@ -479,12 +542,13 @@ dead/unreachable symbol, paytable anomaly) + AI qualitative notes.
 **Objective.** Safe for the open internet, including the plugin hatch.
 **Deliverables.** Anonymous use works; OAuth + JWT gating saved/shared projects; project ownership +
 sharing; rate limiting; input/budget caps (max graph size, nodes, sim budget, expression
-complexity); **plugin governance** — only trusted/approved plugins run, executed sandboxed.
+complexity, subgraph nesting depth); **plugin governance** — only trusted/approved plugins run,
+executed sandboxed.
 **Definition of Done.**
 - [ ] Anonymous can build + simulate but not persist privately; an authed user owns/shares and
       non-owners cannot mutate.
-- [ ] Oversized graphs, over-budget sims and over-complex expressions are rejected with clear
-      errors; only approved plugins execute; rate limits verified.
+- [ ] Oversized graphs, over-budget sims, over-complex expressions, and over-deep subgraph nesting
+      are rejected with clear errors; only approved plugins execute; rate limits verified.
 
 ### G30 — Observability & error handling
 **Objective.** Operable in production.
@@ -501,19 +565,19 @@ problem-details; frontend error boundaries.
 Postgres + Redis) and Vercel/Railway (frontend).
 **Definition of Done.**
 - [ ] `docker compose up` brings the stack up with seed data (smoke test hits a health endpoint).
-- [ ] CI runs the full matrix incl. integration and fails on any red; a merge to `main` deploys and
-      the URL serves the working app end to end.
+- [ ] CI runs the full matrix incl. integration and fails on any red; a merge to `main` deploys
+      and the URL serves the working app end to end.
 
 ### G32 — Docs, E2E & production acceptance
 **Objective.** Hand-offable and proven, including the flexibility story.
 **Deliverables.** README; architecture doc; **slot-math explainer**; **authoring guide** (levels
-a/b/c, writing expressions, building a custom mechanic, registering a plugin); API docs; runbook.
-Playwright golden-path E2E.
+a/b/c, writing fold/map expressions, building a custom mechanic as a subgraph, registering a
+plugin); API docs; runbook. Playwright golden-path E2E.
 **Definition of Done.**
-- [ ] The Playwright golden path (build a game → live metrics → run sim → auto-tune → export) passes
-      headless in CI.
-- [ ] A non-iGaming developer can follow the explainer; a designer can follow the authoring guide to
-      build a custom mechanic with an expression.
+- [ ] The Playwright golden path (build a game → live metrics → run sim → auto-tune → export)
+      passes headless in CI.
+- [ ] A non-iGaming developer can follow the explainer; a designer can follow the authoring guide
+      to build a custom mechanic as a pure subgraph with fold/map expressions — zero C# code.
 - [ ] The Production acceptance checklist below is fully green.
 
 ---
@@ -521,14 +585,17 @@ Playwright golden-path E2E.
 ## Production acceptance — the 100% bar
 
 - [ ] Exact RTP matches closed form for every hand-computed game (rational equality).
-- [ ] **Flexibility:** a non-trivial novel mechanic is buildable with **expression-only** authoring
-      (no code), and its exact RTP is verified; a **plugin** evaluator passes conformance, runs
-      through the standard interpreter path, and is correctly flagged sampled-regime.
-- [ ] Exact-vs-sampled cross-check (incl. expression leaves) passes; sampled within exact ± 3·stdErr.
-- [ ] Running RTP converges within 0.5% of exact by 100k spins on the reference game; alias passes
-      chi-squared at α = 0.01.
-- [ ] Every displayed metric carries correct provenance; adding a new evaluator/transform needs no
-      interpreter/compiler change.
+- [ ] **Flexibility (no C# molecules):** a non-trivial novel mechanic is buildable as a pure
+      **subgraph** from atoms + fold/map expressions (zero C# code, zero interpreter/compiler
+      changes), and its exact RTP matches the hand-computed value. A **plugin** evaluator passes
+      conformance, runs through the standard interpreter path, and is correctly flagged
+      sampled-regime. The standard library ships **zero** `IEvaluator`/`ITransform` implementations.
+- [ ] Exact-vs-sampled cross-check (incl. fold/map expression leaves) passes; sampled within
+      exact ± 3·stdErr.
+- [ ] Running RTP converges within 0.5% of exact by 100k spins on the reference game; alias
+      passes chi-squared at α = 0.01.
+- [ ] Every displayed metric carries correct provenance; adding a new catalog mechanic (subgraph)
+      needs **no C# code** and no interpreter/compiler change.
 - [ ] Deep-recursion programs never stack-overflow; heavy runs cancellable; identical configs hit
       the cache; export/import round-trips losslessly.
 - [ ] Misbehaving plugins are sandboxed and contained; auth, rate limits, input/budget/expression
