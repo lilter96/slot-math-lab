@@ -45,7 +45,7 @@ namespace SlotMath.Core.Tests.Benchmarks;
 //    "apply-wilds"        → TransformRegistry: BoardCellApplyTransform(OverlaySymbol)
 // ═══════════════════════════════════════════════════════════════════════════
 
-[Collection("DogHouse")]
+[Collection("Registry")]
 public sealed class DogHouseNoPluginBenchmarkTests : IDisposable
 {
     private readonly PluginHost _pluginHost = new();

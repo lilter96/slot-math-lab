@@ -47,7 +47,7 @@ namespace SlotMath.Core.Tests.Benchmarks;
 //                        referenced in graph as TransformId = "plugin:sticky-wilds"
 // ═══════════════════════════════════════════════════════════════════════════
 
-[Collection("DogHouse")]
+[Collection("Registry")]
 public sealed class DogHouseBenchmarkTests : IDisposable
 {
     private readonly PluginHost _pluginHost = new();
