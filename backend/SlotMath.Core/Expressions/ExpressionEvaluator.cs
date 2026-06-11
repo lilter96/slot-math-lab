@@ -91,6 +91,7 @@ public static class ExactExpressionEvaluator
             AggregateExpr a => EvalAggregate(a, ctx),
             NotExpr n => EvalNot(n, ctx),
             CallExpr c => EvalCall(c, ctx),
+            FoldExpr f => EvalFold(f, ctx),
             _ => throw new InvalidOperationException($"Unknown expression type: {expr.GetType().Name}"),
         };
     }
@@ -194,20 +195,39 @@ public static class ExactExpressionEvaluator
         if (state is IDictionary<string, object?> dict)
         {
             var key = path[0];
-            if (dict.TryGetValue(key, out var dictVal))
+            if (!dict.TryGetValue(key, out var dictVal))
+                return ExprValue.Number(0);
+
+            // Array index access: state["key"][idx] via path = ["key", "idx"]
+            if (path.Length == 2 && int.TryParse(path[1], out var idx))
             {
                 return dictVal switch
                 {
-                    BigInteger bi => ExprValue.Number(bi),
-                    int i => ExprValue.Number(i),
-                    long l => ExprValue.Number(l),
-                    string s => ExprValue.String(s),
-                    bool b => ExprValue.Bool(b),
-                    null => ExprValue.Number(0),
+                    string[] sarr when idx >= 0 && idx < sarr.Length =>
+                        ExprValue.String(sarr[idx]),
+                    object[] oarr when idx >= 0 && idx < oarr.Length =>
+                        oarr[idx] switch
+                        {
+                            string s => ExprValue.String(s),
+                            BigInteger bi => ExprValue.Number(bi),
+                            int i => ExprValue.Number(i),
+                            bool b => ExprValue.Bool(b),
+                            _ => ExprValue.Number(0),
+                        },
                     _ => ExprValue.Number(0),
                 };
             }
-            return ExprValue.Number(0);
+
+            return dictVal switch
+            {
+                BigInteger bi => ExprValue.Number(bi),
+                int i => ExprValue.Number(i),
+                long l => ExprValue.Number(l),
+                string s => ExprValue.String(s),
+                bool b => ExprValue.Bool(b),
+                null => ExprValue.Number(0),
+                _ => ExprValue.Number(0),
+            };
         }
 
         var t = state.GetType();
@@ -470,6 +490,62 @@ public static class ExactExpressionEvaluator
         var inner = Eval(n.Expr, ctx);
         return ExprValue.Bool(!(inner.Kind == ExprType.Boolean && inner.BoolValue));
     }
+
+    // ── Bounded fold over a state array ─────────────────────────────────
+
+    private static ExprValue EvalFold(FoldExpr f, EvalContext ctx)
+    {
+        var acc = Eval(f.Init, ctx);
+
+        var arr = ExtractStateArray(f.StateKey, ctx.State);
+        if (arr == null) return acc;
+
+        var baseState = ctx.State as IDictionary<string, object?>
+            ?? new Dictionary<string, object?>();
+
+        foreach (var item in arr)
+        {
+            var iterState = new Dictionary<string, object?>(baseState)
+            {
+                [f.AccName] = ExprValueToStateObject(acc),
+                [f.ItemName] = item,
+            };
+            acc = Eval(f.Body, new EvalContext
+            {
+                Board = ctx.Board,
+                State = iterState,
+                DecorationParser = ctx.DecorationParser,
+                SymbolToNumericValue = ctx.SymbolToNumericValue,
+            });
+        }
+
+        return acc;
+    }
+
+    private static IEnumerable<object?>? ExtractStateArray(string key, object? state)
+    {
+        if (state is IDictionary<string, object?> dict && dict.TryGetValue(key, out var val))
+        {
+            return val switch
+            {
+                string[] sarr => sarr.Cast<object?>(),
+                object[] oarr => oarr,
+                System.Collections.IEnumerable en when val is not string => en.Cast<object?>(),
+                _ => null,
+            };
+        }
+        return null;
+    }
+
+    private static object? ExprValueToStateObject(ExprValue v) => v.Kind switch
+    {
+        ExprType.Number => v.NumberDenominator == 1
+            ? (object)v.NumberNumerator
+            : v,
+        ExprType.Boolean => (object)v.BoolValue,
+        ExprType.String or ExprType.Symbol => v.StringValue,
+        _ => null,
+    };
 
     // ── Built-in function calls ──────────────────────────────────────────
 

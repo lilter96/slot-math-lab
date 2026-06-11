@@ -1,4 +1,5 @@
 using System.Text.Json.Serialization;
+using SlotMath.Core.Expressions;
 
 namespace SlotMath.Core.Model;
 
@@ -13,6 +14,7 @@ namespace SlotMath.Core.Model;
 [JsonDerivedType(typeof(AggregateExpr), "aggregate")]
 [JsonDerivedType(typeof(NotExpr), "not")]
 [JsonDerivedType(typeof(CallExpr), "call")]
+[JsonDerivedType(typeof(FoldExpr), "fold")]
 public abstract record Expression
 {
     public string? Annotation { get; init; }
@@ -124,4 +126,35 @@ public sealed record CallExpr : Expression
 {
     public required string Function { get; init; }
     public Expression[] Args { get; init; } = Array.Empty<Expression>();
+}
+
+// ── Bounded fold over a state array (level-b iteration atom) ──────────
+//
+//  fold(state[StateKey], Init, (AccName, ItemName) => Body)
+//
+//  Iterates over the array stored at state[StateKey].  The accumulator
+//  (AccName) and current item (ItemName) are bound into the state dict
+//  for each iteration; the Body expression accesses them as
+//  state.AccName and state.ItemName.  No nested fold allowed (one level
+//  of bounded iteration keeps the grammar exact-analysable).
+
+public sealed record FoldExpr : Expression
+{
+    /// <summary>Key in the state dictionary whose value is the array to fold over.</summary>
+    public required string StateKey { get; init; }
+
+    /// <summary>Name bound to the accumulator inside the lambda body.</summary>
+    public required string AccName { get; init; }
+
+    /// <summary>Name bound to the current array element inside the lambda body.</summary>
+    public required string ItemName { get; init; }
+
+    /// <summary>Initial accumulator value.</summary>
+    public required Expression Init { get; init; }
+
+    /// <summary>Lambda body — must return the same type as Init.</summary>
+    public required Expression Body { get; init; }
+
+    /// <summary>Expected type of array items (defaults to String).</summary>
+    public ExprType ItemType { get; init; } = ExprType.String;
 }

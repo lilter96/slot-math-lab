@@ -60,6 +60,7 @@ public static class ExpressionTypeChecker
             AggregateExpr a => InferAggregate(a, ctx, errors),
             NotExpr n => InferNot(n, ctx, errors),
             CallExpr c => InferCall(c, ctx, errors),
+            FoldExpr f => InferFold(f, ctx, errors),
             _ => Fail(expr, $"Unknown expression type: {expr.GetType().Name}", errors),
         };
     }
@@ -287,6 +288,34 @@ public static class ExpressionTypeChecker
         }
 
         return returnType;
+    }
+
+    // ── Fold ─────────────────────────────────────────────────────────────
+
+    private static ExprType InferFold(FoldExpr f, TypeCheckContext ctx, List<TypeCheckError> errors)
+    {
+        var initType = Infer(f.Init, ctx, errors);
+
+        // Lambda context: acc and item added as virtual state fields
+        var lambdaFields = ctx.StateFields.ToList();
+        lambdaFields.Add(new FieldDescriptor { Name = f.AccName, Type = initType });
+        lambdaFields.Add(new FieldDescriptor { Name = f.ItemName, Type = f.ItemType });
+
+        var lambdaCtx = new TypeCheckContext
+        {
+            ExpectedType = initType,
+            BoardFields = ctx.BoardFields,
+            StateFields = lambdaFields,
+            CellFields = ctx.CellFields,
+            DecorationTypes = ctx.DecorationTypes,
+        };
+
+        var bodyType = Infer(f.Body, lambdaCtx, errors);
+        if (bodyType != initType && bodyType != ExprType.Error)
+            errors.Add(Error(f,
+                $"FoldExpr body returns {bodyType} but must match init type {initType}."));
+
+        return initType;
     }
 
     // ── Helpers ──────────────────────────────────────────────────────────
