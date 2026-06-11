@@ -92,6 +92,8 @@ public static class ExactExpressionEvaluator
             NotExpr n => EvalNot(n, ctx),
             CallExpr c => EvalCall(c, ctx),
             FoldExpr f => EvalFold(f, ctx),
+            MapExpr m => EvalMap(m, ctx),
+            FilterExpr fi => EvalFilter(fi, ctx),
             _ => throw new InvalidOperationException($"Unknown expression type: {expr.GetType().Name}"),
         };
     }
@@ -225,6 +227,7 @@ public static class ExactExpressionEvaluator
                 long l => ExprValue.Number(l),
                 string s => ExprValue.String(s),
                 bool b => ExprValue.Bool(b),
+                ExprValue ev => ev,  // rational stored as ExprValue, or array item
                 null => ExprValue.Number(0),
                 _ => ExprValue.Number(0),
             };
@@ -537,14 +540,76 @@ public static class ExactExpressionEvaluator
         return null;
     }
 
-    private static object? ExprValueToStateObject(ExprValue v) => v.Kind switch
+    private static object? ExprValueToStateObject(ExprValue v) => v.ToStateObject();
+
+    // ── Bounded map over a state array ───────────────────────────────────
+
+    private static ExprValue EvalMap(MapExpr m, EvalContext ctx)
     {
-        ExprType.Number => v.NumberDenominator == 1
-            ? (object)v.NumberNumerator
-            : v,
-        ExprType.Boolean => (object)v.BoolValue,
-        ExprType.String or ExprType.Symbol => v.StringValue,
-        _ => null,
+        var arr = ExtractStateArray(m.StateKey, ctx.State);
+        if (arr == null) return ExprValue.Array([]);
+
+        var baseState = ctx.State as IDictionary<string, object?> ?? new Dictionary<string, object?>();
+        var result = new List<ExprValue>();
+
+        foreach (var item in arr)
+        {
+            var iterState = new Dictionary<string, object?>(baseState)
+            {
+                [m.ItemName] = item,
+            };
+            result.Add(Eval(m.Body, new EvalContext
+            {
+                Board = ctx.Board,
+                State = iterState,
+                DecorationParser = ctx.DecorationParser,
+                SymbolToNumericValue = ctx.SymbolToNumericValue,
+            }));
+        }
+
+        return ExprValue.Array(result);
+    }
+
+    // ── Bounded filter over a state array ────────────────────────────────
+
+    private static ExprValue EvalFilter(FilterExpr f, EvalContext ctx)
+    {
+        var arr = ExtractStateArray(f.StateKey, ctx.State);
+        if (arr == null) return ExprValue.Array([]);
+
+        var baseState = ctx.State as IDictionary<string, object?> ?? new Dictionary<string, object?>();
+        var result = new List<ExprValue>();
+
+        foreach (var item in arr)
+        {
+            var iterState = new Dictionary<string, object?>(baseState)
+            {
+                [f.ItemName] = item,
+            };
+            var pred = Eval(f.Predicate, new EvalContext
+            {
+                Board = ctx.Board,
+                State = iterState,
+                DecorationParser = ctx.DecorationParser,
+                SymbolToNumericValue = ctx.SymbolToNumericValue,
+            });
+            if (pred.Kind == ExprType.Boolean && pred.BoolValue)
+                result.Add(ObjectToExprValue(item));
+        }
+
+        return ExprValue.Array(result);
+    }
+
+    private static ExprValue ObjectToExprValue(object? item) => item switch
+    {
+        string s => ExprValue.String(s),
+        BigInteger bi => ExprValue.Number(bi),
+        int i => ExprValue.Number(i),
+        long l => ExprValue.Number(l),
+        bool b => ExprValue.Bool(b),
+        ExprValue ev => ev,
+        null => ExprValue.Number(0),
+        _ => ExprValue.Number(0),
     };
 
     // ── Built-in function calls ──────────────────────────────────────────

@@ -881,12 +881,7 @@ public sealed class GraphCompiler
             Expression expr, Dictionary<string, object?> state)
         {
             var v = ExactExpressionEvaluator.Evaluate(expr, new EvalContext { State = state });
-            return v.Kind switch
-            {
-                ExprType.Boolean => v.BoolValue,
-                ExprType.String or ExprType.Symbol => v.StringValue,
-                _ => v.AsInteger(),
-            };
+            return v.ToStateObject();
         }
 
         // ── Branch fallback (no true/false ports) ───────────────────────
