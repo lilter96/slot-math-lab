@@ -4,7 +4,7 @@
  * No loops/recursion — expressions are pure, total, deterministic.
  */
 
-export type ExprType = 'Number' | 'Boolean';
+export type ExprType = 'Number' | 'Boolean' | 'Array';
 
 export interface ExprContext {
   symbols?: { id: string; kind: string }[];
@@ -43,7 +43,7 @@ function tokenize(src: string): Token[] {
       const start = i;
       while (i < src.length && /[A-Za-z0-9_.]/.test(src[i])) i++;
       const word = src.slice(start, i);
-      const kw = ['and', 'or', 'not', 'if', 'sum', 'product', 'count', 'min', 'max', 'true', 'false'];
+      const kw = ['and', 'or', 'not', 'if', 'sum', 'product', 'count', 'min', 'max', 'fold', 'map', 'filter', 'true', 'false'];
       if (kw.includes(word)) {
         toks.push({ type: 'kw', value: word, start, end: i });
       } else if (word === 'board' || word === 'state') {
@@ -129,6 +129,19 @@ class Parser {
     const t = this.eat(type);
     if (!t) this.errors.push({ msg, pos: this.cur().start });
     return t;
+  }
+
+  // Consume tokens until the matching ')' at depth 0 (assumes we are inside '(').
+  skipMatchingParens() {
+    let depth = 1;
+    while (this.pos < this.toks.length - 1 && depth > 0) {
+      const t = this.toks[this.pos];
+      if (t.type === 'paren') {
+        if (t.value === '(') depth++;
+        else if (t.value === ')') { depth--; if (depth === 0) { this.pos++; break; } }
+      }
+      this.pos++;
+    }
   }
 
   // expression -> comparison
@@ -244,6 +257,22 @@ class Parser {
       return { type: thenVal.type === elseVal.type ? thenVal.type : 'unknown', ok: cond.ok && thenVal.ok && elseVal.ok };
     }
 
+    // Bounded iteration: fold(stateKey, init, (acc, x) => body) → Number
+    //                    map(stateKey, (x) => body)             → Array
+    //                    filter(stateKey, (x) => pred)          → Array
+    // Parse loosely — consume the whole argument list without deep checking
+    // (the backend type-checker handles full validation).
+    if (t.type === 'kw' && (t.value === 'fold' || t.value === 'map' || t.value === 'filter')) {
+      const fnName = t.value;
+      this.pos++;
+      if (this.cur().type === 'paren' && this.cur().value === '(') {
+        this.pos++; // skip (
+        this.skipMatchingParens();
+      }
+      const retType: ExprType = fnName === 'fold' ? 'Number' : 'Array';
+      return { type: retType, ok: this.errors.length === 0 };
+    }
+
     // Aggregation functions: sum(expr), product(expr), count(), min(expr), max(expr)
     if (t.type === 'kw' && FUNCS[t.value]) {
       const fnName = t.value;
@@ -354,5 +383,8 @@ export function getKnownFunctions(): { name: string; returnType: string; desc: s
     { name: 'and', returnType: 'Boolean', desc: 'Logical AND' },
     { name: 'or', returnType: 'Boolean', desc: 'Logical OR' },
     { name: 'not', returnType: 'Boolean', desc: 'Logical NOT' },
+    { name: 'fold', returnType: 'Number', desc: 'Fold over state array: fold(stateKey, init, (acc, x) => body)' },
+    { name: 'map', returnType: 'Array', desc: 'Map over state array: map(stateKey, (x) => body)' },
+    { name: 'filter', returnType: 'Array', desc: 'Filter state array: filter(stateKey, (x) => pred)' },
   ];
 }
