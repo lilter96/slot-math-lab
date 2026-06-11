@@ -1,4 +1,5 @@
 using System.Numerics;
+using SlotMath.Core.Catalog;
 using SlotMath.Core.Expressions;
 using SlotMath.Core.Mechanics;
 using SlotMath.Core.Model;
@@ -48,7 +49,13 @@ public sealed class GraphCompiler
     /// </summary>
     public CompileResult Compile(GraphConfig config)
     {
-        // Phase 0: Inline subgraph (LibraryNode) references to their atoms.
+        // Phase 0a: Merge catalog mechanics with user-provided mechanics so
+        // LibraryNode references resolve to the standard catalog without
+        // requiring callers to manually supply the built-in subgraphs.
+        var mergedMechanics = MechanicCatalog.Default.Merge(config.Mechanics);
+        config = config with { Mechanics = mergedMechanics };
+
+        // Phase 0b: Inline subgraph (LibraryNode) references to their atoms.
         // After this the graph contains only primitives, which the validator
         // and builder already handle in full.
         var (inlined, inlineErrors) = SubgraphInliner.Inline(config);

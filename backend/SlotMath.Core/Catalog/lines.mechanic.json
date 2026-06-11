@@ -1,0 +1,16 @@
+{
+  "name": "lines",
+  "description": "Lines / payline mechanic. Evaluates left-to-right matching along all paylines in the active PaylineSet, looking up each matched run in the Paytable. Input port: 'board' (Board). Output port: 'wins' (Wins).",
+  "nodes": [
+    {
+      "nodeType": "map",
+      "id": "eval",
+      "label": "Lines Evaluator",
+      "transformId": "lines",
+      "inputs": { "board": { "name": "board", "type": "Board" } },
+      "outputs": { "wins": { "name": "wins", "type": "Wins" } }
+    }
+  ],
+  "edges": [],
+  "expressions": {}
+}

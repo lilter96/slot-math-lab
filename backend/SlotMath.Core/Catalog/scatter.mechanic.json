@@ -1,0 +1,16 @@
+{
+  "name": "scatter",
+  "description": "Scatter / pays-anywhere mechanic. Counts all occurrences of each paytable symbol anywhere on the board and awards the matching paytable payout. Input port: 'board' (Board). Output port: 'wins' (Wins).",
+  "nodes": [
+    {
+      "nodeType": "map",
+      "id": "eval",
+      "label": "Scatter Evaluator",
+      "transformId": "scatter",
+      "inputs": { "board": { "name": "board", "type": "Board" } },
+      "outputs": { "wins": { "name": "wins", "type": "Wins" } }
+    }
+  ],
+  "edges": [],
+  "expressions": {}
+}
