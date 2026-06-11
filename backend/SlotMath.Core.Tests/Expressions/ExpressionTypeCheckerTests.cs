@@ -462,3 +462,88 @@ public class TypeCheckError_PrecisionTests(ITestOutputHelper output)
         }
     }
 }
+
+// ═══════════════════════════════════════════════════════════════════════════
+//  G9 DoD — bounded iteration: fold type-checks; nested fold is rejected
+//  (one level of bounded iteration keeps the grammar exact-analysable).
+// ═══════════════════════════════════════════════════════════════════════════
+
+public class ExpressionTypeChecker_FoldNestingTests
+{
+    private static FieldAccessExpr State(string name) =>
+        new() { Target = "state", Path = [name] };
+
+    private static ConstantExpr Int(int v) =>
+        new() { Kind = ConstantKind.Integer, Value = v.ToString() };
+
+    // Context exposing a numeric array field "items".
+    private static TypeCheckContext Ctx => new()
+    {
+        StateFields = [new FieldDescriptor { Name = "items", Type = ExprType.Number }],
+    };
+
+    // fold("items", 0, (acc, item) => acc + 1)  — well-formed, single level.
+    private static FoldExpr CountFold() => new()
+    {
+        StateKey = "items",
+        AccName = "acc",
+        ItemName = "item",
+        Init = Int(0),
+        ItemType = ExprType.Number,
+        Body = new BinaryExpr { Op = BinaryOp.Add, Left = State("acc"), Right = Int(1) },
+    };
+
+    [Fact]
+    public void SingleFold_IsAccepted()
+    {
+        var errors = ExpressionTypeChecker.Check(CountFold(), Ctx, ExprType.Number);
+        Assert.Empty(errors);
+    }
+
+    [Fact]
+    public void NestedFold_IsRejected_WithPreciseError()
+    {
+        // fold("items", 0, (acc, item) => acc + fold("items", 0, ...))
+        var nested = new FoldExpr
+        {
+            StateKey = "items",
+            AccName = "acc",
+            ItemName = "item",
+            Init = Int(0),
+            ItemType = ExprType.Number,
+            Body = new BinaryExpr
+            {
+                Op = BinaryOp.Add,
+                Left = State("acc"),
+                Right = CountFold(), // ← nested fold inside the body
+            },
+        };
+
+        var errors = ExpressionTypeChecker.Check(nested, Ctx, ExprType.Number);
+        var err = Assert.Single(errors);
+        Assert.Contains("Nested fold is not allowed", err.Message);
+    }
+
+    [Fact]
+    public void FoldNestedInsideConditional_IsAlsoRejected()
+    {
+        // A nested fold buried in an If still trips the guard.
+        var nested = new FoldExpr
+        {
+            StateKey = "items",
+            AccName = "acc",
+            ItemName = "item",
+            Init = Int(0),
+            ItemType = ExprType.Number,
+            Body = new IfExpr
+            {
+                Condition = new CompareExpr { Op = CompareOp.Gt, Left = State("acc"), Right = Int(0) },
+                ThenExpr = CountFold(), // ← nested fold in a branch
+                ElseExpr = State("acc"),
+            },
+        };
+
+        var errors = ExpressionTypeChecker.Check(nested, Ctx, ExprType.Number);
+        Assert.Contains(errors, e => e.Message.Contains("Nested fold is not allowed"));
+    }
+}

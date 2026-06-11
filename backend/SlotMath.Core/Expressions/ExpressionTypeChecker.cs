@@ -296,6 +296,19 @@ public static class ExpressionTypeChecker
     {
         var initType = Infer(f.Init, ctx, errors);
 
+        // One level of bounded iteration only — a fold body may not contain
+        // another fold.  Nested folds would multiply the iteration bound and
+        // break the "bounded by array size → exact-analysable" guarantee
+        // (CLAUDE.md G9 / level-b grammar).  Reject before recursing into the
+        // body so the error is precise and not buried under secondary errors.
+        if (ContainsFold(f.Body))
+        {
+            errors.Add(Error(f,
+                "Nested fold is not allowed: a fold body may not contain another " +
+                "fold (one level of bounded iteration keeps the grammar exact-analysable)."));
+            return initType;
+        }
+
         // Lambda context: acc and item added as virtual state fields
         var lambdaFields = ctx.StateFields.ToList();
         lambdaFields.Add(new FieldDescriptor { Name = f.AccName, Type = initType });
@@ -319,6 +332,22 @@ public static class ExpressionTypeChecker
     }
 
     // ── Helpers ──────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// True if the expression tree contains a FoldExpr anywhere — used to
+    /// forbid nested folds (one level of bounded iteration maximum).
+    /// </summary>
+    private static bool ContainsFold(Expression expr) => expr switch
+    {
+        FoldExpr => true,
+        BinaryExpr b => ContainsFold(b.Left) || ContainsFold(b.Right),
+        CompareExpr c => ContainsFold(c.Left) || ContainsFold(c.Right),
+        IfExpr i => ContainsFold(i.Condition) || ContainsFold(i.ThenExpr) || ContainsFold(i.ElseExpr),
+        NotExpr n => ContainsFold(n.Expr),
+        AggregateExpr a => a.Predicate != null && ContainsFold(a.Predicate),
+        CallExpr call => call.Args.Any(ContainsFold),
+        _ => false, // ConstantExpr, FieldAccessExpr — leaves
+    };
 
     private static ExprType Fail(Expression expr, string message, List<TypeCheckError> errors)
     {
