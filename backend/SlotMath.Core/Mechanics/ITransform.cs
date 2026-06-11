@@ -1,15 +1,19 @@
 namespace SlotMath.Core.Mechanics;
 
 /// <summary>
-/// A pure transformation on a board and opaque game state.
+/// Plugin contract (level c) for pure board+state transformations.
 ///
-/// ITransform is one of the three stable, pluggable interfaces of the mechanic
-/// layer.  Transforms mutate the board (and optionally the recurrence state)
-/// without randomness or I/O — they are pure functions.
+/// ITransform is the interface that user-uploaded plugins implement to supply
+/// novel board-mutation logic.  It is NOT a standard-library interface — the
+/// canonical mechanics catalog is composed from substrate atoms (subgraphs of
+/// Draw/State/Loop + expressions), not from C# classes.
 ///
-/// Implementations belong to the standard library or are loaded as plugins
-/// (level c).  The interpreters and compiler are agnostic to the specific
-/// transform: they query the <see cref="TransformRegistry"/> by name.
+/// The implementations in Mechanics/Transforms/ are OPTIONAL C# fast-paths.
+/// Each one should be accompanied by a passing equivalence test against its
+/// canonical atomic subgraph (Invariant 11) before being used in production.
+///
+/// Rules: pure, deterministic, no Draw, no I/O.  Original board is never
+/// mutated — always return a new Board.
 /// </summary>
 public interface ITransform
 {
