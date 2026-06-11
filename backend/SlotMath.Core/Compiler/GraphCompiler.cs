@@ -48,6 +48,14 @@ public sealed class GraphCompiler
     /// </summary>
     public CompileResult Compile(GraphConfig config)
     {
+        // Phase 0: Inline subgraph (LibraryNode) references to their atoms.
+        // After this the graph contains only primitives, which the validator
+        // and builder already handle in full.
+        var (inlined, inlineErrors) = SubgraphInliner.Inline(config);
+        if (inlineErrors.Count > 0)
+            return CompileResult.Failure(inlineErrors.ToList());
+        config = inlined;
+
         // Phase 1: Validate
         var errors = GraphValidator.Validate(config, _pluginHost);
         if (errors.Count > 0)
