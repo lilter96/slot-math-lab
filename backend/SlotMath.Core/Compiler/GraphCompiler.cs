@@ -619,9 +619,11 @@ public sealed class GraphCompiler
                     expressionPorts.Add((portName, ExpressionCompiler.CompileNumber(port.DefaultValue)));
             }
 
-            var applyTransform = mapNode.TransformId != null
-                ? ResolveTransform(mapNode.TransformId, mapNode.Id)
-                : null;
+            Func<Board?, Dictionary<string, object?>, Dictionary<string, BigInteger>?,
+                (object? Result, Dictionary<string, object?> NewState)>? applyTransform =
+                mapNode.TransformId != null
+                    ? ResolveTransform(mapNode.TransformId, mapNode.Id)
+                    : null;
 
             var hasBoardInput = mapNode.Inputs.Values.Any(p => p.Type == PortType.Board);
             var hasWinsOutput = mapNode.Outputs.Values.Any(p => p.Type == PortType.Wins);
@@ -647,8 +649,16 @@ public sealed class GraphCompiler
                 }
 
                 if (applyTransform != null)
-                    return Slot.Pure<Dictionary<string, object?>, object?>(
-                        applyTransform(board, expressionValues));
+                    return Slot.GetState<Dictionary<string, object?>>()
+                        .SelectMany(currentState =>
+                        {
+                            var (result, newState) = applyTransform(board, currentState, expressionValues);
+                            var resultSlot = Slot.Pure<Dictionary<string, object?>, object?>(result);
+                            return ReferenceEquals(newState, currentState)
+                                ? resultSlot
+                                : Slot.Modify<Dictionary<string, object?>>(_ => newState)
+                                    .SelectMany(_ => resultSlot);
+                        });
 
                 if (hasBoardInput && hasWinsOutput && board != null)
                 {
@@ -663,9 +673,14 @@ public sealed class GraphCompiler
 
         /// <summary>
         /// Resolve a transform/evaluator/plugin reference at compile time to
-        /// a runtime application function.
+        /// a state-aware runtime application function.
+        ///
+        /// The returned delegate receives the current game state and returns
+        /// both the result and the (possibly updated) game state.  Evaluators
+        /// return state unchanged; transforms may return a new state object.
         /// </summary>
-        private Func<Board?, Dictionary<string, BigInteger>?, object?> ResolveTransform(
+        private Func<Board?, Dictionary<string, object?>, Dictionary<string, BigInteger>?,
+            (object? Result, Dictionary<string, object?> NewState)> ResolveTransform(
             string transformId, string nodeId)
         {
             // Plugin reference: "plugin:pluginId"
@@ -677,28 +692,31 @@ public sealed class GraphCompiler
                     throw new CompilationException(nodeId, ErrorCodes.PluginNotFound,
                         $"Plugin '{pluginId}' not found.");
 
-                return (board, expressionValues) => ApplyExpressions(
-                    pluginEvaluator.Evaluate(board!, new Dictionary<string, object?>()),
-                    expressionValues);
+                return (board, state, expressionValues) => (
+                    ApplyExpressions(pluginEvaluator.Evaluate(board!, state), expressionValues),
+                    state
+                );
             }
 
-            // Evaluator registry
+            // Evaluator registry — evaluators read state but never modify it
             var registryEvaluator = EvaluatorRegistry.TryGet(transformId);
             if (registryEvaluator != null)
             {
-                return (board, expressionValues) => ApplyExpressions(
-                    registryEvaluator.Evaluate(board!, new Dictionary<string, object?>()),
-                    expressionValues);
+                return (board, state, expressionValues) => (
+                    ApplyExpressions(registryEvaluator.Evaluate(board!, state), expressionValues),
+                    state
+                );
             }
 
-            // Transform registry
+            // Transform registry — transforms may read and write state
             var transform = TransformRegistry.TryGet(transformId);
             if (transform != null)
             {
-                return (board, _) =>
+                return (board, state, _) =>
                 {
-                    var (newBoard, _) = transform.Apply(board!, new Dictionary<string, object?>());
-                    return newBoard;
+                    var (newBoard, newStateObj) = transform.Apply(board!, state);
+                    var newState = newStateObj as Dictionary<string, object?> ?? state;
+                    return (newBoard, newState);
                 };
             }
 
