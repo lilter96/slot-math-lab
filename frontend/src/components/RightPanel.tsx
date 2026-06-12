@@ -7,8 +7,9 @@ import ReelStripEditor from './tables/ReelStripEditor';
 import BoardConfigEditor from './tables/BoardConfigEditor';
 import MechanicManager from './mechanics/MechanicManager';
 import PluginManager from './mechanics/PluginManager';
+import AutoTunePanel from './ai/AutoTunePanel';
 
-type MainTab = 'inspector' | 'tables' | 'mechanics';
+type MainTab = 'inspector' | 'tables' | 'mechanics' | 'ai';
 type TableSection = 'symbols' | 'paytable' | 'reels' | 'board';
 type MechanicsTab = 'mechanics' | 'plugins';
 
@@ -45,6 +46,13 @@ export default function RightPanel() {
           style={{ fontSize: 11 }}
         >
           Mechanics
+        </button>
+        <button
+          className={'tab' + (mainTab === 'ai' ? ' active' : '')}
+          onClick={() => setPreferredTab('ai')}
+          style={{ fontSize: 11 }}
+        >
+          AI
         </button>
       </div>
 
@@ -99,6 +107,12 @@ export default function RightPanel() {
             {mechanicsTab === 'mechanics' && <MechanicManager />}
             {mechanicsTab === 'plugins' && <PluginManager />}
           </div>
+        </div>
+      )}
+
+      {mainTab === 'ai' && (
+        <div style={{ flex: 1, overflowY: 'auto' }}>
+          <AutoTunePanel />
         </div>
       )}
     </div>
