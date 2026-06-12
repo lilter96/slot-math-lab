@@ -18,7 +18,7 @@ export interface Tweaks {
 
 export interface GraphNodeData {
   label: string;
-  nodeType: 'draw' | 'state' | 'loop' | 'branch' | 'map' | 'evaluator' | 'transform' | 'sink';
+  nodeType: 'draw' | 'state' | 'loop' | 'branch' | 'map' | 'evaluator' | 'transform' | 'library' | 'sink';
   sub?: string;
   level?: 'a' | 'b' | 'c';
   /** Loop-specific config */
