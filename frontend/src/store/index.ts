@@ -25,7 +25,7 @@ export interface DrawWeightEntry {
 
 export interface GraphNodeData {
   label: string;
-  nodeType: 'draw' | 'state' | 'loop' | 'branch' | 'map' | 'evaluator' | 'transform' | 'sink';
+  nodeType: 'draw' | 'state' | 'loop' | 'branch' | 'map' | 'evaluator' | 'transform' | 'library' | 'sink';
   sub?: string;
   level?: 'a' | 'b' | 'c';
   /** Loop-specific config */
@@ -49,6 +49,8 @@ export interface GraphNodeData {
   stateWriteKey?: string;
   /** Plugin ID when evaluatorKind === 'plugin' */
   pluginId?: string;
+  /** Library (catalog mechanic) node: the catalog mechanic name */
+  mechanicName?: string;
   [key: string]: unknown;
 }
 
@@ -85,19 +87,27 @@ export const NODE_DEFAULTS: Record<string, Partial<GraphNodeData>> = {
   evaluator: { label: 'Evaluator', sub: 'IEvaluator', level: 'a', evaluatorKind: 'lines' },
   transform: { label: 'Transform', sub: 'ITransform', level: 'a' },
   sink: { label: 'Sink', sub: 'Metrics output', level: 'a' },
+  // Catalog (library) mechanics — one entry per built-in subgraph
+  'library:scatter':     { label: 'Scatter',      sub: 'Catalog mechanic', level: 'a', nodeType: 'library', mechanicName: 'scatter' },
+  'library:lines':       { label: 'Lines',         sub: 'Catalog mechanic', level: 'a', nodeType: 'library', mechanicName: 'lines' },
+  'library:ways':        { label: 'Ways',          sub: 'Catalog mechanic', level: 'a', nodeType: 'library', mechanicName: 'ways' },
+  'library:cascade':     { label: 'Cascade',       sub: 'Catalog mechanic', level: 'a', nodeType: 'library', mechanicName: 'cascade' },
+  'library:sticky-wild': { label: 'Sticky Wild',   sub: 'Catalog mechanic', level: 'a', nodeType: 'library', mechanicName: 'sticky-wild' },
+  'library:hold-and-win':{ label: 'Hold & Win',    sub: 'Catalog mechanic', level: 'a', nodeType: 'library', mechanicName: 'hold-and-win' },
 };
 
 // ── Connection validation ──────────────────────────────────────────
 
 /** Valid port-to-port connections. sink has no output. */
 const VALID_CONNECTIONS: Record<string, string[]> = {
-  draw: ['evaluator', 'transform', 'loop', 'branch'],
-  state: ['draw', 'evaluator', 'transform', 'loop', 'branch', 'map', 'sink'],
-  loop: ['evaluator', 'transform', 'draw', 'branch', 'map', 'sink'],
-  branch: ['evaluator', 'transform', 'draw', 'loop', 'map', 'sink'],
-  map: ['evaluator', 'transform', 'draw', 'loop', 'branch', 'sink'],
-  evaluator: ['transform', 'loop', 'branch', 'map', 'sink'],
-  transform: ['evaluator', 'transform', 'loop', 'branch', 'map', 'sink'],
+  draw: ['evaluator', 'transform', 'library', 'loop', 'branch'],
+  state: ['draw', 'evaluator', 'transform', 'library', 'loop', 'branch', 'map', 'sink'],
+  loop: ['evaluator', 'transform', 'library', 'draw', 'branch', 'map', 'sink'],
+  branch: ['evaluator', 'transform', 'library', 'draw', 'loop', 'map', 'sink'],
+  map: ['evaluator', 'transform', 'library', 'draw', 'loop', 'branch', 'sink'],
+  evaluator: ['transform', 'library', 'loop', 'branch', 'map', 'sink'],
+  transform: ['evaluator', 'transform', 'library', 'loop', 'branch', 'map', 'sink'],
+  library: ['evaluator', 'transform', 'library', 'loop', 'branch', 'map', 'sink'],
   sink: [],
 };
 

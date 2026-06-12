@@ -16,6 +16,7 @@ const iconMap: Record<string, keyof typeof Ic> = {
   map: 'expr',
   evaluator: 'evaluator',
   transform: 'fit',
+  library: 'evaluator',
   sink: 'sink',
 };
 
@@ -88,6 +89,12 @@ const BaseNodeCard: FC<BaseNodeProps> = ({ data, selected }) => {
         )}
         {data.nodeType === 'transform' && (
           <div className="mini-row"><span className="k">transform</span><span className="v">{data.sub ?? 'ITransform'}</span></div>
+        )}
+        {data.nodeType === 'library' && (
+          <div className="mini-row">
+            <span className="k">mechanic</span>
+            <span className="v" style={{ color: 'var(--exact)' }}>{(data.mechanicName as string) ?? '—'}</span>
+          </div>
         )}
         {data.nodeType === 'sink' && (
           <div className="mini-row"><span className="k">RTP</span><span className="v" style={{ color: 'var(--exact)', fontSize: 13 }}>—</span></div>
