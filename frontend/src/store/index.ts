@@ -316,13 +316,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   setMechanicsFromBackend: (mechanics) => set({ mechanics }),
 
   // ── Table data (used by live metrics) ───────────────────────────
-  tableSymbols: [
-    { id: 'S1', name: 'Cherry', kind: 'Standard', color: '#e03131' },
-    { id: 'S2', name: 'Lemon', kind: 'Standard', color: '#f08c00' },
-    { id: 'S3', name: 'Bell', kind: 'Standard', color: '#f06595' },
-    { id: 'W1', name: 'Wild', kind: 'Wild', color: '#2f9e44' },
-    { id: 'SC1', name: 'Scatter', kind: 'Scatter', color: '#7950f2' },
-  ],
+  tableSymbols: [],
   setTableSymbols: (symbols) => set({ tableSymbols: symbols }),
 }));
 

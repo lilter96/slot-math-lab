@@ -5,7 +5,7 @@ import PaytableEditor from './PaytableEditor';
 import ReelStripEditor from './ReelStripEditor';
 import BoardConfigEditor from './BoardConfigEditor';
 
-const SECTIONS = ['symbols', 'paytable', 'reels', 'board'] as const;
+const SECTIONS = ['symbols', 'paytable', 'reels', 'state'] as const;
 type Section = (typeof SECTIONS)[number];
 
 export default function TablesPanel() {
@@ -26,7 +26,7 @@ export default function TablesPanel() {
             {s === 'symbols' ? 'Symbols' :
              s === 'paytable' ? 'Paytable' :
              s === 'reels' ? 'Reels' :
-             'Board'}
+             'State Config'}
           </button>
         ))}
       </div>
@@ -34,7 +34,7 @@ export default function TablesPanel() {
         {active === 'symbols' && <SymbolEditor />}
         {active === 'paytable' && <PaytableEditor symbolIds={symbolIds} />}
         {active === 'reels' && <ReelStripEditor symbolIds={symbolIds} />}
-        {active === 'board' && <BoardConfigEditor />}
+        {active === 'state' && <BoardConfigEditor />}
       </div>
     </div>
   );
