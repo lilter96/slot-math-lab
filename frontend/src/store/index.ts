@@ -190,6 +190,10 @@ export interface AppState extends GraphState, MechanicsState, PluginsState, Mech
   setConfigName: (name: string | null) => void;
   tweaks: Tweaks;
   setTweak: <K extends keyof Tweaks>(key: K, value: Tweaks[K]) => void;
+  /** Live metrics from /evaluate/light — shown on sink node and MetricStrip */
+  liveRtp: number | null;
+  liveProvenance: 'Exact' | 'Sampled' | 'NeedsFullRun' | null;
+  setLiveMetrics: (rtp: number | null, provenance: 'Exact' | 'Sampled' | 'NeedsFullRun' | null) => void;
 }
 
 export const MOOD_HUE: Record<Mood, number> = {
@@ -213,6 +217,11 @@ export const useAppStore = create<AppState>((set, get) => ({
   },
   setTweak: (key, value) =>
     set((s) => ({ tweaks: { ...s.tweaks, [key]: value } })),
+
+  // ── Live metrics ─────────────────────────────────────────────────
+  liveRtp: null,
+  liveProvenance: null,
+  setLiveMetrics: (rtp, provenance) => set({ liveRtp: rtp, liveProvenance: provenance }),
 
   // ── Graph state ─────────────────────────────────────────────────
   nodes: [],
