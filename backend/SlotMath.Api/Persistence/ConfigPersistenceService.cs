@@ -23,7 +23,7 @@ public class ConfigPersistenceService
     /// Save a new config version under a project. Returns the created entity.
     /// </summary>
     public async Task<ConfigVersionEntity> SaveConfigAsync(
-        string projectId, object config, string? projectName = null)
+        string projectId, object config, string? projectName = null, string? ownerId = null)
     {
         var json = JsonSerializer.Serialize(config, JsonOptions.Default);
         var hash = CanonicalHash.Compute(config);
@@ -36,12 +36,16 @@ public class ConfigPersistenceService
             {
                 Id = projectId,
                 Name = projectName ?? projectId,
+                OwnerId = ownerId,
             };
             _db.Projects.Add(project);
         }
         else
         {
             project.UpdatedAt = DateTimeOffset.UtcNow;
+            // Set owner on first authenticated save if not already set
+            if (project.OwnerId is null && ownerId is not null)
+                project.OwnerId = ownerId;
         }
 
         // Determine the next version number
