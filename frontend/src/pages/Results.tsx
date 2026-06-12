@@ -1,6 +1,8 @@
+import { useMemo } from 'react';
 import { useAppStore } from '../store';
 import ProvBadge, { type Provenance } from '../components/ProvBadge';
 import { useLiveMetrics } from '../hooks/useLiveMetrics';
+import { LintPanel, ExplainPanel } from '../components/ai/LintExplainPanel';
 
 export default function Results() {
   const configName = useAppStore((s) => s.configName);
@@ -11,6 +13,22 @@ export default function Results() {
 
   // Live metrics from POST /api/evaluate/light (debounced, falls back gracefully)
   const { overall, loading, error: metricsError } = useLiveMetrics(symbols);
+
+  // Config object for lint endpoint
+  const lintConfig = useMemo(() => ({
+    schemaVersion: '1.0.0',
+    symbols,
+    paytables: [],
+    reelStrips: [],
+    nodes: nodes.map((n) => ({ ...n.data, id: n.id, inputs: {}, outputs: {} })),
+    edges: edges.map((e) => ({
+      id: e.id,
+      sourceNodeId: e.source,
+      targetNodeId: e.target,
+      sourcePort: e.sourceHandle ?? 'out',
+      targetPort: e.targetHandle ?? 'in',
+    })),
+  }), [symbols, nodes, edges]);
 
   // Map backend provenance to ProvBadge shape
   const prov: Provenance | null =
@@ -219,6 +237,17 @@ Sampled         — Monte Carlo with n samples; stdErr and 95% CI reported.
 All displayed metric values carry a provenance tag.
 Floats are display-only; the rational ratio is the source of truth on the exact path.`}</div>
           </div>
+
+          {/* ── AI: explain + lint (G28) ── */}
+          {overall && overall.rtp > 0 && (
+            <ExplainPanel
+              rtp={overall.rtp}
+              hitFrequency={overall.hitFrequency ?? 0}
+              volatility={overall.volatility ?? 0}
+              ci95={overall.ci95 ?? undefined}
+            />
+          )}
+          <LintPanel config={lintConfig} rtp={overall?.rtp} />
         </div>
       </div>
     </div>
