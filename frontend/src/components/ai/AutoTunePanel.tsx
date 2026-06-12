@@ -11,7 +11,6 @@ interface AutoTuneResult {
 export default function AutoTunePanel() {
   const nodes = useAppStore((s) => s.nodes);
   const edges = useAppStore((s) => s.edges);
-  const symbols = useAppStore((s) => s.tableSymbols);
 
   const [targetRtp, setTargetRtp] = useState('0.96');
   const [maxIter, setMaxIter] = useState('200');
@@ -30,9 +29,6 @@ export default function AutoTunePanel() {
     try {
       const config = {
         schemaVersion: '1.0.0',
-        symbols,
-        paytables: [],
-        reelStrips: [],
         nodes: nodes.map((n) => ({
           ...n.data,
           id: n.id,

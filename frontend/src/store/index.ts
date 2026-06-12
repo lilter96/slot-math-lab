@@ -171,19 +171,7 @@ export interface MechanicsSyncState {
 
 // ── Store ──────────────────────────────────────────────────────────
 
-export interface TableSymbol {
-  id: string;
-  name: string;
-  kind: string;
-  color: string;
-}
-
-export interface TableState {
-  tableSymbols: TableSymbol[];
-  setTableSymbols: (s: TableSymbol[]) => void;
-}
-
-export interface AppState extends GraphState, MechanicsState, PluginsState, MechanicsSyncState, TableState {
+export interface AppState extends GraphState, MechanicsState, PluginsState, MechanicsSyncState {
   tab: TabId;
   setTab: (tab: TabId) => void;
   configName: string | null;
@@ -316,8 +304,6 @@ export const useAppStore = create<AppState>((set, get) => ({
   setMechanicsFromBackend: (mechanics) => set({ mechanics }),
 
   // ── Table data (used by live metrics) ───────────────────────────
-  tableSymbols: [],
-  setTableSymbols: (symbols) => set({ tableSymbols: symbols }),
 }));
 
 // ── Minimal Node/Edge change handlers (avoid heavy immer dependency) ─

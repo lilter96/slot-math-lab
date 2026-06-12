@@ -45,7 +45,6 @@ const EMPTY: LiveMetricsState = {
 // ═══════════════════════════════════════════════════════════════════
 
 export function useLiveMetrics(
-  symbols: { id: string; name: string; kind: string; color: string }[] = [],
   expressions: Record<string, string> = {},
 ) {
   const nodes = useAppStore((s) => s.nodes);
@@ -55,16 +54,13 @@ export function useLiveMetrics(
   const abortRef = useRef<AbortController | null>(null);
   const seqRef = useRef(0);
 
-  // Serialize the payload once per change.  Debouncing keys off this
-  // string, so re-renders with unchanged content (or unstable [] / {}
-  // default-parameter references) never trigger extra requests.
   const payloadJson = useMemo(() => {
-    const payload = buildConfigPayload(nodes, edges, symbols, {
+    const payload = buildConfigPayload(nodes, edges, {
       name: 'Live Preview',
       expressions,
     });
     return payload ? JSON.stringify(payload) : null;
-  }, [nodes, edges, symbols, expressions]);
+  }, [nodes, edges, expressions]);
 
   const evaluate = useCallback(async (configJson: string | null) => {
     if (!configJson) {

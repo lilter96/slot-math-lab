@@ -16,7 +16,6 @@ type RunStatus = 'idle' | 'running' | 'paused' | 'complete';
 export default function Simulate() {
   const nodes = useAppStore((s) => s.nodes);
   const edges = useAppStore((s) => s.edges);
-  const symbols = useAppStore((s) => s.tableSymbols);
   const configName = useAppStore((s) => s.configName);
 
   const [status, setStatus] = useState<RunStatus>('idle');
@@ -69,7 +68,7 @@ export default function Simulate() {
     setExactProvenance(null);
     setNeedsFullRun(false);
 
-    const configPayload = buildConfigPayload(nodes, edges, symbols, { name: configName ?? 'Untitled' });
+    const configPayload = buildConfigPayload(nodes, edges, { name: configName ?? 'Untitled' });
     if (!configPayload) {
       setError('No graph nodes. Build a graph in the Build tab first.');
       setStatus('idle');
@@ -219,7 +218,7 @@ export default function Simulate() {
       setStatus('idle');
       if (hubRef.current) { void hubRef.current.stop(); hubRef.current = null; }
     }
-  }, [spinsTarget, nodes, edges, symbols, configName]);
+  }, [spinsTarget, nodes, edges, configName]);
 
   // ── Cleanup on unmount ──────────────────────────────────────────
   useEffect(() => {
