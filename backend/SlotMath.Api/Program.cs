@@ -5,6 +5,7 @@ using Microsoft.Extensions.Diagnostics.HealthChecks;
 using OpenTelemetry.Metrics;
 using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
+using SlotMath.Api.Features.Ai;
 using SlotMath.Api.Features.Configs;
 using SlotMath.Api.Features.Evaluate;
 using SlotMath.Api.Features.PersistedConfigs;
@@ -76,6 +77,12 @@ if (!string.IsNullOrWhiteSpace(redisConnection))
 
 // Register the persistence-backed config service
 builder.Services.AddScoped<ConfigPersistenceService>();
+
+// HttpClient for Anthropic API (AI gateway)
+builder.Services.AddHttpClient("anthropic", client =>
+{
+    client.Timeout = TimeSpan.FromSeconds(90);
+});
 
 // ── Health checks ─────────────────────────────────────────────────────
 builder.Services.AddHealthChecks()
@@ -187,5 +194,8 @@ app.MapPlugins(pluginHost);
 
 // Persistence-backed config endpoints
 app.MapPersistedConfigs();
+
+// AI gateway (G26)
+app.MapAi();
 
 app.Run();
