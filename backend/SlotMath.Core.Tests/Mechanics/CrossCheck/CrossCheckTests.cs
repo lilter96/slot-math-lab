@@ -113,6 +113,24 @@ public class CrossCheckTests(ITestOutputHelper output)
     }
 
     /// <summary>
+    /// G13 DoD (c) — Full-program determinism.
+    /// A fixed seed produces identical sampled stats across two independent runs.
+    /// </summary>
+    [Fact]
+    public void FullProgram_Determinism_SameSeedYieldsIdenticalStats()
+    {
+        var cfg = ConfigGenerator.Generate(1)[0];
+        var sampledCfg = new SampledConfig { Seed = 99_999, MaxSpins = 5_000 };
+
+        var result1 = SampledInterpreter.Evaluate(cfg.Program, cfg.InitialState, sampledCfg);
+        var result2 = SampledInterpreter.Evaluate(cfg.Program, cfg.InitialState, sampledCfg);
+
+        Assert.Equal(result1.Stats.Count, result2.Stats.Count);
+        Assert.Equal(result1.Stats.Mean, result2.Stats.Mean);
+        Assert.Equal(result1.Stats.Variance, result2.Stats.Variance);
+    }
+
+    /// <summary>
     /// Single config — detailed verification that exact and sampled agree
     /// within tight tolerances.
     /// </summary>

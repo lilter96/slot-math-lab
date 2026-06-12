@@ -59,7 +59,7 @@ public static class ConfigGenerator
             SimpleDraw, TwoSequentialDraws, StateDependentDraws,
             BranchProgram, ModifierProgram, AccumulatorProgram,
             LoopProgram, MultiDrawLoop, ExpressionLikeWeights,
-            MultiOutcomeDraws, FoldCountConfig, MapPayoutConfig,
+            MultiOutcomeDraws, FoldCountConfig, MapPayoutConfig, FilterCountConfig,
         };
 
         for (var i = 0; i < count; i++)
@@ -386,6 +386,75 @@ public static class ConfigGenerator
             Id = id,
             Description = "MapExpr maps symbols to payouts, totals them",
             Category = "map-payout",
+            Program = program,
+            InitialState = new CrossCheckState(0, 0, 0),
+        };
+    }
+
+    /// <summary>
+    /// FilterExpr-based count: draw 3 reels, filter cells to those matching "H",
+    /// award 5 credits if the filtered array has exactly 3 elements.
+    ///
+    /// Hand-computed: P(H)=2/3, RTP = 5 × (2/3)³ = 40/27.
+    /// Exercises FilterExpr on the sampled path and exact path.
+    /// </summary>
+    private static GeneratedConfig FilterCountConfig(int id)
+    {
+        // FilterExpr: filter(state["cells"], itm => itm == "H")
+        var filterExpr = new FilterExpr
+        {
+            StateKey = "cells",
+            ItemName = "flt",
+            ItemType = ExprType.String,
+            Predicate = new CompareExpr
+            {
+                Op = CompareOp.Eq,
+                Left = new FieldAccessExpr { Target = "state", Path = ["flt"] },
+                Right = new ConstantExpr { Kind = ConstantKind.String, Value = "H" },
+            },
+        };
+
+        // Win expression: if(filteredCount == 3, 5, 0)
+        var winExpr = new IfExpr
+        {
+            Condition = new CompareExpr
+            {
+                Op = CompareOp.Eq,
+                Left = new FieldAccessExpr { Target = "state", Path = ["filteredCount"] },
+                Right = new ConstantExpr { Kind = ConstantKind.Integer, Value = "3" },
+            },
+            ThenExpr = new ConstantExpr { Kind = ConstantKind.Integer, Value = "5" },
+            ElseExpr = new ConstantExpr { Kind = ConstantKind.Integer, Value = "0" },
+        };
+
+        var weights = WeightSet.FromIntegers([2, 1]);
+
+        var program =
+            from r0 in Slot.Draw<CrossCheckState>(_ => weights)
+            from r1 in Slot.Draw<CrossCheckState>(_ => weights)
+            from r2 in Slot.Draw<CrossCheckState>(_ => weights)
+            let cells = new object[]
+            {
+                r0 == 0 ? "H" : "L",
+                r1 == 0 ? "H" : "L",
+                r2 == 0 ? "H" : "L",
+            }
+            let filterState = new Dictionary<string, object?> { ["cells"] = cells }
+            let filterCtx = new EvalContext { State = filterState }
+            let filtered = ExactExpressionEvaluator.Evaluate(filterExpr, filterCtx)
+            let filteredCount = filtered.Kind == ExprType.Array && filtered.ArrayValue != null
+                ? new BigInteger(filtered.ArrayValue.Count)
+                : BigInteger.Zero
+            let winState = new Dictionary<string, object?> { ["filteredCount"] = filteredCount }
+            let winCtx = new EvalContext { State = winState }
+            let winResult = ExactExpressionEvaluator.Evaluate(winExpr, winCtx)
+            select winResult.AsInteger();
+
+        return new GeneratedConfig
+        {
+            Id = id,
+            Description = "FilterExpr filters matching symbols, awards win when all match",
+            Category = "filter-count",
             Program = program,
             InitialState = new CrossCheckState(0, 0, 0),
         };
