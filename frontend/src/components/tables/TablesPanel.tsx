@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useAppStore } from '../../store';
 import SymbolEditor from './SymbolEditor';
 import PaytableEditor from './PaytableEditor';
 import ReelStripEditor from './ReelStripEditor';
@@ -7,10 +8,10 @@ import BoardConfigEditor from './BoardConfigEditor';
 const SECTIONS = ['symbols', 'paytable', 'reels', 'board'] as const;
 type Section = (typeof SECTIONS)[number];
 
-const SYMBOL_IDS = ['S1', 'S2', 'S3', 'W1', 'SC1'];
-
 export default function TablesPanel() {
   const [active, setActive] = useState<Section>('symbols');
+  const tableSymbols = useAppStore((s) => s.tableSymbols);
+  const symbolIds = tableSymbols.map((s) => s.id);
 
   return (
     <div className="panel" style={{ flexShrink: 0, width: 480, display: 'flex', flexDirection: 'column' }}>
@@ -31,8 +32,8 @@ export default function TablesPanel() {
       </div>
       <div style={{ flex: 1, overflowY: 'auto' }}>
         {active === 'symbols' && <SymbolEditor />}
-        {active === 'paytable' && <PaytableEditor symbolIds={SYMBOL_IDS} />}
-        {active === 'reels' && <ReelStripEditor symbolIds={SYMBOL_IDS} />}
+        {active === 'paytable' && <PaytableEditor symbolIds={symbolIds} />}
+        {active === 'reels' && <ReelStripEditor symbolIds={symbolIds} />}
         {active === 'board' && <BoardConfigEditor />}
       </div>
     </div>

@@ -1,7 +1,10 @@
 import { memo, type FC } from 'react';
 import { Handle, Position } from '@xyflow/react';
 import type { GraphNodeData } from '../../../store';
+import { useAppStore } from '../../../store';
 import { Ic, NODE_ACCENT } from '../../Icons';
+import ProvBadge from '../../ProvBadge';
+import type { Provenance } from '../../ProvBadge';
 
 interface BaseNodeProps {
   data: GraphNodeData;
@@ -26,8 +29,16 @@ const BaseNodeCard: FC<BaseNodeProps> = ({ data, selected }) => {
   const IconC = Ic[iconKey];
   const lvlCls = data.level === 'b' ? 'node-lvl b' : data.level === 'c' ? 'node-lvl plugin' : 'node-lvl';
   const lvlTxt = data.level === 'b' ? 'expr' : data.level === 'c' ? 'plugin' : 'L0';
-  const hasIn = data.nodeType !== 'sink';
+  // Draw nodes generate values — they have no input handles
+  const hasIn = data.nodeType !== 'draw';
   const hasOut = data.nodeType !== 'sink' && data.nodeType !== 'branch' && data.nodeType !== 'loop';
+  const liveRtp = useAppStore((s) => s.liveRtp);
+  const liveProvenance = useAppStore((s) => s.liveProvenance);
+  const rtpProvenance: Provenance | null = liveProvenance === 'Exact'
+    ? { kind: 'Exact' }
+    : liveProvenance === 'Sampled'
+      ? { kind: 'Sampled', n: 0 }
+      : null;
 
   return (
     <div className={'node' + (selected ? ' selected' : '')} style={{ '--sel': accent } as React.CSSProperties}>
@@ -97,7 +108,13 @@ const BaseNodeCard: FC<BaseNodeProps> = ({ data, selected }) => {
           </div>
         )}
         {data.nodeType === 'sink' && (
-          <div className="mini-row"><span className="k">RTP</span><span className="v" style={{ color: 'var(--exact)', fontSize: 13 }}>—</span></div>
+          <div className="mini-row">
+            <span className="k">RTP</span>
+            <span className="v" style={{ color: liveRtp != null ? 'var(--exact)' : 'var(--faint)', fontSize: 13 }}>
+              {liveRtp != null ? `${(liveRtp * 100).toFixed(2)}%` : '—'}
+            </span>
+            {rtpProvenance && <ProvBadge p={rtpProvenance} mini />}
+          </div>
         )}
       </div>
       {hasOut && <Handle type="source" position={Position.Right} className="port out" />}

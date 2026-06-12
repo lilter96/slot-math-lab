@@ -302,44 +302,12 @@ export const useAppStore = create<AppState>((set, get) => ({
     })),
 
   // ── Mechanics ───────────────────────────────────────────────────
-  mechanics: [
-    {
-      id: 'free-spins',
-      name: 'Free Spins',
-      description: 'Scatter-triggered free spins with retrigger and multiplier',
-      nodes: [],
-      edges: [],
-      createdAt: new Date().toISOString(),
-    },
-  ],
+  mechanics: [],
   addMechanic: (m) => set((s) => ({ mechanics: [...s.mechanics, m] })),
   removeMechanic: (id) => set((s) => ({ mechanics: s.mechanics.filter((m) => m.id !== id) })),
 
   // ── Plugins ─────────────────────────────────────────────────────
-  plugins: [
-    {
-      pluginId: 'megaways-evaluator',
-      contract: 'IEvaluator' as const,
-      version: '1.0.0',
-      isConformant: true,
-      forcesSampledRegime: false,
-    },
-    {
-      pluginId: 'custom-cascade',
-      contract: 'ITransform' as const,
-      version: '0.9.0',
-      isConformant: false,
-      conformanceNote: 'Purity test failed — plugin performs non-deterministic operations',
-      forcesSampledRegime: true,
-    },
-    {
-      pluginId: 'exotic-evaluator',
-      contract: 'IEvaluator' as const,
-      version: '1.2.0',
-      isConformant: true,
-      forcesSampledRegime: true,
-    },
-  ],
+  plugins: [],
   registerPlugin: (p) => set((s) => ({ plugins: [...s.plugins, p] })),
   removePlugin: (id) => set((s) => ({ plugins: s.plugins.filter((p) => p.pluginId !== id) })),
   setPluginsFromBackend: (plugins) => set({ plugins }),

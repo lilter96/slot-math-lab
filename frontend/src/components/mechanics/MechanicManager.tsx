@@ -79,20 +79,30 @@ export default function MechanicManager() {
   }, [name, desc, nodes, edges, selectedNodeId, addMechanic, configId, mechanics, saveConfig]);
 
   const handleAddToCanvas = useCallback((mechanic: CustomMechanic) => {
-    const idOffset = Date.now();
-    for (const node of mechanic.nodes) {
-      const offsetId = `${node.id}-${idOffset}`;
-      addNode({
-        ...node,
-        id: offsetId,
-        position: {
-          x: node.position.x + 50,
-          y: node.position.y + 200,
-        },
+    const offset = 50 + Math.random() * 100;
+    const idMap = new Map<string, string>();
+    const newNodes = mechanic.nodes.map((n) => {
+      const newId = `${n.id}-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+      idMap.set(n.id, newId);
+      return { ...n, id: newId, position: { x: n.position.x + offset, y: n.position.y + offset } };
+    });
+    const newEdges: GraphEdge[] = mechanic.edges.map((e) => ({
+      ...e,
+      id: `e-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+      source: idMap.get(e.source) ?? e.source,
+      target: idMap.get(e.target) ?? e.target,
+    }));
+    const { onConnect } = useAppStore.getState();
+    for (const node of newNodes) addNode(node);
+    for (const edge of newEdges) {
+      onConnect({
+        source: edge.source,
+        target: edge.target,
+        sourceHandle: edge.sourceHandle ?? null,
+        targetHandle: edge.targetHandle ?? null,
       });
     }
-    // Note: edges reference old IDs; for simplicity, edges need manual reconnection
-    setSavedMsg(`Added "${mechanic.name}" to canvas. Reconnect edges as needed.`);
+    setSavedMsg(`Added "${mechanic.name}" to canvas.`);
     setTimeout(() => setSavedMsg(null), 3000);
   }, [addNode]);
 

@@ -13,6 +13,7 @@ export default function Build() {
   const setTableSymbols = useAppStore((s) => s.setTableSymbols);
   const addNode = useAppStore((s) => s.addNode);
   const nodes = useAppStore((s) => s.nodes);
+  const setLiveMetrics = useAppStore((s) => s.setLiveMetrics);
   const [searchParams] = useSearchParams();
 
   // Load shared config from URL (?load=...)
@@ -51,6 +52,14 @@ export default function Build() {
   }, [nodes]);
 
   const liveMetrics = useLiveMetrics(symbols, expressions);
+
+  // Sync live metrics into store so sink node and other consumers can read it
+  useEffect(() => {
+    const prov = liveMetrics?.overall?.provenance;
+    const validProv: 'Exact' | 'Sampled' | 'NeedsFullRun' | null =
+      prov === 'Exact' || prov === 'Sampled' || prov === 'NeedsFullRun' ? prov : null;
+    setLiveMetrics(liveMetrics?.overall?.rtp ?? null, validProv);
+  }, [liveMetrics?.overall?.rtp, liveMetrics?.overall?.provenance]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <>

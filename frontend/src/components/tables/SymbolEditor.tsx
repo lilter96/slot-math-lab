@@ -1,51 +1,46 @@
 import { useState, useCallback, useRef, type KeyboardEvent, type ClipboardEvent } from 'react';
+import { useAppStore } from '../../store';
 import { SymbolDef, type SymbolDef as SymbolDefType } from './schemas';
 
 const DEFAULT_SYMBOL: SymbolDefType = { id: '', name: '', kind: 'Standard', color: '#4c6ef5' };
 
 export default function SymbolEditor() {
-  const [symbols, setSymbols] = useState<SymbolDefType[]>([
-    { id: 'S1', name: 'Cherry', kind: 'Standard', color: '#e03131' },
-    { id: 'S2', name: 'Lemon', kind: 'Standard', color: '#f08c00' },
-    { id: 'S3', name: 'Bell', kind: 'Standard', color: '#f06595' },
-    { id: 'W1', name: 'Wild', kind: 'Wild', color: '#2f9e44' },
-    { id: 'SC1', name: 'Scatter', kind: 'Scatter', color: '#7950f2' },
-  ]);
+  const symbols = useAppStore((s) => s.tableSymbols) as SymbolDefType[];
+  const setTableSymbols = useAppStore((s) => s.setTableSymbols);
   const [errors, setErrors] = useState<Record<number, string>>({});
   const [focusedCell, setFocusedCell] = useState<{ row: number; col: string } | null>(null);
   const tableRef = useRef<HTMLTableElement>(null);
 
-  const validate = useCallback((s: SymbolDefType) => {
+  const validate = useCallback((s: SymbolDefType, allSymbols: SymbolDefType[], currentIndex: number) => {
     const r = SymbolDef.safeParse(s);
     if (!r.success) {
       return r.error.issues.map((i) => `${i.path.join('.') || 'field'}: ${i.message}`).join('; ');
     }
-    // Check unique IDs
+    const duplicate = allSymbols.some((other, idx) => idx !== currentIndex && other.id === s.id);
+    if (duplicate) return 'Symbol ID must be unique';
     return null;
   }, []);
 
   const updateSymbol = useCallback((index: number, field: keyof SymbolDefType, value: string) => {
-    setSymbols((prev) => {
-      const next = [...prev];
-      next[index] = { ...next[index], [field]: value };
-      const err = validate(next[index]);
-      setErrors((e) => ({ ...e, [index]: err || '' }));
-      return next;
-    });
-  }, [validate]);
+    const next = [...symbols];
+    next[index] = { ...next[index], [field]: value };
+    const err = validate(next[index], next, index);
+    setErrors((e) => ({ ...e, [index]: err || '' }));
+    setTableSymbols(next);
+  }, [symbols, validate, setTableSymbols]);
 
   const addRow = useCallback(() => {
-    setSymbols((prev) => [...prev, { ...DEFAULT_SYMBOL, id: `S${prev.length + 1}` }]);
-  }, []);
+    setTableSymbols([...symbols, { ...DEFAULT_SYMBOL, id: `S${symbols.length + 1}` }]);
+  }, [symbols, setTableSymbols]);
 
   const removeRow = useCallback((index: number) => {
-    setSymbols((prev) => prev.filter((_, i) => i !== index));
+    setTableSymbols(symbols.filter((_, i) => i !== index));
     setErrors((prev) => {
       const next = { ...prev };
       delete next[index];
       return next;
     });
-  }, []);
+  }, [symbols, setTableSymbols]);
 
   const handleKeyDown = useCallback((e: KeyboardEvent<HTMLInputElement>, row: number, col: string) => {
     const cols = ['id', 'name', 'kind', 'color'];
@@ -92,15 +87,13 @@ export default function SymbolEditor() {
 
     if (parsed.length > 0) {
       e.preventDefault();
-      setSymbols((prev) => {
-        const next = [...prev];
-        for (const p of parsed) {
-          next.push({ ...DEFAULT_SYMBOL, ...p, kind: p.kind || 'Standard' });
-        }
-        return next;
-      });
+      const next = [...symbols];
+      for (const p of parsed) {
+        next.push({ ...DEFAULT_SYMBOL, ...p, kind: p.kind || 'Standard' });
+      }
+      setTableSymbols(next);
     }
-  }, []);
+  }, [symbols, setTableSymbols]);
 
   // Validate all on submit
   const allValid = Object.values(errors).every((e) => !e) && symbols.length > 0 && symbols.every((s) => SymbolDef.safeParse(s).success);
