@@ -15,4 +15,8 @@
     <InternalsVisibleTo Include="SlotMath.Core.Tests" />
   </ItemGroup>
 
+  <ItemGroup>
+    <EmbeddedResource Include="Catalog\*.mechanic.json" />
+  </ItemGroup>
+
 </Project>

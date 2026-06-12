@@ -1,0 +1,110 @@
+{
+  "schemaVersion": "1.0.0",
+  "id": "sample-13",
+  "name": "Map/Filter Expression Atoms",
+  "description": "Demonstrates level-(b) map and filter expressions. A 3-cell game stores the drawn symbols in state, filters them for matching symbols, and uses fold to count matches.",
+  "symbols": [
+    { "id": "H", "name": "High",  "kind": "Standard" },
+    { "id": "L", "name": "Low",   "kind": "Standard" },
+    { "id": "W", "name": "Wild",  "kind": "Wild" }
+  ],
+  "paytables": [
+    { "id": "pt", "entries": [
+      { "symbolId": "H", "counts": [3], "payouts": ["5"] },
+      { "symbolId": "L", "counts": [3], "payouts": ["2"] }
+    ]}
+  ],
+  "reelStrips": [
+    { "id": "r1", "name": "R1", "symbols": ["H","H","H","L","L","L","W"] },
+    { "id": "r2", "name": "R2", "symbols": ["H","H","L","L","L","H","W"] },
+    { "id": "r3", "name": "R3", "symbols": ["H","L","L","H","H","L","W"] }
+  ],
+  "reelSets": [{ "id": "rs", "name": "Main", "stripIds": ["r1","r2","r3"] }],
+  "boardConfig": { "rows": 1, "columns": 3 },
+  "stateSchema": [
+    { "name": "c0",         "type": "string"  },
+    { "name": "c1",         "type": "string"  },
+    { "name": "c2",         "type": "string"  },
+    { "name": "cells",      "type": "string"  },
+    { "name": "filtered",   "type": "string"  },
+    { "name": "mapped",     "type": "string"  },
+    { "name": "win",        "type": "number"  }
+  ],
+  "expressions": {
+    "filterHighCells": {
+      "exprType": "filter",
+      "stateKey": "cells",
+      "itemName": "cell",
+      "itemType": "String",
+      "predicate": {
+        "exprType": "compare",
+        "op": "Eq",
+        "left":  { "exprType": "fieldAccess", "path": ["cell"], "target": "state" },
+        "right": { "exprType": "constant", "kind": "String", "value": "H" }
+      }
+    },
+    "mapCellsToPayout": {
+      "exprType": "map",
+      "stateKey": "cells",
+      "itemName": "cell",
+      "itemType": "String",
+      "body": {
+        "exprType": "if",
+        "condition": {
+          "exprType": "compare",
+          "op": "Eq",
+          "left":  { "exprType": "fieldAccess", "path": ["cell"], "target": "state" },
+          "right": { "exprType": "constant", "kind": "String", "value": "H" }
+        },
+        "thenExpr": { "exprType": "constant", "kind": "Integer", "value": "5" },
+        "elseExpr": { "exprType": "constant", "kind": "Integer", "value": "1" }
+      }
+    },
+    "countHighFromFiltered": {
+      "exprType": "fold",
+      "stateKey": "filtered",
+      "accName": "acc",
+      "itemName": "_item",
+      "itemType": "String",
+      "init": { "exprType": "constant", "kind": "Integer", "value": "0" },
+      "body": {
+        "exprType": "binary",
+        "op": "Add",
+        "left":  { "exprType": "fieldAccess", "path": ["acc"],   "target": "state" },
+        "right": { "exprType": "constant",    "kind": "Integer", "value": "1" }
+      }
+    }
+  },
+  "nodes": [
+    {
+      "nodeType": "draw",
+      "id": "draw-c0",
+      "label": "Draw c0",
+      "outputs": { "outcome": { "name": "outcome", "type": "String" } }
+    },
+    {
+      "nodeType": "draw",
+      "id": "draw-c1",
+      "label": "Draw c1",
+      "outputs": { "outcome": { "name": "outcome", "type": "String" } }
+    },
+    {
+      "nodeType": "draw",
+      "id": "draw-c2",
+      "label": "Draw c2",
+      "outputs": { "outcome": { "name": "outcome", "type": "String" } }
+    },
+    {
+      "nodeType": "metricsSink",
+      "id": "sink",
+      "label": "Metrics",
+      "winStateKey": "win"
+    }
+  ],
+  "edges": [
+    { "id": "e1", "sourceNodeId": "draw-c0", "sourcePort": "outcome", "targetNodeId": "sink", "targetPort": "wins" },
+    { "id": "e2", "sourceNodeId": "draw-c1", "sourcePort": "outcome", "targetNodeId": "sink", "targetPort": "wins" },
+    { "id": "e3", "sourceNodeId": "draw-c2", "sourcePort": "outcome", "targetNodeId": "sink", "targetPort": "wins" }
+  ],
+  "plugins": []
+}

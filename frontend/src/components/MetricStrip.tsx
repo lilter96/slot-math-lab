@@ -47,7 +47,7 @@ export default function MetricStrip({ liveMetrics }: MetricStripProps) {
   if (loading && !m) {
     return (
       <div className="metric-strip">
-        {['Return to player', 'Hit frequency', 'Base volatility', 'Feature trigger', 'Max line win'].map((label, i) => (
+        {['Return to player', 'Hit frequency', 'Base volatility', 'Max win', 'Status'].map((label, i) => (
           <div key={i} className="metric-cell">
             <div className="metric-label"><span>{label}</span></div>
             <div className="metric-value" style={{ opacity: 0.4 }}>…</div>
@@ -61,7 +61,7 @@ export default function MetricStrip({ liveMetrics }: MetricStripProps) {
   if (needsFullRun) {
     return (
       <div className="metric-strip">
-        {['Return to player', 'Hit frequency', 'Base volatility', 'Feature trigger', 'Max line win'].map((label, i) => (
+        {['Return to player', 'Hit frequency', 'Base volatility', 'Max win', 'Status'].map((label, i) => (
           <div key={i} className="metric-cell">
             <div className="metric-label"><span>{label}</span></div>
             <div className="metric-value" style={{ color: 'var(--epsilon)', fontSize: 16 }}>Needs full run</div>
@@ -84,7 +84,7 @@ export default function MetricStrip({ liveMetrics }: MetricStripProps) {
           </div>
           <div className="metric-sub">{isOffline ? 'start the API server' : 'check backend logs'}</div>
         </div>
-        {['Hit frequency', 'Base volatility', 'Feature trigger', 'Status'].map((label, i) => (
+        {['Hit frequency', 'Base volatility', 'Max win', 'Status'].map((label, i) => (
           <div key={i} className="metric-cell">
             <div className="metric-label"><span>{label}</span></div>
             <div className="metric-value">—</div>
@@ -146,11 +146,10 @@ export default function MetricStrip({ liveMetrics }: MetricStripProps) {
 
       <div className="metric-cell">
         <div className="metric-label">
-          <span>Feature trigger</span>
-          <ProvBadge p={{ kind: 'Exact' }} mini />
+          <span>Max win</span>
         </div>
-        <div className="metric-value">—<span className="unit">%</span></div>
-        <div className="metric-sub">~1 in — spins</div>
+        <div className="metric-value">—</div>
+        <div className="metric-sub">requires full run</div>
       </div>
 
       <div className="metric-cell">

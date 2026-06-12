@@ -610,6 +610,10 @@ public static class GraphValidator
                     continue;
                 }
 
+                // Transform plugins bypass conformance (ITransform has no harness yet)
+                if (pluginHost.TryGetTransform(pluginId) != null)
+                    continue;
+
                 var (canSelect, reason) = pluginHost.CanSelect(pluginId);
                 if (!canSelect)
                 {

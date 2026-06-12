@@ -1,4 +1,5 @@
 using System.Numerics;
+using SlotMath.Core.Catalog;
 using SlotMath.Core.Expressions;
 using SlotMath.Core.Mechanics;
 using SlotMath.Core.Model;
@@ -48,6 +49,20 @@ public sealed class GraphCompiler
     /// </summary>
     public CompileResult Compile(GraphConfig config)
     {
+        // Phase 0a: Merge catalog mechanics with user-provided mechanics so
+        // LibraryNode references resolve to the standard catalog without
+        // requiring callers to manually supply the built-in subgraphs.
+        var mergedMechanics = MechanicCatalog.Default.Merge(config.Mechanics);
+        config = config with { Mechanics = mergedMechanics };
+
+        // Phase 0b: Inline subgraph (LibraryNode) references to their atoms.
+        // After this the graph contains only primitives, which the validator
+        // and builder already handle in full.
+        var (inlined, inlineErrors) = SubgraphInliner.Inline(config);
+        if (inlineErrors.Count > 0)
+            return CompileResult.Failure(inlineErrors.ToList());
+        config = inlined;
+
         // Phase 1: Validate
         var errors = GraphValidator.Validate(config, _pluginHost);
         if (errors.Count > 0)
@@ -180,7 +195,28 @@ public sealed class GraphCompiler
             if (entryNodeIds.Count == 0)
                 throw new CompilationException(null, ErrorCodes.InvalidGraph, "Graph has no entry nodes.");
 
-            var sinkId = _config.Nodes.OfType<MetricsSinkNode>().First().Id;
+            var sinkNode = _config.Nodes.OfType<MetricsSinkNode>().First();
+            var sinkId = sinkNode.Id;
+
+            // Sink reads the win from a named state key: run the whole program
+            // for its state effects, then read state[key].  This is the pure
+            // atom + expression win path (no Win[]-producing molecule).
+            if (sinkNode.WinStateKey is { } winKey)
+            {
+                Slot<Dictionary<string, object?>, object?> program =
+                    Slot.Pure<Dictionary<string, object?>, object?>((object?)BigInteger.Zero);
+                foreach (var entryId in entryNodeIds)
+                {
+                    var entryChain = GetChain(entryId, sinkId);
+                    var captured = program;
+                    program = captured.SelectMany(_ => entryChain(null));
+                }
+
+                return program.SelectMany(_ =>
+                    Slot.GetState<Dictionary<string, object?>>().SelectMany(state =>
+                        Slot.Pure<Dictionary<string, object?>, BigInteger>(
+                            ReadStateWin(state, winKey))));
+            }
 
             if (entryNodeIds.Count == 1)
             {
@@ -202,6 +238,24 @@ public sealed class GraphCompiler
             }
 
             return composed;
+        }
+
+        /// <summary>
+        /// Read a win amount from the recurrence state and scale it to
+        /// sub-credit units (consistent with Draw/paytable win sources).
+        /// </summary>
+        private BigInteger ReadStateWin(Dictionary<string, object?> state, string key)
+        {
+            if (!state.TryGetValue(key, out var raw))
+                return BigInteger.Zero;
+            var amount = raw switch
+            {
+                BigInteger bi => bi,
+                int i => i,
+                long l => l,
+                _ => BigInteger.Zero,
+            };
+            return amount * _winScale;
         }
 
         // ── Chain compiler ──────────────────────────────────────────────
@@ -619,9 +673,11 @@ public sealed class GraphCompiler
                     expressionPorts.Add((portName, ExpressionCompiler.CompileNumber(port.DefaultValue)));
             }
 
-            var applyTransform = mapNode.TransformId != null
-                ? ResolveTransform(mapNode.TransformId, mapNode.Id)
-                : null;
+            Func<Board?, Dictionary<string, object?>, Dictionary<string, BigInteger>?,
+                (object? Result, Dictionary<string, object?> NewState)>? applyTransform =
+                mapNode.TransformId != null
+                    ? ResolveTransform(mapNode.TransformId, mapNode.Id)
+                    : null;
 
             var hasBoardInput = mapNode.Inputs.Values.Any(p => p.Type == PortType.Board);
             var hasWinsOutput = mapNode.Outputs.Values.Any(p => p.Type == PortType.Wins);
@@ -647,8 +703,16 @@ public sealed class GraphCompiler
                 }
 
                 if (applyTransform != null)
-                    return Slot.Pure<Dictionary<string, object?>, object?>(
-                        applyTransform(board, expressionValues));
+                    return Slot.GetState<Dictionary<string, object?>>()
+                        .SelectMany(currentState =>
+                        {
+                            var (result, newState) = applyTransform(board, currentState, expressionValues);
+                            var resultSlot = Slot.Pure<Dictionary<string, object?>, object?>(result);
+                            return ReferenceEquals(newState, currentState)
+                                ? resultSlot
+                                : Slot.Modify<Dictionary<string, object?>>(_ => newState)
+                                    .SelectMany(_ => resultSlot);
+                        });
 
                 if (hasBoardInput && hasWinsOutput && board != null)
                 {
@@ -663,42 +727,64 @@ public sealed class GraphCompiler
 
         /// <summary>
         /// Resolve a transform/evaluator/plugin reference at compile time to
-        /// a runtime application function.
+        /// a state-aware runtime application function.
+        ///
+        /// The returned delegate receives the current game state and returns
+        /// both the result and the (possibly updated) game state.  Evaluators
+        /// return state unchanged; transforms may return a new state object.
         /// </summary>
-        private Func<Board?, Dictionary<string, BigInteger>?, object?> ResolveTransform(
+        private Func<Board?, Dictionary<string, object?>, Dictionary<string, BigInteger>?,
+            (object? Result, Dictionary<string, object?> NewState)> ResolveTransform(
             string transformId, string nodeId)
         {
             // Plugin reference: "plugin:pluginId"
             if (transformId.StartsWith("plugin:"))
             {
                 var pluginId = transformId["plugin:".Length..];
+
+                // ITransform plugin — may read and write state
+                var pluginTransform = _pluginHost?.TryGetTransform(pluginId);
+                if (pluginTransform != null)
+                {
+                    return (board, state, _) =>
+                    {
+                        var (newBoard, newStateObj) = pluginTransform.Apply(board!, state);
+                        var newState = newStateObj as Dictionary<string, object?> ?? state;
+                        return (newBoard, newState);
+                    };
+                }
+
+                // IEvaluator plugin — reads state, does not modify it
                 var pluginEvaluator = _pluginHost?.TryGetEvaluator(pluginId);
                 if (pluginEvaluator == null)
                     throw new CompilationException(nodeId, ErrorCodes.PluginNotFound,
                         $"Plugin '{pluginId}' not found.");
 
-                return (board, expressionValues) => ApplyExpressions(
-                    pluginEvaluator.Evaluate(board!, new Dictionary<string, object?>()),
-                    expressionValues);
+                return (board, state, expressionValues) => (
+                    ApplyExpressions(pluginEvaluator.Evaluate(board!, state), expressionValues),
+                    state
+                );
             }
 
-            // Evaluator registry
+            // Evaluator registry — evaluators read state but never modify it
             var registryEvaluator = EvaluatorRegistry.TryGet(transformId);
             if (registryEvaluator != null)
             {
-                return (board, expressionValues) => ApplyExpressions(
-                    registryEvaluator.Evaluate(board!, new Dictionary<string, object?>()),
-                    expressionValues);
+                return (board, state, expressionValues) => (
+                    ApplyExpressions(registryEvaluator.Evaluate(board!, state), expressionValues),
+                    state
+                );
             }
 
-            // Transform registry
+            // Transform registry — transforms may read and write state
             var transform = TransformRegistry.TryGet(transformId);
             if (transform != null)
             {
-                return (board, _) =>
+                return (board, state, _) =>
                 {
-                    var (newBoard, _) = transform.Apply(board!, new Dictionary<string, object?>());
-                    return newBoard;
+                    var (newBoard, newStateObj) = transform.Apply(board!, state);
+                    var newState = newStateObj as Dictionary<string, object?> ?? state;
+                    return (newBoard, newState);
                 };
             }
 
@@ -755,25 +841,54 @@ public sealed class GraphCompiler
 
         private Slot<Dictionary<string, object?>, object?> CompileModifyState(ModifyStateNode node)
         {
-            Func<Board?, object?, BigInteger>? compiled = null;
-            if (node.ExpressionId != null && _config.Expressions != null &&
-                _config.Expressions.TryGetValue(node.ExpressionId, out var expr))
-            {
-                compiled = ExpressionCompiler.CompileNumber(expr);
-            }
+            Expression? expr = null;
+            if (node.ExpressionId != null && _config.Expressions != null)
+                _config.Expressions.TryGetValue(node.ExpressionId, out expr);
 
             // Modify state as a side effect, return null (caller passes through
-            // the previous output).  Copy-on-write when writing.
+            // the previous output).  Copy-on-write when writing — the incoming
+            // state object is shared across exact-path branches and spins.
+            if (expr is null)
+                return Slot.Modify<Dictionary<string, object?>>(static state => state)
+                    .SelectMany(static _ => Slot.Pure<Dictionary<string, object?>, object?>(null!));
+
+            // Atom path: write the expression's TYPED result to a named key.
+            // This is what lets a graph compute a value over state (a fold
+            // producing a win symbol, a conditional producing a payout) with no
+            // evaluator/transform molecule.
+            if (node.OutputKey is { } outputKey)
+            {
+                var capturedExpr = expr;
+                return Slot.Modify<Dictionary<string, object?>>(state =>
+                    {
+                        var next = new Dictionary<string, object?>(state);
+                        next[outputKey] = EvaluateToStateObject(capturedExpr, state);
+                        return next;
+                    })
+                    .SelectMany(static _ => Slot.Pure<Dictionary<string, object?>, object?>(null!));
+            }
+
+            // Legacy path: numeric result written to the internal "__modified__".
+            var compiled = ExpressionCompiler.CompileNumber(expr);
             return Slot.Modify<Dictionary<string, object?>>(state =>
                 {
-                    if (compiled is null)
-                        return state;
-
                     var next = new Dictionary<string, object?>(state);
                     next["__modified__"] = compiled(null, state);
                     return next;
                 })
                 .SelectMany(static _ => Slot.Pure<Dictionary<string, object?>, object?>(null!));
+        }
+
+        /// <summary>
+        /// Evaluate an expression over the current state to its natural CLR
+        /// value for storage in the state dictionary: BigInteger for amounts,
+        /// string for symbols, bool for predicates.  Exact (rational) path.
+        /// </summary>
+        private static object? EvaluateToStateObject(
+            Expression expr, Dictionary<string, object?> state)
+        {
+            var v = ExactExpressionEvaluator.Evaluate(expr, new EvalContext { State = state });
+            return v.ToStateObject();
         }
 
         // ── Branch fallback (no true/false ports) ───────────────────────

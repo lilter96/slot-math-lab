@@ -396,6 +396,162 @@ public class ExpressionDrivenDrawWeights
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
+//  Test 2b — G11 DoD 4: Fold-driven line-scan — exact RTP = 40/27
+// ═══════════════════════════════════════════════════════════════════════════
+
+/// <summary>
+/// G11 DoD 4: A FoldExpr-based line scanner produces an exact RTP equal to
+/// the hand-computed fraction 40/27, and the sampled estimate converges to it.
+///
+/// Game design:
+///   3 reels, each: H has weight 2, L has weight 1  →  P(H) = 2/3, P(L) = 1/3
+///   1 payline (all 3 must be "H")
+///   Win for 3×H = 5 credits, otherwise 0
+///   Exact RTP = 5 × (2/3)³ = 5 × 8/27 = 40/27
+///
+/// The FoldExpr: fold(state["cells"], 0, (acc, itm) => acc + if(itm == "H", 1, 0))
+/// Win expression: if(count == 3, 5, 0)
+/// </summary>
+public class FoldDrivenLineScan_ExactRtp
+{
+    // ── Build the FoldExpr that counts "H" symbols in state["cells"] ─────
+
+    /// <summary>
+    /// fold(state["cells"], 0, (acc, itm) => acc + if(itm == "H", 1, 0))
+    /// Accumulator name: "acc", Item name: "itm", Init: 0
+    /// Body: acc + if(itm == "H", 1, 0)
+    /// </summary>
+    private static FoldExpr BuildCountHFold() => new FoldExpr
+    {
+        StateKey = "cells",
+        AccName = "acc",
+        ItemName = "itm",
+        Init = new ConstantExpr { Kind = ConstantKind.Integer, Value = "0" },
+        ItemType = ExprType.String,
+        Body = new BinaryExpr
+        {
+            Op = BinaryOp.Add,
+            Left = new FieldAccessExpr { Target = "state", Path = ["acc"] },
+            Right = new IfExpr
+            {
+                Condition = new CompareExpr
+                {
+                    Op = CompareOp.Eq,
+                    Left = new FieldAccessExpr { Target = "state", Path = ["itm"] },
+                    Right = new ConstantExpr { Kind = ConstantKind.String, Value = "H" },
+                },
+                ThenExpr = new ConstantExpr { Kind = ConstantKind.Integer, Value = "1" },
+                ElseExpr = new ConstantExpr { Kind = ConstantKind.Integer, Value = "0" },
+            },
+        },
+    };
+
+    /// <summary>Win expression: if(count == 3, 5, 0)</summary>
+    private static IfExpr BuildWinExpr() => new IfExpr
+    {
+        Condition = new CompareExpr
+        {
+            Op = CompareOp.Eq,
+            Left = new FieldAccessExpr { Target = "state", Path = ["count"] },
+            Right = new ConstantExpr { Kind = ConstantKind.Integer, Value = "3" },
+        },
+        ThenExpr = new ConstantExpr { Kind = ConstantKind.Integer, Value = "5" },
+        ElseExpr = new ConstantExpr { Kind = ConstantKind.Integer, Value = "0" },
+    };
+
+    [Fact]
+    public void FoldDrivenLineScan_YieldsExactRtp_40_Over_27()
+    {
+        var countHFold = BuildCountHFold();
+        var winExpr = BuildWinExpr();
+
+        // 3 reels: H(weight=2), L(weight=1). Outcome indices: 0 → "H", 1 → "L".
+        var weights = WeightSet.FromIntegers([2, 1]);
+
+        var program =
+            from r0 in Slot.Draw<ExpressionGameState>(_ => weights)
+            from r1 in Slot.Draw<ExpressionGameState>(_ => weights)
+            from r2 in Slot.Draw<ExpressionGameState>(_ => weights)
+            let cells = new object[]
+            {
+                r0 == 0 ? "H" : "L",
+                r1 == 0 ? "H" : "L",
+                r2 == 0 ? "H" : "L",
+            }
+            let evalState = new Dictionary<string, object?> { ["cells"] = cells }
+            let evalCtx = new EvalContext { State = evalState }
+            // Evaluate the fold to count "H" symbols.
+            let countResult = ExactExpressionEvaluator.Evaluate(countHFold, evalCtx)
+            // Store the count for the win expression to access via state["count"].
+            let winState = new Dictionary<string, object?> { ["count"] = countResult.ToStateObject() }
+            let winCtx = new EvalContext { State = winState }
+            let winResult = ExactExpressionEvaluator.Evaluate(winExpr, winCtx)
+            select winResult.AsInteger();
+
+        var result = ExactInterpreter.Evaluate(
+            program,
+            new ExpressionGameState(0, 0),
+            s => s.RecurrenceHash);
+
+        var vd = result.ValueDistribution();
+        var (rawNum, rawDen) = vd.ExpectedBigIntegerValue();
+
+        // Reduce to lowest terms.
+        var gcd = BigInteger.GreatestCommonDivisor(BigInteger.Abs(rawNum), rawDen);
+        var num = rawNum / gcd;
+        var den = rawDen / gcd;
+
+        // Exact RTP = 5 × (2/3)³ = 40/27
+        Assert.Equal(new BigInteger(40), num);
+        Assert.Equal(new BigInteger(27), den);
+        Assert.True(vd.IsFullyExact, "Expected fully-exact provenance (ε-pruned mass = 0).");
+    }
+
+    [Fact]
+    public void SampledEstimate_ConvergesToExactRtp_40Over27()
+    {
+        var countHFold = BuildCountHFold();
+        var winExpr = BuildWinExpr();
+
+        var weights = WeightSet.FromIntegers([2, 1]);
+
+        var program =
+            from r0 in Slot.Draw<ExpressionGameState>(_ => weights)
+            from r1 in Slot.Draw<ExpressionGameState>(_ => weights)
+            from r2 in Slot.Draw<ExpressionGameState>(_ => weights)
+            let cells = new object[]
+            {
+                r0 == 0 ? "H" : "L",
+                r1 == 0 ? "H" : "L",
+                r2 == 0 ? "H" : "L",
+            }
+            let evalState = new Dictionary<string, object?> { ["cells"] = cells }
+            let evalCtx = new EvalContext { State = evalState }
+            let countResult = ExactExpressionEvaluator.Evaluate(countHFold, evalCtx)
+            let winState = new Dictionary<string, object?> { ["count"] = countResult.ToStateObject() }
+            let winCtx = new EvalContext { State = winState }
+            let winResult = ExactExpressionEvaluator.Evaluate(winExpr, winCtx)
+            select winResult.AsInteger();
+
+        // Exact RTP = 40/27
+        const double exactRtp = 40.0 / 27.0;
+
+        var sampled = SampledInterpreter.Evaluate(
+            program,
+            new ExpressionGameState(0, 0),
+            new SampledConfig { Seed = 77777, MaxSpins = 50_000 });
+
+        var sampledRtp = sampled.Stats.Mean;
+        var stdErr = sampled.Stats.StdErr;
+
+        var diff = System.Math.Abs(sampledRtp - exactRtp);
+        Assert.True(diff <= 3.0 * stdErr,
+            $"Sampled RTP {sampledRtp:F6} not within 3*stdErr ({3.0 * stdErr:F6}) " +
+            $"of exact {exactRtp:F6} (diff={diff:F6})");
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
 //  Test 3 — Sampled evaluation of expression-driven programs
 // ═══════════════════════════════════════════════════════════════════════════
 

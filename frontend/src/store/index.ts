@@ -25,7 +25,7 @@ export interface DrawWeightEntry {
 
 export interface GraphNodeData {
   label: string;
-  nodeType: 'draw' | 'state' | 'loop' | 'branch' | 'map' | 'evaluator' | 'transform' | 'sink';
+  nodeType: 'draw' | 'state' | 'loop' | 'branch' | 'map' | 'evaluator' | 'transform' | 'library' | 'sink';
   sub?: string;
   level?: 'a' | 'b' | 'c';
   /** Loop-specific config */
@@ -49,6 +49,8 @@ export interface GraphNodeData {
   stateWriteKey?: string;
   /** Plugin ID when evaluatorKind === 'plugin' */
   pluginId?: string;
+  /** Library (catalog mechanic) node: the catalog mechanic name */
+  mechanicName?: string;
   [key: string]: unknown;
 }
 
@@ -85,19 +87,27 @@ export const NODE_DEFAULTS: Record<string, Partial<GraphNodeData>> = {
   evaluator: { label: 'Evaluator', sub: 'IEvaluator', level: 'a', evaluatorKind: 'lines' },
   transform: { label: 'Transform', sub: 'ITransform', level: 'a' },
   sink: { label: 'Sink', sub: 'Metrics output', level: 'a' },
+  // Catalog (library) mechanics — one entry per built-in subgraph
+  'library:scatter':     { label: 'Scatter',      sub: 'Catalog mechanic', level: 'a', nodeType: 'library', mechanicName: 'scatter' },
+  'library:lines':       { label: 'Lines',         sub: 'Catalog mechanic', level: 'a', nodeType: 'library', mechanicName: 'lines' },
+  'library:ways':        { label: 'Ways',          sub: 'Catalog mechanic', level: 'a', nodeType: 'library', mechanicName: 'ways' },
+  'library:cascade':     { label: 'Cascade',       sub: 'Catalog mechanic', level: 'a', nodeType: 'library', mechanicName: 'cascade' },
+  'library:sticky-wild': { label: 'Sticky Wild',   sub: 'Catalog mechanic', level: 'a', nodeType: 'library', mechanicName: 'sticky-wild' },
+  'library:hold-and-win':{ label: 'Hold & Win',    sub: 'Catalog mechanic', level: 'a', nodeType: 'library', mechanicName: 'hold-and-win' },
 };
 
 // ── Connection validation ──────────────────────────────────────────
 
 /** Valid port-to-port connections. sink has no output. */
 const VALID_CONNECTIONS: Record<string, string[]> = {
-  draw: ['evaluator', 'transform', 'loop', 'branch'],
-  state: ['draw', 'evaluator', 'transform', 'loop', 'branch', 'map', 'sink'],
-  loop: ['evaluator', 'transform', 'draw', 'branch', 'map', 'sink'],
-  branch: ['evaluator', 'transform', 'draw', 'loop', 'map', 'sink'],
-  map: ['evaluator', 'transform', 'draw', 'loop', 'branch', 'sink'],
-  evaluator: ['transform', 'loop', 'branch', 'map', 'sink'],
-  transform: ['evaluator', 'transform', 'loop', 'branch', 'map', 'sink'],
+  draw: ['evaluator', 'transform', 'library', 'loop', 'branch'],
+  state: ['draw', 'evaluator', 'transform', 'library', 'loop', 'branch', 'map', 'sink'],
+  loop: ['evaluator', 'transform', 'library', 'draw', 'branch', 'map', 'sink'],
+  branch: ['evaluator', 'transform', 'library', 'draw', 'loop', 'map', 'sink'],
+  map: ['evaluator', 'transform', 'library', 'draw', 'loop', 'branch', 'sink'],
+  evaluator: ['transform', 'library', 'loop', 'branch', 'map', 'sink'],
+  transform: ['evaluator', 'transform', 'library', 'loop', 'branch', 'map', 'sink'],
+  library: ['evaluator', 'transform', 'library', 'loop', 'branch', 'map', 'sink'],
   sink: [],
 };
 
@@ -161,25 +171,17 @@ export interface MechanicsSyncState {
 
 // ── Store ──────────────────────────────────────────────────────────
 
-export interface TableSymbol {
-  id: string;
-  name: string;
-  kind: string;
-  color: string;
-}
-
-export interface TableState {
-  tableSymbols: TableSymbol[];
-  setTableSymbols: (s: TableSymbol[]) => void;
-}
-
-export interface AppState extends GraphState, MechanicsState, PluginsState, MechanicsSyncState, TableState {
+export interface AppState extends GraphState, MechanicsState, PluginsState, MechanicsSyncState {
   tab: TabId;
   setTab: (tab: TabId) => void;
   configName: string | null;
   setConfigName: (name: string | null) => void;
   tweaks: Tweaks;
   setTweak: <K extends keyof Tweaks>(key: K, value: Tweaks[K]) => void;
+  /** Live metrics from /evaluate/light — shown on sink node and MetricStrip */
+  liveRtp: number | null;
+  liveProvenance: 'Exact' | 'Sampled' | 'NeedsFullRun' | null;
+  setLiveMetrics: (rtp: number | null, provenance: 'Exact' | 'Sampled' | 'NeedsFullRun' | null) => void;
 }
 
 export const MOOD_HUE: Record<Mood, number> = {
@@ -203,6 +205,11 @@ export const useAppStore = create<AppState>((set, get) => ({
   },
   setTweak: (key, value) =>
     set((s) => ({ tweaks: { ...s.tweaks, [key]: value } })),
+
+  // ── Live metrics ─────────────────────────────────────────────────
+  liveRtp: null,
+  liveProvenance: null,
+  setLiveMetrics: (rtp, provenance) => set({ liveRtp: rtp, liveProvenance: provenance }),
 
   // ── Graph state ─────────────────────────────────────────────────
   nodes: [],
@@ -283,44 +290,12 @@ export const useAppStore = create<AppState>((set, get) => ({
     })),
 
   // ── Mechanics ───────────────────────────────────────────────────
-  mechanics: [
-    {
-      id: 'free-spins',
-      name: 'Free Spins',
-      description: 'Scatter-triggered free spins with retrigger and multiplier',
-      nodes: [],
-      edges: [],
-      createdAt: new Date().toISOString(),
-    },
-  ],
+  mechanics: [],
   addMechanic: (m) => set((s) => ({ mechanics: [...s.mechanics, m] })),
   removeMechanic: (id) => set((s) => ({ mechanics: s.mechanics.filter((m) => m.id !== id) })),
 
   // ── Plugins ─────────────────────────────────────────────────────
-  plugins: [
-    {
-      pluginId: 'megaways-evaluator',
-      contract: 'IEvaluator' as const,
-      version: '1.0.0',
-      isConformant: true,
-      forcesSampledRegime: false,
-    },
-    {
-      pluginId: 'custom-cascade',
-      contract: 'ITransform' as const,
-      version: '0.9.0',
-      isConformant: false,
-      conformanceNote: 'Purity test failed — plugin performs non-deterministic operations',
-      forcesSampledRegime: true,
-    },
-    {
-      pluginId: 'exotic-evaluator',
-      contract: 'IEvaluator' as const,
-      version: '1.2.0',
-      isConformant: true,
-      forcesSampledRegime: true,
-    },
-  ],
+  plugins: [],
   registerPlugin: (p) => set((s) => ({ plugins: [...s.plugins, p] })),
   removePlugin: (id) => set((s) => ({ plugins: s.plugins.filter((p) => p.pluginId !== id) })),
   setPluginsFromBackend: (plugins) => set({ plugins }),
@@ -329,14 +304,6 @@ export const useAppStore = create<AppState>((set, get) => ({
   setMechanicsFromBackend: (mechanics) => set({ mechanics }),
 
   // ── Table data (used by live metrics) ───────────────────────────
-  tableSymbols: [
-    { id: 'S1', name: 'Cherry', kind: 'Standard', color: '#e03131' },
-    { id: 'S2', name: 'Lemon', kind: 'Standard', color: '#f08c00' },
-    { id: 'S3', name: 'Bell', kind: 'Standard', color: '#f06595' },
-    { id: 'W1', name: 'Wild', kind: 'Wild', color: '#2f9e44' },
-    { id: 'SC1', name: 'Scatter', kind: 'Scatter', color: '#7950f2' },
-  ],
-  setTableSymbols: (symbols) => set({ tableSymbols: symbols }),
 }));
 
 // ── Minimal Node/Edge change handlers (avoid heavy immer dependency) ─

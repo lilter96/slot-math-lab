@@ -55,16 +55,34 @@ export default function SlotCanvas() {
       e.preventDefault();
       const type = e.dataTransfer.getData('application/slotnode');
       if (!type) return;
-      const defaults = NODE_DEFAULTS[type] ?? {};
       const wrapper = reactFlowWrapper.current;
       if (!wrapper) return;
       const bounds = wrapper.getBoundingClientRect();
       const id = `node-${++idCounter.current}`;
+
+      // For library (catalog) nodes, extra data contains the mechanicName
+      let extra: Record<string, string> = {};
+      const extraRaw = e.dataTransfer.getData('application/slotnodeextra');
+      if (extraRaw) {
+        try { extra = JSON.parse(extraRaw); } catch { /* ignore */ }
+      }
+
+      // NODE_DEFAULTS key is either the type alone or 'library:<mechanicName>'
+      const defaultsKey = type === 'library' && extra.mechanicName
+        ? `library:${extra.mechanicName}`
+        : type;
+      const defaults = NODE_DEFAULTS[defaultsKey] ?? {};
+
       const newNode: GraphNode = {
         id,
         type: type as string,
         position: { x: e.clientX - bounds.left - 80, y: e.clientY - bounds.top - 20 },
-        data: { nodeType: type as GraphNodeData['nodeType'], label: defaults.label ?? type, ...defaults },
+        data: {
+          nodeType: type as GraphNodeData['nodeType'],
+          label: defaults.label ?? type,
+          ...defaults,
+          ...extra,
+        },
       };
       addNode(newNode);
     },

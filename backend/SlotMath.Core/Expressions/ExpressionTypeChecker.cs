@@ -60,6 +60,9 @@ public static class ExpressionTypeChecker
             AggregateExpr a => InferAggregate(a, ctx, errors),
             NotExpr n => InferNot(n, ctx, errors),
             CallExpr c => InferCall(c, ctx, errors),
+            FoldExpr f => InferFold(f, ctx, errors),
+            MapExpr m => InferMap(m, ctx, errors),
+            FilterExpr fi => InferFilter(fi, ctx, errors),
             _ => Fail(expr, $"Unknown expression type: {expr.GetType().Name}", errors),
         };
     }
@@ -289,7 +292,125 @@ public static class ExpressionTypeChecker
         return returnType;
     }
 
+    // ── Fold ─────────────────────────────────────────────────────────────
+
+    private static ExprType InferFold(FoldExpr f, TypeCheckContext ctx, List<TypeCheckError> errors)
+    {
+        var initType = Infer(f.Init, ctx, errors);
+
+        // One level of bounded iteration only — a fold body may not contain
+        // another fold, map, or filter.  Nested iterators would multiply the
+        // iteration bound and break the "bounded by array size → exact-analysable"
+        // guarantee (CLAUDE.md G9 / level-b grammar).  Reject before recursing
+        // into the body so the error is precise and not buried under secondary errors.
+        if (ContainsBoundedIterator(f.Body))
+        {
+            errors.Add(Error(f,
+                "Nested fold is not allowed: a fold body may not contain another " +
+                "fold, map, or filter (one level of bounded iteration keeps the grammar exact-analysable)."));
+            return initType;
+        }
+
+        // Lambda context: acc and item added as virtual state fields
+        var lambdaFields = ctx.StateFields.ToList();
+        lambdaFields.Add(new FieldDescriptor { Name = f.AccName, Type = initType });
+        lambdaFields.Add(new FieldDescriptor { Name = f.ItemName, Type = f.ItemType });
+
+        var lambdaCtx = new TypeCheckContext
+        {
+            ExpectedType = initType,
+            BoardFields = ctx.BoardFields,
+            StateFields = lambdaFields,
+            CellFields = ctx.CellFields,
+            DecorationTypes = ctx.DecorationTypes,
+        };
+
+        var bodyType = Infer(f.Body, lambdaCtx, errors);
+        if (bodyType != initType && bodyType != ExprType.Error)
+            errors.Add(Error(f,
+                $"FoldExpr body returns {bodyType} but must match init type {initType}."));
+
+        return initType;
+    }
+
+    // ── Map ──────────────────────────────────────────────────────────────
+
+    private static ExprType InferMap(MapExpr m, TypeCheckContext ctx, List<TypeCheckError> errors)
+    {
+        if (ContainsBoundedIterator(m.Body))
+        {
+            errors.Add(Error(m,
+                "Nested iteration is not allowed in a map body: map/filter/fold may not be nested " +
+                "(one level of bounded iteration keeps the grammar exact-analysable)."));
+            return ExprType.Array;
+        }
+
+        var lambdaFields = ctx.StateFields.ToList();
+        lambdaFields.Add(new FieldDescriptor { Name = m.ItemName, Type = m.ItemType });
+
+        var lambdaCtx = new TypeCheckContext
+        {
+            ExpectedType = ExprType.Number,
+            BoardFields = ctx.BoardFields,
+            StateFields = lambdaFields,
+            CellFields = ctx.CellFields,
+            DecorationTypes = ctx.DecorationTypes,
+        };
+
+        Infer(m.Body, lambdaCtx, errors);
+        return ExprType.Array;
+    }
+
+    // ── Filter ───────────────────────────────────────────────────────────
+
+    private static ExprType InferFilter(FilterExpr fi, TypeCheckContext ctx, List<TypeCheckError> errors)
+    {
+        if (ContainsBoundedIterator(fi.Predicate))
+        {
+            errors.Add(Error(fi,
+                "Nested iteration is not allowed in a filter predicate: map/filter/fold may not be nested " +
+                "(one level of bounded iteration keeps the grammar exact-analysable)."));
+            return ExprType.Array;
+        }
+
+        var lambdaFields = ctx.StateFields.ToList();
+        lambdaFields.Add(new FieldDescriptor { Name = fi.ItemName, Type = fi.ItemType });
+
+        var lambdaCtx = new TypeCheckContext
+        {
+            ExpectedType = ExprType.Boolean,
+            BoardFields = ctx.BoardFields,
+            StateFields = lambdaFields,
+            CellFields = ctx.CellFields,
+            DecorationTypes = ctx.DecorationTypes,
+        };
+
+        var predType = Infer(fi.Predicate, lambdaCtx, errors);
+        if (predType != ExprType.Boolean && predType != ExprType.Error)
+            errors.Add(Error(fi, $"Filter predicate must be Boolean, got {predType}."));
+
+        return ExprType.Array;
+    }
+
     // ── Helpers ──────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// True if the expression tree contains a fold, map, or filter anywhere.
+    /// Used to enforce one-level-of-bounded-iteration: no nested iterators.
+    /// </summary>
+    private static bool ContainsBoundedIterator(Expression expr) => expr switch
+    {
+        FoldExpr => true,
+        MapExpr => true,
+        FilterExpr => true,
+        BinaryExpr b => ContainsBoundedIterator(b.Left) || ContainsBoundedIterator(b.Right),
+        CompareExpr c => ContainsBoundedIterator(c.Left) || ContainsBoundedIterator(c.Right),
+        IfExpr i => ContainsBoundedIterator(i.Condition) || ContainsBoundedIterator(i.ThenExpr) || ContainsBoundedIterator(i.ElseExpr),
+        NotExpr n => ContainsBoundedIterator(n.Expr),
+        AggregateExpr a => a.Predicate != null && ContainsBoundedIterator(a.Predicate),
+        CallExpr call => call.Args.Any(ContainsBoundedIterator),
+        _ => false, // ConstantExpr, FieldAccessExpr — leaves
+    };
 
     private static ExprType Fail(Expression expr, string message, List<TypeCheckError> errors)
     {

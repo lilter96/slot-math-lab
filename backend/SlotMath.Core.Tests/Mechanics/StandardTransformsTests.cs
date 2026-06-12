@@ -3,6 +3,7 @@ using SlotMath.Core.Mechanics.Transforms;
 
 namespace SlotMath.Core.Tests.Mechanics;
 
+[Collection("Registry")]
 public class StandardTransformsTests
 {
     // ═══════════════════════════════════════════════════════════════════

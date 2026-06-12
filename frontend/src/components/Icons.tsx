@@ -130,6 +130,7 @@ export const Ic = {
 export const NODE_ACCENT: Record<string, string> = {
   draw: 'var(--n-draw)',
   evaluator: 'var(--n-eval)',
+  library: 'var(--n-eval)',
   predicate: 'var(--n-eval)',
   expr: 'var(--n-expr)',
   loop: 'var(--n-loop)',

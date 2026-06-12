@@ -1,0 +1,16 @@
+{
+  "name": "ways",
+  "description": "Ways / 243-ways mechanic. For each symbol, multiplies the per-column counts of matching symbols across all columns and looks up the result in the Paytable. Input port: 'board' (Board). Output port: 'wins' (Wins).",
+  "nodes": [
+    {
+      "nodeType": "map",
+      "id": "eval",
+      "label": "Ways Evaluator",
+      "transformId": "ways",
+      "inputs": { "board": { "name": "board", "type": "Board" } },
+      "outputs": { "wins": { "name": "wins", "type": "Wins" } }
+    }
+  ],
+  "edges": [],
+  "expressions": {}
+}

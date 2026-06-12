@@ -1,15 +1,19 @@
 namespace SlotMath.Core.Mechanics;
 
 /// <summary>
-/// A pure evaluator that scores a board and returns winning combinations.
+/// Plugin contract (level c) for pure win evaluation.
 ///
-/// IEvaluator is one of the three stable, pluggable interfaces of the mechanic
-/// layer.  Evaluators are pure functions over board + state — they must not
-/// perform random draws or I/O.
+/// IEvaluator is the interface that user-uploaded plugins implement to supply
+/// novel win-scoring logic.  It is NOT a standard-library interface — the
+/// canonical mechanics catalog is composed from substrate atoms (subgraphs of
+/// Draw/State/Loop + expressions), not from C# classes.
 ///
-/// The standard library implements common evaluators (lines, ways, cluster,
-/// scatter, Megaways); plugins can supply novel evaluators implementing this
-/// same interface without any engine changes.
+/// The implementations in Mechanics/Evaluators/ are OPTIONAL C# fast-paths:
+/// each one is accompanied by a passing equivalence test against its canonical
+/// atomic subgraph (Invariant 11).  They are optimization details, not the
+/// source of truth.
+///
+/// Rules: pure, deterministic, no Draw, no I/O.
 /// </summary>
 public interface IEvaluator
 {

@@ -8,5 +8,6 @@ export const nodeTypes = {
   map: BaseNodeCard,
   evaluator: BaseNodeCard,
   transform: BaseNodeCard,
+  library: BaseNodeCard,
   sink: BaseNodeCard,
 };

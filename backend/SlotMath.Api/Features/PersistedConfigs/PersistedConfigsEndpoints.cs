@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
 using SlotMath.Api.Infrastructure;
 using SlotMath.Api.Persistence;
@@ -6,8 +7,9 @@ using SlotMath.Api.Persistence;
 namespace SlotMath.Api.Features.PersistedConfigs;
 
 /// <summary>
-/// Persistence-backed config endpoints (G16):
-/// save → load → re-save with version history and result cache.
+/// Persistence-backed config endpoints (G16 + G29):
+/// - Anonymous: read (cache) only
+/// - Authenticated: save / load own configs with ownership enforcement
 /// </summary>
 public static class PersistedConfigsEndpoints
 {
@@ -15,15 +17,34 @@ public static class PersistedConfigsEndpoints
     {
         var group = app.MapGroup("/api/persisted");
 
-        // ── Save new config version ──────────────────────────────────────
-        group.MapPost("/{projectId}/configs", async (
+        // ── Save new config version (requires auth) ──────────────────────
+        group.MapPost("/{projectId}/configs", [Authorize] async (
             string projectId,
             object config,
-            ConfigPersistenceService service) =>
+            HttpContext ctx,
+            ConfigPersistenceService service,
+            SlotMathDbContext db) =>
         {
+            var userId = JwtAuth.GetUserId(ctx.User);
+            if (string.IsNullOrWhiteSpace(userId))
+                return Results.Unauthorized();
+
+            // Ownership: if the project already exists, only its owner can save
+            var project = await db.Projects.AsNoTracking()
+                .FirstOrDefaultAsync(p => p.Id == projectId);
+            if (project is not null
+                && project.OwnerId is not null
+                && project.OwnerId != userId)
+            {
+                return Results.Problem(
+                    detail: $"Project '{projectId}' belongs to another user.",
+                    statusCode: 403,
+                    title: "Forbidden");
+            }
+
             try
             {
-                var entity = await service.SaveConfigAsync(projectId, config);
+                var entity = await service.SaveConfigAsync(projectId, config, ownerId: userId);
                 return Results.Created(
                     $"/api/persisted/{projectId}/configs/{entity.Version}",
                     new
@@ -41,11 +62,29 @@ public static class PersistedConfigsEndpoints
             }
         });
 
-        // ── Load latest config version ───────────────────────────────────
-        group.MapGet("/{projectId}/configs/latest", async (
+        // ── Load latest config version (requires auth) ───────────────────
+        group.MapGet("/{projectId}/configs/latest", [Authorize] async (
             string projectId,
-            ConfigPersistenceService service) =>
+            HttpContext ctx,
+            ConfigPersistenceService service,
+            SlotMathDbContext db) =>
         {
+            var userId = JwtAuth.GetUserId(ctx.User);
+            if (string.IsNullOrWhiteSpace(userId))
+                return Results.Unauthorized();
+
+            var project = await db.Projects.AsNoTracking()
+                .FirstOrDefaultAsync(p => p.Id == projectId);
+            if (project is not null
+                && project.OwnerId is not null
+                && project.OwnerId != userId)
+            {
+                return Results.Problem(
+                    detail: $"Project '{projectId}' belongs to another user.",
+                    statusCode: 403,
+                    title: "Forbidden");
+            }
+
             var entity = await service.LoadLatestAsync(projectId);
             if (entity is null)
                 return Results.NotFound(new { error = $"Project '{projectId}' has no configs." });
@@ -61,12 +100,30 @@ public static class PersistedConfigsEndpoints
             });
         });
 
-        // ── Load specific version ────────────────────────────────────────
-        group.MapGet("/{projectId}/configs/{version:int}", async (
+        // ── Load specific version (requires auth) ────────────────────────
+        group.MapGet("/{projectId}/configs/{version:int}", [Authorize] async (
             string projectId,
             int version,
-            ConfigPersistenceService service) =>
+            HttpContext ctx,
+            ConfigPersistenceService service,
+            SlotMathDbContext db) =>
         {
+            var userId = JwtAuth.GetUserId(ctx.User);
+            if (string.IsNullOrWhiteSpace(userId))
+                return Results.Unauthorized();
+
+            var project = await db.Projects.AsNoTracking()
+                .FirstOrDefaultAsync(p => p.Id == projectId);
+            if (project is not null
+                && project.OwnerId is not null
+                && project.OwnerId != userId)
+            {
+                return Results.Problem(
+                    detail: $"Project '{projectId}' belongs to another user.",
+                    statusCode: 403,
+                    title: "Forbidden");
+            }
+
             var entity = await service.LoadVersionAsync(projectId, version);
             if (entity is null)
                 return Results.NotFound(new { error = $"Config '{projectId}' version {version} not found." });
@@ -82,11 +139,29 @@ public static class PersistedConfigsEndpoints
             });
         });
 
-        // ── Load version history ─────────────────────────────────────────
-        group.MapGet("/{projectId}/configs", async (
+        // ── Load version history (requires auth) ─────────────────────────
+        group.MapGet("/{projectId}/configs", [Authorize] async (
             string projectId,
-            ConfigPersistenceService service) =>
+            HttpContext ctx,
+            ConfigPersistenceService service,
+            SlotMathDbContext db) =>
         {
+            var userId = JwtAuth.GetUserId(ctx.User);
+            if (string.IsNullOrWhiteSpace(userId))
+                return Results.Unauthorized();
+
+            var project = await db.Projects.AsNoTracking()
+                .FirstOrDefaultAsync(p => p.Id == projectId);
+            if (project is not null
+                && project.OwnerId is not null
+                && project.OwnerId != userId)
+            {
+                return Results.Problem(
+                    detail: $"Project '{projectId}' belongs to another user.",
+                    statusCode: 403,
+                    title: "Forbidden");
+            }
+
             var history = await service.LoadHistoryAsync(projectId);
             if (history.Count == 0)
                 return Results.NotFound(new { error = $"Project '{projectId}' has no configs." });
@@ -101,7 +176,7 @@ public static class PersistedConfigsEndpoints
             }));
         });
 
-        // ── Cache a result ───────────────────────────────────────────────
+        // ── Cache a result (anonymous OK) ────────────────────────────────
         group.MapPost("/cache/{configHash}", async (
             string configHash,
             object result,
@@ -112,7 +187,7 @@ public static class PersistedConfigsEndpoints
             return Results.Ok(new { cached = true, hash = configHash });
         });
 
-        // ── Get cached result ────────────────────────────────────────────
+        // ── Get cached result (anonymous OK) ─────────────────────────────
         group.MapGet("/cache/{configHash}", async (
             string configHash,
             ConfigPersistenceService service) =>
@@ -124,7 +199,7 @@ public static class PersistedConfigsEndpoints
             return Results.Ok(new { hit = true, hash = configHash, result });
         });
 
-        // ── Get recompute counter ────────────────────────────────────────
+        // ── Get recompute counter (anonymous OK) ─────────────────────────
         group.MapGet("/cache/{configHash}/recompute-count", (
             string configHash,
             ConfigPersistenceService service) =>

@@ -1,10 +1,15 @@
+using System.Text;
 using Hangfire;
 using Hangfire.MemoryStorage;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
+using Microsoft.IdentityModel.Tokens;
 using OpenTelemetry.Metrics;
 using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
+using SlotMath.Api.Features.Ai;
+using SlotMath.Api.Features.Auth;
 using SlotMath.Api.Features.Configs;
 using SlotMath.Api.Features.Evaluate;
 using SlotMath.Api.Features.PersistedConfigs;
@@ -34,6 +39,28 @@ builder.Services.AddOpenTelemetry()
     });
 
 // Structured logging via OTEL (traces + metrics already configured above)
+
+// ── JWT Authentication (G29) ──────────────────────────────────────────
+var jwtSecret = builder.Configuration["JWT:Secret"] ?? JwtAuth.DefaultSecret;
+var jwtIssuer = builder.Configuration["JWT:Issuer"] ?? JwtAuth.DefaultIssuer;
+var jwtKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSecret));
+
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(options =>
+    {
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuerSigningKey = true,
+            IssuerSigningKey = jwtKey,
+            ValidateIssuer = true,
+            ValidIssuer = jwtIssuer,
+            ValidateAudience = false,
+            ValidateLifetime = true,
+            ClockSkew = TimeSpan.FromMinutes(2),
+        };
+    });
+
+builder.Services.AddAuthorizationBuilder();
 
 // ── DI ────────────────────────────────────────────────────────────────
 // Rate limiter + validation
@@ -77,6 +104,12 @@ if (!string.IsNullOrWhiteSpace(redisConnection))
 // Register the persistence-backed config service
 builder.Services.AddScoped<ConfigPersistenceService>();
 
+// HttpClient for Anthropic API (AI gateway)
+builder.Services.AddHttpClient("anthropic", client =>
+{
+    client.Timeout = TimeSpan.FromSeconds(90);
+});
+
 // ── Health checks ─────────────────────────────────────────────────────
 builder.Services.AddHealthChecks()
     .AddCheck("postgres", () =>
@@ -107,6 +140,10 @@ builder.Services.AddProblemDetails(options =>
 builder.Services.AddOpenApi();
 
 var app = builder.Build();
+
+// ── Authentication + Authorization middleware (G29) ───────────────────
+app.UseAuthentication();
+app.UseAuthorization();
 
 // ── RFC-7807 error handling ───────────────────────────────────────────
 app.UseStatusCodePages();
@@ -179,13 +216,20 @@ var configStore = app.Services.GetRequiredService<InMemoryConfigStore>();
 var runStore = app.Services.GetRequiredService<InMemoryRunStore>();
 var pluginHost = app.Services.GetRequiredService<PluginHost>();
 
+app.MapAuth();
 app.MapConfigs();
 app.MapValidate();
 app.MapEvaluate();
 app.MapRuns(configStore, runStore, pluginHost);
 app.MapPlugins(pluginHost);
 
-// Persistence-backed config endpoints
+// Persistence-backed config endpoints (auth required for save/load, G29)
 app.MapPersistedConfigs();
+
+// AI gateway (G26) + auto-tune, lint, explain (G27/G28)
+app.MapAi();
+app.MapAutoTune();
+app.MapLint();
+app.MapExplain();
 
 app.Run();

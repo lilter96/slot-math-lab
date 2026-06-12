@@ -1,4 +1,4 @@
-import type { GraphNode, GraphEdge, TableSymbol } from '../store';
+import type { GraphNode, GraphEdge } from '../store';
 
 // ═══════════════════════════════════════════════════════════════════
 // Canonical graph → backend config mapping.
@@ -134,7 +134,6 @@ export interface ConfigPayloadOptions {
 export function buildConfigPayload(
   nodes: GraphNode[],
   edges: GraphEdge[],
-  symbols: Pick<TableSymbol, 'id' | 'name' | 'kind'>[],
   options: ConfigPayloadOptions,
 ): Record<string, unknown> | null {
   if (nodes.length === 0) return null;
@@ -143,10 +142,6 @@ export function buildConfigPayload(
   return {
     schemaVersion: '1.0.0',
     name: options.name,
-    symbols: symbols.length > 0
-      ? symbols.map((s) => ({ id: s.id, name: s.name, kind: s.kind }))
-      : undefined,
-    boardConfig: { rows: 3, columns: 5 },
     nodes: nodes.map(mapNodeToBackend),
     edges: edges.map((e) => ({
       id: e.id,

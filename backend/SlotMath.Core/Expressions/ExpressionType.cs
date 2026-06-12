@@ -32,6 +32,9 @@ public enum ExprType
     /// <summary>A symbol identifier (treated as string internally).</summary>
     Symbol,
 
+    /// <summary>An array of typed values — produced by map/filter expressions.</summary>
+    Array,
+
     /// <summary>Type error — used internally during inference.</summary>
     Error,
 }
@@ -54,15 +57,20 @@ public readonly struct ExprValue : IEquatable<ExprValue>
     public bool BoolValue { get; }
     public string? StringValue { get; }
 
+    /// <summary>Array items — non-null only when Kind == Array.</summary>
+    public IReadOnlyList<ExprValue>? ArrayValue { get; }
+
     // ── Constructors ──────────────────────────────────────────────────────
 
-    private ExprValue(ExprType kind, BigInteger num, BigInteger den, bool b, string? s)
+    private ExprValue(ExprType kind, BigInteger num, BigInteger den, bool b, string? s,
+        IReadOnlyList<ExprValue>? arr = null)
     {
         Kind = kind;
         NumberNumerator = num;
         NumberDenominator = den;
         BoolValue = b;
         StringValue = s;
+        ArrayValue = arr;
     }
 
     public static ExprValue Number(BigInteger value)
@@ -83,6 +91,9 @@ public readonly struct ExprValue : IEquatable<ExprValue>
 
     public static ExprValue Symbol(string value)
         => new(ExprType.Symbol, 0, 1, false, value);
+
+    public static ExprValue Array(IReadOnlyList<ExprValue> items)
+        => new(ExprType.Array, 0, 1, false, null, items);
 
     /// <summary>Convert the rational number to a single BigInteger (truncating division).</summary>
     public BigInteger AsInteger() =>
@@ -132,15 +143,38 @@ public readonly struct ExprValue : IEquatable<ExprValue>
         return Rational(num, den);
     }
 
+    /// <summary>
+    /// Convert to a plain CLR object suitable for storage in the state dictionary.
+    /// Integers → BigInteger; rationals → ExprValue (preserving exactness);
+    /// booleans → bool; strings → string; arrays → object[].
+    /// </summary>
+    public object? ToStateObject() => Kind switch
+    {
+        ExprType.Number => NumberDenominator == 1 ? (object?)NumberNumerator : this,
+        ExprType.Boolean => BoolValue,
+        ExprType.String or ExprType.Symbol => StringValue,
+        ExprType.Array => ArrayValue?.Select(v => v.ToStateObject()).ToArray(),
+        _ => null,
+    };
+
     public bool Equals(ExprValue other) =>
         Kind == other.Kind
         && NumberNumerator == other.NumberNumerator
         && NumberDenominator == other.NumberDenominator
         && BoolValue == other.BoolValue
-        && StringValue == other.StringValue;
+        && StringValue == other.StringValue
+        && ArrayEquality(ArrayValue, other.ArrayValue);
 
     public override bool Equals(object? obj) => obj is ExprValue v && Equals(v);
-    public override int GetHashCode() => HashCode.Combine(Kind, NumberNumerator, NumberDenominator, BoolValue, StringValue);
+
+    public override int GetHashCode()
+    {
+        var h = HashCode.Combine(Kind, NumberNumerator, NumberDenominator, BoolValue, StringValue);
+        if (ArrayValue != null)
+            foreach (var item in ArrayValue)
+                h = HashCode.Combine(h, item.GetHashCode());
+        return h;
+    }
 
     public override string ToString() => Kind switch
     {
@@ -148,8 +182,19 @@ public readonly struct ExprValue : IEquatable<ExprValue>
         ExprType.Boolean => BoolValue.ToString(),
         ExprType.String => $"\"{StringValue}\"",
         ExprType.Symbol => $"symbol:{StringValue}",
+        ExprType.Array => $"[{string.Join(", ", ArrayValue?.Select(x => x.ToString()) ?? [])}]",
         _ => "?"
     };
+
+    private static bool ArrayEquality(IReadOnlyList<ExprValue>? a, IReadOnlyList<ExprValue>? b)
+    {
+        if (a == null && b == null) return true;
+        if (a == null || b == null) return false;
+        if (a.Count != b.Count) return false;
+        for (var i = 0; i < a.Count; i++)
+            if (!a[i].Equals(b[i])) return false;
+        return true;
+    }
 }
 
 // ═══════════════════════════════════════════════════════════════════════════

@@ -757,6 +757,7 @@ public class ExactInterpreter_AccumulatorConvolution
     }
 }
 
+[Collection("Registry")]
 public class Compiler_FractionalPayouts : IDisposable
 {
     public void Dispose() => SlotMath.Core.Mechanics.EvaluatorRegistry.Clear();

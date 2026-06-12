@@ -16,6 +16,7 @@ namespace SlotMath.Core.Tests.Compiler;
 //  G14 — Graph → program compiler + validation tests
 // ═══════════════════════════════════════════════════════════════════════════
 
+[Collection("Registry")]
 public class GraphCompilerTests : IDisposable
 {
     private readonly PluginHost _pluginHost = new();

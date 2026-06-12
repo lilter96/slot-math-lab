@@ -1,0 +1,16 @@
+{
+  "name": "sticky-wild",
+  "description": "Sticky wild mechanic. Locks wild-symbol cells so they persist across subsequent spins (Hold & Spin style overlay). Applies the lock transform to the current board, preserving wild positions in state. Input port: 'board' (Board). Output port: 'board' (Board).",
+  "nodes": [
+    {
+      "nodeType": "map",
+      "id": "lock",
+      "label": "Lock Wild Cells",
+      "transformId": "lock",
+      "inputs": { "board": { "name": "board", "type": "Board" } },
+      "outputs": { "board": { "name": "board", "type": "Board" } }
+    }
+  ],
+  "edges": [],
+  "expressions": {}
+}

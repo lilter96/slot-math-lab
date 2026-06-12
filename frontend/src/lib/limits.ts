@@ -6,9 +6,6 @@
 export const LIMITS = {
   maxNodes: 100,
   maxEdges: 200,
-  maxSymbols: 50,
-  maxReelStrips: 10,
-  maxStripLength: 200,
   maxSpinBudget: 10_000_000,
   lightEvalMaxSamples: 50_000,
   lightEvalMaxBranches: 100_000,
@@ -24,7 +21,6 @@ export interface LimitError {
 export function validateGraphSize(
   nodeCount: number,
   edgeCount: number,
-  symbolCount: number,
 ): LimitError | null {
   if (nodeCount > LIMITS.maxNodes) {
     return {
@@ -36,12 +32,6 @@ export function validateGraphSize(
     return {
       field: 'edges',
       message: `Graph has ${edgeCount} edges (max ${LIMITS.maxEdges}). Reduce connections.`,
-    };
-  }
-  if (symbolCount > LIMITS.maxSymbols) {
-    return {
-      field: 'symbols',
-      message: `Config has ${symbolCount} symbols (max ${LIMITS.maxSymbols}).`,
     };
   }
   return null;

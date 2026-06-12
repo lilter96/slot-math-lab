@@ -1,4 +1,5 @@
 using System.Text.Json.Serialization;
+using SlotMath.Core.Expressions;
 
 namespace SlotMath.Core.Model;
 
@@ -13,6 +14,9 @@ namespace SlotMath.Core.Model;
 [JsonDerivedType(typeof(AggregateExpr), "aggregate")]
 [JsonDerivedType(typeof(NotExpr), "not")]
 [JsonDerivedType(typeof(CallExpr), "call")]
+[JsonDerivedType(typeof(FoldExpr), "fold")]
+[JsonDerivedType(typeof(MapExpr), "map")]
+[JsonDerivedType(typeof(FilterExpr), "filter")]
 public abstract record Expression
 {
     public string? Annotation { get; init; }
@@ -124,4 +128,81 @@ public sealed record CallExpr : Expression
 {
     public required string Function { get; init; }
     public Expression[] Args { get; init; } = Array.Empty<Expression>();
+}
+
+// ── Bounded map over a state array (level-b iteration atom) ───────────
+//
+//  map(state[StateKey], ItemName => Body)
+//
+//  Transforms every element of the array stored at state[StateKey] via
+//  the Body expression.  Returns ExprType.Array (a new array of
+//  transformed values).  No nested iteration allowed in Body.
+
+public sealed record MapExpr : Expression
+{
+    /// <summary>Key in the state dictionary whose value is the array to map over.</summary>
+    public required string StateKey { get; init; }
+
+    /// <summary>Name bound to the current array element inside the lambda body.</summary>
+    public required string ItemName { get; init; }
+
+    /// <summary>Lambda body — evaluated once per element; may not contain fold/map/filter.</summary>
+    public required Expression Body { get; init; }
+
+    /// <summary>Expected type of array items (defaults to String).</summary>
+    public ExprType ItemType { get; init; } = ExprType.String;
+}
+
+// ── Bounded filter over a state array (level-b iteration atom) ─────────
+//
+//  filter(state[StateKey], ItemName => Predicate)
+//
+//  Keeps only elements for which Predicate is true.  Returns
+//  ExprType.Array (a new array of the same element type).  No nested
+//  iteration allowed in Predicate.
+
+public sealed record FilterExpr : Expression
+{
+    /// <summary>Key in the state dictionary whose value is the array to filter.</summary>
+    public required string StateKey { get; init; }
+
+    /// <summary>Name bound to the current array element inside the predicate.</summary>
+    public required string ItemName { get; init; }
+
+    /// <summary>Predicate — must return Boolean; may not contain fold/map/filter.</summary>
+    public required Expression Predicate { get; init; }
+
+    /// <summary>Expected type of array items (defaults to String).</summary>
+    public ExprType ItemType { get; init; } = ExprType.String;
+}
+
+// ── Bounded fold over a state array (level-b iteration atom) ──────────
+//
+//  fold(state[StateKey], Init, (AccName, ItemName) => Body)
+//
+//  Iterates over the array stored at state[StateKey].  The accumulator
+//  (AccName) and current item (ItemName) are bound into the state dict
+//  for each iteration; the Body expression accesses them as
+//  state.AccName and state.ItemName.  No nested fold allowed (one level
+//  of bounded iteration keeps the grammar exact-analysable).
+
+public sealed record FoldExpr : Expression
+{
+    /// <summary>Key in the state dictionary whose value is the array to fold over.</summary>
+    public required string StateKey { get; init; }
+
+    /// <summary>Name bound to the accumulator inside the lambda body.</summary>
+    public required string AccName { get; init; }
+
+    /// <summary>Name bound to the current array element inside the lambda body.</summary>
+    public required string ItemName { get; init; }
+
+    /// <summary>Initial accumulator value.</summary>
+    public required Expression Init { get; init; }
+
+    /// <summary>Lambda body — must return the same type as Init.</summary>
+    public required Expression Body { get; init; }
+
+    /// <summary>Expected type of array items (defaults to String).</summary>
+    public ExprType ItemType { get; init; } = ExprType.String;
 }

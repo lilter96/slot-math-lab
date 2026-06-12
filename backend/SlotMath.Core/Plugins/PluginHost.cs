@@ -4,20 +4,19 @@ using SlotMath.Core.Mechanics;
 namespace SlotMath.Core.Plugins;
 
 // ═══════════════════════════════════════════════════════════════════════════
-//  PluginHost — registry and execution of plugin evaluators (G12)
+//  PluginHost — registry and execution of user-provided plugins (G12)
 //
-//  Plugins are registered by id and evaluated through the same
-//  IEvaluator interface as the standard library — the interpreter
-//  path is identical.  The host also tracks conformance status so
-//  the UI and regime layer can surface plugin provenance.
+//  Supports both IEvaluator and ITransform plugins.  Plugins implement the
+//  same contracts as the standard library — the interpreter path is identical.
+//  The host tracks conformance status so the UI and regime layer can surface
+//  plugin provenance.
 //
-//  In production, plugins are loaded from sandboxed assemblies via
-//  isolated AssemblyLoadContext.  The in-process path is used for
-//  testing and for the standard library itself.
+//  In production, plugins are loaded from sandboxed assemblies via isolated
+//  AssemblyLoadContext.  The in-process path is used for testing.
 // ═══════════════════════════════════════════════════════════════════════════
 
 /// <summary>
-/// Tracks a registered plugin's metadata and conformance status.
+/// Tracks a registered evaluator plugin's metadata and conformance status.
 /// </summary>
 public sealed record PluginEntry
 {
@@ -28,17 +27,26 @@ public sealed record PluginEntry
 }
 
 /// <summary>
+/// Tracks a registered transform plugin's metadata.
+/// </summary>
+public sealed record TransformPluginEntry
+{
+    public required string PluginId { get; init; }
+    public required ITransform Transform { get; init; }
+}
+
+/// <summary>
 /// The plugin host manages plugin registration, discovery, and execution.
 /// </summary>
 public sealed class PluginHost
 {
-    // The host is registered as a singleton and serves concurrent requests:
-    // registration/validation race against lookups, so the map must be
-    // a concurrent dictionary (PluginEntry itself is an immutable record).
     private readonly ConcurrentDictionary<string, PluginEntry> _plugins = new();
+    private readonly ConcurrentDictionary<string, TransformPluginEntry> _transforms = new();
 
-    /// <summary>All registered plugin IDs (point-in-time snapshot).</summary>
+    /// <summary>All registered evaluator plugin IDs (point-in-time snapshot).</summary>
     public IReadOnlyCollection<string> PluginIds => _plugins.Keys.ToArray();
+
+    // ── Evaluator plugins ─────────────────────────────────────────────────
 
     /// <summary>
     /// Register an evaluator as a named plugin.
@@ -49,7 +57,7 @@ public sealed class PluginHost
         {
             PluginId = pluginId,
             Evaluator = evaluator,
-            IsConformant = false, // must be validated separately
+            IsConformant = false,
         };
     }
 
@@ -69,20 +77,16 @@ public sealed class PluginHost
     }
 
     /// <summary>
-    /// Try to get a registered evaluator by id.
+    /// Try to get a registered evaluator plugin by id.
     /// </summary>
-    public IEvaluator? TryGetEvaluator(string pluginId)
-    {
-        return _plugins.TryGetValue(pluginId, out var entry) ? entry.Evaluator : null;
-    }
+    public IEvaluator? TryGetEvaluator(string pluginId) =>
+        _plugins.TryGetValue(pluginId, out var entry) ? entry.Evaluator : null;
 
     /// <summary>
     /// Get the full plugin entry including conformance status.
     /// </summary>
-    public PluginEntry? TryGetEntry(string pluginId)
-    {
-        return _plugins.TryGetValue(pluginId, out var entry) ? entry : null;
-    }
+    public PluginEntry? TryGetEntry(string pluginId) =>
+        _plugins.TryGetValue(pluginId, out var entry) ? entry : null;
 
     /// <summary>
     /// Evaluate a registered plugin — same path as calling IEvaluator directly.
@@ -91,12 +95,11 @@ public sealed class PluginHost
     {
         if (!_plugins.TryGetValue(pluginId, out var entry))
             throw new KeyNotFoundException($"Plugin '{pluginId}' is not registered.");
-
         return entry.Evaluator.Evaluate(board, state);
     }
 
     /// <summary>
-    /// Run the conformance harness on a registered plugin.
+    /// Run the conformance harness on a registered evaluator plugin.
     /// </summary>
     public ConformanceResult Validate(string pluginId, Board testBoard,
         TimeSpan? timeout = null)
@@ -114,7 +117,7 @@ public sealed class PluginHost
     }
 
     /// <summary>
-    /// Whether a non-conformant plugin can be selected.
+    /// Whether a non-conformant evaluator plugin can be selected.
     /// Returns (canSelect, reason).
     /// </summary>
     public (bool CanSelect, string? Reason) CanSelect(string pluginId)
@@ -129,4 +132,25 @@ public sealed class PluginHost
 
         return (true, null);
     }
+
+    // ── Transform plugins ─────────────────────────────────────────────────
+
+    /// <summary>
+    /// Register an ITransform as a named plugin.
+    /// </summary>
+    public void RegisterTransform(string pluginId, ITransform transform)
+    {
+        _transforms[pluginId] = new TransformPluginEntry
+        {
+            PluginId = pluginId,
+            Transform = transform,
+        };
+    }
+
+    /// <summary>
+    /// Try to get a registered transform plugin by id.
+    /// </summary>
+    public ITransform? TryGetTransform(string pluginId) =>
+        _transforms.TryGetValue(pluginId, out var entry) ? entry.Transform : null;
 }
+
