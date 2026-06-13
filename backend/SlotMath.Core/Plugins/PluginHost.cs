@@ -24,6 +24,15 @@ public sealed record PluginEntry
     public required IEvaluator Evaluator { get; init; }
     public bool IsConformant { get; init; }
     public ConformanceResult? ConformanceResult { get; init; }
+
+    /// <summary>The plugin ABI version it was built against (D2/D18).</summary>
+    public int AbiVersion { get; init; } = PluginHost.CurrentAbiVersion;
+}
+
+/// <summary>Outcome of an admin plugin-registration attempt (D18, G12).</summary>
+public sealed record PluginRegistration(bool Accepted, string? Code, string? Reason)
+{
+    public static PluginRegistration Ok { get; } = new(true, null, null);
 }
 
 /// <summary>
@@ -42,6 +51,33 @@ public sealed class PluginHost
 {
     private readonly ConcurrentDictionary<string, PluginEntry> _plugins = new();
     private readonly ConcurrentDictionary<string, TransformPluginEntry> _transforms = new();
+
+    /// <summary>The plugin ABI version this host supports (D2/D18). Pinned; bumped on a breaking ABI change.</summary>
+    public const int CurrentAbiVersion = 1;
+
+    /// <summary>
+    /// Admin registration with an explicit ABI version (G12): a plugin built
+    /// against a mismatched ABI is rejected with a coded error and NOT registered.
+    /// </summary>
+    public PluginRegistration TryRegisterEvaluator(
+        string pluginId, IEvaluator evaluator, int abiVersion, ConformanceResult conformance)
+    {
+        if (abiVersion != CurrentAbiVersion)
+            return new PluginRegistration(
+                false,
+                Compiler.ErrorCodes.PluginAbiMismatch,
+                $"Plugin '{pluginId}' was built against ABI v{abiVersion}, but the host supports v{CurrentAbiVersion}.");
+
+        _plugins[pluginId] = new PluginEntry
+        {
+            PluginId = pluginId,
+            Evaluator = evaluator,
+            IsConformant = conformance.Passed,
+            ConformanceResult = conformance,
+            AbiVersion = abiVersion,
+        };
+        return PluginRegistration.Ok;
+    }
 
     /// <summary>All registered evaluator plugin IDs (point-in-time snapshot).</summary>
     public IReadOnlyCollection<string> PluginIds => _plugins.Keys.ToArray();

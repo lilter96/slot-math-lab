@@ -6,7 +6,7 @@ namespace SlotMath.Core.Math;
 //  ExactMetrics — compute all G7 metrics from a Dist<BigInteger>
 //
 //  Every metric carries provenance Exact (when unpruned) or
-//  ExactWithinEpsilon (when pruned).  The volatility/variance is computed
+//  ExactInterval (when pruned).  The volatility/variance is computed
 //  from the *full distribution* — not a sample — so it is exact.
 //
 //  Per-feature contributions sum to total RTP exactly (rational equality)
@@ -41,7 +41,7 @@ public static class ExactMetrics
     {
         var provenance = dist.IsFullyExact
             ? ProvenanceTag.Exact
-            : ProvenanceTag.ExactWithinEpsilon;
+            : ProvenanceTag.ExactInterval;
 
         var scale = winScale is { } s && s > 1 ? s : BigInteger.One;
         var capScaled = maxWinCap * scale;
@@ -169,7 +169,7 @@ public static class ExactMetrics
     {
         var provenance = dist.IsFullyExact
             ? ProvenanceTag.Exact
-            : ProvenanceTag.ExactWithinEpsilon;
+            : ProvenanceTag.ExactInterval;
 
         var (num, den) = dist.ExpectedBigIntegerValue();
         var display = (double)num / (double)den;
@@ -209,7 +209,7 @@ public static class ExactMetrics
     {
         var provenance = dist.IsFullyExact
             ? ProvenanceTag.Exact
-            : ProvenanceTag.ExactWithinEpsilon;
+            : ProvenanceTag.ExactInterval;
 
         BigInteger nonZeroNum = 0;
         foreach (var e in dist.Entries)
@@ -242,7 +242,7 @@ public static class ExactMetrics
     {
         var provenance = dist.IsFullyExact
             ? ProvenanceTag.Exact
-            : ProvenanceTag.ExactWithinEpsilon;
+            : ProvenanceTag.ExactInterval;
 
         if (dist.IsEmpty || dist.TotalNumerator == 0)
         {
@@ -291,7 +291,7 @@ public static class ExactMetrics
     {
         var provenance = dist.IsFullyExact
             ? ProvenanceTag.Exact
-            : ProvenanceTag.ExactWithinEpsilon;
+            : ProvenanceTag.ExactInterval;
 
         BigInteger maxWin = 0;
         foreach (var e in dist.Entries)
@@ -340,7 +340,7 @@ public static class ExactMetrics
     {
         var provenance = dist.IsFullyExact
             ? ProvenanceTag.Exact
-            : ProvenanceTag.ExactWithinEpsilon;
+            : ProvenanceTag.ExactInterval;
 
         if (numBins < 1) numBins = 1;
 
@@ -420,7 +420,7 @@ public static class ExactMetrics
 
         var provenance = totalDist.IsFullyExact
             ? ProvenanceTag.Exact
-            : ProvenanceTag.ExactWithinEpsilon;
+            : ProvenanceTag.ExactInterval;
 
         // Compute total RTP rational if not provided.
         var totalNum = totalRtp?.RationalNumerator
@@ -496,7 +496,7 @@ public static class ExactMetrics
     {
         var provenance = stateDist.IsFullyExact
             ? ProvenanceTag.Exact
-            : ProvenanceTag.ExactWithinEpsilon;
+            : ProvenanceTag.ExactInterval;
 
         if (stateDist.IsEmpty || stateDist.TotalNumerator == 0)
             return null;

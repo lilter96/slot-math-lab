@@ -261,6 +261,13 @@ public static class ExactInterpreter
                 {
                     current = ann.InnerUntyped;
                 }
+                else if (current is ILoopNode loop)
+                {
+                    // Capped Loop (D6): the exact path desugars to the self-referential
+                    // structure it already memoises; finiteness comes from state
+                    // convergence under the cap and the G8 budget guard.
+                    current = loop.DesugarUntyped;
+                }
                 else
                 {
                     break;

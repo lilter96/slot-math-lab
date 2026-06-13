@@ -1,3 +1,4 @@
+using SlotMath.Core.Math;
 using SlotMath.Core.Random;
 
 namespace SlotMath.Core.Monad;
@@ -19,7 +20,22 @@ public sealed record InterpreterResult<S, T>(
     S FinalState,
     T Value,
     IReadOnlyList<InterpreterTrace> Trace
-);
+)
+{
+    private static readonly IReadOnlyDictionary<string, Rational> EmptyEmits =
+        new Dictionary<string, Rational>();
+
+    /// <summary>
+    /// Per-label emitted win totals (D13). Empty when the program does not Emit.
+    /// </summary>
+    public IReadOnlyDictionary<string, Rational> Emits { get; init; } = EmptyEmits;
+
+    /// <summary>Total emitted win across all labels (D13). Zero when nothing is emitted.</summary>
+    public Rational TotalWin { get; init; } = Rational.Zero;
+
+    /// <summary>True when a <see cref="LoopNode{S}"/> hit its iteration cap (D6).</summary>
+    public bool LoopCapHit { get; init; }
+}
 
 // ═══════════════════════════════════════════════════════════════════════════
 //  Trampoline interpreter — stack-safe evaluation
@@ -103,12 +119,53 @@ public static class TrampolineInterpreter
             {
                 queue.Enqueue(ms.NextUntyped);
             }
+            else if (p is IEmitNode em)
+            {
+                queue.Enqueue(em.NextUntyped);
+            }
+            else if (p is ILoopNode loop)
+            {
+                queue.Enqueue(loop.BodyUntyped);
+            }
         }
 
         return count;
     }
 
     // ── Core implementation ─────────────────────────────────────────────
+
+    /// <summary>
+    /// Shared, mutable evaluation context. Draws, state, traces, and the win
+    /// accumulator (D13) all live here so a loop body — run as a sub-program —
+    /// threads them through transparently.
+    /// </summary>
+    private sealed class RunCtx<S>
+    {
+        public required S State;
+        public required List<InterpreterTrace> Trace;
+        public Queue<int>? Choices;
+        public SeededRandom? Rng;
+        public readonly Dictionary<string, Rational> Emits = new();
+        public Rational Total = Rational.Zero;
+        public bool LoopCapHit;
+
+        public void AddEmit(string label, Rational amount)
+        {
+            Emits[label] = Emits.TryGetValue(label, out var cur) ? cur + amount : amount;
+            Total += amount;
+        }
+
+        public int DrawChoice(int count)
+        {
+            var max = System.Math.Max(1, count);
+            if (Rng != null)
+                return Rng.Next(max);
+            if (Choices != null && Choices.Count > 0)
+                return Choices.Dequeue() % max;
+            throw new InvalidOperationException(
+                "Draw evaluation requires a draw choice, but none are available.");
+        }
+    }
 
     private static InterpreterResult<S, T> RunImpl<S, T>(
         Slot<S, T> program,
@@ -117,10 +174,25 @@ public static class TrampolineInterpreter
         List<InterpreterTrace> trace,
         SeededRandom? rng)
     {
-        var state = initialState;
-        object current = program;
+        var ctx = new RunCtx<S> { State = initialState, Trace = trace, Choices = choices, Rng = rng };
+        var value = RunProgram<S, T>(program, ctx);
+        return new InterpreterResult<S, T>(ctx.State, value, trace)
+        {
+            Emits = ctx.Emits,
+            TotalWin = ctx.Total,
+            LoopCapHit = ctx.LoopCapHit,
+        };
+    }
 
-        // Continuation stack: (value) → next program (as object).
+    /// <summary>
+    /// Run a (sub-)program to its terminal value, threading the shared context.
+    /// Draw chains are handled iteratively (constant call-stack depth); only a
+    /// loop body recurses, so call-stack depth is bounded by loop nesting, never
+    /// by iteration count or draw-chain length.
+    /// </summary>
+    private static T RunProgram<S, T>(object program, RunCtx<S> ctx)
+    {
+        object current = program;
         var stack = new Stack<Func<object, object>>();
 
         while (true)
@@ -147,7 +219,7 @@ public static class TrampolineInterpreter
             if (current is IPureNode pure)
             {
                 if (stack.Count == 0)
-                    return new InterpreterResult<S, T>(state, (T)pure.ValueUntyped, trace);
+                    return (T)pure.ValueUntyped;
 
                 var cont = stack.Pop();
                 current = cont(pure.ValueUntyped);
@@ -157,18 +229,9 @@ public static class TrampolineInterpreter
             // ── Draw: weighted choice ─────────────────────────────────
             if (current is IDrawNode draw)
             {
-                var weightSet = (WeightSet)draw.WeightsUntyped(state!);
-
-                int choice;
-                if (rng != null)
-                    choice = rng.Next(System.Math.Max(1, weightSet.Count));
-                else if (choices != null && choices.Count > 0)
-                    choice = choices.Dequeue() % System.Math.Max(1, weightSet.Count);
-                else
-                    throw new InvalidOperationException(
-                        "Draw evaluation requires a draw choice, but none are available.");
-
-                trace.Add(new InterpreterTrace.DrawRequested(weightSet, choice));
+                var weightSet = (WeightSet)draw.WeightsUntyped(ctx.State!);
+                var choice = ctx.DrawChoice(weightSet.Count);
+                ctx.Trace.Add(new InterpreterTrace.DrawRequested(weightSet, choice));
                 current = draw.NextUntyped(choice);
                 continue;
             }
@@ -176,16 +239,16 @@ public static class TrampolineInterpreter
             // ── GetState: read state, continue ────────────────────────
             if (current is IGetStateNode getState)
             {
-                trace.Add(new InterpreterTrace.StateRead(state!));
-                current = getState.NextUntyped(state!);
+                ctx.Trace.Add(new InterpreterTrace.StateRead(ctx.State!));
+                current = getState.NextUntyped(ctx.State!);
                 continue;
             }
 
             // ── PutState: write state, continue ───────────────────────
             if (current is IPutStateNode putState)
             {
-                trace.Add(new InterpreterTrace.StateWritten(putState.ValueUntyped));
-                state = (S)putState.ValueUntyped;
+                ctx.Trace.Add(new InterpreterTrace.StateWritten(putState.ValueUntyped));
+                ctx.State = (S)putState.ValueUntyped;
                 current = putState.NextUntyped;
                 continue;
             }
@@ -193,10 +256,44 @@ public static class TrampolineInterpreter
             // ── ModifyState: fused get+put, traced as read + write ─────
             if (current is IModifyStateNode modify)
             {
-                trace.Add(new InterpreterTrace.StateRead(state!));
-                state = (S)modify.ApplyUntyped(state!);
-                trace.Add(new InterpreterTrace.StateWritten(state!));
+                ctx.Trace.Add(new InterpreterTrace.StateRead(ctx.State!));
+                ctx.State = (S)modify.ApplyUntyped(ctx.State!);
+                ctx.Trace.Add(new InterpreterTrace.StateWritten(ctx.State!));
                 current = modify.NextUntyped;
+                continue;
+            }
+
+            // ── Emit: labeled win into the accumulator (D13) ───────────
+            if (current is IEmitNode emit)
+            {
+                ctx.AddEmit(emit.Label, emit.AmountUntyped(ctx.State!));
+                current = emit.NextUntyped;
+                continue;
+            }
+
+            // ── Truncate: end the path (D6 bounded unrolling) ──────────
+            if (current is ITruncateNode)
+            {
+                ctx.LoopCapHit = true;
+                return (T)(object)Unit.Value;
+            }
+
+            // ── Loop: run body until stop or cap (D6) ──────────────────
+            if (current is ILoopNode loop)
+            {
+                long iter = 0;
+                while (!loop.StopUntyped(ctx.State!) && iter < loop.Cap)
+                {
+                    RunProgram<S, Unit>(loop.BodyUntyped, ctx);
+                    iter++;
+                }
+                if (iter >= loop.Cap && !loop.StopUntyped(ctx.State!))
+                    ctx.LoopCapHit = true;
+
+                if (stack.Count == 0)
+                    return (T)(object)Unit.Value;
+                var cont = stack.Pop();
+                current = cont(Unit.Value);
                 continue;
             }
 

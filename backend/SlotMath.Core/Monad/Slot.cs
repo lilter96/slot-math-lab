@@ -1,4 +1,5 @@
 using System.Numerics;
+using SlotMath.Core.Math;
 using SlotMath.Core.Random;
 
 namespace SlotMath.Core.Monad;
@@ -82,6 +83,32 @@ internal interface IFlatMapNode
     object ApplyUntyped(object value);
 }
 
+internal interface IEmitNode
+{
+    string Label { get; }
+    Rational AmountUntyped(object state);
+    object NextUntyped { get; }
+}
+
+internal interface ILoopNode
+{
+    bool StopUntyped(object state);
+    object BodyUntyped { get; }
+    long Cap { get; }
+    object DesugarUntyped { get; }
+}
+
+/// <summary>
+/// Truncate the current execution path (D6 bounded unrolling): the path's
+/// probability mass is accounted as pruned/truncated mass on the exact path
+/// (yielding an ExactInterval enclosure, D5) and simply ends the round on the
+/// sampled path (flagging a loop-cap hit). Used to bound recurrent loops whose
+/// exact fixpoint is deferred.
+/// </summary>
+internal interface ITruncateNode
+{
+}
+
 // ── Effect nodes ──────────────────────────────────────────────────────
 
 public sealed class Pure<S, T> : Slot<S, T>, IPureNode
@@ -146,6 +173,68 @@ public sealed class ModifyState<S, T> : Slot<S, T>, IModifyStateNode
 
     object IModifyStateNode.ApplyUntyped(object state) => F((S)state)!;
     object IModifyStateNode.NextUntyped => Next!;
+}
+
+/// <summary>
+/// Emit a labeled win into the accumulator (PRD v3.1, D13). This is the ONLY
+/// way value enters the accumulator (invariant 4). The amount may depend on
+/// the recurrence state, but Emit NEVER mutates the recurrence state — it only
+/// reads it to compute the amount and then continues unchanged.
+/// </summary>
+public sealed class Emit<S, T> : Slot<S, T>, IEmitNode
+{
+    public string Label { get; }
+    public Func<S, Rational> Amount { get; }
+    public Slot<S, T> Next { get; }
+
+    public Emit(string label, Func<S, Rational> amount, Slot<S, T> next)
+    {
+        Label = label;
+        Amount = amount;
+        Next = next;
+    }
+
+    Rational IEmitNode.AmountUntyped(object state) => Amount((S)state);
+    object IEmitNode.NextUntyped => Next!;
+}
+
+/// <summary>
+/// First-class fixpoint loop carrying a mandatory iteration cap (D6, invariant 8).
+/// Interpreters run the body until the stop condition holds or the cap is
+/// reached; cap hits are accounted in provenance (loopCapHits). The exact
+/// interpreter desugars this to the self-referential structure it already
+/// memoises; the cap there is a finiteness guard backed by the budget (G8).
+/// </summary>
+public sealed class LoopNode<S> : Slot<S, Unit>, ILoopNode
+{
+    public Func<S, bool> Stop { get; }
+    public Slot<S, Unit> Body { get; }
+    public long Cap { get; }
+
+    public LoopNode(Func<S, bool> stop, Slot<S, Unit> body, long cap)
+    {
+        Stop = stop;
+        Body = body;
+        Cap = cap;
+    }
+
+    /// <summary>The cap-free self-referential desugaring (for the exact path).</summary>
+    public Slot<S, Unit> Desugar() => Slot.Loop(Stop, Body);
+
+    bool ILoopNode.StopUntyped(object state) => Stop((S)state);
+    object ILoopNode.BodyUntyped => Body!;
+    long ILoopNode.Cap => Cap;
+    object ILoopNode.DesugarUntyped => Desugar()!;
+}
+
+/// <summary>
+/// Truncate the current path (D6): its mass is accounted as pruned on the exact
+/// path and ends the round on the sampled path. <see cref="ITruncateNode"/>.
+/// </summary>
+public sealed class TruncateNode<S> : Slot<S, Unit>, ITruncateNode
+{
+    public static readonly TruncateNode<S> Instance = new();
+    private TruncateNode() { }
 }
 
 /// <summary>
@@ -225,6 +314,24 @@ public static class Slot
     public static Slot<S, Unit> Modify<S>(Func<S, S> f) =>
         new ModifyState<S, Unit>(f, PureUnitCache<S>.Instance);
 
+    /// <summary>
+    /// Emit a labeled win into the accumulator (D13). The sole payout generator;
+    /// the win accumulator is held separate from the recurrence state (invariant 4).
+    /// </summary>
+    public static Slot<S, Unit> Emit<S>(string label, Rational amount) =>
+        new Emit<S, Unit>(label, _ => amount, PureUnitCache<S>.Instance);
+
+    /// <summary>Emit a labeled win whose amount is computed from the current state.</summary>
+    public static Slot<S, Unit> Emit<S>(string label, Func<S, Rational> amount) =>
+        new Emit<S, Unit>(label, amount, PureUnitCache<S>.Instance);
+
+    /// <summary>
+    /// Truncate the current path (D6 bounded unrolling): its mass becomes pruned
+    /// mass on the exact path (ExactInterval, D5) and ends the round on the
+    /// sampled path. Bounds recurrent loops whose exact fixpoint is deferred.
+    /// </summary>
+    public static Slot<S, Unit> Truncate<S>() => TruncateNode<S>.Instance;
+
     private static class PureUnitCache<S>
     {
         public static readonly Slot<S, Unit> Instance = new Pure<S, Unit>(Unit.Value);
@@ -249,6 +356,22 @@ public static class Slot
         var iterate = new FlatMap<S, Unit, Unit>(body, _ => loop!);
         loop = new GetState<S, Unit>(s => stopCondition(s) ? exit : iterate);
         return loop;
+    }
+
+    /// <summary>
+    /// Fixpoint loop with a mandatory iteration cap (D6, invariant 8). The body
+    /// runs until <paramref name="stopCondition"/> holds or <paramref name="cap"/>
+    /// iterations have run, whichever comes first. The cap is game semantics, not
+    /// approximation — cap hits are accounted in provenance (loopCapHits).
+    /// </summary>
+    public static Slot<S, Unit> Loop<S>(Func<S, bool> stopCondition, Slot<S, Unit> body, long cap)
+    {
+        if (cap <= 0)
+            throw new ArgumentOutOfRangeException(nameof(cap), "Loop iteration cap must be positive (D6).");
+        if (cap > SlotMathConstants.Loop.CapMax)
+            throw new ArgumentOutOfRangeException(
+                nameof(cap), $"Loop iteration cap must not exceed {SlotMathConstants.Loop.CapMax} (D6).");
+        return new LoopNode<S>(stopCondition, body, cap);
     }
 
     public static Slot<S, T> Branch<S, T>(

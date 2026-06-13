@@ -38,6 +38,14 @@ public static class ErrorCodes
     public const string DeadEndNode = "DEAD_END_NODE";
     public const string PluginNotFound = "PLUGIN_NOT_FOUND";
     public const string PluginNotConformant = "PLUGIN_NOT_CONFORMANT";
+    public const string PluginAbiMismatch = "PLUGIN_ABI_MISMATCH";
     public const string MissingTransform = "MISSING_TRANSFORM";
     public const string InvalidGraph = "INVALID_GRAPH";
+
+    // ── v3.1 (D6/D7/D16/D19) ────────────────────────────────────────────
+    public const string OverMaxLoopCap = "OVER_MAX_LOOP_CAP";
+    public const string MissingWinCap = "MISSING_WIN_CAP";
+    public const string CircularSubgraphReference = "CIRCULAR_SUBGRAPH_REFERENCE";
+    public const string SubgraphNestingTooDeep = "SUBGRAPH_NESTING_TOO_DEEP";
+    public const string ExpressionBudgetExceeded = "EXPRESSION_BUDGET_EXCEEDED";
 }

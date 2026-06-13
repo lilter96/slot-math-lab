@@ -35,7 +35,7 @@ public sealed record RtpMetric
     /// <summary>RTP as a display-friendly double.  Always present.</summary>
     public double DisplayValue { get; init; }
 
-    // ── Interval (ExactWithinEpsilon only) ────────────────────────────
+    // ── Interval (ExactInterval only) ────────────────────────────
     /// <summary>Lower bound of the ε-interval (display). Null when not ε-pruned.</summary>
     public double? LoDisplay { get; init; }
 

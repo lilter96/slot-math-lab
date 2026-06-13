@@ -114,13 +114,14 @@ public readonly struct ExprValue : IEquatable<ExprValue>
     }
 
     /// <summary>
-    /// Arithmetic divide.  Total: division by zero yields 0 — level-(b)
-    /// expressions must never throw, so x/0 is defined rather than partial.
+    /// Arithmetic divide. Partial (D1): division by zero produces a deterministic,
+    /// located evaluation error on both paths — never a silent value.
     /// </summary>
     public static ExprValue Div(ExprValue a, ExprValue b)
     {
         if (b.NumberNumerator == 0)
-            return Number(0);
+            throw new ExpressionEvaluationException(
+                EvalErrorCodes.DivisionByZero, "Division by zero in a level-(b) expression (D1).", "/");
 
         var num = a.NumberNumerator * b.NumberDenominator;
         var den = a.NumberDenominator * b.NumberNumerator;
