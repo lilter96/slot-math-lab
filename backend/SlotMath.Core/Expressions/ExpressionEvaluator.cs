@@ -200,24 +200,32 @@ public static class ExactExpressionEvaluator
             if (!dict.TryGetValue(key, out var dictVal))
                 return ExprValue.Number(0);
 
-            // Array index access: state["key"][idx] via path = ["key", "idx"]
+            // Array index access: state["key"][idx] via path = ["key", "idx"].
+            // D1: an out-of-range index into an array is a located, deterministic
+            // error — never a silent value.
             if (path.Length == 2 && int.TryParse(path[1], out var idx))
             {
-                return dictVal switch
+                switch (dictVal)
                 {
-                    string[] sarr when idx >= 0 && idx < sarr.Length =>
-                        ExprValue.String(sarr[idx]),
-                    object[] oarr when idx >= 0 && idx < oarr.Length =>
-                        oarr[idx] switch
+                    case string[] sarr:
+                        if (idx < 0 || idx >= sarr.Length)
+                            throw IndexError(key, idx, sarr.Length);
+                        return ExprValue.String(sarr[idx]);
+                    case object[] oarr:
+                        if (idx < 0 || idx >= oarr.Length)
+                            throw IndexError(key, idx, oarr.Length);
+                        return oarr[idx] switch
                         {
                             string s => ExprValue.String(s),
                             BigInteger bi => ExprValue.Number(bi),
                             int i => ExprValue.Number(i),
                             bool b => ExprValue.Bool(b),
                             _ => ExprValue.Number(0),
-                        },
-                    _ => ExprValue.Number(0),
-                };
+                        };
+                    default:
+                        // Not an array: not an index-out-of-range (handled as a type-level miss).
+                        return ExprValue.Number(0);
+                }
             }
 
             return dictVal switch
@@ -272,6 +280,11 @@ public static class ExactExpressionEvaluator
 
         return ExprValue.Number(0);
     }
+
+    private static ExpressionEvaluationException IndexError(string key, int idx, int length) =>
+        new(EvalErrorCodes.IndexOutOfRange,
+            $"Index {idx} is out of range [0, {length}) for state array '{key}' (D1).",
+            $"{key}[{idx}]");
 
     private static ExprValue EvalBinary(BinaryExpr b, EvalContext ctx)
     {
@@ -413,7 +426,18 @@ public static class ExactExpressionEvaluator
 
         if (values.Count == 0)
         {
-            return a.Func == AggregateFunc.Product ? ExprValue.Number(1) : ExprValue.Number(0);
+            // D1: empty sum/product/count return identities; empty min/max is a
+            // located, deterministic error (undefined, not a silent value).
+            return a.Func switch
+            {
+                AggregateFunc.Sum or AggregateFunc.Count => ExprValue.Number(0),
+                AggregateFunc.Product => ExprValue.Number(1),
+                AggregateFunc.Min or AggregateFunc.Max => throw new ExpressionEvaluationException(
+                    EvalErrorCodes.EmptyMinMax,
+                    $"{a.Func} over an empty array is undefined (D1).",
+                    a.Func.ToString().ToLowerInvariant()),
+                _ => ExprValue.Number(0),
+            };
         }
 
         return a.Func switch
