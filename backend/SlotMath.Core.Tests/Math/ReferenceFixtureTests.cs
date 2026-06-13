@@ -18,7 +18,7 @@ public class ReferenceFixtureTests
 {
     // ── REF-A "Coin": one draw {A:w1 pay3, B:w3 pay1, C:w4 pay0}, label "base" ──
 
-    private static Slot<Unit, Unit> RefA()
+    internal static Slot<Unit, Unit> RefA()
     {
         var weights = WeightSet.FromIntegers([1, 3, 4]);
         return Slot.Draw<Unit>(_ => weights)
@@ -70,7 +70,7 @@ public class ReferenceFixtureTests
 
     // ── REF-D "Volcano": pay 5000 w1, pay 0 w9999; win cap 1000 → P(cap)=1/10000 ──
 
-    private static Slot<Unit, Unit> RefD()
+    internal static Slot<Unit, Unit> RefD()
     {
         var weights = WeightSet.FromIntegers([1, 9999]);
         return Slot.Draw<Unit>(_ => weights)
@@ -108,16 +108,16 @@ public class ReferenceFixtureTests
 
     // ── REF-B "Retrigger": base + 3 free spins, retrigger +3 (D6 bounded unrolling) ──
 
-    private sealed record FsState(int Remaining, int Budget);
+    internal sealed record FsState(int Remaining, int Budget);
 
-    private static Slot<FsState, Unit> RefAPay(string label)
+    internal static Slot<FsState, Unit> RefAPay(string label)
     {
         var weights = WeightSet.FromIntegers([1, 3, 4]);
         return Slot.Draw<FsState>(_ => weights)
             .SelectMany(i => Slot.Emit<FsState>(label, i == 0 ? 3 : i == 1 ? 1 : 0));
     }
 
-    private static Slot<FsState, Unit> RefB(int budget)
+    internal static Slot<FsState, Unit> RefB(int budget)
     {
         var trigger = WeightSet.FromIntegers([1, 19]); // trigger / none (1/20)
 
@@ -174,9 +174,9 @@ public class ReferenceFixtureTests
 
     // ── REF-C "MiniCascade": 3-cell row, P³ pays 5 / Q³ pays 2, redraw; cap 10 ──
 
-    private sealed record CascadeState(int CascadesUsed, bool Continue);
+    internal sealed record CascadeState(int CascadesUsed, bool Continue);
 
-    private static Slot<CascadeState, Unit> RefC()
+    internal static Slot<CascadeState, Unit> RefC()
     {
         var cells = WeightSet.FromIntegers([2, 3, 5]); // P, Q, R
 
