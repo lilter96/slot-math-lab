@@ -49,6 +49,7 @@ public sealed record Edge
 [JsonDerivedType(typeof(BranchNode), "branch")]
 [JsonDerivedType(typeof(MapNode), "map")]
 [JsonDerivedType(typeof(LibraryNode), "library")]
+[JsonDerivedType(typeof(DataNode), "data")]
 [JsonDerivedType(typeof(MetricsSinkNode), "metricsSink")]
 public abstract record Node
 {
@@ -142,4 +143,23 @@ public sealed record LibraryNode : Node
 {
     public required string MechanicName { get; init; }
     public Dictionary<string, string> Parameters { get; init; } = new();
+}
+
+// ── Data-source node ─────────────────────────────────────────────────────
+
+/// <summary>
+/// A generic data source: writes a named array of values into the recurrence
+/// state, where downstream nodes and level-(b) expressions (fold/map/filter,
+/// aggregations, index access) can work with it. Data is data — a paytable,
+/// payline set, reel strip, multiplier ladder, or any other table is just a
+/// <see cref="DataNode"/>; the engine special-cases none of them (invariant 7).
+/// Integer-valued entries are exposed as numbers; everything else as strings.
+/// </summary>
+public sealed record DataNode : Node
+{
+    /// <summary>State key the data array is written under (read as <c>state[StateKey]</c>).</summary>
+    public required string StateKey { get; init; }
+
+    /// <summary>The data rows, as strings; integer-parseable entries become numbers.</summary>
+    public string[] Values { get; init; } = Array.Empty<string>();
 }

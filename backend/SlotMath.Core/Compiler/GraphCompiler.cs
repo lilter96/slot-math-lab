@@ -394,7 +394,36 @@ public sealed class GraphCompiler
         /// pass-through path.)
         /// </summary>
         private static bool IsInputIndependent(Node node) =>
-            node is DrawNode or LoopNode;
+            node is DrawNode or LoopNode or DataNode;
+
+        // ── Data source (generic) ────────────────────────────────────────
+
+        /// <summary>
+        /// A DataNode writes its named array into state (copy-on-write). Integer
+        /// entries become BigInteger (numbers); the rest stay strings. The
+        /// data-flow value passes through unchanged — it is a pure state effect.
+        /// </summary>
+        private static Func<object?, Slot<Dictionary<string, object?>, object?>> CompileData(DataNode node)
+        {
+            var key = node.StateKey;
+            var parsed = new object?[node.Values.Length];
+            for (var i = 0; i < node.Values.Length; i++)
+            {
+                parsed[i] = System.Numerics.BigInteger.TryParse(
+                    node.Values[i], System.Globalization.NumberStyles.Integer,
+                    System.Globalization.CultureInfo.InvariantCulture, out var bi)
+                    ? bi
+                    : node.Values[i];
+            }
+
+            return v => Slot.Modify<Dictionary<string, object?>>(state =>
+                {
+                    var next = new Dictionary<string, object?>(state);
+                    next[key] = parsed;
+                    return next;
+                })
+                .SelectMany(_ => Slot.Pure<Dictionary<string, object?>, object?>(v));
+        }
 
         // ── Branch fork ─────────────────────────────────────────────────
 
@@ -520,6 +549,8 @@ public sealed class GraphCompiler
                     return _ => drawSlot;
                 case MapNode m:
                     return CompileMap(m);
+                case DataNode dn:
+                    return CompileData(dn);
                 case GetStateNode gs:
                     var getSlot = CompileGetState(gs);
                     return _ => getSlot;
