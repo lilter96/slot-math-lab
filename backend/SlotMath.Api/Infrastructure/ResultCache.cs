@@ -15,21 +15,15 @@ namespace SlotMath.Api.Infrastructure;
 
 public static class CanonicalHash
 {
-    private static readonly JsonSerializerOptions NormalizedJson = new()
-    {
-        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-        WriteIndented = false,
-    };
-
     /// <summary>
-    /// Compute a canonical SHA-256 hash of a config object.
+    /// Compute the D2 canonical SHA-256 config hash. Delegates to the Core
+    /// canonical serializer (ordinal-sorted keys, compact, float-free) so the
+    /// hash is order-insensitive: two semantically identical configs that differ
+    /// only in key order produce the same hash and therefore the same cache key
+    /// (G16/D2).
     /// </summary>
-    public static string Compute(object config)
-    {
-        var json = JsonSerializer.Serialize(config, NormalizedJson);
-        var bytes = SHA256.HashData(Encoding.UTF8.GetBytes(json));
-        return Convert.ToHexStringLower(bytes);
-    }
+    public static string Compute(object config) =>
+        SlotMath.Core.Serialization.ConfigHash.Compute(config);
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
