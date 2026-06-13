@@ -25,4 +25,6 @@ Pinned seeds: `SEED_MAIN = 0xC0FFEE`; cross-check seed list `0x5EED0001…0x5EED
 
 | Goal | Commit | Key numbers |
 |------|--------|-------------|
-| v3.1-foundations | (pending) | Constants file (D3/D6/D7/D8/D9/D16/D18) backend + frontend mirror; PROGRESS.md initialized |
+| v3.1-foundations | 7ea39e4 | Constants file (D3/D6/D7/D8/D9/D16/D18) backend + frontend mirror; PROGRESS.md initialized |
+| G3 (PRNG, D3) | 379f259 | xoshiro256** + SplitMix64 stream splitting; alias chi-squared pinned to SEED_MAIN (salt=1) passes all 12 profiles at α=0.01; negative control rejects perturbed weights; 41 Random tests green |
+| D5 (provenance) | (this commit) | Taxonomy {Exact, ExactInterval(lo,hi,prunedMass,boundSource), ExactWithMassLoss, Sampled(n,mean,stdErr,ci95,capHits,loopCapHits)} + aggregation rule + IsRegulatory; 747 Core tests green |

@@ -363,7 +363,7 @@ public class RegimeDetection_PluginForcesSampled
 
         // The engine must NEVER report Exact when a plugin is present.
         Assert.NotEqual(Provenance.Exact, result.AggregateProvenance);
-        Assert.NotEqual(Provenance.ExactWithinEpsilon, result.AggregateProvenance);
+        Assert.NotEqual(Provenance.ExactInterval, result.AggregateProvenance);
         Assert.Equal(Provenance.Sampled, result.AggregateProvenance);
     }
 
@@ -445,7 +445,7 @@ public class RegimeDetection_PerSubgraphAndProvenance
 
         // Aggregate provenance must be present.
         Assert.True(result.AggregateProvenance == Provenance.Exact
-                    || result.AggregateProvenance == Provenance.ExactWithinEpsilon
+                    || result.AggregateProvenance == Provenance.ExactInterval
                     || result.AggregateProvenance == Provenance.Sampled);
 
         // Overall strategy must be a valid enum value.
@@ -745,9 +745,9 @@ public class RegimeDetection_BudgetEdgeCases
                 SampledSpins = 10_000
             });
 
-        // With epsilon, the result should be ExactWithinEpsilon.
+        // With epsilon, the result should be ExactInterval.
         Assert.True(
             result.AggregateProvenance == Provenance.Exact ||
-            result.AggregateProvenance == Provenance.ExactWithinEpsilon);
+            result.AggregateProvenance == Provenance.ExactInterval);
     }
 }

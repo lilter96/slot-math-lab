@@ -25,7 +25,7 @@ public sealed record RegimeResult
     /// <summary>
     /// Aggregate provenance for the entire evaluation.
     /// - <see cref="Provenance.Exact"/> when all subgraphs ran exactly with no pruning.
-    /// - <see cref="Provenance.ExactWithinEpsilon"/> when all exact with some pruning.
+    /// - <see cref="Provenance.ExactInterval"/> when all exact with some pruning.
     /// - <see cref="Provenance.Sampled"/> when any subgraph used sampling (incl. plugins).
     /// </summary>
     public Provenance AggregateProvenance { get; init; }

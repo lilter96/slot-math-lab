@@ -530,7 +530,7 @@ public class Provenance_TagOnEveryMetric
     }
 
     [Fact]
-    public void EpsilonPrunedMetrics_TaggedExactWithinEpsilon()
+    public void EpsilonPrunedMetrics_TaggedExactInterval()
     {
         // Create a pruned distribution (by simulating we added pruned mass).
         var builder = new DistBuilder<BigInteger>();
@@ -543,12 +543,12 @@ public class Provenance_TagOnEveryMetric
 
         var report = ExactMetrics.Compute(dist);
 
-        Assert.Equal(Provenance.ExactWithinEpsilon, report.Rtp.Provenance.Provenance);
-        Assert.Equal(Provenance.ExactWithinEpsilon, report.HitFrequency.Provenance.Provenance);
-        Assert.Equal(Provenance.ExactWithinEpsilon, report.Volatility.Provenance.Provenance);
-        Assert.Equal(Provenance.ExactWithinEpsilon, report.MaxWin.Provenance.Provenance);
-        Assert.Equal(Provenance.ExactWithinEpsilon, report.Histogram.Provenance.Provenance);
-        Assert.Equal(Provenance.ExactWithinEpsilon, report.AggregateProvenance);
+        Assert.Equal(Provenance.ExactInterval, report.Rtp.Provenance.Provenance);
+        Assert.Equal(Provenance.ExactInterval, report.HitFrequency.Provenance.Provenance);
+        Assert.Equal(Provenance.ExactInterval, report.Volatility.Provenance.Provenance);
+        Assert.Equal(Provenance.ExactInterval, report.MaxWin.Provenance.Provenance);
+        Assert.Equal(Provenance.ExactInterval, report.Histogram.Provenance.Provenance);
+        Assert.Equal(Provenance.ExactInterval, report.AggregateProvenance);
     }
 
     [Fact]
@@ -580,8 +580,8 @@ public class Provenance_TagOnEveryMetric
         Assert.Equal(Provenance.Sampled, m2.Provenance.Provenance);
         Assert.Equal("Sampled", m2.Provenance.Label);
 
-        var m3 = Metric<double>.ExactWithinEpsilonValue(3.14);
-        Assert.Equal(Provenance.ExactWithinEpsilon, m3.Provenance.Provenance);
+        var m3 = Metric<double>.ExactIntervalValue(3.14);
+        Assert.Equal(Provenance.ExactInterval, m3.Provenance.Provenance);
         Assert.Equal("Exact (±ε)", m3.Provenance.Label);
     }
 }
@@ -647,7 +647,7 @@ public class RtpMetric_ExactRationalAndDisplay
 
         var rtp = ExactMetrics.ComputeRtp(dist);
 
-        Assert.Equal(Provenance.ExactWithinEpsilon, rtp.Provenance.Provenance);
+        Assert.Equal(Provenance.ExactInterval, rtp.Provenance.Provenance);
         Assert.NotNull(rtp.LoDisplay);
         Assert.NotNull(rtp.HiDisplay);
         Assert.NotNull(rtp.PrunedMass);
@@ -1106,7 +1106,7 @@ public class Metrics_EdgeCases
     {
         Assert.Equal("Exact", Provenance.Exact.ToString());
         Assert.Equal("Sampled", Provenance.Sampled.ToString());
-        Assert.Equal("ExactWithinEpsilon", Provenance.ExactWithinEpsilon.ToString());
+        Assert.Equal("ExactInterval", Provenance.ExactInterval.ToString());
     }
 
     [Fact]
