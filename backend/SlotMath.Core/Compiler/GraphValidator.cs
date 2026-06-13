@@ -583,20 +583,33 @@ public static class GraphValidator
         // Check named expressions
         foreach (var (name, expr) in config.Expressions)
         {
+            // Try to find which node references this expression
+            string? referencingNode = null;
+            exprToNodes.TryGetValue(name, out var nodes);
+            if (nodes is { Count: > 0 })
+                referencingNode = nodes[0];
+
             var exprErrors = ExpressionTypeChecker.Check(expr, ctx);
             foreach (var exprError in exprErrors)
             {
-                // Try to find which node references this expression
-                string? referencingNode = null;
-                exprToNodes.TryGetValue(name, out var nodes);
-                if (nodes is { Count: > 0 })
-                    referencingNode = nodes[0];
-
                 errors.Add(new CompileError
                 {
                     NodeId = referencingNode,
                     Code = ErrorCodes.ExpressionTypeError,
                     Message = $"Expression '{name}': {exprError.Message}",
+                });
+            }
+
+            // D16 expression cost budget.
+            if (!ExpressionCost.WithinBudget(expr, out var cost))
+            {
+                errors.Add(new CompileError
+                {
+                    NodeId = referencingNode,
+                    Code = ErrorCodes.ExpressionBudgetExceeded,
+                    Message =
+                        $"Expression '{name}' has static cost {cost}, exceeding the per-leaf budget of " +
+                        $"{SlotMathConstants.Expression.MaxOps} operations (D16).",
                 });
             }
         }

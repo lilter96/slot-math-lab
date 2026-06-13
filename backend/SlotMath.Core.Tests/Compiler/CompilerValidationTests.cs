@@ -139,4 +139,54 @@ public class CompilerValidationTests
         var errors = GraphValidator.ValidateSubgraphReferences(ChainConfig(3));
         Assert.Empty(errors);
     }
+
+    // ── Expression cost budget (D16) ──────────────────────────────────────
+
+    [Fact]
+    public void OverBudgetExpression_IsRejected_WithCode()
+    {
+        // A deep boolean chain inside an aggregate predicate (64× iteration
+        // weight) drives the static cost well past the 10,000-op budget.
+        Expression chain = new ConstantExpr { Kind = ConstantKind.Boolean, Value = "true" };
+        for (var i = 0; i < 120; i++)
+            chain = new BinaryExpr
+            {
+                Op = BinaryOp.Or,
+                Left = new ConstantExpr { Kind = ConstantKind.Boolean, Value = "false" },
+                Right = chain,
+            };
+        var big = new AggregateExpr { Func = AggregateFunc.Count, Target = "board", Predicate = chain };
+
+        var config = new GraphConfig
+        {
+            SchemaVersion = "1.0.0",
+            Nodes = [new MetricsSinkNode { Id = "sink" }],
+            Expressions = new Dictionary<string, Expression> { ["big"] = big },
+        };
+
+        var errors = GraphValidator.Validate(config, pluginHost: null);
+
+        Assert.Contains(errors, e => e.Code == ErrorCodes.ExpressionBudgetExceeded);
+    }
+
+    [Fact]
+    public void WithinBudgetExpression_HasNoBudgetError()
+    {
+        var small = new BinaryExpr
+        {
+            Op = BinaryOp.Add,
+            Left = new ConstantExpr { Kind = ConstantKind.Integer, Value = "1" },
+            Right = new ConstantExpr { Kind = ConstantKind.Integer, Value = "2" },
+        };
+        var config = new GraphConfig
+        {
+            SchemaVersion = "1.0.0",
+            Nodes = [new MetricsSinkNode { Id = "sink" }],
+            Expressions = new Dictionary<string, Expression> { ["small"] = small },
+        };
+
+        var errors = GraphValidator.Validate(config, pluginHost: null);
+
+        Assert.DoesNotContain(errors, e => e.Code == ErrorCodes.ExpressionBudgetExceeded);
+    }
 }
