@@ -208,48 +208,6 @@ public sealed class Dist<T>
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-//  Rational — shared BigInteger rational arithmetic helpers
-// ═══════════════════════════════════════════════════════════════════════════
-
-/// <summary>Static rational-arithmetic helpers used by Dist and ExactInterpreter.</summary>
-public static class Rational
-{
-    /// <summary>Reduce a fraction (num/den) to lowest terms.</summary>
-    public static (BigInteger Num, BigInteger Den) Reduce(BigInteger num, BigInteger den)
-    {
-        if (den == 0)
-            throw new ArgumentException("Denominator cannot be zero.");
-        if (num == 0)
-            return (0, 1);
-
-        var g = Gcd(BigInteger.Abs(num), BigInteger.Abs(den));
-        var sign = den < 0 ? -1 : 1;
-        return (sign * num / g, BigInteger.Abs(den) / g);
-    }
-
-    /// <summary>Greatest common divisor.</summary>
-    public static BigInteger Gcd(BigInteger a, BigInteger b)
-    {
-        a = BigInteger.Abs(a);
-        b = BigInteger.Abs(b);
-        while (b != 0)
-        {
-            var t = b;
-            b = a % b;
-            a = t;
-        }
-        return a;
-    }
-
-    /// <summary>Least common multiple.</summary>
-    public static BigInteger Lcm(BigInteger a, BigInteger b)
-    {
-        if (a == 0 || b == 0) return 1;
-        return a / Gcd(a, b) * b;
-    }
-}
-
-// ═══════════════════════════════════════════════════════════════════════════
 //  DistBuilder<T> — Mutable builder for constructing Dist<T> incrementally
 // ═══════════════════════════════════════════════════════════════════════════
 
