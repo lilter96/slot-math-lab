@@ -39,6 +39,23 @@ public class ReferenceFixtureTests
     }
 
     [Fact]
+    public void RefA_Exact_RtpEquals3Over4_ByRationalEquality()
+    {
+        // G5/G7 DoD: exact RTP = 3/4, Var = 15/16, hit = 1/2 — rational equality, no float.
+        var result = ExactEmitInterpreter.Evaluate(
+            RefA(), Unit.Value, _ => System.Numerics.BigInteger.Zero,
+            labels: ["base"], winCap: 10);
+
+        Assert.Equal(new Rational(3, 4), result.ExpectedWin);
+        Assert.Equal(new Rational(15, 16), result.Variance);
+        Assert.Equal(new Rational(1, 2), result.HitFrequency);
+        Assert.Equal(Provenance.Exact, result.Provenance.Provenance);
+
+        // Per-label (D4): the single "base" label carries the whole RTP.
+        Assert.Equal(new Rational(3, 4), result.PerLabelExpectation["base"]);
+    }
+
+    [Fact]
     public void RefA_Sampled_ConvergesToThreeQuarters()
     {
         // Closed form (D9): RTP = 3/4. Pinned seed; D8 tolerance (4·stdErr).
@@ -117,6 +134,28 @@ public class ReferenceFixtureTests
         // Cascade cap 10 enforced both by the stop condition and the loop cap (D6).
         return Slot.Loop<CascadeState>(
             s => !s.Continue || s.CascadesUsed >= 10, body, cap: 10);
+    }
+
+    [Fact]
+    public void RefC_Exact_EqualsIndependentEnumerator_AndEncloses94Over965()
+    {
+        // G5 DoD: exact capped value == independent brute-force enumerator (rational
+        // equality), |v_capped − 94/965| ≤ 1e-12, and v_capped ≤ 94/965 (D9).
+        var result = ExactEmitInterpreter.Evaluate(
+            RefC(), new CascadeState(0, true),
+            s => (System.Numerics.BigInteger)(s.CascadesUsed * 2 + (s.Continue ? 1 : 0)),
+            labels: ["cascade_win"], winCap: 100);
+
+        var (num, den) = RefCEnumerator.ExpectedWin(10);
+        var oracle = new Rational(num, den);
+
+        Assert.Equal(oracle, result.ExpectedWin);                 // rational equality vs independent oracle
+        Assert.True(result.ExpectedWin <= new Rational(94, 965)); // never exceeds the uncapped value
+        Assert.True(System.Math.Abs(result.ExpectedWin.ToDouble() - 94.0 / 965.0) <= 1e-12);
+        Assert.Equal(Provenance.Exact, result.Provenance.Provenance);
+
+        // Memoisation must collapse the tree: far fewer draws than the naive 3 per row × paths.
+        Assert.True(result.Stats.CacheHits > 0);
     }
 
     [Fact]
