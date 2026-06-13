@@ -55,6 +55,13 @@ public sealed class GraphCompiler
         var mergedMechanics = MechanicCatalog.Default.Merge(config.Mechanics);
         config = config with { Mechanics = mergedMechanics };
 
+        // Phase 0a': Static subgraph-reference check BEFORE inlining — reject
+        // circular references and over-deep nesting with a precise coded error
+        // (D7/D20), rather than letting the inliner hit its pass cap.
+        var subgraphErrors = GraphValidator.ValidateSubgraphReferences(config);
+        if (subgraphErrors.Count > 0)
+            return CompileResult.Failure(subgraphErrors.ToList());
+
         // Phase 0b: Inline subgraph (LibraryNode) references to their atoms.
         // After this the graph contains only primitives, which the validator
         // and builder already handle in full.

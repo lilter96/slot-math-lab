@@ -4,6 +4,8 @@ using SlotMath.Core.Plugins;
 
 namespace SlotMath.Core.Compiler;
 
+using SlotMathConstants = SlotMath.Core.SlotMathConstants;
+
 // ═══════════════════════════════════════════════════════════════════════════
 //  GraphValidator — validates a graph config before compilation
 //
@@ -53,6 +55,124 @@ public static class GraphValidator
 
         // 5. Plugin validation
         ValidatePlugins(config, pluginHost, errors);
+
+        // 6. Loop iteration caps (D6, invariant 8)
+        ValidateLoopCaps(config, errors);
+
+        return errors;
+    }
+
+    // ── 6. Loop iteration caps (D6) ──────────────────────────────────────
+
+    private static void ValidateLoopCaps(GraphConfig config, List<CompileError> errors)
+    {
+        foreach (var loop in config.Nodes.OfType<LoopNode>())
+        {
+            if (loop.MaxIterations < 1 || loop.MaxIterations > SlotMathConstants.Loop.CapMax)
+            {
+                errors.Add(new CompileError
+                {
+                    NodeId = loop.Id,
+                    Code = ErrorCodes.OverMaxLoopCap,
+                    Message =
+                        $"Loop node '{loop.Id}' has iteration cap {loop.MaxIterations}, which must be in " +
+                        $"[1, {SlotMathConstants.Loop.CapMax}] (D6). Every Loop carries a mandatory, bounded cap.",
+                });
+            }
+        }
+    }
+
+    // ── Subgraph reference graph: cycles (D7/G14) + nesting depth (D7) ────
+
+    /// <summary>
+    /// Statically validate subgraph (LibraryNode → CustomMechanic) references
+    /// BEFORE inlining: reject circular references (A → B → A) and references
+    /// nested deeper than the D7 cap, each with a precise coded error (D20).
+    /// </summary>
+    public static IReadOnlyList<CompileError> ValidateSubgraphReferences(GraphConfig config)
+    {
+        var errors = new List<CompileError>();
+        if (config.Mechanics is null || config.Mechanics.Count == 0)
+            return errors;
+
+        // mechanic name → the mechanic names its own LibraryNodes reference
+        var refs = new Dictionary<string, List<string>>(StringComparer.Ordinal);
+        foreach (var (name, mechanic) in config.Mechanics)
+            refs[name] = mechanic.Nodes.OfType<LibraryNode>().Select(l => l.MechanicName).ToList();
+
+        // ── Cycle detection (DFS colouring) over defined mechanics ──
+        var color = new Dictionary<string, int>(StringComparer.Ordinal); // 0=white 1=gray 2=black
+        string? cyclicMechanic = null;
+
+        bool Dfs(string name)
+        {
+            if (!refs.TryGetValue(name, out var children))
+                return false; // undefined mechanic — the inliner reports it
+            color[name] = 1;
+            foreach (var child in children)
+            {
+                var c = color.GetValueOrDefault(child, 0);
+                if (c == 1) { cyclicMechanic = child; return true; }
+                if (c == 0 && Dfs(child)) return true;
+            }
+            color[name] = 2;
+            return false;
+        }
+
+        foreach (var name in refs.Keys)
+        {
+            if (color.GetValueOrDefault(name, 0) == 0 && Dfs(name))
+                break;
+        }
+
+        if (cyclicMechanic is not null)
+        {
+            var offender = config.Nodes.OfType<LibraryNode>().FirstOrDefault()
+                ?? config.Mechanics.Values
+                    .SelectMany(m => m.Nodes.OfType<LibraryNode>())
+                    .FirstOrDefault(l => l.MechanicName == cyclicMechanic);
+            errors.Add(new CompileError
+            {
+                NodeId = offender?.Id,
+                Code = ErrorCodes.CircularSubgraphReference,
+                Message =
+                    $"Circular subgraph reference detected involving mechanic '{cyclicMechanic}'. " +
+                    "Subgraph references must form a DAG (D7).",
+            });
+            return errors; // depth analysis is meaningless once a cycle exists
+        }
+
+        // ── Nesting depth (longest reference chain) ──
+        var depthMemo = new Dictionary<string, int>(StringComparer.Ordinal);
+        int Depth(string name)
+        {
+            if (!refs.TryGetValue(name, out var children))
+                return 0;
+            if (depthMemo.TryGetValue(name, out var cached))
+                return cached;
+            var max = 0;
+            foreach (var child in children)
+                max = System.Math.Max(max, Depth(child));
+            return depthMemo[name] = 1 + max;
+        }
+
+        foreach (var lib in config.Nodes.OfType<LibraryNode>())
+        {
+            if (!config.Mechanics.ContainsKey(lib.MechanicName))
+                continue;
+            var depth = Depth(lib.MechanicName);
+            if (depth > SlotMathConstants.Budget.MaxSubgraphNestingDepth)
+            {
+                errors.Add(new CompileError
+                {
+                    NodeId = lib.Id,
+                    Code = ErrorCodes.SubgraphNestingTooDeep,
+                    Message =
+                        $"Subgraph nesting depth {depth} at library node '{lib.Id}' exceeds the maximum " +
+                        $"of {SlotMathConstants.Budget.MaxSubgraphNestingDepth} (D7).",
+                });
+            }
+        }
 
         return errors;
     }
