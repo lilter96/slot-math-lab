@@ -33,6 +33,12 @@ public sealed class HistogramBin
 }
 
 /// <summary>
+/// A bin in the decade-based adaptive histogram (D14). <see cref="UpperBound"/>
+/// is <see cref="double.PositiveInfinity"/> for the ≥10000x tail bucket.
+/// </summary>
+public sealed record AdaptiveHistogramBin(double LowerBound, double UpperBound, long Count);
+
+/// <summary>
 /// Streaming statistics accumulator using Welford's online algorithm for
 /// mean and variance, plus optional max-win capping and a fixed-width histogram.
 ///
@@ -57,6 +63,12 @@ public sealed class StreamingStats
     private readonly bool _hasFixedHistogram;
     private double _fixedBinWidth;
     private readonly long[] _binCounts;
+
+    // ── Decade-based adaptive histogram (D14) ────────────────────────────
+    // 0..100x in 1x bins (100), 100..1000x in 10x bins (90),
+    // 1000..10000x in 100x bins (90), and a single ≥10000x tail bin.
+    internal const int AdaptiveBinCount = 100 + 90 + 90 + 1; // 281
+    private readonly long[] _adaptiveBins = new long[AdaptiveBinCount];
 
     // ── Dynamic (no-cap) histogram ──────────────────────────────────────
     // Without a cap the bin range is unknown up front, so the first
@@ -184,6 +196,9 @@ public sealed class StreamingStats
         if (clamped < _minObserved) _minObserved = clamped;
         if (clamped > _maxObserved) _maxObserved = clamped;
 
+        // ── Decade-based adaptive histogram (D14) ─────────────────────
+        _adaptiveBins[AdaptiveBinIndex(clamped)]++;
+
         // ── Histogram ────────────────────────────────────────────────
         if (_hasFixedHistogram)
         {
@@ -251,6 +266,40 @@ public sealed class StreamingStats
     /// on each Add).  Otherwise, bins are computed from the observed [min, max]
     /// range at call time.
     /// </summary>
+    /// <summary>
+    /// The decade-based adaptive histogram (D14): non-empty bins only, ordered
+    /// from low to high, with a combined ≥10000x tail bucket. Deterministic for
+    /// a given (seed, n) at any thread count.
+    /// </summary>
+    public IReadOnlyList<AdaptiveHistogramBin> BuildAdaptiveHistogram()
+    {
+        var result = new List<AdaptiveHistogramBin>();
+        for (var i = 0; i < AdaptiveBinCount; i++)
+        {
+            if (_adaptiveBins[i] == 0) continue;
+            var (lo, hi) = AdaptiveBinRange(i);
+            result.Add(new AdaptiveHistogramBin(lo, hi, _adaptiveBins[i]));
+        }
+        return result;
+    }
+
+    /// <summary>Map a win value to its decade-based adaptive bin index (D14).</summary>
+    internal static int AdaptiveBinIndex(double v)
+    {
+        if (v < 100.0) return v < 0.0 ? 0 : (int)v;             // 0..99   (1x bins)
+        if (v < 1_000.0) return 100 + (int)((v - 100.0) / 10);   // 100..189 (10x bins)
+        if (v < 10_000.0) return 190 + (int)((v - 1_000.0) / 100); // 190..279 (100x bins)
+        return 280;                                              // ≥10000x tail
+    }
+
+    private static (double Lo, double Hi) AdaptiveBinRange(int index) => index switch
+    {
+        < 100 => (index, index + 1),
+        < 190 => (100 + (index - 100) * 10, 100 + (index - 100 + 1) * 10),
+        < 280 => (1_000 + (index - 190) * 100, 1_000 + (index - 190 + 1) * 100),
+        _ => (10_000, double.PositiveInfinity),
+    };
+
     public HistogramBin[] BuildHistogram()
     {
         var bins = new HistogramBin[_histogramBins];
@@ -357,6 +406,10 @@ public sealed class StreamingStats
         if (other._maxObserved > _maxObserved) _maxObserved = other._maxObserved;
         _capHitCount += other._capHitCount;
         _nonZeroCount += other._nonZeroCount;
+
+        // ── Adaptive histogram (D14): summed in fixed bins, order-independent ──
+        for (var i = 0; i < AdaptiveBinCount; i++)
+            _adaptiveBins[i] += other._adaptiveBins[i];
 
         // ── Histogram ────────────────────────────────────────────────
         if (_hasFixedHistogram && other._hasFixedHistogram
