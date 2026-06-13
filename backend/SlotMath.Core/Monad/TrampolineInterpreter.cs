@@ -271,6 +271,13 @@ public static class TrampolineInterpreter
                 continue;
             }
 
+            // ── Truncate: end the path (D6 bounded unrolling) ──────────
+            if (current is ITruncateNode)
+            {
+                ctx.LoopCapHit = true;
+                return (T)(object)Unit.Value;
+            }
+
             // ── Loop: run body until stop or cap (D6) ──────────────────
             if (current is ILoopNode loop)
             {

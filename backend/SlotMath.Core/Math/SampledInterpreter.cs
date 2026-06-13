@@ -677,6 +677,12 @@ public static class SampledInterpreter
                 continue;
             }
 
+            if (current is ITruncateNode)
+            {
+                ctx.LoopCapHit = true;
+                return;
+            }
+
             if (current is ILoopNode loop)
             {
                 long iter = 0;

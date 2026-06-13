@@ -271,6 +271,16 @@ public sealed class DistBuilder<T> where T : notnull
     public void Add(Dist<T> other, BigInteger scaleNumerator, BigInteger scaleDenominator)
     {
         EnsureNotFrozen();
+
+        // Carry over pruned mass FIRST — a sub-distribution may be entirely
+        // pruned mass (no value entries), e.g. a truncated path (D6).
+        if (other.PrunedNumerator > 0)
+        {
+            AddPrunedMass(
+                other.PrunedNumerator * scaleNumerator,
+                other.PrunedDenominator * scaleDenominator);
+        }
+
         if (other.IsEmpty) return;
 
         var newDen = other.Denominator * scaleDenominator;
@@ -287,14 +297,6 @@ public sealed class DistBuilder<T> where T : notnull
             _map[e.Value] = existing + scaledNum;
         }
         _entryCount += other.Entries.Count;
-
-        // Also carry over pruned mass from other.
-        if (other.PrunedNumerator > 0)
-        {
-            AddPrunedMass(
-                other.PrunedNumerator * scaleNumerator,
-                other.PrunedDenominator * scaleDenominator);
-        }
     }
 
     /// <summary>

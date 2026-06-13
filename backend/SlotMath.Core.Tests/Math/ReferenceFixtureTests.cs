@@ -106,6 +106,72 @@ public class ReferenceFixtureTests
         Assert.InRange(result.Stats.CapHits, 100, 320);
     }
 
+    // ── REF-B "Retrigger": base + 3 free spins, retrigger +3 (D6 bounded unrolling) ──
+
+    private sealed record FsState(int Remaining, int Budget);
+
+    private static Slot<FsState, Unit> RefAPay(string label)
+    {
+        var weights = WeightSet.FromIntegers([1, 3, 4]);
+        return Slot.Draw<FsState>(_ => weights)
+            .SelectMany(i => Slot.Emit<FsState>(label, i == 0 ? 3 : i == 1 ? 1 : 0));
+    }
+
+    private static Slot<FsState, Unit> RefB(int budget)
+    {
+        var trigger = WeightSet.FromIntegers([1, 19]); // trigger / none (1/20)
+
+        // One free spin: pay (label "freespins") + retrigger (+3) + consume one spin + spend budget.
+        Slot<FsState, Unit> oneSpin =
+            RefAPay("freespins")
+            .SelectMany(_ => Slot.Draw<FsState>(_ => trigger).SelectMany(r =>
+                r == 0
+                    ? Slot.Modify<FsState>(s => s with { Remaining = s.Remaining + 3 })
+                    : Slot.UnitSlot<FsState>()))
+            .SelectMany(_ => Slot.Modify<FsState>(
+                s => s with { Remaining = s.Remaining - 1, Budget = s.Budget - 1 }));
+
+        var freeSpins = Slot.Loop<FsState>(
+            s => s.Remaining <= 0 || s.Budget <= 0, oneSpin, cap: SlotMathConstants.Loop.CapMax);
+
+        return RefAPay("base")
+            .SelectMany(_ => Slot.Draw<FsState>(_ => trigger).SelectMany(t =>
+                t == 0
+                    ? Slot.Modify<FsState>(s => s with { Remaining = 3 })
+                    : Slot.UnitSlot<FsState>()))
+            .SelectMany(_ => freeSpins)
+            // Budget exhausted while the queue is non-empty ⇒ truncate (pruned mass, D6).
+            .SelectMany(_ => Slot.Branch<FsState, Unit>(
+                s => s.Remaining > 0, Slot.Truncate<FsState>(), Slot.UnitSlot<FsState>()));
+    }
+
+    [Fact]
+    public void RefB_Exact_EnclosesFifteenSeventeenths_AsExactInterval()
+    {
+        // G5/G7 DoD (D9): exact (ε=0) capped value r with 15/17 − 1e-9 < r ≤ 15/17,
+        // provenance ExactInterval; per-label base = 3/4, freespins = 9/68 (up to deficit),
+        // summing exactly to total.
+        const int budget = 70; // bounded unrolling depth; residual mass ~6e-14 ≪ 1e-9 (D6)
+        var result = ExactEmitInterpreter.Evaluate(
+            RefB(budget), new FsState(0, budget),
+            s => (System.Numerics.BigInteger)(s.Remaining * 1_000_003L + s.Budget),
+            labels: ["base", "freespins"]);
+
+        var target = new Rational(15, 17);
+        var epsilon = new Rational(1, 1_000_000_000); // 1e-9
+
+        Assert.True(result.ExpectedWin <= target, $"r = {result.ExpectedWin.ToDouble():F12} exceeds 15/17.");
+        Assert.True(target - result.ExpectedWin < epsilon, $"deficit {(target - result.ExpectedWin).ToDouble():E3} ≥ 1e-9.");
+        Assert.Equal(Provenance.ExactInterval, result.Provenance.Provenance);
+
+        // Per-label (D4): base ≈ 3/4, freespins ≈ 9/68, summing EXACTLY to the total.
+        var baseRtp = result.PerLabelExpectation["base"];
+        var freeRtp = result.PerLabelExpectation["freespins"];
+        Assert.True(new Rational(3, 4) - baseRtp < epsilon && baseRtp <= new Rational(3, 4));
+        Assert.True(new Rational(9, 68) - freeRtp < epsilon && freeRtp <= new Rational(9, 68));
+        Assert.Equal(result.ExpectedWin, baseRtp + freeRtp); // exact linearity
+    }
+
     // ── REF-C "MiniCascade": 3-cell row, P³ pays 5 / Q³ pays 2, redraw; cap 10 ──
 
     private sealed record CascadeState(int CascadesUsed, bool Continue);

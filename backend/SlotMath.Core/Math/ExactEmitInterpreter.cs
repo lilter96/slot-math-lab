@@ -315,6 +315,13 @@ public static class ExactEmitInterpreter
                 continue;
             }
 
+            // ── Truncate: the current path's mass becomes pruned (D6) ────
+            if (current is ITruncateNode)
+            {
+                completed = PrunedMassDist();
+                continue;
+            }
+
             if (current is IDrawNode draw)
             {
                 stats.DrawsEvaluated++;
@@ -447,6 +454,12 @@ public static class ExactEmitInterpreter
         builder.Add(value, BigInteger.One, BigInteger.One);
         return builder.Build();
     }
+
+    /// <summary>A distribution that is entirely pruned mass (one unit) — a truncated path.</summary>
+    private static Dist<Rational> PrunedMassDist() =>
+        new(Array.Empty<Dist<Rational>.Entry>(),
+            denominator: BigInteger.One, totalNumerator: BigInteger.Zero,
+            prunedNumerator: BigInteger.One, prunedDenominator: BigInteger.One);
 
     private static int GetOrAssignId(object node, Dictionary<object, int> nodeIds)
     {

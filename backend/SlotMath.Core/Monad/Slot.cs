@@ -98,6 +98,17 @@ internal interface ILoopNode
     object DesugarUntyped { get; }
 }
 
+/// <summary>
+/// Truncate the current execution path (D6 bounded unrolling): the path's
+/// probability mass is accounted as pruned/truncated mass on the exact path
+/// (yielding an ExactInterval enclosure, D5) and simply ends the round on the
+/// sampled path (flagging a loop-cap hit). Used to bound recurrent loops whose
+/// exact fixpoint is deferred.
+/// </summary>
+internal interface ITruncateNode
+{
+}
+
 // ── Effect nodes ──────────────────────────────────────────────────────
 
 public sealed class Pure<S, T> : Slot<S, T>, IPureNode
@@ -217,6 +228,16 @@ public sealed class LoopNode<S> : Slot<S, Unit>, ILoopNode
 }
 
 /// <summary>
+/// Truncate the current path (D6): its mass is accounted as pruned on the exact
+/// path and ends the round on the sampled path. <see cref="ITruncateNode"/>.
+/// </summary>
+public sealed class TruncateNode<S> : Slot<S, Unit>, ITruncateNode
+{
+    public static readonly TruncateNode<S> Instance = new();
+    private TruncateNode() { }
+}
+
+/// <summary>
 /// Lazy bind — structural node that makes SelectMany O(1) during construction.
 /// </summary>
 public sealed class FlatMap<S, A, B> : Slot<S, B>, IFlatMapNode
@@ -303,6 +324,13 @@ public static class Slot
     /// <summary>Emit a labeled win whose amount is computed from the current state.</summary>
     public static Slot<S, Unit> Emit<S>(string label, Func<S, Rational> amount) =>
         new Emit<S, Unit>(label, amount, PureUnitCache<S>.Instance);
+
+    /// <summary>
+    /// Truncate the current path (D6 bounded unrolling): its mass becomes pruned
+    /// mass on the exact path (ExactInterval, D5) and ends the round on the
+    /// sampled path. Bounds recurrent loops whose exact fixpoint is deferred.
+    /// </summary>
+    public static Slot<S, Unit> Truncate<S>() => TruncateNode<S>.Instance;
 
     private static class PureUnitCache<S>
     {
