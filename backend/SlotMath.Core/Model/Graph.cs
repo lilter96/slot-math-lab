@@ -78,6 +78,13 @@ public sealed record DrawNode : Node
     public DrawWeight[]? DrawWeights { get; init; }
     /// <summary>When set, the drawn outcomeId is written to this state key after each draw.</summary>
     public string? StateWriteKey { get; init; }
+    /// <summary>
+    /// When set, a flat array of the drawn symbol IDs (row-major order) is written to this
+    /// state key after each reel draw, making the board available as a state array for
+    /// level-(b) fold/map/filter expressions. This is the mechanism that lets pure subgraph
+    /// mechanics (scatter, lines, ways) read the board from state instead of from a Board object.
+    /// </summary>
+    public string? BoardStateKey { get; init; }
 }
 
 public sealed record GetStateNode : Node

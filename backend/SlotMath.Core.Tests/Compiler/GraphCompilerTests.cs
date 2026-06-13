@@ -869,8 +869,9 @@ public class GraphCompilerTests : IDisposable
             new Paytable { Id = "pt", Entries = new[] { new PaytableEntry { SymbolId = "sym-a", Counts = new[] { 3 }, Payouts = new[] { "10" } } } },
             new PaylineSet { Id = "ps", Paylines = new[] { new Payline { Positions = new[] { 0, 0, 0 } } } }));
 
-        EvaluatorRegistry.Register("scatter", new ScatterEvaluator(
-            new Paytable { Id = "pt-sc", Entries = new[] { new PaytableEntry { SymbolId = "sym-a", Counts = new[] { 3 }, Payouts = new[] { "5" } } } }));
+        EvaluatorRegistry.Register("lines2", new LinesEvaluator(
+            new Paytable { Id = "pt2", Entries = new[] { new PaytableEntry { SymbolId = "sym-a", Counts = new[] { 3 }, Payouts = new[] { "5" } } } },
+            new PaylineSet { Id = "ps2", Paylines = new[] { new Payline { Positions = new[] { 1, 1, 1 } } } }));
 
         var config = new GraphConfig
         {
@@ -916,9 +917,9 @@ public class GraphCompilerTests : IDisposable
                 },
                 new MapNode
                 {
-                    Id = "eval-scatter",
-                    Label = "Scatter",
-                    TransformId = "scatter",
+                    Id = "eval-lines2",
+                    Label = "Lines2",
+                    TransformId = "lines2",
                     Inputs = new Dictionary<string, Port>
                     {
                         ["board"] = new() { Name = "board", Type = PortType.Board }
@@ -942,10 +943,10 @@ public class GraphCompilerTests : IDisposable
             {
                 // Fan-out: draw → both evaluators
                 new Edge { Id = "e1", SourceNodeId = "draw", SourcePort = "board", TargetNodeId = "eval-lines", TargetPort = "board" },
-                new Edge { Id = "e2", SourceNodeId = "draw", SourcePort = "board", TargetNodeId = "eval-scatter", TargetPort = "board" },
+                new Edge { Id = "e2", SourceNodeId = "draw", SourcePort = "board", TargetNodeId = "eval-lines2", TargetPort = "board" },
                 // Fan-in: both evaluators → sink
                 new Edge { Id = "e3", SourceNodeId = "eval-lines", SourcePort = "wins", TargetNodeId = "sink", TargetPort = "wins" },
-                new Edge { Id = "e4", SourceNodeId = "eval-scatter", SourcePort = "wins", TargetNodeId = "sink", TargetPort = "wins" },
+                new Edge { Id = "e4", SourceNodeId = "eval-lines2", SourcePort = "wins", TargetNodeId = "sink", TargetPort = "wins" },
             },
         };
 

@@ -612,9 +612,44 @@ public sealed class GraphCompiler
             var rows = _config.BoardConfig?.Rows ?? 3;
             var weights = BuildReelWeights(strips, drawNode.Id);
 
+            // When BoardStateKey is set, write the drawn board as a flat symbol array
+            // into state (row-major order) so that level-(b) fold/map/filter expressions
+            // can read the board from state without any engine-level Board type (invariant 4).
+            var boardStateKey = drawNode.BoardStateKey;
+            if (boardStateKey != null)
+            {
+                var capturedStrips = strips;
+                var capturedRows = rows;
+                var capturedKey = boardStateKey;
+                return new Draw<Dictionary<string, object?>, object?>(
+                    _ => weights,
+                    choiceIndex =>
+                    {
+                        var board = BuildBoardFromChoice(choiceIndex, capturedStrips, capturedRows);
+                        var flat = BuildFlatSymbols(board);
+                        return Slot.Modify<Dictionary<string, object?>>(s =>
+                            {
+                                var next = new Dictionary<string, object?>(s);
+                                next[capturedKey] = flat;
+                                return next;
+                            })
+                            .SelectMany(_ => Slot.Pure<Dictionary<string, object?>, object?>(board));
+                    });
+            }
+
             return Slot.Draw<Dictionary<string, object?>, object?>(
                 _ => weights,
                 choiceIndex => BuildBoardFromChoice(choiceIndex, strips, rows));
+        }
+
+        private static object?[] BuildFlatSymbols(Board board)
+        {
+            var flat = new object?[board.Rows * board.Cols];
+            var idx = 0;
+            for (var r = 0; r < board.Rows; r++)
+                for (var c = 0; c < board.Cols; c++)
+                    flat[idx++] = (object?)(board[r, c].Symbols?[0] ?? "");
+            return flat;
         }
 
         private Slot<Dictionary<string, object?>, object?> BuildDrawSlot(

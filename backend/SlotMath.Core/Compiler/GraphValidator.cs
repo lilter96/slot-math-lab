@@ -686,6 +686,7 @@ public static class GraphValidator
     private static TypeCheckContext BuildExpressionTypeContext(GraphConfig config)
     {
         var stateFields = new List<FieldDescriptor>(TypeCheckContext.Default.StateFields);
+        var seen = new HashSet<string>(stateFields.Select(f => f.Name));
 
         // Add a synthetic "expressions" field that resolves expression references
         if (config.Expressions != null)
@@ -701,13 +702,41 @@ public static class GraphValidator
         // Add declared state keys (StateSchema) so expressions can read them
         foreach (var sf in config.StateSchema)
         {
-            var type = sf.Type switch
+            if (seen.Add(sf.Name))
             {
-                "string" => ExprType.String,
-                "boolean" => ExprType.Boolean,
-                _ => ExprType.Number,
+                var type = sf.Type switch
+                {
+                    "string" => ExprType.String,
+                    "boolean" => ExprType.Boolean,
+                    _ => ExprType.Number,
+                };
+                stateFields.Add(new FieldDescriptor { Name = sf.Name, Type = type });
+            }
+        }
+
+        // Add state fields dynamically written by nodes — covers keys set by
+        // ModifyStateNode.OutputKey, PutStateNode.StateKey, DataNode.StateKey,
+        // and DrawNode.BoardStateKey/StateWriteKey.  These are not in StateSchema
+        // but are valid targets for fold/compare expressions (invariant 9).
+        foreach (var node in config.Nodes)
+        {
+            IEnumerable<(string Key, ExprType Type)> nodeKeys = node switch
+            {
+                ModifyStateNode m when m.OutputKey != null =>
+                    [(m.OutputKey, ExprType.Number)],
+                PutStateNode p =>
+                    [(p.StateKey, ExprType.Number)],
+                DataNode dn =>
+                    [(dn.StateKey, ExprType.String)],
+                DrawNode d when d.BoardStateKey != null =>
+                    [(d.BoardStateKey, ExprType.String)],
+                DrawNode d when d.StateWriteKey != null =>
+                    [(d.StateWriteKey, ExprType.String)],
+                _ => [],
             };
-            stateFields.Add(new FieldDescriptor { Name = sf.Name, Type = type });
+            foreach (var (key, type) in nodeKeys)
+                if (seen.Add(key))
+                    stateFields.Add(new FieldDescriptor { Name = key, Type = type });
         }
 
         return new TypeCheckContext

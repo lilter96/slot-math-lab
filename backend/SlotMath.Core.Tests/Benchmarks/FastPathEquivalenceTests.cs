@@ -16,12 +16,7 @@ namespace SlotMath.Core.Tests.Benchmarks;
 //
 //  Mechanics proven here:
 //
-//  1. SCATTER
-//     Canonical:  FoldExpr counting cells that match a target symbol.
-//     Fast-path:  ScatterEvaluator.
-//     Coverage:   20 randomly-generated boards (2×2 .. 4×4), all 5 symbols.
-//
-//  2. LINES (single payline, 3 cells)
+//  1. LINES (single payline, 3 cells)
 //     Canonical:  explicit conditional expression over cells[0..2].
 //     Fast-path:  LinesEvaluator with wildSymbol = "W".
 //     Coverage:   all 27 combinations of {H, L, W}³.
@@ -39,9 +34,6 @@ public sealed class FastPathEquivalenceTests
 {
     // ── Common expression helpers ────────────────────────────────────────
 
-    private static FieldAccessExpr StateField(string name) =>
-        new() { Target = "state", Path = [name] };
-
     private static FieldAccessExpr Cell(int idx) =>
         new() { Target = "state", Path = ["cells", idx.ToString()] };
 
@@ -51,45 +43,7 @@ public sealed class FastPathEquivalenceTests
     private static ConstantExpr IntConst(int v) =>
         new() { Kind = ConstantKind.Integer, Value = v.ToString() };
 
-    // ════════════════════════════════════════════════════════════════════
-    //  1. SCATTER equivalence
-    // ════════════════════════════════════════════════════════════════════
-
-    // Canonical atomic expression:
-    //
-    //   scatter_count(sym) =
-    //     fold("cells", 0, (_cnt, _cell) =>
-    //       if _cell == sym then _cnt + 1 else _cnt)
-    //
-    // Counts the number of cells in state["cells"] (string[], row-major)
-    // that equal the target symbol.
-
-    private static FoldExpr ScatterCountExpr(string sym) => new()
-    {
-        StateKey = "cells",
-        AccName = "_cnt",
-        ItemName = "_cell",
-        Init = IntConst(0),
-        Body = new IfExpr
-        {
-            Condition = new CompareExpr
-            {
-                Op = CompareOp.Eq,
-                Left = StateField("_cell"),
-                Right = StrConst(sym),
-            },
-            ThenExpr = new BinaryExpr
-            {
-                Op = BinaryOp.Add,
-                Left = StateField("_cnt"),
-                Right = IntConst(1),
-            },
-            ElseExpr = StateField("_cnt"),
-        },
-        ItemType = ExprType.String,
-    };
-
-    // ── Board / paytable helpers ─────────────────────────────────────────
+    // ── Board helpers shared by Ways and Cluster sections ────────────────
 
     private static readonly string[] AllSymbols = ["H", "L", "W", "S", "B"];
 
@@ -104,31 +58,6 @@ public sealed class FastPathEquivalenceTests
         return board;
     }
 
-    private static string[] FlattenBoard(Board board)
-    {
-        var flat = new List<string>(board.Rows * board.Cols);
-        for (var r = 0; r < board.Rows; r++)
-            for (var c = 0; c < board.Cols; c++)
-            {
-                var cell = board[r, c];
-                flat.Add(cell.IsEmpty ? "" : cell.Symbols![0]);
-            }
-        return flat.ToArray();
-    }
-
-    // Paytable: every count 1..maxCount pays 1, so ScatterEvaluator always
-    // creates a Win for any non-zero count (and Win.Count equals raw count).
-    private static Paytable ScatterPaytable(int maxCount) => new()
-    {
-        Id = "scatter-equiv",
-        Entries = AllSymbols.Select(sym => new PaytableEntry
-        {
-            SymbolId = sym,
-            Counts = Enumerable.Range(1, maxCount).ToArray(),
-            Payouts = Enumerable.Repeat("1", maxCount).ToArray(),
-        }).ToArray(),
-    };
-
     private static string[][] RandomGrid(int seed, int rows, int cols)
     {
         var rng = new System.Random(seed);
@@ -139,55 +68,8 @@ public sealed class FastPathEquivalenceTests
             .ToArray();
     }
 
-    // ── Scatter: 20 boards × 5 symbols each ─────────────────────────────
-
-    [Theory]
-    [InlineData(0,  2, 2)]
-    [InlineData(1,  2, 2)]
-    [InlineData(2,  3, 3)]
-    [InlineData(3,  3, 3)]
-    [InlineData(4,  2, 3)]
-    [InlineData(5,  3, 2)]
-    [InlineData(6,  4, 4)]
-    [InlineData(7,  4, 4)]
-    [InlineData(8,  2, 2)]
-    [InlineData(9,  3, 3)]
-    [InlineData(10, 2, 4)]
-    [InlineData(11, 4, 2)]
-    [InlineData(12, 3, 4)]
-    [InlineData(13, 4, 3)]
-    [InlineData(14, 2, 2)]
-    [InlineData(15, 3, 3)]
-    [InlineData(16, 4, 4)]
-    [InlineData(17, 2, 3)]
-    [InlineData(18, 3, 2)]
-    [InlineData(19, 4, 4)]
-    public void Scatter_CanonicalAtomicCount_AgreesWithFastPath(int seed, int rows, int cols)
-    {
-        var grid = RandomGrid(seed, rows, cols);
-        var board = MakeBoard(grid);
-        var flat = FlattenBoard(board);
-        var paytable = ScatterPaytable(rows * cols);
-
-        var fastPathWins = new ScatterEvaluator(paytable)
-            .Evaluate(board, null)
-            .ToDictionary(w => w.SymbolId, w => (BigInteger)w.Count);
-
-        foreach (var sym in AllSymbols)
-        {
-            var ctx = new EvalContext { State = new Dict { ["cells"] = flat } };
-            var atomicCount = ExactExpressionEvaluator
-                .Evaluate(ScatterCountExpr(sym), ctx)
-                .AsInteger();
-
-            var fastPathCount = fastPathWins.GetValueOrDefault(sym, BigInteger.Zero);
-
-            Assert.Equal(atomicCount, fastPathCount);
-        }
-    }
-
     // ════════════════════════════════════════════════════════════════════
-    //  2. LINES equivalence — single 3-cell payline, symbols {H, L, W}
+    //  1. LINES equivalence — single 3-cell payline, symbols {H, L, W}
     // ════════════════════════════════════════════════════════════════════
 
     // Canonical atomic expression mirrors LinesEvaluator's exact semantics:

@@ -82,7 +82,7 @@ public class OpenEvaluatorRegistryProofTests : IDisposable
             .SetCell(0, 2, new BoardCell { Symbols = new[] { "X" } });
 
         var novel = EvaluatorRegistry.TryGet("any-two")!;
-        var scatterEval = new ScatterEvaluator(
+        var linesEval = new LinesEvaluator(
             new Paytable
             {
                 Id = "test",
@@ -95,14 +95,19 @@ public class OpenEvaluatorRegistryProofTests : IDisposable
                         Payouts = new[] { "15" }
                     }
                 }
+            },
+            new PaylineSet
+            {
+                Id = "ps",
+                Paylines = new[] { new Payline { Positions = new[] { 0, 0, 0, 0, 0 } } }
             });
 
         var novelWins = novel.Evaluate(board, null);
-        var scatterWins = scatterEval.Evaluate(board, null);
+        var linesWins = linesEval.Evaluate(board, null);
 
         // Both work independently through the same IEvaluator interface
         Assert.NotEmpty(novelWins);
-        Assert.NotEmpty(scatterWins);
+        Assert.NotEmpty(linesWins);
     }
 
     [Fact]
