@@ -181,4 +181,38 @@ public class SeededRandomTests
         // Should produce distinct values (not get stuck).
         Assert.Distinct(values);
     }
+
+    // ── D3: stream splitting ─────────────────────────────────────────
+
+    [Fact]
+    public void ForStream_IsReproducibleFromMasterSeedAndIndexAlone()
+    {
+        const ulong master = 0xC0FFEE;
+        // Stream i must be reproducible from (masterSeed, i) alone — no shared mutable state.
+        for (long i = 0; i < 8; i++)
+        {
+            var a = SeededRandom.ForStream(master, i);
+            var b = SeededRandom.ForStream(master, i);
+            for (var k = 0; k < 200; k++)
+                Assert.Equal(a.NextUInt64(), b.NextUInt64());
+        }
+    }
+
+    [Fact]
+    public void ForStream_DistinctStreamsDiffer()
+    {
+        const ulong master = 0xC0FFEE;
+        // Two different stream indices should not produce identical leading sequences.
+        var a = SeededRandom.ForStream(master, 3);
+        var b = SeededRandom.ForStream(master, 4);
+        var seqA = Enumerable.Range(0, 50).Select(_ => a.NextUInt64()).ToArray();
+        var seqB = Enumerable.Range(0, 50).Select(_ => b.NextUInt64()).ToArray();
+        Assert.NotEqual(seqA, seqB);
+    }
+
+    [Fact]
+    public void ForStream_RejectsNegativeIndex()
+    {
+        Assert.Throws<ArgumentOutOfRangeException>(() => SeededRandom.ForStream(1, -1));
+    }
 }

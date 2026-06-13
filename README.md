@@ -50,6 +50,29 @@ Stopwatch-based throughput scenarios for both interpreters (Monte Carlo
 loops, graph-compiled programs, reel draws, exact free-spin retrigger
 memoisation).
 
+### Determinism & PRNG (PRD v3.1, D3)
+
+The pinned PRNG is **xoshiro256\*\*** seeded via **SplitMix64**
+(`backend/SlotMath.Core/Random/SeededRandom.cs`). This is the contract and
+must not change without a PRD edit.
+
+- **Seeding.** A 64-bit *expansion seed* is run through SplitMix64 four times
+  to fill the four 64-bit xoshiro256\*\* state words (constants
+  `0x9E3779B97F4A7C15`, `0xBF58476D1CE4E5B9`, `0x94D049BB133111EB`). The plain
+  constructor uses `(ulong)seed` as the expansion seed.
+- **Stream splitting.** `SeededRandom.ForStream(masterSeed, i)` seeds stream
+  `i` from `SplitMix64(masterSeed, i) = Mix64(masterSeed + (i+1)·GAMMA)` — an
+  O(1), pinned mapping, so each parallel Monte-Carlo chunk gets an independent,
+  reproducible sub-stream and a given `(seed, n)` yields bit-identical
+  statistics regardless of thread count (chunk size `CHUNK = 65,536`).
+- **Pinned seeds.** `SEED_MAIN = 0xC0FFEE`; cross-check list
+  `0x5EED0001 … 0x5EED0014`. All randomized tests use these (D8), and each
+  statistical harness ships a negative control that must fail on corrupted
+  input.
+
+All normative constants live in `backend/SlotMath.Core/SlotMathConstants.cs`
+(mirrored in `frontend/src/constants.ts`). Changing a value is a PRD change.
+
 ### Project structure
 
 ```
@@ -59,7 +82,7 @@ slot-math-lab/
 │   ├── SlotMath.Api/          # Web API host
 │   ├── SlotMath.Core.Tests/   # xUnit tests
 │   ├── SlotMath.Benchmarks/   # Engine throughput benchmarks
-│   └── SlotMathLab.sln
+│   └── SlotMathLab.slnx
 ├── frontend/                  # React 19 + TypeScript + Vite
 ├── docs/
 │   └── PRD.md
