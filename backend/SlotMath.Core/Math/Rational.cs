@@ -61,6 +61,7 @@ public readonly struct Rational : IEquatable<Rational>, IComparable<Rational>
 
     public static implicit operator Rational(BigInteger value) => new(value, BigInteger.One, alreadyCanonical: true);
     public static implicit operator Rational(long value) => new(value, BigInteger.One, alreadyCanonical: true);
+    public static implicit operator Rational(int value) => new(value, BigInteger.One, alreadyCanonical: true);
 
     public bool IsZero => Numerator.IsZero;
     public int Sign => Numerator.Sign;

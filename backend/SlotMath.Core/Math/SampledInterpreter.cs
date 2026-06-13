@@ -537,6 +537,163 @@ public static class SampledInterpreter
                 continue;
             }
 
+            // ── Emit: the value-returning path ignores wins (use EvaluateEmit) ──
+            if (current is IEmitNode emitNode)
+            {
+                current = emitNode.NextUntyped;
+                continue;
+            }
+
+            // ── Loop: desugar to the cap-free self-referential structure ──
+            if (current is ILoopNode loopNode)
+            {
+                current = loopNode.DesugarUntyped;
+                continue;
+            }
+
+            throw new InvalidOperationException(
+                $"Unknown Slot variant: {current.GetType().FullName}");
+        }
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    //  Emit-aware Monte Carlo (D13) — per-spin win = total emitted amount
+    // ═══════════════════════════════════════════════════════════════════════
+
+    /// <summary>
+    /// Monte-Carlo evaluate an Emit-based program (PRD v3.1, D13): the per-spin
+    /// value is the total amount emitted during the spin. Win/loop caps are
+    /// enforced per round; loop-cap hits are counted (D6).
+    /// </summary>
+    public static SampledResult<S> EvaluateEmit<S>(
+        Slot<S, Unit> program,
+        S initialState,
+        SampledConfig config)
+        where S : notnull
+    {
+        var startedAt = Stopwatch.GetTimestamp();
+        var rng = new SeededRandom(config.Seed);
+        var maxWinCap = config.MaxWinCap;
+        double? maxWinCapDouble = maxWinCap.HasValue ? (double)maxWinCap.Value : null;
+        var stats = new StreamingStats(config.HistogramBins, maxWinCapDouble);
+        var cancelled = false;
+        long spin;
+
+        for (spin = 0; spin < config.MaxSpins; spin++)
+        {
+            if (spin > 0 && spin % config.CancellationCheckInterval == 0
+                && config.CancellationToken.IsCancellationRequested)
+            {
+                cancelled = true;
+                break;
+            }
+
+            var ctx = new EmitSpinCtx<S> { State = initialState, Rng = rng };
+            RunEmitProgram(program, ctx);
+
+            // Win cap (D13) is applied once at the sink: StreamingStats clamps
+            // values above the cap and counts them as cap-hits.
+            stats.Add(ctx.Win.ToDouble() / config.WinScale);
+        }
+
+        var elapsed = Stopwatch.GetElapsedTime(startedAt);
+        return new SampledResult<S>(stats, spin, cancelled, config.Seed, elapsed);
+    }
+
+    private sealed class EmitSpinCtx<S>
+    {
+        public required S State;
+        public required SeededRandom Rng;
+        public Rational Win = Rational.Zero;
+        public bool LoopCapHit;
+    }
+
+    /// <summary>
+    /// Lean single-spin runner that threads state and accumulates emitted win
+    /// via a shared context. Mirrors the trampoline: draw chains iterate, only a
+    /// loop body recurses (depth bounded by loop nesting, never iteration count).
+    /// </summary>
+    private static void RunEmitProgram<S>(object program, EmitSpinCtx<S> ctx)
+        where S : notnull
+    {
+        object current = program;
+        var stack = new Stack<IFlatMapNode>();
+
+        while (true)
+        {
+            if (current is IFlatMapNode fm)
+            {
+                stack.Push(fm);
+                current = fm.SourceUntyped;
+                continue;
+            }
+
+            if (current is IAnnotationNode ann)
+            {
+                current = ann.InnerUntyped;
+                continue;
+            }
+
+            if (current is IPureNode pure)
+            {
+                if (stack.Count == 0)
+                    return;
+                current = stack.Pop().ApplyUntyped(pure.ValueUntyped);
+                continue;
+            }
+
+            if (current is IDrawNode draw)
+            {
+                var weightSet = (WeightSet)draw.WeightsUntyped(ctx.State!);
+                var choice = weightSet.AliasTable.Sample(ctx.Rng);
+                current = draw.NextUntyped(choice);
+                continue;
+            }
+
+            if (current is IGetStateNode getState)
+            {
+                current = getState.NextUntyped(ctx.State!);
+                continue;
+            }
+
+            if (current is IPutStateNode putState)
+            {
+                ctx.State = (S)putState.ValueUntyped;
+                current = putState.NextUntyped;
+                continue;
+            }
+
+            if (current is IModifyStateNode modify)
+            {
+                ctx.State = (S)modify.ApplyUntyped(ctx.State!);
+                current = modify.NextUntyped;
+                continue;
+            }
+
+            if (current is IEmitNode emit)
+            {
+                ctx.Win += emit.AmountUntyped(ctx.State!);
+                current = emit.NextUntyped;
+                continue;
+            }
+
+            if (current is ILoopNode loop)
+            {
+                long iter = 0;
+                while (!loop.StopUntyped(ctx.State!) && iter < loop.Cap)
+                {
+                    RunEmitProgram(loop.BodyUntyped, ctx);
+                    iter++;
+                }
+                if (iter >= loop.Cap && !loop.StopUntyped(ctx.State!))
+                    ctx.LoopCapHit = true;
+
+                if (stack.Count == 0)
+                    return;
+                current = stack.Pop().ApplyUntyped(Unit.Value);
+                continue;
+            }
+
             throw new InvalidOperationException(
                 $"Unknown Slot variant: {current.GetType().FullName}");
         }

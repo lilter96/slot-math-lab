@@ -27,4 +27,6 @@ Pinned seeds: `SEED_MAIN = 0xC0FFEE`; cross-check seed list `0x5EED0001…0x5EED
 |------|--------|-------------|
 | v3.1-foundations | 7ea39e4 | Constants file (D3/D6/D7/D8/D9/D16/D18) backend + frontend mirror; PROGRESS.md initialized |
 | G3 (PRNG, D3) | 379f259 | xoshiro256** + SplitMix64 stream splitting; alias chi-squared pinned to SEED_MAIN (salt=1) passes all 12 profiles at α=0.01; negative control rejects perturbed weights; 41 Random tests green |
-| D5 (provenance) | (this commit) | Taxonomy {Exact, ExactInterval(lo,hi,prunedMass,boundSource), ExactWithMassLoss, Sampled(n,mean,stdErr,ci95,capHits,loopCapHits)} + aggregation rule + IsRegulatory; 747 Core tests green |
+| D5 (provenance) | 8bd1983 | Taxonomy {Exact, ExactInterval(lo,hi,prunedMass,boundSource), ExactWithMassLoss, Sampled(n,mean,stdErr,ci95,capHits,loopCapHits)} + aggregation rule + IsRegulatory; 747 Core tests green |
+| D1 (Rational) | cab49d2 | Canonical Rational value type (reduced, den>0, 0/1); REF-A RTP 6/8=3/4 by rational equality; 760 Core tests green |
+| G4/D13/D6 (Emit + caps) | (this commit) | Emit(label,amount:Rational) substrate primitive + capped Loop (cap≤100000) in all 3 interpreters; trampoline per-label accumulation; sampled REF-A→0.75, REF-C→94/965, REF-D→0.5 (4·stdErr), REF-D cap P≈1/10000; loop force-exits at cap w/ LoopCapHit; 770 Core tests green |
