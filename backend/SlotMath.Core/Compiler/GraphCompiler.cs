@@ -394,7 +394,36 @@ public sealed class GraphCompiler
         /// pass-through path.)
         /// </summary>
         private static bool IsInputIndependent(Node node) =>
-            node is DrawNode or LoopNode;
+            node is DrawNode or LoopNode or DataNode;
+
+        // ── Data source (generic) ────────────────────────────────────────
+
+        /// <summary>
+        /// A DataNode writes its named array into state (copy-on-write). Integer
+        /// entries become BigInteger (numbers); the rest stay strings. The
+        /// data-flow value passes through unchanged — it is a pure state effect.
+        /// </summary>
+        private static Func<object?, Slot<Dictionary<string, object?>, object?>> CompileData(DataNode node)
+        {
+            var key = node.StateKey;
+            var parsed = new object?[node.Values.Length];
+            for (var i = 0; i < node.Values.Length; i++)
+            {
+                parsed[i] = System.Numerics.BigInteger.TryParse(
+                    node.Values[i], System.Globalization.NumberStyles.Integer,
+                    System.Globalization.CultureInfo.InvariantCulture, out var bi)
+                    ? bi
+                    : node.Values[i];
+            }
+
+            return v => Slot.Modify<Dictionary<string, object?>>(state =>
+                {
+                    var next = new Dictionary<string, object?>(state);
+                    next[key] = parsed;
+                    return next;
+                })
+                .SelectMany(_ => Slot.Pure<Dictionary<string, object?>, object?>(v));
+        }
 
         // ── Branch fork ─────────────────────────────────────────────────
 
@@ -520,6 +549,8 @@ public sealed class GraphCompiler
                     return _ => drawSlot;
                 case MapNode m:
                     return CompileMap(m);
+                case DataNode dn:
+                    return CompileData(dn);
                 case GetStateNode gs:
                     var getSlot = CompileGetState(gs);
                     return _ => getSlot;
@@ -581,9 +612,44 @@ public sealed class GraphCompiler
             var rows = _config.BoardConfig?.Rows ?? 3;
             var weights = BuildReelWeights(strips, drawNode.Id);
 
+            // When BoardStateKey is set, write the drawn board as a flat symbol array
+            // into state (row-major order) so that level-(b) fold/map/filter expressions
+            // can read the board from state without any engine-level Board type (invariant 4).
+            var boardStateKey = drawNode.BoardStateKey;
+            if (boardStateKey != null)
+            {
+                var capturedStrips = strips;
+                var capturedRows = rows;
+                var capturedKey = boardStateKey;
+                return new Draw<Dictionary<string, object?>, object?>(
+                    _ => weights,
+                    choiceIndex =>
+                    {
+                        var board = BuildBoardFromChoice(choiceIndex, capturedStrips, capturedRows);
+                        var flat = BuildFlatSymbols(board);
+                        return Slot.Modify<Dictionary<string, object?>>(s =>
+                            {
+                                var next = new Dictionary<string, object?>(s);
+                                next[capturedKey] = flat;
+                                return next;
+                            })
+                            .SelectMany(_ => Slot.Pure<Dictionary<string, object?>, object?>(board));
+                    });
+            }
+
             return Slot.Draw<Dictionary<string, object?>, object?>(
                 _ => weights,
                 choiceIndex => BuildBoardFromChoice(choiceIndex, strips, rows));
+        }
+
+        private static object?[] BuildFlatSymbols(Board board)
+        {
+            var flat = new object?[board.Rows * board.Cols];
+            var idx = 0;
+            for (var r = 0; r < board.Rows; r++)
+                for (var c = 0; c < board.Cols; c++)
+                    flat[idx++] = (object?)(board[r, c].Symbols?[0] ?? "");
+            return flat;
         }
 
         private Slot<Dictionary<string, object?>, object?> BuildDrawSlot(

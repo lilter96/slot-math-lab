@@ -303,6 +303,7 @@ public static class SubgraphInliner
                 Outputs = outputs,
                 // plugin:<id> references are global ids, not mechanic-local.
             },
+            DataNode dn => dn with { Id = id, Inputs = inputs, Outputs = outputs },
             MetricsSinkNode s => s with { Id = id, Inputs = inputs, Outputs = outputs },
             LibraryNode lib => lib with
             {

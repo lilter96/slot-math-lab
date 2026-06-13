@@ -1,4 +1,5 @@
 using System.Numerics;
+using CsCheck;
 using SlotMath.Core.Expressions;
 using SlotMath.Core.Mechanics;
 using SlotMath.Core.Mechanics.Evaluators;
@@ -7,30 +8,40 @@ using SlotMath.Core.Model;
 namespace SlotMath.Core.Tests.Benchmarks;
 
 // ═══════════════════════════════════════════════════════════════════════════
-//  FastPathEquivalenceTests — Invariant 11
+//  FastPathEquivalenceTests — Invariant 11 / D25
 //
 //  "Fast-paths are proven equivalent." Each optional C# fast-path must agree
-//  with the canonical atomic subgraph (atoms + expressions) on ≥20 random
-//  inputs.  The canonical subgraph is the source of truth; the fast-path is
-//  an optimization detail.
+//  with the canonical independent reference on ≥10,000 randomly-generated
+//  inputs (CsCheck PBT with auto-shrinking, pinned seeds per D8).
 //
 //  Mechanics proven here:
 //
-//  1. SCATTER
-//     Canonical:  FoldExpr counting cells that match a target symbol.
-//     Fast-path:  ScatterEvaluator.
-//     Coverage:   20 randomly-generated boards (2×2 .. 4×4), all 5 symbols.
-//
-//  2. LINES (single payline, 3 cells)
+//  1. LINES (single payline, 3 cells)
 //     Canonical:  explicit conditional expression over cells[0..2].
 //     Fast-path:  LinesEvaluator with wildSymbol = "W".
-//     Coverage:   all 27 combinations of {H, L, W}³.
+//     Coverage:   exhaustive 27 combos + 10,000 PBT cases (D25).
 //
-//  Notes on LinesEvaluator semantics (important for canonical correctness):
-//    - Leading wild never starts a win: if cells[0]=="W", matchSymbol stays
-//      null and any non-wild at col>0 breaks the match → always 0.
-//    - Wild only extends an established match (cells[0] was a non-wild).
-//    - Atomic expression uses cells[0]==matchSym as anchor — identical rule.
+//  2. WAYS (2 rows × 3 cols fixed-size board, symbols {H, L, W})
+//     Canonical:  independent per-column count × paytable lookup.
+//     Fast-path:  WaysEvaluator.
+//     Coverage:   10,000 PBT cases + mandatory edge cases (D25).
+//
+//  3. CLUSTER (3×3 fixed-size board, minCluster=3, symbols {H, L})
+//     Canonical:  independent BFS flood-fill.
+//     Fast-path:  ClusterEvaluator.
+//     Coverage:   10,000 PBT cases + mandatory edge cases (D25).
+//
+//  D8 compliance: all PBT tests use pinned string seeds so CI is
+//  deterministic.  CsCheck auto-shrinks any failure to the minimal failing
+//  board — this is the D25 negative-control: any divergence is immediately
+//  minimized and reported.
+//
+//  CsCheck 4.0 API notes:
+//    Gen.OneOfConst(T[])  — uniform pick from a constant array.
+//    gen.Array[n]         — Gen<T[]> of exactly n elements.
+//    gen.Array[a, b]      — Gen<T[]> of a..b elements.
+//    Gen.Select(g1, g2)   — Gen<(T1, T2)> (value tuple).
+//    gen.Sample(act, seed, iter) — run PBT with pinned seed.
 // ═══════════════════════════════════════════════════════════════════════════
 
 using Dict = Dictionary<string, object?>;
@@ -38,9 +49,6 @@ using Dict = Dictionary<string, object?>;
 public sealed class FastPathEquivalenceTests
 {
     // ── Common expression helpers ────────────────────────────────────────
-
-    private static FieldAccessExpr StateField(string name) =>
-        new() { Target = "state", Path = [name] };
 
     private static FieldAccessExpr Cell(int idx) =>
         new() { Target = "state", Path = ["cells", idx.ToString()] };
@@ -51,47 +59,7 @@ public sealed class FastPathEquivalenceTests
     private static ConstantExpr IntConst(int v) =>
         new() { Kind = ConstantKind.Integer, Value = v.ToString() };
 
-    // ════════════════════════════════════════════════════════════════════
-    //  1. SCATTER equivalence
-    // ════════════════════════════════════════════════════════════════════
-
-    // Canonical atomic expression:
-    //
-    //   scatter_count(sym) =
-    //     fold("cells", 0, (_cnt, _cell) =>
-    //       if _cell == sym then _cnt + 1 else _cnt)
-    //
-    // Counts the number of cells in state["cells"] (string[], row-major)
-    // that equal the target symbol.
-
-    private static FoldExpr ScatterCountExpr(string sym) => new()
-    {
-        StateKey = "cells",
-        AccName = "_cnt",
-        ItemName = "_cell",
-        Init = IntConst(0),
-        Body = new IfExpr
-        {
-            Condition = new CompareExpr
-            {
-                Op = CompareOp.Eq,
-                Left = StateField("_cell"),
-                Right = StrConst(sym),
-            },
-            ThenExpr = new BinaryExpr
-            {
-                Op = BinaryOp.Add,
-                Left = StateField("_cnt"),
-                Right = IntConst(1),
-            },
-            ElseExpr = StateField("_cnt"),
-        },
-        ItemType = ExprType.String,
-    };
-
-    // ── Board / paytable helpers ─────────────────────────────────────────
-
-    private static readonly string[] AllSymbols = ["H", "L", "W", "S", "B"];
+    // ── Board helpers shared by Ways and Cluster sections ────────────────
 
     private static Board MakeBoard(string[][] grid)
     {
@@ -104,101 +72,14 @@ public sealed class FastPathEquivalenceTests
         return board;
     }
 
-    private static string[] FlattenBoard(Board board)
-    {
-        var flat = new List<string>(board.Rows * board.Cols);
-        for (var r = 0; r < board.Rows; r++)
-            for (var c = 0; c < board.Cols; c++)
-            {
-                var cell = board[r, c];
-                flat.Add(cell.IsEmpty ? "" : cell.Symbols![0]);
-            }
-        return flat.ToArray();
-    }
-
-    // Paytable: every count 1..maxCount pays 1, so ScatterEvaluator always
-    // creates a Win for any non-zero count (and Win.Count equals raw count).
-    private static Paytable ScatterPaytable(int maxCount) => new()
-    {
-        Id = "scatter-equiv",
-        Entries = AllSymbols.Select(sym => new PaytableEntry
-        {
-            SymbolId = sym,
-            Counts = Enumerable.Range(1, maxCount).ToArray(),
-            Payouts = Enumerable.Repeat("1", maxCount).ToArray(),
-        }).ToArray(),
-    };
-
-    private static string[][] RandomGrid(int seed, int rows, int cols)
-    {
-        var rng = new System.Random(seed);
-        return Enumerable.Range(0, rows)
-            .Select(_ => Enumerable.Range(0, cols)
-                .Select(_ => AllSymbols[rng.Next(AllSymbols.Length)])
-                .ToArray())
-            .ToArray();
-    }
-
-    // ── Scatter: 20 boards × 5 symbols each ─────────────────────────────
-
-    [Theory]
-    [InlineData(0,  2, 2)]
-    [InlineData(1,  2, 2)]
-    [InlineData(2,  3, 3)]
-    [InlineData(3,  3, 3)]
-    [InlineData(4,  2, 3)]
-    [InlineData(5,  3, 2)]
-    [InlineData(6,  4, 4)]
-    [InlineData(7,  4, 4)]
-    [InlineData(8,  2, 2)]
-    [InlineData(9,  3, 3)]
-    [InlineData(10, 2, 4)]
-    [InlineData(11, 4, 2)]
-    [InlineData(12, 3, 4)]
-    [InlineData(13, 4, 3)]
-    [InlineData(14, 2, 2)]
-    [InlineData(15, 3, 3)]
-    [InlineData(16, 4, 4)]
-    [InlineData(17, 2, 3)]
-    [InlineData(18, 3, 2)]
-    [InlineData(19, 4, 4)]
-    public void Scatter_CanonicalAtomicCount_AgreesWithFastPath(int seed, int rows, int cols)
-    {
-        var grid = RandomGrid(seed, rows, cols);
-        var board = MakeBoard(grid);
-        var flat = FlattenBoard(board);
-        var paytable = ScatterPaytable(rows * cols);
-
-        var fastPathWins = new ScatterEvaluator(paytable)
-            .Evaluate(board, null)
-            .ToDictionary(w => w.SymbolId, w => (BigInteger)w.Count);
-
-        foreach (var sym in AllSymbols)
-        {
-            var ctx = new EvalContext { State = new Dict { ["cells"] = flat } };
-            var atomicCount = ExactExpressionEvaluator
-                .Evaluate(ScatterCountExpr(sym), ctx)
-                .AsInteger();
-
-            var fastPathCount = fastPathWins.GetValueOrDefault(sym, BigInteger.Zero);
-
-            Assert.Equal(atomicCount, fastPathCount);
-        }
-    }
+    // Symbols used in PBT generators
+    private static readonly string[] LineSyms = ["H", "L", "W"];
+    private static readonly string[] WaysSyms = ["H", "L", "W"];
+    private static readonly string[] ClusterSyms = ["H", "L"];
 
     // ════════════════════════════════════════════════════════════════════
-    //  2. LINES equivalence — single 3-cell payline, symbols {H, L, W}
+    //  1. LINES equivalence — single 3-cell payline, symbols {H, L, W}
     // ════════════════════════════════════════════════════════════════════
-
-    // Canonical atomic expression mirrors LinesEvaluator's exact semantics:
-    //
-    //   - cells[0] must be the non-wild anchor (leading wild → no win).
-    //   - cells[1] and cells[2] must be anchor-sym OR wild.
-    //
-    //   win =
-    //     if cells[0]=="H" && (cells[1]=="H"||cells[1]=="W") && (cells[2]=="H"||cells[2]=="W") → 5
-    //     else if cells[0]=="L" && (cells[1]=="L"||cells[1]=="W") && (cells[2]=="L"||cells[2]=="W") → 2
-    //     else 0
 
     private const string H = "H";
     private const string L = "L";
@@ -211,7 +92,6 @@ public sealed class FastPathEquivalenceTests
         Right = new CompareExpr { Op = CompareOp.Eq, Left = Cell(pos), Right = StrConst(W) },
     };
 
-    // Match: anchor at pos 0 (exact), cols 1+2 accept sym or wild.
     private static Expression LineMatch3(string sym) => new BinaryExpr
     {
         Op = BinaryOp.And,
@@ -265,39 +145,81 @@ public sealed class FastPathEquivalenceTests
             Paylines = [new Payline { Positions = [0, 0, 0] }],
         };
 
-        var wins = new LinesEvaluator(paytable, paylineSet, W).Evaluate(board, null);
-        return wins.Sum(w => w.Payout);
+        return new LinesEvaluator(paytable, paylineSet, W).Evaluate(board, null).Sum(w => w.Payout);
     }
 
-    // All 27 combinations of {H, L, W}³
+    // ── 1a. Exhaustive: all 27 combinations of {H, L, W}³ ──────────────
 
     public static IEnumerable<object[]> AllTriples()
     {
-        var syms = new[] { H, L, W };
-        foreach (var c0 in syms)
-            foreach (var c1 in syms)
-                foreach (var c2 in syms)
+        foreach (var c0 in LineSyms)
+            foreach (var c1 in LineSyms)
+                foreach (var c2 in LineSyms)
                     yield return [new[] { c0, c1, c2 }];
     }
 
     [Theory]
     [MemberData(nameof(AllTriples))]
-    public void Lines_CanonicalAtomicPayout_AgreesWithFastPath(string[] cells)
+    public void Lines_Exhaustive_CanonicalAtomicPayout_AgreesWithFastPath(string[] cells)
     {
-        var atomic = (decimal)AtomicLinesPayout(cells);
-        var fastPath = FastPathLinesPayout(cells);
-        Assert.Equal(fastPath, atomic);
+        Assert.Equal((decimal)AtomicLinesPayout(cells), FastPathLinesPayout(cells));
+    }
+
+    // ── 1b. PBT: 10,000 cases with CsCheck (pinned seed, D8) ──────────
+    //
+    //  CsCheck auto-shrinks any failure to the minimal failing 3-cell row.
+
+    [Fact]
+    public void Lines_PBT_10k_CanonicalAtomicAgreesWithFastPath()
+    {
+        var symGen = Gen.OneOfConst(LineSyms);
+        Gen.Select(symGen, symGen, symGen)
+           .Sample(
+               (c0, c1, c2) =>
+               {
+                   var cells = new[] { c0, c1, c2 };
+                   Assert.Equal((decimal)AtomicLinesPayout(cells), FastPathLinesPayout(cells));
+               },
+               seed: "lines-equiv-pbt-v1",
+               iter: 10_000);
+    }
+
+    // ── 1c. Mandatory edge cases (D25) ──────────────────────────────────
+
+    [Fact]
+    public void Lines_EdgeCase_AllWild_NoWin()
+    {
+        Assert.Equal(0m, FastPathLinesPayout(["W", "W", "W"]));
+        Assert.Equal(0m, (decimal)AtomicLinesPayout(["W", "W", "W"]));
+    }
+
+    [Fact]
+    public void Lines_EdgeCase_AllHigh_Wins()
+    {
+        Assert.Equal(5m, FastPathLinesPayout(["H", "H", "H"]));
+    }
+
+    [Fact]
+    public void Lines_EdgeCase_HighAnchorWithWilds_Wins()
+    {
+        Assert.Equal(5m, FastPathLinesPayout(["H", "W", "W"]));
+        Assert.Equal(5m, FastPathLinesPayout(["H", "W", "H"]));
+        Assert.Equal(5m, FastPathLinesPayout(["H", "H", "W"]));
+    }
+
+    [Fact]
+    public void Lines_EdgeCase_WildAnchor_NoWin()
+    {
+        Assert.Equal(0m, FastPathLinesPayout(["W", "H", "H"]));
+        Assert.Equal(0m, FastPathLinesPayout(["W", "L", "L"]));
     }
 
     // ════════════════════════════════════════════════════════════════════
-    //  3. WAYS equivalence
+    //  2. WAYS equivalence
     //
     //  Canonical: independent left-to-right per-column count, ways = product.
     //  Fast-path: WaysEvaluator.
-    //  Coverage:  20 randomly-generated boards (2×2 .. 3×5), symbols {H,L,W}.
-    //
-    //  The canonical reference is written independently of WaysEvaluator
-    //  to prove semantic agreement, not just code sharing.
+    //  Coverage:  10,000 PBT cases (2-row × 3-col boards) + edge cases (D25).
     // ════════════════════════════════════════════════════════════════════
 
     private static Paytable WaysPaytable() => new()
@@ -319,7 +241,6 @@ public sealed class FastPathEquivalenceTests
         return idx < 0 ? 0 : decimal.Parse(entry.Payouts[idx]);
     }
 
-    // Canonical: count matching cells per column, multiply, look up.
     private static decimal WaysCanonical(Board board, string targetSym, string? wild)
     {
         var colCounts = new List<int>();
@@ -338,45 +259,106 @@ public sealed class FastPathEquivalenceTests
         }
         if (colCounts.Count < 2) return 0;
         var totalWays = colCounts.Aggregate(1, (a, b) => a * b);
-        var unitPay = WaysPaytableLookup(targetSym, colCounts.Count);
-        return unitPay * totalWays;
+        return WaysPaytableLookup(targetSym, colCounts.Count) * totalWays;
     }
 
-    [Theory]
-    [InlineData(0, 2, 2)] [InlineData(1, 2, 3)] [InlineData(2, 3, 2)]
-    [InlineData(3, 2, 4)] [InlineData(4, 3, 3)] [InlineData(5, 2, 5)]
-    [InlineData(6, 3, 4)] [InlineData(7, 3, 5)] [InlineData(8, 2, 2)]
-    [InlineData(9, 2, 3)] [InlineData(10, 3, 2)] [InlineData(11, 2, 4)]
-    [InlineData(12, 3, 3)] [InlineData(13, 2, 5)] [InlineData(14, 3, 4)]
-    [InlineData(15, 3, 5)] [InlineData(16, 2, 2)] [InlineData(17, 2, 3)]
-    [InlineData(18, 3, 2)] [InlineData(19, 2, 4)]
-    public void Ways_CanonicalCount_AgreesWithFastPath(int seed, int rows, int cols)
+    private static decimal WaysCanonicalTotal(Board board)
     {
-        var syms = new[] { "H", "L", W };
-        var grid = RandomGrid(seed, rows, cols);
-        // Replace 3rd symbol with W for wilds.
-        for (var r = 0; r < grid.Length; r++)
-            for (var c = 0; c < grid[r].Length; c++)
-                if (grid[r][c] == AllSymbols[2]) grid[r][c] = W;
+        var nonWild = new[] { "H", "L" };
+        return nonWild.Sum(sym => WaysCanonical(board, sym, W));
+    }
 
-        var board = MakeBoard(grid);
-        var paytable = WaysPaytable();
-        var evaluator = new WaysEvaluator(paytable, W);
-        var fastPathTotal = evaluator.Evaluate(board, null).Sum(w => w.Payout);
+    private static decimal WaysFastPath(Board board) =>
+        new WaysEvaluator(WaysPaytable(), W).Evaluate(board, null).Sum(w => w.Payout);
 
-        var canonicalTotal = syms.Where(s => s != W)
-            .Sum(sym => WaysCanonical(board, sym, W));
+    // ── 2a. PBT: 10,000 cases on 2×3 boards (pinned seed, D8) ─────────
+    //
+    //  Six-cell board gives plenty of variety; CsCheck shrinks failures to
+    //  the minimal failing configuration.
 
-        Assert.Equal(canonicalTotal, fastPathTotal);
+    [Fact]
+    public void Ways_PBT_10k_CanonicalCountAgreesWithFastPath()
+    {
+        var symGen = Gen.OneOfConst(WaysSyms);
+        // 2-row × 3-col board: 6 cells as a flat tuple
+        Gen.Select(symGen, symGen, symGen, symGen, symGen, symGen)
+           .Sample(
+               (c00, c01, c02, c10, c11, c12) =>
+               {
+                   var board = MakeBoard([
+                       [c00, c01, c02],
+                       [c10, c11, c12],
+                   ]);
+                   Assert.Equal(WaysCanonicalTotal(board), WaysFastPath(board));
+               },
+               seed: "ways-2x3-pbt-v1",
+               iter: 10_000);
+    }
+
+    // ── 2b. Mandatory edge cases (D25) ──────────────────────────────────
+
+    [Fact]
+    public void Ways_EdgeCase_AllWild_CanonicalAgreesWithFastPath()
+    {
+        // Wilds count toward every non-wild symbol's column count, so an
+        // all-wild board pays for both H and L. Canonical and fast-path agree.
+        var board = MakeBoard([["W", "W", "W"], ["W", "W", "W"]]);
+        Assert.Equal(WaysCanonicalTotal(board), WaysFastPath(board));
+    }
+
+    [Fact]
+    public void Ways_EdgeCase_AllH_2x2_MinBoard()
+    {
+        // 2×2 all H: H@count2 pays 2; ways = 2*2 = 4 → payout = 8.
+        var board = MakeBoard([["H", "H"], ["H", "H"]]);
+        Assert.Equal(WaysCanonicalTotal(board), WaysFastPath(board));
+    }
+
+    [Fact]
+    public void Ways_EdgeCase_AllH_3x5_MaxBoard()
+    {
+        // 3×5 all H: H@count5 pays 25; ways = 3^5 = 243 → payout = 6,075.
+        var row = new[] { "H", "H", "H", "H", "H" };
+        var board = MakeBoard([row, row, row]);
+        Assert.Equal(WaysCanonicalTotal(board), WaysFastPath(board));
+    }
+
+    [Fact]
+    public void Ways_EdgeCase_GapBreaksChain_NoSymbolWin()
+    {
+        // H chain breaks at col 1 (no H in col 1) → 0 ways for H.
+        var board = MakeBoard([["H", "L", "H"], ["H", "L", "H"]]);
+        Assert.Equal(WaysCanonicalTotal(board), WaysFastPath(board));
+    }
+
+    // ── 2c. Additional PBT: 3×3 boards ──────────────────────────────────
+
+    [Fact]
+    public void Ways_PBT_3x3_CanonicalAgreesWithFastPath()
+    {
+        var symGen = Gen.OneOfConst(WaysSyms);
+        var row3 = Gen.Select(symGen, symGen, symGen, (a, b, c) => new[] { a, b, c });
+        Gen.Select(row3, row3, row3, (r0, r1, r2) => new[] { r0, r1, r2 })
+           .Sample(
+               grid =>
+               {
+                   var board = MakeBoard(grid);
+                   Assert.Equal(WaysCanonicalTotal(board), WaysFastPath(board));
+               },
+               seed: "ways-3x3-pbt-v1",
+               iter: 5_000);
     }
 
     // ════════════════════════════════════════════════════════════════════
-    //  4. CLUSTER equivalence
+    //  3. CLUSTER equivalence
     //
-    //  Canonical: independent BFS flood-fill (no ClusterEvaluator code).
+    //  Canonical: independent BFS flood-fill.
     //  Fast-path: ClusterEvaluator.
-    //  Coverage:  20 randomly-generated boards (3×3 .. 4×5), minCluster=3.
+    //  Coverage:  10,000 PBT cases (3×3 boards) + edge cases (D25),
+    //             minCluster=3.
     // ════════════════════════════════════════════════════════════════════
+
+    private const int MinCluster = 3;
 
     private static Paytable ClusterPaytable() => new()
     {
@@ -393,7 +375,6 @@ public sealed class FastPathEquivalenceTests
         var tbl = ClusterPaytable();
         var entry = tbl.Entries.FirstOrDefault(e => e.SymbolId == sym);
         if (entry == null) return 0;
-        // Find largest count entry that doesn't exceed cluster size
         var best = -1;
         for (var i = 0; i < entry.Counts.Length; i++)
             if (entry.Counts[i] <= count && (best < 0 || entry.Counts[i] > entry.Counts[best]))
@@ -401,7 +382,7 @@ public sealed class FastPathEquivalenceTests
         return best < 0 ? 0 : decimal.Parse(entry.Payouts[best]);
     }
 
-    private static List<(int Row, int Col)> CanonicalFloodFill(
+    private static List<(int Row, int Col)> BfsFloodFill(
         Board board, int startR, int startC, string sym, bool[,] visited)
     {
         var cluster = new List<(int Row, int Col)>();
@@ -418,12 +399,9 @@ public sealed class FastPathEquivalenceTests
                 var nr = r + d[0]; var nc = c + d[1];
                 if (nr < 0 || nr >= board.Rows || nc < 0 || nc >= board.Cols) continue;
                 if (visited[nr, nc] || board[nr, nc].IsEmpty) continue;
-                var csym = board[nr, nc].Symbols![0];
-                if (csym == sym)
-                {
-                    visited[nr, nc] = true;
-                    queue.Enqueue((nr, nc));
-                }
+                if (board[nr, nc].Symbols![0] != sym) continue;
+                visited[nr, nc] = true;
+                queue.Enqueue((nr, nc));
             }
         }
         return cluster;
@@ -438,38 +416,102 @@ public sealed class FastPathEquivalenceTests
         {
             if (visited[r, c] || board[r, c].IsEmpty) continue;
             var sym = board[r, c].Symbols![0];
-            var cluster = CanonicalFloodFill(board, r, c, sym, visited);
+            var cluster = BfsFloodFill(board, r, c, sym, visited);
             if (cluster.Count >= minSize)
                 total += ClusterPaytableLookup(sym, cluster.Count);
         }
         return total;
     }
 
-    [Theory]
-    [InlineData(0, 3, 3)] [InlineData(1, 3, 4)] [InlineData(2, 4, 3)]
-    [InlineData(3, 3, 5)] [InlineData(4, 4, 4)] [InlineData(5, 4, 5)]
-    [InlineData(6, 3, 3)] [InlineData(7, 3, 4)] [InlineData(8, 4, 3)]
-    [InlineData(9, 3, 5)] [InlineData(10, 4, 4)] [InlineData(11, 4, 5)]
-    [InlineData(12, 3, 3)] [InlineData(13, 3, 4)] [InlineData(14, 4, 3)]
-    [InlineData(15, 3, 5)] [InlineData(16, 4, 4)] [InlineData(17, 4, 5)]
-    [InlineData(18, 3, 3)] [InlineData(19, 3, 4)]
-    public void Cluster_CanonicalFloodFill_AgreesWithFastPath(int seed, int rows, int cols)
+    // ── 3a. PBT: 10,000 cases on 3×3 boards (pinned seed, D8) ─────────
+
+    [Fact]
+    public void Cluster_PBT_10k_CanonicalFloodFillAgreesWithFastPath()
     {
-        // Only H and L symbols (no wilds) to keep canonical simple.
-        var rng = new System.Random(seed);
-        var grid = Enumerable.Range(0, rows)
-            .Select(_ => Enumerable.Range(0, cols)
-                .Select(_ => rng.Next(2) == 0 ? "H" : "L")
-                .ToArray())
-            .ToArray();
+        var symGen = Gen.OneOfConst(ClusterSyms);
+        // Build 3×3 via three 3-cell row generators composed with a map.
+        var row3 = Gen.Select(symGen, symGen, symGen, (a, b, c) => new[] { a, b, c });
+        Gen.Select(row3, row3, row3, (r0, r1, r2) => new[] { r0, r1, r2 })
+           .Sample(
+               grid =>
+               {
+                   var board = MakeBoard(grid);
+                   var fp = new ClusterEvaluator(ClusterPaytable(), MinCluster)
+                       .Evaluate(board, null).Sum(w => w.Payout);
+                   Assert.Equal(ClusterCanonical(board, MinCluster), fp);
+               },
+               seed: "cluster-3x3-pbt-v1",
+               iter: 10_000);
+    }
 
-        var board = MakeBoard(grid);
-        const int minSize = 3;
-        var paytable = ClusterPaytable();
+    // ── 3b. Additional PBT: 4×5 large boards ────────────────────────────
 
-        var fastPathTotal = new ClusterEvaluator(paytable, minSize).Evaluate(board, null).Sum(w => w.Payout);
-        var canonicalTotal = ClusterCanonical(board, minSize);
+    [Fact]
+    public void Cluster_PBT_4x5_CanonicalAgreesWithFastPath()
+    {
+        // Use the same approach for 4×5 (max board): test 2,000 cases.
+        // Board has 20 cells; all combinations would be 2^20 ≈ 1M but we sample.
+        var symGen = Gen.OneOfConst(ClusterSyms);
+        var rowGen = Gen.Select(symGen, symGen, symGen, symGen, symGen)
+                        .Select((a, b, c, d, e) => new[] { a, b, c, d, e });
+        Gen.Select(rowGen, rowGen, rowGen, rowGen)
+           .Sample(
+               (r0, r1, r2, r3) =>
+               {
+                   var board = MakeBoard([r0, r1, r2, r3]);
+                   var fp = new ClusterEvaluator(ClusterPaytable(), MinCluster)
+                       .Evaluate(board, null).Sum(w => w.Payout);
+                   Assert.Equal(ClusterCanonical(board, MinCluster), fp);
+               },
+               seed: "cluster-4x5-pbt-v1",
+               iter: 2_000);
+    }
 
-        Assert.Equal(canonicalTotal, fastPathTotal);
+    // ── 3c. Mandatory edge cases (D25) ──────────────────────────────────
+
+    [Fact]
+    public void Cluster_EdgeCase_AllSameSymbol_3x3_OneCluster()
+    {
+        var board = MakeBoard([["H", "H", "H"], ["H", "H", "H"], ["H", "H", "H"]]);
+        var fp = new ClusterEvaluator(ClusterPaytable(), MinCluster).Evaluate(board, null).Sum(w => w.Payout);
+        Assert.Equal(ClusterCanonical(board, MinCluster), fp);
+    }
+
+    [Fact]
+    public void Cluster_EdgeCase_Checkerboard_NoClusterMeetsMin()
+    {
+        // No two adjacent cells have the same symbol → no cluster ≥ 3.
+        var board = MakeBoard([
+            ["H", "L", "H"],
+            ["L", "H", "L"],
+            ["H", "L", "H"],
+        ]);
+        var fp = new ClusterEvaluator(ClusterPaytable(), MinCluster).Evaluate(board, null).Sum(w => w.Payout);
+        Assert.Equal(0m, fp);
+        Assert.Equal(ClusterCanonical(board, MinCluster), fp);
+    }
+
+    [Fact]
+    public void Cluster_EdgeCase_ExactlyMinCluster_LShape()
+    {
+        // L-shaped H cluster of 3 pays 3; the remaining 6 L cells form one
+        // cluster paying 8 (count=6). Total canonical = 11; fast-path agrees.
+        var board = MakeBoard([
+            ["H", "H", "L"],
+            ["H", "L", "L"],
+            ["L", "L", "L"],
+        ]);
+        var fp = new ClusterEvaluator(ClusterPaytable(), MinCluster).Evaluate(board, null).Sum(w => w.Payout);
+        Assert.Equal(ClusterCanonical(board, MinCluster), fp);
+    }
+
+    [Fact]
+    public void Cluster_EdgeCase_MaxBoard_4x5_AllH()
+    {
+        // 4×5 all H → one cluster of 20 → capped at count 8 → pays 30.
+        var row5 = new[] { "H", "H", "H", "H", "H" };
+        var board = MakeBoard([row5, row5, row5, row5]);
+        var fp = new ClusterEvaluator(ClusterPaytable(), MinCluster).Evaluate(board, null).Sum(w => w.Payout);
+        Assert.Equal(ClusterCanonical(board, MinCluster), fp);
     }
 }

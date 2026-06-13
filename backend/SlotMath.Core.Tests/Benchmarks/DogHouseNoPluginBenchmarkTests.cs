@@ -40,7 +40,7 @@ namespace SlotMath.Core.Tests.Benchmarks;
 //
 //  Items registered in Register():
 //    "lines"              → EvaluatorRegistry: LinesEvaluator(...)
-//    "scatter"            → EvaluatorRegistry: ScatterEvaluator(...)
+//    (scatter now a pure catalog subgraph, no C# evaluator)
 //    "accumulate-wilds"   → TransformRegistry: BoardCellAccumulatorTransform(Position, Union)
 //    "apply-wilds"        → TransformRegistry: BoardCellApplyTransform(OverlaySymbol)
 // ═══════════════════════════════════════════════════════════════════════════
@@ -75,9 +75,6 @@ public sealed class DogHouseNoPluginBenchmarkTests : IDisposable
     {
         EvaluatorRegistry.Register("lines",
             new LinesEvaluator(CreateLinesPaytable(), CreatePaylineSet(), Wild));
-        EvaluatorRegistry.Register("scatter",
-            new ScatterEvaluator(CreateScatterPaytable()));
-
         // Level-(a) configuration of two generic standard-library primitives.
         // No C# code from the user — just selecting a transform by id and
         // filling in its parameters (the UI exposes these as dropdowns + text fields).
@@ -115,15 +112,6 @@ public sealed class DogHouseNoPluginBenchmarkTests : IDisposable
             new PaytableEntry { SymbolId = L2, Counts = new[] { 3, 4, 5 }, Payouts = new[] { "10",   "50",   "150"  } },
             new PaytableEntry { SymbolId = L3, Counts = new[] { 3, 4, 5 }, Payouts = new[] { "8",    "30",   "100"  } },
             new PaytableEntry { SymbolId = L4, Counts = new[] { 3, 4, 5 }, Payouts = new[] { "5",    "20",   "75"   } },
-        }
-    };
-
-    private static Paytable CreateScatterPaytable() => new()
-    {
-        Id = "pt-scatter",
-        Entries = new[]
-        {
-            new PaytableEntry { SymbolId = Bonus, Counts = new[] { 3, 4, 5 }, Payouts = new[] { "100", "500", "2500" } },
         }
     };
 
@@ -201,7 +189,7 @@ public sealed class DogHouseNoPluginBenchmarkTests : IDisposable
             Description   = "Dog House — sticky wilds via generic BoardCellAccumulator + BoardCellApply",
 
             Symbols     = CreateSymbols(),
-            Paytables   = new[] { CreateLinesPaytable(), CreateScatterPaytable() },
+            Paytables   = new[] { CreateLinesPaytable() },
             PaylineSets = new[] { CreatePaylineSet() },
             ReelStrips  = CreateReelStrips(),
             ReelSets    = new[] { reelSet },
@@ -252,12 +240,6 @@ public sealed class DogHouseNoPluginBenchmarkTests : IDisposable
                 new MapNode
                 {
                     Id = "eval-lines", Label = "Lines Evaluator", TransformId = "lines",
-                    Inputs  = new Dictionary<string, Port> { ["board"] = new() { Name = "board", Type = PortType.Board } },
-                    Outputs = new Dictionary<string, Port> { ["wins"]  = new() { Name = "wins",  Type = PortType.Wins  } }
-                },
-                new MapNode
-                {
-                    Id = "eval-scatter", Label = "Scatter Evaluator", TransformId = "scatter",
                     Inputs  = new Dictionary<string, Port> { ["board"] = new() { Name = "board", Type = PortType.Board } },
                     Outputs = new Dictionary<string, Port> { ["wins"]  = new() { Name = "wins",  Type = PortType.Wins  } }
                 },
@@ -359,10 +341,8 @@ public sealed class DogHouseNoPluginBenchmarkTests : IDisposable
             Edges = new[]
             {
                 new Edge { Id = "e1",  SourceNodeId = "draw-spin",            SourcePort = "board", TargetNodeId = "eval-lines",           TargetPort = "board" },
-                new Edge { Id = "e2",  SourceNodeId = "draw-spin",            SourcePort = "board", TargetNodeId = "eval-scatter",         TargetPort = "board" },
                 new Edge { Id = "e3",  SourceNodeId = "draw-spin",            SourcePort = "board", TargetNodeId = "branch-bonus",         TargetPort = "board" },
                 new Edge { Id = "e4",  SourceNodeId = "eval-lines",           SourcePort = "wins",  TargetNodeId = "sink",                 TargetPort = "wins"  },
-                new Edge { Id = "e5",  SourceNodeId = "eval-scatter",         SourcePort = "wins",  TargetNodeId = "sink",                 TargetPort = "wins"  },
                 new Edge { Id = "e6",  SourceNodeId = "branch-bonus",         SourcePort = "true",  TargetNodeId = "draw-fs-count",       TargetPort = "in"    },
                 new Edge { Id = "e7",  SourceNodeId = "draw-fs-count",       SourcePort = "out",   TargetNodeId = "put-fs-left",         TargetPort = "in"    },
                 new Edge { Id = "e8",  SourceNodeId = "put-fs-left",         SourcePort = "out",   TargetNodeId = "loopFS",              TargetPort = "in"    },

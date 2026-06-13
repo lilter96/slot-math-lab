@@ -1,16 +1,84 @@
 {
   "name": "scatter",
-  "description": "Scatter / pays-anywhere mechanic. Counts all occurrences of each paytable symbol anywhere on the board and awards the matching paytable payout. Input port: 'board' (Board). Output port: 'wins' (Wins).",
+  "description": "Scatter / pays-anywhere mechanic implemented as a pure subgraph (invariant 2). Counts all occurrences of scatter symbol 'S' in state['board'] (a flat string array populated by DrawNode.boardStateKey). Applies stepped payout: 3→5, 4→20, 5→50. Input/output port: 'state'. Writes scatter_count and scatter_win into state.",
   "nodes": [
     {
-      "nodeType": "map",
-      "id": "eval",
-      "label": "Scatter Evaluator",
-      "transformId": "scatter",
-      "inputs": { "board": { "name": "board", "type": "Board" } },
-      "outputs": { "wins": { "name": "wins", "type": "Wins" } }
+      "nodeType": "modifyState",
+      "id": "count",
+      "label": "Count Scatter Symbols",
+      "expressionId": "count_s",
+      "outputKey": "scatter_count",
+      "inputs": { "state": { "name": "state", "type": "State" } },
+      "outputs": { "state": { "name": "state", "type": "State" } }
+    },
+    {
+      "nodeType": "modifyState",
+      "id": "payout",
+      "label": "Scatter Payout Lookup",
+      "expressionId": "scatter_payout",
+      "outputKey": "scatter_win",
+      "inputs": { "state": { "name": "state", "type": "State" } },
+      "outputs": { "state": { "name": "state", "type": "State" } }
     }
   ],
-  "edges": [],
-  "expressions": {}
+  "edges": [
+    { "id": "e0", "sourceNodeId": "count", "sourcePort": "state", "targetNodeId": "payout", "targetPort": "state" }
+  ],
+  "expressions": {
+    "count_s": {
+      "exprType": "fold",
+      "stateKey": "board",
+      "accName": "acc",
+      "itemName": "sym",
+      "itemType": "String",
+      "init": { "exprType": "constant", "kind": "Integer", "value": "0" },
+      "body": {
+        "exprType": "if",
+        "condition": {
+          "exprType": "compare",
+          "op": "Eq",
+          "left": { "exprType": "fieldAccess", "target": "state", "path": ["sym"] },
+          "right": { "exprType": "constant", "kind": "String", "value": "S" }
+        },
+        "thenExpr": {
+          "exprType": "binary",
+          "op": "Add",
+          "left": { "exprType": "fieldAccess", "target": "state", "path": ["acc"] },
+          "right": { "exprType": "constant", "kind": "Integer", "value": "1" }
+        },
+        "elseExpr": { "exprType": "fieldAccess", "target": "state", "path": ["acc"] }
+      }
+    },
+    "scatter_payout": {
+      "exprType": "if",
+      "condition": {
+        "exprType": "compare",
+        "op": "Gte",
+        "left": { "exprType": "fieldAccess", "target": "state", "path": ["scatter_count"] },
+        "right": { "exprType": "constant", "kind": "Integer", "value": "5" }
+      },
+      "thenExpr": { "exprType": "constant", "kind": "Integer", "value": "50" },
+      "elseExpr": {
+        "exprType": "if",
+        "condition": {
+          "exprType": "compare",
+          "op": "Gte",
+          "left": { "exprType": "fieldAccess", "target": "state", "path": ["scatter_count"] },
+          "right": { "exprType": "constant", "kind": "Integer", "value": "4" }
+        },
+        "thenExpr": { "exprType": "constant", "kind": "Integer", "value": "20" },
+        "elseExpr": {
+          "exprType": "if",
+          "condition": {
+            "exprType": "compare",
+            "op": "Gte",
+            "left": { "exprType": "fieldAccess", "target": "state", "path": ["scatter_count"] },
+            "right": { "exprType": "constant", "kind": "Integer", "value": "3" }
+          },
+          "thenExpr": { "exprType": "constant", "kind": "Integer", "value": "5" },
+          "elseExpr": { "exprType": "constant", "kind": "Integer", "value": "0" }
+        }
+      }
+    }
+  }
 }

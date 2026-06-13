@@ -395,63 +395,6 @@ public class StandardEvaluatorsTests
     }
 
     // ═══════════════════════════════════════════════════════════════════
-    //  ScatterEvaluator (pays-anywhere)
-    // ═══════════════════════════════════════════════════════════════════
-
-    [Fact]
-    public void Scatter_ThreeAnywhere_HandComputed()
-    {
-        // 3 SCATTER symbols anywhere on the board
-        var board = new Board(3, 5)
-            .SetCell(0, 0, new BoardCell { Symbols = new[] { "SCATTER" } })
-            .SetCell(2, 3, new BoardCell { Symbols = new[] { "SCATTER" } })
-            .SetCell(1, 4, new BoardCell { Symbols = new[] { "SCATTER" } });
-
-        var paytable = MakePaytable(("SCATTER", new[] { 2, 3, 4, 5 }, new[] { 2m, 5m, 10m, 25m }));
-
-        var eval = new ScatterEvaluator(paytable);
-        var wins = eval.Evaluate(board, null);
-
-        Assert.Single(wins);
-        Assert.Equal("SCATTER", wins[0].SymbolId);
-        Assert.Equal(3, wins[0].Count);
-        Assert.Equal(5m, wins[0].Payout);
-    }
-
-    [Fact]
-    public void Scatter_FiveAnywhere_PaysHigherPayout()
-    {
-        var board = new Board(3, 3);
-        for (int r = 0; r < 3; r++)
-            for (int c = 0; c < 3; c++)
-                if ((r + c) % 2 == 0)
-                    board = board.SetCell(r, c, new BoardCell { Symbols = new[] { "BONUS" } });
-        // 5 BONUS symbols
-
-        var paytable = MakePaytable(("BONUS", new[] { 3, 4, 5 }, new[] { 3m, 8m, 20m }));
-        var eval = new ScatterEvaluator(paytable);
-        var wins = eval.Evaluate(board, null);
-
-        Assert.Single(wins);
-        Assert.Equal("BONUS", wins[0].SymbolId);
-        Assert.Equal(5, wins[0].Count);
-        Assert.Equal(20m, wins[0].Payout);
-    }
-
-    [Fact]
-    public void Scatter_BelowMinimum_NoWin()
-    {
-        var board = new Board(3, 5)
-            .SetCell(0, 0, new BoardCell { Symbols = new[] { "SCATTER" } });
-
-        var paytable = MakePaytable(("SCATTER", new[] { 2, 3 }, new[] { 2m, 5m }));
-        var eval = new ScatterEvaluator(paytable);
-        var wins = eval.Evaluate(board, null);
-
-        Assert.Empty(wins); // only 1 scatter, min is 2
-    }
-
-    // ═══════════════════════════════════════════════════════════════════
     //  MegawaysEvaluator (variable reel heights)
     // ═══════════════════════════════════════════════════════════════════
 
@@ -560,21 +503,6 @@ public class StandardEvaluatorsTests
 
 public class Evaluator_EdgeCases
 {
-    [Fact]
-    public void ScatterEvaluator_NoMatch()
-    {
-        var eval = new ScatterEvaluator(new Paytable
-        {
-            Id = "t",
-            Entries = new[] { new PaytableEntry { SymbolId = "S", Counts = new[] { 3 }, Payouts = new[] { "10" } } }
-        });
-        var board = new Board(3, 3)
-            .SetCell(0, 0, new BoardCell().WithSymbols("A"))
-            .SetCell(1, 0, new BoardCell().WithSymbols("A"));
-        var wins = eval.Evaluate(board, null);
-        Assert.Empty(wins);
-    }
-
     [Fact]
     public void WaysEvaluator_AcrossColumns()
     {

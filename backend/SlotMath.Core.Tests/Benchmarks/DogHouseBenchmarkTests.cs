@@ -42,7 +42,7 @@ namespace SlotMath.Core.Tests.Benchmarks;
 //
 //  Items registered in Register():
 //    "lines"           → EvaluatorRegistry: LinesEvaluator(linesPaytable, paylineSet, wildSymbolId="sym-wild")
-//    "scatter"         → EvaluatorRegistry: ScatterEvaluator(scatterPaytable)
+//    (scatter now a pure catalog subgraph, no C# evaluator)
 //    "sticky-wilds"    → PluginHost: StickyWildsPlugin (user-provided ITransform, see bottom of file)
 //                        referenced in graph as TransformId = "plugin:sticky-wilds"
 // ═══════════════════════════════════════════════════════════════════════════
@@ -93,19 +93,6 @@ public sealed class DogHouseBenchmarkTests : IDisposable
             new PaytableEntry { SymbolId = L2, Counts = new[] { 3, 4, 5 }, Payouts = new[] { "10",   "50",   "150"  } },
             new PaytableEntry { SymbolId = L3, Counts = new[] { 3, 4, 5 }, Payouts = new[] { "8",    "30",   "100"  } },
             new PaytableEntry { SymbolId = L4, Counts = new[] { 3, 4, 5 }, Payouts = new[] { "5",    "20",   "75"   } },
-        }
-    };
-
-    /// <summary>
-    /// Scatter paytable: bonus symbol only (pays-anywhere, regardless of paylines).
-    /// 3 bonus → 100; 4 bonus → 500; 5 bonus → 2500.
-    /// </summary>
-    private static Paytable CreateScatterPaytable() => new()
-    {
-        Id = "pt-scatter",
-        Entries = new[]
-        {
-            new PaytableEntry { SymbolId = Bonus, Counts = new[] { 3, 4, 5 }, Payouts = new[] { "100", "500", "2500" } },
         }
     };
 
@@ -203,7 +190,7 @@ public sealed class DogHouseBenchmarkTests : IDisposable
             Description   = "Dog House slot — standard evaluators, single wild overlay symbol",
 
             Symbols     = CreateSymbols(),
-            Paytables   = new[] { CreateLinesPaytable(), CreateScatterPaytable() },
+            Paytables   = new[] { CreateLinesPaytable() },
             PaylineSets = new[] { CreatePaylineSet() },
             ReelStrips  = CreateReelStrips(),
             ReelSets    = new[] { reelSet },
@@ -265,22 +252,6 @@ public sealed class DogHouseBenchmarkTests : IDisposable
                     Id          = "eval-lines",
                     Label       = "Lines Evaluator",
                     TransformId = "lines",
-                    Inputs = new Dictionary<string, Port>
-                    {
-                        ["board"] = new() { Name = "board", Type = PortType.Board }
-                    },
-                    Outputs = new Dictionary<string, Port>
-                    {
-                        ["wins"] = new() { Name = "wins", Type = PortType.Wins }
-                    }
-                },
-
-                // ── Scatter evaluator (bonus pays-anywhere) ────────────────
-                new MapNode
-                {
-                    Id          = "eval-scatter",
-                    Label       = "Scatter Evaluator",
-                    TransformId = "scatter",
                     Inputs = new Dictionary<string, Port>
                     {
                         ["board"] = new() { Name = "board", Type = PortType.Board }
@@ -443,18 +414,14 @@ public sealed class DogHouseBenchmarkTests : IDisposable
 
             Edges = new[]
             {
-                // Base-game fan-out: three evaluations of the same drawn board
+                // Base-game: draw → lines + bonus trigger branch
                 new Edge { Id = "e1", SourceNodeId = "draw-spin",     SourcePort = "board",
                                       TargetNodeId = "eval-lines",    TargetPort = "board" },
-                new Edge { Id = "e2", SourceNodeId = "draw-spin",     SourcePort = "board",
-                                      TargetNodeId = "eval-scatter",  TargetPort = "board" },
                 new Edge { Id = "e3", SourceNodeId = "draw-spin",     SourcePort = "board",
                                       TargetNodeId = "branch-bonus",  TargetPort = "board" },
 
-                // Both evaluators contribute wins to the sink
+                // Lines wins to the sink
                 new Edge { Id = "e4", SourceNodeId = "eval-lines",    SourcePort = "wins",
-                                      TargetNodeId = "sink",          TargetPort = "wins"  },
-                new Edge { Id = "e5", SourceNodeId = "eval-scatter",  SourcePort = "wins",
                                       TargetNodeId = "sink",          TargetPort = "wins"  },
 
                 // Bonus path: trigger → count free spins → store in state
@@ -492,10 +459,6 @@ public sealed class DogHouseBenchmarkTests : IDisposable
         EvaluatorRegistry.Register(
             "lines",
             new LinesEvaluator(CreateLinesPaytable(), CreatePaylineSet(), Wild));
-
-        EvaluatorRegistry.Register(
-            "scatter",
-            new ScatterEvaluator(CreateScatterPaytable()));
 
         // StickyWildsPlugin is a user-provided level-(c) ITransform plugin.
         // Registered via _pluginHost, NOT TransformRegistry — it's user code, not
@@ -703,9 +666,6 @@ public sealed class DogHouseBenchmarkTests : IDisposable
     private static LinesEvaluator MakeLinesEvaluator() =>
         new(CreateLinesPaytable(), CreatePaylineSet(), Wild);
 
-    private static ScatterEvaluator MakeScatterEvaluator() =>
-        new(CreateScatterPaytable());
-
     // ── LinesEvaluator ────────────────────────────────────────────────────
 
     [Fact]
@@ -804,55 +764,6 @@ public sealed class DogHouseBenchmarkTests : IDisposable
         var w = wins.FirstOrDefault(x => x.SymbolId == H3 && x.Count == 3);
         Assert.NotNull(w);
         Assert.Equal(50m, w.Payout);
-    }
-
-    // ── ScatterEvaluator ──────────────────────────────────────────────────
-
-    [Fact]
-    public void ScatterEvaluator_ThreeBonusSymbols_Awards100Credits()
-    {
-        // Bonus on cols 0, 2, 4 (position-independent scatter count)
-        var cells = MakeFilledGrid(L4);
-        cells[0, 0] = Cell(Bonus);
-        cells[1, 2] = Cell(Bonus);
-        cells[2, 4] = Cell(Bonus);
-
-        var wins = MakeScatterEvaluator().Evaluate(Board.FromCells(cells), null);
-
-        var scatter = wins.FirstOrDefault(w => w.SymbolId == Bonus);
-        Assert.NotNull(scatter);
-        Assert.Equal(3, scatter.Count);
-        Assert.Equal(100m, scatter.Payout);
-    }
-
-    [Fact]
-    public void ScatterEvaluator_TwoBonusSymbols_NoWin()
-    {
-        var cells = MakeFilledGrid(L4);
-        cells[0, 0] = Cell(Bonus);
-        cells[0, 2] = Cell(Bonus);
-
-        var wins = MakeScatterEvaluator().Evaluate(Board.FromCells(cells), null);
-
-        Assert.DoesNotContain(wins, w => w.SymbolId == Bonus);
-    }
-
-    [Fact]
-    public void ScatterEvaluator_CountIgnoresPosition_AnyCell()
-    {
-        // Place all three bonus symbols on col 1 (a wild reel that shouldn't have bonus
-        // in the actual game — scatter evaluator still counts them regardless of column).
-        var cells = MakeFilledGrid(L4);
-        cells[0, 1] = Cell(Bonus);
-        cells[1, 1] = Cell(Bonus);
-        cells[2, 1] = Cell(Bonus);
-
-        var wins = MakeScatterEvaluator().Evaluate(Board.FromCells(cells), null);
-
-        var scatter = wins.FirstOrDefault(w => w.SymbolId == Bonus);
-        Assert.NotNull(scatter);
-        Assert.Equal(3, scatter.Count);
-        Assert.Equal(100m, scatter.Payout);
     }
 
     // ═══════════════════════════════════════════════════════════════════════

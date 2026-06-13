@@ -49,6 +49,7 @@ public sealed record Edge
 [JsonDerivedType(typeof(BranchNode), "branch")]
 [JsonDerivedType(typeof(MapNode), "map")]
 [JsonDerivedType(typeof(LibraryNode), "library")]
+[JsonDerivedType(typeof(DataNode), "data")]
 [JsonDerivedType(typeof(MetricsSinkNode), "metricsSink")]
 public abstract record Node
 {
@@ -77,6 +78,13 @@ public sealed record DrawNode : Node
     public DrawWeight[]? DrawWeights { get; init; }
     /// <summary>When set, the drawn outcomeId is written to this state key after each draw.</summary>
     public string? StateWriteKey { get; init; }
+    /// <summary>
+    /// When set, a flat array of the drawn symbol IDs (row-major order) is written to this
+    /// state key after each reel draw, making the board available as a state array for
+    /// level-(b) fold/map/filter expressions. This is the mechanism that lets pure subgraph
+    /// mechanics (scatter, lines, ways) read the board from state instead of from a Board object.
+    /// </summary>
+    public string? BoardStateKey { get; init; }
 }
 
 public sealed record GetStateNode : Node
@@ -142,4 +150,23 @@ public sealed record LibraryNode : Node
 {
     public required string MechanicName { get; init; }
     public Dictionary<string, string> Parameters { get; init; } = new();
+}
+
+// ── Data-source node ─────────────────────────────────────────────────────
+
+/// <summary>
+/// A generic data source: writes a named array of values into the recurrence
+/// state, where downstream nodes and level-(b) expressions (fold/map/filter,
+/// aggregations, index access) can work with it. Data is data — a paytable,
+/// payline set, reel strip, multiplier ladder, or any other table is just a
+/// <see cref="DataNode"/>; the engine special-cases none of them (invariant 7).
+/// Integer-valued entries are exposed as numbers; everything else as strings.
+/// </summary>
+public sealed record DataNode : Node
+{
+    /// <summary>State key the data array is written under (read as <c>state[StateKey]</c>).</summary>
+    public required string StateKey { get; init; }
+
+    /// <summary>The data rows, as strings; integer-parseable entries become numbers.</summary>
+    public string[] Values { get; init; } = Array.Empty<string>();
 }
