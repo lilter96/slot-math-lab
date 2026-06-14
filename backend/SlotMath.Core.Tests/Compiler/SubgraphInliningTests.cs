@@ -138,7 +138,7 @@ public sealed class SubgraphInliningTests
                     MechanicName = "spin3win",
                     Outputs = StatePorts("state"),
                 },
-                new MetricsSinkNode { Id = "sink", WinStateKey = "win", Inputs = StatePorts("state") },
+                new MetricsSinkNode { WinCap = 10_000, Id = "sink", WinStateKey = "win", Inputs = StatePorts("state") },
             ],
             Edges =
             [
@@ -167,7 +167,7 @@ public sealed class SubgraphInliningTests
             Nodes =
             [
                 new LibraryNode { Id = "game", MechanicName = "spin3win", Outputs = StatePorts("state") },
-                new MetricsSinkNode { Id = "sink", WinStateKey = "win", Inputs = StatePorts("state") },
+                new MetricsSinkNode { WinCap = 10_000, Id = "sink", WinStateKey = "win", Inputs = StatePorts("state") },
             ],
             Edges =
             [
@@ -263,7 +263,7 @@ public sealed class SubgraphInliningTests
             Nodes =
             [
                 new LibraryNode { Id = "top", MechanicName = "wrap0", Outputs = StatePorts("state") },
-                new MetricsSinkNode { Id = "sink", WinStateKey = "win", Inputs = StatePorts("state") },
+                new MetricsSinkNode { WinCap = 10_000, Id = "sink", WinStateKey = "win", Inputs = StatePorts("state") },
             ],
             Edges =
             [
@@ -342,7 +342,7 @@ public sealed class SubgraphInliningTests
             [
                 new LibraryNode { Id = "a", MechanicName = "step", Inputs = StatePorts("state"), Outputs = StatePorts("state") },
                 new LibraryNode { Id = "b", MechanicName = "step", Inputs = StatePorts("state"), Outputs = StatePorts("state") },
-                new MetricsSinkNode { Id = "sink", WinStateKey = "win", Inputs = StatePorts("state") },
+                new MetricsSinkNode { WinCap = 10_000, Id = "sink", WinStateKey = "win", Inputs = StatePorts("state") },
             ],
             Edges =
             [
@@ -376,7 +376,7 @@ public sealed class SubgraphInliningTests
             Nodes =
             [
                 new LibraryNode { Id = "ghost", MechanicName = "does-not-exist", Outputs = StatePorts("state") },
-                new MetricsSinkNode { Id = "sink", WinStateKey = "win", Inputs = StatePorts("state") },
+                new MetricsSinkNode { WinCap = 10_000, Id = "sink", WinStateKey = "win", Inputs = StatePorts("state") },
             ],
             Edges =
             [
@@ -415,7 +415,7 @@ public sealed class SubgraphInliningTests
             Nodes =
             [
                 new LibraryNode { Id = "top", MechanicName = "selfref", Outputs = StatePorts("state") },
-                new MetricsSinkNode { Id = "sink", WinStateKey = "win", Inputs = StatePorts("state") },
+                new MetricsSinkNode { WinCap = 10_000, Id = "sink", WinStateKey = "win", Inputs = StatePorts("state") },
             ],
             Edges =
             [

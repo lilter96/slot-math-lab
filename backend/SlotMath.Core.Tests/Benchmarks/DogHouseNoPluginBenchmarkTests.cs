@@ -58,16 +58,16 @@ public sealed class DogHouseNoPluginBenchmarkTests : IDisposable
 
     // ── Symbol ids ─────────────────────────────────────────────────────────
 
-    private const string Wild  = "sym-wild";
+    private const string Wild = "sym-wild";
     private const string Bonus = "sym-bonus";
-    private const string H1   = "sym-h1";
-    private const string H2   = "sym-h2";
-    private const string H3   = "sym-h3";
-    private const string H4   = "sym-h4";
-    private const string L1   = "sym-l1";
-    private const string L2   = "sym-l2";
-    private const string L3   = "sym-l3";
-    private const string L4   = "sym-l4";
+    private const string H1 = "sym-h1";
+    private const string H2 = "sym-h2";
+    private const string H3 = "sym-h3";
+    private const string H4 = "sym-h4";
+    private const string L1 = "sym-l1";
+    private const string L2 = "sym-l2";
+    private const string L3 = "sym-l3";
+    private const string L4 = "sym-l4";
 
     // ── Registration — level-(a) only: pick a primitive, configure it ──────
 
@@ -84,17 +84,17 @@ public sealed class DogHouseNoPluginBenchmarkTests : IDisposable
         TransformRegistry.Register("accumulate-wilds",
             new BoardCellAccumulatorTransform(
                 symbolFilter: Wild,
-                extractMode:  CellExtractMode.Position,
-                stateKey:     "stickyPositions",
-                mergeMode:    CellMergeMode.Union));
+                extractMode: CellExtractMode.Position,
+                stateKey: "stickyPositions",
+                mergeMode: CellMergeMode.Union));
 
         // Step 2: read the accumulated positions and overlay wilds onto the board
         //         before evaluation — so previous wilds remain visible every spin.
         TransformRegistry.Register("apply-wilds",
             new BoardCellApplyTransform(
-                stateKey:  "stickyPositions",
+                stateKey: "stickyPositions",
                 applyMode: CellApplyMode.OverlaySymbol,
-                symbolId:  Wild));
+                symbolId: Wild));
     }
 
     // ── Data tables (identical to the plugin version) ─────────────────────
@@ -177,22 +177,23 @@ public sealed class DogHouseNoPluginBenchmarkTests : IDisposable
     {
         var reelSet = new ReelSet
         {
-            Id = "rs-main", Name = "Main Reels",
+            Id = "rs-main",
+            Name = "Main Reels",
             StripIds = new[] { "r0", "r1", "r2", "r3", "r4" }
         };
 
         return new GraphConfig
         {
             SchemaVersion = "1.0.0",
-            Id            = "dog-house-no-plugin",
-            Name          = "The Dog House (level a+b)",
-            Description   = "Dog House — sticky wilds via generic BoardCellAccumulator + BoardCellApply",
+            Id = "dog-house-no-plugin",
+            Name = "The Dog House (level a+b)",
+            Description = "Dog House — sticky wilds via generic BoardCellAccumulator + BoardCellApply",
 
-            Symbols     = CreateSymbols(),
-            Paytables   = new[] { CreateLinesPaytable() },
+            Symbols = CreateSymbols(),
+            Paytables = new[] { CreateLinesPaytable() },
             PaylineSets = new[] { CreatePaylineSet() },
-            ReelStrips  = CreateReelStrips(),
-            ReelSets    = new[] { reelSet },
+            ReelStrips = CreateReelStrips(),
+            ReelSets = new[] { reelSet },
             BoardConfig = new BoardConfig { Rows = 4, Columns = 5 },
 
             StateSchema = new[]
@@ -207,16 +208,16 @@ public sealed class DogHouseNoPluginBenchmarkTests : IDisposable
             {
                 ["bonus-trigger"] = new CompareExpr
                 {
-                    Op   = CompareOp.Gte,
+                    Op = CompareOp.Gte,
                     Left = new AggregateExpr
                     {
-                        Func     = AggregateFunc.Count,
+                        Func = AggregateFunc.Count,
                         StateKey = "board",
                         ItemName = "cell",
                         Predicate = new CompareExpr
                         {
-                            Op    = CompareOp.Eq,
-                            Left  = new FieldAccessExpr { Path = new[] { "cell" }, Target = "state" },
+                            Op = CompareOp.Eq,
+                            Left = new FieldAccessExpr { Path = new[] { "cell" }, Target = "state" },
                             Right = new ConstantExpr { Kind = ConstantKind.String, Value = Bonus }
                         }
                     },
@@ -224,9 +225,9 @@ public sealed class DogHouseNoPluginBenchmarkTests : IDisposable
                 },
                 ["fs-stop"] = new CompareExpr
                 {
-                    Op    = CompareOp.Gte,
-                    Left  = new FieldAccessExpr { Path = new[] { "__iter_loopFS__" }, Target = "state" },
-                    Right = new FieldAccessExpr { Path = new[] { "fsLeft" },          Target = "state" }
+                    Op = CompareOp.Gte,
+                    Left = new FieldAccessExpr { Path = new[] { "__iter_loopFS__" }, Target = "state" },
+                    Right = new FieldAccessExpr { Path = new[] { "fsLeft" }, Target = "state" }
                 },
             },
 
@@ -334,8 +335,7 @@ public sealed class DogHouseNoPluginBenchmarkTests : IDisposable
                     }
                 },
 
-                new MetricsSinkNode
-                {
+                new MetricsSinkNode { WinCap = 10_000,
                     Id = "sink", Label = "Metrics Sink",
                     Inputs = new Dictionary<string, Port> { ["wins"] = new() { Name = "wins", Type = PortType.Wins } }
                 },
@@ -401,7 +401,7 @@ public sealed class DogHouseNoPluginBenchmarkTests : IDisposable
         var run1 = SampledInterpreter.Evaluate(result.Program!, new Dictionary<string, object?>(), cfg);
         var run2 = SampledInterpreter.Evaluate(result.Program!, new Dictionary<string, object?>(), cfg);
 
-        Assert.Equal(run1.Stats.Mean,        run2.Stats.Mean);
+        Assert.Equal(run1.Stats.Mean, run2.Stats.Mean);
         Assert.Equal(run1.Stats.MaxObserved, run2.Stats.MaxObserved);
     }
 
@@ -410,13 +410,13 @@ public sealed class DogHouseNoPluginBenchmarkTests : IDisposable
     {
         var config = CreateConfig();
 
-        var accNode   = config.Nodes.OfType<MapNode>().FirstOrDefault(n => n.Id == "map-accumulate-wilds");
+        var accNode = config.Nodes.OfType<MapNode>().FirstOrDefault(n => n.Id == "map-accumulate-wilds");
         var applyNode = config.Nodes.OfType<MapNode>().FirstOrDefault(n => n.Id == "map-apply-wilds");
 
         Assert.NotNull(accNode);
         Assert.NotNull(applyNode);
         Assert.Equal("accumulate-wilds", accNode.TransformId);
-        Assert.Equal("apply-wilds",      applyNode.TransformId);
+        Assert.Equal("apply-wilds", applyNode.TransformId);
 
         Assert.Contains(config.Edges, e =>
             e.SourceNodeId == "draw-free-spin" && e.TargetNodeId == "map-accumulate-wilds");
@@ -542,10 +542,10 @@ public sealed class DogHouseNoPluginBenchmarkTests : IDisposable
 
         var newState = new BoardCellApplyTransform("pos", CellApplyMode.OverlaySymbol, Wild).Apply(state);
 
-        Assert.Equal(H2,   SymAt(newState, 0, 0));
+        Assert.Equal(H2, SymAt(newState, 0, 0));
         Assert.Equal(Wild, SymAt(newState, 0, 1));
         Assert.Equal(Wild, SymAt(newState, 1, 0));
-        Assert.Equal(H2,   SymAt(newState, 1, 1));
+        Assert.Equal(H2, SymAt(newState, 1, 1));
         Assert.Equal(new[] { "0,1", "1,0" }, newState["pos"]); // state key unchanged
     }
 
@@ -579,7 +579,7 @@ public sealed class DogHouseNoPluginBenchmarkTests : IDisposable
         state = accumulate.Apply(state);
         state = apply.Apply(state);
         Assert.Equal(Wild, SymAt(state, 0, 0));
-        Assert.Equal(H1,   SymAt(state, 0, 1));
+        Assert.Equal(H1, SymAt(state, 0, 1));
 
         // Spin 3: new wild at (1,2) — both positions now sticky
         var cells3 = Fill(2, 3, L4);

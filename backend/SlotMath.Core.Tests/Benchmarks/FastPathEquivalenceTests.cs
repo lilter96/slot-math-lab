@@ -418,14 +418,14 @@ public sealed class FastPathEquivalenceTests
         var visited = new bool[rows, cols];
         decimal total = 0;
         for (var r = 0; r < rows; r++)
-        for (var c = 0; c < cols; c++)
-        {
-            if (visited[r, c] || string.IsNullOrEmpty(SymAt(board, r, c))) continue;
-            var sym = SymAt(board, r, c);
-            var cluster = BfsFloodFill(board, r, c, sym, visited);
-            if (cluster.Count >= minSize)
-                total += ClusterPaytableLookup(sym, cluster.Count);
-        }
+            for (var c = 0; c < cols; c++)
+            {
+                if (visited[r, c] || string.IsNullOrEmpty(SymAt(board, r, c))) continue;
+                var sym = SymAt(board, r, c);
+                var cluster = BfsFloodFill(board, r, c, sym, visited);
+                if (cluster.Count >= minSize)
+                    total += ClusterPaytableLookup(sym, cluster.Count);
+            }
         return total;
     }
 

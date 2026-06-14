@@ -104,8 +104,7 @@ public class GraphCompilerTests : IDisposable
                         ["wins"] = new() { Name = "wins", Type = PortType.Wins }
                     }
                 },
-                new MetricsSinkNode
-                {
+                new MetricsSinkNode { WinCap = 10_000,
                     Id = "sink",
                     Label = "Metrics",
                     Inputs = new Dictionary<string, Port>
@@ -219,8 +218,7 @@ public class GraphCompilerTests : IDisposable
                         ["wins"] = new() { Name = "wins", Type = PortType.Wins }
                     }
                 },
-                new MetricsSinkNode
-                {
+                new MetricsSinkNode { WinCap = 10_000,
                     Id = "sink",
                     Label = "Metrics",
                     Inputs = new Dictionary<string, Port>
@@ -293,8 +291,7 @@ public class GraphCompilerTests : IDisposable
                         ["wins"] = new() { Name = "wins", Type = PortType.Wins }
                     }
                 },
-                new MetricsSinkNode
-                {
+                new MetricsSinkNode { WinCap = 10_000,
                     Id = "sink",
                     Label = "Metrics",
                     Inputs = new Dictionary<string, Port>
@@ -364,8 +361,7 @@ public class GraphCompilerTests : IDisposable
                         ["board"] = new() { Name = "board", Type = PortType.Board }
                     }
                 },
-                new MetricsSinkNode
-                {
+                new MetricsSinkNode { WinCap = 10_000,
                     Id = "sink",
                     Label = "Sink",
                     Inputs = new Dictionary<string, Port>
@@ -423,8 +419,7 @@ public class GraphCompilerTests : IDisposable
                         ["wins"] = new() { Name = "wins", Type = PortType.Wins }
                     }
                 },
-                new MetricsSinkNode
-                {
+                new MetricsSinkNode { WinCap = 10_000,
                     Id = "sink",
                     Label = "Sink",
                     Inputs = new Dictionary<string, Port>
@@ -499,8 +494,7 @@ public class GraphCompilerTests : IDisposable
                         ["wins"] = new() { Name = "wins", Type = PortType.Wins }
                     }
                 },
-                new MetricsSinkNode
-                {
+                new MetricsSinkNode { WinCap = 10_000,
                     Id = "sink",
                     Label = "Sink",
                     Inputs = new Dictionary<string, Port>
@@ -571,8 +565,7 @@ public class GraphCompilerTests : IDisposable
                         ["board"] = new() { Name = "board", Type = PortType.Board }
                     }
                 },
-                new MetricsSinkNode
-                {
+                new MetricsSinkNode { WinCap = 10_000,
                     Id = "sink-1",
                     Label = "Sink 1",
                     Inputs = new Dictionary<string, Port>
@@ -580,8 +573,7 @@ public class GraphCompilerTests : IDisposable
                         ["wins"] = new() { Name = "wins", Type = PortType.Wins }
                     }
                 },
-                new MetricsSinkNode
-                {
+                new MetricsSinkNode { WinCap = 10_000,
                     Id = "sink-2",
                     Label = "Sink 2",
                     Inputs = new Dictionary<string, Port>
@@ -637,8 +629,7 @@ public class GraphCompilerTests : IDisposable
                         ["wins"] = new() { Name = "wins", Type = PortType.Wins }
                     }
                 },
-                new MetricsSinkNode
-                {
+                new MetricsSinkNode { WinCap = 10_000,
                     Id = "sink",
                     Label = "Sink",
                     Inputs = new Dictionary<string, Port>
@@ -694,8 +685,7 @@ public class GraphCompilerTests : IDisposable
                         ["board"] = new() { Name = "board", Type = PortType.Board }
                     }
                 },
-                new MetricsSinkNode
-                {
+                new MetricsSinkNode { WinCap = 10_000,
                     Id = "sink",
                     Label = "Sink",
                     Inputs = new Dictionary<string, Port>
@@ -756,8 +746,7 @@ public class GraphCompilerTests : IDisposable
                         ["wins"] = new() { Name = "wins", Type = PortType.Wins }
                     }
                 },
-                new MetricsSinkNode
-                {
+                new MetricsSinkNode { WinCap = 10_000,
                     Id = "sink",
                     Label = "Sink",
                     Inputs = new Dictionary<string, Port>
@@ -827,8 +816,7 @@ public class GraphCompilerTests : IDisposable
                         ["wins"] = new() { Name = "wins", Type = PortType.Wins }
                     }
                 },
-                new MetricsSinkNode
-                {
+                new MetricsSinkNode { WinCap = 10_000,
                     Id = "sink",
                     Label = "Sink",
                     Inputs = new Dictionary<string, Port>
@@ -929,8 +917,7 @@ public class GraphCompilerTests : IDisposable
                         ["wins"] = new() { Name = "wins", Type = PortType.Wins }
                     }
                 },
-                new MetricsSinkNode
-                {
+                new MetricsSinkNode { WinCap = 10_000,
                     Id = "sink",
                     Label = "Sink",
                     Inputs = new Dictionary<string, Port>
@@ -1003,8 +990,7 @@ public class GraphCompilerTests : IDisposable
                         ["wins"] = new() { Name = "wins", Type = PortType.Wins }
                     }
                 },
-                new MetricsSinkNode
-                {
+                new MetricsSinkNode { WinCap = 10_000,
                     Id = "sink",
                     Label = "Sink",
                     Inputs = new Dictionary<string, Port>
@@ -1047,8 +1033,7 @@ public class GraphCompilerTests : IDisposable
                         ["board"] = new() { Name = "board", Type = PortType.Board }
                     }
                 },
-                new MetricsSinkNode
-                {
+                new MetricsSinkNode { WinCap = 10_000,
                     Id = "sink",
                     Label = "Sink",
                     Inputs = new Dictionary<string, Port>
@@ -1107,8 +1092,7 @@ public class GraphCompilerTests : IDisposable
                         ["wins"] = new() { Name = "wins", Type = PortType.Wins }
                     }
                 },
-                new MetricsSinkNode
-                {
+                new MetricsSinkNode { WinCap = 10_000,
                     Id = "sink",
                     Label = "Sink",
                     Inputs = new Dictionary<string, Port>
@@ -1178,8 +1162,7 @@ public class GraphCompilerTests : IDisposable
                     },
                     Outputs = new Dictionary<string, Port> { ["wins"] = new() { Name = "wins", Type = PortType.Wins } }
                 },
-                new MetricsSinkNode
-                {
+                new MetricsSinkNode { WinCap = 10_000,
                     Id = "sink",
                     Label = "Sink",
                     Inputs = new Dictionary<string, Port> { ["wins"] = new() { Name = "wins", Type = PortType.Wins } }
@@ -1240,8 +1223,7 @@ public class GraphCompilerTests : IDisposable
                     },
                     Outputs = new Dictionary<string, Port> { ["wins"] = new() { Name = "wins", Type = PortType.Wins } }
                 },
-                new MetricsSinkNode
-                {
+                new MetricsSinkNode { WinCap = 10_000,
                     Id = "sink",
                     Label = "Sink",
                     Inputs = new Dictionary<string, Port> { ["wins"] = new() { Name = "wins", Type = PortType.Wins } }
@@ -1329,8 +1311,7 @@ public class GraphCompilerTests : IDisposable
                     },
                     Outputs = new Dictionary<string, Port> { ["wins"] = new() { Name = "wins", Type = PortType.Wins } }
                 },
-                new MetricsSinkNode
-                {
+                new MetricsSinkNode { WinCap = 10_000,
                     Id = "sink",
                     Label = "Sink",
                     Inputs = new Dictionary<string, Port> { ["wins"] = new() { Name = "wins", Type = PortType.Wins } }
@@ -1397,8 +1378,7 @@ public class GraphCompilerTests : IDisposable
                     Inputs = new Dictionary<string, Port> { ["board"] = new() { Name = "board", Type = PortType.Board } },
                     Outputs = new Dictionary<string, Port> { ["wins"] = new() { Name = "wins", Type = PortType.Wins } }
                 },
-                new MetricsSinkNode
-                {
+                new MetricsSinkNode { WinCap = 10_000,
                     Id = "sink",
                     Label = "Sink",
                     Inputs = new Dictionary<string, Port> { ["wins"] = new() { Name = "wins", Type = PortType.Wins } }
@@ -1466,8 +1446,7 @@ public class GraphCompilerTests : IDisposable
                     },
                     Outputs = new Dictionary<string, Port> { ["wins"] = new() { Name = "wins", Type = PortType.Wins } }
                 },
-                new MetricsSinkNode
-                {
+                new MetricsSinkNode { WinCap = 10_000,
                     Id = "sink",
                     Label = "Sink",
                     Inputs = new Dictionary<string, Port> { ["wins"] = new() { Name = "wins", Type = PortType.Wins } }
@@ -1513,8 +1492,7 @@ public class GraphCompilerTests : IDisposable
                     Label = "Main Draw",
                     Outputs = new Dictionary<string, Port> { ["board"] = new() { Name = "board", Type = PortType.Board } }
                 },
-                new MetricsSinkNode
-                {
+                new MetricsSinkNode { WinCap = 10_000,
                     Id = "sink",
                     Label = "Sink",
                     Inputs = new Dictionary<string, Port> { ["wins"] = new() { Name = "wins", Type = PortType.Wins } }

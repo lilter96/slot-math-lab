@@ -62,16 +62,16 @@ public sealed class DogHouseBenchmarkTests : IDisposable
 
     // ── Symbol ids ─────────────────────────────────────────────────────────
 
-    private const string Wild  = "sym-wild";
+    private const string Wild = "sym-wild";
     private const string Bonus = "sym-bonus";
-    private const string H1   = "sym-h1";
-    private const string H2   = "sym-h2";
-    private const string H3   = "sym-h3";
-    private const string H4   = "sym-h4";
-    private const string L1   = "sym-l1";
-    private const string L2   = "sym-l2";
-    private const string L3   = "sym-l3";
-    private const string L4   = "sym-l4";
+    private const string H1 = "sym-h1";
+    private const string H2 = "sym-h2";
+    private const string H3 = "sym-h3";
+    private const string H4 = "sym-h4";
+    private const string L1 = "sym-l1";
+    private const string L2 = "sym-l2";
+    private const string L3 = "sym-l3";
+    private const string L4 = "sym-l4";
 
     // ── Paytables ──────────────────────────────────────────────────────────
 
@@ -185,15 +185,15 @@ public sealed class DogHouseBenchmarkTests : IDisposable
         return new GraphConfig
         {
             SchemaVersion = "1.0.0",
-            Id            = "dog-house-graph",
-            Name          = "The Dog House",
-            Description   = "Dog House slot — standard evaluators, single wild overlay symbol",
+            Id = "dog-house-graph",
+            Name = "The Dog House",
+            Description = "Dog House slot — standard evaluators, single wild overlay symbol",
 
-            Symbols     = CreateSymbols(),
-            Paytables   = new[] { CreateLinesPaytable() },
+            Symbols = CreateSymbols(),
+            Paytables = new[] { CreateLinesPaytable() },
             PaylineSets = new[] { CreatePaylineSet() },
-            ReelStrips  = CreateReelStrips(),
-            ReelSets    = new[] { reelSet },
+            ReelStrips = CreateReelStrips(),
+            ReelSets = new[] { reelSet },
             BoardConfig = new BoardConfig { Rows = 4, Columns = 5 },
 
             StateSchema = new[]
@@ -209,19 +209,19 @@ public sealed class DogHouseBenchmarkTests : IDisposable
                 // Bonus trigger: 3 or more bonus symbols visible anywhere on the board
                 ["bonus-trigger"] = new CompareExpr
                 {
-                    Op    = CompareOp.Gte,
-                    Left  = new AggregateExpr
+                    Op = CompareOp.Gte,
+                    Left = new AggregateExpr
                     {
                         // Count bonus symbols in the board state array (invariant 4:
                         // the board is state["board"], a flat symbol array; each
                         // element is bound under ItemName).
-                        Func     = AggregateFunc.Count,
+                        Func = AggregateFunc.Count,
                         StateKey = "board",
                         ItemName = "cell",
                         Predicate = new CompareExpr
                         {
-                            Op    = CompareOp.Eq,
-                            Left  = new FieldAccessExpr { Path = new[] { "cell" }, Target = "state" },
+                            Op = CompareOp.Eq,
+                            Left = new FieldAccessExpr { Path = new[] { "cell" }, Target = "state" },
                             Right = new ConstantExpr { Kind = ConstantKind.String, Value = Bonus }
                         }
                     },
@@ -231,9 +231,9 @@ public sealed class DogHouseBenchmarkTests : IDisposable
                 // Free-spin loop stop: iteration counter >= drawn free-spin count
                 ["fs-stop"] = new CompareExpr
                 {
-                    Op    = CompareOp.Gte,
-                    Left  = new FieldAccessExpr { Path = new[] { "__iter_loopFS__" }, Target = "state" },
-                    Right = new FieldAccessExpr { Path = new[] { "fsLeft" },          Target = "state" }
+                    Op = CompareOp.Gte,
+                    Left = new FieldAccessExpr { Path = new[] { "__iter_loopFS__" }, Target = "state" },
+                    Right = new FieldAccessExpr { Path = new[] { "fsLeft" }, Target = "state" }
                 },
             },
 
@@ -408,8 +408,7 @@ public sealed class DogHouseBenchmarkTests : IDisposable
                 },
 
                 // ── Metrics sink ───────────────────────────────────────────
-                new MetricsSinkNode
-                {
+                new MetricsSinkNode { WinCap = 10_000,
                     Id    = "sink",
                     Label = "Metrics Sink",
                     Inputs = new Dictionary<string, Port>
@@ -523,10 +522,10 @@ public sealed class DogHouseBenchmarkTests : IDisposable
         var run1 = SampledInterpreter.Evaluate(result.Program!, new Dictionary<string, object?>(), cfg);
         var run2 = SampledInterpreter.Evaluate(result.Program!, new Dictionary<string, object?>(), cfg);
 
-        Assert.Equal(run1.Stats.Mean,        run2.Stats.Mean);
-        Assert.Equal(run1.Stats.StdDev,      run2.Stats.StdDev);
+        Assert.Equal(run1.Stats.Mean, run2.Stats.Mean);
+        Assert.Equal(run1.Stats.StdDev, run2.Stats.StdDev);
         Assert.Equal(run1.Stats.MaxObserved, run2.Stats.MaxObserved);
-        Assert.Equal(run1.SpinsCompleted,    run2.SpinsCompleted);
+        Assert.Equal(run1.SpinsCompleted, run2.SpinsCompleted);
     }
 
     [Fact]
@@ -895,7 +894,7 @@ public sealed class DogHouseBenchmarkTests : IDisposable
         var run1 = SampledInterpreter.Evaluate(result.Program!, new Dictionary<string, object?>(), cfg);
         var run2 = SampledInterpreter.Evaluate(result.Program!, new Dictionary<string, object?>(), cfg);
 
-        Assert.Equal(run1.Stats.Mean,        run2.Stats.Mean);
+        Assert.Equal(run1.Stats.Mean, run2.Stats.Mean);
         Assert.Equal(run1.Stats.MaxObserved, run2.Stats.MaxObserved);
     }
 
@@ -908,8 +907,8 @@ public sealed class DogHouseBenchmarkTests : IDisposable
             .FirstOrDefault(n => n.Id == "map-sticky-wilds");
         Assert.NotNull(stickyNode);
         Assert.Equal("plugin:sticky-wilds", stickyNode.TransformId);
-        Assert.Single(stickyNode.Inputs.Values.Where(p => p.Type == PortType.Board));
-        Assert.Single(stickyNode.Outputs.Values.Where(p => p.Type == PortType.Board));
+        Assert.Single(stickyNode.Inputs.Values, p => p.Type == PortType.Board);
+        Assert.Single(stickyNode.Outputs.Values, p => p.Type == PortType.Board);
 
         Assert.Contains(config.Edges,
             e => e.SourceNodeId == "draw-free-spin" && e.TargetNodeId == "map-sticky-wilds");

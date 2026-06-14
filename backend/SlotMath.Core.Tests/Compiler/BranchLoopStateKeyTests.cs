@@ -371,8 +371,7 @@ public sealed class BranchLoopStateKeyTests : IDisposable
                     ["value"] = new() { Name = "value", Type = PortType.Number }
                 }
             },
-            new MetricsSinkNode
-            {
+            new MetricsSinkNode { WinCap = 10_000,
                 Id = "sink",
                 Label = "Sink",
                 Inputs = new Dictionary<string, Port>
@@ -466,8 +465,7 @@ public sealed class BranchLoopStateKeyTests : IDisposable
                     ["value"] = new() { Name = "value", Type = PortType.Number }
                 }
             },
-            new MetricsSinkNode
-            {
+            new MetricsSinkNode { WinCap = 10_000,
                 Id = "sink",
                 Label = "Sink",
                 Inputs = new Dictionary<string, Port>
@@ -576,8 +574,7 @@ public sealed class BranchLoopStateKeyTests : IDisposable
                     ["value"] = new() { Name = "value", Type = PortType.Number }
                 }
             },
-            new MetricsSinkNode
-            {
+            new MetricsSinkNode { WinCap = 10_000,
                 Id = "sink",
                 Label = "Sink",
                 Inputs = new Dictionary<string, Port>
@@ -632,8 +629,7 @@ public sealed class BranchLoopStateKeyTests : IDisposable
                 },
                 // Intentionally no outputs — this is the terminal node in the loop body
             },
-            new MetricsSinkNode
-            {
+            new MetricsSinkNode { WinCap = 10_000,
                 Id = "sink",
                 Label = "Sink",
                 Inputs = new Dictionary<string, Port>

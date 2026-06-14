@@ -115,7 +115,9 @@ public class SampledInterpreter_WelfordMatchesBatch
             select new BigInteger(d * 10);
 
         // Collect individual spin results by running the trampoline explicitly.
-        var rng = new SeededRandom(777);
+        // n < CHUNK ⇒ Evaluate runs a single chunk seeded SplitMix64(seed, 0),
+        // so the manual reference stream must use the same chunk-0 seed (D3).
+        var rng = new SeededRandom(SampledInterpreter.DeriveStreamSeed(777, 0));
         const int n = 10_000;
         var samples = new double[n];
 
@@ -143,7 +145,7 @@ public class SampledInterpreter_WelfordMatchesBatch
             from d2 in Slot.Draw<SpinState>(_ => WeightSet.FromIntegers([5, 10, 15, 20]))
             select new BigInteger(d1 * d2);
 
-        var rng = new SeededRandom(1234);
+        var rng = new SeededRandom(SampledInterpreter.DeriveStreamSeed(1234, 0));
         const int n = 20_000;
         var samples = new double[n];
 
@@ -171,7 +173,7 @@ public class SampledInterpreter_WelfordMatchesBatch
             from d in Slot.Draw<SpinState>(_ => WeightSet.FromIntegers([1, 2, 4, 8, 16]))
             select new BigInteger(d * 7);
 
-        var rng = new SeededRandom(5555);
+        var rng = new SeededRandom(SampledInterpreter.DeriveStreamSeed(5555, 0));
         const int n = 15_000;
         var samples = new double[n];
 
@@ -205,7 +207,7 @@ public class SampledInterpreter_WelfordMatchesBatch
                 WeightSet.FromIntegers(Enumerable.Repeat(1, st.Counter + 1).ToArray()))
             select new BigInteger(d * 10 + d2);
 
-        var rng = new SeededRandom(9876);
+        var rng = new SeededRandom(SampledInterpreter.DeriveStreamSeed(9876, 0));
         const int n = 8_000;
         var samples = new double[n];
 

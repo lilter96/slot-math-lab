@@ -861,3 +861,227 @@ public class IndexedIterationAndArrayOps
         Assert.Equal([0, 2, 4], indices);
     }
 }
+
+// ═══════════════════════════════════════════════════════════════════════════
+//  Array-call edge cases: contains / length / append / index correctness
+//  and interaction with index-aware iteration
+// ═══════════════════════════════════════════════════════════════════════════
+
+public class ArrayOpEdgeCases
+{
+    private static EvalContext State(Dictionary<string, object?> d) =>
+        new() { State = d };
+
+    private static ExprValue Eval(Expression e, Dictionary<string, object?> d) =>
+        ExactExpressionEvaluator.Evaluate(e, State(d));
+
+    private static CallExpr Call(string fn, params Expression[] args) =>
+        new() { Function = fn, Args = args };
+
+    private static ConstantExpr Int(int v) =>
+        new() { Kind = ConstantKind.Integer, Value = v.ToString() };
+
+    private static ConstantExpr Str(string v) =>
+        new() { Kind = ConstantKind.String, Value = v };
+
+    private static FieldAccessExpr Ref(string name) =>
+        new() { Target = "state", Path = [name] };
+
+    [Fact]
+    public void Contains_EmptyArray_IsFalse()
+    {
+        var result = Eval(Call("contains", Ref("arr"), Str("A")),
+            new() { ["arr"] = Array.Empty<object?>() });
+        Assert.Equal(ExprValue.Bool(false), result);
+    }
+
+    [Fact]
+    public void Length_EmptyArray_IsZero()
+    {
+        var result = Eval(Call("length", Ref("arr")),
+            new() { ["arr"] = Array.Empty<object?>() });
+        Assert.Equal(ExprValue.Number(0), result);
+    }
+
+    [Fact]
+    public void Length_NonEmptyArray_IsCount()
+    {
+        var result = Eval(Call("length", Ref("arr")),
+            new() { ["arr"] = new object?[] { "A", "B", "C" } });
+        Assert.Equal(ExprValue.Number(3), result);
+    }
+
+    [Fact]
+    public void Append_DoesNotMutateOriginalArray()
+    {
+        var original = new object?[] { "A", "B" };
+        var state = new Dictionary<string, object?> { ["arr"] = original };
+        var result = Eval(Call("append", Ref("arr"), Str("C")), state);
+
+        Assert.Equal(3, result.ArrayValue!.Count);
+        Assert.Equal(2, original.Length); // original unchanged
+    }
+
+    [Fact]
+    public void Append_SingleElement_YieldsTwoElements()
+    {
+        var result = Eval(Call("append", Ref("arr"), Int(42)),
+            new() { ["arr"] = new object?[] { (BigInteger)1 } });
+        Assert.Equal(2, result.ArrayValue!.Count);
+        Assert.Equal(ExprValue.Number(42), result.ArrayValue[1]);
+    }
+
+    [Fact]
+    public void Index_InsideMap_RefillsByPosition()
+    {
+        // map(board, (cell, i) => index(refill, i))
+        var expr = new MapExpr
+        {
+            StateKey = "board",
+            ItemName = "cell",
+            IndexName = "i",
+            ItemType = ExprType.String,
+            Body = Call("index", Ref("refill"), Ref("i")),
+        };
+        var state = new Dictionary<string, object?>
+        {
+            ["board"] = new object?[] { "x", "x", "x" },
+            ["refill"] = new object?[] { "A", "B", "C" },
+        };
+        var result = Eval(expr, state);
+        var strs = result.ArrayValue!.Select(v => v.StringValue).ToArray();
+        Assert.Equal(["A", "B", "C"], strs);
+    }
+
+    [Fact]
+    public void FilterWithIndex_KeepsByPosition()
+    {
+        // filter(board, (cell, i) => contains(keep, i))  keep = [1, 3]
+        var expr = new FilterExpr
+        {
+            StateKey = "board",
+            ItemName = "cell",
+            IndexName = "i",
+            ItemType = ExprType.String,
+            Predicate = Call("contains", Ref("keep"), Ref("i")),
+        };
+        var state = new Dictionary<string, object?>
+        {
+            ["board"] = new object?[] { "A", "B", "C", "D" },
+            ["keep"] = new object?[] { (BigInteger)1, (BigInteger)3 },
+        };
+        var result = Eval(expr, state);
+        var strs = result.ArrayValue!.Select(v => v.StringValue).ToArray();
+        Assert.Equal(["B", "D"], strs);
+    }
+
+    [Fact]
+    public void MapWithIndex_ExposesZeroBasedIndex()
+    {
+        // map(arr, (x, i) => i)  — just return the index itself
+        var expr = new MapExpr
+        {
+            StateKey = "arr",
+            ItemName = "x",
+            IndexName = "i",
+            ItemType = ExprType.Number,
+            Body = Ref("i"),
+        };
+        var state = new Dictionary<string, object?> { ["arr"] = new object?[] { "a", "b", "c" } };
+        var result = Eval(expr, state);
+        var nums = result.ArrayValue!.Select(v => (int)v.AsInteger()).ToArray();
+        Assert.Equal([0, 1, 2], nums);
+    }
+
+    [Fact]
+    public void Length_OfString_CountsCharacters()
+    {
+        var result = Eval(Call("length", Str("hello")), new());
+        Assert.Equal(ExprValue.Number(5), result);
+    }
+
+    [Fact]
+    public void Contains_Substring_StillWorks()
+    {
+        var result = Eval(
+            Call("contains", Str("WILD_bonus"), Str("bonus")), new());
+        Assert.Equal(ExprValue.Bool(true), result);
+    }
+
+    [Fact]
+    public void Index_NegativeIndex_Throws()
+    {
+        var ex = Assert.Throws<ExpressionEvaluationException>(() =>
+            Eval(Call("index", Ref("arr"), Int(-1)),
+                new() { ["arr"] = new object?[] { "A" } }));
+        Assert.Equal(EvalErrorCodes.IndexOutOfRange, ex.Code);
+    }
+
+    [Fact]
+    public void Append_ToEmptyArray_YieldsSingleton()
+    {
+        var result = Eval(Call("append", Ref("arr"), Str("X")),
+            new() { ["arr"] = Array.Empty<object?>() });
+        Assert.Single(result.ArrayValue!);
+        Assert.Equal("X", result.ArrayValue[0].StringValue);
+    }
+
+    [Fact]
+    public void Contains_NumberInArray_IsTrue()
+    {
+        var result = Eval(Call("contains", Ref("arr"), Int(2)),
+            new() { ["arr"] = new object?[] { (BigInteger)1, (BigInteger)2, (BigInteger)3 } });
+        Assert.Equal(ExprValue.Bool(true), result);
+    }
+
+    [Fact]
+    public void Contains_NumberNotInArray_IsFalse()
+    {
+        var result = Eval(Call("contains", Ref("arr"), Int(99)),
+            new() { ["arr"] = new object?[] { (BigInteger)1, (BigInteger)2 } });
+        Assert.Equal(ExprValue.Bool(false), result);
+    }
+
+    [Fact]
+    public void Fold_OverSingleElement_ReturnsCorrectResult()
+    {
+        // fold(arr, 0, (acc, x) => acc + x)  where arr = [7]
+        var expr = new FoldExpr
+        {
+            StateKey = "arr",
+            AccName = "acc",
+            ItemName = "x",
+            ItemType = ExprType.Number,
+            Init = Int(0),
+            Body = new BinaryExpr
+            {
+                Op = BinaryOp.Add,
+                Left = Ref("acc"),
+                Right = Ref("x"),
+            },
+        };
+        var result = Eval(expr, new() { ["arr"] = new object?[] { (BigInteger)7 } });
+        Assert.Equal(ExprValue.Number(7), result);
+    }
+
+    [Fact]
+    public void Map_OverSingleElement_ReturnsSingletonArray()
+    {
+        var expr = new MapExpr
+        {
+            StateKey = "arr",
+            ItemName = "x",
+            ItemType = ExprType.Number,
+            Body = new BinaryExpr
+            {
+                Op = BinaryOp.Mul,
+                Left = Ref("x"),
+                Right = Int(10),
+            },
+        };
+        var result = Eval(expr, new() { ["arr"] = new object?[] { (BigInteger)5 } });
+        Assert.Equal(ExprType.Array, result.Kind);
+        Assert.Single(result.ArrayValue!);
+        Assert.Equal(ExprValue.Number(50), result.ArrayValue![0]);
+    }
+}
