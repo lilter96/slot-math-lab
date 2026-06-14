@@ -435,9 +435,22 @@ public sealed class DogHouseNoPluginBenchmarkTests : IDisposable
         Assert.Empty(config.Plugins);
     }
 
+
     // ═══════════════════════════════════════════════════════════════════════
-    //  BoardCellAccumulatorTransform — unit tests
+    //  BoardCellAccumulatorTransform — unit tests (board = array in state, inv4)
     // ═══════════════════════════════════════════════════════════════════════
+
+    private static object?[] Fill(int rows, int cols, string fill)
+    {
+        var a = new object?[rows * cols];
+        Array.Fill(a, (object?)fill);
+        return a;
+    }
+
+    private static int Idx(int r, int c, int cols) => r * cols + c;
+
+    private static string SymAt(IReadOnlyDictionary<string, object?> s, int r, int c) =>
+        GridState.Symbol(GridState.Cells(s)[Idx(r, c, GridState.Cols(s))]);
 
     [Fact]
     public void Accumulator_Position_Union_CollectsAndAccumulatesAcrossSpins()
@@ -446,17 +459,17 @@ public sealed class DogHouseNoPluginBenchmarkTests : IDisposable
             Wild, CellExtractMode.Position, "pos", CellMergeMode.Union);
 
         // Spin 1: wild at (0,1)
-        var cells1 = MakeGrid(2, 3, L1);
-        cells1[0, 1] = Cell(Wild);
-        var (_, state1) = transform.Apply(Board.FromCells(cells1), new Dictionary<string, object?>());
-        var positions1 = ((Dictionary<string, object?>)state1!)["pos"] as string[];
+        var cells1 = Fill(2, 3, L1);
+        cells1[Idx(0, 1, 3)] = Wild;
+        var state1 = transform.Apply(TestBoardState.Flat(2, 3, cells1));
+        var positions1 = state1["pos"] as string[];
         Assert.Equal(["0,1"], positions1);
 
         // Spin 2: wild at (1,2) — previous (0,1) should still be in state
-        var cells2 = MakeGrid(2, 3, L2);
-        cells2[1, 2] = Cell(Wild);
-        var (_, state2) = transform.Apply(Board.FromCells(cells2), state1);
-        var positions2 = ((Dictionary<string, object?>)state2!)["pos"] as string[];
+        var cells2 = Fill(2, 3, L2);
+        cells2[Idx(1, 2, 3)] = Wild;
+        var state2 = transform.Apply(TestBoardState.Flat(2, 3, cells2, ("pos", state1["pos"])));
+        var positions2 = state2["pos"] as string[];
         Assert.Equal(2, positions2!.Length);
         Assert.Contains("0,1", positions2);
         Assert.Contains("1,2", positions2);
@@ -468,18 +481,16 @@ public sealed class DogHouseNoPluginBenchmarkTests : IDisposable
         var transform = new BoardCellAccumulatorTransform(
             Wild, CellExtractMode.Count, "wildCount", CellMergeMode.Sum);
 
-        var cells1 = MakeGrid(2, 3, L1);
-        cells1[0, 0] = Cell(Wild);
-        cells1[0, 2] = Cell(Wild);
+        var cells1 = Fill(2, 3, L1);
+        cells1[Idx(0, 0, 3)] = Wild;
+        cells1[Idx(0, 2, 3)] = Wild;
+        var state1 = transform.Apply(TestBoardState.Flat(2, 3, cells1));
+        Assert.Equal(2, state1["wildCount"]);
 
-        var (_, state1) = transform.Apply(Board.FromCells(cells1), new Dictionary<string, object?>());
-        Assert.Equal(2, ((Dictionary<string, object?>)state1!)["wildCount"]);
-
-        var cells2 = MakeGrid(2, 3, L1);
-        cells2[1, 1] = Cell(Wild);
-
-        var (_, state2) = transform.Apply(Board.FromCells(cells2), state1);
-        Assert.Equal(3, ((Dictionary<string, object?>)state2!)["wildCount"]);
+        var cells2 = Fill(2, 3, L1);
+        cells2[Idx(1, 1, 3)] = Wild;
+        var state2 = transform.Apply(TestBoardState.Flat(2, 3, cells2, ("wildCount", state1["wildCount"])));
+        Assert.Equal(3, state2["wildCount"]);
     }
 
     [Fact]
@@ -488,19 +499,17 @@ public sealed class DogHouseNoPluginBenchmarkTests : IDisposable
         var transform = new BoardCellAccumulatorTransform(
             Wild, CellExtractMode.Count, "maxWilds", CellMergeMode.Max);
 
-        var cells1 = MakeGrid(2, 3, L1);
-        cells1[0, 0] = Cell(Wild);
-        cells1[0, 1] = Cell(Wild);
-        cells1[0, 2] = Cell(Wild);
+        var cells1 = Fill(2, 3, L1);
+        cells1[Idx(0, 0, 3)] = Wild;
+        cells1[Idx(0, 1, 3)] = Wild;
+        cells1[Idx(0, 2, 3)] = Wild;
+        var state1 = transform.Apply(TestBoardState.Flat(2, 3, cells1));
+        Assert.Equal(3, state1["maxWilds"]);
 
-        var (_, state1) = transform.Apply(Board.FromCells(cells1), new Dictionary<string, object?>());
-        Assert.Equal(3, ((Dictionary<string, object?>)state1!)["maxWilds"]);
-
-        var cells2 = MakeGrid(2, 3, L1);
-        cells2[1, 0] = Cell(Wild);
-
-        var (_, state2) = transform.Apply(Board.FromCells(cells2), state1);
-        Assert.Equal(3, ((Dictionary<string, object?>)state2!)["maxWilds"]); // max stays 3
+        var cells2 = Fill(2, 3, L1);
+        cells2[Idx(1, 0, 3)] = Wild;
+        var state2 = transform.Apply(TestBoardState.Flat(2, 3, cells2, ("maxWilds", state1["maxWilds"])));
+        Assert.Equal(3, state2["maxWilds"]); // max stays 3
     }
 
     [Fact]
@@ -509,14 +518,13 @@ public sealed class DogHouseNoPluginBenchmarkTests : IDisposable
         var transform = new BoardCellAccumulatorTransform(
             null, CellExtractMode.Symbol, "symbols", CellMergeMode.Union);
 
-        // 1×4 grid: H1 at (0,0), H2 at (0,1), H1 duplicate at (0,2), L1 still at (0,3)
-        var cells1 = MakeGrid(1, 4, L1);
-        cells1[0, 0] = Cell(H1);
-        cells1[0, 1] = Cell(H2);
-        cells1[0, 2] = Cell(H1); // duplicate of (0,0) — should be deduplicated
-
-        var (_, state1) = transform.Apply(Board.FromCells(cells1), new Dictionary<string, object?>());
-        var syms1 = ((Dictionary<string, object?>)state1!)["symbols"] as string[];
+        // 1×4 grid: H1, H2, H1 (dup), L1
+        var cells1 = Fill(1, 4, L1);
+        cells1[Idx(0, 0, 4)] = H1;
+        cells1[Idx(0, 1, 4)] = H2;
+        cells1[Idx(0, 2, 4)] = H1; // duplicate — should be deduplicated
+        var state1 = transform.Apply(TestBoardState.Flat(1, 4, cells1));
+        var syms1 = state1["symbols"] as string[];
         Assert.Equal(3, syms1!.Length); // H1, H2, L1 — H1 duplicate collapsed
         Assert.Contains(H1, syms1);
         Assert.Contains(H2, syms1);
@@ -530,31 +538,25 @@ public sealed class DogHouseNoPluginBenchmarkTests : IDisposable
     [Fact]
     public void Apply_OverlaySymbol_SetsWildsAtStoredPositions()
     {
-        var state = new Dictionary<string, object?> { ["pos"] = new[] { "0,1", "1,0" } };
-        var cells = MakeGrid(2, 2, H2);
-        var board = Board.FromCells(cells);
+        var state = TestBoardState.Flat(2, 2, Fill(2, 2, H2), ("pos", new[] { "0,1", "1,0" }));
 
-        var (newBoard, newState) = new BoardCellApplyTransform("pos", CellApplyMode.OverlaySymbol, Wild)
-            .Apply(board, state);
+        var newState = new BoardCellApplyTransform("pos", CellApplyMode.OverlaySymbol, Wild).Apply(state);
 
-        Assert.Equal(H2,   newBoard[0, 0].Symbols![0]);
-        Assert.Equal(Wild, newBoard[0, 1].Symbols![0]);
-        Assert.Equal(Wild, newBoard[1, 0].Symbols![0]);
-        Assert.Equal(H2,   newBoard[1, 1].Symbols![0]);
-        Assert.Same(state, newState); // state unchanged
+        Assert.Equal(H2,   SymAt(newState, 0, 0));
+        Assert.Equal(Wild, SymAt(newState, 0, 1));
+        Assert.Equal(Wild, SymAt(newState, 1, 0));
+        Assert.Equal(H2,   SymAt(newState, 1, 1));
+        Assert.Equal(new[] { "0,1", "1,0" }, newState["pos"]); // state key unchanged
     }
 
     [Fact]
     public void Apply_EmptyPositions_ReturnsBoardUnchanged()
     {
-        var state = new Dictionary<string, object?> { ["pos"] = Array.Empty<string>() };
-        var cells = MakeGrid(2, 2, L3);
-        var board = Board.FromCells(cells);
+        var state = TestBoardState.Flat(2, 2, Fill(2, 2, L3), ("pos", Array.Empty<string>()));
 
-        var (newBoard, _) = new BoardCellApplyTransform("pos", CellApplyMode.OverlaySymbol, Wild)
-            .Apply(board, state);
+        var newState = new BoardCellApplyTransform("pos", CellApplyMode.OverlaySymbol, Wild).Apply(state);
 
-        Assert.Equal(L3, newBoard[0, 0].Symbols![0]); // unchanged
+        Assert.Equal(L3, SymAt(newState, 0, 0)); // unchanged
     }
 
     [Fact]
@@ -565,41 +567,27 @@ public sealed class DogHouseNoPluginBenchmarkTests : IDisposable
         var apply = new BoardCellApplyTransform("sticky", CellApplyMode.OverlaySymbol, Wild);
 
         // Spin 1: wild lands at (0,0)
-        var cells1 = MakeGrid(2, 3, L1);
-        cells1[0, 0] = Cell(Wild);
-
-        object? state = new Dictionary<string, object?>();
-        Board board;
-        (board, state) = accumulate.Apply(Board.FromCells(cells1), state);
-        (board, state) = apply.Apply(board, state);
-        Assert.Equal(Wild, board[0, 0].Symbols![0]);
+        var cells1 = Fill(2, 3, L1);
+        cells1[Idx(0, 0, 3)] = Wild;
+        IReadOnlyDictionary<string, object?> state = TestBoardState.Flat(2, 3, cells1);
+        state = accumulate.Apply(state);
+        state = apply.Apply(state);
+        Assert.Equal(Wild, SymAt(state, 0, 0));
 
         // Spin 2: fresh board (no wilds drawn) — (0,0) still sticks
-        var cells2 = MakeGrid(2, 3, H1);
-        (board, state) = accumulate.Apply(Board.FromCells(cells2), state);
-        (board, state) = apply.Apply(board, state);
-        Assert.Equal(Wild, board[0, 0].Symbols![0]);
-        Assert.Equal(H1,   board[0, 1].Symbols![0]);
+        state = TestBoardState.Flat(2, 3, Fill(2, 3, H1), ("sticky", state["sticky"]));
+        state = accumulate.Apply(state);
+        state = apply.Apply(state);
+        Assert.Equal(Wild, SymAt(state, 0, 0));
+        Assert.Equal(H1,   SymAt(state, 0, 1));
 
         // Spin 3: new wild at (1,2) — both positions now sticky
-        var cells3 = MakeGrid(2, 3, L4);
-        cells3[1, 2] = Cell(Wild);
-        (board, state) = accumulate.Apply(Board.FromCells(cells3), state);
-        (board, state) = apply.Apply(board, state);
-        Assert.Equal(Wild, board[0, 0].Symbols![0]);
-        Assert.Equal(Wild, board[1, 2].Symbols![0]);
+        var cells3 = Fill(2, 3, L4);
+        cells3[Idx(1, 2, 3)] = Wild;
+        state = TestBoardState.Flat(2, 3, cells3, ("sticky", state["sticky"]));
+        state = accumulate.Apply(state);
+        state = apply.Apply(state);
+        Assert.Equal(Wild, SymAt(state, 0, 0));
+        Assert.Equal(Wild, SymAt(state, 1, 2));
     }
-
-    // ── Board helpers ─────────────────────────────────────────────────────
-
-    private static BoardCell[,] MakeGrid(int rows, int cols, string fillSymbol)
-    {
-        var cells = new BoardCell[rows, cols];
-        for (var r = 0; r < rows; r++)
-            for (var c = 0; c < cols; c++)
-                cells[r, c] = Cell(fillSymbol);
-        return cells;
-    }
-
-    private static BoardCell Cell(string symbol) => new() { Symbols = new[] { symbol } };
 }

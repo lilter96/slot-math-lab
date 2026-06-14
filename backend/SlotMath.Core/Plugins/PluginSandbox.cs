@@ -61,12 +61,12 @@ public static class PluginSandbox
     /// Execute an evaluator inside the sandbox.
     /// </summary>
     /// <param name="evaluator">The plugin evaluator to run.</param>
-    /// <param name="board">Board to evaluate.</param>
+    /// <param name="state">Game state to evaluate (contains the board array).</param>
     /// <param name="config">Sandbox configuration (timeout, cancellation).</param>
     /// <returns>A <see cref="PluginSandboxResult"/> with wins or error details.</returns>
     public static PluginSandboxResult Execute(
         IEvaluator evaluator,
-        Board board,
+        IReadOnlyDictionary<string, object?> state,
         SandboxConfig? config = null)
     {
         config ??= new SandboxConfig();
@@ -89,7 +89,7 @@ public static class PluginSandbox
             {
                 try
                 {
-                    wins = evaluator.Evaluate(board, null);
+                    wins = evaluator.Evaluate(state);
                 }
                 catch (Exception ex)
                 {

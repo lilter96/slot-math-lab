@@ -331,7 +331,7 @@ public class ExpressionCompiler_CorrectnessTests
         var compiled = ExpressionCompiler.CompileNumber(expr);
 
         // Call with Board and state — same signature library/plugins use.
-        var result = compiled(null, null);
+        var result = compiled(null);
         Assert.Equal(new BigInteger(42), result);
     }
 
@@ -346,7 +346,7 @@ public class ExpressionCompiler_CorrectnessTests
         };
 
         var compiled = ExpressionCompiler.CompileBoolean(expr);
-        Assert.True(compiled(null, null));
+        Assert.True(compiled(null));
     }
 
     [Fact]
@@ -368,8 +368,7 @@ public class ExpressionCompiler_CorrectnessTests
 
         var evalFunc = ExpressionCompiler.CompileAsEvaluator(expr, "test-symbol");
 
-        var board = new Board(1, 1).SetCell(0, 0, new BoardCell().WithSymbols("A"));
-        var wins = evalFunc(board, null);
+        var wins = evalFunc(TestBoardState.From(new string?[][] { new string?[] { "A" } }));
 
         Assert.Single(wins);
         Assert.Equal("test-symbol", wins[0].SymbolId);
@@ -383,7 +382,7 @@ public class ExpressionCompiler_CorrectnessTests
         var expr = new ConstantExpr { Kind = ConstantKind.Integer, Value = "99" };
 
         var compiled = ExpressionCompiler.CompileBoxed(expr, ExprType.Number);
-        var result = compiled(null, null);
+        var result = compiled(null);
 
         Assert.IsType<BigInteger>(result);
         Assert.Equal(new BigInteger(99), (BigInteger)result);
@@ -395,7 +394,7 @@ public class ExpressionCompiler_CorrectnessTests
         var expr = new ConstantExpr { Kind = ConstantKind.Boolean, Value = "true" };
 
         var compiled = ExpressionCompiler.CompileBoxed(expr, ExprType.Boolean);
-        var result = compiled(null, null);
+        var result = compiled(null);
 
         Assert.IsType<bool>(result);
         Assert.True((bool)result);

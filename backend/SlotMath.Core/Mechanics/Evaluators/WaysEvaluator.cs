@@ -21,9 +21,12 @@ public sealed class WaysEvaluator : IFastPathEvaluator
         _wildSymbolId = wildSymbolId;
     }
 
-    public Win[] Evaluate(Board board, object? state)
+    public Win[] Evaluate(IReadOnlyDictionary<string, object?> state)
     {
-        ArgumentNullException.ThrowIfNull(board);
+        ArgumentNullException.ThrowIfNull(state);
+        var cells = GridState.Cells(state);
+        var rows = GridState.Rows(state);
+        var cols = GridState.Cols(state);
         var wins = new List<Win>();
 
         // For each symbol in the paytable, count consecutive columns
@@ -33,14 +36,14 @@ public sealed class WaysEvaluator : IFastPathEvaluator
             var waysPerColumn = new List<int>();
             var allPositions = new List<(int Row, int Col)>();
 
-            for (var col = 0; col < board.Cols; col++)
+            for (var col = 0; col < cols; col++)
             {
                 var count = 0;
-                for (var row = 0; row < board.Rows; row++)
+                for (var row = 0; row < rows; row++)
                 {
-                    var cell = board[row, col];
-                    if (cell.IsEmpty) continue;
-                    var sym = cell.Symbols![0];
+                    var cell = cells[GridState.Index(row, col, cols)];
+                    if (GridState.IsEmpty(cell)) continue;
+                    var sym = GridState.Symbol(cell);
                     if (sym == symbolId || sym == _wildSymbolId)
                     {
                         count++;

@@ -42,30 +42,27 @@ public sealed class BoardCellAccumulatorTransform : IFastPathTransform
         MergeMode    = mergeMode;
     }
 
-    public (Board NewBoard, object? NewState) Apply(Board board, object? state)
+    public IReadOnlyDictionary<string, object?> Apply(IReadOnlyDictionary<string, object?> state)
     {
-        ArgumentNullException.ThrowIfNull(board);
-        var stateDict = state as Dictionary<string, object?> ?? new Dictionary<string, object?>();
+        ArgumentNullException.ThrowIfNull(state);
+        var cells = GridState.Cells(state);
+        var cols = GridState.Cols(state);
+        if (cols <= 0) cols = cells.Length; // single-row fallback
 
-        var newStateDict = ExtractMode switch
+        return ExtractMode switch
         {
-            CellExtractMode.Count    => MergeCount(board, stateDict),
-            CellExtractMode.Position => MergeStringSet(board, stateDict, ExtractPosition),
-            CellExtractMode.Symbol   => MergeStringSet(board, stateDict, ExtractSymbol),
-            _                        => stateDict,
+            CellExtractMode.Count    => MergeCount(cells, state),
+            CellExtractMode.Position => MergeStringSet(cells, cols, state, ExtractPosition),
+            CellExtractMode.Symbol   => MergeStringSet(cells, cols, state, ExtractSymbol),
+            _                        => state,
         };
-
-        return (board, newStateDict);
     }
 
     // ── Count mode ────────────────────────────────────────────────────────
 
-    private Dictionary<string, object?> MergeCount(Board board, Dictionary<string, object?> state)
+    private IReadOnlyDictionary<string, object?> MergeCount(object?[] cells, IReadOnlyDictionary<string, object?> state)
     {
-        var count = 0;
-        for (var r = 0; r < board.Rows; r++)
-            for (var c = 0; c < board.Cols; c++)
-                if (Matches(board[r, c])) count++;
+        var count = cells.Count(Matches);
 
         var existing = state.TryGetValue(StateKey, out var v) && v is int i ? i : 0;
         var merged = MergeMode switch
@@ -76,22 +73,22 @@ public sealed class BoardCellAccumulatorTransform : IFastPathTransform
             _                     => count,
         };
 
-        return new Dictionary<string, object?>(state) { [StateKey] = merged };
+        return GridState.With(state, StateKey, merged);
     }
 
     // ── String-set modes (Position / Symbol) ──────────────────────────────
 
-    private Dictionary<string, object?> MergeStringSet(
-        Board board,
-        Dictionary<string, object?> state,
-        Func<int, int, BoardCell, string?> extractor)
+    private IReadOnlyDictionary<string, object?> MergeStringSet(
+        object?[] cells, int cols,
+        IReadOnlyDictionary<string, object?> state,
+        Func<int, int, object?, string?> extractor)
     {
-        var currentSet = CollectFromBoard(board, extractor);
+        var currentSet = CollectFromBoard(cells, cols, extractor);
 
         if (MergeMode == CellMergeMode.Replace)
         {
             var arr = currentSet.OrderBy(s => s, StringComparer.Ordinal).ToArray();
-            return new Dictionary<string, object?>(state) { [StateKey] = arr };
+            return GridState.With(state, StateKey, arr);
         }
 
         // Union: merge with existing set
@@ -99,35 +96,35 @@ public sealed class BoardCellAccumulatorTransform : IFastPathTransform
             foreach (var s in existing) currentSet.Add(s);
 
         var merged = currentSet.OrderBy(s => s, StringComparer.Ordinal).ToArray();
-        return new Dictionary<string, object?>(state) { [StateKey] = merged };
+        return GridState.With(state, StateKey, merged);
     }
 
-    private HashSet<string> CollectFromBoard(Board board, Func<int, int, BoardCell, string?> extractor)
+    private HashSet<string> CollectFromBoard(object?[] cells, int cols, Func<int, int, object?, string?> extractor)
     {
         var set = new HashSet<string>(StringComparer.Ordinal);
-        for (var r = 0; r < board.Rows; r++)
-            for (var c = 0; c < board.Cols; c++)
-            {
-                var cell = board[r, c];
-                if (!Matches(cell)) continue;
-                var extracted = extractor(r, c, cell);
-                if (extracted != null) set.Add(extracted);
-            }
+        for (var idx = 0; idx < cells.Length; idx++)
+        {
+            var cell = cells[idx];
+            if (!Matches(cell)) continue;
+            var (r, c) = cols > 0 ? (idx / cols, idx % cols) : (0, idx);
+            var extracted = extractor(r, c, cell);
+            if (extracted != null) set.Add(extracted);
+        }
         return set;
     }
 
     // ── Extractors ────────────────────────────────────────────────────────
 
-    private static string ExtractPosition(int row, int col, BoardCell _) => $"{row},{col}";
+    private static string ExtractPosition(int row, int col, object? _) => $"{row},{col}";
 
-    private static string? ExtractSymbol(int _, int __, BoardCell cell) =>
-        cell.IsEmpty ? null : cell.Symbols![0];
+    private static string? ExtractSymbol(int _, int __, object? cell) =>
+        GridState.IsEmpty(cell) ? null : GridState.Symbol(cell);
 
     // ── Filter ────────────────────────────────────────────────────────────
 
-    private bool Matches(BoardCell cell)
+    private bool Matches(object? cell)
     {
-        if (cell.IsEmpty) return false;
-        return SymbolFilter == null || cell.Symbols!.Contains(SymbolFilter);
+        if (GridState.IsEmpty(cell)) return false;
+        return SymbolFilter == null || GridState.Symbol(cell) == SymbolFilter;
     }
 }

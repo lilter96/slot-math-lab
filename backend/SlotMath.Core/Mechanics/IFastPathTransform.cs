@@ -19,14 +19,12 @@ namespace SlotMath.Core.Mechanics;
 public interface IFastPathTransform
 {
     /// <summary>
-    /// Apply the transform to a board and game state, returning a new board
-    /// and possibly-modified state.
-    ///
-    /// The original board is never mutated. State is passed opaquely; a
-    /// transform that does not touch state should return it unchanged.
+    /// Apply the transform to the game state, returning a new state.  The board
+    /// is read from and written back to state (invariant 4: a board is a
+    /// user-defined array in S, conventionally <c>state["board"]</c>); see
+    /// <see cref="GridState"/>.  The input state is never mutated (D17).
     /// </summary>
-    /// <param name="board">The current board (never null).</param>
-    /// <param name="state">The opaque recurrence state (may be null).</param>
-    /// <returns>A tuple of the new board and the (possibly modified) state.</returns>
-    (Board NewBoard, object? NewState) Apply(Board board, object? state);
+    /// <param name="state">The current game state (never null).</param>
+    /// <returns>The new game state.</returns>
+    IReadOnlyDictionary<string, object?> Apply(IReadOnlyDictionary<string, object?> state);
 }

@@ -37,17 +37,21 @@ public sealed class CatalogMechanicTests
     // ════════════════════════════════════════════════════════════════════
 
     [Fact]
-    public void Default_LoadsAllSixCatalogMechanics()
+    public void Default_LoadsCatalogMechanics()
     {
         var catalog = MechanicCatalog.Default;
-        var expected = new[] { "scatter", "lines", "ways", "cascade", "sticky-wild", "hold-and-win" };
+        // The functional catalog: scatter (pure subgraph) + the Lines/Ways
+        // fast-path mechanics. Cascade/sticky-wild/hold-and-win were removed
+        // with the C# board transforms (invariant 2/4) and will return as pure
+        // subgraphs.
+        var expected = new[] { "scatter", "lines", "ways" };
 
         foreach (var name in expected)
             Assert.True(catalog.Entries.ContainsKey(name),
                 $"Catalog missing expected mechanic '{name}'");
 
-        Assert.True(catalog.Entries.Count >= 6,
-            $"Expected at least 6 catalog entries, got {catalog.Entries.Count}");
+        Assert.True(catalog.Entries.Count >= 3,
+            $"Expected at least 3 catalog entries, got {catalog.Entries.Count}");
     }
 
     [Fact]
@@ -92,7 +96,7 @@ public sealed class CatalogMechanicTests
     public void Merge_NullUserEntries_ReturnsCatalogCopy()
     {
         var merged = MechanicCatalog.Default.Merge(null);
-        Assert.True(merged.Count >= 6);
+        Assert.True(merged.Count >= 3);
         Assert.True(merged.ContainsKey("scatter"));
     }
 
@@ -333,310 +337,6 @@ public sealed class CatalogMechanicTests
         var dist = ExactInterpreter.Evaluate(result.Program!, new Dict(), StateHasher.CanonicalHash);
         var (num, den) = dist.ValueDistribution().ExpectedBigIntegerValue();
         Assert.Equal(BigInteger.Zero, num / den);
-    }
-
-    // ════════════════════════════════════════════════════════════════════
-    //  6. Lines — 3 hand-computed cases (C# evaluator; to be migrated)
-    // ════════════════════════════════════════════════════════════════════
-
-    private static Paytable LinesPaytable() => new()
-    {
-        Id = "pt-lines",
-        Entries =
-        [
-            new PaytableEntry { SymbolId = "A", Counts = new[] { 3, 4, 5 }, Payouts = new[] { "10", "50", "200" } },
-            new PaytableEntry { SymbolId = "B", Counts = new[] { 3 }, Payouts = new[] { "5" } }
-        ]
-    };
-
-    private static PaylineSet SingleCenterPayline() => new()
-    {
-        Id = "ps-center",
-        Paylines = [new Payline { Positions = new[] { 1, 1, 1 } }]
-    };
-
-    [Fact]
-    public void Lines_ThreeOfAKind_CenterRow_Pays10()
-    {
-        var board = new Board(3, 3)
-            .SetCell(1, 0, new BoardCell { Symbols = new[] { "A" } })
-            .SetCell(1, 1, new BoardCell { Symbols = new[] { "A" } })
-            .SetCell(1, 2, new BoardCell { Symbols = new[] { "A" } });
-
-        var wins = new LinesEvaluator(LinesPaytable(), SingleCenterPayline())
-            .Evaluate(board, null);
-
-        var win = Assert.Single(wins);
-        Assert.Equal("A", win.SymbolId);
-        Assert.Equal(3, win.Count);
-        Assert.Equal(10m, win.Payout);
-    }
-
-    [Fact]
-    public void Lines_BreakInSequence_NoWin()
-    {
-        var board = new Board(3, 3)
-            .SetCell(1, 0, new BoardCell { Symbols = new[] { "A" } })
-            .SetCell(1, 1, new BoardCell { Symbols = new[] { "B" } })
-            .SetCell(1, 2, new BoardCell { Symbols = new[] { "A" } });
-
-        var wins = new LinesEvaluator(LinesPaytable(), SingleCenterPayline())
-            .Evaluate(board, null);
-
-        Assert.DoesNotContain(wins, w => w.SymbolId == "A" && w.Count >= 3);
-    }
-
-    [Fact]
-    public void Lines_FiveOfAKind_TwoPaylines_Pays200Each()
-    {
-        var board = new Board(3, 5);
-        for (var c = 0; c < 5; c++)
-        {
-            board = board
-                .SetCell(0, c, new BoardCell { Symbols = new[] { "A" } })
-                .SetCell(1, c, new BoardCell { Symbols = new[] { "A" } });
-        }
-
-        var twoPaylines = new PaylineSet
-        {
-            Id = "ps-two",
-            Paylines =
-            [
-                new Payline { Positions = new[] { 0, 0, 0, 0, 0 } },
-                new Payline { Positions = new[] { 1, 1, 1, 1, 1 } },
-            ]
-        };
-
-        var wins = new LinesEvaluator(LinesPaytable(), twoPaylines).Evaluate(board, null);
-
-        Assert.Equal(2, wins.Length);
-        Assert.All(wins, w =>
-        {
-            Assert.Equal("A", w.SymbolId);
-            Assert.Equal(5, w.Count);
-            Assert.Equal(200m, w.Payout);
-        });
-    }
-
-    // ════════════════════════════════════════════════════════════════════
-    //  7. Ways — 3 hand-computed cases (C# evaluator; to be migrated)
-    // ════════════════════════════════════════════════════════════════════
-
-    private static Paytable WaysPaytable() => new()
-    {
-        Id = "pt-ways",
-        Entries =
-        [
-            new PaytableEntry { SymbolId = "A", Counts = new[] { 3 }, Payouts = new[] { "10" } },
-            new PaytableEntry { SymbolId = "B", Counts = new[] { 3 }, Payouts = new[] { "5" } }
-        ]
-    };
-
-    [Fact]
-    public void Ways_3x3AllA_1Way_Pays10()
-    {
-        var board = new Board(3, 3)
-            .SetCell(0, 0, new BoardCell { Symbols = new[] { "A" } })
-            .SetCell(0, 1, new BoardCell { Symbols = new[] { "A" } })
-            .SetCell(0, 2, new BoardCell { Symbols = new[] { "A" } });
-
-        var wins = new WaysEvaluator(WaysPaytable()).Evaluate(board, null);
-
-        var win = Assert.Single(wins.Where(w => w.SymbolId == "A"));
-        Assert.Equal(3, win.Count);
-        Assert.Equal(10m, win.Payout);
-    }
-
-    [Fact]
-    public void Ways_3x3AllA_9Ways_Pays90()
-    {
-        var board = new Board(3, 3);
-        for (var r = 0; r < 3; r++)
-            for (var c = 0; c < 3; c++)
-                board = board.SetCell(r, c, new BoardCell { Symbols = new[] { "A" } });
-
-        var wins = new WaysEvaluator(WaysPaytable()).Evaluate(board, null);
-
-        var win = Assert.Single(wins.Where(w => w.SymbolId == "A"));
-        Assert.Equal(3, win.Count);
-        Assert.Equal(270m, win.Payout);
-    }
-
-    [Fact]
-    public void Ways_MixedSymbols_OnlyMatchingCountsSymbol()
-    {
-        var board = new Board(2, 3)
-            .SetCell(0, 0, new BoardCell { Symbols = new[] { "A" } })
-            .SetCell(1, 0, new BoardCell { Symbols = new[] { "B" } })
-            .SetCell(0, 1, new BoardCell { Symbols = new[] { "A" } })
-            .SetCell(0, 2, new BoardCell { Symbols = new[] { "A" } });
-
-        var wins = new WaysEvaluator(WaysPaytable()).Evaluate(board, null);
-
-        var aWin = wins.FirstOrDefault(w => w.SymbolId == "A");
-        Assert.NotNull(aWin);
-        Assert.Equal(3, aWin.Count);
-        Assert.Equal(10m, aWin.Payout);
-        Assert.DoesNotContain(wins, w => w.SymbolId == "B" && w.Count == 3);
-    }
-
-    // ════════════════════════════════════════════════════════════════════
-    //  8. Cascade — 3 hand-computed cases (C# transforms; to be migrated)
-    // ════════════════════════════════════════════════════════════════════
-
-    [Fact]
-    public void Cascade_RemoveAndRefill_EmptiesThenFillsColumn()
-    {
-        var board = new Board(3, 1)
-            .SetCell(0, 0, new BoardCell { Symbols = new[] { "A" } })
-            .SetCell(1, 0, new BoardCell { Symbols = new[] { "A" } })
-            .SetCell(2, 0, new BoardCell { Symbols = new[] { "A" } });
-
-        var winPos = new HashSet<(int, int)> { (0, 0) };
-        var remove = new RemoveWinningTransform(winPos);
-        var (afterRemove, _) = remove.Apply(board, null);
-
-        Assert.True(afterRemove[0, 0].IsEmpty);
-        Assert.False(afterRemove[1, 0].IsEmpty);
-        Assert.False(afterRemove[2, 0].IsEmpty);
-    }
-
-    [Fact]
-    public void Cascade_Refill_TumblesExistingSymbolsDown()
-    {
-        var board = new Board(3, 1)
-            .SetCell(0, 0, new BoardCell { Symbols = new[] { "A" } })
-            .SetCell(2, 0, new BoardCell { Symbols = new[] { "B" } });
-
-        var newSymbols = new[] { "X" };
-        var refill = new RefillTumbleTransform(() => newSymbols);
-        var (after, _) = refill.Apply(board, null);
-
-        Assert.Equal("B", after[2, 0].Symbols![0]);
-        Assert.Equal("A", after[1, 0].Symbols![0]);
-        Assert.Equal("X", after[0, 0].Symbols![0]);
-    }
-
-    [Fact]
-    public void Cascade_LockedCellPreservedDuringRemoval()
-    {
-        var board = new Board(3, 1)
-            .SetCell(0, 0, new BoardCell { Symbols = new[] { "A" } })
-            .SetCell(1, 0, new BoardCell { Symbols = new[] { "A" }, IsLocked = true })
-            .SetCell(2, 0, new BoardCell { Symbols = new[] { "A" } });
-
-        var winPos = new HashSet<(int, int)> { (0, 0), (1, 0), (2, 0) };
-        var remove = new RemoveWinningTransform(winPos);
-        var (after, _) = remove.Apply(board, null);
-
-        Assert.True(after[0, 0].IsEmpty);
-        Assert.False(after[1, 0].IsEmpty);
-        Assert.True(after[1, 0].IsLocked);
-        Assert.True(after[2, 0].IsEmpty);
-    }
-
-    // ════════════════════════════════════════════════════════════════════
-    //  9. Sticky-wild (LockTransform) — 3 cases (to be migrated)
-    // ════════════════════════════════════════════════════════════════════
-
-    [Fact]
-    public void StickyWild_LockTransform_MarksSpecifiedCellsAsLocked()
-    {
-        var board = new Board(3, 3)
-            .SetCell(0, 1, new BoardCell { Symbols = new[] { "W" } })
-            .SetCell(2, 2, new BoardCell { Symbols = new[] { "W" } });
-
-        var lockPositions = new HashSet<(int, int)> { (0, 1), (2, 2) };
-        var lockTransform = new LockTransform(lockPositions);
-        var (after, _) = lockTransform.Apply(board, null);
-
-        Assert.True(after[0, 1].IsLocked,  "Expected (0,1) to be locked");
-        Assert.True(after[2, 2].IsLocked,  "Expected (2,2) to be locked");
-        Assert.False(after[0, 0].IsLocked, "Expected (0,0) to remain unlocked");
-    }
-
-    [Fact]
-    public void StickyWild_AlreadyLockedCellRemainLocked()
-    {
-        var board = new Board(2, 2)
-            .SetCell(0, 0, new BoardCell { Symbols = new[] { "W" }, IsLocked = true });
-
-        var lockTransform = new LockTransform(new[] { (0, 0) });
-        var (after, _) = lockTransform.Apply(board, null);
-
-        Assert.True(after[0, 0].IsLocked);
-    }
-
-    [Fact]
-    public void StickyWild_EmptyPositionSet_LeaveBoardUnchanged()
-    {
-        var board = new Board(2, 2)
-            .SetCell(0, 0, new BoardCell { Symbols = new[] { "A" } });
-
-        var lockTransform = new LockTransform(Array.Empty<(int, int)>());
-        var (after, _) = lockTransform.Apply(board, null);
-
-        Assert.Equal(board, after);
-    }
-
-    // ════════════════════════════════════════════════════════════════════
-    //  10. Hold-and-win (CollectTransform + RevealTransform) — 3 cases
-    // ════════════════════════════════════════════════════════════════════
-
-    [Fact]
-    public void HoldAndWin_Reveal_SetsRevealedDecoration()
-    {
-        var board = new Board(2, 2)
-            .SetCell(0, 0, new BoardCell { Symbols = new[] { "M" } })
-            .SetCell(1, 1, new BoardCell { Symbols = new[] { "M" } });
-
-        var reveal = new RevealTransform();
-        var (after, _) = reveal.Apply(board, null);
-
-        Assert.Equal("true", after[0, 0].GetDecoration("revealed"));
-        Assert.Equal("true", after[1, 1].GetDecoration("revealed"));
-    }
-
-    [Fact]
-    public void HoldAndWin_Collect_AccumulatesMoneySymbolValues()
-    {
-        var board = new Board(1, 3)
-            .SetCell(0, 0, new BoardCell
-            {
-                Symbols = new[] { "M" },
-                Decorations = new Dictionary<string, string> { ["value"] = "5" }
-            })
-            .SetCell(0, 2, new BoardCell
-            {
-                Symbols = new[] { "M" },
-                Decorations = new Dictionary<string, string> { ["value"] = "10" }
-            });
-
-        var collect = new CollectTransform(
-            predicate: cell => cell.Symbols?.Contains("M") == true,
-            decorationKey: "value");
-
-        var (_, newState) = collect.Apply(board, null);
-
-        Assert.Equal(15m, (decimal)newState!);
-    }
-
-    [Fact]
-    public void HoldAndWin_Collect_NoPreviousState_StartsFromZero()
-    {
-        var board = new Board(1, 2)
-            .SetCell(0, 0, new BoardCell
-            {
-                Symbols = new[] { "M" },
-                Decorations = new Dictionary<string, string> { ["value"] = "25" }
-            });
-
-        var collect = new CollectTransform(
-            cell => cell.Symbols?.Contains("M") == true,
-            "value");
-
-        var (_, state) = collect.Apply(board, null);
-        Assert.Equal(25m, (decimal)state!);
     }
 
     // ════════════════════════════════════════════════════════════════════

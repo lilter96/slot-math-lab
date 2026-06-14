@@ -20,10 +20,12 @@ namespace SlotMath.Core.Mechanics;
 public interface IFastPathEvaluator
 {
     /// <summary>
-    /// Evaluate the board and return all winning combinations.
+    /// Evaluate the game state and return all winning combinations.  The board
+    /// is read from state (invariant 4: a board is a user-defined array in S,
+    /// conventionally <c>state["board"]</c> with <c>state["rows"]/["cols"]</c>);
+    /// see <see cref="GridState"/>.
     /// </summary>
-    /// <param name="board">The current board state.</param>
-    /// <param name="state">Opaque recurrence state (may be null).</param>
+    /// <param name="state">The current game state.</param>
     /// <returns>Array of wins (empty if none).</returns>
-    Win[] Evaluate(Board board, object? state);
+    Win[] Evaluate(IReadOnlyDictionary<string, object?> state);
 }

@@ -76,4 +76,45 @@ public class InvariantTwoScanTests
                 $"{t.Name} must NOT implement the plugin contract IEvaluator");
         }
     }
+
+    // ── Invariant 4 — the engine has NO Board type ─────────────────────────
+    //  A "board" is just a user-defined array in state S. The kernel must ship
+    //  no Board/BoardCell type; evaluators/transforms/plugins operate on the
+    //  state dictionary.
+
+    [Fact]
+    public void StandardLibrary_ShipsNoBoardType()
+    {
+        var core = typeof(IEvaluator).Assembly;
+        var offenders = core.GetTypes()
+            .Where(t => t.Name is "Board" or "BoardCell")
+            .Select(t => t.FullName)
+            .ToArray();
+
+        Assert.True(offenders.Length == 0,
+            "Invariant 4 violation: SlotMath.Core still ships a board type: " +
+            string.Join(", ", offenders));
+    }
+
+    [Fact]
+    public void PluginAndFastPathContracts_OperateOnState_NotABoard()
+    {
+        // Every contract method takes the state dictionary as its first (only)
+        // data parameter — never a Board (invariant 4).
+        Type[] contracts =
+        [
+            typeof(IEvaluator), typeof(IFastPathEvaluator),
+            typeof(ITransform), typeof(IFastPathTransform),
+        ];
+
+        foreach (var c in contracts)
+        {
+            foreach (var m in c.GetMethods())
+            {
+                var p0 = m.GetParameters().FirstOrDefault();
+                Assert.NotNull(p0);
+                Assert.Equal(typeof(IReadOnlyDictionary<string, object?>), p0!.ParameterType);
+            }
+        }
+    }
 }

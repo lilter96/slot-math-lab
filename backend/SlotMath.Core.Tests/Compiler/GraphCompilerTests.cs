@@ -1559,7 +1559,7 @@ public class GraphCompilerTests : IDisposable
 /// </summary>
 public sealed class PluginTestEvaluator : IEvaluator
 {
-    public Win[] Evaluate(Board board, object? state)
+    public Win[] Evaluate(IReadOnlyDictionary<string, object?> state)
     {
         return Array.Empty<Win>();
     }

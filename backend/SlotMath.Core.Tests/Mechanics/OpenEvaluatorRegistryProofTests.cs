@@ -1,6 +1,7 @@
 using SlotMath.Core.Mechanics;
 using SlotMath.Core.Mechanics.Evaluators;
 using SlotMath.Core.Model;
+using SlotMath.Core.Tests;
 
 namespace SlotMath.Core.Tests.Mechanics;
 
@@ -41,14 +42,14 @@ public class OpenEvaluatorRegistryProofTests : IDisposable
         var eval = EvaluatorRegistry.TryGet("any-two")!;
 
         // Board with 2 A's and 3 B's anywhere
-        var board = new Board(3, 3)
-            .SetCell(0, 0, new BoardCell { Symbols = new[] { "A" } })
-            .SetCell(1, 1, new BoardCell { Symbols = new[] { "A" } })
-            .SetCell(0, 1, new BoardCell { Symbols = new[] { "B" } })
-            .SetCell(1, 0, new BoardCell { Symbols = new[] { "B" } })
-            .SetCell(2, 2, new BoardCell { Symbols = new[] { "B" } });
+        var state = TestBoardState.From(new string?[][]
+        {
+            new string?[] { "A", "B", null },
+            new string?[] { "B", "A", null },
+            new string?[] { null, null, "B" },
+        });
 
-        var wins = eval.Evaluate(board, null);
+        var wins = eval.Evaluate(state);
 
         // Our novel evaluator pays 1 per pair of any symbol
         Assert.Equal(2, wins.Length); // 1 pair of A, 1 pair of B (3rd B doesn't make a pair)
@@ -59,14 +60,16 @@ public class OpenEvaluatorRegistryProofTests : IDisposable
     [Fact]
     public void NovelEvaluator_IsPure_NoDrawNoIO()
     {
-        var board = new Board(2, 2)
-            .SetCell(0, 0, new BoardCell { Symbols = new[] { "X" } })
-            .SetCell(0, 1, new BoardCell { Symbols = new[] { "X" } });
+        var state = TestBoardState.From(new string?[][]
+        {
+            new string?[] { "X", "X" },
+            new string?[] { null, null },
+        });
 
         var eval = new AnyTwoOfAKindEvaluator();
 
-        var w1 = eval.Evaluate(board, null);
-        var w2 = eval.Evaluate(board, null);
+        var w1 = eval.Evaluate(state);
+        var w2 = eval.Evaluate(state);
 
         Assert.Equal(w1.Length, w2.Length);
         for (var i = 0; i < w1.Length; i++)
@@ -76,10 +79,12 @@ public class OpenEvaluatorRegistryProofTests : IDisposable
     [Fact]
     public void NovelEvaluator_ComposesWithStandardEvaluators()
     {
-        var board = new Board(3, 5)
-            .SetCell(0, 0, new BoardCell { Symbols = new[] { "X" } })
-            .SetCell(0, 1, new BoardCell { Symbols = new[] { "X" } })
-            .SetCell(0, 2, new BoardCell { Symbols = new[] { "X" } });
+        var state = TestBoardState.From(new string?[][]
+        {
+            new string?[] { "X", "X", "X", null, null },
+            new string?[] { null, null, null, null, null },
+            new string?[] { null, null, null, null, null },
+        });
 
         var novel = EvaluatorRegistry.TryGet("any-two")!;
         var linesEval = new LinesEvaluator(
@@ -102,8 +107,8 @@ public class OpenEvaluatorRegistryProofTests : IDisposable
                 Paylines = new[] { new Payline { Positions = new[] { 0, 0, 0, 0, 0 } } }
             });
 
-        var novelWins = novel.Evaluate(board, null);
-        var linesWins = linesEval.Evaluate(board, null);
+        var novelWins = novel.Evaluate(state);
+        var linesWins = linesEval.Evaluate(state);
 
         // Both work independently through the same IEvaluator interface
         Assert.NotEmpty(novelWins);
@@ -134,15 +139,15 @@ public class OpenEvaluatorRegistryProofTests : IDisposable
 /// </summary>
 public sealed class AnyTwoOfAKindEvaluator : IFastPathEvaluator
 {
-    public Win[] Evaluate(Board board, object? state)
+    public Win[] Evaluate(IReadOnlyDictionary<string, object?> state)
     {
-        ArgumentNullException.ThrowIfNull(board);
+        ArgumentNullException.ThrowIfNull(state);
 
         var symbolCounts = new Dictionary<string, List<(int Row, int Col)>>();
-        foreach (var (r, c, cell) in board.AllCells())
+        foreach (var (r, c, cell) in GridState.Enumerate(state))
         {
-            if (cell.IsEmpty) continue;
-            var sym = cell.Symbols![0];
+            if (GridState.IsEmpty(cell)) continue;
+            var sym = GridState.Symbol(cell);
             if (!symbolCounts.ContainsKey(sym))
                 symbolCounts[sym] = new List<(int, int)>();
             symbolCounts[sym].Add((r, c));
@@ -174,15 +179,15 @@ public sealed class AnyTwoOfAKindEvaluator : IFastPathEvaluator
 /// </summary>
 public sealed class CountAllEvaluator : IFastPathEvaluator
 {
-    public Win[] Evaluate(Board board, object? state)
+    public Win[] Evaluate(IReadOnlyDictionary<string, object?> state)
     {
-        ArgumentNullException.ThrowIfNull(board);
+        ArgumentNullException.ThrowIfNull(state);
 
         var symbolCounts = new Dictionary<string, List<(int Row, int Col)>>();
-        foreach (var (r, c, cell) in board.AllCells())
+        foreach (var (r, c, cell) in GridState.Enumerate(state))
         {
-            if (cell.IsEmpty) continue;
-            var sym = cell.Symbols![0];
+            if (GridState.IsEmpty(cell)) continue;
+            var sym = GridState.Symbol(cell);
             if (!symbolCounts.ContainsKey(sym))
                 symbolCounts[sym] = new List<(int, int)>();
             symbolCounts[sym].Add((r, c));

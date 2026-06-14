@@ -98,7 +98,7 @@ public class ExpressionDrivenMultiplier_ExactRtp
             from baseIdx in Slot.Draw<ExpressionGameState>(
                 _ => WeightSet.FromIntegers([3, 2, 1]))
             let baseWin = baseIdx switch { 0 => 0, 1 => 10, 2 => 20, _ => 0 }
-            select new BigInteger(baseWin * (int)multFunc(null, null));
+            select new BigInteger(baseWin * (int)multFunc(null));
 
         var result = ExactInterpreter.Evaluate(
             program,
@@ -137,7 +137,7 @@ public class ExpressionDrivenMultiplier_ExactRtp
             from baseIdx in Slot.Draw<ExpressionGameState>(
                 _ => WeightSet.FromIntegers([1, 1]))
             let baseWin = baseIdx == 0 ? BigInteger.Zero : new BigInteger(10)
-            select new BigInteger((long)((double)baseWin * multFunc(null, null)));
+            select new BigInteger((long)((double)baseWin * multFunc(null)));
 
         // 0 * 1.5 = 0, 10 * 1.5 = 15
         // EV = (0*1 + 15*1)/2 = 15/2
@@ -179,7 +179,7 @@ public class ExpressionDrivenMultiplier_ExactRtp
             from baseIdx in Slot.Draw<ExpressionGameState>(
                 _ => WeightSet.FromIntegers([1]))
             let baseWin = new BigInteger(10)
-            select baseWin * (int)multFunc(null, stateForExpr);
+            select baseWin * (int)multFunc(stateForExpr);
 
         var result = ExactInterpreter.Evaluate(
             program,
@@ -211,7 +211,7 @@ public class ExpressionDrivenMultiplier_ExactRtp
             from baseIdx in Slot.Draw<ExpressionGameState>(
                 _ => WeightSet.FromIntegers([3, 2, 1]))
             let baseWin = baseIdx switch { 0 => new BigInteger(0), 1 => new BigInteger(10), 2 => new BigInteger(20), _ => BigInteger.Zero }
-            select baseWin * (int)multFunc(null, null);
+            select baseWin * (int)multFunc(null);
 
         // Exact EV = 40/3 ≈ 13.333...
         var exactResult = ExactInterpreter.Evaluate(
@@ -604,7 +604,7 @@ public class ExpressionDriven_SampledConvergence(ITestOutputHelper output)
             from baseIdx in Slot.Draw<ExpressionGameState>(
                 _ => WeightSet.FromIntegers([1, 1]))
             let baseWin = baseIdx == 0 ? BigInteger.Zero : new BigInteger(10)
-            select baseWin * (int)multFunc(null, null);
+            select baseWin * (int)multFunc(null);
 
         // Exact: outcomes 0*2=0, 10*2=20 → EV = (0+20)/2 = 10
         var exact = ExactInterpreter.Evaluate(

@@ -98,12 +98,6 @@ public static class StateHasher
                 HashUInt64(0x40UL, ref h1, ref h2);
                 HashString(s, ref h1, ref h2);
                 break;
-            case Board board:
-                // Board has content-based equality and hashing.
-                HashUInt64(0x50UL, ref h1, ref h2);
-                HashUInt64(unchecked((ulong)(long)board.GetHashCode()), ref h1, ref h2);
-                HashUInt64(unchecked((ulong)((long)board.Rows << 32 | (uint)board.Cols)), ref h1, ref h2);
-                break;
             case IReadOnlyDictionary<string, object?> nested:
                 HashUInt64(0x70UL, ref h1, ref h2);
                 var nestedHash = CanonicalHash(nested);

@@ -51,7 +51,7 @@ public static class ConformanceHarness
     /// <returns>A <see cref="ConformanceResult"/>.</returns>
     public static ConformanceResult Validate(
         IEvaluator evaluator,
-        Board testBoard,
+        IReadOnlyDictionary<string, object?> testState,
         TimeSpan? timeout = null)
     {
         var timeoutVal = timeout ?? TimeSpan.FromSeconds(2);
@@ -62,7 +62,7 @@ public static class ConformanceHarness
         Win[]? baseline = null;
         try
         {
-            baseline = evaluator.Evaluate(testBoard, null);
+            baseline = evaluator.Evaluate(testState);
         }
         catch (Exception ex)
         {
@@ -78,7 +78,7 @@ public static class ConformanceHarness
             Win[]? current;
             try
             {
-                current = evaluator.Evaluate(testBoard, null);
+                current = evaluator.Evaluate(testState);
             }
             catch (Exception ex)
             {
@@ -105,7 +105,7 @@ public static class ConformanceHarness
         }
 
         // ── Check 3: Safety — sandbox timeout ─────────────────────────
-        var sandboxResult = PluginSandbox.Execute(evaluator, testBoard,
+        var sandboxResult = PluginSandbox.Execute(evaluator, testState,
             new SandboxConfig { Timeout = timeoutVal });
 
         if (!sandboxResult.Success)
