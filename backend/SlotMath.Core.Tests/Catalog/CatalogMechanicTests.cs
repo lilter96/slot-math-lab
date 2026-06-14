@@ -44,7 +44,7 @@ public sealed class CatalogMechanicTests
         // fast-path mechanics. Cascade/sticky-wild/hold-and-win were removed
         // with the C# board transforms (invariant 2/4) and will return as pure
         // subgraphs.
-        var expected = new[] { "scatter", "lines", "ways" };
+        var expected = new[] { "scatter", "lines", "ways", "sticky-wild" };
 
         foreach (var name in expected)
             Assert.True(catalog.Entries.ContainsKey(name),
@@ -337,6 +337,76 @@ public sealed class CatalogMechanicTests
         var dist = ExactInterpreter.Evaluate(result.Program!, new Dict(), StateHasher.CanonicalHash);
         var (num, den) = dist.ValueDistribution().ExpectedBigIntegerValue();
         Assert.Equal(BigInteger.Zero, num / den);
+    }
+
+    // ════════════════════════════════════════════════════════════════════
+    //  6. Sticky-wild — pure subgraph (invariant 2/4: zero C#, no Board type)
+    // ════════════════════════════════════════════════════════════════════
+
+    /// <summary>Apply a ModifyState-style node: eval expr over state, write to outputKey.</summary>
+    private static Dict ApplyModify(Dict state, Expression expr, string outputKey)
+    {
+        var v = ExactExpressionEvaluator.Evaluate(expr, new EvalContext { State = state });
+        var next = new Dict(state) { [outputKey] = v.ToStateObject() };
+        return next;
+    }
+
+    [Fact]
+    public void StickyWild_AccumulatesAndOverlays_AcrossSpins_PureSubgraph()
+    {
+        // The sticky-wild mechanic is a pure subgraph: two ModifyState nodes
+        // (accumulate wild positions, then overlay). We drive its two authored
+        // expressions directly across spins — proving the mechanic logic needs
+        // ZERO C# (invariant 2) and operates on a state array (invariant 4).
+        var mech = MechanicCatalog.Default.Entries["sticky-wild"];
+        var accumulate = mech.Expressions!["accumulate_sticky"];
+        var overlay = mech.Expressions!["overlay_wilds"];
+
+        // Spin 1: a wild lands at index 1.
+        var state = new Dict
+        {
+            ["board"] = new object?[] { "A", "W", "B" },
+            ["stickyPositions"] = Array.Empty<object?>(),
+        };
+        state = ApplyModify(state, accumulate, "stickyPositions");
+        state = ApplyModify(state, overlay, "board");
+
+        var sticky1 = (object?[])state["stickyPositions"]!;
+        Assert.Equal(new[] { new BigInteger(1) }, sticky1.Cast<BigInteger>());
+
+        // Spin 2: a FRESH board with NO wild drawn — (1) must still show a wild.
+        state["board"] = new object?[] { "X", "Y", "Z" };
+        state = ApplyModify(state, accumulate, "stickyPositions");
+        state = ApplyModify(state, overlay, "board");
+
+        var board2 = (object?[])state["board"]!;
+        Assert.Equal("X", board2[0]);
+        Assert.Equal("W", board2[1]); // sticky wild persists
+        Assert.Equal("Z", board2[2]);
+        // Position set unchanged (deduped): still just [1].
+        Assert.Single((object?[])state["stickyPositions"]!);
+
+        // Spin 3: a new wild at index 0 — both positions now sticky.
+        state["board"] = new object?[] { "W", "Q", "Q" };
+        state = ApplyModify(state, accumulate, "stickyPositions");
+        state = ApplyModify(state, overlay, "board");
+
+        var board3 = (object?[])state["board"]!;
+        Assert.Equal("W", board3[0]);
+        Assert.Equal("W", board3[1]);
+        Assert.Equal("Q", board3[2]);
+        Assert.Equal(2, ((object?[])state["stickyPositions"]!).Length);
+    }
+
+    [Fact]
+    public void StickyWild_RoundTripsWithStableSubgraphHash()
+    {
+        var mech = MechanicCatalog.Default.Entries["sticky-wild"];
+        Assert.Equal("sticky-wild", mech.Name);
+        Assert.Equal(2, mech.Nodes.Length);
+        Assert.NotNull(mech.Expressions);
+        Assert.True(mech.Expressions!.ContainsKey("accumulate_sticky"));
+        Assert.True(mech.Expressions!.ContainsKey("overlay_wilds"));
     }
 
     // ════════════════════════════════════════════════════════════════════
