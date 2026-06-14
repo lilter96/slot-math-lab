@@ -607,11 +607,12 @@ public static class ExactExpressionEvaluator
                 ? Round(args[0])
                 : ExprValue.Number(0),
 
-            "toNumber" => args.Length > 0 && args[0].Kind == ExprType.String
+            // Case labels must be lowercase — the switch is on ToLowerInvariant().
+            "tonumber" => args.Length > 0 && args[0].Kind == ExprType.String
                 ? ParseNumber(args[0].StringValue!)
                 : ExprValue.Number(0),
 
-            "toString" => args.Length > 0
+            "tostring" => args.Length > 0
                 ? ExprValue.String(args[0].AsInteger().ToString())
                 : ExprValue.String("0"),
 

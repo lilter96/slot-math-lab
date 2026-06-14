@@ -44,7 +44,7 @@ public sealed class CatalogMechanicTests
         // fast-path mechanics. Cascade/sticky-wild/hold-and-win were removed
         // with the C# board transforms (invariant 2/4) and will return as pure
         // subgraphs.
-        var expected = new[] { "scatter", "lines", "ways", "sticky-wild" };
+        var expected = new[] { "scatter", "lines", "ways", "sticky-wild", "hold-and-win" };
 
         foreach (var name in expected)
             Assert.True(catalog.Entries.ContainsKey(name),
@@ -407,6 +407,48 @@ public sealed class CatalogMechanicTests
         Assert.NotNull(mech.Expressions);
         Assert.True(mech.Expressions!.ContainsKey("accumulate_sticky"));
         Assert.True(mech.Expressions!.ContainsKey("overlay_wilds"));
+    }
+
+    // ════════════════════════════════════════════════════════════════════
+    //  7. Hold-and-win — pure subgraph (invariant 2/4: zero C#, no Board type)
+    // ════════════════════════════════════════════════════════════════════
+
+    [Fact]
+    public void HoldAndWin_CollectsStickyMoney_AcrossRespins_PureSubgraph()
+    {
+        // Two ModifyState nodes (collect new money values, mark positions) driven
+        // directly across respins — proving Hold & Win collection needs ZERO C#
+        // (invariant 2) over a state array (invariant 4). Money cells are numeric
+        // strings; "_" is a blank.
+        var mech = MechanicCatalog.Default.Entries["hold-and-win"];
+        var collect = mech.Expressions!["collect_value"];
+        var mark = mech.Expressions!["mark_collected"];
+
+        var state = new Dict
+        {
+            ["board"] = new object?[] { "5", "_", "10" },
+            ["holdWin"] = BigInteger.Zero,
+            ["collectedPositions"] = Array.Empty<object?>(),
+        };
+
+        // Respin 1: 5 and 10 land → collect 15; positions {0,2}.
+        state = ApplyModify(state, collect, "holdWin");
+        state = ApplyModify(state, mark, "collectedPositions");
+        Assert.Equal(new BigInteger(15), Assert.IsType<BigInteger>(state["holdWin"]));
+        Assert.Equal(2, ((object?[])state["collectedPositions"]!).Length);
+
+        // Respin 2: existing money sticks; a NEW 20 lands at index 1 → +20 = 35.
+        // Already-collected 5 and 10 must NOT be double-counted.
+        state["board"] = new object?[] { "5", "20", "10" };
+        state = ApplyModify(state, collect, "holdWin");
+        state = ApplyModify(state, mark, "collectedPositions");
+        Assert.Equal(new BigInteger(35), Assert.IsType<BigInteger>(state["holdWin"]));
+        Assert.Equal(3, ((object?[])state["collectedPositions"]!).Length);
+
+        // Respin 3: no new money (all positions already collected) → unchanged.
+        state = ApplyModify(state, collect, "holdWin");
+        state = ApplyModify(state, mark, "collectedPositions");
+        Assert.Equal(new BigInteger(35), Assert.IsType<BigInteger>(state["holdWin"]));
     }
 
     // ════════════════════════════════════════════════════════════════════
