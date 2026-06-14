@@ -605,15 +605,16 @@ public class SampledInterpreter_Parallel
     {
         var program = BuildGame();
 
+        // 200_000 spins > CHUNK (65,536) ⇒ ≥4 chunks actually run on threads.
         SampledResult<PState> Run(int dop) => SampledInterpreter.Evaluate(
             program, new PState(0),
-            new SampledConfig { Seed = 1234, MaxSpins = 40_000, DegreeOfParallelism = dop });
+            new SampledConfig { Seed = 1234, MaxSpins = 200_000, DegreeOfParallelism = dop });
 
         var two = Run(2);
         var eight = Run(8);
 
-        // Fixed logical stream count ⇒ stats are a pure function of
-        // (seed, spins), not of how many workers happened to run them.
+        // D3: fixed CHUNK chunks merged in ascending index order ⇒ stats are a
+        // pure function of (seed, spins), not of how many workers ran them.
         Assert.Equal(two.SpinsCompleted, eight.SpinsCompleted);
         Assert.Equal(two.Stats.Mean, eight.Stats.Mean);
         Assert.Equal(two.Stats.Variance, eight.Stats.Variance);
@@ -623,23 +624,29 @@ public class SampledInterpreter_Parallel
     }
 
     [Fact]
-    public void ParallelMean_AgreesWithSequentialWithinError()
+    public void SerialAndParallel_AreBitIdentical()
     {
         var program = BuildGame();
 
-        var sequential = SampledInterpreter.Evaluate(
+        // 200_000 spins ⇒ multiple CHUNK chunks; degree=1 runs them
+        // sequentially, degree=8 across threads — same chunk seeds, same
+        // ascending merge ⇒ bit-identical stats (D3: identical at any thread
+        // count, including 1).
+        var serial = SampledInterpreter.Evaluate(
             program, new PState(0),
-            new SampledConfig { Seed = 77, MaxSpins = 60_000 });
+            new SampledConfig { Seed = 77, MaxSpins = 200_000 });
         var parallel = SampledInterpreter.Evaluate(
             program, new PState(0),
-            new SampledConfig { Seed = 77, MaxSpins = 60_000, DegreeOfParallelism = 4 });
+            new SampledConfig { Seed = 77, MaxSpins = 200_000, DegreeOfParallelism = 8 });
 
-        // Different stream layout ⇒ different sample sequence, but the same
-        // distribution: means agree within combined standard error.
-        var tolerance = 4 * (sequential.Stats.StdErr + parallel.Stats.StdErr);
-        Assert.InRange(parallel.Stats.Mean,
-            sequential.Stats.Mean - tolerance, sequential.Stats.Mean + tolerance);
-        Assert.Equal(60_000, parallel.SpinsCompleted);
+        Assert.Equal(serial.SpinsCompleted, parallel.SpinsCompleted);
+        Assert.Equal(serial.Stats.Mean, parallel.Stats.Mean);
+        Assert.Equal(serial.Stats.Variance, parallel.Stats.Variance);
+        Assert.Equal(serial.Stats.StdErr, parallel.Stats.StdErr);
+        Assert.Equal(serial.Stats.NonZeroCount, parallel.Stats.NonZeroCount);
+        Assert.Equal(serial.Stats.MinObserved, parallel.Stats.MinObserved);
+        Assert.Equal(serial.Stats.MaxObserved, parallel.Stats.MaxObserved);
+        Assert.Equal(200_000, parallel.SpinsCompleted);
     }
 
     [Fact]

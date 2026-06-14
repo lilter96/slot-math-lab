@@ -134,64 +134,8 @@ public static class SampledInterpreter
         S initialState,
         SampledConfig config)
         where S : notnull
-    {
-        if (config.DegreeOfParallelism > 1 && config.MaxSpins > 1)
-            return EvaluateParallel(program, initialState, config);
-
-        var startedAt = Stopwatch.GetTimestamp();
-        var rng = new SeededRandom(config.Seed);
-        var maxWinCap = config.MaxWinCap;
-        double? maxWinCapDouble = maxWinCap.HasValue ? (double)maxWinCap.Value : null;
-        var stats = new StreamingStats(config.HistogramBins, maxWinCapDouble);
-        var cancelled = false;
-        var stack = new Stack<IFlatMapNode>();
-        long spin;
-
-        for (spin = 0; spin < config.MaxSpins; spin++)
-        {
-            // ── Cancellation check ──────────────────────────────────────
-            if (spin > 0 && spin % config.CancellationCheckInterval == 0
-                && config.CancellationToken.IsCancellationRequested)
-            {
-                cancelled = true;
-                break;
-            }
-
-            // ── Run one spin ────────────────────────────────────────────
-            var win = RunOneSpin(program, initialState, rng, stack);
-            stats.Add((double)win / config.WinScale);
-
-            // ── Progress callback ──────────────────────────────────────
-            if (spin > 0 && spin % config.ProgressReportInterval == 0
-                && config.ProgressCallback is not null)
-            {
-                config.ProgressCallback(new SampledProgress
-                {
-                    SpinsCompleted = spin + 1,
-                    TotalSpins = config.MaxSpins,
-                    Stats = stats.Snapshot(),
-                    Elapsed = Stopwatch.GetElapsedTime(startedAt),
-                });
-            }
-        }
-
-        var elapsed = Stopwatch.GetElapsedTime(startedAt);
-
-        // Final progress callback with complete stats
-        if (!cancelled && config.ProgressCallback is not null)
-        {
-            config.ProgressCallback(new SampledProgress
-            {
-                SpinsCompleted = spin,
-                TotalSpins = config.MaxSpins,
-                Stats = stats.Snapshot(),
-                Elapsed = elapsed,
-            });
-        }
-
-        // If we were cancelled before any spin completed, spin is 0.
-        return new SampledResult<S>(stats, spin, cancelled, config.Seed, elapsed);
-    }
+        => EvaluateChunked(program, initialState, config,
+            (stats, win) => stats.Add((double)win / config.WinScale));
 
     /// <summary>
     /// Evaluate with a selector function that extracts a BigInteger value from T.
@@ -202,145 +146,136 @@ public static class SampledInterpreter
         Func<T, BigInteger> selector,
         SampledConfig config)
         where S : notnull
-    {
-        var startedAt = Stopwatch.GetTimestamp();
-        var rng = new SeededRandom(config.Seed);
-        var maxWinCap = config.MaxWinCap;
-        double? maxWinCapDouble = maxWinCap.HasValue ? (double)maxWinCap.Value : null;
-        var stats = new StreamingStats(config.HistogramBins, maxWinCapDouble);
-        var cancelled = false;
-        var stack = new Stack<IFlatMapNode>();
-        long spin;
-
-        for (spin = 0; spin < config.MaxSpins; spin++)
-        {
-            if (spin > 0 && spin % config.CancellationCheckInterval == 0
-                && config.CancellationToken.IsCancellationRequested)
-            {
-                cancelled = true;
-                break;
-            }
-
-            var value = RunOneSpin(program, initialState, rng, stack);
-            stats.Add(selector(value));
-
-            // ── Progress callback ──────────────────────────────────────
-            if (spin > 0 && spin % config.ProgressReportInterval == 0
-                && config.ProgressCallback is not null)
-            {
-                config.ProgressCallback(new SampledProgress
-                {
-                    SpinsCompleted = spin + 1,
-                    TotalSpins = config.MaxSpins,
-                    Stats = stats.Snapshot(),
-                    Elapsed = Stopwatch.GetElapsedTime(startedAt),
-                });
-            }
-        }
-
-        var elapsed = Stopwatch.GetElapsedTime(startedAt);
-
-        // Final progress callback with complete stats
-        if (!cancelled && config.ProgressCallback is not null)
-        {
-            config.ProgressCallback(new SampledProgress
-            {
-                SpinsCompleted = spin,
-                TotalSpins = config.MaxSpins,
-                Stats = stats.Snapshot(),
-                Elapsed = elapsed,
-            });
-        }
-
-        return new SampledResult<S>(stats, spin, cancelled, config.Seed, elapsed);
-    }
+        => EvaluateChunked(program, initialState, config,
+            (stats, value) => stats.Add(selector(value)));
 
     // ═══════════════════════════════════════════════════════════════════════
-    //  Parallel evaluation
+    //  Chunk-based evaluation (D3)
+    //
+    //  Work is split into fixed chunks of CHUNK = 65,536 rounds.  Chunk c
+    //  covers spins [c·CHUNK, min((c+1)·CHUNK, MaxSpins)) and runs on an
+    //  independent stream seeded SplitMix64(masterSeed, c).  Chunk results are
+    //  merged in STRICT ASCENDING chunk index order, so the final statistics
+    //  are a pure function of (Seed, MaxSpins) — bit-identical at any
+    //  DegreeOfParallelism (including 1) and any CPU core topology (D3, D24).
     // ═══════════════════════════════════════════════════════════════════════
 
-    /// <summary>
-    /// Number of logical sample streams used by parallel evaluation.  Fixed
-    /// (not derived from core count) so results are identical anywhere.
-    /// </summary>
-    internal const int ParallelStreams = 32;
-
-    private static SampledResult<S> EvaluateParallel<S>(
-        Slot<S, BigInteger> program,
+    private static SampledResult<S> EvaluateChunked<S, T>(
+        Slot<S, T> program,
         S initialState,
-        SampledConfig config)
+        SampledConfig config,
+        Action<StreamingStats, T> add)
         where S : notnull
     {
         var startedAt = Stopwatch.GetTimestamp();
-        var maxWinCap = config.MaxWinCap;
-        double? maxWinCapDouble = maxWinCap.HasValue ? (double)maxWinCap.Value : null;
+        double? maxWinCapDouble = config.MaxWinCap.HasValue ? (double)config.MaxWinCap.Value : null;
+        var totalSpins = config.MaxSpins;
 
-        var streams = (int)System.Math.Min(ParallelStreams, config.MaxSpins);
-        var baseSpins = config.MaxSpins / streams;
-        var remainder = config.MaxSpins % streams;
+        var chunkSize = SlotMathConstants.Prng.Chunk; // 65,536 (D3)
+        var nChunks = totalSpins <= 0 ? 0 : (int)((totalSpins + chunkSize - 1) / chunkSize);
 
-        var streamStats = new StreamingStats[streams];
-        var streamCompleted = new long[streams];
-        var published = new StreamingStatsSnapshot?[streams];
-        long reportedThreshold = 0;
-        var anyCancelled = false;
-
-        var options = new ParallelOptions
+        if (nChunks == 0)
         {
-            MaxDegreeOfParallelism = config.DegreeOfParallelism,
-        };
+            var empty = new StreamingStats(config.HistogramBins, maxWinCapDouble);
+            return new SampledResult<S>(
+                empty, 0, config.CancellationToken.IsCancellationRequested,
+                config.Seed, Stopwatch.GetElapsedTime(startedAt));
+        }
 
-        // The report interval is an aggregate cadence: each stream publishes
-        // its snapshot every interval/streams spins so the global counter
-        // crosses the configured interval at the configured rate.  (Gating
-        // per-stream on the full interval would mean streams shorter than
-        // the interval never report at all.)
-        var publishInterval = System.Math.Max(1, config.ProgressReportInterval / streams);
+        var chunkStats = new StreamingStats?[nChunks];
+        var chunkDone = new long[nChunks];
+        var cancelFlag = 0;
 
-        Parallel.For(0, streams, options, streamIndex =>
+        // Progress is display-only: a completion-order running merge guarded by
+        // a lock.  The FINAL result re-merges chunks in ascending index order
+        // for bit-identical determinism (float addition is not associative).
+        var progressLock = new object();
+        var progressMerged = new StreamingStats(config.HistogramBins, maxWinCapDouble);
+        long progressReported = 0;
+
+        void RunChunk(int c)
         {
-            var rng = new SeededRandom(DeriveStreamSeed(config.Seed, streamIndex));
+            if (Volatile.Read(ref cancelFlag) != 0) return;
+
+            var start = (long)c * chunkSize;
+            var end = System.Math.Min(start + chunkSize, totalSpins);
+            var rng = new SeededRandom(DeriveStreamSeed(config.Seed, c));
             var stats = new StreamingStats(config.HistogramBins, maxWinCapDouble);
             var stack = new Stack<IFlatMapNode>();
-            var spinsForStream = baseSpins + (streamIndex < remainder ? 1 : 0);
             long done = 0;
 
-            for (long i = 0; i < spinsForStream; i++)
+            for (var i = start; i < end; i++)
             {
-                if (i > 0 && i % config.CancellationCheckInterval == 0
+                if (done > 0 && done % config.CancellationCheckInterval == 0
                     && config.CancellationToken.IsCancellationRequested)
                 {
-                    Volatile.Write(ref anyCancelled, true);
+                    Volatile.Write(ref cancelFlag, 1);
                     break;
                 }
 
-                stats.Add((double)RunOneSpin(program, initialState, rng, stack) / config.WinScale);
+                add(stats, RunOneSpin(program, initialState, rng, stack));
                 done++;
-
-                if (config.ProgressCallback is not null
-                    && done % publishInterval == 0)
-                {
-                    published[streamIndex] = stats.Snapshot();
-                    MaybeReportProgress(
-                        config, published, streamCompleted, streamIndex, done,
-                        ref reportedThreshold, startedAt);
-                }
             }
 
-            streamStats[streamIndex] = stats;
-            Volatile.Write(ref streamCompleted[streamIndex], done);
-        });
+            chunkStats[c] = stats;
+            Volatile.Write(ref chunkDone[c], done);
 
-        // Deterministic merge in stream order.
-        var total = new StreamingStats(config.HistogramBins, maxWinCapDouble);
-        long spinsCompleted = 0;
-        for (var s = 0; s < streams; s++)
-        {
-            total.Merge(streamStats[s]);
-            spinsCompleted += streamCompleted[s];
+            if (config.ProgressCallback is not null)
+            {
+                StreamingStatsSnapshot? snapshot = null;
+                long completed = 0;
+                lock (progressLock)
+                {
+                    progressMerged.Merge(stats);
+                    var snap = progressMerged.Snapshot();
+                    completed = snap.Count;
+                    if (completed - progressReported >= config.ProgressReportInterval
+                        || completed >= totalSpins)
+                    {
+                        progressReported = completed;
+                        snapshot = snap;
+                    }
+                }
+
+                if (snapshot is not null)
+                {
+                    config.ProgressCallback(new SampledProgress
+                    {
+                        SpinsCompleted = completed,
+                        TotalSpins = totalSpins,
+                        Stats = snapshot,
+                        Elapsed = Stopwatch.GetElapsedTime(startedAt),
+                    });
+                }
+            }
         }
 
-        var cancelled = Volatile.Read(ref anyCancelled);
+        if (config.DegreeOfParallelism > 1 && nChunks > 1)
+        {
+            Parallel.For(0, nChunks,
+                new ParallelOptions { MaxDegreeOfParallelism = config.DegreeOfParallelism },
+                RunChunk);
+        }
+        else
+        {
+            for (var c = 0; c < nChunks; c++)
+            {
+                RunChunk(c);
+                if (Volatile.Read(ref cancelFlag) != 0) break;
+            }
+        }
+
+        // D3: strict ascending chunk-index-order merge ⇒ bit-identical result.
+        var total = new StreamingStats(config.HistogramBins, maxWinCapDouble);
+        long spinsCompleted = 0;
+        for (var c = 0; c < nChunks; c++)
+        {
+            if (chunkStats[c] is null) continue;
+            total.Merge(chunkStats[c]!);
+            spinsCompleted += Volatile.Read(ref chunkDone[c]);
+        }
+
+        var cancelled = Volatile.Read(ref cancelFlag) != 0;
         var elapsed = Stopwatch.GetElapsedTime(startedAt);
 
         if (!cancelled && config.ProgressCallback is not null)
@@ -348,7 +283,7 @@ public static class SampledInterpreter
             config.ProgressCallback(new SampledProgress
             {
                 SpinsCompleted = spinsCompleted,
-                TotalSpins = config.MaxSpins,
+                TotalSpins = totalSpins,
                 Stats = total.Snapshot(),
                 Elapsed = elapsed,
             });
@@ -358,78 +293,7 @@ public static class SampledInterpreter
     }
 
     /// <summary>
-    /// Report aggregated progress at most once per crossing of the report
-    /// interval (across all streams).  Whichever worker crosses the
-    /// threshold first wins the CAS and reports a merge of the latest
-    /// published per-stream snapshots.
-    /// </summary>
-    private static void MaybeReportProgress(
-        SampledConfig config,
-        StreamingStatsSnapshot?[] published,
-        long[] streamCompleted,
-        int reportingStream,
-        long reportingStreamDone,
-        ref long reportedThreshold,
-        long startedAt)
-    {
-        // Approximate aggregate spin count from published snapshots plus the
-        // reporting stream's live counter.
-        long aggregate = reportingStreamDone;
-        for (var s = 0; s < published.Length; s++)
-        {
-            if (s == reportingStream) continue;
-            aggregate += published[s]?.Count ?? Volatile.Read(ref streamCompleted[s]);
-        }
-
-        var threshold = Volatile.Read(ref reportedThreshold);
-        var nextThreshold = threshold + config.ProgressReportInterval;
-        if (aggregate < nextThreshold)
-            return;
-        if (Interlocked.CompareExchange(ref reportedThreshold, aggregate, threshold) != threshold)
-            return;
-
-        // Merge published snapshots (cheap: ≤ 32 entries) for the report.
-        long n = 0;
-        double mean = 0, m2 = 0;
-        foreach (var snapshot in published)
-        {
-            if (snapshot is null || snapshot.Count == 0) continue;
-            var totalN = n + snapshot.Count;
-            var delta = snapshot.Mean - mean;
-            m2 = m2 + snapshot.Variance * (snapshot.Count - 1)
-                 + delta * delta * n * snapshot.Count / totalN;
-            mean = (n * mean + snapshot.Count * snapshot.Mean) / totalN;
-            n = totalN;
-        }
-
-        var variance = n > 1 ? m2 / (n - 1) : 0.0;
-        var stdErr = n > 0 ? System.Math.Sqrt(variance / n) : 0.0;
-
-        config.ProgressCallback!(new SampledProgress
-        {
-            SpinsCompleted = n,
-            TotalSpins = config.MaxSpins,
-            Stats = new StreamingStatsSnapshot(
-                Count: n,
-                Mean: mean,
-                Variance: variance,
-                StdDev: System.Math.Sqrt(variance),
-                StdErr: stdErr,
-                Ci95Half: 1.96 * stdErr,
-                MinObserved: double.NaN,
-                MaxObserved: double.NaN,
-                CapHits: 0,
-                NonZeroCount: 0,
-                HitFrequency: 0,
-                HitFrequencyStdErr: 0,
-                MaxWinCap: null,
-                Histogram: Array.Empty<HistogramBin>()),
-            Elapsed = Stopwatch.GetElapsedTime(startedAt),
-        });
-    }
-
-    /// <summary>
-    /// Derive a per-stream seed from the master seed — SplitMix64-style so
+    /// Derive a per-chunk seed from the master seed — SplitMix64-style so
     /// streams are statistically independent yet fully reproducible.
     /// </summary>
     internal static long DeriveStreamSeed(long seed, int stream)
