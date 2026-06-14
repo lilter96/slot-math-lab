@@ -2,6 +2,7 @@
   <Project Path="SlotMath.Api.Tests/SlotMath.Api.Tests.csproj" />
   <Project Path="SlotMath.Api/SlotMath.Api.csproj" />
   <Project Path="SlotMath.Benchmarks/SlotMath.Benchmarks.csproj" />
+  <Project Path="SlotMath.Codegen/SlotMath.Codegen.csproj" />
   <Project Path="SlotMath.Core.Tests/SlotMath.Core.Tests.csproj" />
   <Project Path="SlotMath.Core/SlotMath.Core.csproj" />
 </Solution>

@@ -1,0 +1,374 @@
+using System.Numerics;
+using System.Reflection;
+using CsCheck;
+using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
+using SlotMath.Codegen.Emit;
+using SlotMath.Codegen.Runtime;
+using SlotMath.Core.Compiler;
+using SlotMath.Core.Math;
+using SlotMath.Core.Model;
+using SlotMath.Core.Monad;
+using SlotMath.Core.Random;
+
+namespace SlotMath.Core.Tests.Codegen;
+
+using Dict = Dictionary<string, object?>;
+using PortMap = Dictionary<string, SlotMath.Core.Model.Port>;
+
+// ═══════════════════════════════════════════════════════════════════════════
+//  G7 — High-Assurance C# Codegen: Distribution Equivalence (D25 / invariant 11)
+//
+//  The CSharpEmitter turns a GraphConfig into real C# source.  Here we COMPILE
+//  that source in-memory with Roslyn, load it, and prove its EXACT PMF (via the
+//  re-execution enumerator) is identical — by exact rational equality — to the
+//  exact interpreter, over thousands of random states with CsCheck shrinking.
+//  We also prove the sampled hot path allocates O(1) per spin.
+// ═══════════════════════════════════════════════════════════════════════════
+
+public sealed class CodegenEquivalenceTests
+{
+    private static Port StatePort => new() { Name = "state", Type = PortType.State };
+
+    private const string H = "H";
+    private const string L = "L";
+    private const string W = "W";
+
+    // ── Expression builders (scalar subset) ──────────────────────────────
+    private static FieldAccessExpr Field(string key) => new() { Target = "state", Path = [key] };
+    private static ConstantExpr Str(string v) => new() { Kind = ConstantKind.String, Value = v };
+    private static ConstantExpr Int(long v) => new() { Kind = ConstantKind.Integer, Value = v.ToString() };
+    private static CompareExpr Eq(Expression l, Expression r) => new() { Op = CompareOp.Eq, Left = l, Right = r };
+    private static BinaryExpr And(Expression l, Expression r) => new() { Op = BinaryOp.And, Left = l, Right = r };
+    private static BinaryExpr Or(Expression l, Expression r) => new() { Op = BinaryOp.Or, Left = l, Right = r };
+    private static BinaryExpr Mul(Expression l, Expression r) => new() { Op = BinaryOp.Mul, Left = l, Right = r };
+    private static BinaryExpr Add(Expression l, Expression r) => new() { Op = BinaryOp.Add, Left = l, Right = r };
+
+    // base 1×3 win: allWild→3, allH→5, allL→2, else 0 (wilds wild).
+    private static Expression IsH(int i) => Or(Eq(Field($"c{i}"), Str(H)), Eq(Field($"c{i}"), Str(W)));
+    private static Expression IsL(int i) => Or(Eq(Field($"c{i}"), Str(L)), Eq(Field($"c{i}"), Str(W)));
+    private static Expression IsW(int i) => Eq(Field($"c{i}"), Str(W));
+    private static Expression All(Func<int, Expression> p) => And(And(p(0), p(1)), p(2));
+
+    private static Expression BaseWin() => new IfExpr
+    {
+        Condition = All(IsW),
+        ThenExpr = Int(3),
+        ElseExpr = new IfExpr
+        {
+            Condition = All(IsH),
+            ThenExpr = Int(5),
+            ElseExpr = new IfExpr { Condition = All(IsL), ThenExpr = Int(2), ElseExpr = Int(0) },
+        },
+    };
+
+    // ── Config builders ──────────────────────────────────────────────────
+
+    private static DrawNode DrawCell(string id, string writeKey, bool entry) => new()
+    {
+        Id = id,
+        DrawWeights =
+        [
+            new DrawWeight { OutcomeId = H, Weight = 3, Value = 0 },
+            new DrawWeight { OutcomeId = L, Weight = 3, Value = 0 },
+            new DrawWeight { OutcomeId = W, Weight = 1, Value = 0 },
+        ],
+        StateWriteKey = writeKey,
+        Inputs = entry ? new PortMap() : new PortMap { ["state"] = StatePort },
+        Outputs = new PortMap { ["state"] = StatePort },
+    };
+
+    /// <summary>REF-A "Coin": single weighted draw, win via data-flow value (no WinStateKey).</summary>
+    private static GraphConfig RefA() => new()
+    {
+        SchemaVersion = "1.0.0",
+        Id = "ref-a",
+        Nodes =
+        [
+            new DrawNode
+            {
+                Id = "draw",
+                DrawWeights =
+                [
+                    new DrawWeight { OutcomeId = "p3", Weight = 1, Value = 3 },
+                    new DrawWeight { OutcomeId = "p1", Weight = 3, Value = 1 },
+                    new DrawWeight { OutcomeId = "p0", Weight = 4, Value = 0 },
+                ],
+                Outputs = new PortMap { ["state"] = StatePort },
+            },
+            new MetricsSinkNode { Id = "sink", WinCap = 1000, Inputs = new PortMap { ["state"] = StatePort } },
+        ],
+        Edges = [new Edge { Id = "e0", SourceNodeId = "draw", SourcePort = "state", TargetNodeId = "sink", TargetPort = "state" }],
+    };
+
+    /// <summary>
+    /// 1×3 wild game.  When <paramref name="stateDependent"/>, the payout is
+    /// <c>mult · base + bonus</c> with mult/bonus seeded from the initial state,
+    /// so random states drive distinct PMFs.
+    /// </summary>
+    private static GraphConfig Atomic1x3(bool stateDependent)
+    {
+        var winExpr = stateDependent
+            ? Add(Mul(Field("mult"), BaseWin()), Field("bonus"))
+            : BaseWin();
+
+        var schema = new List<StateFieldSchema>
+        {
+            new() { Name = "c0", Type = "string" },
+            new() { Name = "c1", Type = "string" },
+            new() { Name = "c2", Type = "string" },
+            new() { Name = "win", Type = "number" },
+        };
+        if (stateDependent)
+        {
+            schema.Add(new StateFieldSchema { Name = "mult", Type = "number" });
+            schema.Add(new StateFieldSchema { Name = "bonus", Type = "number" });
+        }
+
+        return new GraphConfig
+        {
+            SchemaVersion = "1.0.0",
+            Id = stateDependent ? "atomic-1x3-statedep" : "atomic-1x3",
+            StateSchema = schema.ToArray(),
+            Expressions = new Dictionary<string, Expression> { ["winExpr"] = winExpr },
+            Nodes =
+            [
+                DrawCell("d0", "c0", entry: true),
+                DrawCell("d1", "c1", entry: false),
+                DrawCell("d2", "c2", entry: false),
+                new ModifyStateNode
+                {
+                    Id = "win", ExpressionId = "winExpr", OutputKey = "win",
+                    Inputs = new PortMap { ["state"] = StatePort }, Outputs = new PortMap { ["state"] = StatePort },
+                },
+                new MetricsSinkNode { Id = "sink", WinCap = 1_000_000, WinStateKey = "win", Inputs = new PortMap { ["state"] = StatePort } },
+            ],
+            Edges =
+            [
+                new Edge { Id = "e0", SourceNodeId = "d0", SourcePort = "state", TargetNodeId = "d1", TargetPort = "state" },
+                new Edge { Id = "e1", SourceNodeId = "d1", SourcePort = "state", TargetNodeId = "d2", TargetPort = "state" },
+                new Edge { Id = "e2", SourceNodeId = "d2", SourcePort = "state", TargetNodeId = "win", TargetPort = "state" },
+                new Edge { Id = "e3", SourceNodeId = "win", SourcePort = "state", TargetNodeId = "sink", TargetPort = "state" },
+            ],
+        };
+    }
+
+    // ── Reference exact PMF (the canonical oracle) ───────────────────────
+
+    private static IReadOnlyDictionary<BigInteger, Rational> InterpreterPmf(
+        Slot<Dict, BigInteger> program, Dict initial)
+    {
+        var dist = ExactInterpreter.Evaluate(program, initial, StateHasher.CanonicalHash).ValueDistribution();
+        var map = new Dictionary<BigInteger, Rational>();
+        foreach (var e in dist.Entries)
+        {
+            var p = new Rational(e.Numerator, dist.Denominator);
+            map[e.Value] = map.TryGetValue(e.Value, out var x) ? x + p : p;
+        }
+        return map;
+    }
+
+    private static void AssertPmfEqual(
+        IReadOnlyDictionary<BigInteger, Rational> expected,
+        IReadOnlyDictionary<BigInteger, Rational> actual,
+        string ctx)
+    {
+        Assert.True(expected.Count == actual.Count,
+            $"PMF support size {expected.Count} (interpreter) vs {actual.Count} (generated) [{ctx}]");
+        foreach (var kv in expected)
+        {
+            Assert.True(actual.TryGetValue(kv.Key, out var got),
+                $"generated PMF missing win {kv.Key} [{ctx}]");
+            Assert.True(kv.Value == got,
+                $"P(win={kv.Key}) {kv.Value} (interpreter) != {got} (generated) [{ctx}]");
+        }
+    }
+
+    // ── Compile generated C# in-memory with Roslyn ───────────────────────
+
+    private static Type CompileGenerated(EmitResult emit)
+    {
+        Assert.True(emit.Supported, "emit unsupported: " + string.Join("; ", emit.Diagnostics));
+        var tree = CSharpSyntaxTree.ParseText(emit.Source!, new CSharpParseOptions(LanguageVersion.Latest));
+        var compilation = CSharpCompilation.Create(
+            "SlotMath.Generated.Dyn." + Guid.NewGuid().ToString("N"),
+            [tree],
+            ReferenceSet(),
+            new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary, optimizationLevel: OptimizationLevel.Release));
+
+        using var ms = new MemoryStream();
+        var result = compilation.Emit(ms);
+        if (!result.Success)
+        {
+            var errors = string.Join("\n", result.Diagnostics
+                .Where(d => d.Severity == DiagnosticSeverity.Error)
+                .Select(d => d.ToString()));
+            throw new Xunit.Sdk.XunitException(
+                "Generated C# failed to compile:\n" + errors + "\n\n=== SOURCE ===\n" + emit.Source);
+        }
+
+        ms.Position = 0;
+        var asm = Assembly.Load(ms.ToArray());
+        return asm.GetType(emit.FullTypeName)
+            ?? throw new Xunit.Sdk.XunitException($"Generated type '{emit.FullTypeName}' not found.");
+    }
+
+    private static IReadOnlyList<MetadataReference> ReferenceSet()
+    {
+        var refs = new List<MetadataReference>();
+        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var tpa = (string?)AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES") ?? "";
+        foreach (var path in tpa.Split(Path.PathSeparator))
+        {
+            if (path.Length == 0 || !path.EndsWith(".dll", StringComparison.OrdinalIgnoreCase)) continue;
+            if (seen.Add(Path.GetFileName(path))) refs.Add(MetadataReference.CreateFromFile(path));
+        }
+
+        void Ensure(Type t)
+        {
+            var loc = t.Assembly.Location;
+            if (loc.Length > 0 && seen.Add(Path.GetFileName(loc)))
+                refs.Add(MetadataReference.CreateFromFile(loc));
+        }
+
+        Ensure(typeof(ICompiledGame));      // SlotMath.Codegen
+        Ensure(typeof(Rational));           // SlotMath.Core
+        return refs;
+    }
+
+    // ════════════════════════════════════════════════════════════════════
+    //  Equivalence proofs
+    // ════════════════════════════════════════════════════════════════════
+
+    [Fact]
+    public void RefA_GeneratedExactPmf_EqualsInterpreter()
+    {
+        var config = RefA();
+        var program = new GraphCompiler().Compile(config).Program!;
+        var type = CompileGenerated(new CSharpEmitter().Emit(config));
+
+        var game = (ICompiledGame)Activator.CreateInstance(type)!;
+        game.SetInitial(new Dict());
+        var genPmf = ExactPmf.Enumerate(d => game.RunSpin(d));
+
+        AssertPmfEqual(InterpreterPmf(program, new Dict()), genPmf, "REF-A");
+
+        // Spot-check the closed form: P(3)=1/8, P(1)=3/8, P(0)=4/8; RTP=3/4.
+        Assert.Equal(new Rational(1, 8), genPmf[3]);
+        Assert.Equal(new Rational(3, 8), genPmf[1]);
+        Assert.Equal(new Rational(4, 8), genPmf[0]);
+    }
+
+    [Fact]
+    public void Atomic1x3_GeneratedExactPmf_EqualsInterpreter()
+    {
+        var config = Atomic1x3(stateDependent: false);
+        var program = new GraphCompiler().Compile(config).Program!;
+        var type = CompileGenerated(new CSharpEmitter().Emit(config));
+
+        var game = (ICompiledGame)Activator.CreateInstance(type)!;
+        game.SetInitial(new Dict());
+        var genPmf = ExactPmf.Enumerate(d => game.RunSpin(d));
+
+        AssertPmfEqual(InterpreterPmf(program, new Dict()), genPmf, "atomic-1x3");
+    }
+
+    [Fact]
+    public void StateDependent_GeneratedExactPmf_EqualsInterpreter_Over1000RandomStates()
+    {
+        var config = Atomic1x3(stateDependent: true);
+        var program = new GraphCompiler().Compile(config).Program!;
+        var type = CompileGenerated(new CSharpEmitter().Emit(config));
+
+        // D25 PBT: 1,000 random initial states; exact PMF of compiled C# must
+        // equal the interpreter's, by exact rational equality.  CsCheck shrinks
+        // any divergence to the minimal failing (mult, bonus).
+        Gen.Select(Gen.Int[1, 5], Gen.Int[0, 50])
+           .Sample(
+               (mult, bonus) =>
+               {
+                   var s0 = new Dict { ["mult"] = (BigInteger)mult, ["bonus"] = (BigInteger)bonus };
+                   var game = (ICompiledGame)Activator.CreateInstance(type)!;
+                   game.SetInitial(s0);
+                   var genPmf = ExactPmf.Enumerate(d => game.RunSpin(d));
+                   AssertPmfEqual(InterpreterPmf(program, s0), genPmf, $"mult={mult},bonus={bonus}");
+               },
+               seed: "g7-statedep-pmf-v1",
+               iter: 1000);
+    }
+
+    // ════════════════════════════════════════════════════════════════════
+    //  Hot path: O(1) allocations per spin (G7 DoD)
+    // ════════════════════════════════════════════════════════════════════
+
+    [Fact]
+    public void SampledHotPath_AllocatesO1_PerSpin()
+    {
+        var type = CompileGenerated(new CSharpEmitter().Emit(RefA()));
+        var game = (ICompiledGame)Activator.CreateInstance(type)!;
+        game.SetInitial(new Dict());
+        var driver = new SampledDrawDriver(0xC0FFEE);
+
+        // Warm up JIT so steady-state allocation is measured.
+        long sink = 0;
+        for (var i = 0; i < 10_000; i++) sink += game.RunSpin(driver);
+
+        const int n = 200_000;
+        var before = GC.GetAllocatedBytesForCurrentThread();
+        for (var i = 0; i < n; i++) sink += game.RunSpin(driver);
+        var after = GC.GetAllocatedBytesForCurrentThread();
+
+        Assert.True(sink >= 0); // keep the loop from being optimized away
+        var perSpin = (after - before) / (double)n;
+        Assert.True(perSpin < 1.0,
+            $"sampled hot path allocated {perSpin:F4} bytes/spin (expected ~0, O(1)).");
+    }
+
+    // ════════════════════════════════════════════════════════════════════
+    //  The emitted artifact is real, well-formed C#
+    // ════════════════════════════════════════════════════════════════════
+
+    [Fact]
+    public void EmittedSource_IsWellFormed_AndPersistedAsArtifact()
+    {
+        var emit = new CSharpEmitter().Emit(Atomic1x3(stateDependent: true));
+        Assert.True(emit.Supported, string.Join("; ", emit.Diagnostics));
+        Assert.Contains("public long RunSpin(IDrawDriver", emit.Source);
+        Assert.Contains(": ICompiledGame", emit.Source);
+        Assert.Contains("private static readonly long[] __w0", emit.Source); // pre-allocated weight table
+        Assert.DoesNotContain("new ", emit.Source!.Replace("new long[]", "").Replace("new string[]", "")); // no per-spin heap news
+
+        var dir = Path.Combine(AppContext.BaseDirectory, "generated");
+        Directory.CreateDirectory(dir);
+        File.WriteAllText(Path.Combine(dir, "GeneratedGame.Atomic1x3.cs"), emit.Source);
+    }
+
+    // ════════════════════════════════════════════════════════════════════
+    //  Honesty: unsupported constructs yield a diagnostic, never wrong code
+    // ════════════════════════════════════════════════════════════════════
+
+    [Fact]
+    public void UnsupportedGraph_ReturnsDiagnostic_NotWrongCode()
+    {
+        // A reel draw (board publication) is outside the scalar subset.
+        var config = RefA() with
+        {
+            Nodes =
+            [
+                new DrawNode
+                {
+                    Id = "draw",
+                    BoardStateKey = "board",
+                    DrawWeights = [new DrawWeight { OutcomeId = "x", Weight = 1, Value = 0 }],
+                    Outputs = new PortMap { ["state"] = StatePort },
+                },
+                new MetricsSinkNode { Id = "sink", WinCap = 1000, Inputs = new PortMap { ["state"] = StatePort } },
+            ],
+        };
+
+        var emit = new CSharpEmitter().Emit(config);
+        Assert.False(emit.Supported);
+        Assert.Null(emit.Source);
+        Assert.NotEmpty(emit.Diagnostics);
+    }
+}

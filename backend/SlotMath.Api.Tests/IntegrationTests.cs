@@ -40,7 +40,7 @@ public class IntegrationTests : IClassFixture<WebApplicationFactory<Program>>, I
         }
     }
 
-    private static void SafeRegisterEvaluator(string name, IEvaluator evaluator)
+    private static void SafeRegisterEvaluator(string name, IFastPathEvaluator evaluator)
     {
         lock (TestRegistryLock.Lock)
         {

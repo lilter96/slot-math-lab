@@ -56,7 +56,7 @@ public class G17IntegrationTests : IClassFixture<WebApplicationFactory<Program>>
     /// <summary>
     /// Thread-safe evaluator registration — avoids conflicts with parallel tests.
     /// </summary>
-    private static void SafeRegisterEvaluator(string name, IEvaluator evaluator)
+    private static void SafeRegisterEvaluator(string name, IFastPathEvaluator evaluator)
     {
         lock (TestRegistryLock.Lock)
         {
