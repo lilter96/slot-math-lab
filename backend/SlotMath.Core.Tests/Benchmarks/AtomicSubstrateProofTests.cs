@@ -186,7 +186,7 @@ public sealed class AtomicSubstrateProofTests
             {
                 Op = BinaryOp.And,
                 Left = new CompareExpr
-                    { Op = CompareOp.Eq, Left = StateField("winSym"), Right = StrConst(H) },
+                { Op = CompareOp.Eq, Left = StateField("winSym"), Right = StrConst(H) },
                 Right = AllMatch,
             },
             ThenExpr = IntConst(5),
@@ -196,7 +196,7 @@ public sealed class AtomicSubstrateProofTests
                 {
                     Op = BinaryOp.And,
                     Left = new CompareExpr
-                        { Op = CompareOp.Eq, Left = StateField("winSym"), Right = StrConst(L) },
+                    { Op = CompareOp.Eq, Left = StateField("winSym"), Right = StrConst(L) },
                     Right = AllMatch,
                 },
                 ThenExpr = IntConst(2),
@@ -253,15 +253,15 @@ public sealed class AtomicSubstrateProofTests
         from c0 in Slot.Draw<Dict>(_ => CellWeights)
         from c1 in Slot.Draw<Dict>(_ => CellWeights)
         from c2 in Slot.Draw<Dict>(_ => CellWeights)
-        // Atom 1: store drawn cells in state
+            // Atom 1: store drawn cells in state
         from _ in Slot.Modify<Dict>(s => new Dict(s) { ["cells"] = new[] { Syms[c0], Syms[c1], Syms[c2] } })
-        // Atom 2: compute win symbol via FoldExpr (expression tree)
+            // Atom 2: compute win symbol via FoldExpr (expression tree)
         from __ in Slot.Modify<Dict>(s =>
         {
             var winSym = ExactExpressionEvaluator.Evaluate(WinSymFold, new EvalContext { State = s }).StringValue ?? "";
             return new Dict(s) { ["winSym"] = winSym };
         })
-        // Atom 3: compute win amount via expression tree, return as result
+            // Atom 3: compute win amount via expression tree, return as result
         from state in Slot.GetState<Dict>()
         select ExactExpressionEvaluator.Evaluate(WinExpr, new EvalContext { State = state }).AsInteger();
 

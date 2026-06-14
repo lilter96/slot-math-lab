@@ -5,8 +5,8 @@ using SlotMath.Core.Model;
 
 namespace SlotMath.Core.Tests.Compiler;
 
-using PortMap = Dictionary<string, Port>;
 using ExprMap = Dictionary<string, Expression>;
+using PortMap = Dictionary<string, Port>;
 
 // ═══════════════════════════════════════════════════════════════════════════
 //  StateSchemaDeriver — per-node-kind derivation + the reborn catalog mechanics
@@ -63,7 +63,9 @@ public sealed class StateSchemaDeriverTests
         {
             ["overlay"] = new MapExpr
             {
-                StateKey = "board", ItemName = "c", ItemType = ExprType.String,
+                StateKey = "board",
+                ItemName = "c",
+                ItemType = ExprType.String,
                 Body = new FieldAccessExpr { Target = "state", Path = ["c"] },
             },
         };

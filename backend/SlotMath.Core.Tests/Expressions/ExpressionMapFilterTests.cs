@@ -945,7 +945,7 @@ public class ArrayOpEdgeCases
         };
         var state = new Dictionary<string, object?>
         {
-            ["board"]  = new object?[] { "x", "x", "x" },
+            ["board"] = new object?[] { "x", "x", "x" },
             ["refill"] = new object?[] { "A", "B", "C" },
         };
         var result = Eval(expr, state);
@@ -968,7 +968,7 @@ public class ArrayOpEdgeCases
         var state = new Dictionary<string, object?>
         {
             ["board"] = new object?[] { "A", "B", "C", "D" },
-            ["keep"]  = new object?[] { (BigInteger)1, (BigInteger)3 },
+            ["keep"] = new object?[] { (BigInteger)1, (BigInteger)3 },
         };
         var result = Eval(expr, state);
         var strs = result.ArrayValue!.Select(v => v.StringValue).ToArray();
@@ -1022,7 +1022,7 @@ public class ArrayOpEdgeCases
     {
         var result = Eval(Call("append", Ref("arr"), Str("X")),
             new() { ["arr"] = Array.Empty<object?>() });
-        Assert.Equal(1, result.ArrayValue!.Count);
+        Assert.Single(result.ArrayValue!);
         Assert.Equal("X", result.ArrayValue[0].StringValue);
     }
 

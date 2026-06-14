@@ -163,7 +163,7 @@ public sealed class CatalogMechanicTests
         var merged = MechanicCatalog.Default.Merge(
             new Dictionary<string, CustomMechanic> { ["my-mechanic"] = custom });
 
-        Assert.True(merged.ContainsKey("scatter"),      "Catalog entry missing after merge");
+        Assert.True(merged.ContainsKey("scatter"), "Catalog entry missing after merge");
         Assert.True(merged.ContainsKey("my-mechanic"), "User entry missing after merge");
     }
 
