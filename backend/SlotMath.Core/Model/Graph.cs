@@ -142,6 +142,13 @@ public sealed record MetricsSinkNode : Node
     /// evaluator/transform molecule producing a Win[].
     /// </summary>
     public string? WinStateKey { get; init; }
+
+    /// <summary>
+    /// Declared round win cap (D6/D19).  The compiler rejects a graph whose
+    /// MetricsSink has no cap (MISSING_WIN_CAP).  The cap is the maximum total
+    /// win per round in game units; wins above this value are clamped.
+    /// </summary>
+    public long? WinCap { get; init; }
 }
 
 // ── Library node ───────────────────────────────────────────────────────

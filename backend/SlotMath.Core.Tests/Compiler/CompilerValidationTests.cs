@@ -25,7 +25,7 @@ public class CompilerValidationTests
             Nodes =
             [
                 new LoopNode { Id = "loop1", MaxIterations = cap },
-                new MetricsSinkNode { Id = "sink" },
+                new MetricsSinkNode { WinCap = 10_000, Id = "sink" },
             ],
         };
 
@@ -46,7 +46,7 @@ public class CompilerValidationTests
             Nodes =
             [
                 new LoopNode { Id = "loop1", MaxIterations = cap },
-                new MetricsSinkNode { Id = "sink" },
+                new MetricsSinkNode { WinCap = 10_000, Id = "sink" },
             ],
         };
 
@@ -160,7 +160,7 @@ public class CompilerValidationTests
         var config = new GraphConfig
         {
             SchemaVersion = "1.0.0",
-            Nodes = [new MetricsSinkNode { Id = "sink" }],
+            Nodes = [new MetricsSinkNode { WinCap = 10_000, Id = "sink" }],
             Expressions = new Dictionary<string, Expression> { ["big"] = big },
         };
 
@@ -181,7 +181,7 @@ public class CompilerValidationTests
         var config = new GraphConfig
         {
             SchemaVersion = "1.0.0",
-            Nodes = [new MetricsSinkNode { Id = "sink" }],
+            Nodes = [new MetricsSinkNode { WinCap = 10_000, Id = "sink" }],
             Expressions = new Dictionary<string, Expression> { ["small"] = small },
         };
 

@@ -89,7 +89,7 @@ public sealed class GraphTruthDerivationTests
                 Inputs = new PortMap { ["state"] = StatePort }, Outputs = new PortMap { ["state"] = StatePort } },
             new ModifyStateNode { Id = "pay", ExpressionId = "payout", OutputKey = "scatter_win",
                 Inputs = new PortMap { ["state"] = StatePort }, Outputs = new PortMap { ["state"] = StatePort } },
-            new MetricsSinkNode { Id = "sink", WinStateKey = "scatter_win",
+            new MetricsSinkNode { WinCap = 10_000, Id = "sink", WinStateKey = "scatter_win",
                 Inputs = new PortMap { ["state"] = StatePort } },
         ],
         Edges =

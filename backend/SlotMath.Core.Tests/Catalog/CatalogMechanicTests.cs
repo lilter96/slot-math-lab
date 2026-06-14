@@ -265,8 +265,7 @@ public sealed class CatalogMechanicTests
                     Inputs = new Dictionary<string, Port> { ["state"] = StatePort },
                     Outputs = new Dictionary<string, Port> { ["state"] = StatePort },
                 },
-                new MetricsSinkNode
-                {
+                new MetricsSinkNode { WinCap = 10_000,
                     Id = "sink",
                     WinStateKey = "trivial_win",
                     Inputs = new Dictionary<string, Port> { ["state"] = StatePort },
@@ -583,8 +582,7 @@ public sealed class CatalogMechanicTests
                 Inputs  = new Dictionary<string, Port> { ["state"] = StatePort },
                 Outputs = new Dictionary<string, Port> { ["state"] = StatePort }
             },
-            new MetricsSinkNode
-            {
+            new MetricsSinkNode { WinCap = 10_000,
                 Id = "sink",
                 WinStateKey = "scatter_win",
                 Inputs = new Dictionary<string, Port> { ["state"] = StatePort }
@@ -637,8 +635,7 @@ public sealed class CatalogMechanicTests
                 Inputs  = new Dictionary<string, Port> { ["state"] = StatePort },
                 Outputs = new Dictionary<string, Port> { ["state"] = StatePort }
             },
-            new MetricsSinkNode
-            {
+            new MetricsSinkNode { WinCap = 10_000,
                 Id = "sink",
                 WinStateKey = "scatter_win",
                 Inputs = new Dictionary<string, Port> { ["state"] = StatePort }

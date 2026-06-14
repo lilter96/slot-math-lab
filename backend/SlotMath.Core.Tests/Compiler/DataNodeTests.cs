@@ -63,8 +63,7 @@ public sealed class DataNodeTests
                 Inputs = new Dictionary<string, Port> { ["state"] = StatePort },
                 Outputs = new Dictionary<string, Port> { ["state"] = StatePort },
             },
-            new MetricsSinkNode
-            {
+            new MetricsSinkNode { WinCap = 10_000,
                 Id = "sink",
                 WinStateKey = "win",
                 Inputs = new Dictionary<string, Port> { ["state"] = StatePort },

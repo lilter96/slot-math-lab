@@ -408,8 +408,7 @@ public sealed class DogHouseBenchmarkTests : IDisposable
                 },
 
                 // ── Metrics sink ───────────────────────────────────────────
-                new MetricsSinkNode
-                {
+                new MetricsSinkNode { WinCap = 10_000,
                     Id    = "sink",
                     Label = "Metrics Sink",
                     Inputs = new Dictionary<string, Port>

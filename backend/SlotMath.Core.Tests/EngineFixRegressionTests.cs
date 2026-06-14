@@ -218,8 +218,7 @@ public class Compiler_StatePurity
                     ["out"] = new() { Name = "out", Type = PortType.Number }
                 }
             },
-            new MetricsSinkNode
-            {
+            new MetricsSinkNode { WinCap = 10_000,
                 Id = "sink",
                 Label = "Sink",
                 Inputs = new Dictionary<string, Port>
@@ -325,8 +324,7 @@ public class Compiler_FanOut
                     ["out"] = new() { Name = "out", Type = PortType.Number }
                 }
             },
-            new MetricsSinkNode
-            {
+            new MetricsSinkNode { WinCap = 10_000,
                 Id = "sink",
                 Label = "Sink",
                 Inputs = new Dictionary<string, Port>
@@ -886,8 +884,7 @@ public class Compiler_FractionalPayouts : IDisposable
                     Inputs = new Dictionary<string, Port> { ["board"] = new() { Name = "board", Type = PortType.Board } },
                     Outputs = new Dictionary<string, Port> { ["wins"] = new() { Name = "wins", Type = PortType.Wins } },
                 },
-                new MetricsSinkNode
-                {
+                new MetricsSinkNode { WinCap = 10_000,
                     Id = "sink",
                     Label = "Sink",
                     Inputs = new Dictionary<string, Port> { ["wins"] = new() { Name = "wins", Type = PortType.Wins } },

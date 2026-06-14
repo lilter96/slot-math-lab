@@ -133,8 +133,7 @@ public sealed class AtomicGraphProofTests
                 Inputs = new Dictionary<string, Port> { ["state"] = StatePort },
                 Outputs = new Dictionary<string, Port> { ["state"] = StatePort },
             },
-            new MetricsSinkNode
-            {
+            new MetricsSinkNode { WinCap = 10_000,
                 Id = "sink",
                 Label = "Metrics",
                 WinStateKey = "win",                     // ← read win from state["win"]

@@ -190,8 +190,10 @@ public static class GraphValidator
                 Code = ErrorCodes.MissingMetricsSink,
                 Message = "Graph must contain exactly one MetricsSink node, but none was found.",
             });
+            return;
         }
-        else if (sinks.Length > 1)
+
+        if (sinks.Length > 1)
         {
             foreach (var sink in sinks)
             {
@@ -202,6 +204,20 @@ public static class GraphValidator
                     Message = $"Duplicate MetricsSink node '{sink.Id}'. A graph must contain exactly one MetricsSink.",
                 });
             }
+            return;
+        }
+
+        // D6/D19: every game must declare a finite round win cap.
+        var sole = sinks[0];
+        if (sole.WinCap is null or <= 0)
+        {
+            errors.Add(new CompileError
+            {
+                NodeId = sole.Id,
+                Code = ErrorCodes.MissingWinCap,
+                Message = $"MetricsSink '{sole.Id}' must declare a positive WinCap (D6/D19). " +
+                          "Every game requires a finite round win cap for exact-path safety.",
+            });
         }
     }
 

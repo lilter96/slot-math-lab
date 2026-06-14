@@ -89,7 +89,7 @@ public class SerializationRoundTripTests(ITestOutputHelper output)
                 new LibraryNode { Id = "eval1", Label = "Lines Eval", MechanicName = "lines" },
                 new LibraryNode { Id = "bonus", Label = "Free Spins", MechanicName = "free-spins" },
                 new LoopNode { Id = "loop1", Label = "FS Loop", MaxIterations = 100 },
-                new MetricsSinkNode { Id = "sink1", Label = "RTP" },
+                new MetricsSinkNode { WinCap = 10_000, Id = "sink1", Label = "RTP" },
             },
             Edges = new[]
             {

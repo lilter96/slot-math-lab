@@ -36,7 +36,9 @@ public sealed record GeneratedConfig
 /// </summary>
 public sealed record CrossCheckState(int Round, BigInteger Accumulator, int Retriggers)
 {
-    public BigInteger RecurrenceHash => Round * 1000 + Retriggers;
+    // Accumulator IS recurrence state here: it affects the final return value
+    // `select s.Accumulator`, so it must be part of the memo key (D12).
+    public BigInteger RecurrenceHash => Round * 1_000_000 + Retriggers * 1_000 + Accumulator;
     public CrossCheckState Inc() => this with { Round = Round + 1 };
     public CrossCheckState AddAccumulator(BigInteger v) => this with { Accumulator = Accumulator + v };
     public CrossCheckState IncRetrigger() => this with { Retriggers = Retriggers + 1 };
