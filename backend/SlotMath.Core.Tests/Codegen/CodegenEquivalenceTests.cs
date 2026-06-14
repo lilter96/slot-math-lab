@@ -10,6 +10,7 @@ using SlotMath.Core.Math;
 using SlotMath.Core.Model;
 using SlotMath.Core.Monad;
 using SlotMath.Core.Random;
+using SlotMath.Core.Serialization;
 
 namespace SlotMath.Core.Tests.Codegen;
 
@@ -370,5 +371,161 @@ public sealed class CodegenEquivalenceTests
         Assert.False(emit.Supported);
         Assert.Null(emit.Source);
         Assert.NotEmpty(emit.Diagnostics);
+    }
+
+    // ════════════════════════════════════════════════════════════════════
+    //  Property-based verification over RANDOM GRAPHS (G7 DoD)
+    //
+    //  The deliverable is a "property-based verification harness (CsCheck)".
+    //  Above we vary states on fixed graphs; here we vary the GRAPH ITSELF —
+    //  random draw counts, outcome sets, weights, and a random well-typed
+    //  scalar payout expression — then compile each generated graph to C# and
+    //  prove its exact PMF equals the interpreter's across random states.
+    //  CsCheck auto-shrinks any divergence to the minimal failing graph.
+    // ════════════════════════════════════════════════════════════════════
+
+    private static readonly string[] Syms = ["A", "B", "C"];
+    private static readonly string[] NumFields = ["mult", "bonus"];
+    private static readonly BinaryOp[] AddSubMul = [BinaryOp.Add, BinaryOp.Sub, BinaryOp.Mul];
+    private static readonly CompareOp[] EqNeq = [CompareOp.Eq, CompareOp.Neq];
+    private static readonly CompareOp[] AllCmp =
+        [CompareOp.Eq, CompareOp.Neq, CompareOp.Lt, CompareOp.Gt, CompareOp.Lte, CompareOp.Gte];
+
+    private sealed record DrawSpec(int M, int[] Weights);
+    private sealed record GraphSpec(DrawSpec[] Draws, Expression WinExpr);
+
+    private static string[] CellKeys(int k) => Enumerable.Range(0, k).Select(i => $"c{i}").ToArray();
+
+    private static Gen<Expression> GenNumber(string[] cells, int depth)
+    {
+        var leaf = Gen.OneOf(
+            Gen.Int[0, 5].Select(v => (Expression)Int(v)),
+            Gen.OneOfConst(NumFields).Select(f => (Expression)Field(f)));
+        if (depth <= 0) return leaf;
+
+        return Gen.OneOf(
+            leaf,
+            Gen.Select(Gen.OneOfConst(AddSubMul), GenNumber(cells, depth - 1), GenNumber(cells, depth - 1),
+                (op, l, r) => (Expression)new BinaryExpr { Op = op, Left = l, Right = r }),
+            Gen.Select(GenBool(cells, depth - 1), GenNumber(cells, depth - 1), GenNumber(cells, depth - 1),
+                (c, t, e) => (Expression)new IfExpr { Condition = c, ThenExpr = t, ElseExpr = e }));
+    }
+
+    private static Gen<Expression> GenBool(string[] cells, int depth)
+    {
+        var cellEq = Gen.Select(Gen.OneOfConst(cells), Gen.OneOfConst(Syms), Gen.OneOfConst(EqNeq),
+            (cell, sym, op) => (Expression)new CompareExpr { Op = op, Left = Field(cell), Right = Str(sym) });
+        var numCmp = Gen.Select(Gen.OneOfConst(AllCmp), GenNumber(cells, System.Math.Max(0, depth - 1)),
+            GenNumber(cells, System.Math.Max(0, depth - 1)),
+            (op, l, r) => (Expression)new CompareExpr { Op = op, Left = l, Right = r });
+        if (depth <= 0) return Gen.OneOf(cellEq, numCmp);
+
+        return Gen.OneOf(
+            cellEq, numCmp,
+            Gen.Select(GenBool(cells, depth - 1), GenBool(cells, depth - 1),
+                (l, r) => (Expression)new BinaryExpr { Op = BinaryOp.And, Left = l, Right = r }),
+            Gen.Select(GenBool(cells, depth - 1), GenBool(cells, depth - 1),
+                (l, r) => (Expression)new BinaryExpr { Op = BinaryOp.Or, Left = l, Right = r }),
+            GenBool(cells, depth - 1).Select(e => (Expression)new NotExpr { Expr = e }));
+    }
+
+    private static readonly Gen<GraphSpec> GenGraphSpec =
+        from k in Gen.Int[1, 3]
+        from draws in (from m in Gen.Int[2, 3]
+                       from w in Gen.Int[1, 5].Array[m]
+                       select new DrawSpec(m, w)).Array[k]
+        from win in GenNumber(CellKeys(k), 3)
+        select new GraphSpec(draws, win);
+
+    private static GraphConfig BuildRandomConfig(GraphSpec spec)
+    {
+        var k = spec.Draws.Length;
+        var nodes = new List<Node>();
+        var edges = new List<Edge>();
+
+        for (var i = 0; i < k; i++)
+        {
+            var d = spec.Draws[i];
+            nodes.Add(new DrawNode
+            {
+                Id = $"d{i}",
+                StateWriteKey = $"c{i}",
+                DrawWeights = Enumerable.Range(0, d.M)
+                    .Select(j => new DrawWeight { OutcomeId = Syms[j], Weight = d.Weights[j], Value = 0 })
+                    .ToArray(),
+                Inputs = i == 0 ? new PortMap() : new PortMap { ["state"] = StatePort },
+                Outputs = new PortMap { ["state"] = StatePort },
+            });
+            if (i > 0)
+                edges.Add(new Edge { Id = $"e{i}", SourceNodeId = $"d{i - 1}", SourcePort = "state", TargetNodeId = $"d{i}", TargetPort = "state" });
+        }
+
+        nodes.Add(new ModifyStateNode
+        {
+            Id = "win",
+            ExpressionId = "winExpr",
+            OutputKey = "win",
+            Inputs = new PortMap { ["state"] = StatePort },
+            Outputs = new PortMap { ["state"] = StatePort },
+        });
+        edges.Add(new Edge { Id = "ew", SourceNodeId = $"d{k - 1}", SourcePort = "state", TargetNodeId = "win", TargetPort = "state" });
+
+        nodes.Add(new MetricsSinkNode { Id = "sink", WinCap = 1_000_000, WinStateKey = "win", Inputs = new PortMap { ["state"] = StatePort } });
+        edges.Add(new Edge { Id = "es", SourceNodeId = "win", SourcePort = "state", TargetNodeId = "sink", TargetPort = "state" });
+
+        var schema = new List<StateFieldSchema> { new() { Name = "mult", Type = "number" }, new() { Name = "bonus", Type = "number" }, new() { Name = "win", Type = "number" } };
+        for (var i = 0; i < k; i++) schema.Add(new StateFieldSchema { Name = $"c{i}", Type = "string" });
+
+        return new GraphConfig
+        {
+            SchemaVersion = "1.0.0",
+            Id = "rand-graph",
+            StateSchema = schema.ToArray(),
+            Expressions = new Dictionary<string, Expression> { ["winExpr"] = spec.WinExpr },
+            Nodes = nodes.ToArray(),
+            Edges = edges.ToArray(),
+        };
+    }
+
+    [Fact]
+    public void RandomGraphs_GeneratedExactPmf_EqualInterpreter_WithShrinking()
+    {
+        // 120 random graphs × 9 random states = 1,080 (graph, state) equivalence
+        // checks — each compiled to C# with Roslyn and compared to the
+        // interpreter by exact rational equality.
+        GenGraphSpec.Sample(
+            spec =>
+            {
+                var config = BuildRandomConfig(spec);
+
+                // DoD: "compiles valid graphs" — the random graph must validate.
+                var compile = new GraphCompiler().Compile(config);
+                Assert.True(compile.IsValid,
+                    "random graph failed to compile: " +
+                    string.Join("; ", compile.Errors.Select(e => $"[{e.Code}] {e.Message}")));
+
+                var emit = new CSharpEmitter().Emit(config);
+                Assert.True(emit.Supported, "emit unsupported: " + string.Join("; ", emit.Diagnostics));
+                var type = CompileGenerated(emit);
+                var program = compile.Program!;
+
+                // Random states, deterministic per graph (seeded by its configHash).
+                var seed = unchecked((int)Convert.ToUInt32(ConfigHash.Compute(config)[..8], 16));
+                var rnd = new System.Random(seed);
+                for (var s = 0; s < 9; s++)
+                {
+                    var s0 = new Dict
+                    {
+                        ["mult"] = (BigInteger)rnd.Next(1, 4),
+                        ["bonus"] = (BigInteger)rnd.Next(0, 11),
+                    };
+                    var game = (ICompiledGame)Activator.CreateInstance(type)!;
+                    game.SetInitial(s0);
+                    var genPmf = ExactPmf.Enumerate(d => game.RunSpin(d));
+                    AssertPmfEqual(InterpreterPmf(program, s0), genPmf, $"graph={config.Id} state[{s}]");
+                }
+            },
+            seed: "g7-random-graphs-v1",
+            iter: 120);
     }
 }
