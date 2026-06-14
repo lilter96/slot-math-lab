@@ -80,15 +80,17 @@ public static class ExpressionCompiler
                 ExactExpressionEvaluator.EvaluateAsInteger(expr, new EvalContext { State = state }),
             ExprType.Boolean => state =>
                 ExactExpressionEvaluator.EvaluateAsBool(expr, new EvalContext { State = state }),
-            ExprType.String or ExprType.Symbol => state =>
-            {
-                var v = ExactExpressionEvaluator.Evaluate(expr, new EvalContext { State = state });
-                return v.Kind == ExprType.String ? v.StringValue! : v.ToString();
-            },
+            ExprType.String or ExprType.Symbol => CompileStringBoxed(expr),
             ExprType.Weights => state =>
                 ExactExpressionEvaluator.EvaluateAsWeights(expr, new EvalContext { State = state }),
             _ => _ => 0,
         };
+
+    private static Func<object?, object> CompileStringBoxed(Expression expr) => state =>
+    {
+        var v = ExactExpressionEvaluator.Evaluate(expr, new EvalContext { State = state });
+        return v.Kind == ExprType.String ? v.StringValue! : v.ToString();
+    };
 
     /// <summary>
     /// Compile to a win-producing delegate of the same shape a fast-path

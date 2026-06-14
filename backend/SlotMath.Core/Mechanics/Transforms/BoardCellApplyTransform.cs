@@ -28,9 +28,9 @@ public sealed class BoardCellApplyTransform : IFastPathTransform
         if (applyMode == CellApplyMode.OverlaySymbol)
             ArgumentNullException.ThrowIfNull(symbolId,
                 "SymbolId is required when ApplyMode = OverlaySymbol");
-        StateKey  = stateKey;
+        StateKey = stateKey;
         ApplyMode = applyMode;
-        SymbolId  = symbolId;
+        SymbolId = symbolId;
     }
 
     public IReadOnlyDictionary<string, object?> Apply(IReadOnlyDictionary<string, object?> state)
@@ -63,8 +63,8 @@ public sealed class BoardCellApplyTransform : IFastPathTransform
             var updated = ApplyMode switch
             {
                 CellApplyMode.OverlaySymbol => ApplyOverlay(next[idx]),
-                CellApplyMode.LockCells     => ApplyLock(next[idx]),
-                _                           => next[idx],
+                CellApplyMode.LockCells => ApplyLock(next[idx]),
+                _ => next[idx],
             };
             if (!ReferenceEquals(updated, next[idx])) { next[idx] = updated; changed = true; }
         }

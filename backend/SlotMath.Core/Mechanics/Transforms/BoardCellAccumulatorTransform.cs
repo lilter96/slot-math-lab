@@ -37,9 +37,9 @@ public sealed class BoardCellAccumulatorTransform : IFastPathTransform
     {
         ArgumentNullException.ThrowIfNull(stateKey);
         SymbolFilter = symbolFilter;
-        ExtractMode  = extractMode;
-        StateKey     = stateKey;
-        MergeMode    = mergeMode;
+        ExtractMode = extractMode;
+        StateKey = stateKey;
+        MergeMode = mergeMode;
     }
 
     public IReadOnlyDictionary<string, object?> Apply(IReadOnlyDictionary<string, object?> state)
@@ -51,10 +51,10 @@ public sealed class BoardCellAccumulatorTransform : IFastPathTransform
 
         return ExtractMode switch
         {
-            CellExtractMode.Count    => MergeCount(cells, state),
+            CellExtractMode.Count => MergeCount(cells, state),
             CellExtractMode.Position => MergeStringSet(cells, cols, state, ExtractPosition),
-            CellExtractMode.Symbol   => MergeStringSet(cells, cols, state, ExtractSymbol),
-            _                        => state,
+            CellExtractMode.Symbol => MergeStringSet(cells, cols, state, ExtractSymbol),
+            _ => state,
         };
     }
 
@@ -67,10 +67,10 @@ public sealed class BoardCellAccumulatorTransform : IFastPathTransform
         var existing = state.TryGetValue(StateKey, out var v) && v is int i ? i : 0;
         var merged = MergeMode switch
         {
-            CellMergeMode.Sum     => existing + count,
-            CellMergeMode.Max     => System.Math.Max(existing, count),
+            CellMergeMode.Sum => existing + count,
+            CellMergeMode.Max => System.Math.Max(existing, count),
             CellMergeMode.Replace => count,
-            _                     => count,
+            _ => count,
         };
 
         return GridState.With(state, StateKey, merged);
