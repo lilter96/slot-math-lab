@@ -104,16 +104,25 @@ public static class StateHasher
                 HashUInt64(unchecked((ulong)(long)board.GetHashCode()), ref h1, ref h2);
                 HashUInt64(unchecked((ulong)((long)board.Rows << 32 | (uint)board.Cols)), ref h1, ref h2);
                 break;
-            case Win[] wins:
-                HashUInt64(0x60UL, ref h1, ref h2);
-                HashUInt64((ulong)wins.Length, ref h1, ref h2);
-                foreach (var win in wins)
-                    HashUInt64(unchecked((ulong)(long)win.GetHashCode()), ref h1, ref h2);
-                break;
             case IReadOnlyDictionary<string, object?> nested:
                 HashUInt64(0x70UL, ref h1, ref h2);
                 var nestedHash = CanonicalHash(nested);
                 HashBytes(nestedHash.ToByteArray(), ref h1, ref h2);
+                break;
+            case System.Collections.IEnumerable seq:
+                // Generic, order-significant sequence hashing (D2/D11: arrays are
+                // order-significant).  A "board" is just a user-defined array in
+                // state S (invariant 4) — string[], object?[], List<object?>,
+                // Win[], etc. all hash by content here, so structurally equal
+                // states memoise to the same DAG node regardless of identity.
+                HashUInt64(0x80UL, ref h1, ref h2);
+                ulong len = 0;
+                foreach (var item in seq)
+                {
+                    HashValue(item, ref h1, ref h2);
+                    len++;
+                }
+                HashUInt64(len, ref h1, ref h2);
                 break;
             default:
                 // Fall back to the type identity + the value's own hash code.
