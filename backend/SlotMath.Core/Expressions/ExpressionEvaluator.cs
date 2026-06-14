@@ -634,8 +634,23 @@ public static class ExactExpressionEvaluator
             "append" when args.Length >= 2 && args[0].Kind == ExprType.Array =>
                 ExprValue.Array([.. args[0].ArrayValue!, args[1]]),
 
+            // index(arr, i) → element at i (e.g. refill[idx]); out-of-range is a
+            // located error (D1), never a silent value.
+            "index" when args.Length >= 2 && args[0].Kind == ExprType.Array =>
+                IndexArray(args[0].ArrayValue!, (int)args[1].AsInteger()),
+
             _ => ExprValue.Number(0),
         };
+    }
+
+    private static ExprValue IndexArray(IReadOnlyList<ExprValue> arr, int i)
+    {
+        if (i < 0 || i >= arr.Count)
+            throw new ExpressionEvaluationException(
+                EvalErrorCodes.IndexOutOfRange,
+                $"index({i}) is out of range [0, {arr.Count}) (D1).",
+                $"index[{i}]");
+        return arr[i];
     }
 
     private static ExprValue Ceil(ExprValue v)

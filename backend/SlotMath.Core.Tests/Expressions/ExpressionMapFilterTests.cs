@@ -801,6 +801,19 @@ public class IndexedIterationAndArrayOps
     }
 
     [Fact]
+    public void IndexCall_ReturnsElement_AndErrorsOutOfRange()
+    {
+        var arr = new FieldAccessExpr { Target = "state", Path = ["refill"] };
+        ExprValue Index(int i) => ExactExpressionEvaluator.Evaluate(
+            new CallExpr { Function = "index", Args = [arr, new ConstantExpr { Kind = ConstantKind.Integer, Value = i.ToString() }] },
+            State(new Dictionary<string, object?> { ["refill"] = new object?[] { "A", "B", "C" } }));
+
+        Assert.Equal("B", Index(1).StringValue);
+        var ex = Assert.Throws<ExpressionEvaluationException>(() => Index(5));
+        Assert.Equal(EvalErrorCodes.IndexOutOfRange, ex.Code);
+    }
+
+    [Fact]
     public void IndexAwareFold_WithAppend_CollectsMatchingPositions()
     {
         // fold(board, [], (acc, item, idx) => if item=="W" && !contains(acc, idx)

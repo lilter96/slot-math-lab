@@ -269,14 +269,15 @@ public static class ExpressionTypeChecker
         // type is not strictly enforced; the args are still inferred so nested
         // errors surface.
         var fn = c.Function.ToLowerInvariant();
-        if (fn is "length" or "contains" or "append")
+        if (fn is "length" or "contains" or "append" or "index")
         {
             foreach (var a in c.Args) Infer(a, ctx, errors);
             return fn switch
             {
                 "length" => ExprType.Number,
                 "contains" => ExprType.Boolean,
-                _ => ExprType.Array, // append
+                "append" => ExprType.Array,
+                _ => ExprType.String, // index(arr, i) → element (board cells are symbols)
             };
         }
 

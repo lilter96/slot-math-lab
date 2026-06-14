@@ -44,7 +44,7 @@ public sealed class CatalogMechanicTests
         // fast-path mechanics. Cascade/sticky-wild/hold-and-win were removed
         // with the C# board transforms (invariant 2/4) and will return as pure
         // subgraphs.
-        var expected = new[] { "scatter", "lines", "ways", "sticky-wild", "hold-and-win" };
+        var expected = new[] { "scatter", "lines", "ways", "sticky-wild", "hold-and-win", "cascade" };
 
         foreach (var name in expected)
             Assert.True(catalog.Entries.ContainsKey(name),
@@ -449,6 +449,33 @@ public sealed class CatalogMechanicTests
         state = ApplyModify(state, collect, "holdWin");
         state = ApplyModify(state, mark, "collectedPositions");
         Assert.Equal(new BigInteger(35), Assert.IsType<BigInteger>(state["holdWin"]));
+    }
+
+    // ════════════════════════════════════════════════════════════════════
+    //  8. Cascade / tumble — pure subgraph (invariant 2/4: zero C#, no Board)
+    // ════════════════════════════════════════════════════════════════════
+
+    [Fact]
+    public void Cascade_RemovesWinnersAndRefillsInPlace_PureSubgraph()
+    {
+        // One ModifyState node (index-aware map) replaces winning positions with
+        // freshly-drawn symbols and keeps the rest — the tumble step, authored
+        // with ZERO C# (invariant 2) over state arrays (invariant 4).
+        var mech = MechanicCatalog.Default.Entries["cascade"];
+        var tumble = mech.Expressions!["tumble_refill"];
+
+        var state = new Dict
+        {
+            ["board"] = new object?[] { "P", "P", "P", "Q", "R" },
+            ["winningPositions"] = new object?[] { new BigInteger(0), new BigInteger(1), new BigInteger(2) },
+            ["refill"] = new object?[] { "R", "Q", "R", "X", "X" },
+        };
+
+        state = ApplyModify(state, tumble, "board");
+
+        var board = (object?[])state["board"]!;
+        // Winning positions 0,1,2 take fresh symbols from refill; 3,4 are kept.
+        Assert.Equal(new object?[] { "R", "Q", "R", "Q", "R" }, board);
     }
 
     // ════════════════════════════════════════════════════════════════════
