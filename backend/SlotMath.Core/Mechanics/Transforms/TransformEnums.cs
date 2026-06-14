@@ -1,19 +1,5 @@
 namespace SlotMath.Core.Mechanics.Transforms;
 
-/// <summary>Direction for ExpandTransform.</summary>
-public enum ExpandDirection
-{
-    Row,
-    Column
-}
-
-/// <summary>Direction for NudgeTransform.</summary>
-public enum NudgeDirection
-{
-    Up,
-    Down
-}
-
 /// <summary>
 /// What data to extract from each matching cell — configures BoardCellAccumulatorTransform.
 /// </summary>
