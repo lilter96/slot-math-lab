@@ -430,7 +430,7 @@ public sealed class GraphCompiler
         private Func<object?, Slot<Dictionary<string, object?>, object?>> CompileBranchFork(
             BranchNode node, string? sinkId, Edge? trueEdge, Edge? falseEdge)
         {
-            Func<Board?, Dictionary<string, object?>, bool>? condition = null;
+            Func<object?, bool>? condition = null;
             if (node.ConditionId != null
                 && _config.Expressions != null
                 && _config.Expressions.TryGetValue(node.ConditionId, out var condExpr))
@@ -444,7 +444,7 @@ public sealed class GraphCompiler
             return v => Slot.GetState<Dictionary<string, object?>>()
                 .SelectMany(state =>
                 {
-                    var pass = condition?.Invoke(v as Board, state) ?? false;
+                    var pass = condition?.Invoke(state) ?? false;
 
                     if (pass && trueChain != null)
                         return trueChain(v);
@@ -478,7 +478,7 @@ public sealed class GraphCompiler
             {
                 var compiledStop = ExpressionCompiler.CompileBoolean(stopExpr);
                 var prevStop = stopFn;
-                stopFn = s => prevStop(s) || compiledStop(null, s);
+                stopFn = s => prevStop(s) || compiledStop(s);
             }
 
             // Body program: body subgraph (compiled once) + accumulate result
@@ -610,46 +610,35 @@ public sealed class GraphCompiler
                     $"ReelSet '{reelSet.Id}' references no valid reel strips.");
 
             var rows = _config.BoardConfig?.Rows ?? 3;
+            var cols = strips.Length;
             var weights = BuildReelWeights(strips, drawNode.Id);
 
-            // When BoardStateKey is set, write the drawn board as a flat symbol array
-            // into state (row-major order) so that level-(b) fold/map/filter expressions
-            // can read the board from state without any engine-level Board type (invariant 4).
-            var boardStateKey = drawNode.BoardStateKey;
-            if (boardStateKey != null)
-            {
-                var capturedStrips = strips;
-                var capturedRows = rows;
-                var capturedKey = boardStateKey;
-                return new Draw<Dictionary<string, object?>, object?>(
-                    _ => weights,
-                    choiceIndex =>
-                    {
-                        var board = BuildBoardFromChoice(choiceIndex, capturedStrips, capturedRows);
-                        var flat = BuildFlatSymbols(board);
-                        return Slot.Modify<Dictionary<string, object?>>(s =>
-                            {
-                                var next = new Dictionary<string, object?>(s);
-                                next[capturedKey] = flat;
-                                return next;
-                            })
-                            .SelectMany(_ => Slot.Pure<Dictionary<string, object?>, object?>(board));
-                    });
-            }
-
-            return Slot.Draw<Dictionary<string, object?>, object?>(
+            // The drawn board is published into state as a flat row-major symbol
+            // array plus its dimensions (invariant 4: no engine Board type — a
+            // board is a user-defined array in S).  Fast-path evaluators and
+            // level-(b) fold/map/filter/aggregate expressions read it from state.
+            // The custom BoardStateKey (default "board") lets a graph name it.
+            var capturedStrips = strips;
+            var capturedRows = rows;
+            var capturedCols = cols;
+            var boardKey = drawNode.BoardStateKey ?? GridState.CellsKey;
+            return new Draw<Dictionary<string, object?>, object?>(
                 _ => weights,
-                choiceIndex => BuildBoardFromChoice(choiceIndex, strips, rows));
-        }
-
-        private static object?[] BuildFlatSymbols(Board board)
-        {
-            var flat = new object?[board.Rows * board.Cols];
-            var idx = 0;
-            for (var r = 0; r < board.Rows; r++)
-                for (var c = 0; c < board.Cols; c++)
-                    flat[idx++] = (object?)(board[r, c].Symbols?[0] ?? "");
-            return flat;
+                choiceIndex =>
+                {
+                    var flat = BuildFlatFromChoice(choiceIndex, capturedStrips, capturedRows);
+                    return Slot.Modify<Dictionary<string, object?>>(s =>
+                        {
+                            var next = new Dictionary<string, object?>(s)
+                            {
+                                [boardKey] = flat,
+                                [GridState.RowsKey] = capturedRows,
+                                [GridState.ColsKey] = capturedCols,
+                            };
+                            return next;
+                        })
+                        .SelectMany(_ => Slot.Pure<Dictionary<string, object?>, object?>(flat));
+                });
         }
 
         private Slot<Dictionary<string, object?>, object?> BuildDrawSlot(
@@ -708,12 +697,12 @@ public sealed class GraphCompiler
             return WeightSet.Uniform((int)totalOutcomes);
         }
 
-        private static Board BuildBoardFromChoice(int choiceIndex, ReelStrip[] strips, int rows)
+        private static object?[] BuildFlatFromChoice(int choiceIndex, ReelStrip[] strips, int rows)
         {
             int cols = strips.Length;
-            var cells = new BoardCell[rows, cols];
+            var flat = new object?[rows * cols];
 
-            // Decode the choice index into a reel position for each column
+            // Decode the choice index into a reel position for each column.
             int remaining = choiceIndex;
             for (int c = cols - 1; c >= 0; c--)
             {
@@ -724,29 +713,28 @@ public sealed class GraphCompiler
                 for (int r = 0; r < rows; r++)
                 {
                     int stripPos = (reelPos + r) % stripLen;
-                    var symbolId = strips[c].Symbols[stripPos];
-                    cells[r, c] = new BoardCell { Symbols = new[] { symbolId } };
+                    flat[GridState.Index(r, c, cols)] = strips[c].Symbols[stripPos];
                 }
             }
 
-            return Board.FromCells(cells);
+            return flat;
         }
 
         // ── Map (evaluator / transform) ─────────────────────────────────
 
         private Func<object?, Slot<Dictionary<string, object?>, object?>> CompileMap(MapNode mapNode)
         {
-            // Pre-compile expression-valued input ports.  A port named "in"
-            // is occupied at runtime when an input value arrives, so its
-            // default only applies when the input is null.
-            var expressionPorts = new List<(string PortName, Func<Board?, object?, BigInteger> Compiled)>();
+            // Pre-compile expression-valued input ports (e.g. a multiplier
+            // computed from state).  Evaluated against the game state at run time
+            // (invariant 4: expressions read the board from state, not a Board).
+            var expressionPorts = new List<(string PortName, Func<object?, BigInteger> Compiled)>();
             foreach (var (portName, port) in mapNode.Inputs)
             {
-                if (port.DefaultValue != null)
+                if (port.DefaultValue != null && portName != "in")
                     expressionPorts.Add((portName, ExpressionCompiler.CompileNumber(port.DefaultValue)));
             }
 
-            Func<Board?, Dictionary<string, object?>, Dictionary<string, BigInteger>?,
+            Func<Dictionary<string, object?>, Dictionary<string, BigInteger>?,
                 (object? Result, Dictionary<string, object?> NewState)>? applyTransform =
                 mapNode.TransformId != null
                     ? ResolveTransform(mapNode.TransformId, mapNode.Id)
@@ -756,46 +744,35 @@ public sealed class GraphCompiler
             var hasWinsOutput = mapNode.Outputs.Values.Any(p => p.Type == PortType.Wins);
 
             return v =>
-            {
-                var board = v as Board;
-
-                Dictionary<string, BigInteger>? expressionValues = null;
-                if (expressionPorts.Count > 0)
-                {
-                    var inputs = v != null
-                        ? new Dictionary<string, object?> { ["in"] = v }
-                        : new Dictionary<string, object?>();
-                    foreach (var (portName, compiled) in expressionPorts)
+                Slot.GetState<Dictionary<string, object?>>()
+                    .SelectMany(currentState =>
                     {
-                        if (!inputs.ContainsKey(portName))
+                        Dictionary<string, BigInteger>? expressionValues = null;
+                        foreach (var (portName, compiled) in expressionPorts)
                         {
                             expressionValues ??= new Dictionary<string, BigInteger>();
-                            expressionValues[portName] = compiled(board, inputs);
+                            expressionValues[portName] = compiled(currentState);
                         }
-                    }
-                }
 
-                if (applyTransform != null)
-                    return Slot.GetState<Dictionary<string, object?>>()
-                        .SelectMany(currentState =>
+                        if (applyTransform != null)
                         {
-                            var (result, newState) = applyTransform(board, currentState, expressionValues);
+                            var (result, newState) = applyTransform(currentState, expressionValues);
                             var resultSlot = Slot.Pure<Dictionary<string, object?>, object?>(result);
                             return ReferenceEquals(newState, currentState)
                                 ? resultSlot
                                 : Slot.Modify<Dictionary<string, object?>>(_ => newState)
                                     .SelectMany(_ => resultSlot);
-                        });
+                        }
 
-                if (hasBoardInput && hasWinsOutput && board != null)
-                {
-                    // Board → Wins with no evaluator specified: empty wins.
-                    return Slot.Pure<Dictionary<string, object?>, object?>(Array.Empty<Win>());
-                }
+                        if (hasBoardInput && hasWinsOutput)
+                        {
+                            // Board → Wins with no evaluator specified: empty wins.
+                            return Slot.Pure<Dictionary<string, object?>, object?>(Array.Empty<Win>());
+                        }
 
-                // Pass through the board if nothing else matches.
-                return Slot.Pure<Dictionary<string, object?>, object?>(board!);
-            };
+                        // Pass the input value through if nothing else matches.
+                        return Slot.Pure<Dictionary<string, object?>, object?>(v);
+                    });
         }
 
         /// <summary>
@@ -806,7 +783,7 @@ public sealed class GraphCompiler
         /// both the result and the (possibly updated) game state.  Evaluators
         /// return state unchanged; transforms may return a new state object.
         /// </summary>
-        private Func<Board?, Dictionary<string, object?>, Dictionary<string, BigInteger>?,
+        private Func<Dictionary<string, object?>, Dictionary<string, BigInteger>?,
             (object? Result, Dictionary<string, object?> NewState)> ResolveTransform(
             string transformId, string nodeId)
         {
@@ -815,15 +792,14 @@ public sealed class GraphCompiler
             {
                 var pluginId = transformId["plugin:".Length..];
 
-                // ITransform plugin — may read and write state
+                // ITransform plugin — receives the whole state, returns new state.
                 var pluginTransform = _pluginHost?.TryGetTransform(pluginId);
                 if (pluginTransform != null)
                 {
-                    return (board, state, _) =>
+                    return (state, _) =>
                     {
-                        var (newBoard, newStateObj) = pluginTransform.Apply(board!, state);
-                        var newState = newStateObj as Dictionary<string, object?> ?? state;
-                        return (newBoard, newState);
+                        var newState = ToDict(pluginTransform.Apply(state));
+                        return (GridState.Cells(newState), newState);
                     };
                 }
 
@@ -833,8 +809,8 @@ public sealed class GraphCompiler
                     throw new CompilationException(nodeId, ErrorCodes.PluginNotFound,
                         $"Plugin '{pluginId}' not found.");
 
-                return (board, state, expressionValues) => (
-                    ApplyExpressions(pluginEvaluator.Evaluate(board!, state), expressionValues),
+                return (state, expressionValues) => (
+                    ApplyExpressions(pluginEvaluator.Evaluate(state), expressionValues),
                     state
                 );
             }
@@ -843,21 +819,20 @@ public sealed class GraphCompiler
             var registryEvaluator = EvaluatorRegistry.TryGet(transformId);
             if (registryEvaluator != null)
             {
-                return (board, state, expressionValues) => (
-                    ApplyExpressions(registryEvaluator.Evaluate(board!, state), expressionValues),
+                return (state, expressionValues) => (
+                    ApplyExpressions(registryEvaluator.Evaluate(state), expressionValues),
                     state
                 );
             }
 
-            // Transform registry — transforms may read and write state
+            // Transform registry — transforms read and write state.
             var transform = TransformRegistry.TryGet(transformId);
             if (transform != null)
             {
-                return (board, state, _) =>
+                return (state, _) =>
                 {
-                    var (newBoard, newStateObj) = transform.Apply(board!, state);
-                    var newState = newStateObj as Dictionary<string, object?> ?? state;
-                    return (newBoard, newState);
+                    var newState = ToDict(transform.Apply(state));
+                    return (GridState.Cells(newState), newState);
                 };
             }
 
@@ -884,6 +859,10 @@ public sealed class GraphCompiler
                 EvaluatorName = w.EvaluatorName,
             });
         }
+
+        /// <summary>Materialise an evaluator/transform result state as a mutable dictionary.</summary>
+        private static Dictionary<string, object?> ToDict(IReadOnlyDictionary<string, object?> state) =>
+            state as Dictionary<string, object?> ?? new Dictionary<string, object?>(state);
 
         // ── State nodes ─────────────────────────────────────────────────
 
@@ -946,7 +925,7 @@ public sealed class GraphCompiler
             return Slot.Modify<Dictionary<string, object?>>(state =>
                 {
                     var next = new Dictionary<string, object?>(state);
-                    next["__modified__"] = compiled(null, state);
+                    next["__modified__"] = compiled(state);
                     return next;
                 })
                 .SelectMany(static _ => Slot.Pure<Dictionary<string, object?>, object?>(null!));
@@ -977,7 +956,7 @@ public sealed class GraphCompiler
                 return v => Slot.GetState<Dictionary<string, object?>>()
                     .SelectMany(state =>
                     {
-                        var pass = compiledCond(v as Board, state);
+                        var pass = compiledCond(state);
                         return Slot.Pure<Dictionary<string, object?>, object?>(
                             pass ? v : (object?)BigInteger.Zero);
                     });
@@ -1006,7 +985,7 @@ public sealed class GraphCompiler
             {
                 var compiledStop = ExpressionCompiler.CompileBoolean(stopExpr);
                 var prevStop = stopFn;
-                stopFn = s => prevStop(s) || compiledStop(null, s);
+                stopFn = s => prevStop(s) || compiledStop(s);
             }
 
             // Find the body node from incoming edges

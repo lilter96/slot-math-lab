@@ -4,25 +4,28 @@ using System.Collections.Frozen;
 namespace SlotMath.Core.Mechanics;
 
 /// <summary>
-/// Open registry of named <see cref="ITransform"/> implementations.
+/// Open registry of named <see cref="IFastPathTransform"/> implementations.
 ///
-/// The standard library registers its transforms at startup; plugins can
-/// register additional transforms at any time.  The interpreters and compiler
-/// query this registry by name — adding a new transform requires zero changes
-/// to engine code.
+/// The standard library registers its trusted fast-path transforms at startup.
+/// The interpreters and compiler query this registry by name — adding a new
+/// fast-path requires zero changes to engine code.
+///
+/// This registry holds <see cref="IFastPathTransform"/>, NOT the plugin contract
+/// <see cref="ITransform"/>; plugins are managed separately by the PluginHost
+/// (Invariant 2, G12).
 ///
 /// Because the registry is static, consumers should treat it as append-only
 /// during a process lifetime (Clear is provided for testing).
 /// </summary>
 public static class TransformRegistry
 {
-    private static readonly ConcurrentDictionary<string, ITransform> _transforms = new();
+    private static readonly ConcurrentDictionary<string, IFastPathTransform> _transforms = new();
 
     /// <summary>
     /// All currently registered transforms.  Returns a frozen snapshot; callers
     /// that need the very latest entry should re-read the property.
     /// </summary>
-    public static IReadOnlyDictionary<string, ITransform> All =>
+    public static IReadOnlyDictionary<string, IFastPathTransform> All =>
         _transforms.ToFrozenDictionary();
 
     /// <summary>
@@ -30,7 +33,7 @@ public static class TransformRegistry
     /// </summary>
     /// <param name="name">Unique name for the transform.</param>
     /// <param name="transform">The transform instance.</param>
-    public static void Register(string name, ITransform transform)
+    public static void Register(string name, IFastPathTransform transform)
     {
         ArgumentNullException.ThrowIfNull(name);
         ArgumentNullException.ThrowIfNull(transform);
@@ -45,7 +48,7 @@ public static class TransformRegistry
     /// <summary>
     /// Look up a transform by name.  Returns null if not found.
     /// </summary>
-    public static ITransform? TryGet(string name)
+    public static IFastPathTransform? TryGet(string name)
     {
         _transforms.TryGetValue(name, out var t);
         return t;

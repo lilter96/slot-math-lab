@@ -4,24 +4,27 @@ namespace SlotMath.Core.Mechanics;
 /// Plugin contract (level c) for pure win evaluation.
 ///
 /// IEvaluator is the interface that user-uploaded plugins implement to supply
-/// novel win-scoring logic.  It is NOT a standard-library interface — the
-/// canonical mechanics catalog is composed from substrate atoms (subgraphs of
+/// novel win-scoring logic.  It is a **plugin-only** contract — the standard
+/// library ships ZERO implementations of it (Invariant 2, G12).  The canonical
+/// mechanics catalog is composed from substrate atoms (subgraphs of
 /// Draw/State/Loop + expressions), not from C# classes.
 ///
-/// The implementations in Mechanics/Evaluators/ are OPTIONAL C# fast-paths:
-/// each one is accompanied by a passing equivalence test against its canonical
-/// atomic subgraph (Invariant 11).  They are optimization details, not the
-/// source of truth.
+/// Optional C# fast-paths (Lines/Ways/Cluster) are NOT plugins and do NOT
+/// implement this interface — they implement the internal, trusted
+/// <see cref="IFastPathEvaluator"/> contract instead.
 ///
-/// Rules: pure, deterministic, no Draw, no I/O.
+/// A game that uses a plugin is flagged sampled-regime; the engine never claims
+/// Exact for it.  Rules: pure, deterministic, no Draw, no I/O.
 /// </summary>
 public interface IEvaluator
 {
     /// <summary>
-    /// Evaluate the board and return all winning combinations.
+    /// Evaluate the game state and return all winning combinations.  The plugin
+    /// receives the whole state and reads the board from it (invariant 4:
+    /// a board is a user-defined array in S, e.g. <c>state["board"]</c>); see
+    /// <see cref="GridState"/>.
     /// </summary>
-    /// <param name="board">The current board state.</param>
-    /// <param name="state">Opaque recurrence state (may be null).</param>
+    /// <param name="state">The current game state.</param>
     /// <returns>Array of wins (empty if none).</returns>
-    Win[] Evaluate(Board board, object? state);
+    Win[] Evaluate(IReadOnlyDictionary<string, object?> state);
 }

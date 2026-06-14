@@ -10,7 +10,7 @@
     "global-mul": {
       "exprType": "aggregate",
       "func": "Sum",
-      "target": "board",
+      "stateKey": "board",
       "predicate": { "exprType": "compare", "op": "Eq", "left": { "exprType": "fieldAccess","path":["symbol","kind"],"target":"board" }, "right": { "exprType": "constant","kind":"String","value":"Multiplier" } }
     }
   },

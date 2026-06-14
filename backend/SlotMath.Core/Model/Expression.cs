@@ -108,11 +108,43 @@ public enum AggregateFunc
     Max,
 }
 
+// ── State-array aggregation (sum/product/count/min/max with a predicate) ──
+//
+//  aggregate_Func(state[StateKey], ItemName => Predicate, ItemName => ValueExpr)
+//
+//  Harmonised with FoldExpr/MapExpr/FilterExpr: iterates the array stored at
+//  state[StateKey], binding each element under ItemName so both the optional
+//  Predicate (filter) and the optional ValueExpr (selector) can reference it.
+//  ValueExpr extracts the numeric value to aggregate from each element — e.g.
+//  `item.multiplier` for an array of cell records; if absent, the element
+//  itself is aggregated (when numeric).  This carries no engine Board type
+//  (invariant 4): elements may be plain symbols or cell records.
+
 public sealed record AggregateExpr : Expression
 {
     public required AggregateFunc Func { get; init; }
+
+    /// <summary>
+    /// Key in the state dictionary whose value is the array to aggregate over
+    /// (invariant 4: a "board" is just a user-defined array in state S).
+    /// </summary>
+    public required string StateKey { get; init; }
+
+    /// <summary>Name bound to the current array element inside Predicate and ValueExpr.</summary>
+    public string ItemName { get; init; } = "item";
+
+    /// <summary>Expected type of array items (defaults to String).</summary>
+    public ExprType ItemType { get; init; } = ExprType.String;
+
+    /// <summary>Optional filter: only elements where this evaluates true are aggregated.</summary>
     public Expression? Predicate { get; init; }
-    public required string Target { get; init; } // "board" | field path prefix
+
+    /// <summary>
+    /// Optional selector extracting the numeric value to aggregate from each
+    /// element (e.g. <c>item.multiplier</c>). If absent, the element itself is
+    /// aggregated (parsed to a number when it is a numeric string/value).
+    /// </summary>
+    public Expression? ValueExpr { get; init; }
 }
 
 // ── Logical not ────────────────────────────────────────────────────────
@@ -146,6 +178,9 @@ public sealed record MapExpr : Expression
     /// <summary>Name bound to the current array element inside the lambda body.</summary>
     public required string ItemName { get; init; }
 
+    /// <summary>Optional name bound to the current element's 0-based index (invariant 4: enables position-aware board mechanics).</summary>
+    public string? IndexName { get; init; }
+
     /// <summary>Lambda body — evaluated once per element; may not contain fold/map/filter.</summary>
     public required Expression Body { get; init; }
 
@@ -168,6 +203,9 @@ public sealed record FilterExpr : Expression
 
     /// <summary>Name bound to the current array element inside the predicate.</summary>
     public required string ItemName { get; init; }
+
+    /// <summary>Optional name bound to the current element's 0-based index (invariant 4: enables position-aware board mechanics).</summary>
+    public string? IndexName { get; init; }
 
     /// <summary>Predicate — must return Boolean; may not contain fold/map/filter.</summary>
     public required Expression Predicate { get; init; }
@@ -196,6 +234,9 @@ public sealed record FoldExpr : Expression
 
     /// <summary>Name bound to the current array element inside the lambda body.</summary>
     public required string ItemName { get; init; }
+
+    /// <summary>Optional name bound to the current element's 0-based index (invariant 4: enables position-aware board mechanics).</summary>
+    public string? IndexName { get; init; }
 
     /// <summary>Initial accumulator value.</summary>
     public required Expression Init { get; init; }

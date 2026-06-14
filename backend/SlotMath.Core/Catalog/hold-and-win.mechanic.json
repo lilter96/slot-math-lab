@@ -1,32 +1,115 @@
 {
   "name": "hold-and-win",
-  "description": "Hold & Win / Bonus Collect mechanic. Reveal cells on each respin collecting money symbols into state. Uses the collect transform to accumulate symbol values and the reveal transform to expose cells. Input port: 'board' (Board). Output port: 'wins' (Wins).",
+  "description": "Hold & Win / bonus-collect mechanic as a pure subgraph (invariant 2/4: no C# class, no Board type). Money cells on the board (state['board']) carry numeric values; blank cells are '_'. Across respins, money lands and sticks: each respin adds the values of NEW money cells (positions not yet collected) to state['holdWin'] and records their positions in state['collectedPositions']. The host game wires these two ModifyState nodes inside a respin Loop (stop = no new money or respin cap) and emits state['holdWin']. Uses index-aware folds + contains/append over a state array. Input/output port: 'state'.",
   "nodes": [
     {
-      "nodeType": "map",
-      "id": "reveal",
-      "label": "Reveal Cell",
-      "transformId": "reveal",
-      "inputs": { "board": { "name": "board", "type": "Board" } },
-      "outputs": { "board": { "name": "board", "type": "Board" } }
+      "nodeType": "modifyState",
+      "id": "collect",
+      "label": "Collect New Money Values",
+      "expressionId": "collect_value",
+      "outputKey": "holdWin",
+      "inputs": { "state": { "name": "state", "type": "State" } },
+      "outputs": { "state": { "name": "state", "type": "State" } }
     },
     {
-      "nodeType": "map",
-      "id": "collect",
-      "label": "Collect Values",
-      "transformId": "collect",
-      "inputs": { "board": { "name": "board", "type": "Board" } },
-      "outputs": { "wins": { "name": "wins", "type": "Wins" } }
+      "nodeType": "modifyState",
+      "id": "mark",
+      "label": "Mark Collected Positions",
+      "expressionId": "mark_collected",
+      "outputKey": "collectedPositions",
+      "inputs": { "state": { "name": "state", "type": "State" } },
+      "outputs": { "state": { "name": "state", "type": "State" } }
     }
   ],
   "edges": [
-    {
-      "id": "e1",
-      "sourceNodeId": "reveal",
-      "sourcePort": "board",
-      "targetNodeId": "collect",
-      "targetPort": "board"
-    }
+    { "id": "e0", "sourceNodeId": "collect", "sourcePort": "state", "targetNodeId": "mark", "targetPort": "state" }
   ],
-  "expressions": {}
+  "expressions": {
+    "collect_value": {
+      "exprType": "fold",
+      "stateKey": "board",
+      "accName": "acc",
+      "itemName": "cell",
+      "indexName": "i",
+      "itemType": "String",
+      "init": { "exprType": "fieldAccess", "target": "state", "path": ["holdWin"] },
+      "body": {
+        "exprType": "if",
+        "condition": {
+          "exprType": "binary",
+          "op": "And",
+          "left": {
+            "exprType": "compare",
+            "op": "Neq",
+            "left": { "exprType": "fieldAccess", "target": "state", "path": ["cell"] },
+            "right": { "exprType": "constant", "kind": "String", "value": "_" }
+          },
+          "right": {
+            "exprType": "not",
+            "expr": {
+              "exprType": "call",
+              "function": "contains",
+              "args": [
+                { "exprType": "fieldAccess", "target": "state", "path": ["collectedPositions"] },
+                { "exprType": "fieldAccess", "target": "state", "path": ["i"] }
+              ]
+            }
+          }
+        },
+        "thenExpr": {
+          "exprType": "binary",
+          "op": "Add",
+          "left": { "exprType": "fieldAccess", "target": "state", "path": ["acc"] },
+          "right": {
+            "exprType": "call",
+            "function": "toNumber",
+            "args": [ { "exprType": "fieldAccess", "target": "state", "path": ["cell"] } ]
+          }
+        },
+        "elseExpr": { "exprType": "fieldAccess", "target": "state", "path": ["acc"] }
+      }
+    },
+    "mark_collected": {
+      "exprType": "fold",
+      "stateKey": "board",
+      "accName": "acc",
+      "itemName": "cell",
+      "indexName": "i",
+      "itemType": "String",
+      "init": { "exprType": "fieldAccess", "target": "state", "path": ["collectedPositions"] },
+      "body": {
+        "exprType": "if",
+        "condition": {
+          "exprType": "binary",
+          "op": "And",
+          "left": {
+            "exprType": "compare",
+            "op": "Neq",
+            "left": { "exprType": "fieldAccess", "target": "state", "path": ["cell"] },
+            "right": { "exprType": "constant", "kind": "String", "value": "_" }
+          },
+          "right": {
+            "exprType": "not",
+            "expr": {
+              "exprType": "call",
+              "function": "contains",
+              "args": [
+                { "exprType": "fieldAccess", "target": "state", "path": ["acc"] },
+                { "exprType": "fieldAccess", "target": "state", "path": ["i"] }
+              ]
+            }
+          }
+        },
+        "thenExpr": {
+          "exprType": "call",
+          "function": "append",
+          "args": [
+            { "exprType": "fieldAccess", "target": "state", "path": ["acc"] },
+            { "exprType": "fieldAccess", "target": "state", "path": ["i"] }
+          ]
+        },
+        "elseExpr": { "exprType": "fieldAccess", "target": "state", "path": ["acc"] }
+      }
+    }
+  }
 }

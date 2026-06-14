@@ -1,4 +1,5 @@
 using SlotMath.Core.Mechanics;
+using SlotMath.Core.Tests;
 
 namespace SlotMath.Core.Tests.Mechanics;
 
@@ -72,14 +73,16 @@ public class EvaluatorRegistryTests : IDisposable
     [Fact]
     public void IEvaluator_IsPureFunction()
     {
-        var board = new Board(2, 2)
-            .SetCell(0, 0, new BoardCell { Symbols = new[] { "A" } })
-            .SetCell(0, 1, new BoardCell { Symbols = new[] { "A" } });
+        var state = TestBoardState.From(new string?[][]
+        {
+            new string?[] { "A", "A" },
+            new string?[] { null, null },
+        });
 
         var evaluator = new PureTestEvaluator();
 
-        var wins1 = evaluator.Evaluate(board, null);
-        var wins2 = evaluator.Evaluate(board, null);
+        var wins1 = evaluator.Evaluate(state);
+        var wins2 = evaluator.Evaluate(state);
 
         // Same input → same output
         Assert.Equal(wins1.Length, wins2.Length);
@@ -91,12 +94,16 @@ public class EvaluatorRegistryTests : IDisposable
     public void IEvaluator_NoDrawNoIO()
     {
         var evaluator = new PureTestEvaluator();
-        var board = new Board(2, 2);
+        var state = TestBoardState.From(new string?[][]
+        {
+            new string?[] { null, null },
+            new string?[] { null, null },
+        });
 
         // Apply multiple times with same input — always deterministic
-        var r1 = evaluator.Evaluate(board, null);
-        var r2 = evaluator.Evaluate(board, null);
-        var r3 = evaluator.Evaluate(board, null);
+        var r1 = evaluator.Evaluate(state);
+        var r2 = evaluator.Evaluate(state);
+        var r3 = evaluator.Evaluate(state);
 
         Assert.Equal(r1.Length, r2.Length);
         Assert.Equal(r2.Length, r3.Length);
@@ -137,11 +144,11 @@ public class EvaluatorRegistryTests : IDisposable
 
 // ── Test evaluator ─────────────────────────────────────────────────────
 
-public sealed class PureTestEvaluator : IEvaluator
+public sealed class PureTestEvaluator : IFastPathEvaluator
 {
-    public Win[] Evaluate(Board board, object? state)
+    public Win[] Evaluate(IReadOnlyDictionary<string, object?> state)
     {
-        ArgumentNullException.ThrowIfNull(board);
+        ArgumentNullException.ThrowIfNull(state);
         return Array.Empty<Win>();
     }
 }

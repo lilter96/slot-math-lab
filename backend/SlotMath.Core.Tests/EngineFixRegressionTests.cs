@@ -413,6 +413,73 @@ public class StateHasherTests
         var after = StateHasher.CanonicalHash(state);
         Assert.NotEqual(before, after);
     }
+
+    // ── Invariant 4: a "board" is just a user-defined array in state S ──────
+    //    Arrays must hash by content (order-significant), so two structurally
+    //    equal board-arrays reached via different paths memoise to one DAG node.
+
+    [Fact]
+    public void ArrayValue_HashesByContent_NotReferenceIdentity()
+    {
+        // Two distinct array instances with identical contents → same hash.
+        var a = new Dictionary<string, object?> { ["board"] = new object?[] { "A", "B", "C" } };
+        var b = new Dictionary<string, object?> { ["board"] = new object?[] { "A", "B", "C" } };
+        Assert.Equal(StateHasher.CanonicalHash(a), StateHasher.CanonicalHash(b));
+    }
+
+    [Fact]
+    public void ArrayValue_OrderSignificant()
+    {
+        // Arrays are order-significant (D2/D11): a permutation differs.
+        var a = new Dictionary<string, object?> { ["board"] = new object?[] { "A", "B", "C" } };
+        var b = new Dictionary<string, object?> { ["board"] = new object?[] { "C", "B", "A" } };
+        Assert.NotEqual(StateHasher.CanonicalHash(a), StateHasher.CanonicalHash(b));
+    }
+
+    [Fact]
+    public void ArrayValue_StringArrayAndObjectArray_SameContentSameHash()
+    {
+        // The board may be string[] or object?[] — both hash identically when
+        // their elements are equal, so the representation choice is transparent.
+        var a = new Dictionary<string, object?> { ["board"] = new[] { "A", "B" } };
+        var b = new Dictionary<string, object?> { ["board"] = new object?[] { "A", "B" } };
+        Assert.Equal(StateHasher.CanonicalHash(a), StateHasher.CanonicalHash(b));
+    }
+
+    [Fact]
+    public void ArrayValue_DifferentLength_DifferentHash()
+    {
+        var a = new Dictionary<string, object?> { ["board"] = new object?[] { "A", "B" } };
+        var b = new Dictionary<string, object?> { ["board"] = new object?[] { "A", "B", "C" } };
+        Assert.NotEqual(StateHasher.CanonicalHash(a), StateHasher.CanonicalHash(b));
+    }
+
+    [Fact]
+    public void ArrayValue_MutatedInPlace_HashChanges()
+    {
+        // A board cascade mutates cells; the recurrence hash must track it.
+        var board = new object?[] { "A", "B", "C" };
+        var state = new Dictionary<string, object?> { ["board"] = board };
+        var before = StateHasher.CanonicalHash(state);
+        board[1] = "X";
+        var after = StateHasher.CanonicalHash(state);
+        Assert.NotEqual(before, after);
+    }
+
+    [Fact]
+    public void NestedArray_OfArrays_HashesByContent()
+    {
+        // A jagged board (rows of symbol arrays) still hashes structurally.
+        var a = new Dictionary<string, object?>
+        {
+            ["board"] = new object?[] { new object?[] { "A", "B" }, new object?[] { "C", "D" } },
+        };
+        var b = new Dictionary<string, object?>
+        {
+            ["board"] = new object?[] { new object?[] { "A", "B" }, new object?[] { "C", "D" } },
+        };
+        Assert.Equal(StateHasher.CanonicalHash(a), StateHasher.CanonicalHash(b));
+    }
 }
 
 public class ProgramAnalyzer_Bounds

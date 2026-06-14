@@ -212,12 +212,16 @@ public sealed class DogHouseBenchmarkTests : IDisposable
                     Op    = CompareOp.Gte,
                     Left  = new AggregateExpr
                     {
-                        Func   = AggregateFunc.Count,
-                        Target = "board",
+                        // Count bonus symbols in the board state array (invariant 4:
+                        // the board is state["board"], a flat symbol array; each
+                        // element is bound under ItemName).
+                        Func     = AggregateFunc.Count,
+                        StateKey = "board",
+                        ItemName = "cell",
                         Predicate = new CompareExpr
                         {
                             Op    = CompareOp.Eq,
-                            Left  = new FieldAccessExpr { Path = new[] { "symbol" }, Target = null },
+                            Left  = new FieldAccessExpr { Path = new[] { "cell" }, Target = "state" },
                             Right = new ConstantExpr { Kind = ConstantKind.String, Value = Bonus }
                         }
                     },
@@ -240,6 +244,9 @@ public sealed class DogHouseBenchmarkTests : IDisposable
                 {
                     Id    = "draw-spin",
                     Label = "Base Spin",
+                    // Publish the drawn board as a flat symbol array in state so
+                    // the bonus-trigger aggregate can count symbols (invariant 4).
+                    BoardStateKey = "board",
                     Outputs = new Dictionary<string, Port>
                     {
                         ["board"] = new() { Name = "board", Type = PortType.Board }
@@ -673,9 +680,9 @@ public sealed class DogHouseBenchmarkTests : IDisposable
     {
         // Top row: H1 × 5 on payline [0,0,0,0,0] → 4000 credits
         var cells = MakeFilledGrid(L4);
-        for (var c = 0; c < 5; c++) cells[0, c] = Cell(H1);
+        for (var c = 0; c < 5; c++) cells[Idx(0, c)] = H1;
 
-        var wins = MakeLinesEvaluator().Evaluate(Board.FromCells(cells), null);
+        var wins = MakeLinesEvaluator().Evaluate(TestBoardState.Flat(4, 5, cells));
 
         var top = wins.FirstOrDefault(w => w.SymbolId == H1 && w.Count == 5);
         Assert.NotNull(top);
@@ -687,13 +694,13 @@ public sealed class DogHouseBenchmarkTests : IDisposable
     {
         // Top row: [H1, Wild, H1, H1, H1] → LinesEvaluator extends match through wild
         var cells = MakeFilledGrid(L4);
-        cells[0, 0] = Cell(H1);
-        cells[0, 1] = Cell(Wild);
-        cells[0, 2] = Cell(H1);
-        cells[0, 3] = Cell(H1);
-        cells[0, 4] = Cell(H1);
+        cells[Idx(0, 0)] = H1;
+        cells[Idx(0, 1)] = Wild;
+        cells[Idx(0, 2)] = H1;
+        cells[Idx(0, 3)] = H1;
+        cells[Idx(0, 4)] = H1;
 
-        var wins = MakeLinesEvaluator().Evaluate(Board.FromCells(cells), null);
+        var wins = MakeLinesEvaluator().Evaluate(TestBoardState.Flat(4, 5, cells));
 
         var top = wins.FirstOrDefault(w => w.SymbolId == H1 && w.Count == 5);
         Assert.NotNull(top);
@@ -706,13 +713,13 @@ public sealed class DogHouseBenchmarkTests : IDisposable
         // Top row: col 0 = H2, col 1 = Wild, col 2 = H2, col 3 = H2, col 4 = H2
         // Wild at col 1 extends the H2 match
         var cells = MakeFilledGrid(L4);
-        cells[0, 0] = Cell(H2);
-        cells[0, 1] = Cell(Wild);
-        cells[0, 2] = Cell(H2);
-        cells[0, 3] = Cell(H2);
-        cells[0, 4] = Cell(H2);
+        cells[Idx(0, 0)] = H2;
+        cells[Idx(0, 1)] = Wild;
+        cells[Idx(0, 2)] = H2;
+        cells[Idx(0, 3)] = H2;
+        cells[Idx(0, 4)] = H2;
 
-        var wins = MakeLinesEvaluator().Evaluate(Board.FromCells(cells), null);
+        var wins = MakeLinesEvaluator().Evaluate(TestBoardState.Flat(4, 5, cells));
 
         var top = wins.FirstOrDefault(w => w.SymbolId == H2 && w.Count == 5);
         Assert.NotNull(top);
@@ -724,9 +731,9 @@ public sealed class DogHouseBenchmarkTests : IDisposable
     {
         // All five columns on row 0 are wilds → no matchSymbol found → no win
         var cells = MakeFilledGrid(L4);
-        for (var c = 0; c < 5; c++) cells[0, c] = Cell(Wild);
+        for (var c = 0; c < 5; c++) cells[Idx(0, c)] = Wild;
 
-        var wins = MakeLinesEvaluator().Evaluate(Board.FromCells(cells), null);
+        var wins = MakeLinesEvaluator().Evaluate(TestBoardState.Flat(4, 5, cells));
 
         Assert.DoesNotContain(wins, w => w.SymbolId == Wild);
     }
@@ -737,13 +744,13 @@ public sealed class DogHouseBenchmarkTests : IDisposable
         // [H1, H1, Bonus, H1, H1] — bonus at col 2 breaks the match.
         // H1 count = 2 (cols 0 and 1), no paytable entry for count=2 → no win.
         var cells = MakeFilledGrid(L4);
-        cells[0, 0] = Cell(H1);
-        cells[0, 1] = Cell(H1);
-        cells[0, 2] = Cell(Bonus);
-        cells[0, 3] = Cell(H1);
-        cells[0, 4] = Cell(H1);
+        cells[Idx(0, 0)] = H1;
+        cells[Idx(0, 1)] = H1;
+        cells[Idx(0, 2)] = Bonus;
+        cells[Idx(0, 3)] = H1;
+        cells[Idx(0, 4)] = H1;
 
-        var wins = MakeLinesEvaluator().Evaluate(Board.FromCells(cells), null);
+        var wins = MakeLinesEvaluator().Evaluate(TestBoardState.Flat(4, 5, cells));
 
         Assert.DoesNotContain(wins, w => w.SymbolId == H1);
     }
@@ -753,13 +760,13 @@ public sealed class DogHouseBenchmarkTests : IDisposable
     {
         // Row 0: [H3, Wild, H3, L1, L1] → H3 × 3 (wild extends from col 1)
         var cells = MakeFilledGrid(L4);
-        cells[0, 0] = Cell(H3);
-        cells[0, 1] = Cell(Wild);
-        cells[0, 2] = Cell(H3);
-        cells[0, 3] = Cell(L1);
-        cells[0, 4] = Cell(L1);
+        cells[Idx(0, 0)] = H3;
+        cells[Idx(0, 1)] = Wild;
+        cells[Idx(0, 2)] = H3;
+        cells[Idx(0, 3)] = L1;
+        cells[Idx(0, 4)] = L1;
 
-        var wins = MakeLinesEvaluator().Evaluate(Board.FromCells(cells), null);
+        var wins = MakeLinesEvaluator().Evaluate(TestBoardState.Flat(4, 5, cells));
 
         var w = wins.FirstOrDefault(x => x.SymbolId == H3 && x.Count == 3);
         Assert.NotNull(w);
@@ -778,15 +785,13 @@ public sealed class DogHouseBenchmarkTests : IDisposable
     {
         // Board has wilds at (0,1) and (1,2); state starts empty.
         var cells = MakeFilledGrid(L4);
-        cells[0, 1] = Cell(Wild);
-        cells[1, 2] = Cell(Wild);
-        var board = Board.FromCells(cells);
+        cells[Idx(0, 1)] = Wild;
+        cells[Idx(1, 2)] = Wild;
 
-        var (_, newState) = MakeStickyTransform().Apply(board, new Dictionary<string, object?>());
+        var newState = MakeStickyTransform().Apply(TestBoardState.Flat(4, 5, cells));
 
-        var stateDict = Assert.IsType<Dictionary<string, object?>>(newState);
-        Assert.True(stateDict.ContainsKey("stickyPositions"), "stickyWilds key absent from state");
-        var positions = Assert.IsType<string[]>(stateDict["stickyPositions"]);
+        Assert.True(newState.ContainsKey("stickyPositions"), "stickyWilds key absent from state");
+        var positions = Assert.IsType<string[]>(newState["stickyPositions"]);
         Assert.Equal(2, positions.Length);
         Assert.Contains("0,1", positions);
         Assert.Contains("1,2", positions);
@@ -797,22 +802,19 @@ public sealed class DogHouseBenchmarkTests : IDisposable
     {
         // Spin 1: wild at (0,1) collected.
         var cellsA = MakeFilledGrid(L4);
-        cellsA[0, 1] = Cell(Wild);
-        var (boardA, stateAfterA) = MakeStickyTransform().Apply(
-            Board.FromCells(cellsA), new Dictionary<string, object?>());
+        cellsA[Idx(0, 1)] = Wild;
+        var stateAfterA = MakeStickyTransform().Apply(TestBoardState.Flat(4, 5, cellsA));
 
-        // Spin 2: completely different board — no wilds at all.
-        var cellsB = MakeFilledGrid(H1);
-        var (boardB, stateAfterB) = MakeStickyTransform().Apply(
-            Board.FromCells(cellsB), stateAfterA);
+        // Spin 2: completely different board — no wilds at all — but carry state forward.
+        var stateB = TestBoardState.Flat(4, 5, MakeFilledGrid(H1),
+            ("stickyPositions", stateAfterA["stickyPositions"]));
+        var stateAfterB = MakeStickyTransform().Apply(stateB);
 
         // The wild from spin 1 must appear on boardB at (0,1).
-        Assert.False(boardB[0, 1].IsEmpty, "Expected cell (0,1) to be non-empty after sticky overlay.");
-        Assert.Equal(Wild, boardB[0, 1].Symbols![0]);
+        Assert.Equal(Wild, SymAt(stateAfterB, 0, 1));
 
         // State still carries the position.
-        var stateDict = Assert.IsType<Dictionary<string, object?>>(stateAfterB);
-        var positions = Assert.IsType<string[]>(stateDict["stickyPositions"]);
+        var positions = Assert.IsType<string[]>(stateAfterB["stickyPositions"]);
         Assert.Contains("0,1", positions);
     }
 
@@ -820,42 +822,33 @@ public sealed class DogHouseBenchmarkTests : IDisposable
     public void StickyWilds_AccumulatesAcrossMultipleSpins()
     {
         // Each spin introduces a new wild; by spin 3 all three should stick.
-        object? state = new Dictionary<string, object?>();
-
         var cellsA = MakeFilledGrid(L1);
-        cellsA[0, 1] = Cell(Wild);
-        Board _, boardOut;
-        (boardOut, state) = MakeStickyTransform().Apply(Board.FromCells(cellsA), state);
-        var stateDict1 = (Dictionary<string, object?>)state!;
-        Assert.Single((string[])stateDict1["stickyPositions"]!);
+        cellsA[Idx(0, 1)] = Wild;
+        IReadOnlyDictionary<string, object?> state = MakeStickyTransform().Apply(TestBoardState.Flat(4, 5, cellsA));
+        Assert.Single((string[])state["stickyPositions"]!);
 
         var cellsB = MakeFilledGrid(L2);
-        cellsB[2, 3] = Cell(Wild);
-        (boardOut, state) = MakeStickyTransform().Apply(Board.FromCells(cellsB), state);
-        var stateDict2 = (Dictionary<string, object?>)state!;
-        Assert.Equal(2, ((string[])stateDict2["stickyPositions"]!).Length);
-        Assert.Equal(Wild, boardOut[0, 1].Symbols![0]);   // spin-1 sticky still present
-        Assert.Equal(Wild, boardOut[2, 3].Symbols![0]);   // spin-2 wild
+        cellsB[Idx(2, 3)] = Wild;
+        state = MakeStickyTransform().Apply(TestBoardState.Flat(4, 5, cellsB, ("stickyPositions", state["stickyPositions"])));
+        Assert.Equal(2, ((string[])state["stickyPositions"]!).Length);
+        Assert.Equal(Wild, SymAt(state, 0, 1));   // spin-1 sticky still present
+        Assert.Equal(Wild, SymAt(state, 2, 3));   // spin-2 wild
 
         var cellsC = MakeFilledGrid(L3);
-        cellsC[3, 0] = Cell(Wild);
-        (boardOut, state) = MakeStickyTransform().Apply(Board.FromCells(cellsC), state);
-        var stateDict3 = (Dictionary<string, object?>)state!;
-        Assert.Equal(3, ((string[])stateDict3["stickyPositions"]!).Length);
-        Assert.Equal(Wild, boardOut[0, 1].Symbols![0]);
-        Assert.Equal(Wild, boardOut[2, 3].Symbols![0]);
-        Assert.Equal(Wild, boardOut[3, 0].Symbols![0]);
+        cellsC[Idx(3, 0)] = Wild;
+        state = MakeStickyTransform().Apply(TestBoardState.Flat(4, 5, cellsC, ("stickyPositions", state["stickyPositions"])));
+        Assert.Equal(3, ((string[])state["stickyPositions"]!).Length);
+        Assert.Equal(Wild, SymAt(state, 0, 1));
+        Assert.Equal(Wild, SymAt(state, 2, 3));
+        Assert.Equal(Wild, SymAt(state, 3, 0));
     }
 
     [Fact]
     public void StickyWilds_EmptyBoard_NoPositionsStored()
     {
-        var cells = MakeFilledGrid(H2);
-        var (_, newState) = MakeStickyTransform().Apply(
-            Board.FromCells(cells), new Dictionary<string, object?>());
+        var newState = MakeStickyTransform().Apply(TestBoardState.Flat(4, 5, MakeFilledGrid(H2)));
 
-        var stateDict = Assert.IsType<Dictionary<string, object?>>(newState);
-        var positions = Assert.IsType<string[]>(stateDict["stickyPositions"]);
+        var positions = Assert.IsType<string[]>(newState["stickyPositions"]);
         Assert.Empty(positions);
     }
 
@@ -933,17 +926,18 @@ public sealed class DogHouseBenchmarkTests : IDisposable
 
     // ── Board helpers ─────────────────────────────────────────────────────
 
-    private static BoardCell[,] MakeFilledGrid(string fillSymbol)
+    // A 4×5 board as a flat row-major symbol array in state (invariant 4).
+    private static object?[] MakeFilledGrid(string fillSymbol)
     {
-        var cells = new BoardCell[4, 5];
-        for (var r = 0; r < 4; r++)
-            for (var c = 0; c < 5; c++)
-                cells[r, c] = Cell(fillSymbol);
+        var cells = new object?[4 * 5];
+        Array.Fill(cells, (object?)fillSymbol);
         return cells;
     }
 
-    private static BoardCell Cell(string symbol) =>
-        new() { Symbols = new[] { symbol } };
+    private static int Idx(int r, int c) => r * 5 + c;
+
+    private static string SymAt(IReadOnlyDictionary<string, object?> s, int r, int c) =>
+        GridState.Symbol(GridState.Cells(s)[GridState.Index(r, c, GridState.Cols(s))]);
 
     // ═══════════════════════════════════════════════════════════════════════
     //  Level-(c) user plugin — sticky symbol accumulator
@@ -967,38 +961,35 @@ public sealed class DogHouseBenchmarkTests : IDisposable
             _stateKey = stateKey;
         }
 
-        public (Board NewBoard, object? NewState) Apply(Board board, object? state)
+        public IReadOnlyDictionary<string, object?> Apply(IReadOnlyDictionary<string, object?> state)
         {
-            ArgumentNullException.ThrowIfNull(board);
+            ArgumentNullException.ThrowIfNull(state);
 
-            var stateDict = state as Dictionary<string, object?> ?? new Dictionary<string, object?>();
-            var accumulated = ReadPositions(stateDict);
+            var accumulated = ReadPositions(state);
 
-            for (var r = 0; r < board.Rows; r++)
-                for (var c = 0; c < board.Cols; c++)
-                {
-                    var cell = board[r, c];
-                    if (!cell.IsEmpty && cell.Symbols!.Contains(_symbolId))
-                        accumulated.Add((r, c));
-                }
+            // Scan the current board (a flat array in state, invariant 4) for wilds.
+            var cols = GridState.Cols(state);
+            foreach (var (r, c, cell) in GridState.Enumerate(state))
+                if (GridState.Symbol(cell) == _symbolId)
+                    accumulated.Add((r, c));
 
-            var newBoard = board;
+            // Overlay accumulated wilds onto a copy-on-write board.
+            var cells = (object?[])GridState.Cells(state).Clone();
             foreach (var (r, c) in accumulated)
             {
-                var cell = newBoard[r, c];
-                if (cell.IsEmpty || cell.Symbols![0] != _symbolId)
-                    newBoard = newBoard.SetCell(r, c, new BoardCell { Symbols = new[] { _symbolId } });
+                var idx = GridState.Index(r, c, cols);
+                if ((uint)idx < (uint)cells.Length && GridState.Symbol(cells[idx]) != _symbolId)
+                    cells[idx] = _symbolId;
             }
 
-            var newStateDict = new Dictionary<string, object?>(stateDict)
+            return new Dictionary<string, object?>(state)
             {
-                [_stateKey] = SerializePositions(accumulated)
+                [GridState.CellsKey] = cells,
+                [_stateKey] = SerializePositions(accumulated),
             };
-
-            return (newBoard, newStateDict);
         }
 
-        private HashSet<(int, int)> ReadPositions(Dictionary<string, object?> state)
+        private HashSet<(int, int)> ReadPositions(IReadOnlyDictionary<string, object?> state)
         {
             if (!state.TryGetValue(_stateKey, out var val) || val is not string[] encoded)
                 return new HashSet<(int, int)>();

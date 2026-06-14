@@ -12,7 +12,7 @@ namespace SlotMath.Core.Mechanics.Evaluators;
 ///
 /// Multiple paylines can produce multiple wins for the same symbol.
 /// </summary>
-public sealed class LinesEvaluator : IEvaluator
+public sealed class LinesEvaluator : IFastPathEvaluator
 {
     private readonly Paytable _paytable;
     private readonly PaylineSet _paylineSet;
@@ -25,9 +25,11 @@ public sealed class LinesEvaluator : IEvaluator
         _wildSymbolId = wildSymbolId;
     }
 
-    public Win[] Evaluate(Board board, object? state)
+    public Win[] Evaluate(IReadOnlyDictionary<string, object?> state)
     {
-        ArgumentNullException.ThrowIfNull(board);
+        ArgumentNullException.ThrowIfNull(state);
+        var cells = GridState.Cells(state);
+        var cols = GridState.Cols(state);
         var wins = new List<Win>();
 
         foreach (var payline in _paylineSet.Paylines)
@@ -36,10 +38,10 @@ public sealed class LinesEvaluator : IEvaluator
             if (positions.Length == 0) continue;
 
             // Get first symbol on the payline
-            var firstCell = GetCellAt(board, 0, positions);
-            if (firstCell.IsEmpty) continue;
+            var firstCell = GetCellAt(cells, cols, 0, positions);
+            if (GridState.IsEmpty(firstCell)) continue;
 
-            var firstSym = firstCell.Symbols![0];
+            var firstSym = GridState.Symbol(firstCell);
             var matchSymbol = firstSym == _wildSymbolId ? null : firstSym;
 
             var matchedPositions = new List<(int, int)> { (positions[0], 0) };
@@ -47,10 +49,10 @@ public sealed class LinesEvaluator : IEvaluator
 
             for (var col = 1; col < positions.Length; col++)
             {
-                var cell = GetCellAt(board, col, positions);
-                if (cell.IsEmpty) break;
+                var cell = GetCellAt(cells, cols, col, positions);
+                if (GridState.IsEmpty(cell)) break;
 
-                var sym = cell.Symbols![0];
+                var sym = GridState.Symbol(cell);
                 if (sym == _wildSymbolId || (matchSymbol != null && sym == matchSymbol))
                 {
                     // WILD starts the match if firstSym was WILD
@@ -86,10 +88,11 @@ public sealed class LinesEvaluator : IEvaluator
         return wins.ToArray();
     }
 
-    private static BoardCell GetCellAt(Board board, int column, int[] positions)
+    private static object? GetCellAt(object?[] cells, int cols, int column, int[] positions)
     {
         var row = positions[column];
-        return board[row, column];
+        var idx = GridState.Index(row, column, cols);
+        return idx >= 0 && idx < cells.Length ? cells[idx] : null;
     }
 
     private decimal LookupPayout(string symbolId, int count)

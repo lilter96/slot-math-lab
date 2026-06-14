@@ -25,9 +25,6 @@ namespace SlotMath.Core.Expressions;
 /// </summary>
 public sealed class EvalContext
 {
-    /// <summary>The current board (nullable — may not be available for weight expressions).</summary>
-    public Board? Board { get; init; }
-
     /// <summary>The current recurrence state (nullable).</summary>
     public object? State { get; init; }
 
@@ -128,65 +125,15 @@ public static class ExactExpressionEvaluator
 
     private static ExprValue EvalFieldAccess(FieldAccessExpr f, EvalContext ctx)
     {
-        // Check if this is a state field access.
-        if (f.Target == "state" && f.Path.Length > 0)
+        // All field access reads from state (invariant 4: the engine has no
+        // Board type — a "board" is a user-defined array in state S, read via
+        // state["board"] + fold/map/filter/aggregate).
+        if (f.Path.Length > 0)
         {
             return EvalStateField(f.Path, ctx.State);
         }
 
-        // Board field access.
-        if (ctx.Board == null)
-            return ExprValue.Number(0);
-
-        var field = f.Path[0].ToLowerInvariant();
-
-        // Board-level fields.
-        if (field == "rows") return ExprValue.Number(ctx.Board.Rows);
-        if (field == "cols") return ExprValue.Number(ctx.Board.Cols);
-
-        // Cell-level fields — access the (0,0) cell if the board is 1x1
-        // (used inside aggregation predicates).
-        if (ctx.Board.Rows == 1 && ctx.Board.Cols == 1)
-        {
-            return EvalCellField(ctx.Board[0, 0], field, f.Path);
-        }
-
         return ExprValue.Number(0);
-    }
-
-    /// <summary>Evaluate a field access on a single cell (for aggregation predicates).</summary>
-    private static ExprValue EvalCellField(BoardCell cell, string field, string[] path)
-    {
-        return field switch
-        {
-            "symbol" or "symbols" =>
-                cell.Symbols is { Length: > 0 }
-                    ? ExprValue.String(cell.Symbols[0])
-                    : ExprValue.String(""),
-
-            "islocked" or "is_locked" =>
-                ExprValue.Bool(cell.IsLocked),
-
-            "isempty" or "is_empty" =>
-                ExprValue.Bool(cell.IsEmpty),
-
-            // Decoration access: field is the decoration key.
-            _ => EvalDecorationValue(cell, field),
-        };
-    }
-
-    /// <summary>Evaluate a decoration value from a cell.</summary>
-    private static ExprValue EvalDecorationValue(BoardCell cell, string key)
-    {
-        var val = cell.GetDecoration(key);
-        if (val is null)
-            return ExprValue.String("");
-
-        // Try numeric parsing first.
-        if (BigInteger.TryParse(val, NumberStyles.Integer, CultureInfo.InvariantCulture, out var n))
-            return ExprValue.Number(n);
-
-        return ExprValue.String(val);
     }
 
     private static ExprValue EvalStateField(string[] path, object? state)
@@ -199,6 +146,16 @@ public static class ExactExpressionEvaluator
             var key = path[0];
             if (!dict.TryGetValue(key, out var dictVal))
                 return ExprValue.Number(0);
+
+            // Nested record field access: state["cell"]["symbol"] via
+            // path = ["cell", "field", ...].  A "cell" element of a board array
+            // is a Dictionary (invariant 4: cells are records, not a BoardCell
+            // type), so descend through dictionary-valued entries by key.
+            if (path.Length >= 2 && dictVal is IDictionary<string, object?> nestedDict
+                && !int.TryParse(path[1], out _))
+            {
+                return EvalStateField(path[1..], nestedDict);
+            }
 
             // Array index access: state["key"][idx] via path = ["key", "idx"].
             // D1: an out-of-range index into an array is a located, deterministic
@@ -228,17 +185,7 @@ public static class ExactExpressionEvaluator
                 }
             }
 
-            return dictVal switch
-            {
-                BigInteger bi => ExprValue.Number(bi),
-                int i => ExprValue.Number(i),
-                long l => ExprValue.Number(l),
-                string s => ExprValue.String(s),
-                bool b => ExprValue.Bool(b),
-                ExprValue ev => ev,  // rational stored as ExprValue, or array item
-                null => ExprValue.Number(0),
-                _ => ExprValue.Number(0),
-            };
+            return ToExprValue(dictVal);
         }
 
         var t = state.GetType();
@@ -285,6 +232,26 @@ public static class ExactExpressionEvaluator
         new(EvalErrorCodes.IndexOutOfRange,
             $"Index {idx} is out of range [0, {length}) for state array '{key}' (D1).",
             $"{key}[{idx}]");
+
+    /// <summary>
+    /// Convert a raw state value to an ExprValue.  Arrays (string[]/object?[]/
+    /// lists, e.g. a board) become <see cref="ExprValue.Array"/> so expressions
+    /// can use contains/length/append and index-aware map/fold/filter (invariant 4).
+    /// </summary>
+    private static ExprValue ToExprValue(object? value) => value switch
+    {
+        BigInteger bi => ExprValue.Number(bi),
+        int i => ExprValue.Number(i),
+        long l => ExprValue.Number(l),
+        string s => ExprValue.String(s),
+        bool b => ExprValue.Bool(b),
+        ExprValue ev => ev,
+        null => ExprValue.Number(0),
+        string[] sarr => ExprValue.Array(Array.ConvertAll(sarr, x => ToExprValue(x))),
+        object?[] oarr => ExprValue.Array(Array.ConvertAll(oarr, ToExprValue)),
+        System.Collections.IEnumerable e => ExprValue.Array(e.Cast<object?>().Select(ToExprValue).ToList()),
+        _ => ExprValue.Number(0),
+    };
 
     private static ExprValue EvalBinary(BinaryExpr b, EvalContext ctx)
     {
@@ -389,39 +356,42 @@ public static class ExactExpressionEvaluator
         return isTrue ? Eval(i.ThenExpr, ctx) : Eval(i.ElseExpr, ctx);
     }
 
-    // ── Board aggregation ────────────────────────────────────────────────
+    // ── State-array aggregation (invariant 4: a board is an array in S) ────
 
     private static ExprValue EvalAggregate(AggregateExpr a, EvalContext ctx)
     {
-        var board = ctx.Board;
-        if (board == null)
-            return ExprValue.Number(0);
+        // Aggregate over the state array named by StateKey.  Each element is
+        // bound under ItemName so the optional Predicate (filter) and ValueExpr
+        // (selector) can reference it — exactly like fold/map/filter.  Elements
+        // may be plain symbols or cell records; ValueExpr extracts the numeric
+        // value to aggregate.  No engine Board type (invariant 4).
+        var arr = ExtractStateArray(a.StateKey, ctx.State);
 
-        // Collect cell values that match the predicate.
-        var values = new List<BigInteger>();
-
-        foreach (var (row, col, cell) in board.AllCells())
+        var values = new List<ExprValue>();
+        if (arr != null)
         {
-            if (cell.IsEmpty && a.Func != AggregateFunc.Count)
-                continue;
+            var baseState = ctx.State as IDictionary<string, object?>
+                ?? new Dictionary<string, object?>();
 
-            // Evaluate predicate if present.
-            if (a.Predicate != null)
+            foreach (var item in arr)
             {
-                var cellCtx = new EvalContext
+                var iterCtx = new EvalContext
                 {
-                    Board = CreateCellBoard(cell),
-                    State = ctx.State,
+                    State = new Dictionary<string, object?>(baseState) { [a.ItemName] = item },
                     DecorationParser = ctx.DecorationParser,
+                    SymbolToNumericValue = ctx.SymbolToNumericValue,
                 };
-                var predResult = Eval(a.Predicate, cellCtx);
-                if (predResult.Kind != ExprType.Boolean || !predResult.BoolValue)
-                    continue;
-            }
 
-            // Extract value from the cell based on Target.
-            var val = ExtractCellValue(cell, a.Target, ctx);
-            values.Add(val);
+                if (a.Predicate != null)
+                {
+                    var predResult = Eval(a.Predicate, iterCtx);
+                    if (predResult.Kind != ExprType.Boolean || !predResult.BoolValue)
+                        continue;
+                }
+
+                // ValueExpr selects the value to aggregate; absent → the element itself.
+                values.Add(a.ValueExpr != null ? Eval(a.ValueExpr, iterCtx) : ItemToValue(item));
+            }
         }
 
         if (values.Count == 0)
@@ -440,75 +410,38 @@ public static class ExactExpressionEvaluator
             };
         }
 
+        // Count is independent of element numeric value.
+        if (a.Func == AggregateFunc.Count)
+            return ExprValue.Number(values.Count);
+
+        var nums = values.Select(v => v.AsInteger()).ToList();
         return a.Func switch
         {
-            AggregateFunc.Sum => ExprValue.Number(values.Aggregate(BigInteger.Zero, (a, b) => a + b)),
-            AggregateFunc.Product => ExprValue.Number(values.Aggregate(BigInteger.One, (a, b) => a * b)),
-            AggregateFunc.Count => ExprValue.Number(values.Count),
-            AggregateFunc.Min => ExprValue.Number(values.Aggregate((a, b) => a < b ? a : b)),
-            AggregateFunc.Max => ExprValue.Number(values.Aggregate((a, b) => a > b ? a : b)),
+            AggregateFunc.Sum => ExprValue.Number(nums.Aggregate(BigInteger.Zero, (x, y) => x + y)),
+            AggregateFunc.Product => ExprValue.Number(nums.Aggregate(BigInteger.One, (x, y) => x * y)),
+            AggregateFunc.Min => ExprValue.Number(nums.Aggregate((x, y) => x < y ? x : y)),
+            AggregateFunc.Max => ExprValue.Number(nums.Aggregate((x, y) => x > y ? x : y)),
             _ => ExprValue.Number(0),
         };
     }
 
     /// <summary>
-    /// Create a 1x1 board with a single cell for evaluating predicates.
-    /// Fields "symbol", "isLocked", "isEmpty", and decoration keys are accessible.
+    /// Convert a raw state-array element into an ExprValue for aggregation.
+    /// Numeric strings parse to numbers; non-numeric strings aggregate as 0
+    /// (use Count for symbol matching).
     /// </summary>
-    private static Board CreateCellBoard(BoardCell cell)
+    private static ExprValue ItemToValue(object? item) => item switch
     {
-        var board = new Board(1, 1);
-        board = board.SetCell(0, 0, cell);
-        return board;
-    }
-
-    /// <summary>
-    /// Extract a numeric value from a cell based on the target field.
-    /// </summary>
-    private static BigInteger ExtractCellValue(BoardCell cell, string target, EvalContext ctx)
-    {
-        return target.ToLowerInvariant() switch
-        {
-            "symbol" or "symbols" =>
-                // Try to parse symbol as number; fall back to decoration value.
-                TryParseSymbolValue(cell.Symbols, ctx),
-
-            "isloclocked" or "is_locked" =>
-                cell.IsLocked ? BigInteger.One : BigInteger.Zero,
-
-            "isempty" or "is_empty" =>
-                cell.IsEmpty ? BigInteger.One : BigInteger.Zero,
-
-            // Try decoration key.
-            _ =>
-                TryParseDecoration(cell, target, ctx),
-        };
-    }
-
-    private static BigInteger TryParseSymbolValue(string[]? symbols, EvalContext ctx)
-    {
-        if (symbols is { Length: > 0 }
-            && BigInteger.TryParse(symbols[0], NumberStyles.Integer, CultureInfo.InvariantCulture, out var n))
-        {
-            return n;
-        }
-
-        // Try decoration "multiplier" or "value".
-        return BigInteger.Zero;
-    }
-
-    private static BigInteger TryParseDecoration(BoardCell cell, string key, EvalContext ctx)
-    {
-        var dec = cell.GetDecoration(key);
-        if (dec != null)
-        {
-            if (BigInteger.TryParse(dec, NumberStyles.Integer, CultureInfo.InvariantCulture, out var n))
-                return n;
-            if (ctx.DecorationParser != null)
-                return ctx.DecorationParser(key, dec);
-        }
-        return BigInteger.Zero;
-    }
+        BigInteger bi => ExprValue.Number(bi),
+        int i => ExprValue.Number(i),
+        long l => ExprValue.Number(l),
+        bool b => ExprValue.Bool(b),
+        ExprValue ev => ev,
+        string s when BigInteger.TryParse(s, NumberStyles.Integer, CultureInfo.InvariantCulture, out var n)
+            => ExprValue.Number(n),
+        string s => ExprValue.String(s),
+        _ => ExprValue.Number(0),
+    };
 
     // ── Not ──────────────────────────────────────────────────────────────
 
@@ -530,6 +463,7 @@ public static class ExactExpressionEvaluator
         var baseState = ctx.State as IDictionary<string, object?>
             ?? new Dictionary<string, object?>();
 
+        var index = 0;
         foreach (var item in arr)
         {
             var iterState = new Dictionary<string, object?>(baseState)
@@ -537,13 +471,14 @@ public static class ExactExpressionEvaluator
                 [f.AccName] = ExprValueToStateObject(acc),
                 [f.ItemName] = item,
             };
+            if (f.IndexName != null) iterState[f.IndexName] = index;
             acc = Eval(f.Body, new EvalContext
             {
-                Board = ctx.Board,
                 State = iterState,
                 DecorationParser = ctx.DecorationParser,
                 SymbolToNumericValue = ctx.SymbolToNumericValue,
             });
+            index++;
         }
 
         return acc;
@@ -576,19 +511,21 @@ public static class ExactExpressionEvaluator
         var baseState = ctx.State as IDictionary<string, object?> ?? new Dictionary<string, object?>();
         var result = new List<ExprValue>();
 
+        var index = 0;
         foreach (var item in arr)
         {
             var iterState = new Dictionary<string, object?>(baseState)
             {
                 [m.ItemName] = item,
             };
+            if (m.IndexName != null) iterState[m.IndexName] = index;
             result.Add(Eval(m.Body, new EvalContext
             {
-                Board = ctx.Board,
                 State = iterState,
                 DecorationParser = ctx.DecorationParser,
                 SymbolToNumericValue = ctx.SymbolToNumericValue,
             }));
+            index++;
         }
 
         return ExprValue.Array(result);
@@ -604,21 +541,23 @@ public static class ExactExpressionEvaluator
         var baseState = ctx.State as IDictionary<string, object?> ?? new Dictionary<string, object?>();
         var result = new List<ExprValue>();
 
+        var index = 0;
         foreach (var item in arr)
         {
             var iterState = new Dictionary<string, object?>(baseState)
             {
                 [f.ItemName] = item,
             };
+            if (f.IndexName != null) iterState[f.IndexName] = index;
             var pred = Eval(f.Predicate, new EvalContext
             {
-                Board = ctx.Board,
                 State = iterState,
                 DecorationParser = ctx.DecorationParser,
                 SymbolToNumericValue = ctx.SymbolToNumericValue,
             });
             if (pred.Kind == ExprType.Boolean && pred.BoolValue)
                 result.Add(ObjectToExprValue(item));
+            index++;
         }
 
         return ExprValue.Array(result);
@@ -668,24 +607,50 @@ public static class ExactExpressionEvaluator
                 ? Round(args[0])
                 : ExprValue.Number(0),
 
-            "toNumber" => args.Length > 0 && args[0].Kind == ExprType.String
+            // Case labels must be lowercase — the switch is on ToLowerInvariant().
+            "tonumber" => args.Length > 0 && args[0].Kind == ExprType.String
                 ? ParseNumber(args[0].StringValue!)
                 : ExprValue.Number(0),
 
-            "toString" => args.Length > 0
+            "tostring" => args.Length > 0
                 ? ExprValue.String(args[0].AsInteger().ToString())
                 : ExprValue.String("0"),
 
+            // length(arr) → element count; length(str) → character count.
             "length" => args.Length > 0
-                ? ExprValue.Number(args[0].StringValue?.Length ?? 0)
+                ? ExprValue.Number(args[0].Kind == ExprType.Array
+                    ? args[0].ArrayValue!.Count
+                    : args[0].StringValue?.Length ?? 0)
                 : ExprValue.Number(0),
 
+            // contains(arr, x) → array membership; contains(str, sub) → substring.
             "contains" => args.Length >= 2
-                ? ExprValue.Bool(args[0].StringValue?.Contains(args[1].StringValue ?? "", StringComparison.Ordinal) ?? false)
+                ? ExprValue.Bool(args[0].Kind == ExprType.Array
+                    ? args[0].ArrayValue!.Any(e => e.Equals(args[1]))
+                    : args[0].StringValue?.Contains(args[1].StringValue ?? "", StringComparison.Ordinal) ?? false)
                 : ExprValue.Bool(false),
+
+            // append(arr, x) → a new array with x appended (bounded; for fold accumulation).
+            "append" when args.Length >= 2 && args[0].Kind == ExprType.Array =>
+                ExprValue.Array([.. args[0].ArrayValue!, args[1]]),
+
+            // index(arr, i) → element at i (e.g. refill[idx]); out-of-range is a
+            // located error (D1), never a silent value.
+            "index" when args.Length >= 2 && args[0].Kind == ExprType.Array =>
+                IndexArray(args[0].ArrayValue!, (int)args[1].AsInteger()),
 
             _ => ExprValue.Number(0),
         };
+    }
+
+    private static ExprValue IndexArray(IReadOnlyList<ExprValue> arr, int i)
+    {
+        if (i < 0 || i >= arr.Count)
+            throw new ExpressionEvaluationException(
+                EvalErrorCodes.IndexOutOfRange,
+                $"index({i}) is out of range [0, {arr.Count}) (D1).",
+                $"index[{i}]");
+        return arr[i];
     }
 
     private static ExprValue Ceil(ExprValue v)

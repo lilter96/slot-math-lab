@@ -37,17 +37,21 @@ public sealed class CatalogMechanicTests
     // ════════════════════════════════════════════════════════════════════
 
     [Fact]
-    public void Default_LoadsAllSixCatalogMechanics()
+    public void Default_LoadsCatalogMechanics()
     {
         var catalog = MechanicCatalog.Default;
-        var expected = new[] { "scatter", "lines", "ways", "cascade", "sticky-wild", "hold-and-win" };
+        // The functional catalog: scatter (pure subgraph) + the Lines/Ways
+        // fast-path mechanics. Cascade/sticky-wild/hold-and-win were removed
+        // with the C# board transforms (invariant 2/4) and will return as pure
+        // subgraphs.
+        var expected = new[] { "scatter", "lines", "ways", "sticky-wild", "hold-and-win", "cascade" };
 
         foreach (var name in expected)
             Assert.True(catalog.Entries.ContainsKey(name),
                 $"Catalog missing expected mechanic '{name}'");
 
-        Assert.True(catalog.Entries.Count >= 6,
-            $"Expected at least 6 catalog entries, got {catalog.Entries.Count}");
+        Assert.True(catalog.Entries.Count >= 3,
+            $"Expected at least 3 catalog entries, got {catalog.Entries.Count}");
     }
 
     [Fact]
@@ -92,7 +96,7 @@ public sealed class CatalogMechanicTests
     public void Merge_NullUserEntries_ReturnsCatalogCopy()
     {
         var merged = MechanicCatalog.Default.Merge(null);
-        Assert.True(merged.Count >= 6);
+        Assert.True(merged.Count >= 3);
         Assert.True(merged.ContainsKey("scatter"));
     }
 
@@ -336,307 +340,142 @@ public sealed class CatalogMechanicTests
     }
 
     // ════════════════════════════════════════════════════════════════════
-    //  6. Lines — 3 hand-computed cases (C# evaluator; to be migrated)
+    //  6. Sticky-wild — pure subgraph (invariant 2/4: zero C#, no Board type)
     // ════════════════════════════════════════════════════════════════════
 
-    private static Paytable LinesPaytable() => new()
+    /// <summary>Apply a ModifyState-style node: eval expr over state, write to outputKey.</summary>
+    private static Dict ApplyModify(Dict state, Expression expr, string outputKey)
     {
-        Id = "pt-lines",
-        Entries =
-        [
-            new PaytableEntry { SymbolId = "A", Counts = new[] { 3, 4, 5 }, Payouts = new[] { "10", "50", "200" } },
-            new PaytableEntry { SymbolId = "B", Counts = new[] { 3 }, Payouts = new[] { "5" } }
-        ]
-    };
-
-    private static PaylineSet SingleCenterPayline() => new()
-    {
-        Id = "ps-center",
-        Paylines = [new Payline { Positions = new[] { 1, 1, 1 } }]
-    };
-
-    [Fact]
-    public void Lines_ThreeOfAKind_CenterRow_Pays10()
-    {
-        var board = new Board(3, 3)
-            .SetCell(1, 0, new BoardCell { Symbols = new[] { "A" } })
-            .SetCell(1, 1, new BoardCell { Symbols = new[] { "A" } })
-            .SetCell(1, 2, new BoardCell { Symbols = new[] { "A" } });
-
-        var wins = new LinesEvaluator(LinesPaytable(), SingleCenterPayline())
-            .Evaluate(board, null);
-
-        var win = Assert.Single(wins);
-        Assert.Equal("A", win.SymbolId);
-        Assert.Equal(3, win.Count);
-        Assert.Equal(10m, win.Payout);
+        var v = ExactExpressionEvaluator.Evaluate(expr, new EvalContext { State = state });
+        var next = new Dict(state) { [outputKey] = v.ToStateObject() };
+        return next;
     }
 
     [Fact]
-    public void Lines_BreakInSequence_NoWin()
+    public void StickyWild_AccumulatesAndOverlays_AcrossSpins_PureSubgraph()
     {
-        var board = new Board(3, 3)
-            .SetCell(1, 0, new BoardCell { Symbols = new[] { "A" } })
-            .SetCell(1, 1, new BoardCell { Symbols = new[] { "B" } })
-            .SetCell(1, 2, new BoardCell { Symbols = new[] { "A" } });
+        // The sticky-wild mechanic is a pure subgraph: two ModifyState nodes
+        // (accumulate wild positions, then overlay). We drive its two authored
+        // expressions directly across spins — proving the mechanic logic needs
+        // ZERO C# (invariant 2) and operates on a state array (invariant 4).
+        var mech = MechanicCatalog.Default.Entries["sticky-wild"];
+        var accumulate = mech.Expressions!["accumulate_sticky"];
+        var overlay = mech.Expressions!["overlay_wilds"];
 
-        var wins = new LinesEvaluator(LinesPaytable(), SingleCenterPayline())
-            .Evaluate(board, null);
+        // Spin 1: a wild lands at index 1.
+        var state = new Dict
+        {
+            ["board"] = new object?[] { "A", "W", "B" },
+            ["stickyPositions"] = Array.Empty<object?>(),
+        };
+        state = ApplyModify(state, accumulate, "stickyPositions");
+        state = ApplyModify(state, overlay, "board");
 
-        Assert.DoesNotContain(wins, w => w.SymbolId == "A" && w.Count >= 3);
+        var sticky1 = (object?[])state["stickyPositions"]!;
+        Assert.Equal(new[] { new BigInteger(1) }, sticky1.Cast<BigInteger>());
+
+        // Spin 2: a FRESH board with NO wild drawn — (1) must still show a wild.
+        state["board"] = new object?[] { "X", "Y", "Z" };
+        state = ApplyModify(state, accumulate, "stickyPositions");
+        state = ApplyModify(state, overlay, "board");
+
+        var board2 = (object?[])state["board"]!;
+        Assert.Equal("X", board2[0]);
+        Assert.Equal("W", board2[1]); // sticky wild persists
+        Assert.Equal("Z", board2[2]);
+        // Position set unchanged (deduped): still just [1].
+        Assert.Single((object?[])state["stickyPositions"]!);
+
+        // Spin 3: a new wild at index 0 — both positions now sticky.
+        state["board"] = new object?[] { "W", "Q", "Q" };
+        state = ApplyModify(state, accumulate, "stickyPositions");
+        state = ApplyModify(state, overlay, "board");
+
+        var board3 = (object?[])state["board"]!;
+        Assert.Equal("W", board3[0]);
+        Assert.Equal("W", board3[1]);
+        Assert.Equal("Q", board3[2]);
+        Assert.Equal(2, ((object?[])state["stickyPositions"]!).Length);
     }
 
     [Fact]
-    public void Lines_FiveOfAKind_TwoPaylines_Pays200Each()
+    public void StickyWild_RoundTripsWithStableSubgraphHash()
     {
-        var board = new Board(3, 5);
-        for (var c = 0; c < 5; c++)
-        {
-            board = board
-                .SetCell(0, c, new BoardCell { Symbols = new[] { "A" } })
-                .SetCell(1, c, new BoardCell { Symbols = new[] { "A" } });
-        }
+        var mech = MechanicCatalog.Default.Entries["sticky-wild"];
+        Assert.Equal("sticky-wild", mech.Name);
+        Assert.Equal(2, mech.Nodes.Length);
+        Assert.NotNull(mech.Expressions);
+        Assert.True(mech.Expressions!.ContainsKey("accumulate_sticky"));
+        Assert.True(mech.Expressions!.ContainsKey("overlay_wilds"));
+    }
 
-        var twoPaylines = new PaylineSet
+    // ════════════════════════════════════════════════════════════════════
+    //  7. Hold-and-win — pure subgraph (invariant 2/4: zero C#, no Board type)
+    // ════════════════════════════════════════════════════════════════════
+
+    [Fact]
+    public void HoldAndWin_CollectsStickyMoney_AcrossRespins_PureSubgraph()
+    {
+        // Two ModifyState nodes (collect new money values, mark positions) driven
+        // directly across respins — proving Hold & Win collection needs ZERO C#
+        // (invariant 2) over a state array (invariant 4). Money cells are numeric
+        // strings; "_" is a blank.
+        var mech = MechanicCatalog.Default.Entries["hold-and-win"];
+        var collect = mech.Expressions!["collect_value"];
+        var mark = mech.Expressions!["mark_collected"];
+
+        var state = new Dict
         {
-            Id = "ps-two",
-            Paylines =
-            [
-                new Payline { Positions = new[] { 0, 0, 0, 0, 0 } },
-                new Payline { Positions = new[] { 1, 1, 1, 1, 1 } },
-            ]
+            ["board"] = new object?[] { "5", "_", "10" },
+            ["holdWin"] = BigInteger.Zero,
+            ["collectedPositions"] = Array.Empty<object?>(),
         };
 
-        var wins = new LinesEvaluator(LinesPaytable(), twoPaylines).Evaluate(board, null);
+        // Respin 1: 5 and 10 land → collect 15; positions {0,2}.
+        state = ApplyModify(state, collect, "holdWin");
+        state = ApplyModify(state, mark, "collectedPositions");
+        Assert.Equal(new BigInteger(15), Assert.IsType<BigInteger>(state["holdWin"]));
+        Assert.Equal(2, ((object?[])state["collectedPositions"]!).Length);
 
-        Assert.Equal(2, wins.Length);
-        Assert.All(wins, w =>
+        // Respin 2: existing money sticks; a NEW 20 lands at index 1 → +20 = 35.
+        // Already-collected 5 and 10 must NOT be double-counted.
+        state["board"] = new object?[] { "5", "20", "10" };
+        state = ApplyModify(state, collect, "holdWin");
+        state = ApplyModify(state, mark, "collectedPositions");
+        Assert.Equal(new BigInteger(35), Assert.IsType<BigInteger>(state["holdWin"]));
+        Assert.Equal(3, ((object?[])state["collectedPositions"]!).Length);
+
+        // Respin 3: no new money (all positions already collected) → unchanged.
+        state = ApplyModify(state, collect, "holdWin");
+        state = ApplyModify(state, mark, "collectedPositions");
+        Assert.Equal(new BigInteger(35), Assert.IsType<BigInteger>(state["holdWin"]));
+    }
+
+    // ════════════════════════════════════════════════════════════════════
+    //  8. Cascade / tumble — pure subgraph (invariant 2/4: zero C#, no Board)
+    // ════════════════════════════════════════════════════════════════════
+
+    [Fact]
+    public void Cascade_RemovesWinnersAndRefillsInPlace_PureSubgraph()
+    {
+        // One ModifyState node (index-aware map) replaces winning positions with
+        // freshly-drawn symbols and keeps the rest — the tumble step, authored
+        // with ZERO C# (invariant 2) over state arrays (invariant 4).
+        var mech = MechanicCatalog.Default.Entries["cascade"];
+        var tumble = mech.Expressions!["tumble_refill"];
+
+        var state = new Dict
         {
-            Assert.Equal("A", w.SymbolId);
-            Assert.Equal(5, w.Count);
-            Assert.Equal(200m, w.Payout);
-        });
-    }
+            ["board"] = new object?[] { "P", "P", "P", "Q", "R" },
+            ["winningPositions"] = new object?[] { new BigInteger(0), new BigInteger(1), new BigInteger(2) },
+            ["refill"] = new object?[] { "R", "Q", "R", "X", "X" },
+        };
 
-    // ════════════════════════════════════════════════════════════════════
-    //  7. Ways — 3 hand-computed cases (C# evaluator; to be migrated)
-    // ════════════════════════════════════════════════════════════════════
+        state = ApplyModify(state, tumble, "board");
 
-    private static Paytable WaysPaytable() => new()
-    {
-        Id = "pt-ways",
-        Entries =
-        [
-            new PaytableEntry { SymbolId = "A", Counts = new[] { 3 }, Payouts = new[] { "10" } },
-            new PaytableEntry { SymbolId = "B", Counts = new[] { 3 }, Payouts = new[] { "5" } }
-        ]
-    };
-
-    [Fact]
-    public void Ways_3x3AllA_1Way_Pays10()
-    {
-        var board = new Board(3, 3)
-            .SetCell(0, 0, new BoardCell { Symbols = new[] { "A" } })
-            .SetCell(0, 1, new BoardCell { Symbols = new[] { "A" } })
-            .SetCell(0, 2, new BoardCell { Symbols = new[] { "A" } });
-
-        var wins = new WaysEvaluator(WaysPaytable()).Evaluate(board, null);
-
-        var win = Assert.Single(wins.Where(w => w.SymbolId == "A"));
-        Assert.Equal(3, win.Count);
-        Assert.Equal(10m, win.Payout);
-    }
-
-    [Fact]
-    public void Ways_3x3AllA_9Ways_Pays90()
-    {
-        var board = new Board(3, 3);
-        for (var r = 0; r < 3; r++)
-            for (var c = 0; c < 3; c++)
-                board = board.SetCell(r, c, new BoardCell { Symbols = new[] { "A" } });
-
-        var wins = new WaysEvaluator(WaysPaytable()).Evaluate(board, null);
-
-        var win = Assert.Single(wins.Where(w => w.SymbolId == "A"));
-        Assert.Equal(3, win.Count);
-        Assert.Equal(270m, win.Payout);
-    }
-
-    [Fact]
-    public void Ways_MixedSymbols_OnlyMatchingCountsSymbol()
-    {
-        var board = new Board(2, 3)
-            .SetCell(0, 0, new BoardCell { Symbols = new[] { "A" } })
-            .SetCell(1, 0, new BoardCell { Symbols = new[] { "B" } })
-            .SetCell(0, 1, new BoardCell { Symbols = new[] { "A" } })
-            .SetCell(0, 2, new BoardCell { Symbols = new[] { "A" } });
-
-        var wins = new WaysEvaluator(WaysPaytable()).Evaluate(board, null);
-
-        var aWin = wins.FirstOrDefault(w => w.SymbolId == "A");
-        Assert.NotNull(aWin);
-        Assert.Equal(3, aWin.Count);
-        Assert.Equal(10m, aWin.Payout);
-        Assert.DoesNotContain(wins, w => w.SymbolId == "B" && w.Count == 3);
-    }
-
-    // ════════════════════════════════════════════════════════════════════
-    //  8. Cascade — 3 hand-computed cases (C# transforms; to be migrated)
-    // ════════════════════════════════════════════════════════════════════
-
-    [Fact]
-    public void Cascade_RemoveAndRefill_EmptiesThenFillsColumn()
-    {
-        var board = new Board(3, 1)
-            .SetCell(0, 0, new BoardCell { Symbols = new[] { "A" } })
-            .SetCell(1, 0, new BoardCell { Symbols = new[] { "A" } })
-            .SetCell(2, 0, new BoardCell { Symbols = new[] { "A" } });
-
-        var winPos = new HashSet<(int, int)> { (0, 0) };
-        var remove = new RemoveWinningTransform(winPos);
-        var (afterRemove, _) = remove.Apply(board, null);
-
-        Assert.True(afterRemove[0, 0].IsEmpty);
-        Assert.False(afterRemove[1, 0].IsEmpty);
-        Assert.False(afterRemove[2, 0].IsEmpty);
-    }
-
-    [Fact]
-    public void Cascade_Refill_TumblesExistingSymbolsDown()
-    {
-        var board = new Board(3, 1)
-            .SetCell(0, 0, new BoardCell { Symbols = new[] { "A" } })
-            .SetCell(2, 0, new BoardCell { Symbols = new[] { "B" } });
-
-        var newSymbols = new[] { "X" };
-        var refill = new RefillTumbleTransform(() => newSymbols);
-        var (after, _) = refill.Apply(board, null);
-
-        Assert.Equal("B", after[2, 0].Symbols![0]);
-        Assert.Equal("A", after[1, 0].Symbols![0]);
-        Assert.Equal("X", after[0, 0].Symbols![0]);
-    }
-
-    [Fact]
-    public void Cascade_LockedCellPreservedDuringRemoval()
-    {
-        var board = new Board(3, 1)
-            .SetCell(0, 0, new BoardCell { Symbols = new[] { "A" } })
-            .SetCell(1, 0, new BoardCell { Symbols = new[] { "A" }, IsLocked = true })
-            .SetCell(2, 0, new BoardCell { Symbols = new[] { "A" } });
-
-        var winPos = new HashSet<(int, int)> { (0, 0), (1, 0), (2, 0) };
-        var remove = new RemoveWinningTransform(winPos);
-        var (after, _) = remove.Apply(board, null);
-
-        Assert.True(after[0, 0].IsEmpty);
-        Assert.False(after[1, 0].IsEmpty);
-        Assert.True(after[1, 0].IsLocked);
-        Assert.True(after[2, 0].IsEmpty);
-    }
-
-    // ════════════════════════════════════════════════════════════════════
-    //  9. Sticky-wild (LockTransform) — 3 cases (to be migrated)
-    // ════════════════════════════════════════════════════════════════════
-
-    [Fact]
-    public void StickyWild_LockTransform_MarksSpecifiedCellsAsLocked()
-    {
-        var board = new Board(3, 3)
-            .SetCell(0, 1, new BoardCell { Symbols = new[] { "W" } })
-            .SetCell(2, 2, new BoardCell { Symbols = new[] { "W" } });
-
-        var lockPositions = new HashSet<(int, int)> { (0, 1), (2, 2) };
-        var lockTransform = new LockTransform(lockPositions);
-        var (after, _) = lockTransform.Apply(board, null);
-
-        Assert.True(after[0, 1].IsLocked,  "Expected (0,1) to be locked");
-        Assert.True(after[2, 2].IsLocked,  "Expected (2,2) to be locked");
-        Assert.False(after[0, 0].IsLocked, "Expected (0,0) to remain unlocked");
-    }
-
-    [Fact]
-    public void StickyWild_AlreadyLockedCellRemainLocked()
-    {
-        var board = new Board(2, 2)
-            .SetCell(0, 0, new BoardCell { Symbols = new[] { "W" }, IsLocked = true });
-
-        var lockTransform = new LockTransform(new[] { (0, 0) });
-        var (after, _) = lockTransform.Apply(board, null);
-
-        Assert.True(after[0, 0].IsLocked);
-    }
-
-    [Fact]
-    public void StickyWild_EmptyPositionSet_LeaveBoardUnchanged()
-    {
-        var board = new Board(2, 2)
-            .SetCell(0, 0, new BoardCell { Symbols = new[] { "A" } });
-
-        var lockTransform = new LockTransform(Array.Empty<(int, int)>());
-        var (after, _) = lockTransform.Apply(board, null);
-
-        Assert.Equal(board, after);
-    }
-
-    // ════════════════════════════════════════════════════════════════════
-    //  10. Hold-and-win (CollectTransform + RevealTransform) — 3 cases
-    // ════════════════════════════════════════════════════════════════════
-
-    [Fact]
-    public void HoldAndWin_Reveal_SetsRevealedDecoration()
-    {
-        var board = new Board(2, 2)
-            .SetCell(0, 0, new BoardCell { Symbols = new[] { "M" } })
-            .SetCell(1, 1, new BoardCell { Symbols = new[] { "M" } });
-
-        var reveal = new RevealTransform();
-        var (after, _) = reveal.Apply(board, null);
-
-        Assert.Equal("true", after[0, 0].GetDecoration("revealed"));
-        Assert.Equal("true", after[1, 1].GetDecoration("revealed"));
-    }
-
-    [Fact]
-    public void HoldAndWin_Collect_AccumulatesMoneySymbolValues()
-    {
-        var board = new Board(1, 3)
-            .SetCell(0, 0, new BoardCell
-            {
-                Symbols = new[] { "M" },
-                Decorations = new Dictionary<string, string> { ["value"] = "5" }
-            })
-            .SetCell(0, 2, new BoardCell
-            {
-                Symbols = new[] { "M" },
-                Decorations = new Dictionary<string, string> { ["value"] = "10" }
-            });
-
-        var collect = new CollectTransform(
-            predicate: cell => cell.Symbols?.Contains("M") == true,
-            decorationKey: "value");
-
-        var (_, newState) = collect.Apply(board, null);
-
-        Assert.Equal(15m, (decimal)newState!);
-    }
-
-    [Fact]
-    public void HoldAndWin_Collect_NoPreviousState_StartsFromZero()
-    {
-        var board = new Board(1, 2)
-            .SetCell(0, 0, new BoardCell
-            {
-                Symbols = new[] { "M" },
-                Decorations = new Dictionary<string, string> { ["value"] = "25" }
-            });
-
-        var collect = new CollectTransform(
-            cell => cell.Symbols?.Contains("M") == true,
-            "value");
-
-        var (_, state) = collect.Apply(board, null);
-        Assert.Equal(25m, (decimal)state!);
+        var board = (object?[])state["board"]!;
+        // Winning positions 0,1,2 take fresh symbols from refill; 3,4 are kept.
+        Assert.Equal(new object?[] { "R", "Q", "R", "Q", "R" }, board);
     }
 
     // ════════════════════════════════════════════════════════════════════

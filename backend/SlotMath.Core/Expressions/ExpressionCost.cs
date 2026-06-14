@@ -32,7 +32,9 @@ public static class ExpressionCost
         BinaryExpr b => 1 + Compute(b.Left) + Compute(b.Right),
         CompareExpr c => 1 + Compute(c.Left) + Compute(c.Right),
         IfExpr i => 1 + Compute(i.Condition) + Compute(i.ThenExpr) + Compute(i.ElseExpr),
-        AggregateExpr a => 1 + (a.Predicate is null ? 0 : BoundedIterationFactor * Compute(a.Predicate)),
+        AggregateExpr a => 1 + BoundedIterationFactor * (
+            (a.Predicate is null ? 0 : Compute(a.Predicate)) +
+            (a.ValueExpr is null ? 0 : Compute(a.ValueExpr))),
         CallExpr call => 1 + call.Args.Sum(Compute),
         MapExpr m => 1 + BoundedIterationFactor * Compute(m.Body),
         FilterExpr f => 1 + BoundedIterationFactor * Compute(f.Predicate),

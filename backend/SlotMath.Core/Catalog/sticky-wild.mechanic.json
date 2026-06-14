@@ -1,16 +1,91 @@
 {
   "name": "sticky-wild",
-  "description": "Sticky wild mechanic. Locks wild-symbol cells so they persist across subsequent spins (Hold & Spin style overlay). Applies the lock transform to the current board, preserving wild positions in state. Input port: 'board' (Board). Output port: 'board' (Board).",
+  "description": "Sticky wild mechanic implemented as a pure subgraph (invariant 2/4: no C# class, no Board type). Across spins it accumulates the positions of the wild symbol 'W' into state['stickyPositions'] (an index array) and overlays wilds at those positions onto the current board (state['board'], a flat symbol array). Uses index-aware fold (accumulate, deduped via contains+append) and index-aware map (overlay). The host game initialises state['stickyPositions'] to an empty array. Input/output port: 'state'.",
   "nodes": [
     {
-      "nodeType": "map",
-      "id": "lock",
-      "label": "Lock Wild Cells",
-      "transformId": "lock",
-      "inputs": { "board": { "name": "board", "type": "Board" } },
-      "outputs": { "board": { "name": "board", "type": "Board" } }
+      "nodeType": "modifyState",
+      "id": "accumulate",
+      "label": "Accumulate Wild Positions",
+      "expressionId": "accumulate_sticky",
+      "outputKey": "stickyPositions",
+      "inputs": { "state": { "name": "state", "type": "State" } },
+      "outputs": { "state": { "name": "state", "type": "State" } }
+    },
+    {
+      "nodeType": "modifyState",
+      "id": "overlay",
+      "label": "Overlay Sticky Wilds",
+      "expressionId": "overlay_wilds",
+      "outputKey": "board",
+      "inputs": { "state": { "name": "state", "type": "State" } },
+      "outputs": { "state": { "name": "state", "type": "State" } }
     }
   ],
-  "edges": [],
-  "expressions": {}
+  "edges": [
+    { "id": "e0", "sourceNodeId": "accumulate", "sourcePort": "state", "targetNodeId": "overlay", "targetPort": "state" }
+  ],
+  "expressions": {
+    "accumulate_sticky": {
+      "exprType": "fold",
+      "stateKey": "board",
+      "accName": "acc",
+      "itemName": "sym",
+      "indexName": "i",
+      "itemType": "String",
+      "init": { "exprType": "fieldAccess", "target": "state", "path": ["stickyPositions"] },
+      "body": {
+        "exprType": "if",
+        "condition": {
+          "exprType": "binary",
+          "op": "And",
+          "left": {
+            "exprType": "compare",
+            "op": "Eq",
+            "left": { "exprType": "fieldAccess", "target": "state", "path": ["sym"] },
+            "right": { "exprType": "constant", "kind": "String", "value": "W" }
+          },
+          "right": {
+            "exprType": "not",
+            "expr": {
+              "exprType": "call",
+              "function": "contains",
+              "args": [
+                { "exprType": "fieldAccess", "target": "state", "path": ["acc"] },
+                { "exprType": "fieldAccess", "target": "state", "path": ["i"] }
+              ]
+            }
+          }
+        },
+        "thenExpr": {
+          "exprType": "call",
+          "function": "append",
+          "args": [
+            { "exprType": "fieldAccess", "target": "state", "path": ["acc"] },
+            { "exprType": "fieldAccess", "target": "state", "path": ["i"] }
+          ]
+        },
+        "elseExpr": { "exprType": "fieldAccess", "target": "state", "path": ["acc"] }
+      }
+    },
+    "overlay_wilds": {
+      "exprType": "map",
+      "stateKey": "board",
+      "itemName": "sym",
+      "indexName": "i",
+      "itemType": "String",
+      "body": {
+        "exprType": "if",
+        "condition": {
+          "exprType": "call",
+          "function": "contains",
+          "args": [
+            { "exprType": "fieldAccess", "target": "state", "path": ["stickyPositions"] },
+            { "exprType": "fieldAccess", "target": "state", "path": ["i"] }
+          ]
+        },
+        "thenExpr": { "exprType": "constant", "kind": "String", "value": "W" },
+        "elseExpr": { "exprType": "fieldAccess", "target": "state", "path": ["sym"] }
+      }
+    }
+  }
 }

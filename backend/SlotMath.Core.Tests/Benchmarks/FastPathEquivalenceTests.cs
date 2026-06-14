@@ -60,17 +60,25 @@ public sealed class FastPathEquivalenceTests
         new() { Kind = ConstantKind.Integer, Value = v.ToString() };
 
     // ── Board helpers shared by Ways and Cluster sections ────────────────
+    //  A "board" is a flat row-major symbol array in state (invariant 4).
+    //  The canonical oracles below index this array DIRECTLY (no kernel
+    //  helpers) to stay independent of SlotMath.Core (D25).
 
-    private static Board MakeBoard(string[][] grid)
+    private static Dict MakeBoard(string[][] grid)
     {
         var rows = grid.Length;
         var cols = grid[0].Length;
-        var board = new Board(rows, cols);
+        var flat = new object?[rows * cols];
         for (var r = 0; r < rows; r++)
             for (var c = 0; c < cols; c++)
-                board = board.SetCell(r, c, new BoardCell { Symbols = [grid[r][c]] });
-        return board;
+                flat[r * cols + c] = grid[r][c];
+        return new Dict { ["board"] = flat, ["rows"] = rows, ["cols"] = cols };
     }
+
+    private static int RowsOf(Dict s) => (int)s["rows"]!;
+    private static int ColsOf(Dict s) => (int)s["cols"]!;
+    private static string SymAt(Dict s, int r, int c) =>
+        (string)((object?[])s["board"]!)[r * ColsOf(s) + c]!;
 
     // Symbols used in PBT generators
     private static readonly string[] LineSyms = ["H", "L", "W"];
@@ -124,10 +132,7 @@ public sealed class FastPathEquivalenceTests
 
     private static decimal FastPathLinesPayout(string[] cells)
     {
-        var board = new Board(1, 3)
-            .SetCell(0, 0, new BoardCell { Symbols = [cells[0]] })
-            .SetCell(0, 1, new BoardCell { Symbols = [cells[1]] })
-            .SetCell(0, 2, new BoardCell { Symbols = [cells[2]] });
+        var board = MakeBoard([cells]);
 
         var paytable = new Paytable
         {
@@ -145,7 +150,7 @@ public sealed class FastPathEquivalenceTests
             Paylines = [new Payline { Positions = [0, 0, 0] }],
         };
 
-        return new LinesEvaluator(paytable, paylineSet, W).Evaluate(board, null).Sum(w => w.Payout);
+        return new LinesEvaluator(paytable, paylineSet, W).Evaluate(board).Sum(w => w.Payout);
     }
 
     // ── 1a. Exhaustive: all 27 combinations of {H, L, W}³ ──────────────
@@ -241,17 +246,16 @@ public sealed class FastPathEquivalenceTests
         return idx < 0 ? 0 : decimal.Parse(entry.Payouts[idx]);
     }
 
-    private static decimal WaysCanonical(Board board, string targetSym, string? wild)
+    private static decimal WaysCanonical(Dict board, string targetSym, string? wild)
     {
         var colCounts = new List<int>();
-        for (var col = 0; col < board.Cols; col++)
+        for (var col = 0; col < ColsOf(board); col++)
         {
             var cnt = 0;
-            for (var row = 0; row < board.Rows; row++)
+            for (var row = 0; row < RowsOf(board); row++)
             {
-                var cell = board[row, col];
-                if (cell.IsEmpty) continue;
-                var sym = cell.Symbols![0];
+                var sym = SymAt(board, row, col);
+                if (string.IsNullOrEmpty(sym)) continue;
                 if (sym == targetSym || sym == wild) cnt++;
             }
             if (cnt == 0) break;
@@ -262,14 +266,14 @@ public sealed class FastPathEquivalenceTests
         return WaysPaytableLookup(targetSym, colCounts.Count) * totalWays;
     }
 
-    private static decimal WaysCanonicalTotal(Board board)
+    private static decimal WaysCanonicalTotal(Dict board)
     {
         var nonWild = new[] { "H", "L" };
         return nonWild.Sum(sym => WaysCanonical(board, sym, W));
     }
 
-    private static decimal WaysFastPath(Board board) =>
-        new WaysEvaluator(WaysPaytable(), W).Evaluate(board, null).Sum(w => w.Payout);
+    private static decimal WaysFastPath(Dict board) =>
+        new WaysEvaluator(WaysPaytable(), W).Evaluate(board).Sum(w => w.Payout);
 
     // ── 2a. PBT: 10,000 cases on 2×3 boards (pinned seed, D8) ─────────
     //
@@ -383,12 +387,13 @@ public sealed class FastPathEquivalenceTests
     }
 
     private static List<(int Row, int Col)> BfsFloodFill(
-        Board board, int startR, int startC, string sym, bool[,] visited)
+        Dict board, int startR, int startC, string sym, bool[,] visited)
     {
         var cluster = new List<(int Row, int Col)>();
         var queue = new Queue<(int, int)>();
         queue.Enqueue((startR, startC));
         visited[startR, startC] = true;
+        var rows = RowsOf(board); var cols = ColsOf(board);
         int[][] dirs = [[-1, 0], [1, 0], [0, -1], [0, 1]];
         while (queue.Count > 0)
         {
@@ -397,9 +402,9 @@ public sealed class FastPathEquivalenceTests
             foreach (var d in dirs)
             {
                 var nr = r + d[0]; var nc = c + d[1];
-                if (nr < 0 || nr >= board.Rows || nc < 0 || nc >= board.Cols) continue;
-                if (visited[nr, nc] || board[nr, nc].IsEmpty) continue;
-                if (board[nr, nc].Symbols![0] != sym) continue;
+                if (nr < 0 || nr >= rows || nc < 0 || nc >= cols) continue;
+                if (visited[nr, nc] || string.IsNullOrEmpty(SymAt(board, nr, nc))) continue;
+                if (SymAt(board, nr, nc) != sym) continue;
                 visited[nr, nc] = true;
                 queue.Enqueue((nr, nc));
             }
@@ -407,15 +412,16 @@ public sealed class FastPathEquivalenceTests
         return cluster;
     }
 
-    private static decimal ClusterCanonical(Board board, int minSize)
+    private static decimal ClusterCanonical(Dict board, int minSize)
     {
-        var visited = new bool[board.Rows, board.Cols];
+        var rows = RowsOf(board); var cols = ColsOf(board);
+        var visited = new bool[rows, cols];
         decimal total = 0;
-        for (var r = 0; r < board.Rows; r++)
-        for (var c = 0; c < board.Cols; c++)
+        for (var r = 0; r < rows; r++)
+        for (var c = 0; c < cols; c++)
         {
-            if (visited[r, c] || board[r, c].IsEmpty) continue;
-            var sym = board[r, c].Symbols![0];
+            if (visited[r, c] || string.IsNullOrEmpty(SymAt(board, r, c))) continue;
+            var sym = SymAt(board, r, c);
             var cluster = BfsFloodFill(board, r, c, sym, visited);
             if (cluster.Count >= minSize)
                 total += ClusterPaytableLookup(sym, cluster.Count);
@@ -437,7 +443,7 @@ public sealed class FastPathEquivalenceTests
                {
                    var board = MakeBoard(grid);
                    var fp = new ClusterEvaluator(ClusterPaytable(), MinCluster)
-                       .Evaluate(board, null).Sum(w => w.Payout);
+                       .Evaluate(board).Sum(w => w.Payout);
                    Assert.Equal(ClusterCanonical(board, MinCluster), fp);
                },
                seed: "cluster-3x3-pbt-v1",
@@ -460,7 +466,7 @@ public sealed class FastPathEquivalenceTests
                {
                    var board = MakeBoard([r0, r1, r2, r3]);
                    var fp = new ClusterEvaluator(ClusterPaytable(), MinCluster)
-                       .Evaluate(board, null).Sum(w => w.Payout);
+                       .Evaluate(board).Sum(w => w.Payout);
                    Assert.Equal(ClusterCanonical(board, MinCluster), fp);
                },
                seed: "cluster-4x5-pbt-v1",
@@ -473,7 +479,7 @@ public sealed class FastPathEquivalenceTests
     public void Cluster_EdgeCase_AllSameSymbol_3x3_OneCluster()
     {
         var board = MakeBoard([["H", "H", "H"], ["H", "H", "H"], ["H", "H", "H"]]);
-        var fp = new ClusterEvaluator(ClusterPaytable(), MinCluster).Evaluate(board, null).Sum(w => w.Payout);
+        var fp = new ClusterEvaluator(ClusterPaytable(), MinCluster).Evaluate(board).Sum(w => w.Payout);
         Assert.Equal(ClusterCanonical(board, MinCluster), fp);
     }
 
@@ -486,7 +492,7 @@ public sealed class FastPathEquivalenceTests
             ["L", "H", "L"],
             ["H", "L", "H"],
         ]);
-        var fp = new ClusterEvaluator(ClusterPaytable(), MinCluster).Evaluate(board, null).Sum(w => w.Payout);
+        var fp = new ClusterEvaluator(ClusterPaytable(), MinCluster).Evaluate(board).Sum(w => w.Payout);
         Assert.Equal(0m, fp);
         Assert.Equal(ClusterCanonical(board, MinCluster), fp);
     }
@@ -501,7 +507,7 @@ public sealed class FastPathEquivalenceTests
             ["H", "L", "L"],
             ["L", "L", "L"],
         ]);
-        var fp = new ClusterEvaluator(ClusterPaytable(), MinCluster).Evaluate(board, null).Sum(w => w.Payout);
+        var fp = new ClusterEvaluator(ClusterPaytable(), MinCluster).Evaluate(board).Sum(w => w.Payout);
         Assert.Equal(ClusterCanonical(board, MinCluster), fp);
     }
 
@@ -511,7 +517,7 @@ public sealed class FastPathEquivalenceTests
         // 4×5 all H → one cluster of 20 → capped at count 8 → pays 30.
         var row5 = new[] { "H", "H", "H", "H", "H" };
         var board = MakeBoard([row5, row5, row5, row5]);
-        var fp = new ClusterEvaluator(ClusterPaytable(), MinCluster).Evaluate(board, null).Sum(w => w.Payout);
+        var fp = new ClusterEvaluator(ClusterPaytable(), MinCluster).Evaluate(board).Sum(w => w.Payout);
         Assert.Equal(ClusterCanonical(board, MinCluster), fp);
     }
 }

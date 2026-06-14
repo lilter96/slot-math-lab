@@ -16,7 +16,7 @@ namespace SlotMath.Core.Mechanics.Transforms;
 ///                 LockCells     → set cell.IsLocked = true
 ///   SymbolId  — required for OverlaySymbol mode; unused for others
 /// </summary>
-public sealed class BoardCellApplyTransform : ITransform
+public sealed class BoardCellApplyTransform : IFastPathTransform
 {
     public string StateKey { get; }
     public CellApplyMode ApplyMode { get; }
@@ -33,47 +33,62 @@ public sealed class BoardCellApplyTransform : ITransform
         SymbolId  = symbolId;
     }
 
-    public (Board NewBoard, object? NewState) Apply(Board board, object? state)
+    public IReadOnlyDictionary<string, object?> Apply(IReadOnlyDictionary<string, object?> state)
     {
-        ArgumentNullException.ThrowIfNull(board);
+        ArgumentNullException.ThrowIfNull(state);
 
-        var stateDict = state as Dictionary<string, object?>;
-        if (stateDict == null
-            || !stateDict.TryGetValue(StateKey, out var val)
+        if (!state.TryGetValue(StateKey, out var val)
             || val is not string[] positions
             || positions.Length == 0)
-            return (board, state);
+            return state;
 
-        var newBoard = board;
+        var cells = GridState.Cells(state);
+        if (cells.Length == 0) return state;
+        var cols = GridState.Cols(state);
+        if (cols <= 0) cols = cells.Length;
+        var rows = cols > 0 ? cells.Length / cols : 1;
+
+        // Copy-on-write the flat cell array (immutable state, D17).
+        var next = (object?[])cells.Clone();
+        var changed = false;
         foreach (var s in positions)
         {
             var comma = s.IndexOf(',');
             if (comma <= 0) continue;
             if (!int.TryParse(s.AsSpan(0, comma), out var r)
                 || !int.TryParse(s.AsSpan(comma + 1), out var c)) continue;
-            if ((uint)r >= (uint)newBoard.Rows || (uint)c >= (uint)newBoard.Cols) continue;
+            if ((uint)r >= (uint)rows || (uint)c >= (uint)cols) continue;
 
-            newBoard = ApplyMode switch
+            var idx = GridState.Index(r, c, cols);
+            var updated = ApplyMode switch
             {
-                CellApplyMode.OverlaySymbol => ApplyOverlay(newBoard, r, c),
-                CellApplyMode.LockCells     => ApplyLock(newBoard, r, c),
-                _                           => newBoard,
+                CellApplyMode.OverlaySymbol => ApplyOverlay(next[idx]),
+                CellApplyMode.LockCells     => ApplyLock(next[idx]),
+                _                           => next[idx],
             };
+            if (!ReferenceEquals(updated, next[idx])) { next[idx] = updated; changed = true; }
         }
 
-        return (newBoard, state);
+        return changed ? GridState.With(state, GridState.CellsKey, next) : state;
     }
 
-    private Board ApplyOverlay(Board board, int r, int c)
+    private object? ApplyOverlay(object? cell)
     {
-        var cell = board[r, c];
-        if (!cell.IsEmpty && cell.Symbols![0] == SymbolId) return board;
-        return board.SetCell(r, c, new BoardCell { Symbols = new[] { SymbolId! } });
+        // Overlay sets the symbol; a record cell keeps its other fields.
+        if (GridState.Symbol(cell) == SymbolId) return cell;
+        return cell is IReadOnlyDictionary<string, object?> d
+            ? new Dictionary<string, object?>(d) { [GridState.SymbolField] = SymbolId! }
+            : SymbolId!;
     }
 
-    private static Board ApplyLock(Board board, int r, int c)
+    private static object? ApplyLock(object? cell)
     {
-        var cell = board[r, c];
-        return cell.IsLocked ? board : board.SetCell(r, c, cell.WithLocked(true));
+        if (GridState.IsLocked(cell)) return cell;
+        // Locking requires a record cell to carry the flag.
+        var record = cell is IReadOnlyDictionary<string, object?> d
+            ? new Dictionary<string, object?>(d)
+            : new Dictionary<string, object?> { [GridState.SymbolField] = GridState.Symbol(cell) };
+        record[GridState.LockedField] = true;
+        return record;
     }
 }

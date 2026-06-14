@@ -1,32 +1,45 @@
 {
   "name": "cascade",
-  "description": "Cascade / tumble mechanic. In a loop: evaluate wins on the current board, remove winning cells, refill from above, repeat until no new wins. Composes remove-winning + refill-tumble transforms with a scatter or cluster evaluator. Input port: 'board' (Board). Output port: 'wins' (Wins).",
+  "description": "Cascade / tumble mechanic as a pure subgraph (invariant 2/4: no C# class, no Board type). Implements the remove-and-refill-in-place tumble: winning cells (positions in state['winningPositions'], produced by the host's win evaluator such as cluster/scatter) are replaced in the board (state['board']) by fresh symbols drawn into state['refill'] (a same-size board the host draws each cascade). Non-winning cells are kept. The host wires this inside a capped Loop that re-evaluates after each tumble and stops when there are no wins. Column-gravity tumble (vs. positional refill) requires a future bounded reshape primitive. Uses index-aware map + contains + index over state arrays. Input/output port: 'state'.",
   "nodes": [
     {
-      "nodeType": "map",
-      "id": "remove",
-      "label": "Remove Winning Cells",
-      "transformId": "remove-winning",
-      "inputs": { "board": { "name": "board", "type": "Board" } },
-      "outputs": { "board": { "name": "board", "type": "Board" } }
-    },
-    {
-      "nodeType": "map",
-      "id": "refill",
-      "label": "Refill / Tumble",
-      "transformId": "refill-tumble",
-      "inputs": { "board": { "name": "board", "type": "Board" } },
-      "outputs": { "wins": { "name": "wins", "type": "Wins" } }
+      "nodeType": "modifyState",
+      "id": "tumble",
+      "label": "Remove Winners and Refill In Place",
+      "expressionId": "tumble_refill",
+      "outputKey": "board",
+      "inputs": { "state": { "name": "state", "type": "State" } },
+      "outputs": { "state": { "name": "state", "type": "State" } }
     }
   ],
-  "edges": [
-    {
-      "id": "e1",
-      "sourceNodeId": "remove",
-      "sourcePort": "board",
-      "targetNodeId": "refill",
-      "targetPort": "board"
+  "edges": [],
+  "expressions": {
+    "tumble_refill": {
+      "exprType": "map",
+      "stateKey": "board",
+      "itemName": "cell",
+      "indexName": "i",
+      "itemType": "String",
+      "body": {
+        "exprType": "if",
+        "condition": {
+          "exprType": "call",
+          "function": "contains",
+          "args": [
+            { "exprType": "fieldAccess", "target": "state", "path": ["winningPositions"] },
+            { "exprType": "fieldAccess", "target": "state", "path": ["i"] }
+          ]
+        },
+        "thenExpr": {
+          "exprType": "call",
+          "function": "index",
+          "args": [
+            { "exprType": "fieldAccess", "target": "state", "path": ["refill"] },
+            { "exprType": "fieldAccess", "target": "state", "path": ["i"] }
+          ]
+        },
+        "elseExpr": { "exprType": "fieldAccess", "target": "state", "path": ["cell"] }
+      }
     }
-  ],
-  "expressions": {}
+  }
 }

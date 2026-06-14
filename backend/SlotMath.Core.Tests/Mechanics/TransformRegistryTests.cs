@@ -1,4 +1,5 @@
 using SlotMath.Core.Mechanics;
+using SlotMath.Core.Tests;
 
 namespace SlotMath.Core.Tests.Mechanics;
 
@@ -64,73 +65,104 @@ public class TransformRegistryTests : IDisposable
     [Fact]
     public void ITransform_Apply_IsPureFunction()
     {
-        var board = new Board(3, 5);
+        var state = TestBoardState.From(new string?[][]
+        {
+            new string?[] { null, null, null, null, null },
+            new string?[] { null, null, null, null, null },
+            new string?[] { null, null, null, null, null },
+        });
         var transform = new TestTransform();
 
-        var (b1, s1) = transform.Apply(board, null);
-        var (b2, s2) = transform.Apply(board, null);
+        var r1 = transform.Apply(state);
+        var r2 = transform.Apply(state);
 
         // Same input → same output (purity)
-        Assert.Equal(b1, b2);
-        Assert.Equal(s1, s2);
+        Assert.Equal(GridState.Cells(r1), GridState.Cells(r2));
 
-        // Original board untouched (no side effects)
-        Assert.Equal(3, board.Rows);
+        // Original state untouched (no side effects)
+        Assert.Equal(3, GridState.Rows(state));
     }
 
     [Fact]
     public void ITransform_CanModifyBoardAndState()
     {
-        var board = new Board(3, 5);
+        var state = TestBoardState.From(
+            new string?[][]
+            {
+                new string?[] { null, null, null, null, null },
+                new string?[] { null, null, null, null, null },
+                new string?[] { null, null, null, null, null },
+            },
+            (CellAddingTransform.CounterKey, (object?)0));
         var transform = new CellAddingTransform();
 
-        var (newBoard, newState) = transform.Apply(board, "counter:0");
-        Assert.NotEqual(board, newBoard);
-        Assert.Equal("counter:1", newState);
+        var newState = transform.Apply(state);
+
+        // Board changed: cell (0,0) now holds the marker symbol.
+        Assert.NotEqual(GridState.Cells(state), GridState.Cells(newState));
+        Assert.Equal("★", GridState.Symbol(GridState.Cells(newState)[0]));
+
+        // State changed: the counter advanced 0 → 1.
+        Assert.Equal(1, newState[CellAddingTransform.CounterKey]);
     }
 
     [Fact]
-    public void ITransform_WithNullBoard_ThrowsArgumentNullException()
+    public void ITransform_WithNullState_ThrowsArgumentNullException()
     {
         var transform = new TestTransform();
-        Assert.Throws<ArgumentNullException>(() => transform.Apply(null!, null));
+        Assert.Throws<ArgumentNullException>(() => transform.Apply(null!));
     }
 
     [Fact]
     public void ITransform_PreservesUnrelatedState()
     {
-        var board = new Board(3, 5)
-            .SetCell(0, 0, new BoardCell { Symbols = new[] { "A" } })
-            .SetCell(2, 4, new BoardCell { Symbols = new[] { "B" }, IsLocked = true });
+        var state = TestBoardState.From(
+            new string?[][]
+            {
+                new string?[] { "A", null, null, null, null },
+                new string?[] { null, null, null, null, null },
+                new string?[] { null, null, null, null, "B" },
+            },
+            ("unrelated", (object?)"keep-me"));
 
         var transform = new TestTransform();
-        var (newBoard, _) = transform.Apply(board, null);
+        var newState = transform.Apply(state);
 
-        // TestTransform returns the board unchanged
-        Assert.Equal(board, newBoard);
+        // TestTransform returns the board unchanged …
+        Assert.Equal(GridState.Cells(state), GridState.Cells(newState));
+        // … and leaves unrelated state intact.
+        Assert.Equal("keep-me", newState["unrelated"]);
     }
 
     // ── Test transform implementations ─────────────────────────────────
 
-    private sealed class TestTransform : ITransform
+    private sealed class TestTransform : IFastPathTransform
     {
-        public (Board NewBoard, object? NewState) Apply(Board board, object? state)
+        public IReadOnlyDictionary<string, object?> Apply(IReadOnlyDictionary<string, object?> state)
         {
-            ArgumentNullException.ThrowIfNull(board);
-            return (board, state);
+            ArgumentNullException.ThrowIfNull(state);
+            return state;
         }
     }
 
-    private sealed class CellAddingTransform : ITransform
+    private sealed class CellAddingTransform : IFastPathTransform
     {
-        public (Board NewBoard, object? NewState) Apply(Board board, object? state)
+        public const string CounterKey = "counter";
+
+        public IReadOnlyDictionary<string, object?> Apply(IReadOnlyDictionary<string, object?> state)
         {
-            ArgumentNullException.ThrowIfNull(board);
-            var newBoard = board.SetCell(0, 0, new BoardCell { Symbols = new[] { "★" } });
-            var newState = state is string s && s.StartsWith("counter:")
-                ? $"counter:{int.Parse(s.Split(':')[1]) + 1}"
-                : "counter:1";
-            return (newBoard, newState);
+            ArgumentNullException.ThrowIfNull(state);
+
+            // Modify the board: set cell (0,0) to a marker symbol.
+            var cells = GridState.Cells(state);
+            var newCells = (object?[])cells.Clone();
+            if (newCells.Length > 0)
+                newCells[0] = "★";
+            var withBoard = GridState.With(state, GridState.CellsKey, newCells);
+
+            // Modify state: bump an integer counter.
+            var counter = withBoard.TryGetValue(CounterKey, out var v) && v is int i ? i : 0;
+            return GridState.With(withBoard, CounterKey, counter + 1);
         }
     }
 }

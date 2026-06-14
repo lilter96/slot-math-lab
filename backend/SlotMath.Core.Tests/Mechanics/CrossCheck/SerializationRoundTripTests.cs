@@ -103,7 +103,7 @@ public class SerializationRoundTripTests(ITestOutputHelper output)
                 {
                     Op = BinaryOp.Mul,
                     Left = new ConstantExpr { Kind = ConstantKind.Integer, Value = "2" },
-                    Right = new FieldAccessExpr { Path = new[] { "rows" }, Target = "board" },
+                    Right = new FieldAccessExpr { Path = new[] { "rows" }, Target = "state" },
                 },
                 ["isScatter"] = new CompareExpr
                 {
@@ -198,9 +198,9 @@ public class SerializationRoundTripTests(ITestOutputHelper output)
         var expr1 = original.Expressions!["mult2x"];
         var expr2 = deserialized.Expressions!["mult2x"];
 
-        // Evaluate both.
-        var board = new Board(3, 1).SetCell(0, 0, new BoardCell().WithSymbols("5"));
-        var ctx = new EvalContext { Board = board };
+        // Evaluate both. The board is a user-defined array in state (invariant 4);
+        // its dimensions live in state too.
+        var ctx = new EvalContext { State = new Dictionary<string, object?> { ["rows"] = 3 } };
 
         var v1 = ExactExpressionEvaluator.Evaluate(expr1, ctx);
         var v2 = ExactExpressionEvaluator.Evaluate(expr2, ctx);
@@ -227,7 +227,7 @@ public class SerializationRoundTripTests(ITestOutputHelper output)
                     Condition = new CompareExpr
                     {
                         Op = CompareOp.Gt,
-                        Left = new FieldAccessExpr { Path = ["rows"], Target = "board" },
+                        Left = new FieldAccessExpr { Path = ["rows"], Target = "state" },
                         Right = new ConstantExpr { Kind = ConstantKind.Integer, Value = "0" },
                     },
                     ThenExpr = new BinaryExpr
@@ -245,7 +245,7 @@ public class SerializationRoundTripTests(ITestOutputHelper output)
         var deserialized = JsonSerializer.Deserialize<GraphConfig>(json, JsonOpts)!;
 
         var expr = deserialized.Expressions!["complex"];
-        var ctx = new EvalContext { Board = new Board(3, 1) };
+        var ctx = new EvalContext { State = new Dictionary<string, object?> { ["rows"] = 3 } };
 
         var result = ExactExpressionEvaluator.Evaluate(expr, ctx);
         // rows=3 > 0 → then branch: 7*3 = 21

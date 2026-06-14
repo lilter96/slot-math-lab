@@ -155,7 +155,7 @@ public class CompilerValidationTests
                 Left = new ConstantExpr { Kind = ConstantKind.Boolean, Value = "false" },
                 Right = chain,
             };
-        var big = new AggregateExpr { Func = AggregateFunc.Count, Target = "board", Predicate = chain };
+        var big = new AggregateExpr { Func = AggregateFunc.Count, StateKey = "board", Predicate = chain };
 
         var config = new GraphConfig
         {

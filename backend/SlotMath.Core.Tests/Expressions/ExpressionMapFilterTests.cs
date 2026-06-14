@@ -723,3 +723,141 @@ public class MapFilter_TypeCheckerTests
         Assert.Equal(ExprType.String, fi.ItemType);
     }
 }
+
+// ═══════════════════════════════════════════════════════════════════════════
+//  Index-aware iteration + array ops (contains/length/append) — the
+//  foundation for position/sticky board mechanics as pure subgraphs (inv 2/4).
+// ═══════════════════════════════════════════════════════════════════════════
+
+public class IndexedIterationAndArrayOps
+{
+    private static EvalContext State(Dictionary<string, object?> d) => new() { State = d };
+
+    private static Dictionary<string, object?> Board(params string[] cells) =>
+        new() { ["board"] = cells.Cast<object?>().ToArray() };
+
+    [Fact]
+    public void ArrayValuedField_Contains_FindsSymbol()
+    {
+        // contains(state["board"], "S")
+        var expr = new CallExpr
+        {
+            Function = "contains",
+            Args =
+            [
+                new FieldAccessExpr { Target = "state", Path = ["board"] },
+                new ConstantExpr { Kind = ConstantKind.String, Value = "S" },
+            ],
+        };
+        Assert.True(ExactExpressionEvaluator.Evaluate(expr, State(Board("A", "S", "B"))).BoolValue);
+        Assert.False(ExactExpressionEvaluator.Evaluate(expr, State(Board("A", "B", "C"))).BoolValue);
+    }
+
+    [Fact]
+    public void ArrayValuedField_Length_CountsElements()
+    {
+        var expr = new CallExpr
+        {
+            Function = "length",
+            Args = [new FieldAccessExpr { Target = "state", Path = ["board"] }],
+        };
+        Assert.Equal(new BigInteger(3),
+            ExactExpressionEvaluator.Evaluate(expr, State(Board("A", "B", "C"))).AsInteger());
+    }
+
+    [Fact]
+    public void IndexAwareMap_OverlaysByPosition()
+    {
+        // map(board, item, idx => if contains(stickyPositions, idx) then "W" else item)
+        var expr = new MapExpr
+        {
+            StateKey = "board",
+            ItemName = "item",
+            IndexName = "idx",
+            Body = new IfExpr
+            {
+                Condition = new CallExpr
+                {
+                    Function = "contains",
+                    Args =
+                    [
+                        new FieldAccessExpr { Target = "state", Path = ["sticky"] },
+                        new FieldAccessExpr { Target = "state", Path = ["idx"] },
+                    ],
+                },
+                ThenExpr = new ConstantExpr { Kind = ConstantKind.String, Value = "W" },
+                ElseExpr = new FieldAccessExpr { Target = "state", Path = ["item"] },
+            },
+        };
+
+        var state = new Dictionary<string, object?>
+        {
+            ["board"] = new object?[] { "A", "B", "C", "D" },
+            ["sticky"] = new object?[] { new BigInteger(1), new BigInteger(3) },
+        };
+        var result = ExactExpressionEvaluator.Evaluate(expr, State(state));
+        var symbols = result.ArrayValue!.Select(v => v.StringValue).ToArray();
+        Assert.Equal(["A", "W", "C", "W"], symbols);
+    }
+
+    [Fact]
+    public void IndexCall_ReturnsElement_AndErrorsOutOfRange()
+    {
+        var arr = new FieldAccessExpr { Target = "state", Path = ["refill"] };
+        ExprValue Index(int i) => ExactExpressionEvaluator.Evaluate(
+            new CallExpr { Function = "index", Args = [arr, new ConstantExpr { Kind = ConstantKind.Integer, Value = i.ToString() }] },
+            State(new Dictionary<string, object?> { ["refill"] = new object?[] { "A", "B", "C" } }));
+
+        Assert.Equal("B", Index(1).StringValue);
+        var ex = Assert.Throws<ExpressionEvaluationException>(() => Index(5));
+        Assert.Equal(EvalErrorCodes.IndexOutOfRange, ex.Code);
+    }
+
+    [Fact]
+    public void IndexAwareFold_WithAppend_CollectsMatchingPositions()
+    {
+        // fold(board, [], (acc, item, idx) => if item=="W" && !contains(acc, idx)
+        //                                       then append(acc, idx) else acc)
+        var idx = new FieldAccessExpr { Target = "state", Path = ["idx"] };
+        var acc = new FieldAccessExpr { Target = "state", Path = ["acc"] };
+        var expr = new FoldExpr
+        {
+            StateKey = "board",
+            AccName = "acc",
+            ItemName = "item",
+            IndexName = "idx",
+            ItemType = ExprType.String,
+            Init = new FieldAccessExpr { Target = "state", Path = ["prev"] },
+            Body = new IfExpr
+            {
+                Condition = new BinaryExpr
+                {
+                    Op = BinaryOp.And,
+                    Left = new CompareExpr
+                    {
+                        Op = CompareOp.Eq,
+                        Left = new FieldAccessExpr { Target = "state", Path = ["item"] },
+                        Right = new ConstantExpr { Kind = ConstantKind.String, Value = "W" },
+                    },
+                    Right = new NotExpr
+                    {
+                        Expr = new CallExpr { Function = "contains", Args = [acc, idx] },
+                    },
+                },
+                ThenExpr = new CallExpr { Function = "append", Args = [acc, idx] },
+                ElseExpr = acc,
+            },
+        };
+
+        // Board "W _ W _ W"; prior sticky already has index 0.
+        var state = new Dictionary<string, object?>
+        {
+            ["board"] = new object?[] { "W", "x", "W", "x", "W" },
+            ["prev"] = new object?[] { new BigInteger(0) },
+        };
+        var result = ExactExpressionEvaluator.Evaluate(expr, State(state));
+        var indices = result.ArrayValue!.Select(v => (int)v.AsInteger()).OrderBy(x => x).ToArray();
+        // 0 (prior, not re-added), 2, 4 added — 0 already present so deduped.
+        Assert.Equal([0, 2, 4], indices);
+    }
+}

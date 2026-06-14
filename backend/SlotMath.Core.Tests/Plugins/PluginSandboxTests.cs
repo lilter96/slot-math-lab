@@ -7,6 +7,7 @@ using SlotMath.Core.Model;
 using SlotMath.Core.Monad;
 using SlotMath.Core.Plugins;
 using SlotMath.Core.Random;
+using SlotMath.Core.Tests;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -28,12 +29,14 @@ public class PluginConformanceTests(ITestOutputHelper output)
     public void ConformantPlugin_PassesHarness()
     {
         var evaluator = new ConformantTestEvaluator();
-        var board = new Board(3, 3)
-            .SetCell(0, 0, new BoardCell().WithSymbols("A"))
-            .SetCell(1, 0, new BoardCell().WithSymbols("A"))
-            .SetCell(2, 0, new BoardCell().WithSymbols("A"));
+        var state = TestBoardState.From(new string?[][]
+        {
+            new string?[] { "A", null, null },
+            new string?[] { "A", null, null },
+            new string?[] { "A", null, null },
+        });
 
-        var result = ConformanceHarness.Validate(evaluator, board);
+        var result = ConformanceHarness.Validate(evaluator, state);
 
         Assert.True(result.Passed, $"Conformance failed: {string.Join("; ", result.Failures)}");
         Assert.Empty(result.Failures);
@@ -47,13 +50,13 @@ public class PluginConformanceTests(ITestOutputHelper output)
     public void ConformantPlugin_ProducesCorrectWins()
     {
         var evaluator = new ConformantTestEvaluator();
-        var board = new Board(2, 2)
-            .SetCell(0, 0, new BoardCell().WithSymbols("X"))
-            .SetCell(0, 1, new BoardCell().WithSymbols("X"))
-            .SetCell(1, 0, new BoardCell().WithSymbols("Y"))
-            .SetCell(1, 1, new BoardCell().WithSymbols("Y"));
+        var state = TestBoardState.From(new string?[][]
+        {
+            new string?[] { "X", "X" },
+            new string?[] { "Y", "Y" },
+        });
 
-        var wins = evaluator.Evaluate(board, null);
+        var wins = evaluator.Evaluate(state);
 
         // ConformantTestEvaluator pays for pairs of matching symbols
         // 1 pair of X + 1 pair of Y = 2 wins
@@ -70,13 +73,11 @@ public class PluginConformanceTests(ITestOutputHelper output)
     public void ConformantPlugin_IsDeterministic()
     {
         var evaluator = new ConformantTestEvaluator();
-        var board = new Board(2, 2)
-            .SetCell(0, 0, new BoardCell().WithSymbols("A"))
-            .SetCell(0, 1, new BoardCell().WithSymbols("A"));
+        var board = TestBoardState.From(new string?[][] { new string?[] { "A", "A" }, new string?[] { null, null } });
 
-        var w1 = evaluator.Evaluate(board, null);
-        var w2 = evaluator.Evaluate(board, null);
-        var w3 = evaluator.Evaluate(board, null);
+        var w1 = evaluator.Evaluate(board);
+        var w2 = evaluator.Evaluate(board);
+        var w3 = evaluator.Evaluate(board);
 
         Assert.Equal(w1.Length, w2.Length);
         Assert.Equal(w2.Length, w3.Length);
@@ -94,8 +95,7 @@ public class PluginConformanceTests(ITestOutputHelper output)
     public void ThrowingPlugin_IsContained()
     {
         var evaluator = new ThrowingTestEvaluator();
-        var board = new Board(1, 1)
-            .SetCell(0, 0, new BoardCell().WithSymbols("X"));
+        var board = TestBoardState.From(new string?[][] { new string?[] { "X" } });
 
         // Should not throw — the sandbox catches and reports the error.
         var exception = Record.Exception(() =>
@@ -117,8 +117,7 @@ public class PluginConformanceTests(ITestOutputHelper output)
     public void InfiniteLoopPlugin_IsTerminatedByTimeout()
     {
         var evaluator = new InfiniteLoopTestEvaluator();
-        var board = new Board(1, 1)
-            .SetCell(0, 0, new BoardCell().WithSymbols("X"));
+        var board = TestBoardState.From(new string?[][] { new string?[] { "X" } });
 
         var result = PluginSandbox.Execute(evaluator, board,
             new SandboxConfig { Timeout = TimeSpan.FromMilliseconds(200) });
@@ -143,11 +142,12 @@ public class Plugin_SameInterpreterPathTests
     [Fact]
     public void SameEvaluator_ShippedVsPlugged_IdenticalResults()
     {
-        var board = new Board(3, 3)
-            .SetCell(0, 0, new BoardCell().WithSymbols("A"))
-            .SetCell(1, 0, new BoardCell().WithSymbols("A"))
-            .SetCell(0, 1, new BoardCell().WithSymbols("B"))
-            .SetCell(1, 1, new BoardCell().WithSymbols("B"));
+        var board = TestBoardState.From(new string?[][]
+        {
+            new string?[] { "A", "B", null },
+            new string?[] { "A", "B", null },
+            new string?[] { null, null, null },
+        });
 
         // Run as shipped (direct IEvaluator call).
         var shipped = new LinesEvaluator(
@@ -176,13 +176,16 @@ public class Plugin_SameInterpreterPathTests
                 }
             });
 
-        var shippedWins = shipped.Evaluate(board, null);
+        var shippedWins = shipped.Evaluate(board);
 
-        // Run as plugged (via PluginHost wrapping the same evaluator).
+        // Run as plugged (via PluginHost wrapping the same fast-path through a
+        // plugin adapter). Fast-paths (IFastPathEvaluator) and plugins
+        // (IEvaluator) are distinct contracts (Invariant 2); a plugin may wrap a
+        // fast-path, and both paths must yield identical wins.
         var pluginHost = new PluginHost();
-        pluginHost.RegisterEvaluator("lines-plugin", shipped);
+        pluginHost.RegisterEvaluator("lines-plugin", new LinesFastPathPluginAdapter(shipped));
 
-        var pluggedWins = pluginHost.Evaluate("lines-plugin", board, null);
+        var pluggedWins = pluginHost.Evaluate("lines-plugin", board);
 
         // Same wins through both paths.
         Assert.Equal(shippedWins.Length, pluggedWins.Length);
@@ -214,6 +217,16 @@ public class Plugin_SameInterpreterPathTests
         // The resolved evaluator IS the same object — same contract.
         Assert.Same(evaluator, resolved);
     }
+}
+
+/// <summary>
+/// A level-(c) plugin (IEvaluator) that delegates to a trusted fast-path
+/// (IFastPathEvaluator). Demonstrates the two contracts are distinct yet
+/// composable: a plugin may wrap a fast-path and yield identical results.
+/// </summary>
+file sealed class LinesFastPathPluginAdapter(IFastPathEvaluator inner) : IEvaluator
+{
+    public Win[] Evaluate(IReadOnlyDictionary<string, object?> state) => inner.Evaluate(state);
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -315,8 +328,7 @@ public class PluginSandbox_EdgeCases(ITestOutputHelper output)
     public void Sandbox_ExecutesWithinTimeLimit()
     {
         var evaluator = new ConformantTestEvaluator();
-        var board = new Board(1, 1)
-            .SetCell(0, 0, new BoardCell().WithSymbols("A"));
+        var board = TestBoardState.From(new string?[][] { new string?[] { "A" } });
 
         var result = PluginSandbox.Execute(evaluator, board,
             new SandboxConfig { Timeout = TimeSpan.FromSeconds(2) });
@@ -340,12 +352,10 @@ public class PluginSandbox_EdgeCases(ITestOutputHelper output)
         //
         // Here we verify the harness can still validate such a plugin.
         var evaluator = new IOAttemptingTestEvaluator();
-        var board = new Board(2, 2)
-            .SetCell(0, 0, new BoardCell().WithSymbols("A"))
-            .SetCell(0, 1, new BoardCell().WithSymbols("A"));
+        var board = TestBoardState.From(new string?[][] { new string?[] { "A", "A" }, new string?[] { null, null } });
 
         // The evaluator should still produce correct wins (I/O doesn't affect logic).
-        var wins = evaluator.Evaluate(board, null);
+        var wins = evaluator.Evaluate(board);
         Assert.NotEmpty(wins);
 
         // Conformance harness validates it (I/O doesn't cause harness failure
@@ -364,7 +374,7 @@ public class PluginSandbox_EdgeCases(ITestOutputHelper output)
         host.RegisterEvaluator("bad-plugin", new ThrowingTestEvaluator());
 
         // Run conformance — it will fail.
-        var board = new Board(1, 1).SetCell(0, 0, new BoardCell().WithSymbols("X"));
+        var board = TestBoardState.From(new string?[][] { new string?[] { "X" } });
         host.Validate("bad-plugin", board);
 
         var (canSelect, reason) = host.CanSelect("bad-plugin");
@@ -381,9 +391,7 @@ public class PluginSandbox_EdgeCases(ITestOutputHelper output)
     {
         var host = new PluginHost();
         var evaluator = new ConformantTestEvaluator();
-        var board = new Board(2, 2)
-            .SetCell(0, 0, new BoardCell().WithSymbols("A"))
-            .SetCell(0, 1, new BoardCell().WithSymbols("A"));
+        var board = TestBoardState.From(new string?[][] { new string?[] { "A", "A" }, new string?[] { null, null } });
 
         host.RegisterEvaluator("good-plugin", evaluator);
         host.Validate("good-plugin", board);
@@ -397,8 +405,7 @@ public class PluginSandbox_EdgeCases(ITestOutputHelper output)
     public void Sandbox_ReportsElapsedTime()
     {
         var evaluator = new ConformantTestEvaluator();
-        var board = new Board(1, 1)
-            .SetCell(0, 0, new BoardCell().WithSymbols("A"));
+        var board = TestBoardState.From(new string?[][] { new string?[] { "A" } });
 
         var result = PluginSandbox.Execute(evaluator, board);
 
@@ -416,7 +423,7 @@ public class Plugin_MoreEdgeCases
         var host = new PluginHost();
         Assert.Null(host.TryGetEvaluator("nonexistent"));
         Assert.Throws<KeyNotFoundException>(() =>
-            host.Evaluate("nonexistent", new Board(1, 1), null));
+            host.Evaluate("nonexistent", TestBoardState.From(new string?[][] { new string?[] { "X" } })));
     }
 
     [Fact]
@@ -432,7 +439,7 @@ public class Plugin_MoreEdgeCases
     public void Sandbox_VeryShortTimeout()
     {
         var evaluator = new ConformantTestEvaluator();
-        var board = new Board(1, 1).SetCell(0, 0, new BoardCell().WithSymbols("A"));
+        var board = TestBoardState.From(new string?[][] { new string?[] { "A" } });
         var result = PluginSandbox.Execute(evaluator, board,
             new SandboxConfig { Timeout = TimeSpan.FromSeconds(1) });
         Assert.True(result.Success);

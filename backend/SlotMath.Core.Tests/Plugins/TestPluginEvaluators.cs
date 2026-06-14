@@ -15,15 +15,15 @@ namespace SlotMath.Core.Tests.Plugins;
 /// </summary>
 public sealed class ConformantTestEvaluator : IEvaluator
 {
-    public Win[] Evaluate(Board board, object? state)
+    public Win[] Evaluate(IReadOnlyDictionary<string, object?> state)
     {
-        ArgumentNullException.ThrowIfNull(board);
+        ArgumentNullException.ThrowIfNull(state);
 
         var symbolCounts = new Dictionary<string, List<(int Row, int Col)>>();
-        foreach (var (r, c, cell) in board.AllCells())
+        foreach (var (r, c, cell) in GridState.Enumerate(state))
         {
-            if (cell.IsEmpty) continue;
-            var sym = cell.Symbols![0];
+            if (GridState.IsEmpty(cell)) continue;
+            var sym = GridState.Symbol(cell);
             if (!symbolCounts.ContainsKey(sym))
                 symbolCounts[sym] = new List<(int, int)>();
             symbolCounts[sym].Add((r, c));
@@ -56,7 +56,7 @@ public sealed class ConformantTestEvaluator : IEvaluator
 /// </summary>
 public sealed class ThrowingTestEvaluator : IEvaluator
 {
-    public Win[] Evaluate(Board board, object? state)
+    public Win[] Evaluate(IReadOnlyDictionary<string, object?> state)
     {
         throw new InvalidOperationException("Plugin intentionally threw an error.");
     }
@@ -69,18 +69,18 @@ public sealed class ThrowingTestEvaluator : IEvaluator
 /// </summary>
 public sealed class IOAttemptingTestEvaluator : IEvaluator
 {
-    public Win[] Evaluate(Board board, object? state)
+    public Win[] Evaluate(IReadOnlyDictionary<string, object?> state)
     {
         // Attempt I/O — would be blocked by production sandbox.
         Console.WriteLine("Plugin attempted I/O — this is a test.");
 
-        ArgumentNullException.ThrowIfNull(board);
+        ArgumentNullException.ThrowIfNull(state);
 
         var symbolCounts = new Dictionary<string, List<(int Row, int Col)>>();
-        foreach (var (r, c, cell) in board.AllCells())
+        foreach (var (r, c, cell) in GridState.Enumerate(state))
         {
-            if (cell.IsEmpty) continue;
-            var sym = cell.Symbols![0];
+            if (GridState.IsEmpty(cell)) continue;
+            var sym = GridState.Symbol(cell);
             if (!symbolCounts.ContainsKey(sym))
                 symbolCounts[sym] = new List<(int, int)>();
             symbolCounts[sym].Add((r, c));
@@ -112,7 +112,7 @@ public sealed class IOAttemptingTestEvaluator : IEvaluator
 /// </summary>
 public sealed class InfiniteLoopTestEvaluator : IEvaluator
 {
-    public Win[] Evaluate(Board board, object? state)
+    public Win[] Evaluate(IReadOnlyDictionary<string, object?> state)
     {
         // Busy-loop — should be terminated by sandbox timeout.
         while (true)

@@ -127,23 +127,24 @@ public sealed class PluginHost
     /// <summary>
     /// Evaluate a registered plugin — same path as calling IEvaluator directly.
     /// </summary>
-    public Win[] Evaluate(string pluginId, Board board, object? state)
+    public Win[] Evaluate(string pluginId, IReadOnlyDictionary<string, object?> state)
     {
         if (!_plugins.TryGetValue(pluginId, out var entry))
             throw new KeyNotFoundException($"Plugin '{pluginId}' is not registered.");
-        return entry.Evaluator.Evaluate(board, state);
+        return entry.Evaluator.Evaluate(state);
     }
 
     /// <summary>
     /// Run the conformance harness on a registered evaluator plugin.
     /// </summary>
-    public ConformanceResult Validate(string pluginId, Board testBoard,
+    public ConformanceResult Validate(string pluginId,
+        IReadOnlyDictionary<string, object?> testState,
         TimeSpan? timeout = null)
     {
         if (!_plugins.TryGetValue(pluginId, out var entry))
             throw new KeyNotFoundException($"Plugin '{pluginId}' is not registered.");
 
-        var result = ConformanceHarness.Validate(entry.Evaluator, testBoard, timeout);
+        var result = ConformanceHarness.Validate(entry.Evaluator, testState, timeout);
         _plugins[pluginId] = entry with
         {
             IsConformant = result.Passed,

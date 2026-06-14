@@ -59,11 +59,12 @@ public class RoundTripTests(ITestOutputHelper output)
         Expression expr = new AggregateExpr
         {
             Func = AggregateFunc.Product,
-            Target = "board",
+            StateKey = "board",
+            ItemName = "cell",
             Predicate = new CompareExpr
             {
                 Op = CompareOp.Eq,
-                Left = new FieldAccessExpr { Path = ["symbol", "kind"], Target = "board" },
+                Left = new FieldAccessExpr { Path = ["cell", "kind"], Target = "state" },
                 Right = new ConstantExpr { Kind = ConstantKind.String, Value = "Multiplier" },
             },
         };
@@ -77,7 +78,7 @@ public class RoundTripTests(ITestOutputHelper output)
 
         var agg = (AggregateExpr)deserialized;
         Assert.Equal(AggregateFunc.Product, agg.Func);
-        Assert.Equal("board", agg.Target);
+        Assert.Equal("board", agg.StateKey);
         Assert.NotNull(agg.Predicate);
         Assert.IsType<CompareExpr>(agg.Predicate);
     }
