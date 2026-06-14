@@ -212,12 +212,16 @@ public sealed class DogHouseBenchmarkTests : IDisposable
                     Op    = CompareOp.Gte,
                     Left  = new AggregateExpr
                     {
-                        Func   = AggregateFunc.Count,
-                        Target = "board",
+                        // Count bonus symbols in the board state array (invariant 4:
+                        // the board is state["board"], a flat symbol array; each
+                        // element is bound under ItemName).
+                        Func     = AggregateFunc.Count,
+                        StateKey = "board",
+                        ItemName = "cell",
                         Predicate = new CompareExpr
                         {
                             Op    = CompareOp.Eq,
-                            Left  = new FieldAccessExpr { Path = new[] { "symbol" }, Target = null },
+                            Left  = new FieldAccessExpr { Path = new[] { "cell" }, Target = "state" },
                             Right = new ConstantExpr { Kind = ConstantKind.String, Value = Bonus }
                         }
                     },
@@ -240,6 +244,9 @@ public sealed class DogHouseBenchmarkTests : IDisposable
                 {
                     Id    = "draw-spin",
                     Label = "Base Spin",
+                    // Publish the drawn board as a flat symbol array in state so
+                    // the bonus-trigger aggregate can count symbols (invariant 4).
+                    BoardStateKey = "board",
                     Outputs = new Dictionary<string, Port>
                     {
                         ["board"] = new() { Name = "board", Type = PortType.Board }

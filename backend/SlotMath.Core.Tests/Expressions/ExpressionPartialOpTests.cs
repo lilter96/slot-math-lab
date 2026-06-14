@@ -62,10 +62,11 @@ public class ExpressionPartialOpTests
         var expr = new AggregateExpr
         {
             Func = func,
-            Target = "symbol",
+            StateKey = "board",
+            ItemName = "sym",
             Predicate = new ConstantExpr { Kind = ConstantKind.Boolean, Value = "false" },
         };
-        var ctx = new EvalContext { Board = OneCellBoard() };
+        var ctx = OneCellBoardCtx();
 
         var ex = Assert.Throws<ExpressionEvaluationException>(
             () => ExactExpressionEvaluator.Evaluate(expr, ctx));
@@ -81,10 +82,11 @@ public class ExpressionPartialOpTests
         var expr = new AggregateExpr
         {
             Func = func,
-            Target = "symbol",
+            StateKey = "board",
+            ItemName = "sym",
             Predicate = new ConstantExpr { Kind = ConstantKind.Boolean, Value = "false" },
         };
-        var ctx = new EvalContext { Board = OneCellBoard() };
+        var ctx = OneCellBoardCtx();
 
         var result = ExactExpressionEvaluator.Evaluate(expr, ctx);
         Assert.Equal(new BigInteger(identity), result.NumberNumerator / result.NumberDenominator);
@@ -121,6 +123,8 @@ public class ExpressionPartialOpTests
         Assert.Equal(new BigInteger(20), result.NumberNumerator / result.NumberDenominator);
     }
 
-    private static Board OneCellBoard() =>
-        new Board(1, 1).SetCell(0, 0, new BoardCell().WithSymbols("5"));
+    private static EvalContext OneCellBoardCtx() => new()
+    {
+        State = new Dictionary<string, object?> { ["board"] = new object?[] { "5" } },
+    };
 }

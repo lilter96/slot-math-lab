@@ -109,15 +109,17 @@ public class ExpressionTypeChecker_CorpusTests
     [Fact]
     public void AggregateExpression_WellTyped()
     {
-        // sum of all cells where symbol == "Multiplier"
+        // count of all board elements equal to "Multiplier" (invariant 4: the
+        // board is a state array; the element is bound under ItemName).
         var expr = new AggregateExpr
         {
-            Func = AggregateFunc.Sum,
-            Target = "symbol",
+            Func = AggregateFunc.Count,
+            StateKey = "board",
+            ItemName = "cell",
             Predicate = new CompareExpr
             {
                 Op = CompareOp.Eq,
-                Left = new FieldAccessExpr { Path = ["symbol"], Target = "board" },
+                Left = new FieldAccessExpr { Path = ["cell"], Target = "state" },
                 Right = new ConstantExpr { Kind = ConstantKind.String, Value = "Multiplier" },
             },
         };
@@ -132,7 +134,7 @@ public class ExpressionTypeChecker_CorpusTests
         var expr = new AggregateExpr
         {
             Func = AggregateFunc.Count,
-            Target = "symbol",
+            StateKey = "board",
         };
 
         var errors = ExpressionTypeChecker.Check(expr, Ctx);

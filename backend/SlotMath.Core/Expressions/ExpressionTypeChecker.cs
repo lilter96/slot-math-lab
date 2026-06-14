@@ -205,31 +205,46 @@ public static class ExpressionTypeChecker
 
     private static ExprType InferAggregate(AggregateExpr a, TypeCheckContext ctx, List<TypeCheckError> errors)
     {
-        // Aggregates always return Number.
+        // Aggregates always return Number. The aggregation iterates the state
+        // array named by StateKey (invariant 4); inside the predicate and the
+        // value selector the current element is bound under ItemName as a
+        // virtual state field, exactly like fold/map/filter.
+        var lambdaFields = ctx.StateFields.ToList();
+        lambdaFields.Add(new FieldDescriptor { Name = a.ItemName, Type = a.ItemType });
+
+        var lambdaCtx = new TypeCheckContext
+        {
+            ExpectedType = ExprType.Boolean,
+            BoardFields = ctx.BoardFields,
+            StateFields = lambdaFields,
+            CellFields = ctx.CellFields,
+            DecorationTypes = ctx.DecorationTypes,
+        };
+
         if (a.Predicate != null)
         {
-            // Extend context: inside the predicate, cell-level fields are accessible.
-            var predCtx = new TypeCheckContext
-            {
-                ExpectedType = ExprType.Boolean,
-                BoardFields = ctx.CellFields, // shorthand: cell fields as "board-like" context
-                StateFields = ctx.StateFields,
-                CellFields = ctx.CellFields,
-                DecorationTypes = ctx.DecorationTypes,
-            };
-            var predType = Infer(a.Predicate, predCtx, errors);
+            var predType = Infer(a.Predicate, lambdaCtx, errors);
             if (predType != ExprType.Boolean && predType != ExprType.Error)
                 errors.Add(Error(a, $"Aggregate predicate must be Boolean, got {predType}."));
         }
 
-        // Func determines what's being aggregated.
-        // Sum/Product/Min/Max require Number; Count can work on anything.
-        if (a.Func is AggregateFunc.Sum or AggregateFunc.Product
-            or AggregateFunc.Min or AggregateFunc.Max)
+        // ValueExpr (selector) is evaluated in the element context; for
+        // Sum/Product/Min/Max it must yield a Number.
+        if (a.ValueExpr != null)
         {
-            // The target field must resolve to Number when predicate accesses it.
-            // We don't fully verify this statically without a schema, but we note
-            // that Count is always valid.
+            var valCtx = new TypeCheckContext
+            {
+                ExpectedType = ExprType.Number,
+                BoardFields = ctx.BoardFields,
+                StateFields = lambdaFields,
+                CellFields = ctx.CellFields,
+                DecorationTypes = ctx.DecorationTypes,
+            };
+            var valType = Infer(a.ValueExpr, valCtx, errors);
+            if (a.Func is AggregateFunc.Sum or AggregateFunc.Product
+                    or AggregateFunc.Min or AggregateFunc.Max
+                && valType != ExprType.Number && valType != ExprType.Error)
+                errors.Add(Error(a, $"Aggregate {a.Func} value selector must be Number, got {valType}."));
         }
 
         return ExprType.Number;

@@ -154,30 +154,32 @@ public class ExpressionDrivenMultiplier_ExactRtp
     }
 
     /// <summary>
-    /// Expression: multiply base win by (rows + 1) where board has 3 rows.
-    /// This tests that expressions can access board fields.
+    /// Expression: multiply base win by (rows + 1) where the board dimensions
+    /// live in state (invariant 4: the engine has no Board type — a board is a
+    /// user-defined array in state S, and its dimensions are state fields).
     ///
-    /// Board rows = 3, so multiplier = 3 + 1 = 4.
+    /// state["rows"] = 3, so multiplier = 3 + 1 = 4.
     /// Base: [10] weight [1] → EV = 10 * 4 = 40
     /// </summary>
     [Fact]
-    public void BoardDependentExpressionMultiplier_YieldsExactRtp()
+    public void StateDimensionExpressionMultiplier_YieldsExactRtp()
     {
-        // Expression: rows + 1
+        // Expression: state.rows + 1
         var multExpr = new BinaryExpr
         {
             Op = BinaryOp.Add,
-            Left = new FieldAccessExpr { Path = ["rows"], Target = "board" },
+            Left = new FieldAccessExpr { Path = ["rows"], Target = "state" },
             Right = new ConstantExpr { Kind = ConstantKind.Integer, Value = "1" },
         };
 
         var multFunc = ExpressionCompiler.CompileNumber(multExpr);
+        var stateForExpr = new Dictionary<string, object?> { ["rows"] = 3 };
 
         var program =
             from baseIdx in Slot.Draw<ExpressionGameState>(
                 _ => WeightSet.FromIntegers([1]))
             let baseWin = new BigInteger(10)
-            select baseWin * (int)multFunc(new Board(3, 5), null);
+            select baseWin * (int)multFunc(null, stateForExpr);
 
         var result = ExactInterpreter.Evaluate(
             program,

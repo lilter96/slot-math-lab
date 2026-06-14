@@ -41,7 +41,7 @@ public static class ExpressionCompiler
     {
         return (board, state) =>
         {
-            var ctx = new EvalContext { Board = board, State = state };
+            var ctx = new EvalContext { State = state };
             return ExactExpressionEvaluator.EvaluateAsInteger(expr, ctx);
         };
     }
@@ -55,7 +55,7 @@ public static class ExpressionCompiler
     {
         return (board, state) =>
         {
-            var ctx = new EvalContext { Board = board, State = state };
+            var ctx = new EvalContext { State = state };
             return SampledExpressionEvaluator.Evaluate(expr, ctx);
         };
     }
@@ -70,7 +70,7 @@ public static class ExpressionCompiler
     {
         return (board, state) =>
         {
-            var ctx = new EvalContext { Board = board, State = state };
+            var ctx = new EvalContext { State = state };
             return ExactExpressionEvaluator.EvaluateAsBool(expr, ctx);
         };
     }
@@ -83,7 +83,7 @@ public static class ExpressionCompiler
     {
         return (board, state) =>
         {
-            var ctx = new EvalContext { Board = board, State = state };
+            var ctx = new EvalContext { State = state };
             var v = ExactExpressionEvaluator.Evaluate(expr, ctx);
             return v.Kind == ExprType.String ? v.StringValue : v.ToString();
         };
@@ -119,26 +119,26 @@ public static class ExpressionCompiler
         {
             ExprType.Number => (board, state) =>
             {
-                var ctx = new EvalContext { Board = board, State = state };
+                var ctx = new EvalContext { State = state };
                 return ExactExpressionEvaluator.EvaluateAsInteger(expr, ctx);
             }
             ,
             ExprType.Boolean => (board, state) =>
             {
-                var ctx = new EvalContext { Board = board, State = state };
+                var ctx = new EvalContext { State = state };
                 return ExactExpressionEvaluator.EvaluateAsBool(expr, ctx);
             }
             ,
             ExprType.String or ExprType.Symbol => (board, state) =>
             {
-                var ctx = new EvalContext { Board = board, State = state };
+                var ctx = new EvalContext { State = state };
                 var v = ExactExpressionEvaluator.Evaluate(expr, ctx);
                 return v.Kind == ExprType.String ? v.StringValue! : v.ToString();
             }
             ,
             ExprType.Weights => (board, state) =>
             {
-                var ctx = new EvalContext { Board = board, State = state };
+                var ctx = new EvalContext { State = state };
                 return ExactExpressionEvaluator.EvaluateAsWeights(expr, ctx);
             }
             ,
@@ -159,7 +159,7 @@ public static class ExpressionCompiler
     {
         return (board, state) =>
         {
-            var ctx = new EvalContext { Board = board, State = state };
+            var ctx = new EvalContext { State = state };
             var amount = ExactExpressionEvaluator.EvaluateAsInteger(expr, ctx);
             if (amount == 0)
                 return Array.Empty<Win>();
@@ -183,7 +183,7 @@ public static class ExpressionCompiler
     {
         return (board, state) =>
         {
-            var ctx = new EvalContext { Board = board, State = state };
+            var ctx = new EvalContext { State = state };
             var value = ExactExpressionEvaluator.EvaluateAsInteger(expr, ctx);
             return (applyToBoard(board, value), state);
         };

@@ -23,7 +23,7 @@
     "mul-expr": {
       "exprType": "aggregate",
       "func": "Product",
-      "target": "board",
+      "stateKey": "board",
       "predicate": {
         "exprType": "compare",
         "op": "Eq",

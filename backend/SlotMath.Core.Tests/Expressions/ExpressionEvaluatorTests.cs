@@ -120,119 +120,107 @@ public class ExpressionEvaluator_PurityTests(ITestOutputHelper output)
 
 public class ExpressionEvaluator_BoardAggregationTests(ITestOutputHelper output)
 {
-    /// <summary>
-    /// Create a 3x3 board with symbol IDs at each position.
-    /// </summary>
-    private static Board CreateTestBoard()
-    {
-        var board = new Board(3, 3);
-        board = board.SetCell(0, 0, new BoardCell().WithSymbols("5"));
-        board = board.SetCell(0, 1, new BoardCell().WithSymbols("10"));
-        board = board.SetCell(0, 2, new BoardCell().WithSymbols("Multiplier"));
-        board = board.SetCell(1, 0, new BoardCell().WithSymbols("Multiplier"));
-        board = board.SetCell(1, 1, new BoardCell().WithSymbols("3"));
-        board = board.SetCell(1, 2, new BoardCell().WithSymbols("7"));
-        board = board.SetCell(2, 0, new BoardCell().WithSymbols("20"));
-        board = board.SetCell(2, 1, new BoardCell().WithSymbols("Multiplier"));
-        board = board.SetCell(2, 2, new BoardCell().WithSymbols("1"));
-        return board;
-    }
+    // Invariant 4: a "board" is just a user-defined array in state S. These
+    // aggregations operate over state["board"] (a flat symbol array) and
+    // state["values"] (a numeric array) — no engine Board type.
 
-    /// <summary>
-    /// Create a board with numeric decoration "value" on each cell.
-    /// </summary>
-    private static Board CreateDecoratedBoard()
+    /// <summary>3×3 board as a flat row-major symbol array in state["board"].</summary>
+    private static EvalContext SymbolBoardCtx() => new()
     {
-        var board = new Board(2, 2);
-        board = board.SetCell(0, 0, new BoardCell().WithSymbols("X").WithDecoration("value", "2"));
-        board = board.SetCell(0, 1, new BoardCell().WithSymbols("Y").WithDecoration("value", "4"));
-        board = board.SetCell(1, 0, new BoardCell().WithSymbols("Z").WithDecoration("value", "6"));
-        board = board.SetCell(1, 1, new BoardCell().WithSymbols("W").WithDecoration("value", "8"));
-        return board;
-    }
+        State = new Dictionary<string, object?>
+        {
+            ["board"] = new object?[]
+            {
+                "5", "10", "Multiplier",
+                "Multiplier", "3", "7",
+                "20", "Multiplier", "1",
+            },
+        },
+    };
+
+    /// <summary>A flat numeric array in state["values"] (was per-cell decorations).</summary>
+    private static EvalContext ValueArrayCtx() => new()
+    {
+        State = new Dictionary<string, object?>
+        {
+            ["values"] = new object?[] { "2", "4", "6", "8" },
+        },
+    };
+
+    // Predicate helper: state[item] compared against a constant.
+    private static FieldAccessExpr Item(string name) =>
+        new() { Path = [name], Target = "state" };
 
     // ── Sum ─────────────────────────────────────────────────────────────
 
     [Fact]
     public void Sum_AllSymbolsAsNumbers_ReturnsCorrectTotal()
     {
-        // 5+10+3+7+20+1 = 46 ("Multiplier" cells not numeric → 0)
-        var expr = new AggregateExpr
-        {
-            Func = AggregateFunc.Sum,
-            Target = "symbol",
-        };
+        // 5+10+3+7+20+1 = 46 ("Multiplier" elements not numeric → 0)
+        var expr = new AggregateExpr { Func = AggregateFunc.Sum, StateKey = "board", ItemName = "sym" };
 
-        var ctx = new EvalContext { Board = CreateTestBoard() };
-        var result = ExactExpressionEvaluator.Evaluate(expr, ctx);
+        var result = ExactExpressionEvaluator.Evaluate(expr, SymbolBoardCtx());
 
-        // Sum of all numeric symbols: 5+10+3+7+20+1 = 46
         Assert.Equal(new BigInteger(46), result.AsInteger());
     }
 
     [Fact]
-    public void Sum_WithPredicate_OnlyMatchingCells()
+    public void Sum_WithPredicate_OnlyMatchingElements()
     {
-        // Sum of values where symbol == "Multiplier" — these aren't numeric so sum is 0.
-        // But let's use a more useful test: sum where isLocked == false (all cells).
+        // Sum of elements where sym != "Multiplier" → all numeric symbols = 46.
         var expr = new AggregateExpr
         {
             Func = AggregateFunc.Sum,
-            Target = "symbol",
-            Predicate = new CompareExpr
+            StateKey = "board",
+            ItemName = "sym",
+            Predicate = new NotExpr
             {
-                Op = CompareOp.Eq,
-                Left = new FieldAccessExpr { Path = ["isLocked"], Target = "board" },
-                Right = new ConstantExpr { Kind = ConstantKind.Boolean, Value = "false" },
+                Expr = new CompareExpr
+                {
+                    Op = CompareOp.Eq,
+                    Left = Item("sym"),
+                    Right = new ConstantExpr { Kind = ConstantKind.String, Value = "Multiplier" },
+                },
             },
         };
 
-        var ctx = new EvalContext { Board = CreateTestBoard() };
-        var result = ExactExpressionEvaluator.Evaluate(expr, ctx);
+        var result = ExactExpressionEvaluator.Evaluate(expr, SymbolBoardCtx());
 
-        // All cells are unlocked → sum all numeric symbols = 46
         Assert.Equal(new BigInteger(46), result.AsInteger());
     }
 
     // ── Product ─────────────────────────────────────────────────────────
 
     [Fact]
-    public void Product_OfAllMultiplierSymbols_HandCase()
+    public void Count_OfAllMultiplierSymbols_HandCase()
     {
-        // We need to count MULTIPLIER SYMBOLS.
-        // Count of cells where symbol == "Multiplier" = 3
+        // Count of elements where sym == "Multiplier" = 3.
         var expr = new AggregateExpr
         {
             Func = AggregateFunc.Count,
-            Target = "symbol",
+            StateKey = "board",
+            ItemName = "sym",
             Predicate = new CompareExpr
             {
                 Op = CompareOp.Eq,
-                Left = new FieldAccessExpr { Path = ["symbol"], Target = "board" },
+                Left = Item("sym"),
                 Right = new ConstantExpr { Kind = ConstantKind.String, Value = "Multiplier" },
             },
         };
 
-        var ctx = new EvalContext { Board = CreateTestBoard() };
-        var result = ExactExpressionEvaluator.Evaluate(expr, ctx);
+        var result = ExactExpressionEvaluator.Evaluate(expr, SymbolBoardCtx());
 
-        // 3 cells have "Multiplier" symbol: positions (0,2), (1,0), (2,1)
         output.WriteLine($"Count result: {result}");
         Assert.Equal(new BigInteger(3), result.AsInteger());
     }
 
     [Fact]
-    public void Product_DecorationValues_HandCase()
+    public void Product_NumericArray_HandCase()
     {
-        // Product of decoration "value" = 2*4*6*8 = 384
-        var expr = new AggregateExpr
-        {
-            Func = AggregateFunc.Product,
-            Target = "value",
-        };
+        // Product of [2,4,6,8] = 384.
+        var expr = new AggregateExpr { Func = AggregateFunc.Product, StateKey = "values", ItemName = "v" };
 
-        var ctx = new EvalContext { Board = CreateDecoratedBoard() };
-        var result = ExactExpressionEvaluator.Evaluate(expr, ctx);
+        var result = ExactExpressionEvaluator.Evaluate(expr, ValueArrayCtx());
 
         Assert.Equal(new BigInteger(384), result.AsInteger());
     }
@@ -240,44 +228,41 @@ public class ExpressionEvaluator_BoardAggregationTests(ITestOutputHelper output)
     // ── Count ───────────────────────────────────────────────────────────
 
     [Fact]
-    public void Count_AllCells_ReturnsCellCount()
+    public void Count_AllElements_ReturnsArrayLength()
     {
-        var expr = new AggregateExpr
-        {
-            Func = AggregateFunc.Count,
-            Target = "symbol",
-        };
+        var expr = new AggregateExpr { Func = AggregateFunc.Count, StateKey = "board", ItemName = "sym" };
 
-        var ctx = new EvalContext { Board = CreateTestBoard() };
-        var result = ExactExpressionEvaluator.Evaluate(expr, ctx);
+        var result = ExactExpressionEvaluator.Evaluate(expr, SymbolBoardCtx());
 
-        // 3x3 = 9 cells, all have symbols
+        // 3×3 = 9 elements.
         Assert.Equal(new BigInteger(9), result.AsInteger());
     }
 
     [Fact]
-    public void Count_WithPredicate_OnlyMatchingCells()
+    public void Count_WithPredicate_OnlyMatchingElements()
     {
-        // Count cells where symbol is numeric AND value > 5
-        // We need a two-part predicate: isn't "Multiplier" AND symbol value > 5
-        // (symbol is stored as string, but numeric comparison still works via string→BigInteger parse)
+        // Count elements that are not the "Multiplier" symbol (string-equality
+        // predicate — the established catalog pattern). 9 − 3 = 6.
         var expr = new AggregateExpr
         {
             Func = AggregateFunc.Count,
-            Target = "symbol",
-            Predicate = new CompareExpr
+            StateKey = "board",
+            ItemName = "sym",
+            Predicate = new NotExpr
             {
-                Op = CompareOp.Gt,
-                Left = new FieldAccessExpr { Path = ["symbol"], Target = "board" },
-                Right = new ConstantExpr { Kind = ConstantKind.Integer, Value = "5" },
+                Expr = new CompareExpr
+                {
+                    Op = CompareOp.Eq,
+                    Left = Item("sym"),
+                    Right = new ConstantExpr { Kind = ConstantKind.String, Value = "Multiplier" },
+                },
             },
         };
 
-        var ctx = new EvalContext { Board = CreateTestBoard() };
-        var result = ExactExpressionEvaluator.Evaluate(expr, ctx);
+        var result = ExactExpressionEvaluator.Evaluate(expr, SymbolBoardCtx());
 
-        // Cells with numeric symbols > 5: 10, 7, 20 = 3 cells
-        output.WriteLine($"Count > 5: {result}");
+        output.WriteLine($"Count non-Multiplier: {result}");
+        Assert.Equal(new BigInteger(6), result.AsInteger());
     }
 
     // ── Min/Max ─────────────────────────────────────────────────────────
@@ -285,61 +270,41 @@ public class ExpressionEvaluator_BoardAggregationTests(ITestOutputHelper output)
     [Fact]
     public void Min_OfAllSymbolValues_ReturnsMinimum()
     {
-        var expr = new AggregateExpr
-        {
-            Func = AggregateFunc.Min,
-            Target = "symbol",
-        };
+        var expr = new AggregateExpr { Func = AggregateFunc.Min, StateKey = "board", ItemName = "sym" };
 
-        var ctx = new EvalContext { Board = CreateTestBoard() };
-        var result = ExactExpressionEvaluator.Evaluate(expr, ctx);
+        var result = ExactExpressionEvaluator.Evaluate(expr, SymbolBoardCtx());
 
-        // Min of [5, 10, 0, 0, 3, 7, 20, 0, 1] = 0 (non-numeric symbols parse to 0)
+        // Min of [5,10,0,0,3,7,20,0,1] = 0 (non-numeric symbols parse to 0).
         Assert.Equal(new BigInteger(0), result.AsInteger());
     }
 
     [Fact]
     public void Max_OfAllSymbolValues_ReturnsMaximum()
     {
-        var expr = new AggregateExpr
-        {
-            Func = AggregateFunc.Max,
-            Target = "symbol",
-        };
+        var expr = new AggregateExpr { Func = AggregateFunc.Max, StateKey = "board", ItemName = "sym" };
 
-        var ctx = new EvalContext { Board = CreateTestBoard() };
-        var result = ExactExpressionEvaluator.Evaluate(expr, ctx);
+        var result = ExactExpressionEvaluator.Evaluate(expr, SymbolBoardCtx());
 
-        // Max of the numeric symbols: 20
+        // Max of the numeric symbols: 20.
         Assert.Equal(new BigInteger(20), result.AsInteger());
     }
 
     [Fact]
-    public void Min_DecorationValues_ReturnsMinimum()
+    public void Min_NumericArray_ReturnsMinimum()
     {
-        var expr = new AggregateExpr
-        {
-            Func = AggregateFunc.Min,
-            Target = "value",
-        };
+        var expr = new AggregateExpr { Func = AggregateFunc.Min, StateKey = "values", ItemName = "v" };
 
-        var ctx = new EvalContext { Board = CreateDecoratedBoard() };
-        var result = ExactExpressionEvaluator.Evaluate(expr, ctx);
+        var result = ExactExpressionEvaluator.Evaluate(expr, ValueArrayCtx());
 
         Assert.Equal(new BigInteger(2), result.AsInteger());
     }
 
     [Fact]
-    public void Max_DecorationValues_ReturnsMaximum()
+    public void Max_NumericArray_ReturnsMaximum()
     {
-        var expr = new AggregateExpr
-        {
-            Func = AggregateFunc.Max,
-            Target = "value",
-        };
+        var expr = new AggregateExpr { Func = AggregateFunc.Max, StateKey = "values", ItemName = "v" };
 
-        var ctx = new EvalContext { Board = CreateDecoratedBoard() };
-        var result = ExactExpressionEvaluator.Evaluate(expr, ctx);
+        var result = ExactExpressionEvaluator.Evaluate(expr, ValueArrayCtx());
 
         Assert.Equal(new BigInteger(8), result.AsInteger());
     }
