@@ -46,6 +46,17 @@ public static class ExpressionTypeChecker
         return errors;
     }
 
+    /// <summary>
+    /// Best-effort inference of an expression's result type, ignoring errors.
+    /// Used by state-schema derivation (Graph Truth → Everything Derived): a
+    /// state field's type is the type of the expression that writes it.
+    /// </summary>
+    public static ExprType InferType(Expression expr, TypeCheckContext ctx)
+    {
+        var errors = new List<TypeCheckError>();
+        return Infer(expr, ctx, errors);
+    }
+
     // ── Core inference ───────────────────────────────────────────────────
 
     private static ExprType Infer(Expression expr, TypeCheckContext ctx, List<TypeCheckError> errors)

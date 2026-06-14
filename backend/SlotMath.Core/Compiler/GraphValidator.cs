@@ -699,45 +699,13 @@ public static class GraphValidator
             });
         }
 
-        // Add declared state keys (StateSchema) so expressions can read them
-        foreach (var sf in config.StateSchema)
-        {
-            if (seen.Add(sf.Name))
-            {
-                var type = sf.Type switch
-                {
-                    "string" => ExprType.String,
-                    "boolean" => ExprType.Boolean,
-                    _ => ExprType.Number,
-                };
-                stateFields.Add(new FieldDescriptor { Name = sf.Name, Type = type });
-            }
-        }
-
-        // Add state fields dynamically written by nodes — covers keys set by
-        // ModifyStateNode.OutputKey, PutStateNode.StateKey, DataNode.StateKey,
-        // and DrawNode.BoardStateKey/StateWriteKey.  These are not in StateSchema
-        // but are valid targets for fold/compare expressions (invariant 9).
-        foreach (var node in config.Nodes)
-        {
-            IEnumerable<(string Key, ExprType Type)> nodeKeys = node switch
-            {
-                ModifyStateNode m when m.OutputKey != null =>
-                    [(m.OutputKey, ExprType.Number)],
-                PutStateNode p =>
-                    [(p.StateKey, ExprType.Number)],
-                DataNode dn =>
-                    [(dn.StateKey, ExprType.String)],
-                DrawNode d when d.BoardStateKey != null =>
-                    [(d.BoardStateKey, ExprType.String)],
-                DrawNode d when d.StateWriteKey != null =>
-                    [(d.StateWriteKey, ExprType.String)],
-                _ => [],
-            };
-            foreach (var (key, type) in nodeKeys)
-                if (seen.Add(key))
-                    stateFields.Add(new FieldDescriptor { Name = key, Type = type });
-        }
+        // Graph Truth → Everything Derived: the recurrence-state schema is derived
+        // from what the graph writes (board+dims, data arrays, ModifyState outputs
+        // typed by their writer expression, loop counters/accumulators), with
+        // author-declared StateSchema entries as optional explicit overrides.
+        foreach (var fd in StateSchemaDeriver.Derive(config))
+            if (seen.Add(fd.Name))
+                stateFields.Add(fd);
 
         return new TypeCheckContext
         {
