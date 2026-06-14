@@ -264,8 +264,24 @@ public static class ExpressionTypeChecker
 
     private static ExprType InferCall(CallExpr c, TypeCheckContext ctx, List<TypeCheckError> errors)
     {
+        // Polymorphic array/string functions: length/contains accept String OR
+        // Array; append takes (Array, item) → Array.  Their first argument's
+        // type is not strictly enforced; the args are still inferred so nested
+        // errors surface.
+        var fn = c.Function.ToLowerInvariant();
+        if (fn is "length" or "contains" or "append")
+        {
+            foreach (var a in c.Args) Infer(a, ctx, errors);
+            return fn switch
+            {
+                "length" => ExprType.Number,
+                "contains" => ExprType.Boolean,
+                _ => ExprType.Array, // append
+            };
+        }
+
         // Built-in functions: a closed set — no user-defined recursion.
-        var (returnType, argTypes) = c.Function.ToLowerInvariant() switch
+        var (returnType, argTypes) = fn switch
         {
             "abs" => (ExprType.Number, new[] { ExprType.Number }),
             "min" => (ExprType.Number, new[] { ExprType.Number, ExprType.Number }),
@@ -275,8 +291,6 @@ public static class ExpressionTypeChecker
             "round" => (ExprType.Number, new[] { ExprType.Number }),
             "tonumber" => (ExprType.Number, new[] { ExprType.String }),
             "tostring" => (ExprType.String, new[] { ExprType.Number }),
-            "length" => (ExprType.Number, new[] { ExprType.String }),
-            "contains" => (ExprType.Boolean, new[] { ExprType.String, ExprType.String }),
             _ => (ExprType.Error, Array.Empty<ExprType>()),
         };
 
@@ -330,6 +344,8 @@ public static class ExpressionTypeChecker
         var lambdaFields = ctx.StateFields.ToList();
         lambdaFields.Add(new FieldDescriptor { Name = f.AccName, Type = initType });
         lambdaFields.Add(new FieldDescriptor { Name = f.ItemName, Type = f.ItemType });
+        if (f.IndexName != null)
+            lambdaFields.Add(new FieldDescriptor { Name = f.IndexName, Type = ExprType.Number });
 
         var lambdaCtx = new TypeCheckContext
         {
@@ -362,6 +378,8 @@ public static class ExpressionTypeChecker
 
         var lambdaFields = ctx.StateFields.ToList();
         lambdaFields.Add(new FieldDescriptor { Name = m.ItemName, Type = m.ItemType });
+        if (m.IndexName != null)
+            lambdaFields.Add(new FieldDescriptor { Name = m.IndexName, Type = ExprType.Number });
 
         var lambdaCtx = new TypeCheckContext
         {
@@ -390,6 +408,8 @@ public static class ExpressionTypeChecker
 
         var lambdaFields = ctx.StateFields.ToList();
         lambdaFields.Add(new FieldDescriptor { Name = fi.ItemName, Type = fi.ItemType });
+        if (fi.IndexName != null)
+            lambdaFields.Add(new FieldDescriptor { Name = fi.IndexName, Type = ExprType.Number });
 
         var lambdaCtx = new TypeCheckContext
         {

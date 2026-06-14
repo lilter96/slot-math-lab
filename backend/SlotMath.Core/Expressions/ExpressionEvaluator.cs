@@ -185,17 +185,7 @@ public static class ExactExpressionEvaluator
                 }
             }
 
-            return dictVal switch
-            {
-                BigInteger bi => ExprValue.Number(bi),
-                int i => ExprValue.Number(i),
-                long l => ExprValue.Number(l),
-                string s => ExprValue.String(s),
-                bool b => ExprValue.Bool(b),
-                ExprValue ev => ev,  // rational stored as ExprValue, or array item
-                null => ExprValue.Number(0),
-                _ => ExprValue.Number(0),
-            };
+            return ToExprValue(dictVal);
         }
 
         var t = state.GetType();
@@ -242,6 +232,26 @@ public static class ExactExpressionEvaluator
         new(EvalErrorCodes.IndexOutOfRange,
             $"Index {idx} is out of range [0, {length}) for state array '{key}' (D1).",
             $"{key}[{idx}]");
+
+    /// <summary>
+    /// Convert a raw state value to an ExprValue.  Arrays (string[]/object?[]/
+    /// lists, e.g. a board) become <see cref="ExprValue.Array"/> so expressions
+    /// can use contains/length/append and index-aware map/fold/filter (invariant 4).
+    /// </summary>
+    private static ExprValue ToExprValue(object? value) => value switch
+    {
+        BigInteger bi => ExprValue.Number(bi),
+        int i => ExprValue.Number(i),
+        long l => ExprValue.Number(l),
+        string s => ExprValue.String(s),
+        bool b => ExprValue.Bool(b),
+        ExprValue ev => ev,
+        null => ExprValue.Number(0),
+        string[] sarr => ExprValue.Array(Array.ConvertAll(sarr, x => ToExprValue(x))),
+        object?[] oarr => ExprValue.Array(Array.ConvertAll(oarr, ToExprValue)),
+        System.Collections.IEnumerable e => ExprValue.Array(e.Cast<object?>().Select(ToExprValue).ToList()),
+        _ => ExprValue.Number(0),
+    };
 
     private static ExprValue EvalBinary(BinaryExpr b, EvalContext ctx)
     {
@@ -453,6 +463,7 @@ public static class ExactExpressionEvaluator
         var baseState = ctx.State as IDictionary<string, object?>
             ?? new Dictionary<string, object?>();
 
+        var index = 0;
         foreach (var item in arr)
         {
             var iterState = new Dictionary<string, object?>(baseState)
@@ -460,12 +471,14 @@ public static class ExactExpressionEvaluator
                 [f.AccName] = ExprValueToStateObject(acc),
                 [f.ItemName] = item,
             };
+            if (f.IndexName != null) iterState[f.IndexName] = index;
             acc = Eval(f.Body, new EvalContext
             {
                 State = iterState,
                 DecorationParser = ctx.DecorationParser,
                 SymbolToNumericValue = ctx.SymbolToNumericValue,
             });
+            index++;
         }
 
         return acc;
@@ -498,18 +511,21 @@ public static class ExactExpressionEvaluator
         var baseState = ctx.State as IDictionary<string, object?> ?? new Dictionary<string, object?>();
         var result = new List<ExprValue>();
 
+        var index = 0;
         foreach (var item in arr)
         {
             var iterState = new Dictionary<string, object?>(baseState)
             {
                 [m.ItemName] = item,
             };
+            if (m.IndexName != null) iterState[m.IndexName] = index;
             result.Add(Eval(m.Body, new EvalContext
             {
                 State = iterState,
                 DecorationParser = ctx.DecorationParser,
                 SymbolToNumericValue = ctx.SymbolToNumericValue,
             }));
+            index++;
         }
 
         return ExprValue.Array(result);
@@ -525,12 +541,14 @@ public static class ExactExpressionEvaluator
         var baseState = ctx.State as IDictionary<string, object?> ?? new Dictionary<string, object?>();
         var result = new List<ExprValue>();
 
+        var index = 0;
         foreach (var item in arr)
         {
             var iterState = new Dictionary<string, object?>(baseState)
             {
                 [f.ItemName] = item,
             };
+            if (f.IndexName != null) iterState[f.IndexName] = index;
             var pred = Eval(f.Predicate, new EvalContext
             {
                 State = iterState,
@@ -539,6 +557,7 @@ public static class ExactExpressionEvaluator
             });
             if (pred.Kind == ExprType.Boolean && pred.BoolValue)
                 result.Add(ObjectToExprValue(item));
+            index++;
         }
 
         return ExprValue.Array(result);
@@ -596,13 +615,23 @@ public static class ExactExpressionEvaluator
                 ? ExprValue.String(args[0].AsInteger().ToString())
                 : ExprValue.String("0"),
 
+            // length(arr) → element count; length(str) → character count.
             "length" => args.Length > 0
-                ? ExprValue.Number(args[0].StringValue?.Length ?? 0)
+                ? ExprValue.Number(args[0].Kind == ExprType.Array
+                    ? args[0].ArrayValue!.Count
+                    : args[0].StringValue?.Length ?? 0)
                 : ExprValue.Number(0),
 
+            // contains(arr, x) → array membership; contains(str, sub) → substring.
             "contains" => args.Length >= 2
-                ? ExprValue.Bool(args[0].StringValue?.Contains(args[1].StringValue ?? "", StringComparison.Ordinal) ?? false)
+                ? ExprValue.Bool(args[0].Kind == ExprType.Array
+                    ? args[0].ArrayValue!.Any(e => e.Equals(args[1]))
+                    : args[0].StringValue?.Contains(args[1].StringValue ?? "", StringComparison.Ordinal) ?? false)
                 : ExprValue.Bool(false),
+
+            // append(arr, x) → a new array with x appended (bounded; for fold accumulation).
+            "append" when args.Length >= 2 && args[0].Kind == ExprType.Array =>
+                ExprValue.Array([.. args[0].ArrayValue!, args[1]]),
 
             _ => ExprValue.Number(0),
         };

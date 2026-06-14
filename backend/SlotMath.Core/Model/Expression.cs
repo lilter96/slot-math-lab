@@ -178,6 +178,9 @@ public sealed record MapExpr : Expression
     /// <summary>Name bound to the current array element inside the lambda body.</summary>
     public required string ItemName { get; init; }
 
+    /// <summary>Optional name bound to the current element's 0-based index (invariant 4: enables position-aware board mechanics).</summary>
+    public string? IndexName { get; init; }
+
     /// <summary>Lambda body — evaluated once per element; may not contain fold/map/filter.</summary>
     public required Expression Body { get; init; }
 
@@ -200,6 +203,9 @@ public sealed record FilterExpr : Expression
 
     /// <summary>Name bound to the current array element inside the predicate.</summary>
     public required string ItemName { get; init; }
+
+    /// <summary>Optional name bound to the current element's 0-based index (invariant 4: enables position-aware board mechanics).</summary>
+    public string? IndexName { get; init; }
 
     /// <summary>Predicate — must return Boolean; may not contain fold/map/filter.</summary>
     public required Expression Predicate { get; init; }
@@ -228,6 +234,9 @@ public sealed record FoldExpr : Expression
 
     /// <summary>Name bound to the current array element inside the lambda body.</summary>
     public required string ItemName { get; init; }
+
+    /// <summary>Optional name bound to the current element's 0-based index (invariant 4: enables position-aware board mechanics).</summary>
+    public string? IndexName { get; init; }
 
     /// <summary>Initial accumulator value.</summary>
     public required Expression Init { get; init; }
