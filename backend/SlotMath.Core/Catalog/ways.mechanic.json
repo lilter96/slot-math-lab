@@ -1,6 +1,6 @@
 {
   "name": "ways",
-  "description": "Ways / 243-ways mechanic. For each symbol, multiplies the per-column counts of matching symbols across all columns and looks up the result in the Paytable. Input port: 'board' (Board). Output port: 'wins' (Wins).",
+  "description": "Ways / 243-ways mechanic: for each symbol, multiplies the per-column counts of matching symbols across consecutive columns and looks up the result in the Paytable. This is a SANCTIONED C# FAST-PATH (invariant 11 / D25), not a hardcoded molecule (invariant 2): the per-column counts form a columns × rows nested iteration that level-(b) expressions forbid (no nested folds, G9), so it cannot be authored as a pure subgraph. The WaysEvaluator fast-path is proven equivalent to an independent per-column-product reference over 10,000+ (2×3) and 5,000+ (3×3) PBT cases plus min/max-board edge cases with auto-shrinking (FastPathEquivalenceTests). The 'board' port carries the flat state array (invariant 4 — there is no kernel Board type) to the per-game registered evaluator. Input port: 'board'. Output port: 'wins'.",
   "nodes": [
     {
       "nodeType": "map",

@@ -40,11 +40,14 @@ public sealed class CatalogMechanicTests
     public void Default_LoadsCatalogMechanics()
     {
         var catalog = MechanicCatalog.Default;
-        // The functional catalog: scatter (pure subgraph) + the Lines/Ways
-        // fast-path mechanics. Cascade/sticky-wild/hold-and-win were removed
-        // with the C# board transforms (invariant 2/4) and will return as pure
-        // subgraphs.
-        var expected = new[] { "scatter", "lines", "ways", "sticky-wild", "hold-and-win", "cascade" };
+        // The functional catalog:
+        //  • pure subgraphs (invariant 2): scatter, sticky-wild, hold-and-win, cascade;
+        //  • sanctioned fast-paths (invariant 11, proven-equivalent): lines, ways, cluster.
+        // The lines/ways/cluster trio cannot be pure subgraphs — they need nested
+        // iteration over the 2D board (paylines×positions, columns×rows, BFS
+        // flood-fill) which level-(b) forbids (no nested folds, G9) — so they ship
+        // as C# fast-paths proven equivalent to independent oracles (D25).
+        var expected = new[] { "scatter", "lines", "ways", "cluster", "sticky-wild", "hold-and-win", "cascade" };
 
         foreach (var name in expected)
             Assert.True(catalog.Entries.ContainsKey(name),
@@ -52,6 +55,28 @@ public sealed class CatalogMechanicTests
 
         Assert.True(catalog.Entries.Count >= 3,
             $"Expected at least 3 catalog entries, got {catalog.Entries.Count}");
+    }
+
+    [Theory]
+    [InlineData("lines")]
+    [InlineData("ways")]
+    [InlineData("cluster")]
+    public void FastPathMechanic_HasProvenEquivalentContract(string name)
+    {
+        // Invariant 11 / D25: lines/ways/cluster are C# fast-paths (they need
+        // nested 2D-board iteration that level-(b) forbids), exposed as a single
+        // `map` node carrying a Board-typed payload in and a Wins-typed payload
+        // out, with a transformId resolving to a registered IFastPathEvaluator.
+        var mechanic = MechanicCatalog.Default.Entries[name];
+
+        var node = Assert.IsType<MapNode>(Assert.Single(mechanic.Nodes));
+        Assert.Equal(name, node.TransformId);
+        Assert.Contains(node.Inputs.Values, p => p.Type == PortType.Board);
+        Assert.Contains(node.Outputs.Values, p => p.Type == PortType.Wins);
+
+        // The standard library ships these as fast-paths (IFastPathEvaluator),
+        // never as plugin IEvaluator/ITransform molecules (invariant 2).
+        Assert.DoesNotContain("plugin:", node.TransformId!);
     }
 
     [Fact]

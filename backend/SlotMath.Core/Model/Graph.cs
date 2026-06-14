@@ -7,6 +7,16 @@ namespace SlotMath.Core.Model;
 [JsonConverter(typeof(JsonStringEnumConverter))]
 public enum PortType
 {
+    /// <summary>
+    /// A board-shaped payload: a flat row-major symbol array carried in the
+    /// recurrence state (state["board"] + rows/cols).  This is a graph-edge
+    /// DATA CONTRACT, NOT a kernel data type — invariant 4 (no engine `Board`
+    /// type) is about the removed `Board` CLASS, which no longer exists; the
+    /// board is just a user-defined state array.  A `map` node with a Board
+    /// input port and a Wins output port marks a sanctioned fast-path
+    /// evaluator (invariant 11): the compiler recognises this shape and routes
+    /// the state to the registered IFastPathEvaluator.
+    /// </summary>
     Board,
     State,
     Weights,

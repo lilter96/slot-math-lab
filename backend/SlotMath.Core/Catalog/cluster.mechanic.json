@@ -1,0 +1,16 @@
+{
+  "name": "cluster",
+  "description": "Cluster-pays mechanic: orthogonally-adjacent same-symbol groups (wilds connect) of at least the minimum size pay from the Paytable by cluster size. This is a SANCTIONED C# FAST-PATH (invariant 11 / D25), not a hardcoded molecule (invariant 2): cluster detection is a BFS flood-fill over the 2D board, which needs nested/unbounded iteration that level-(b) expressions forbid (no nested folds, G9), so it cannot be authored as a pure subgraph. The ClusterEvaluator fast-path is proven equivalent to an independent BFS flood-fill oracle over 10,000+ PBT cases with auto-shrinking (FastPathEquivalenceTests). The 'board' port carries the flat state array (invariant 4 — there is no kernel Board type) to the per-game registered evaluator. Input port: 'board'. Output port: 'wins'.",
+  "nodes": [
+    {
+      "nodeType": "map",
+      "id": "eval",
+      "label": "Cluster Evaluator",
+      "transformId": "cluster",
+      "inputs": { "board": { "name": "board", "type": "Board" } },
+      "outputs": { "wins": { "name": "wins", "type": "Wins" } }
+    }
+  ],
+  "edges": [],
+  "expressions": {}
+}
