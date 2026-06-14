@@ -10,7 +10,7 @@ namespace SlotMath.Core.Mechanics.Evaluators;
 ///
 /// Payout = (number of ways) × (paytable payout for the match length).
 /// </summary>
-public sealed class WaysEvaluator : IEvaluator
+public sealed class WaysEvaluator : IFastPathEvaluator
 {
     private readonly Paytable _paytable;
     private readonly string? _wildSymbolId;

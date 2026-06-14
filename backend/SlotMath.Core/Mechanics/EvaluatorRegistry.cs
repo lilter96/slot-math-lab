@@ -4,23 +4,26 @@ using System.Collections.Frozen;
 namespace SlotMath.Core.Mechanics;
 
 /// <summary>
-/// Open registry of named <see cref="IEvaluator"/> implementations.
+/// Open registry of named <see cref="IFastPathEvaluator"/> implementations.
 ///
-/// The standard library registers its evaluators at startup; plugins can
-/// register additional evaluators at any time.  The interpreters and compiler
-/// query this registry by name — adding a new evaluator requires zero changes
-/// to engine code.
+/// The standard library registers its trusted fast-path evaluators (Lines/Ways/
+/// Cluster) at startup.  The interpreters and compiler query this registry by
+/// name — adding a new fast-path requires zero changes to engine code.
+///
+/// This registry holds <see cref="IFastPathEvaluator"/>, NOT the plugin contract
+/// <see cref="IEvaluator"/>; plugins are managed separately by the PluginHost
+/// (Invariant 2, G12).
 /// </summary>
 public static class EvaluatorRegistry
 {
-    private static readonly ConcurrentDictionary<string, IEvaluator> _evaluators = new();
+    private static readonly ConcurrentDictionary<string, IFastPathEvaluator> _evaluators = new();
 
     /// <summary>All currently registered evaluators (frozen snapshot).</summary>
-    public static IReadOnlyDictionary<string, IEvaluator> All =>
+    public static IReadOnlyDictionary<string, IFastPathEvaluator> All =>
         _evaluators.ToFrozenDictionary();
 
     /// <summary>Register a named evaluator. Throws if already registered.</summary>
-    public static void Register(string name, IEvaluator evaluator)
+    public static void Register(string name, IFastPathEvaluator evaluator)
     {
         ArgumentNullException.ThrowIfNull(name);
         ArgumentNullException.ThrowIfNull(evaluator);
@@ -33,7 +36,7 @@ public static class EvaluatorRegistry
     }
 
     /// <summary>Look up an evaluator by name. Returns null if not found.</summary>
-    public static IEvaluator? TryGet(string name)
+    public static IFastPathEvaluator? TryGet(string name)
     {
         _evaluators.TryGetValue(name, out var e);
         return e;

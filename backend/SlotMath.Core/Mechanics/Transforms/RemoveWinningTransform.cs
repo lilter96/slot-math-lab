@@ -3,7 +3,7 @@ namespace SlotMath.Core.Mechanics.Transforms;
 /// <summary>
 /// Clears cells at winning positions, except for locked cells which are preserved.
 /// </summary>
-public sealed class RemoveWinningTransform : ITransform
+public sealed class RemoveWinningTransform : IFastPathTransform
 {
     private readonly IReadOnlySet<(int Row, int Col)> _winningPositions;
 

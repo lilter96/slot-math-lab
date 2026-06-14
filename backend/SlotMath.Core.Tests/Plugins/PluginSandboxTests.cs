@@ -178,9 +178,12 @@ public class Plugin_SameInterpreterPathTests
 
         var shippedWins = shipped.Evaluate(board, null);
 
-        // Run as plugged (via PluginHost wrapping the same evaluator).
+        // Run as plugged (via PluginHost wrapping the same fast-path through a
+        // plugin adapter). Fast-paths (IFastPathEvaluator) and plugins
+        // (IEvaluator) are distinct contracts (Invariant 2); a plugin may wrap a
+        // fast-path, and both paths must yield identical wins.
         var pluginHost = new PluginHost();
-        pluginHost.RegisterEvaluator("lines-plugin", shipped);
+        pluginHost.RegisterEvaluator("lines-plugin", new LinesFastPathPluginAdapter(shipped));
 
         var pluggedWins = pluginHost.Evaluate("lines-plugin", board, null);
 
@@ -214,6 +217,16 @@ public class Plugin_SameInterpreterPathTests
         // The resolved evaluator IS the same object — same contract.
         Assert.Same(evaluator, resolved);
     }
+}
+
+/// <summary>
+/// A level-(c) plugin (IEvaluator) that delegates to a trusted fast-path
+/// (IFastPathEvaluator). Demonstrates the two contracts are distinct yet
+/// composable: a plugin may wrap a fast-path and yield identical results.
+/// </summary>
+file sealed class LinesFastPathPluginAdapter(IFastPathEvaluator inner) : IEvaluator
+{
+    public Win[] Evaluate(Board board, object? state) => inner.Evaluate(board, state);
 }
 
 // ═══════════════════════════════════════════════════════════════════════════

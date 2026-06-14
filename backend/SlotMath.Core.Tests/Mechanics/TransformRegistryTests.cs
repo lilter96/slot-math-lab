@@ -112,7 +112,7 @@ public class TransformRegistryTests : IDisposable
 
     // ── Test transform implementations ─────────────────────────────────
 
-    private sealed class TestTransform : ITransform
+    private sealed class TestTransform : IFastPathTransform
     {
         public (Board NewBoard, object? NewState) Apply(Board board, object? state)
         {
@@ -121,7 +121,7 @@ public class TransformRegistryTests : IDisposable
         }
     }
 
-    private sealed class CellAddingTransform : ITransform
+    private sealed class CellAddingTransform : IFastPathTransform
     {
         public (Board NewBoard, object? NewState) Apply(Board board, object? state)
         {

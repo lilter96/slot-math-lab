@@ -22,7 +22,7 @@ namespace SlotMath.Core.Mechanics.Transforms;
 ///                     Sum     → integer add             (for counters)
 ///                     Max     → integer max             (for max-ever tracking)
 /// </summary>
-public sealed class BoardCellAccumulatorTransform : ITransform
+public sealed class BoardCellAccumulatorTransform : IFastPathTransform
 {
     public string? SymbolFilter { get; }
     public CellExtractMode ExtractMode { get; }

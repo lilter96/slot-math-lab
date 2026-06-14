@@ -11,7 +11,7 @@ namespace SlotMath.Core.Mechanics.Transforms;
 /// symbols or passes a deterministic function).  This keeps the transform pure
 /// and testable under the exact interpreter.
 /// </summary>
-public sealed class RefillTumbleTransform : ITransform
+public sealed class RefillTumbleTransform : IFastPathTransform
 {
     private readonly Func<string[]> _newSymbolSource;
 

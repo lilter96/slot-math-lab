@@ -7,7 +7,7 @@ namespace SlotMath.Core.Mechanics.Transforms;
 /// The predicate selects which cells to collect; the decorationKey names the
 /// decoration that holds the numeric amount (parsed as decimal).
 /// </summary>
-public sealed class CollectTransform : ITransform
+public sealed class CollectTransform : IFastPathTransform
 {
     private readonly Func<BoardCell, bool> _predicate;
     private readonly string _decorationKey;

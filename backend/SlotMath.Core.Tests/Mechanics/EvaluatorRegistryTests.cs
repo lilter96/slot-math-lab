@@ -137,7 +137,7 @@ public class EvaluatorRegistryTests : IDisposable
 
 // ── Test evaluator ─────────────────────────────────────────────────────
 
-public sealed class PureTestEvaluator : IEvaluator
+public sealed class PureTestEvaluator : IFastPathEvaluator
 {
     public Win[] Evaluate(Board board, object? state)
     {

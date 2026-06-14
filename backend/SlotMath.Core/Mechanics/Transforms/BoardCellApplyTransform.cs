@@ -16,7 +16,7 @@ namespace SlotMath.Core.Mechanics.Transforms;
 ///                 LockCells     → set cell.IsLocked = true
 ///   SymbolId  — required for OverlaySymbol mode; unused for others
 /// </summary>
-public sealed class BoardCellApplyTransform : ITransform
+public sealed class BoardCellApplyTransform : IFastPathTransform
 {
     public string StateKey { get; }
     public CellApplyMode ApplyMode { get; }

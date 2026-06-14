@@ -3,7 +3,7 @@ namespace SlotMath.Core.Mechanics.Transforms;
 /// <summary>
 /// Locks the specified board positions, making cells sticky (unremovable).
 /// </summary>
-public sealed class LockTransform : ITransform
+public sealed class LockTransform : IFastPathTransform
 {
     private readonly IReadOnlySet<(int Row, int Col)> _positions;
 

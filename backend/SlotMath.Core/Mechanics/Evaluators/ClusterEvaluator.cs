@@ -11,7 +11,7 @@ namespace SlotMath.Core.Mechanics.Evaluators;
 ///
 /// Payout is per-cluster from the paytable lookup by cluster size.
 /// </summary>
-public sealed class ClusterEvaluator : IEvaluator
+public sealed class ClusterEvaluator : IFastPathEvaluator
 {
     private readonly Paytable _paytable;
     private readonly int _minClusterSize;

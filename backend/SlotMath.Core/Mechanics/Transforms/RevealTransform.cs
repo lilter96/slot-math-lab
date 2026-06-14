@@ -4,7 +4,7 @@ namespace SlotMath.Core.Mechanics.Transforms;
 /// Marks all non-empty cells as "revealed" by setting the "revealed"
 /// decoration to "true".  Empty and already-revealed cells are left unchanged.
 /// </summary>
-public sealed class RevealTransform : ITransform
+public sealed class RevealTransform : IFastPathTransform
 {
     public (Board NewBoard, object? NewState) Apply(Board board, object? state)
     {

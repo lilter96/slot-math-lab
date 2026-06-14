@@ -125,7 +125,7 @@ public class OpenRegistryProofTests : IDisposable
 /// (col 2↔col 3), etc.  This transform did not exist when the engine,
 /// interpreters, or compiler were built.
 /// </summary>
-public sealed class SwapNeighborsTransform : ITransform
+public sealed class SwapNeighborsTransform : IFastPathTransform
 {
     public (Board NewBoard, object? NewState) Apply(Board board, object? state)
     {
@@ -150,7 +150,7 @@ public sealed class SwapNeighborsTransform : ITransform
 /// <summary>
 /// A second novel transform that mirrors the board horizontally.
 /// </summary>
-public sealed class MirrorTransform : ITransform
+public sealed class MirrorTransform : IFastPathTransform
 {
     public (Board NewBoard, object? NewState) Apply(Board board, object? state)
     {

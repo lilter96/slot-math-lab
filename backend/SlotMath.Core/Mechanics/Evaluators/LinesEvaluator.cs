@@ -12,7 +12,7 @@ namespace SlotMath.Core.Mechanics.Evaluators;
 ///
 /// Multiple paylines can produce multiple wins for the same symbol.
 /// </summary>
-public sealed class LinesEvaluator : IEvaluator
+public sealed class LinesEvaluator : IFastPathEvaluator
 {
     private readonly Paytable _paytable;
     private readonly PaylineSet _paylineSet;

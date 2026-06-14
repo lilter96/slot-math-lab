@@ -132,7 +132,7 @@ public class OpenEvaluatorRegistryProofTests : IDisposable
 /// A novel evaluator that pays 1 per pair of matching symbols anywhere on the board.
 /// This evaluator did not exist when the engine, interpreters, or compiler were built.
 /// </summary>
-public sealed class AnyTwoOfAKindEvaluator : IEvaluator
+public sealed class AnyTwoOfAKindEvaluator : IFastPathEvaluator
 {
     public Win[] Evaluate(Board board, object? state)
     {
@@ -172,7 +172,7 @@ public sealed class AnyTwoOfAKindEvaluator : IEvaluator
 /// <summary>
 /// A second novel evaluator that simply counts total symbols and reports them as a "win".
 /// </summary>
-public sealed class CountAllEvaluator : IEvaluator
+public sealed class CountAllEvaluator : IFastPathEvaluator
 {
     public Win[] Evaluate(Board board, object? state)
     {

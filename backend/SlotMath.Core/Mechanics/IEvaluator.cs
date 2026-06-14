@@ -4,16 +4,17 @@ namespace SlotMath.Core.Mechanics;
 /// Plugin contract (level c) for pure win evaluation.
 ///
 /// IEvaluator is the interface that user-uploaded plugins implement to supply
-/// novel win-scoring logic.  It is NOT a standard-library interface — the
-/// canonical mechanics catalog is composed from substrate atoms (subgraphs of
+/// novel win-scoring logic.  It is a **plugin-only** contract — the standard
+/// library ships ZERO implementations of it (Invariant 2, G12).  The canonical
+/// mechanics catalog is composed from substrate atoms (subgraphs of
 /// Draw/State/Loop + expressions), not from C# classes.
 ///
-/// The implementations in Mechanics/Evaluators/ are OPTIONAL C# fast-paths:
-/// each one is accompanied by a passing equivalence test against its canonical
-/// atomic subgraph (Invariant 11).  They are optimization details, not the
-/// source of truth.
+/// Optional C# fast-paths (Lines/Ways/Cluster) are NOT plugins and do NOT
+/// implement this interface — they implement the internal, trusted
+/// <see cref="IFastPathEvaluator"/> contract instead.
 ///
-/// Rules: pure, deterministic, no Draw, no I/O.
+/// A game that uses a plugin is flagged sampled-regime; the engine never claims
+/// Exact for it.  Rules: pure, deterministic, no Draw, no I/O.
 /// </summary>
 public interface IEvaluator
 {
