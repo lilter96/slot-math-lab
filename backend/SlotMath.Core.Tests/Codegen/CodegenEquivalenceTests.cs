@@ -636,6 +636,59 @@ public sealed class CodegenEquivalenceTests
     }
 
     // ════════════════════════════════════════════════════════════════════
+    //  Fan-out — a node with multiple successors; per-path wins are summed
+    // ════════════════════════════════════════════════════════════════════
+
+    [Fact]
+    public void FanOut_TwoPaths_GeneratedExactPmf_EqualsInterpreter()
+    {
+        // entry (GetState, pass-through) fans out to two independent draws whose
+        // values are summed: a∈{0,10}, b∈{0,20} ⇒ win ∈ {0,10,20,30} each 1/4.
+        var num = new Port { Name = "value", Type = PortType.Number };
+        var config = new GraphConfig
+        {
+            SchemaVersion = "1.0.0",
+            Id = "fanout-cg",
+            Nodes =
+            [
+                new GetStateNode { Id = "g", Outputs = new PortMap { ["value"] = num } },
+                new DrawNode
+                {
+                    Id = "a",
+                    DrawWeights = [new DrawWeight { OutcomeId = "x", Weight = 1, Value = 0 }, new DrawWeight { OutcomeId = "y", Weight = 1, Value = 10 }],
+                    Inputs = new PortMap { ["in"] = num }, Outputs = new PortMap { ["value"] = num },
+                },
+                new DrawNode
+                {
+                    Id = "b",
+                    DrawWeights = [new DrawWeight { OutcomeId = "x", Weight = 1, Value = 0 }, new DrawWeight { OutcomeId = "y", Weight = 1, Value = 20 }],
+                    Inputs = new PortMap { ["in"] = num }, Outputs = new PortMap { ["value"] = num },
+                },
+                new MetricsSinkNode { Id = "sink", WinCap = 1_000_000, Inputs = new PortMap { ["wins"] = num } },
+            ],
+            Edges =
+            [
+                new Edge { Id = "e0", SourceNodeId = "g", SourcePort = "value", TargetNodeId = "a", TargetPort = "in" },
+                new Edge { Id = "e1", SourceNodeId = "g", SourcePort = "value", TargetNodeId = "b", TargetPort = "in" },
+                new Edge { Id = "e2", SourceNodeId = "a", SourcePort = "value", TargetNodeId = "sink", TargetPort = "wins" },
+                new Edge { Id = "e3", SourceNodeId = "b", SourcePort = "value", TargetNodeId = "sink", TargetPort = "wins" },
+            ],
+        };
+
+        var compile = new GraphCompiler().Compile(config);
+        Assert.True(compile.IsValid, string.Join("; ", compile.Errors.Select(e => $"[{e.Code}] {e.Message}")));
+        var type = CompileGenerated(new CSharpEmitter().Emit(config));
+
+        var game = (ICompiledGame)Activator.CreateInstance(type)!;
+        game.SetInitial(new Dict());
+        var genPmf = ExactPmf.Enumerate(d => game.RunSpin(d));
+
+        AssertPmfEqual(InterpreterPmf(compile.Program!, new Dict()), genPmf, "fan-out");
+        Assert.Equal(new Rational(1, 4), genPmf[0]);
+        Assert.Equal(new Rational(1, 4), genPmf[30]);
+    }
+
+    // ════════════════════════════════════════════════════════════════════
     //  Loop (bounded, body/exit ports) — accumulates the body win per iteration
     // ════════════════════════════════════════════════════════════════════
 

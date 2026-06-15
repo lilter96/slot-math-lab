@@ -43,6 +43,7 @@ public sealed class CSharpEmitter
         public StringBuilder Tables { get; } = new();
         public StringBuilder Body { get; } = new();
         public int DrawIndex;
+        public int FanIndex;
     }
 
     public EmitResult Emit(GraphConfig config)
@@ -521,10 +522,16 @@ public sealed class CSharpEmitter
 
     // ── Recursive chain walker (mirrors GraphCompiler.GetChain) ───────────
 
-    private static void EmitChain(Context ctx, string nodeId, string indent, HashSet<string> stack)
+    //  sinkAction is the statement emitted when a path reaches the sink (empty
+    //  for the top-level chain, where the win is read afterwards; "__fsumN +=
+    //  __df;" for a fan-out branch, where each path's value is summed).
+    private static void EmitChain(Context ctx, string nodeId, string indent, HashSet<string> stack, string sinkAction = "")
     {
         if (nodeId == ctx.SinkId)
-            return; // sink reached — win is read after the whole chain runs.
+        {
+            if (sinkAction.Length > 0) ctx.Body.AppendLine($"{indent}{sinkAction}");
+            return;
+        }
 
         if (!stack.Add(nodeId))
             throw new CodegenUnsupportedException($"cyclic data flow at node '{nodeId}' — loops are not yet supported by the emitter.");
@@ -537,7 +544,7 @@ public sealed class CSharpEmitter
             switch (node)
             {
                 case BranchNode branch:
-                    EmitBranch(ctx, branch, outs, indent, stack);
+                    EmitBranch(ctx, branch, outs, indent, stack, sinkAction);
                     return; // arms recurse to the sink; nothing follows a branch.
 
                 case DrawNode draw:
@@ -554,7 +561,7 @@ public sealed class CSharpEmitter
                     // passes through unchanged (GraphCompiler discards the read).
                     break;
                 case LoopNode loop:
-                    EmitLoop(ctx, loop, outs, indent, stack);
+                    EmitLoop(ctx, loop, outs, indent, stack, sinkAction);
                     return; // the loop handles its own exit-chain continuation.
                 default:
                     throw new CodegenUnsupportedException(
@@ -562,12 +569,34 @@ public sealed class CSharpEmitter
             }
 
             if (outs.Count == 0)
-                return; // dead end
-            if (outs.Count > 1)
-                throw new CodegenUnsupportedException(
-                    $"node '{nodeId}' has {outs.Count} outgoing edges (fan-out not yet supported).");
+            {
+                // Dead end (loop-body terminal, or a fan-out path that ends without
+                // reaching the sink): the data-flow value __df is the path value.
+                if (sinkAction.Length > 0) ctx.Body.AppendLine($"{indent}{sinkAction}");
+                return;
+            }
 
-            EmitChain(ctx, outs[0].TargetNodeId, indent, stack);
+            if (outs.Count == 1)
+            {
+                EmitChain(ctx, outs[0].TargetNodeId, indent, stack, sinkAction);
+                return;
+            }
+
+            // Fan-out (mirrors GraphCompiler fanOut): run every downstream path
+            // with the node's value as input (state threads sequentially) and
+            // SUM the per-path sink values.
+            var sum = $"__fsum{ctx.FanIndex}";
+            var saved = $"__fv{ctx.FanIndex}";
+            ctx.FanIndex++;
+            ctx.Body.AppendLine($"{indent}long {saved} = __df;");
+            ctx.Body.AppendLine($"{indent}long {sum} = 0L;");
+            foreach (var e in outs)
+            {
+                ctx.Body.AppendLine($"{indent}__df = {saved};");
+                EmitChain(ctx, e.TargetNodeId, indent, stack, $"{sum} += __df;");
+            }
+            ctx.Body.AppendLine($"{indent}__df = {sum};");
+            if (sinkAction.Length > 0) ctx.Body.AppendLine($"{indent}{sinkAction}");
         }
         finally
         {
@@ -576,7 +605,7 @@ public sealed class CSharpEmitter
     }
 
     private static void EmitBranch(
-        Context ctx, BranchNode branch, List<Edge> outs, string indent, HashSet<string> stack)
+        Context ctx, BranchNode branch, List<Edge> outs, string indent, HashSet<string> stack, string sinkAction)
     {
         if (!ctx.HasWinStateKey)
             throw new CodegenUnsupportedException(
@@ -596,15 +625,15 @@ public sealed class CSharpEmitter
         var c = ctx.Expr.Emit(cond);
         ctx.Body.AppendLine($"{indent}if ({c})");
         ctx.Body.AppendLine($"{indent}{{");
-        if (trueEdge is not null) EmitChain(ctx, trueEdge.TargetNodeId, indent + "    ", stack);
+        if (trueEdge is not null) EmitChain(ctx, trueEdge.TargetNodeId, indent + "    ", stack, sinkAction);
         ctx.Body.AppendLine($"{indent}}}");
         ctx.Body.AppendLine($"{indent}else");
         ctx.Body.AppendLine($"{indent}{{");
-        if (falseEdge is not null) EmitChain(ctx, falseEdge.TargetNodeId, indent + "    ", stack);
+        if (falseEdge is not null) EmitChain(ctx, falseEdge.TargetNodeId, indent + "    ", stack, sinkAction);
         ctx.Body.AppendLine($"{indent}}}");
     }
 
-    private static void EmitLoop(Context ctx, LoopNode loop, List<Edge> outs, string indent, HashSet<string> stack)
+    private static void EmitLoop(Context ctx, LoopNode loop, List<Edge> outs, string indent, HashSet<string> stack, string sinkAction)
     {
         // Mirrors GraphCompiler.CompileLoopChain: fixed iteration counter +
         // accumulator state fields (derived as __iter_{id}__ / __wins_{id}__),
@@ -640,7 +669,9 @@ public sealed class CSharpEmitter
         ctx.Body.AppendLine($"{indent}__df = {winsF.Working};");
 
         if (exitEdge is not null)
-            EmitChain(ctx, exitEdge.TargetNodeId, indent, stack);
+            EmitChain(ctx, exitEdge.TargetNodeId, indent, stack, sinkAction);
+        else if (sinkAction.Length > 0)
+            ctx.Body.AppendLine($"{indent}{sinkAction}");
     }
 
     private static void EmitDraw(Context ctx, DrawNode draw, string indent)
