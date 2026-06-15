@@ -622,4 +622,92 @@ public sealed class CodegenEquivalenceTests
                seed: "g7-branch-pbt-v1",
                iter: 200);
     }
+
+    // ════════════════════════════════════════════════════════════════════
+    //  Loop (bounded, body/exit ports) — accumulates the body win per iteration
+    // ════════════════════════════════════════════════════════════════════
+
+    private static Port NumPort => new() { Name = "n", Type = PortType.Number };
+
+    private static GraphConfig LoopGame(int maxIter, (int W, long V)[] body) => new()
+    {
+        SchemaVersion = "1.0.0",
+        Id = "loop-game",
+        Nodes =
+        [
+            new LoopNode
+            {
+                Id = "loop", MaxIterations = maxIter,
+                Outputs = new PortMap { ["body"] = NumPort, ["exit"] = NumPort },
+            },
+            new DrawNode
+            {
+                Id = "body",
+                DrawWeights = body.Select((o, i) => new DrawWeight { OutcomeId = $"o{i}", Weight = o.W, Value = o.V }).ToArray(),
+                Inputs = new PortMap { ["in"] = NumPort },
+                // no Outputs → terminal body node
+            },
+            new MetricsSinkNode { Id = "sink", WinCap = 1_000_000, Inputs = new PortMap { ["wins"] = NumPort } },
+        ],
+        Edges =
+        [
+            new Edge { Id = "e1", SourceNodeId = "loop", SourcePort = "body", TargetNodeId = "body", TargetPort = "in" },
+            new Edge { Id = "e2", SourceNodeId = "loop", SourcePort = "exit", TargetNodeId = "sink", TargetPort = "wins" },
+        ],
+    };
+
+    [Fact]
+    public void Loop_FixedCount_Deterministic_EqualsInterpreter()
+    {
+        var config = LoopGame(3, [(1, 10)]);
+        var program = new GraphCompiler().Compile(config).Program!;
+        var type = CompileGenerated(new CSharpEmitter().Emit(config));
+
+        var game = (ICompiledGame)Activator.CreateInstance(type)!;
+        game.SetInitial(new Dict());
+        var genPmf = ExactPmf.Enumerate(d => game.RunSpin(d));
+
+        AssertPmfEqual(InterpreterPmf(program, new Dict()), genPmf, "loop-fixed");
+        Assert.Equal(Rational.One, genPmf[30]); // 3 × 10, deterministic
+    }
+
+    [Fact]
+    public void Loop_MultiOutcomeBody_EqualsInterpreter()
+    {
+        // 2 iterations, body draws {0,10} equally → sum ∈ {0,10,20} with 1:2:1.
+        var config = LoopGame(2, [(1, 0), (1, 10)]);
+        var program = new GraphCompiler().Compile(config).Program!;
+        var type = CompileGenerated(new CSharpEmitter().Emit(config));
+
+        var game = (ICompiledGame)Activator.CreateInstance(type)!;
+        game.SetInitial(new Dict());
+        var genPmf = ExactPmf.Enumerate(d => game.RunSpin(d));
+
+        AssertPmfEqual(InterpreterPmf(program, new Dict()), genPmf, "loop-multi");
+        Assert.Equal(new Rational(1, 4), genPmf[0]);
+        Assert.Equal(new Rational(2, 4), genPmf[10]);
+        Assert.Equal(new Rational(1, 4), genPmf[20]);
+    }
+
+    [Fact]
+    public void Loop_PBT_RandomConfigs_EqualInterpreter()
+    {
+        Gen.Select(Gen.Int[1, 4], Gen.Int[1, 5], Gen.Int[0, 10], Gen.Int[1, 5], Gen.Int[0, 10])
+           .Sample(
+               (maxIter, w0, v0, w1, v1) =>
+               {
+                   var config = LoopGame(maxIter, [(w0, v0), (w1, v1)]);
+                   var compile = new GraphCompiler().Compile(config);
+                   Assert.True(compile.IsValid, string.Join("; ", compile.Errors.Select(e => e.Message)));
+                   var type = CompileGenerated(new CSharpEmitter().Emit(config));
+
+                   var game = (ICompiledGame)Activator.CreateInstance(type)!;
+                   game.SetInitial(new Dict());
+                   var genPmf = ExactPmf.Enumerate(d => game.RunSpin(d));
+                   AssertPmfEqual(InterpreterPmf(compile.Program!, new Dict()), genPmf,
+                       $"loop maxIter={maxIter} body=({w0}:{v0},{w1}:{v1})");
+               },
+               seed: "g7-loop-pbt-v1",
+               iter: 100);
+    }
 }

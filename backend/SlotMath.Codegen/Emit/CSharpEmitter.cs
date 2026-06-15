@@ -156,8 +156,9 @@ public sealed class CSharpEmitter
                     // Side-effect-free in the chain model: the data-flow value
                     // passes through unchanged (GraphCompiler discards the read).
                     break;
-                case LoopNode:
-                    throw new CodegenUnsupportedException($"node '{nodeId}' is a Loop — not yet supported by the emitter.");
+                case LoopNode loop:
+                    EmitLoop(ctx, loop, outs, indent, stack);
+                    return; // the loop handles its own exit-chain continuation.
                 default:
                     throw new CodegenUnsupportedException(
                         $"node '{nodeId}' of kind {node.GetType().Name} is not supported.");
@@ -204,6 +205,45 @@ public sealed class CSharpEmitter
         ctx.Body.AppendLine($"{indent}{{");
         if (falseEdge is not null) EmitChain(ctx, falseEdge.TargetNodeId, indent + "    ", stack);
         ctx.Body.AppendLine($"{indent}}}");
+    }
+
+    private static void EmitLoop(Context ctx, LoopNode loop, List<Edge> outs, string indent, HashSet<string> stack)
+    {
+        // Mirrors GraphCompiler.CompileLoopChain: fixed iteration counter +
+        // accumulator state fields (derived as __iter_{id}__ / __wins_{id}__),
+        // stop checked BEFORE the body, data-flow value accumulated AFTER.
+        var iterKey = $"__iter_{loop.Id}__";
+        var winsKey = $"__wins_{loop.Id}__";
+        if (!ctx.ByKey.TryGetValue(iterKey, out var iterF) || iterF.Type != ExprType.Number
+            || !ctx.ByKey.TryGetValue(winsKey, out var winsF) || winsF.Type != ExprType.Number)
+            throw new CodegenUnsupportedException($"loop '{loop.Id}' counter/accumulator fields were not derived.");
+
+        var bodyEdge = outs.FirstOrDefault(e => e.SourcePort == "body")
+            ?? throw new CodegenUnsupportedException($"loop '{loop.Id}' has no 'body' port (fallback loop unsupported).");
+        var exitEdge = outs.FirstOrDefault(e => e.SourcePort is "exit" or "out");
+
+        var maxIter = loop.MaxIterations is > 0 and <= 10000 ? loop.MaxIterations : 100;
+
+        var stopCond = $"{iterF.Working} >= {maxIter}L";
+        if (loop.StopConditionId is { } sid
+            && ctx.Config.Expressions is not null
+            && ctx.Config.Expressions.TryGetValue(sid, out var stopExpr))
+            stopCond = $"({ctx.Expr.Emit(stopExpr)}) || ({stopCond})";
+
+        var bi = indent + "    ";
+        ctx.Body.AppendLine($"{indent}{iterF.Working} = 0L;");
+        ctx.Body.AppendLine($"{indent}{winsF.Working} = 0L;");
+        ctx.Body.AppendLine($"{indent}for (;;)");
+        ctx.Body.AppendLine($"{indent}{{");
+        ctx.Body.AppendLine($"{bi}if ({stopCond}) break;");
+        EmitChain(ctx, bodyEdge.TargetNodeId, bi, stack);  // body in dead-end mode
+        ctx.Body.AppendLine($"{bi}{iterF.Working} = {iterF.Working} + 1L;");
+        ctx.Body.AppendLine($"{bi}{winsF.Working} = {winsF.Working} + __df;");
+        ctx.Body.AppendLine($"{indent}}}");
+        ctx.Body.AppendLine($"{indent}__df = {winsF.Working};");
+
+        if (exitEdge is not null)
+            EmitChain(ctx, exitEdge.TargetNodeId, indent, stack);
     }
 
     private static void EmitDraw(Context ctx, DrawNode draw, string indent)
