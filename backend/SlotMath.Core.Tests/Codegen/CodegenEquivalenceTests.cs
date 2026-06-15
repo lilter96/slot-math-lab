@@ -6,6 +6,7 @@ using Microsoft.CodeAnalysis.CSharp;
 using SlotMath.Codegen.Emit;
 using SlotMath.Codegen.Runtime;
 using SlotMath.Core.Compiler;
+using SlotMath.Core.Expressions;
 using SlotMath.Core.Math;
 using SlotMath.Core.Mechanics;
 using SlotMath.Core.Mechanics.Evaluators;
@@ -29,6 +30,10 @@ using PortMap = Dictionary<string, SlotMath.Core.Model.Port>;
 //  We also prove the sampled hot path allocates O(1) per spin.
 // ═══════════════════════════════════════════════════════════════════════════
 
+// Serialized with all EvaluatorRegistry-touching tests: the fast-path fixtures
+// register evaluators the generated code resolves from the global registry, so
+// they must not race a parallel EvaluatorRegistry.Clear().
+[Collection("Registry")]
 public sealed class CodegenEquivalenceTests
 {
     private static Port StatePort => new() { Name = "state", Type = PortType.State };
@@ -353,19 +358,24 @@ public sealed class CodegenEquivalenceTests
     [Fact]
     public void UnsupportedGraph_ReturnsDiagnostic_NotWrongCode()
     {
-        // A reel draw (board publication) is outside the scalar subset.
-        var config = RefA() with
+        // A plugin Map node is outside the supported subset (plugin emit pending).
+        var config = new GraphConfig
         {
+            SchemaVersion = "1.0.0",
+            Id = "plugin-unsupported",
+            ReelStrips = [new ReelStrip { Id = "r1", Name = "R1", Symbols = ["A", "B"] }],
+            ReelSets = [new ReelSet { Id = "rs", Name = "Main", StripIds = ["r1"] }],
+            BoardConfig = new BoardConfig { Rows = 1, Columns = 1 },
             Nodes =
             [
-                new DrawNode
-                {
-                    Id = "draw",
-                    BoardStateKey = "board",
-                    DrawWeights = [new DrawWeight { OutcomeId = "x", Weight = 1, Value = 0 }],
-                    Outputs = new PortMap { ["state"] = StatePort },
-                },
-                new MetricsSinkNode { Id = "sink", WinCap = 1000, Inputs = new PortMap { ["state"] = StatePort } },
+                new DrawNode { Id = "draw", Outputs = new PortMap { ["board"] = BoardPort } },
+                new MapNode { Id = "eval", TransformId = "plugin:custom", Inputs = new PortMap { ["board"] = BoardPort }, Outputs = new PortMap { ["wins"] = WinsPort } },
+                new MetricsSinkNode { Id = "sink", WinCap = 1000, Inputs = new PortMap { ["wins"] = WinsPort } },
+            ],
+            Edges =
+            [
+                new Edge { Id = "e1", SourceNodeId = "draw", SourcePort = "board", TargetNodeId = "eval", TargetPort = "board" },
+                new Edge { Id = "e2", SourceNodeId = "eval", SourcePort = "wins", TargetNodeId = "sink", TargetPort = "wins" },
             ],
         };
 
@@ -796,6 +806,127 @@ public sealed class CodegenEquivalenceTests
     public void FastPathLines_ReelDraw_GeneratedExactPmf_EqualsInterpreter()
     {
         VerifyFastPath(LinesReelGame(), "lines-reel");
+    }
+
+    // ════════════════════════════════════════════════════════════════════
+    //  Array/fold: scatter mechanic — reel board → aggregate count → payout
+    // ════════════════════════════════════════════════════════════════════
+
+    private static GraphConfig ScatterReelGame()
+    {
+        // 1×3 reel of {S,X}; pay 5 when at least 2 scatters land.
+        return new GraphConfig
+        {
+            SchemaVersion = "1.0.0",
+            Id = "scatter-reel-cg",
+            StateSchema =
+            [
+                new StateFieldSchema { Name = "scatter_count", Type = "number" },
+                new StateFieldSchema { Name = "scatter_win", Type = "number" },
+            ],
+            ReelStrips =
+            [
+                new ReelStrip { Id = "r1", Name = "R1", Symbols = ["S", "X"] },
+                new ReelStrip { Id = "r2", Name = "R2", Symbols = ["S", "X"] },
+                new ReelStrip { Id = "r3", Name = "R3", Symbols = ["S", "X"] },
+            ],
+            ReelSets = [new ReelSet { Id = "rs", Name = "Main", StripIds = ["r1", "r2", "r3"] }],
+            BoardConfig = new BoardConfig { Rows = 1, Columns = 3 },
+            Expressions = new Dictionary<string, Expression>
+            {
+                ["count"] = new AggregateExpr
+                {
+                    Func = AggregateFunc.Count,
+                    StateKey = "board",
+                    ItemName = "cell",
+                    ItemType = ExprType.String,
+                    Predicate = Eq(Field("cell"), Str("S")),
+                },
+                ["payout"] = new IfExpr
+                {
+                    Condition = new CompareExpr { Op = CompareOp.Gte, Left = Field("scatter_count"), Right = Int(2) },
+                    ThenExpr = Int(5),
+                    ElseExpr = Int(0),
+                },
+            },
+            Nodes =
+            [
+                new DrawNode { Id = "draw", Outputs = new PortMap { ["state"] = StateOut } },
+                new ModifyStateNode { Id = "cnt", ExpressionId = "count", OutputKey = "scatter_count", Inputs = new PortMap { ["state"] = StatePort }, Outputs = new PortMap { ["state"] = StateOut } },
+                new ModifyStateNode { Id = "pay", ExpressionId = "payout", OutputKey = "scatter_win", Inputs = new PortMap { ["state"] = StatePort }, Outputs = new PortMap { ["state"] = StateOut } },
+                new MetricsSinkNode { Id = "sink", WinCap = 1_000_000, WinStateKey = "scatter_win", Inputs = new PortMap { ["state"] = StatePort } },
+            ],
+            Edges =
+            [
+                new Edge { Id = "e0", SourceNodeId = "draw", SourcePort = "state", TargetNodeId = "cnt", TargetPort = "state" },
+                new Edge { Id = "e1", SourceNodeId = "cnt", SourcePort = "state", TargetNodeId = "pay", TargetPort = "state" },
+                new Edge { Id = "e2", SourceNodeId = "pay", SourcePort = "state", TargetNodeId = "sink", TargetPort = "state" },
+            ],
+        };
+    }
+
+    [Fact]
+    public void Scatter_ReelBoard_AggregateCount_GeneratedExactPmf_EqualsInterpreter()
+    {
+        var config = ScatterReelGame();
+        var compile = new GraphCompiler().Compile(config);
+        Assert.True(compile.IsValid, string.Join("; ", compile.Errors.Select(e => $"[{e.Code}] {e.Message}")));
+
+        var emit = new CSharpEmitter().Emit(config);
+        Assert.True(emit.Supported, string.Join("; ", emit.Diagnostics));
+        Assert.Contains("for (int", emit.Source); // an emitted aggregate loop
+        var type = CompileGenerated(emit);
+
+        var game = (ICompiledGame)Activator.CreateInstance(type)!;
+        game.SetInitial(new Dict());
+        var genPmf = ExactPmf.Enumerate(d => game.RunSpin(d));
+
+        AssertPmfEqual(InterpreterPmf(compile.Program!, new Dict()), genPmf, "scatter-reel");
+        // count ~ Binomial(3, 1/2); pay 5 when count ≥ 2 ⇒ P(5) = 4/8.
+        Assert.Equal(new Rational(4, 8), genPmf[5]);
+        Assert.Equal(new Rational(4, 8), genPmf[0]);
+    }
+
+    [Fact]
+    public void Scatter_ReelBoard_FoldCount_GeneratedExactPmf_EqualsInterpreter()
+    {
+        // Same scatter via a FoldExpr (acc + if cell=="S" then 1 else 0) —
+        // exercises the EmitNumberFold path (AccName/Init/Body), not Aggregate.
+        var config = ScatterReelGame() with
+        {
+            Expressions = new Dictionary<string, Expression>
+            {
+                ["count"] = new FoldExpr
+                {
+                    StateKey = "board",
+                    AccName = "acc",
+                    ItemName = "cell",
+                    ItemType = ExprType.String,
+                    Init = Int(0),
+                    Body = new IfExpr
+                    {
+                        Condition = Eq(Field("cell"), Str("S")),
+                        ThenExpr = new BinaryExpr { Op = BinaryOp.Add, Left = Field("acc"), Right = Int(1) },
+                        ElseExpr = Field("acc"),
+                    },
+                },
+                ["payout"] = new IfExpr
+                {
+                    Condition = new CompareExpr { Op = CompareOp.Gte, Left = Field("scatter_count"), Right = Int(2) },
+                    ThenExpr = Int(5),
+                    ElseExpr = Int(0),
+                },
+            },
+        };
+        var compile = new GraphCompiler().Compile(config);
+        Assert.True(compile.IsValid, string.Join("; ", compile.Errors.Select(e => $"[{e.Code}] {e.Message}")));
+        var type = CompileGenerated(new CSharpEmitter().Emit(config));
+
+        var game = (ICompiledGame)Activator.CreateInstance(type)!;
+        game.SetInitial(new Dict());
+        var genPmf = ExactPmf.Enumerate(d => game.RunSpin(d));
+        AssertPmfEqual(InterpreterPmf(compile.Program!, new Dict()), genPmf, "scatter-fold");
+        Assert.Equal(new Rational(4, 8), genPmf[5]);
     }
 
     [Fact]

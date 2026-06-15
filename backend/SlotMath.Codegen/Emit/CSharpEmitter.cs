@@ -60,9 +60,11 @@ public sealed class CSharpEmitter
         //   Dictionary<string,object?> state (not typed scalar fields).
         var needsDict =
             config.Nodes.OfType<DrawNode>().Any(d => d.BoardStateKey != null || d.DrawWeights is not { Length: > 0 })
-            || config.Nodes.OfType<MapNode>().Any();
+            || config.Nodes.OfType<MapNode>().Any()
+            || config.Nodes.OfType<DataNode>().Any()
+            || (config.Expressions?.Values.Any(IsArrayExpr) ?? false);
         if (needsDict)
-            return EmitReelFastPath(config, sink);
+            return EmitDictMode(config, sink);
 
         // ── Typed state from graph truth ─────────────────────────────────
         var schema = StateSchemaDeriver.Derive(config);
@@ -132,12 +134,37 @@ public sealed class CSharpEmitter
         }
     }
 
-    // ── Dict-state mode: reel draw → fast-path evaluator → sink ───────────
+    // ═══════════════════════════════════════════════════════════════════════
+    //  Dict-state mode — reel/board, fast-path evaluators, and array/fold
+    //  expressions.  State is a Dictionary<string,object?> (as the interpreter
+    //  uses); scalar sub-expressions reuse ExpressionEmitter via a dict-aware
+    //  resolver; fold/aggregate over arrays are emitted as C# for-loops.
+    // ═══════════════════════════════════════════════════════════════════════
 
-    private EmitResult EmitReelFastPath(GraphConfig config, MetricsSinkNode sink)
+    private static bool IsArrayExpr(Expression e) => e is FoldExpr or MapExpr or FilterExpr or AggregateExpr;
+
+    private sealed record ReelInfo(ReelStrip[] Strips, int Rows, int Cols, int Total);
+
+    private sealed class DictContext
     {
-        if (sink.WinStateKey != null)
-            return EmitResult.Unsupported("reel/fast-path emit requires a data-flow sink (no WinStateKey yet).");
+        public required GraphConfig Config { get; init; }
+        public required Dictionary<string, Node> NodeById { get; init; }
+        public required Dictionary<string, List<Edge>> Outgoing { get; init; }
+        public required Dictionary<string, ExprType> TypeByKey { get; init; }
+        public required string SinkId { get; init; }
+        public ExpressionEmitter Expr { get; set; } = null!;
+        public Dictionary<string, string> Locals { get; } = new(StringComparer.Ordinal);
+        public StringBuilder Tables { get; } = new();
+        public StringBuilder Body { get; } = new();
+        public int DrawIndex;
+        public int TmpIndex;
+        public ReelInfo? Reel { get; set; }
+    }
+
+    private EmitResult EmitDictMode(GraphConfig config, MetricsSinkNode sink)
+    {
+        var schema = StateSchemaDeriver.Derive(config);
+        var typeByKey = schema.ToDictionary(f => f.Name, f => f.Type, StringComparer.Ordinal);
 
         var incoming = config.Nodes.ToDictionary(n => n.Id, _ => 0);
         var outgoing = config.Nodes.ToDictionary(n => n.Id, _ => new List<Edge>());
@@ -148,53 +175,267 @@ public sealed class CSharpEmitter
         }
 
         var entries = config.Nodes.Where(n => incoming[n.Id] == 0).ToArray();
-        if (entries is not [DrawNode draw])
-            return EmitResult.Unsupported("reel/fast-path emit expects a single reel-draw entry node.");
-        if (draw.DrawWeights is { Length: > 0 })
-            return EmitResult.Unsupported($"draw '{draw.Id}' is an inline draw, not a reel draw.");
+        if (entries.Length != 1)
+            return EmitResult.Unsupported($"dict-mode expects exactly one entry node, found {entries.Length}.");
+
+        var ctx = new DictContext
+        {
+            Config = config,
+            NodeById = config.Nodes.ToDictionary(n => n.Id, n => n),
+            Outgoing = outgoing,
+            TypeByKey = typeByKey,
+            SinkId = sink.Id,
+        };
+        ctx.Expr = new ExpressionEmitter(key => ResolveDict(ctx, key));
+
+        try
+        {
+            EmitDictChain(ctx, entries[0].Id, "        ", new HashSet<string>(StringComparer.Ordinal));
+
+            string win;
+            if (sink.WinStateKey is { } wk)
+            {
+                if (!typeByKey.TryGetValue(wk, out var wt) || wt != ExprType.Number)
+                    return EmitResult.Unsupported($"MetricsSink WinStateKey '{wk}' is not a numeric state field.");
+                win = $"__N(state, {Quote(wk)})";
+            }
+            else
+            {
+                win = "__df";
+            }
+
+            return new EmitResult { Supported = true, Source = RenderDict(ctx, win), FullTypeName = $"{Namespace}.{ClassName}" };
+        }
+        catch (CodegenUnsupportedException ex)
+        {
+            return EmitResult.Unsupported(ex.Message);
+        }
+    }
+
+    private string ResolveDict(DictContext ctx, string key)
+    {
+        if (ctx.Locals.TryGetValue(key, out var local)) return local;
+        if (!ctx.TypeByKey.TryGetValue(key, out var type))
+            throw new CodegenUnsupportedException($"reference to unknown state field '{key}'.");
+        return type switch
+        {
+            ExprType.Number => $"__N(state, {Quote(key)})",
+            ExprType.String or ExprType.Symbol => $"__S(state, {Quote(key)})",
+            ExprType.Boolean => $"__B(state, {Quote(key)})",
+            _ => throw new CodegenUnsupportedException($"state field '{key}' has non-scalar type {type} in a scalar expression."),
+        };
+    }
+
+    private void EmitDictChain(DictContext ctx, string nodeId, string indent, HashSet<string> stack)
+    {
+        if (nodeId == ctx.SinkId) return;
+        if (!stack.Add(nodeId))
+            throw new CodegenUnsupportedException($"cyclic data flow at '{nodeId}' (dict-mode loops not yet supported).");
+
+        try
+        {
+            var node = ctx.NodeById[nodeId];
+            var outs = ctx.Outgoing[nodeId];
+
+            switch (node)
+            {
+                case DrawNode draw:
+                    EmitDictDraw(ctx, draw, indent);
+                    break;
+                case ModifyStateNode modify:
+                    EmitDictModify(ctx, modify, indent);
+                    break;
+                case MapNode map:
+                    EmitDictMap(ctx, map, indent);
+                    break;
+                case PutStateNode put:
+                    ctx.Body.AppendLine($"{indent}state[{Quote(put.StateKey)}] = __df;");
+                    break;
+                case GetStateNode:
+                    break;
+                default:
+                    throw new CodegenUnsupportedException(
+                        $"node '{nodeId}' of kind {node.GetType().Name} is not supported in dict-mode (branch/loop over arrays pending).");
+            }
+
+            if (outs.Count == 0) return;
+            if (outs.Count > 1)
+                throw new CodegenUnsupportedException($"node '{nodeId}' has fan-out (not yet supported).");
+            EmitDictChain(ctx, outs[0].TargetNodeId, indent, stack);
+        }
+        finally
+        {
+            stack.Remove(nodeId);
+        }
+    }
+
+    private void EmitDictDraw(DictContext ctx, DrawNode draw, string indent)
+    {
+        if (draw.WeightExpressionId != null)
+            throw new CodegenUnsupportedException($"draw '{draw.Id}' uses expression weights (constant/reel only).");
+
+        if (draw.DrawWeights is { Length: > 0 } dw)
+        {
+            var index = ctx.DrawIndex++;
+            var w = string.Join(", ", dw.Select(x => x.Weight.ToString(System.Globalization.CultureInfo.InvariantCulture) + "L"));
+            var v = string.Join(", ", dw.Select(x => x.Value.ToString(System.Globalization.CultureInfo.InvariantCulture) + "L"));
+            ctx.Tables.AppendLine($"    private static readonly long[] __w{index} = new long[] {{ {w} }};");
+            ctx.Tables.AppendLine($"    private static readonly long[] __v{index} = new long[] {{ {v} }};");
+            ctx.Body.AppendLine($"{indent}int __c{index} = __d.Draw(__w{index});");
+            ctx.Body.AppendLine($"{indent}__df = __v{index}[__c{index}];");
+            if (draw.StateWriteKey is { } wk)
+            {
+                var ids = string.Join(", ", dw.Select(x => Quote(x.OutcomeId)));
+                ctx.Tables.AppendLine($"    private static readonly string[] __o{index} = new string[] {{ {ids} }};");
+                ctx.Body.AppendLine($"{indent}state[{Quote(wk)}] = __o{index}[__c{index}];");
+            }
+            return;
+        }
+
+        // Reel draw → board array.
+        if (ctx.Reel != null)
+            throw new CodegenUnsupportedException("more than one reel draw is not supported.");
         if (draw.BoardStateKey is not (null or "board"))
-            return EmitResult.Unsupported($"draw '{draw.Id}' board key must be the default 'board'.");
+            throw new CodegenUnsupportedException($"draw '{draw.Id}' board key must be the default 'board'.");
 
-        var nodeById = config.Nodes.ToDictionary(n => n.Id, n => n);
-        var afterDraw = outgoing[draw.Id];
-        if (afterDraw is not [var toMapEdge] || nodeById[toMapEdge.TargetNodeId] is not MapNode map)
-            return EmitResult.Unsupported("reel draw must lead to a single fast-path Map node.");
-        if (map.TransformId is not { } transformId)
-            return EmitResult.Unsupported($"Map node '{map.Id}' has no transformId.");
-        if (transformId.StartsWith("plugin:", StringComparison.Ordinal))
-            return EmitResult.Unsupported($"Map node '{map.Id}' is a plugin (plugin emit not yet supported).");
-        var afterMap = outgoing[map.Id];
-        if (afterMap is not [var toSinkEdge] || toSinkEdge.TargetNodeId != sink.Id)
-            return EmitResult.Unsupported("fast-path Map node must lead directly to the MetricsSink.");
-
-        // Resolve reel geometry (mirrors GraphCompiler.CompileDraw reel path).
-        var reelSet = config.ReelSets.FirstOrDefault();
-        if (reelSet is null)
-            return EmitResult.Unsupported("reel draw requires a ReelSet.");
-        var strips = reelSet.StripIds
-            .Select(id => config.ReelStrips.FirstOrDefault(s => s.Id == id))
-            .ToArray();
+        var reelSet = ctx.Config.ReelSets.FirstOrDefault()
+            ?? throw new CodegenUnsupportedException("reel draw requires a ReelSet.");
+        var strips = reelSet.StripIds.Select(id => ctx.Config.ReelStrips.FirstOrDefault(s => s.Id == id)).ToArray();
         if (strips.Any(s => s is null || s.Symbols.Length == 0))
-            return EmitResult.Unsupported("reel set references missing/empty strips.");
-
-        var rows = config.BoardConfig?.Rows ?? 3;
+            throw new CodegenUnsupportedException("reel set references missing/empty strips.");
+        var rows = ctx.Config.BoardConfig?.Rows ?? 3;
         var cols = strips.Length;
         long total = 1;
         foreach (var s in strips) total *= s!.Symbols.Length;
         if (total is <= 0 or > 1_000_000)
-            return EmitResult.Unsupported("too many reel combinations for a single draw.");
+            throw new CodegenUnsupportedException("too many reel combinations for a single draw.");
 
-        var source = RenderReelFastPath(strips!, rows, cols, (int)total, transformId);
-        return new EmitResult { Supported = true, Source = source, FullTypeName = $"{Namespace}.{ClassName}" };
+        ctx.Reel = new ReelInfo(strips!, rows, cols, (int)total);
+        ctx.Body.AppendLine($"{indent}int __rc = __d.Draw(__reelW);");
+        ctx.Body.AppendLine($"{indent}state[\"board\"] = __Board(__rc);");
+        ctx.Body.AppendLine($"{indent}state[\"rows\"] = __rows;");
+        ctx.Body.AppendLine($"{indent}state[\"cols\"] = __cols;");
     }
 
-    private static string RenderReelFastPath(ReelStrip[] strips, int rows, int cols, int total, string transformId)
+    private void EmitDictMap(DictContext ctx, MapNode map, string indent)
+    {
+        if (map.TransformId is not { } transformId)
+            throw new CodegenUnsupportedException($"Map node '{map.Id}' has no transformId.");
+        if (transformId.StartsWith("plugin:", StringComparison.Ordinal))
+            throw new CodegenUnsupportedException($"Map node '{map.Id}' is a plugin (plugin emit pending).");
+        ctx.Body.AppendLine($"{indent}{{");
+        ctx.Body.AppendLine($"{indent}    var __ev = EvaluatorRegistry.TryGet({Quote(transformId)})");
+        ctx.Body.AppendLine($"{indent}        ?? throw new InvalidOperationException(\"fast-path evaluator not registered: \" + {Quote(transformId)});");
+        ctx.Body.AppendLine($"{indent}    __df = __SumWins(__ev.Evaluate(state));");
+        ctx.Body.AppendLine($"{indent}}}");
+    }
+
+    private void EmitDictModify(DictContext ctx, ModifyStateNode modify, string indent)
+    {
+        if (modify.OutputKey is not { } outKey)
+            throw new CodegenUnsupportedException($"ModifyState '{modify.Id}' has no OutputKey.");
+        if (modify.ExpressionId is not { } exprId
+            || ctx.Config.Expressions is null
+            || !ctx.Config.Expressions.TryGetValue(exprId, out var expr))
+            throw new CodegenUnsupportedException($"ModifyState '{modify.Id}' references unknown expression '{modify.ExpressionId}'.");
+        if (!ctx.TypeByKey.TryGetValue(outKey, out var outType))
+            throw new CodegenUnsupportedException($"ModifyState '{modify.Id}' OutputKey '{outKey}' not in schema.");
+
+        switch (expr)
+        {
+            case FoldExpr fold when outType == ExprType.Number:
+                EmitNumberFold(ctx, fold, outKey, indent);
+                return;
+            case AggregateExpr agg when outType == ExprType.Number:
+                EmitNumberAggregate(ctx, agg, outKey, indent);
+                return;
+            case FoldExpr or MapExpr or FilterExpr or AggregateExpr:
+                throw new CodegenUnsupportedException(
+                    $"ModifyState '{modify.Id}' produces a non-number array result ({outType}) — array-valued folds/maps pending.");
+            default:
+                // Scalar expression (reuses ExpressionEmitter via the dict resolver).
+                ctx.Body.AppendLine($"{indent}state[{Quote(outKey)}] = {ScalarBoxed(ctx, expr, outType)};");
+                return;
+        }
+    }
+
+    private string ScalarBoxed(DictContext ctx, Expression expr, ExprType outType)
+    {
+        var c = ctx.Expr.Emit(expr);
+        return outType == ExprType.Number ? $"(object)(long)({c})" : $"(object)({c})";
+    }
+
+    private void EmitNumberFold(DictContext ctx, FoldExpr fold, string outKey, string indent)
+    {
+        var arr = $"__arr{ctx.TmpIndex}";
+        var it = $"__it{ctx.TmpIndex}";
+        var k = $"__k{ctx.TmpIndex}";
+        ctx.TmpIndex++;
+        var bi = indent + "    ";
+
+        ctx.Body.AppendLine($"{indent}{{");
+        ctx.Body.AppendLine($"{bi}long __acc = (long)({ctx.Expr.Emit(fold.Init)});");
+        ctx.Body.AppendLine($"{bi}var {arr} = state[{Quote(fold.StateKey)}] as object?[] ?? System.Array.Empty<object?>();");
+        ctx.Body.AppendLine($"{bi}for (int {k} = 0; {k} < {arr}.Length; {k}++)");
+        ctx.Body.AppendLine($"{bi}{{");
+        ctx.Body.AppendLine($"{bi}    {ItemDecl(fold.ItemType, it, $"{arr}[{k}]")}");
+        ctx.Locals[fold.AccName] = "__acc";
+        ctx.Locals[fold.ItemName] = it;
+        if (fold.IndexName is { } ix) ctx.Locals[ix] = $"((long){k})";
+        ctx.Body.AppendLine($"{bi}    __acc = (long)({ctx.Expr.Emit(fold.Body)});");
+        ctx.Locals.Remove(fold.AccName);
+        ctx.Locals.Remove(fold.ItemName);
+        if (fold.IndexName is { } ix2) ctx.Locals.Remove(ix2);
+        ctx.Body.AppendLine($"{bi}}}");
+        ctx.Body.AppendLine($"{bi}state[{Quote(outKey)}] = __acc;");
+        ctx.Body.AppendLine($"{indent}}}");
+    }
+
+    private void EmitNumberAggregate(DictContext ctx, AggregateExpr agg, string outKey, string indent)
+    {
+        if (agg.Func is not (AggregateFunc.Count or AggregateFunc.Sum))
+            throw new CodegenUnsupportedException($"aggregate '{agg.Func}' not yet supported (Count/Sum only).");
+
+        var arr = $"__arr{ctx.TmpIndex}";
+        var it = $"__it{ctx.TmpIndex}";
+        var k = $"__k{ctx.TmpIndex}";
+        ctx.TmpIndex++;
+        var bi = indent + "    ";
+
+        ctx.Body.AppendLine($"{indent}{{");
+        ctx.Body.AppendLine($"{bi}long __acc = 0L;");
+        ctx.Body.AppendLine($"{bi}var {arr} = state[{Quote(agg.StateKey)}] as object?[] ?? System.Array.Empty<object?>();");
+        ctx.Body.AppendLine($"{bi}for (int {k} = 0; {k} < {arr}.Length; {k}++)");
+        ctx.Body.AppendLine($"{bi}{{");
+        ctx.Body.AppendLine($"{bi}    {ItemDecl(agg.ItemType, it, $"{arr}[{k}]")}");
+        ctx.Locals[agg.ItemName] = it;
+        var pred = agg.Predicate is { } p ? ctx.Expr.Emit(p) : "true";
+        var add = agg.Func == AggregateFunc.Count
+            ? "1L"
+            : $"(long)({ctx.Expr.Emit(agg.ValueExpr ?? throw new CodegenUnsupportedException("Sum requires a ValueExpr."))})";
+        ctx.Locals.Remove(agg.ItemName);
+        ctx.Body.AppendLine($"{bi}    if ({pred}) __acc += {add};");
+        ctx.Body.AppendLine($"{bi}}}");
+        ctx.Body.AppendLine($"{bi}state[{Quote(outKey)}] = __acc;");
+        ctx.Body.AppendLine($"{indent}}}");
+    }
+
+    private static string ItemDecl(ExprType type, string name, string access) => type switch
+    {
+        ExprType.Number => $"long {name} = __AsNum({access});",
+        ExprType.Boolean => $"bool {name} = __AsBool({access});",
+        _ => $"string {name} = __AsStr({access});",
+    };
+
+    private static string RenderDict(DictContext ctx, string winExpr)
     {
         var sb = new StringBuilder();
-        sb.AppendLine("// <auto-generated/> — emitted by SlotMath.Codegen (G7, reel/fast-path). Do not edit.");
+        sb.AppendLine("// <auto-generated/> — emitted by SlotMath.Codegen (G7, dict-state). Do not edit.");
         sb.AppendLine("#nullable enable");
+        sb.AppendLine("#pragma warning disable CS0219, IDE0059");
         sb.AppendLine("using System;");
         sb.AppendLine("using System.Collections.Generic;");
+        sb.AppendLine("using System.Numerics;");
         sb.AppendLine("using SlotMath.Codegen.Runtime;");
         sb.AppendLine("using SlotMath.Core.Mechanics;");
         sb.AppendLine();
@@ -202,18 +443,20 @@ public sealed class CSharpEmitter
         sb.AppendLine();
         sb.AppendLine($"public sealed class {ClassName} : ICompiledGame");
         sb.AppendLine("{");
+        sb.Append(ctx.Tables);
 
-        // Reel strips as static data.
-        for (var c = 0; c < strips.Length; c++)
+        if (ctx.Reel is { } reel)
         {
-            var syms = string.Join(", ", strips[c].Symbols.Select(Quote));
-            sb.AppendLine($"    private static readonly string[] __strip{c} = new string[] {{ {syms} }};");
+            for (var c = 0; c < reel.Strips.Length; c++)
+            {
+                var syms = string.Join(", ", reel.Strips[c].Symbols.Select(Quote));
+                sb.AppendLine($"    private static readonly string[] __strip{c} = new string[] {{ {syms} }};");
+            }
+            sb.AppendLine($"    private static readonly string[][] __strips = new string[][] {{ {string.Join(", ", Enumerable.Range(0, reel.Strips.Length).Select(c => "__strip" + c))} }};");
+            sb.AppendLine($"    private const int __rows = {reel.Rows};");
+            sb.AppendLine($"    private const int __cols = {reel.Cols};");
+            sb.AppendLine($"    private static readonly long[] __reelW = __Uniform({reel.Total});");
         }
-        sb.AppendLine($"    private static readonly string[][] __strips = new string[][] {{ {string.Join(", ", Enumerable.Range(0, strips.Length).Select(c => "__strip" + c))} }};");
-        sb.AppendLine($"    private const int __rows = {rows};");
-        sb.AppendLine($"    private const int __cols = {cols};");
-        sb.AppendLine($"    private static readonly long[] __reelW = __Uniform({total});");
-        sb.AppendLine($"    private static readonly string __mech = {Quote(transformId)};");
         sb.AppendLine("    private readonly Dictionary<string, object?> _init = new();");
         sb.AppendLine();
 
@@ -227,49 +470,51 @@ public sealed class CSharpEmitter
         sb.AppendLine("    public long RunSpin(IDrawDriver __d)");
         sb.AppendLine("    {");
         sb.AppendLine("        var state = new Dictionary<string, object?>(_init);");
-        sb.AppendLine("        int __c = __d.Draw(__reelW);");
-        sb.AppendLine("        state[\"board\"] = __Board(__c);");
-        sb.AppendLine("        state[\"rows\"] = __rows;");
-        sb.AppendLine("        state[\"cols\"] = __cols;");
-        sb.AppendLine("        var __ev = EvaluatorRegistry.TryGet(__mech)");
-        sb.AppendLine("            ?? throw new InvalidOperationException(\"fast-path evaluator '\" + __mech + \"' is not registered.\");");
-        sb.AppendLine("        return __SumWins(__ev.Evaluate(state));");
+        sb.AppendLine("        long __df = 0L;");
+        sb.Append(ctx.Body);
+        sb.AppendLine($"        return {winExpr};");
         sb.AppendLine("    }");
         sb.AppendLine();
 
-        // Board decode — mirrors GraphCompiler.BuildFlatFromChoice.
-        sb.AppendLine("    private static object?[] __Board(int choice)");
-        sb.AppendLine("    {");
-        sb.AppendLine("        var flat = new object?[__rows * __cols];");
-        sb.AppendLine("        int remaining = choice;");
-        sb.AppendLine("        for (int c = __cols - 1; c >= 0; c--)");
-        sb.AppendLine("        {");
-        sb.AppendLine("            var strip = __strips[c];");
-        sb.AppendLine("            int stripLen = strip.Length;");
-        sb.AppendLine("            int reelPos = remaining % stripLen;");
-        sb.AppendLine("            remaining /= stripLen;");
-        sb.AppendLine("            for (int r = 0; r < __rows; r++)");
-        sb.AppendLine("                flat[r * __cols + c] = strip[(reelPos + r) % stripLen];");
-        sb.AppendLine("        }");
-        sb.AppendLine("        return flat;");
-        sb.AppendLine("    }");
-        sb.AppendLine();
+        if (ctx.Reel != null)
+        {
+            sb.AppendLine("    private static object?[] __Board(int choice)");
+            sb.AppendLine("    {");
+            sb.AppendLine("        var flat = new object?[__rows * __cols];");
+            sb.AppendLine("        int remaining = choice;");
+            sb.AppendLine("        for (int c = __cols - 1; c >= 0; c--)");
+            sb.AppendLine("        {");
+            sb.AppendLine("            var strip = __strips[c];");
+            sb.AppendLine("            int stripLen = strip.Length;");
+            sb.AppendLine("            int reelPos = remaining % stripLen;");
+            sb.AppendLine("            remaining /= stripLen;");
+            sb.AppendLine("            for (int r = 0; r < __rows; r++)");
+            sb.AppendLine("                flat[r * __cols + c] = strip[(reelPos + r) % stripLen];");
+            sb.AppendLine("        }");
+            sb.AppendLine("        return flat;");
+            sb.AppendLine("    }");
+            sb.AppendLine();
+            sb.AppendLine("    private static long[] __Uniform(int n)");
+            sb.AppendLine("    {");
+            sb.AppendLine("        var a = new long[n];");
+            sb.AppendLine("        Array.Fill(a, 1L);");
+            sb.AppendLine("        return a;");
+            sb.AppendLine("    }");
+            sb.AppendLine();
+        }
 
-        sb.AppendLine("    private static long[] __Uniform(int n)");
-        sb.AppendLine("    {");
-        sb.AppendLine("        var a = new long[n];");
-        sb.AppendLine("        Array.Fill(a, 1L);");
-        sb.AppendLine("        return a;");
-        sb.AppendLine("    }");
-        sb.AppendLine();
-
-        // Win[] → scaled integer (winScale = 1; mirrors SumWins/ToScaledWin).
         sb.AppendLine("    private static long __SumWins(Win[] wins)");
         sb.AppendLine("    {");
         sb.AppendLine("        decimal total = 0m;");
         sb.AppendLine("        foreach (var w in wins) total += w.TotalWin;");
         sb.AppendLine("        return (long)decimal.Round(total, 0, MidpointRounding.ToEven);");
         sb.AppendLine("    }");
+        sb.AppendLine("    private static long __N(Dictionary<string, object?> s, string k) => s.TryGetValue(k, out var v) ? __AsNum(v) : 0L;");
+        sb.AppendLine("    private static string __S(Dictionary<string, object?> s, string k) => s.TryGetValue(k, out var v) ? __AsStr(v) : \"\";");
+        sb.AppendLine("    private static bool __B(Dictionary<string, object?> s, string k) => s.TryGetValue(k, out var v) && __AsBool(v);");
+        sb.AppendLine("    private static long __AsNum(object? o) => o switch { BigInteger b => (long)b, long l => l, int i => i, _ => 0L };");
+        sb.AppendLine("    private static string __AsStr(object? o) => o as string ?? \"\";");
+        sb.AppendLine("    private static bool __AsBool(object? o) => o is bool b && b;");
         sb.AppendLine("}");
         return sb.ToString();
     }
