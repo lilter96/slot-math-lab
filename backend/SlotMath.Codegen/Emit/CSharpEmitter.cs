@@ -459,7 +459,7 @@ public sealed class CSharpEmitter
         }
 
         var ri = ctx.DrawIndex++;
-        ctx.Body.AppendLine($"{indent}int __rc{ri} = __d.Draw(__reelW);");
+        ctx.Body.AppendLine($"{indent}int __rc{ri} = __d.DrawUniform({ctx.Reel!.Total});");
         ctx.Body.AppendLine($"{indent}state[\"board\"] = __Board(__rc{ri});");
         ctx.Body.AppendLine($"{indent}state[\"rows\"] = __rows;");
         ctx.Body.AppendLine($"{indent}state[\"cols\"] = __cols;");
@@ -712,7 +712,6 @@ public sealed class CSharpEmitter
             sb.AppendLine($"    private static readonly string[][] __strips = new string[][] {{ {string.Join(", ", Enumerable.Range(0, reel.Strips.Length).Select(c => "__strip" + c))} }};");
             sb.AppendLine($"    private const int __rows = {reel.Rows};");
             sb.AppendLine($"    private const int __cols = {reel.Cols};");
-            sb.AppendLine($"    private static readonly long[] __reelW = __Uniform({reel.Total});");
         }
         sb.AppendLine("    private readonly Dictionary<string, object?> _init = new();");
         sb.AppendLine();
@@ -749,13 +748,6 @@ public sealed class CSharpEmitter
             sb.AppendLine("                flat[r * __cols + c] = strip[(reelPos + r) % stripLen];");
             sb.AppendLine("        }");
             sb.AppendLine("        return flat;");
-            sb.AppendLine("    }");
-            sb.AppendLine();
-            sb.AppendLine("    private static long[] __Uniform(int n)");
-            sb.AppendLine("    {");
-            sb.AppendLine("        var a = new long[n];");
-            sb.AppendLine("        Array.Fill(a, 1L);");
-            sb.AppendLine("        return a;");
             sb.AppendLine("    }");
             sb.AppendLine();
         }

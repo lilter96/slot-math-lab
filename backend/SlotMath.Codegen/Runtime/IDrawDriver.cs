@@ -20,6 +20,22 @@ public interface IDrawDriver
 {
     /// <summary>Choose an outcome index in [0, weights.Length) by weight.</summary>
     int Draw(ReadOnlySpan<long> weights);
+
+    /// <summary>
+    /// Choose a uniform outcome index in [0, count).  Reel-strip draws fork over
+    /// the joint strip space (∏ stripLen) with equal weight, so a uniform pick is
+    /// O(1) — the hot path must not scan a materialized weight table of that size.
+    /// The default delegates to <see cref="Draw"/> so the exact-PMF enumerator
+    /// (which forks over the frontier weights) keeps working unchanged; the
+    /// sampled driver overrides this for the zero-scan production path.
+    /// </summary>
+    int DrawUniform(int count)
+    {
+        if (count <= 0) return 0;
+        Span<long> w = count <= 1024 ? stackalloc long[count] : new long[count];
+        w.Fill(1L);
+        return Draw(w);
+    }
 }
 
 /// <summary>

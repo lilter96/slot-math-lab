@@ -41,4 +41,8 @@ public sealed class SampledDrawDriver(SeededRandom rng) : IDrawDriver
 
         return weights.Length - 1;
     }
+
+    /// <summary>O(1) uniform pick — no weight-table scan (reel-strip draws).</summary>
+    public int DrawUniform(int count) =>
+        count <= 0 ? 0 : (int)(_rng.NextUInt64() % (ulong)count);
 }
