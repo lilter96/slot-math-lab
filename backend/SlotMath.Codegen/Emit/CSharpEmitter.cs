@@ -159,6 +159,7 @@ public sealed class CSharpEmitter
         public StringBuilder Body { get; } = new();
         public int DrawIndex;
         public int TmpIndex;
+        public int FanIndex;
         public ReelInfo? Reel { get; set; }
         public bool UsesPlugin { get; set; }
     }
@@ -228,11 +229,15 @@ public sealed class CSharpEmitter
         };
     }
 
-    private void EmitDictChain(DictContext ctx, string nodeId, string indent, HashSet<string> stack)
+    private void EmitDictChain(DictContext ctx, string nodeId, string indent, HashSet<string> stack, string sinkAction = "")
     {
-        if (nodeId == ctx.SinkId) return;
+        if (nodeId == ctx.SinkId)
+        {
+            if (sinkAction.Length > 0) ctx.Body.AppendLine($"{indent}{sinkAction}");
+            return;
+        }
         if (!stack.Add(nodeId))
-            throw new CodegenUnsupportedException($"cyclic data flow at '{nodeId}' (dict-mode loops not yet supported).");
+            throw new CodegenUnsupportedException($"cyclic data flow at '{nodeId}' outside a Loop body.");
 
         try
         {
@@ -241,6 +246,12 @@ public sealed class CSharpEmitter
 
             switch (node)
             {
+                case BranchNode branch:
+                    EmitDictBranch(ctx, branch, outs, indent, stack, sinkAction);
+                    return;
+                case LoopNode loop:
+                    EmitDictLoop(ctx, loop, outs, indent, stack, sinkAction);
+                    return;
                 case DrawNode draw:
                     EmitDictDraw(ctx, draw, indent);
                     break;
@@ -257,17 +268,135 @@ public sealed class CSharpEmitter
                     break;
                 default:
                     throw new CodegenUnsupportedException(
-                        $"node '{nodeId}' of kind {node.GetType().Name} is not supported in dict-mode (branch/loop over arrays pending).");
+                        $"node '{nodeId}' of kind {node.GetType().Name} is not supported.");
             }
 
-            if (outs.Count == 0) return;
-            if (outs.Count > 1)
-                throw new CodegenUnsupportedException($"node '{nodeId}' has fan-out (not yet supported).");
-            EmitDictChain(ctx, outs[0].TargetNodeId, indent, stack);
+            if (outs.Count == 0)
+            {
+                if (sinkAction.Length > 0) ctx.Body.AppendLine($"{indent}{sinkAction}");
+                return;
+            }
+            if (outs.Count == 1)
+            {
+                EmitDictChain(ctx, outs[0].TargetNodeId, indent, stack, sinkAction);
+                return;
+            }
+
+            // Fan-out: run each downstream path with the node's value as input
+            // (state threads sequentially) and SUM the per-path sink values.
+            var sum = $"__fsum{ctx.FanIndex}";
+            var saved = $"__fv{ctx.FanIndex}";
+            ctx.FanIndex++;
+            ctx.Body.AppendLine($"{indent}long {saved} = __df;");
+            ctx.Body.AppendLine($"{indent}long {sum} = 0L;");
+            foreach (var e in outs)
+            {
+                ctx.Body.AppendLine($"{indent}__df = {saved};");
+                EmitDictChain(ctx, e.TargetNodeId, indent, stack, $"{sum} += __df;");
+            }
+            ctx.Body.AppendLine($"{indent}__df = {sum};");
+            if (sinkAction.Length > 0) ctx.Body.AppendLine($"{indent}{sinkAction}");
         }
         finally
         {
             stack.Remove(nodeId);
+        }
+    }
+
+    private void EmitDictBranch(DictContext ctx, BranchNode branch, List<Edge> outs, string indent, HashSet<string> stack, string sinkAction)
+    {
+        var trueEdge = outs.FirstOrDefault(e => e.SourcePort == "true");
+        var falseEdge = outs.FirstOrDefault(e => e.SourcePort == "false");
+        if (trueEdge is null && falseEdge is null)
+            throw new CodegenUnsupportedException($"branch '{branch.Id}' has no true/false ports.");
+        if (branch.ConditionId is not { } cid
+            || ctx.Config.Expressions is null
+            || !ctx.Config.Expressions.TryGetValue(cid, out var cond))
+            throw new CodegenUnsupportedException($"branch '{branch.Id}' references unknown condition '{branch.ConditionId}'.");
+
+        var c = ctx.Expr.Emit(Hoist(ctx, cond, indent)); // aggregates in the condition are hoisted to loops
+        var bi = indent + "    ";
+        ctx.Body.AppendLine($"{indent}if ({c})");
+        ctx.Body.AppendLine($"{indent}{{");
+        if (trueEdge is not null) EmitDictChain(ctx, trueEdge.TargetNodeId, bi, stack, sinkAction);
+        else if (sinkAction.Length > 0) { ctx.Body.AppendLine($"{bi}__df = 0L;"); ctx.Body.AppendLine($"{bi}{sinkAction}"); }
+        ctx.Body.AppendLine($"{indent}}}");
+        ctx.Body.AppendLine($"{indent}else");
+        ctx.Body.AppendLine($"{indent}{{");
+        if (falseEdge is not null) EmitDictChain(ctx, falseEdge.TargetNodeId, bi, stack, sinkAction);
+        else if (sinkAction.Length > 0) { ctx.Body.AppendLine($"{bi}__df = 0L;"); ctx.Body.AppendLine($"{bi}{sinkAction}"); }
+        ctx.Body.AppendLine($"{indent}}}");
+    }
+
+    private void EmitDictLoop(DictContext ctx, LoopNode loop, List<Edge> outs, string indent, HashSet<string> stack, string sinkAction)
+    {
+        // Iter/accumulator live in state (so a stop expression can read them, as
+        // the interpreter does).  Stop checked BEFORE the body; data-flow value
+        // accumulated AFTER (mirrors GraphCompiler.CompileLoopChain).
+        var iterKey = $"__iter_{loop.Id}__";
+        var winsKey = $"__wins_{loop.Id}__";
+        var bodyEdge = outs.FirstOrDefault(e => e.SourcePort == "body")
+            ?? throw new CodegenUnsupportedException($"loop '{loop.Id}' has no 'body' port.");
+        var exitEdge = outs.FirstOrDefault(e => e.SourcePort is "exit" or "out");
+        var maxIter = loop.MaxIterations is > 0 and <= 10000 ? loop.MaxIterations : 100;
+        var bi = indent + "    ";
+
+        ctx.Body.AppendLine($"{indent}state[{Quote(iterKey)}] = 0L;");
+        ctx.Body.AppendLine($"{indent}state[{Quote(winsKey)}] = 0L;");
+        ctx.Body.AppendLine($"{indent}for (;;)");
+        ctx.Body.AppendLine($"{indent}{{");
+        var stop = $"__N(state, {Quote(iterKey)}) >= {maxIter}L";
+        if (loop.StopConditionId is { } sid
+            && ctx.Config.Expressions is not null
+            && ctx.Config.Expressions.TryGetValue(sid, out var stopExpr))
+        {
+            var se = ctx.Expr.Emit(Hoist(ctx, stopExpr, bi));
+            stop = $"({se}) || ({stop})";
+        }
+        ctx.Body.AppendLine($"{bi}if ({stop}) break;");
+        EmitDictChain(ctx, bodyEdge.TargetNodeId, bi, stack); // body in dead-end mode
+        ctx.Body.AppendLine($"{bi}state[{Quote(iterKey)}] = __N(state, {Quote(iterKey)}) + 1L;");
+        ctx.Body.AppendLine($"{bi}state[{Quote(winsKey)}] = __N(state, {Quote(winsKey)}) + __df;");
+        ctx.Body.AppendLine($"{indent}}}");
+        ctx.Body.AppendLine($"{indent}__df = __N(state, {Quote(winsKey)});");
+
+        if (exitEdge is not null)
+            EmitDictChain(ctx, exitEdge.TargetNodeId, indent, stack, sinkAction);
+        else if (sinkAction.Length > 0)
+            ctx.Body.AppendLine($"{indent}{sinkAction}");
+    }
+
+    /// <summary>
+    /// Hoists array sub-expressions (fold/aggregate) of a scalar expression out
+    /// into emitted C# loops, returning a scalar-only expression that references
+    /// the loop-result locals (bound in ctx.Locals).
+    /// </summary>
+    private Expression Hoist(DictContext ctx, Expression e, string indent)
+    {
+        switch (e)
+        {
+            case AggregateExpr a:
+                var aacc = EmitAggregateAcc(ctx, a, indent);
+                var akey = "__h_" + aacc;
+                ctx.Locals[akey] = aacc;
+                return new FieldAccessExpr { Target = "state", Path = [akey] };
+            case FoldExpr f:
+                var facc = EmitFoldAcc(ctx, f, indent);
+                var fkey = "__h_" + facc;
+                ctx.Locals[fkey] = facc;
+                return new FieldAccessExpr { Target = "state", Path = [fkey] };
+            case CompareExpr c:
+                return c with { Left = Hoist(ctx, c.Left, indent), Right = Hoist(ctx, c.Right, indent) };
+            case BinaryExpr b:
+                return b with { Left = Hoist(ctx, b.Left, indent), Right = Hoist(ctx, b.Right, indent) };
+            case IfExpr i:
+                return i with { Condition = Hoist(ctx, i.Condition, indent), ThenExpr = Hoist(ctx, i.ThenExpr, indent), ElseExpr = Hoist(ctx, i.ElseExpr, indent) };
+            case NotExpr n:
+                return n with { Expr = Hoist(ctx, n.Expr, indent) };
+            case MapExpr or FilterExpr:
+                throw new CodegenUnsupportedException("array-valued map/filter inside a scalar expression is not supported.");
+            default:
+                return e;
         }
     }
 
@@ -294,27 +423,29 @@ public sealed class CSharpEmitter
             return;
         }
 
-        // Reel draw → board array.
-        if (ctx.Reel != null)
-            throw new CodegenUnsupportedException("more than one reel draw is not supported.");
+        // Reel draw → board array.  GraphCompiler always uses ReelSets[0] for
+        // every reel draw, so multiple reel draws share one strip table.
         if (draw.BoardStateKey is not (null or "board"))
             throw new CodegenUnsupportedException($"draw '{draw.Id}' board key must be the default 'board'.");
+        if (ctx.Reel is null)
+        {
+            var reelSet = ctx.Config.ReelSets.FirstOrDefault()
+                ?? throw new CodegenUnsupportedException("reel draw requires a ReelSet.");
+            var strips = reelSet.StripIds.Select(id => ctx.Config.ReelStrips.FirstOrDefault(s => s.Id == id)).ToArray();
+            if (strips.Any(s => s is null || s.Symbols.Length == 0))
+                throw new CodegenUnsupportedException("reel set references missing/empty strips.");
+            var rows = ctx.Config.BoardConfig?.Rows ?? 3;
+            var cols = strips.Length;
+            long total = 1;
+            foreach (var s in strips) total *= s!.Symbols.Length;
+            if (total is <= 0 or > 1_000_000)
+                throw new CodegenUnsupportedException("too many reel combinations for a single draw.");
+            ctx.Reel = new ReelInfo(strips!, rows, cols, (int)total);
+        }
 
-        var reelSet = ctx.Config.ReelSets.FirstOrDefault()
-            ?? throw new CodegenUnsupportedException("reel draw requires a ReelSet.");
-        var strips = reelSet.StripIds.Select(id => ctx.Config.ReelStrips.FirstOrDefault(s => s.Id == id)).ToArray();
-        if (strips.Any(s => s is null || s.Symbols.Length == 0))
-            throw new CodegenUnsupportedException("reel set references missing/empty strips.");
-        var rows = ctx.Config.BoardConfig?.Rows ?? 3;
-        var cols = strips.Length;
-        long total = 1;
-        foreach (var s in strips) total *= s!.Symbols.Length;
-        if (total is <= 0 or > 1_000_000)
-            throw new CodegenUnsupportedException("too many reel combinations for a single draw.");
-
-        ctx.Reel = new ReelInfo(strips!, rows, cols, (int)total);
-        ctx.Body.AppendLine($"{indent}int __rc = __d.Draw(__reelW);");
-        ctx.Body.AppendLine($"{indent}state[\"board\"] = __Board(__rc);");
+        var ri = ctx.DrawIndex++;
+        ctx.Body.AppendLine($"{indent}int __rc{ri} = __d.Draw(__reelW);");
+        ctx.Body.AppendLine($"{indent}state[\"board\"] = __Board(__rc{ri});");
         ctx.Body.AppendLine($"{indent}state[\"rows\"] = __rows;");
         ctx.Body.AppendLine($"{indent}state[\"cols\"] = __cols;");
     }
@@ -324,23 +455,39 @@ public sealed class CSharpEmitter
         if (map.TransformId is not { } transformId)
             throw new CodegenUnsupportedException($"Map node '{map.Id}' has no transformId.");
 
+        // Expression-valued input ports (e.g. a multiplier) scale the wins,
+        // exactly as GraphCompiler.ApplyExpressions does (product of port values).
+        var mult = "1L";
+        foreach (var (pname, port) in map.Inputs)
+            if (port.DefaultValue is { } dv && pname != "in")
+            {
+                var v = $"(long)({ctx.Expr.Emit(Hoist(ctx, dv, indent))})";
+                mult = mult == "1L" ? v : $"{mult} * {v}";
+            }
+
         if (transformId.StartsWith("plugin:", StringComparison.Ordinal))
         {
-            // Level-c plugin evaluator, resolved from the injected PluginHost.
             var pluginId = transformId["plugin:".Length..];
             ctx.UsesPlugin = true;
             ctx.Body.AppendLine($"{indent}{{");
             ctx.Body.AppendLine($"{indent}    var __pe = __pluginHost!.TryGetEvaluator({Quote(pluginId)})");
             ctx.Body.AppendLine($"{indent}        ?? throw new InvalidOperationException(\"plugin evaluator not found: \" + {Quote(pluginId)});");
-            ctx.Body.AppendLine($"{indent}    __df = __SumWins(__pe.Evaluate(state));");
+            ctx.Body.AppendLine($"{indent}    __df = __SumWinsMul(__pe.Evaluate(state), {mult});");
             ctx.Body.AppendLine($"{indent}}}");
             return;
         }
 
+        // Fast-path evaluator OR board transform — runtime dispatch in the same
+        // order GraphCompiler resolves (EvaluatorRegistry then TransformRegistry).
         ctx.Body.AppendLine($"{indent}{{");
-        ctx.Body.AppendLine($"{indent}    var __ev = EvaluatorRegistry.TryGet({Quote(transformId)})");
-        ctx.Body.AppendLine($"{indent}        ?? throw new InvalidOperationException(\"fast-path evaluator not registered: \" + {Quote(transformId)});");
-        ctx.Body.AppendLine($"{indent}    __df = __SumWins(__ev.Evaluate(state));");
+        ctx.Body.AppendLine($"{indent}    var __ev = EvaluatorRegistry.TryGet({Quote(transformId)});");
+        ctx.Body.AppendLine($"{indent}    if (__ev != null) {{ __df = __SumWinsMul(__ev.Evaluate(state), {mult}); }}");
+        ctx.Body.AppendLine($"{indent}    else");
+        ctx.Body.AppendLine($"{indent}    {{");
+        ctx.Body.AppendLine($"{indent}        var __tr = TransformRegistry.TryGet({Quote(transformId)})");
+        ctx.Body.AppendLine($"{indent}            ?? throw new InvalidOperationException(\"no evaluator/transform: \" + {Quote(transformId)});");
+        ctx.Body.AppendLine($"{indent}        state = new Dictionary<string, object?>(__tr.Apply(state));");
+        ctx.Body.AppendLine($"{indent}    }}");
         ctx.Body.AppendLine($"{indent}}}");
     }
 
@@ -355,20 +502,25 @@ public sealed class CSharpEmitter
         if (!ctx.TypeByKey.TryGetValue(outKey, out var outType))
             throw new CodegenUnsupportedException($"ModifyState '{modify.Id}' OutputKey '{outKey}' not in schema.");
 
+        // NB: emit any array-loop / hoisted side effects to ctx.Body FIRST, into
+        // a local, THEN append the assignment — a StringBuilder interpolation
+        // hole that itself writes to ctx.Body would otherwise interleave.
         switch (expr)
         {
             case FoldExpr fold when outType == ExprType.Number:
-                EmitNumberFold(ctx, fold, outKey, indent);
+                var facc = EmitFoldAcc(ctx, fold, indent);
+                ctx.Body.AppendLine($"{indent}state[{Quote(outKey)}] = {facc};");
                 return;
             case AggregateExpr agg when outType == ExprType.Number:
-                EmitNumberAggregate(ctx, agg, outKey, indent);
+                var aacc = EmitAggregateAcc(ctx, agg, indent);
+                ctx.Body.AppendLine($"{indent}state[{Quote(outKey)}] = {aacc};");
                 return;
             case FoldExpr or MapExpr or FilterExpr or AggregateExpr:
                 throw new CodegenUnsupportedException(
                     $"ModifyState '{modify.Id}' produces a non-number array result ({outType}) — array-valued folds/maps pending.");
             default:
-                // Scalar expression (reuses ExpressionEmitter via the dict resolver).
-                ctx.Body.AppendLine($"{indent}state[{Quote(outKey)}] = {ScalarBoxed(ctx, expr, outType)};");
+                var rhs = ScalarBoxed(ctx, Hoist(ctx, expr, indent), outType);
+                ctx.Body.AppendLine($"{indent}state[{Quote(outKey)}] = {rhs};");
                 return;
         }
     }
@@ -379,59 +531,50 @@ public sealed class CSharpEmitter
         return outType == ExprType.Number ? $"(object)(long)({c})" : $"(object)({c})";
     }
 
-    private void EmitNumberFold(DictContext ctx, FoldExpr fold, string outKey, string indent)
+    private string EmitFoldAcc(DictContext ctx, FoldExpr fold, string indent)
     {
-        var arr = $"__arr{ctx.TmpIndex}";
-        var it = $"__it{ctx.TmpIndex}";
-        var k = $"__k{ctx.TmpIndex}";
-        ctx.TmpIndex++;
+        var n = ctx.TmpIndex++;
+        string acc = $"__acc{n}", arr = $"__arr{n}", it = $"__it{n}", k = $"__k{n}";
         var bi = indent + "    ";
-
+        var init = ctx.Expr.Emit(Hoist(ctx, fold.Init, indent)); // emit any hoisted loops first
+        ctx.Body.AppendLine($"{indent}long {acc} = (long)({init});");
+        ctx.Body.AppendLine($"{indent}var {arr} = state[{Quote(fold.StateKey)}] as object?[] ?? System.Array.Empty<object?>();");
+        ctx.Body.AppendLine($"{indent}for (int {k} = 0; {k} < {arr}.Length; {k}++)");
         ctx.Body.AppendLine($"{indent}{{");
-        ctx.Body.AppendLine($"{bi}long __acc = (long)({ctx.Expr.Emit(fold.Init)});");
-        ctx.Body.AppendLine($"{bi}var {arr} = state[{Quote(fold.StateKey)}] as object?[] ?? System.Array.Empty<object?>();");
-        ctx.Body.AppendLine($"{bi}for (int {k} = 0; {k} < {arr}.Length; {k}++)");
-        ctx.Body.AppendLine($"{bi}{{");
-        ctx.Body.AppendLine($"{bi}    {ItemDecl(fold.ItemType, it, $"{arr}[{k}]")}");
-        ctx.Locals[fold.AccName] = "__acc";
+        ctx.Body.AppendLine($"{bi}{ItemDecl(fold.ItemType, it, $"{arr}[{k}]")}");
+        ctx.Locals[fold.AccName] = acc;
         ctx.Locals[fold.ItemName] = it;
         if (fold.IndexName is { } ix) ctx.Locals[ix] = $"((long){k})";
-        ctx.Body.AppendLine($"{bi}    __acc = (long)({ctx.Expr.Emit(fold.Body)});");
+        ctx.Body.AppendLine($"{bi}{acc} = (long)({ctx.Expr.Emit(fold.Body)});");
         ctx.Locals.Remove(fold.AccName);
         ctx.Locals.Remove(fold.ItemName);
         if (fold.IndexName is { } ix2) ctx.Locals.Remove(ix2);
-        ctx.Body.AppendLine($"{bi}}}");
-        ctx.Body.AppendLine($"{bi}state[{Quote(outKey)}] = __acc;");
         ctx.Body.AppendLine($"{indent}}}");
+        return acc;
     }
 
-    private void EmitNumberAggregate(DictContext ctx, AggregateExpr agg, string outKey, string indent)
+    private string EmitAggregateAcc(DictContext ctx, AggregateExpr agg, string indent)
     {
         if (agg.Func is not (AggregateFunc.Count or AggregateFunc.Sum))
             throw new CodegenUnsupportedException($"aggregate '{agg.Func}' not yet supported (Count/Sum only).");
 
-        var arr = $"__arr{ctx.TmpIndex}";
-        var it = $"__it{ctx.TmpIndex}";
-        var k = $"__k{ctx.TmpIndex}";
-        ctx.TmpIndex++;
+        var n = ctx.TmpIndex++;
+        string acc = $"__acc{n}", arr = $"__arr{n}", it = $"__it{n}", k = $"__k{n}";
         var bi = indent + "    ";
-
+        ctx.Body.AppendLine($"{indent}long {acc} = 0L;");
+        ctx.Body.AppendLine($"{indent}var {arr} = state[{Quote(agg.StateKey)}] as object?[] ?? System.Array.Empty<object?>();");
+        ctx.Body.AppendLine($"{indent}for (int {k} = 0; {k} < {arr}.Length; {k}++)");
         ctx.Body.AppendLine($"{indent}{{");
-        ctx.Body.AppendLine($"{bi}long __acc = 0L;");
-        ctx.Body.AppendLine($"{bi}var {arr} = state[{Quote(agg.StateKey)}] as object?[] ?? System.Array.Empty<object?>();");
-        ctx.Body.AppendLine($"{bi}for (int {k} = 0; {k} < {arr}.Length; {k}++)");
-        ctx.Body.AppendLine($"{bi}{{");
-        ctx.Body.AppendLine($"{bi}    {ItemDecl(agg.ItemType, it, $"{arr}[{k}]")}");
+        ctx.Body.AppendLine($"{bi}{ItemDecl(agg.ItemType, it, $"{arr}[{k}]")}");
         ctx.Locals[agg.ItemName] = it;
         var pred = agg.Predicate is { } p ? ctx.Expr.Emit(p) : "true";
         var add = agg.Func == AggregateFunc.Count
             ? "1L"
             : $"(long)({ctx.Expr.Emit(agg.ValueExpr ?? throw new CodegenUnsupportedException("Sum requires a ValueExpr."))})";
         ctx.Locals.Remove(agg.ItemName);
-        ctx.Body.AppendLine($"{bi}    if ({pred}) __acc += {add};");
-        ctx.Body.AppendLine($"{bi}}}");
-        ctx.Body.AppendLine($"{bi}state[{Quote(outKey)}] = __acc;");
+        ctx.Body.AppendLine($"{bi}if ({pred}) {acc} += {add};");
         ctx.Body.AppendLine($"{indent}}}");
+        return acc;
     }
 
     private static string ItemDecl(ExprType type, string name, string access) => type switch
@@ -528,6 +671,12 @@ public sealed class CSharpEmitter
         sb.AppendLine("    {");
         sb.AppendLine("        decimal total = 0m;");
         sb.AppendLine("        foreach (var w in wins) total += w.TotalWin;");
+        sb.AppendLine("        return (long)decimal.Round(total, 0, MidpointRounding.ToEven);");
+        sb.AppendLine("    }");
+        sb.AppendLine("    private static long __SumWinsMul(Win[] wins, long mult)");
+        sb.AppendLine("    {");
+        sb.AppendLine("        decimal total = 0m;");
+        sb.AppendLine("        foreach (var w in wins) total += w.TotalWin * mult;");
         sb.AppendLine("        return (long)decimal.Round(total, 0, MidpointRounding.ToEven);");
         sb.AppendLine("    }");
         sb.AppendLine("    private static long __N(Dictionary<string, object?> s, string k) => s.TryGetValue(k, out var v) ? __AsNum(v) : 0L;");

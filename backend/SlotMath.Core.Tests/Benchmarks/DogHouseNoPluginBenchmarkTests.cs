@@ -173,7 +173,7 @@ public sealed class DogHouseNoPluginBenchmarkTests : IDisposable
 
     // ── Graph config — level-(a+b), no plugin references ──────────────────
 
-    private static GraphConfig CreateConfig()
+    internal static GraphConfig CreateConfig()
     {
         var reelSet = new ReelSet
         {

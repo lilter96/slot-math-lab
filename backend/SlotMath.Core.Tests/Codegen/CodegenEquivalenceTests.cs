@@ -10,6 +10,7 @@ using SlotMath.Core.Expressions;
 using SlotMath.Core.Math;
 using SlotMath.Core.Mechanics;
 using SlotMath.Core.Mechanics.Evaluators;
+using SlotMath.Core.Mechanics.Transforms;
 using SlotMath.Core.Model;
 using SlotMath.Core.Monad;
 using SlotMath.Core.Plugins;
@@ -1097,6 +1098,130 @@ public sealed class CodegenEquivalenceTests
                },
                seed: "g7-loop-pbt-v1",
                iter: 100);
+    }
+
+    // ════════════════════════════════════════════════════════════════════
+    //  The Dog House — the whole graph: reel → fan-out[ lines ;
+    //  bonus-branch(Count≥2) → fs-count → loop( draw → accumulate-wilds →
+    //  apply-wilds → lines×2 ) ] → sink.  Tiny scale so the exact PMF (across
+    //  fan-out + branch(aggregate) + loop + sticky-wild transforms + ×2
+    //  multiplier) is enumerable and provably equal to the interpreter.
+    // ════════════════════════════════════════════════════════════════════
+
+    private static void EnsureTransform(string name, IFastPathTransform t)
+    {
+        if (TransformRegistry.TryGet(name) is null)
+        {
+            try { TransformRegistry.Register(name, t); }
+            catch (InvalidOperationException) { /* registered by a parallel test */ }
+        }
+    }
+
+    private static GraphConfig MiniDogHouse()
+    {
+        EnsureEvaluator("lines_dh", new LinesEvaluator(
+            new Paytable { Id = "pt", Entries = [new PaytableEntry { SymbolId = "A", Counts = [2], Payouts = ["4"] }] },
+            new PaylineSet { Id = "ps", Paylines = [new Payline { Positions = [0, 0] }] },
+            wildSymbolId: null));
+        EnsureTransform("acc_dh", new BoardCellAccumulatorTransform(
+            symbolFilter: "S", extractMode: CellExtractMode.Position, stateKey: "stickyPositions", mergeMode: CellMergeMode.Union));
+        EnsureTransform("apply_dh", new BoardCellApplyTransform(
+            stateKey: "stickyPositions", applyMode: CellApplyMode.OverlaySymbol, symbolId: "S"));
+
+        var mulPort = new Port { Name = "multiplier", Type = PortType.Number, DefaultValue = Int(2) };
+
+        return new GraphConfig
+        {
+            SchemaVersion = "1.0.0",
+            Id = "mini-doghouse",
+            ReelStrips = [new ReelStrip { Id = "r0", Name = "R0", Symbols = ["S", "A"] }, new ReelStrip { Id = "r1", Name = "R1", Symbols = ["S", "A"] }],
+            ReelSets = [new ReelSet { Id = "rs", Name = "Main", StripIds = ["r0", "r1"] }],
+            BoardConfig = new BoardConfig { Rows = 1, Columns = 2 },
+            StateSchema =
+            [
+                new StateFieldSchema { Name = "fsLeft", Type = "number" },
+                new StateFieldSchema { Name = "stickyPositions", Type = "string[]" },
+                new StateFieldSchema { Name = "__iter_loopFS__", Type = "number" },
+                new StateFieldSchema { Name = "__wins_loopFS__", Type = "number" },
+            ],
+            Expressions = new Dictionary<string, Expression>
+            {
+                ["bonus-trigger"] = new CompareExpr
+                {
+                    Op = CompareOp.Gte,
+                    Left = new AggregateExpr { Func = AggregateFunc.Count, StateKey = "board", ItemName = "cell", ItemType = ExprType.String, Predicate = Eq(Field("cell"), Str("S")) },
+                    Right = Int(2),
+                },
+                ["fs-stop"] = new CompareExpr { Op = CompareOp.Gte, Left = Field("__iter_loopFS__"), Right = Field("fsLeft") },
+            },
+            Nodes =
+            [
+                new DrawNode { Id = "draw-spin", BoardStateKey = "board", Outputs = new PortMap { ["board"] = BoardPort } },
+                new MapNode { Id = "eval-lines", TransformId = "lines_dh", Inputs = new PortMap { ["board"] = BoardPort }, Outputs = new PortMap { ["wins"] = WinsPort } },
+                new BranchNode { Id = "branch-bonus", ConditionId = "bonus-trigger", Inputs = new PortMap { ["board"] = BoardPort }, Outputs = new PortMap { ["true"] = BoardPort, ["false"] = BoardPort } },
+                new DrawNode { Id = "draw-fs-count", DrawWeights = [new DrawWeight { OutcomeId = "fs2", Weight = 1, Value = 2 }], Inputs = new PortMap { ["in"] = BoardPort }, Outputs = new PortMap { ["out"] = NumPort } },
+                new PutStateNode { Id = "put-fs-left", StateKey = "fsLeft", Inputs = new PortMap { ["in"] = NumPort }, Outputs = new PortMap { ["out"] = NumPort } },
+                new LoopNode { Id = "loopFS", MaxIterations = 10, StopConditionId = "fs-stop", Inputs = new PortMap { ["in"] = NumPort }, Outputs = new PortMap { ["body"] = NumPort, ["exit"] = WinsPort } },
+                new DrawNode { Id = "draw-free-spin", Inputs = new PortMap { ["in"] = NumPort }, Outputs = new PortMap { ["board"] = BoardPort } },
+                new MapNode { Id = "map-accumulate-wilds", TransformId = "acc_dh", Inputs = new PortMap { ["board"] = BoardPort }, Outputs = new PortMap { ["board"] = BoardPort } },
+                new MapNode { Id = "map-apply-wilds", TransformId = "apply_dh", Inputs = new PortMap { ["board"] = BoardPort }, Outputs = new PortMap { ["board"] = BoardPort } },
+                new MapNode { Id = "eval-free-lines", TransformId = "lines_dh", Inputs = new PortMap { ["board"] = BoardPort, ["multiplier"] = mulPort } },
+                new MetricsSinkNode { Id = "sink", WinCap = 10_000, Inputs = new PortMap { ["wins"] = WinsPort } },
+            ],
+            Edges =
+            [
+                new Edge { Id = "e1", SourceNodeId = "draw-spin", SourcePort = "board", TargetNodeId = "eval-lines", TargetPort = "board" },
+                new Edge { Id = "e3", SourceNodeId = "draw-spin", SourcePort = "board", TargetNodeId = "branch-bonus", TargetPort = "board" },
+                new Edge { Id = "e4", SourceNodeId = "eval-lines", SourcePort = "wins", TargetNodeId = "sink", TargetPort = "wins" },
+                new Edge { Id = "e6", SourceNodeId = "branch-bonus", SourcePort = "true", TargetNodeId = "draw-fs-count", TargetPort = "in" },
+                new Edge { Id = "e7", SourceNodeId = "draw-fs-count", SourcePort = "out", TargetNodeId = "put-fs-left", TargetPort = "in" },
+                new Edge { Id = "e8", SourceNodeId = "put-fs-left", SourcePort = "out", TargetNodeId = "loopFS", TargetPort = "in" },
+                new Edge { Id = "e9", SourceNodeId = "loopFS", SourcePort = "body", TargetNodeId = "draw-free-spin", TargetPort = "in" },
+                new Edge { Id = "e10", SourceNodeId = "draw-free-spin", SourcePort = "board", TargetNodeId = "map-accumulate-wilds", TargetPort = "board" },
+                new Edge { Id = "e11", SourceNodeId = "map-accumulate-wilds", SourcePort = "board", TargetNodeId = "map-apply-wilds", TargetPort = "board" },
+                new Edge { Id = "e12", SourceNodeId = "map-apply-wilds", SourcePort = "board", TargetNodeId = "eval-free-lines", TargetPort = "board" },
+                new Edge { Id = "e13", SourceNodeId = "loopFS", SourcePort = "exit", TargetNodeId = "sink", TargetPort = "wins" },
+            ],
+        };
+    }
+
+    [Fact]
+    public void MiniDogHouse_WholeGraph_GeneratedExactPmf_EqualsInterpreter()
+    {
+        var config = MiniDogHouse();
+        var compile = new GraphCompiler().Compile(config);
+        Assert.True(compile.IsValid, string.Join("; ", compile.Errors.Select(e => $"[{e.Code}] {e.Message}")));
+
+        var emit = new CSharpEmitter().Emit(config);
+        Assert.True(emit.Supported, string.Join("; ", emit.Diagnostics));
+        Assert.Contains("for (;;)", emit.Source);                  // free-spins loop
+        Assert.Contains("TransformRegistry.TryGet", emit.Source);  // sticky-wild transforms
+        Assert.Contains("__SumWinsMul", emit.Source);              // ×2 multiplier
+        var type = CompileGenerated(emit);
+
+        var game = (ICompiledGame)Activator.CreateInstance(type)!;
+        game.SetInitial(new Dict());
+        var genPmf = ExactPmf.Enumerate(d => game.RunSpin(d));
+
+        AssertPmfEqual(InterpreterPmf(compile.Program!, new Dict()), genPmf, "mini-doghouse");
+    }
+
+    [Fact]
+    public void FullDogHouse_EmitsCompilableCSharp()
+    {
+        // The real Dog House (5×4 reels, 20 paylines, free-spins loop, sticky
+        // wilds, ×2 multiplier) now EMITS and the emitted C# COMPILES.  Its full
+        // PMF is too large to enumerate exactly (12^5 reel × 20 free spins) —
+        // the mini fixture above proves the constructs' semantics.
+        var config = SlotMath.Core.Tests.Benchmarks.DogHouseNoPluginBenchmarkTests.CreateConfig();
+        var emit = new CSharpEmitter().Emit(config);
+        Assert.True(emit.Supported, "Dog House did not emit: " + string.Join("; ", emit.Diagnostics));
+        Assert.Contains("for (;;)", emit.Source);
+        Assert.Contains("TransformRegistry.TryGet", emit.Source);
+        Assert.Contains("__SumWinsMul", emit.Source);
+
+        var type = CompileGenerated(emit);
+        Assert.NotNull(Activator.CreateInstance(type));
     }
 }
 
