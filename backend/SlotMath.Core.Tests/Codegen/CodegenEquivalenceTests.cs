@@ -7,6 +7,8 @@ using SlotMath.Codegen.Emit;
 using SlotMath.Codegen.Runtime;
 using SlotMath.Core.Compiler;
 using SlotMath.Core.Math;
+using SlotMath.Core.Mechanics;
+using SlotMath.Core.Mechanics.Evaluators;
 using SlotMath.Core.Model;
 using SlotMath.Core.Monad;
 using SlotMath.Core.Random;
@@ -687,6 +689,147 @@ public sealed class CodegenEquivalenceTests
         Assert.Equal(new Rational(1, 4), genPmf[0]);
         Assert.Equal(new Rational(2, 4), genPmf[10]);
         Assert.Equal(new Rational(1, 4), genPmf[20]);
+    }
+
+    // ════════════════════════════════════════════════════════════════════
+    //  Fast-path evaluator over a reel draw (Lines) — dict-state mode
+    //
+    //  The emitted code builds the board from reel strips, then calls the SAME
+    //  registered IFastPathEvaluator the interpreter uses, so equivalence holds
+    //  by construction — and the PMF harness still proves the reel-draw + board
+    //  + win-sum wiring is byte-for-byte the interpreter's.
+    // ════════════════════════════════════════════════════════════════════
+
+    private static Port BoardPort => new() { Name = "board", Type = PortType.Board };
+    private static Port WinsPort => new() { Name = "wins", Type = PortType.Wins };
+
+    private static void EnsureEvaluator(string name, IFastPathEvaluator ev)
+    {
+        if (EvaluatorRegistry.TryGet(name) is null)
+        {
+            try { EvaluatorRegistry.Register(name, ev); }
+            catch (InvalidOperationException) { /* registered by a parallel test */ }
+        }
+    }
+
+    private static GraphConfig LinesReelGame()
+    {
+        EnsureEvaluator("lines_cg", new LinesEvaluator(
+            new Paytable
+            {
+                Id = "pt",
+                Entries =
+                [
+                    new PaytableEntry { SymbolId = "sym-a", Counts = [3], Payouts = ["10"] },
+                    new PaytableEntry { SymbolId = "sym-b", Counts = [3], Payouts = ["5"] },
+                ],
+            },
+            new PaylineSet { Id = "ps", Paylines = [new Payline { Positions = [0, 0, 0] }] },
+            wildSymbolId: null));
+
+        return new GraphConfig
+        {
+            SchemaVersion = "1.0.0",
+            Id = "lines-reel-cg",
+            ReelStrips =
+            [
+                new ReelStrip { Id = "r1", Name = "R1", Symbols = ["sym-a", "sym-b", "sym-a"] },
+                new ReelStrip { Id = "r2", Name = "R2", Symbols = ["sym-a", "sym-b", "sym-a"] },
+                new ReelStrip { Id = "r3", Name = "R3", Symbols = ["sym-a", "sym-b", "sym-a"] },
+            ],
+            ReelSets = [new ReelSet { Id = "rs", Name = "Main", StripIds = ["r1", "r2", "r3"] }],
+            BoardConfig = new BoardConfig { Rows = 3, Columns = 3 },
+            Nodes =
+            [
+                new DrawNode { Id = "draw", Outputs = new PortMap { ["board"] = BoardPort } },
+                new MapNode { Id = "eval", TransformId = "lines_cg", Inputs = new PortMap { ["board"] = BoardPort }, Outputs = new PortMap { ["wins"] = WinsPort } },
+                new MetricsSinkNode { Id = "sink", WinCap = 1_000_000, Inputs = new PortMap { ["wins"] = WinsPort } },
+            ],
+            Edges =
+            [
+                new Edge { Id = "e1", SourceNodeId = "draw", SourcePort = "board", TargetNodeId = "eval", TargetPort = "board" },
+                new Edge { Id = "e2", SourceNodeId = "eval", SourcePort = "wins", TargetNodeId = "sink", TargetPort = "wins" },
+            ],
+        };
+    }
+
+    private static GraphConfig ReelMapGame(string id, string mech, int rows, string[][] stripSymbols)
+    {
+        var strips = stripSymbols.Select((s, i) => new ReelStrip { Id = $"r{i}", Name = $"R{i}", Symbols = s }).ToArray();
+        return new GraphConfig
+        {
+            SchemaVersion = "1.0.0",
+            Id = id,
+            ReelStrips = strips,
+            ReelSets = [new ReelSet { Id = "rs", Name = "Main", StripIds = strips.Select(s => s.Id).ToArray() }],
+            BoardConfig = new BoardConfig { Rows = rows, Columns = stripSymbols.Length },
+            Nodes =
+            [
+                new DrawNode { Id = "draw", Outputs = new PortMap { ["board"] = BoardPort } },
+                new MapNode { Id = "eval", TransformId = mech, Inputs = new PortMap { ["board"] = BoardPort }, Outputs = new PortMap { ["wins"] = WinsPort } },
+                new MetricsSinkNode { Id = "sink", WinCap = 1_000_000, Inputs = new PortMap { ["wins"] = WinsPort } },
+            ],
+            Edges =
+            [
+                new Edge { Id = "e1", SourceNodeId = "draw", SourcePort = "board", TargetNodeId = "eval", TargetPort = "board" },
+                new Edge { Id = "e2", SourceNodeId = "eval", SourcePort = "wins", TargetNodeId = "sink", TargetPort = "wins" },
+            ],
+        };
+    }
+
+    private static void VerifyFastPath(GraphConfig config, string ctx)
+    {
+        var compile = new GraphCompiler().Compile(config);
+        Assert.True(compile.IsValid, string.Join("; ", compile.Errors.Select(e => $"[{e.Code}] {e.Message}")));
+        var emit = new CSharpEmitter().Emit(config);
+        Assert.True(emit.Supported, string.Join("; ", emit.Diagnostics));
+        Assert.Contains("EvaluatorRegistry.TryGet", emit.Source);
+        var type = CompileGenerated(emit);
+
+        var game = (ICompiledGame)Activator.CreateInstance(type)!;
+        game.SetInitial(new Dict());
+        var genPmf = ExactPmf.Enumerate(d => game.RunSpin(d));
+        AssertPmfEqual(InterpreterPmf(compile.Program!, new Dict()), genPmf, ctx);
+    }
+
+    [Fact]
+    public void FastPathLines_ReelDraw_GeneratedExactPmf_EqualsInterpreter()
+    {
+        VerifyFastPath(LinesReelGame(), "lines-reel");
+    }
+
+    [Fact]
+    public void FastPathWays_ReelDraw_GeneratedExactPmf_EqualsInterpreter()
+    {
+        EnsureEvaluator("ways_cg", new WaysEvaluator(
+            new Paytable
+            {
+                Id = "pt",
+                Entries =
+                [
+                    new PaytableEntry { SymbolId = "H", Counts = [2], Payouts = ["4"] },
+                    new PaytableEntry { SymbolId = "L", Counts = [2], Payouts = ["2"] },
+                ],
+            },
+            wildSymbolId: null));
+        VerifyFastPath(ReelMapGame("ways-reel-cg", "ways_cg", rows: 2, [["H", "L"], ["H", "L"]]), "ways-reel");
+    }
+
+    [Fact]
+    public void FastPathCluster_ReelDraw_GeneratedExactPmf_EqualsInterpreter()
+    {
+        EnsureEvaluator("cluster_cg", new ClusterEvaluator(
+            new Paytable
+            {
+                Id = "pt",
+                Entries =
+                [
+                    new PaytableEntry { SymbolId = "H", Counts = [2, 3, 4], Payouts = ["2", "3", "4"] },
+                    new PaytableEntry { SymbolId = "L", Counts = [2, 3, 4], Payouts = ["1", "2", "3"] },
+                ],
+            },
+            minClusterSize: 2, wildSymbolId: null));
+        VerifyFastPath(ReelMapGame("cluster-reel-cg", "cluster_cg", rows: 2, [["H", "L"], ["H", "L"]]), "cluster-reel");
     }
 
     [Fact]
