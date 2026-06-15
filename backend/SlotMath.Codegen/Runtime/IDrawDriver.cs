@@ -37,3 +37,14 @@ public interface ICompiledGame
     /// <summary>Run one round from the seeded initial state; return the win.</summary>
     long RunSpin(IDrawDriver driver);
 }
+
+/// <summary>
+/// Implemented by generated games that call plugin (level-c) evaluators.  The
+/// host supplies the registered plugins the generated body resolves at run time
+/// (plugins are an instance-scoped escape hatch, unlike the static fast-path
+/// EvaluatorRegistry).  The caller must set the host before the first spin.
+/// </summary>
+public interface IPluginHostAware
+{
+    void SetPluginHost(SlotMath.Core.Plugins.PluginHost host);
+}

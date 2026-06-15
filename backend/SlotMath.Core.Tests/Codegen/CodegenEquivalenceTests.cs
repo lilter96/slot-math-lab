@@ -12,6 +12,7 @@ using SlotMath.Core.Mechanics;
 using SlotMath.Core.Mechanics.Evaluators;
 using SlotMath.Core.Model;
 using SlotMath.Core.Monad;
+using SlotMath.Core.Plugins;
 using SlotMath.Core.Random;
 using SlotMath.Core.Serialization;
 
@@ -358,24 +359,26 @@ public sealed class CodegenEquivalenceTests
     [Fact]
     public void UnsupportedGraph_ReturnsDiagnostic_NotWrongCode()
     {
-        // A plugin Map node is outside the supported subset (plugin emit pending).
+        // An array-valued MapExpr output is outside the supported subset
+        // (array-valued folds/maps are still pending — see diagnostics).
         var config = new GraphConfig
         {
             SchemaVersion = "1.0.0",
-            Id = "plugin-unsupported",
-            ReelStrips = [new ReelStrip { Id = "r1", Name = "R1", Symbols = ["A", "B"] }],
-            ReelSets = [new ReelSet { Id = "rs", Name = "Main", StripIds = ["r1"] }],
-            BoardConfig = new BoardConfig { Rows = 1, Columns = 1 },
+            Id = "array-map-unsupported",
+            Expressions = new Dictionary<string, Expression>
+            {
+                ["mp"] = new MapExpr { StateKey = "src", ItemName = "x", ItemType = ExprType.Number, Body = Field("x") },
+            },
             Nodes =
             [
-                new DrawNode { Id = "draw", Outputs = new PortMap { ["board"] = BoardPort } },
-                new MapNode { Id = "eval", TransformId = "plugin:custom", Inputs = new PortMap { ["board"] = BoardPort }, Outputs = new PortMap { ["wins"] = WinsPort } },
-                new MetricsSinkNode { Id = "sink", WinCap = 1000, Inputs = new PortMap { ["wins"] = WinsPort } },
+                new DataNode { Id = "data", StateKey = "src", Values = ["1", "2"], Outputs = new PortMap { ["state"] = StateOut } },
+                new ModifyStateNode { Id = "m", ExpressionId = "mp", OutputKey = "out", Inputs = new PortMap { ["state"] = StatePort }, Outputs = new PortMap { ["state"] = StateOut } },
+                new MetricsSinkNode { Id = "sink", WinCap = 1000, Inputs = new PortMap { ["state"] = StatePort } },
             ],
             Edges =
             [
-                new Edge { Id = "e1", SourceNodeId = "draw", SourcePort = "board", TargetNodeId = "eval", TargetPort = "board" },
-                new Edge { Id = "e2", SourceNodeId = "eval", SourcePort = "wins", TargetNodeId = "sink", TargetPort = "wins" },
+                new Edge { Id = "e0", SourceNodeId = "data", SourcePort = "state", TargetNodeId = "m", TargetPort = "state" },
+                new Edge { Id = "e1", SourceNodeId = "m", SourcePort = "state", TargetNodeId = "sink", TargetPort = "state" },
             ],
         };
 
@@ -918,6 +921,64 @@ public sealed class CodegenEquivalenceTests
         };
     }
 
+    // ════════════════════════════════════════════════════════════════════
+    //  Plugin (level-c) evaluator over a reel board — injected PluginHost
+    // ════════════════════════════════════════════════════════════════════
+
+    [Fact]
+    public void Plugin_Evaluator_ReelBoard_GeneratedExactPmf_EqualsInterpreter()
+    {
+        var host = new PluginHost();
+        host.RegisterEvaluator("scatterplug", new CodegenScatterPlugin(), new ConformanceResult
+        {
+            Passed = true,
+            Failures = Array.Empty<string>(),
+            Warnings = Array.Empty<string>(),
+        });
+
+        var config = new GraphConfig
+        {
+            SchemaVersion = "1.0.0",
+            Id = "plugin-reel-cg",
+            ReelStrips =
+            [
+                new ReelStrip { Id = "r1", Name = "R1", Symbols = ["S", "X"] },
+                new ReelStrip { Id = "r2", Name = "R2", Symbols = ["S", "X"] },
+                new ReelStrip { Id = "r3", Name = "R3", Symbols = ["S", "X"] },
+            ],
+            ReelSets = [new ReelSet { Id = "rs", Name = "Main", StripIds = ["r1", "r2", "r3"] }],
+            BoardConfig = new BoardConfig { Rows = 1, Columns = 3 },
+            Nodes =
+            [
+                new DrawNode { Id = "draw", Outputs = new PortMap { ["board"] = BoardPort } },
+                new MapNode { Id = "eval", TransformId = "plugin:scatterplug", Inputs = new PortMap { ["board"] = BoardPort }, Outputs = new PortMap { ["wins"] = WinsPort } },
+                new MetricsSinkNode { Id = "sink", WinCap = 1_000_000, Inputs = new PortMap { ["wins"] = WinsPort } },
+            ],
+            Edges =
+            [
+                new Edge { Id = "e1", SourceNodeId = "draw", SourcePort = "board", TargetNodeId = "eval", TargetPort = "board" },
+                new Edge { Id = "e2", SourceNodeId = "eval", SourcePort = "wins", TargetNodeId = "sink", TargetPort = "wins" },
+            ],
+            Plugins = [new PluginReference { PluginId = "scatterplug", Contract = PluginContract.IEvaluator, Version = "1.0.0" }],
+        };
+
+        var compile = new GraphCompiler(host).Compile(config);
+        Assert.True(compile.IsValid, string.Join("; ", compile.Errors.Select(e => $"[{e.Code}] {e.Message}")));
+
+        var emit = new CSharpEmitter().Emit(config);
+        Assert.True(emit.Supported, string.Join("; ", emit.Diagnostics));
+        Assert.Contains("IPluginHostAware", emit.Source);
+        var type = CompileGenerated(emit);
+
+        var game = (ICompiledGame)Activator.CreateInstance(type)!;
+        ((IPluginHostAware)game).SetPluginHost(host);
+        game.SetInitial(new Dict());
+        var genPmf = ExactPmf.Enumerate(d => game.RunSpin(d));
+
+        AssertPmfEqual(InterpreterPmf(compile.Program!, new Dict()), genPmf, "plugin");
+        Assert.Equal(new Rational(4, 8), genPmf[5]); // ≥2 scatters ⇒ pay 5, P = 4/8
+    }
+
     [Fact]
     public void Scatter_ReelBoard_AggregateCount_GeneratedExactPmf_EqualsInterpreter()
     {
@@ -1036,5 +1097,27 @@ public sealed class CodegenEquivalenceTests
                },
                seed: "g7-loop-pbt-v1",
                iter: 100);
+    }
+}
+
+/// <summary>
+/// Deterministic level-c plugin used by the codegen plugin test: pays 5 when at
+/// least two scatter "S" cells are on the board.  Pure function of the board, so
+/// the exact interpreter and the generated code agree on its PMF.
+/// </summary>
+public sealed class CodegenScatterPlugin : IEvaluator
+{
+    public Win[] Evaluate(IReadOnlyDictionary<string, object?> state)
+    {
+        var cells = GridState.Cells(state);
+        var count = 0;
+        foreach (var c in cells)
+            if (c as string == "S")
+                count++;
+
+        if (count < 2)
+            return Array.Empty<Win>();
+
+        return [new Win { SymbolId = "S", Count = count, Positions = Array.Empty<(int, int)>(), Payout = 5m, EvaluatorName = "ScatterPlugin" }];
     }
 }

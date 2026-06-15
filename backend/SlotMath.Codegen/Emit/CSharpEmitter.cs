@@ -160,6 +160,7 @@ public sealed class CSharpEmitter
         public int DrawIndex;
         public int TmpIndex;
         public ReelInfo? Reel { get; set; }
+        public bool UsesPlugin { get; set; }
     }
 
     private EmitResult EmitDictMode(GraphConfig config, MetricsSinkNode sink)
@@ -322,8 +323,20 @@ public sealed class CSharpEmitter
     {
         if (map.TransformId is not { } transformId)
             throw new CodegenUnsupportedException($"Map node '{map.Id}' has no transformId.");
+
         if (transformId.StartsWith("plugin:", StringComparison.Ordinal))
-            throw new CodegenUnsupportedException($"Map node '{map.Id}' is a plugin (plugin emit pending).");
+        {
+            // Level-c plugin evaluator, resolved from the injected PluginHost.
+            var pluginId = transformId["plugin:".Length..];
+            ctx.UsesPlugin = true;
+            ctx.Body.AppendLine($"{indent}{{");
+            ctx.Body.AppendLine($"{indent}    var __pe = __pluginHost!.TryGetEvaluator({Quote(pluginId)})");
+            ctx.Body.AppendLine($"{indent}        ?? throw new InvalidOperationException(\"plugin evaluator not found: \" + {Quote(pluginId)});");
+            ctx.Body.AppendLine($"{indent}    __df = __SumWins(__pe.Evaluate(state));");
+            ctx.Body.AppendLine($"{indent}}}");
+            return;
+        }
+
         ctx.Body.AppendLine($"{indent}{{");
         ctx.Body.AppendLine($"{indent}    var __ev = EvaluatorRegistry.TryGet({Quote(transformId)})");
         ctx.Body.AppendLine($"{indent}        ?? throw new InvalidOperationException(\"fast-path evaluator not registered: \" + {Quote(transformId)});");
@@ -439,12 +452,19 @@ public sealed class CSharpEmitter
         sb.AppendLine("using System.Numerics;");
         sb.AppendLine("using SlotMath.Codegen.Runtime;");
         sb.AppendLine("using SlotMath.Core.Mechanics;");
+        if (ctx.UsesPlugin) sb.AppendLine("using SlotMath.Core.Plugins;");
         sb.AppendLine();
         sb.AppendLine($"namespace {Namespace};");
         sb.AppendLine();
-        sb.AppendLine($"public sealed class {ClassName} : ICompiledGame");
+        var contracts = ctx.UsesPlugin ? "ICompiledGame, IPluginHostAware" : "ICompiledGame";
+        sb.AppendLine($"public sealed class {ClassName} : {contracts}");
         sb.AppendLine("{");
         sb.Append(ctx.Tables);
+        if (ctx.UsesPlugin)
+        {
+            sb.AppendLine("    private PluginHost? __pluginHost;");
+            sb.AppendLine("    public void SetPluginHost(PluginHost host) => __pluginHost = host;");
+        }
 
         if (ctx.Reel is { } reel)
         {
