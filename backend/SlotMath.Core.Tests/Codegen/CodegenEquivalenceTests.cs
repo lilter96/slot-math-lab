@@ -528,4 +528,98 @@ public sealed class CodegenEquivalenceTests
             seed: "g7-random-graphs-v1",
             iter: 120);
     }
+
+    // ════════════════════════════════════════════════════════════════════
+    //  Branch (graph-level if/else, true/false ports)
+    // ════════════════════════════════════════════════════════════════════
+
+    private static Port StateOut => new() { Name = "state", Type = PortType.State };
+
+    private static GraphConfig BranchGame(int wA, int wB, int wC, long winTrue, long winFalse, string trigger) => new()
+    {
+        SchemaVersion = "1.0.0",
+        Id = "branch-game",
+        StateSchema =
+        [
+            new StateFieldSchema { Name = "sym", Type = "string" },
+            new StateFieldSchema { Name = "win", Type = "number" },
+        ],
+        Expressions = new Dictionary<string, Expression>
+        {
+            ["cond"] = Eq(Field("sym"), Str(trigger)),
+            ["wT"] = Int(winTrue),
+            ["wF"] = Int(winFalse),
+        },
+        Nodes =
+        [
+            new DrawNode
+            {
+                Id = "d0",
+                StateWriteKey = "sym",
+                DrawWeights =
+                [
+                    new DrawWeight { OutcomeId = "A", Weight = wA, Value = 0 },
+                    new DrawWeight { OutcomeId = "B", Weight = wB, Value = 0 },
+                    new DrawWeight { OutcomeId = "C", Weight = wC, Value = 0 },
+                ],
+                Outputs = new PortMap { ["state"] = StateOut },
+            },
+            new BranchNode
+            {
+                Id = "br", ConditionId = "cond",
+                Inputs = new PortMap { ["state"] = StatePort },
+                Outputs = new PortMap { ["true"] = StateOut, ["false"] = StateOut },
+            },
+            new ModifyStateNode { Id = "winT", ExpressionId = "wT", OutputKey = "win", Inputs = new PortMap { ["state"] = StatePort }, Outputs = new PortMap { ["state"] = StateOut } },
+            new ModifyStateNode { Id = "winF", ExpressionId = "wF", OutputKey = "win", Inputs = new PortMap { ["state"] = StatePort }, Outputs = new PortMap { ["state"] = StateOut } },
+            new MetricsSinkNode { Id = "sink", WinCap = 1_000_000, WinStateKey = "win", Inputs = new PortMap { ["state"] = StatePort } },
+        ],
+        Edges =
+        [
+            new Edge { Id = "e0", SourceNodeId = "d0", SourcePort = "state", TargetNodeId = "br", TargetPort = "state" },
+            new Edge { Id = "e1", SourceNodeId = "br", SourcePort = "true", TargetNodeId = "winT", TargetPort = "state" },
+            new Edge { Id = "e2", SourceNodeId = "br", SourcePort = "false", TargetNodeId = "winF", TargetPort = "state" },
+            new Edge { Id = "e3", SourceNodeId = "winT", SourcePort = "state", TargetNodeId = "sink", TargetPort = "state" },
+            new Edge { Id = "e4", SourceNodeId = "winF", SourcePort = "state", TargetNodeId = "sink", TargetPort = "state" },
+        ],
+    };
+
+    [Fact]
+    public void Branch_GeneratedExactPmf_EqualsInterpreter()
+    {
+        var config = BranchGame(2, 3, 5, winTrue: 10, winFalse: 1, trigger: "A");
+        var program = new GraphCompiler().Compile(config).Program!;
+        var type = CompileGenerated(new CSharpEmitter().Emit(config));
+
+        var game = (ICompiledGame)Activator.CreateInstance(type)!;
+        game.SetInitial(new Dict());
+        var genPmf = ExactPmf.Enumerate(d => game.RunSpin(d));
+
+        AssertPmfEqual(InterpreterPmf(program, new Dict()), genPmf, "branch");
+        // sym=A (w=2/10) → win 10; else (8/10) → win 1.
+        Assert.Equal(new Rational(2, 10), genPmf[10]);
+        Assert.Equal(new Rational(8, 10), genPmf[1]);
+    }
+
+    [Fact]
+    public void Branch_PBT_RandomConfigs_EqualInterpreter()
+    {
+        Gen.Select(Gen.Int[1, 5], Gen.Int[1, 5], Gen.Int[1, 5], Gen.Int[0, 20], Gen.Int[0, 20], Gen.OneOfConst("A", "B", "C"))
+           .Sample(
+               (wA, wB, wC, wt, wf, trig) =>
+               {
+                   var config = BranchGame(wA, wB, wC, wt, wf, trig);
+                   var compile = new GraphCompiler().Compile(config);
+                   Assert.True(compile.IsValid, string.Join("; ", compile.Errors.Select(e => e.Message)));
+                   var type = CompileGenerated(new CSharpEmitter().Emit(config));
+
+                   var game = (ICompiledGame)Activator.CreateInstance(type)!;
+                   game.SetInitial(new Dict());
+                   var genPmf = ExactPmf.Enumerate(d => game.RunSpin(d));
+                   AssertPmfEqual(InterpreterPmf(compile.Program!, new Dict()), genPmf,
+                       $"branch w=({wA},{wB},{wC}) win=({wt},{wf}) trig={trig}");
+               },
+               seed: "g7-branch-pbt-v1",
+               iter: 200);
+    }
 }

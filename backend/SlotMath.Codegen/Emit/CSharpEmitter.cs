@@ -6,18 +6,20 @@ using SlotMath.Core.Model;
 namespace SlotMath.Codegen.Emit;
 
 // ═══════════════════════════════════════════════════════════════════════════
-//  CSharpEmitter — GraphConfig → zero-allocation C# production code (G7).
+//  CSharpEmitter — GraphConfig → C# production code (G7).
 //
-//  Emits a self-contained `ICompiledGame` class for the scalar pipeline subset:
-//    entry → Draw(inline weights)* → ModifyState(scalar expr)* → MetricsSink.
-//  The recurrence state becomes typed instance fields (derived from graph truth
-//  via StateSchemaDeriver — no hand-declared schema); draws read pre-allocated
-//  static weight tables, so the RunSpin hot path performs O(1) allocations.
+//  A recursive statement walker that mirrors GraphCompiler.GetChain: it follows
+//  edges from the entry node, emitting each node's effect, and recurses through
+//  Branch (true/false ports) and the state-plumbing nodes.  The recurrence
+//  state becomes typed instance fields derived from graph truth
+//  (StateSchemaDeriver); draws read pre-allocated static weight tables, so the
+//  RunSpin hot path performs O(1) allocations on the scalar subset.
 //
-//  Anything outside the subset (reel draws, expression weights, loops,
-//  branches, arrays/fold, plugins, win scaling) returns an EmitResult with
-//  Supported=false and a diagnostic — the emitter never produces code it cannot
-//  prove equivalent to the interpreter (invariant 11 / D25).
+//  Supported: Draw (inline weights), ModifyState (scalar expr), Branch
+//  (true/false), PutState, GetState, MetricsSink (WinStateKey or data-flow).
+//  Not yet supported (returns a diagnostic, never wrong code — invariant 11 /
+//  D25): Loop, fan-out, reel draws, expression weights, arrays/fold, plugins,
+//  fast-path evaluators, win scaling ≠ 1.
 // ═══════════════════════════════════════════════════════════════════════════
 
 /// <summary>Compiles a <see cref="GraphConfig"/> to C# source for the supported subset.</summary>
@@ -27,6 +29,21 @@ public sealed class CSharpEmitter
     private const string ClassName = "GeneratedGame";
 
     private sealed record Field(string Key, ExprType Type, string Working, string Init);
+
+    // Mutable per-emit state (one emitter call builds one class).
+    private sealed class Context
+    {
+        public required GraphConfig Config { get; init; }
+        public required Dictionary<string, Node> NodeById { get; init; }
+        public required Dictionary<string, List<Edge>> Outgoing { get; init; }
+        public required Dictionary<string, Field> ByKey { get; init; }
+        public required string? SinkId { get; init; }
+        public required bool HasWinStateKey { get; init; }
+        public required ExpressionEmitter Expr { get; init; }
+        public StringBuilder Tables { get; } = new();
+        public StringBuilder Body { get; } = new();
+        public int DrawIndex;
+    }
 
     public EmitResult Emit(GraphConfig config)
     {
@@ -52,7 +69,6 @@ public sealed class CSharpEmitter
             byKey[f.Name] = field;
         }
 
-        // ── Linear chain walk: entry → … → sink ──────────────────────────
         var incoming = config.Nodes.ToDictionary(n => n.Id, _ => 0);
         var outgoing = config.Nodes.ToDictionary(n => n.Id, _ => new List<Edge>());
         foreach (var e in config.Edges)
@@ -63,50 +79,28 @@ public sealed class CSharpEmitter
 
         var entries = config.Nodes.Where(n => incoming[n.Id] == 0).ToArray();
         if (entries.Length != 1)
-            return EmitResult.Unsupported($"expected exactly one entry node, found {entries.Length} (branches/multi-entry unsupported).");
+            return EmitResult.Unsupported($"expected exactly one entry node, found {entries.Length} (multi-entry unsupported).");
 
         var resolver = new Func<string, string>(key =>
             byKey.TryGetValue(key, out var f)
                 ? f.Working
                 : throw new CodegenUnsupportedException($"reference to unknown state field '{key}' (lambda-bound or missing)."));
-        var exprEmitter = new ExpressionEmitter(resolver);
 
-        var drawTables = new StringBuilder();
-        var body = new StringBuilder();
-        var drawIndex = 0;
+        var ctx = new Context
+        {
+            Config = config,
+            NodeById = config.Nodes.ToDictionary(n => n.Id, n => n),
+            Outgoing = outgoing,
+            ByKey = byKey,
+            SinkId = sink.Id,
+            HasWinStateKey = sink.WinStateKey is not null,
+            Expr = new ExpressionEmitter(resolver),
+        };
 
         try
         {
-            var nodeById = config.Nodes.ToDictionary(n => n.Id, n => n);
-            var current = entries[0];
-            var guard = 0;
-            while (current is not MetricsSinkNode)
-            {
-                if (guard++ > config.Nodes.Length + 1)
-                    return EmitResult.Unsupported("graph is cyclic; loops are not supported by the G7 emitter.");
+            EmitChain(ctx, entries[0].Id, "        ", new HashSet<string>(StringComparer.Ordinal));
 
-                switch (current)
-                {
-                    case DrawNode draw:
-                        EmitDraw(draw, drawIndex, byKey, drawTables, body);
-                        drawIndex++;
-                        break;
-                    case ModifyStateNode modify:
-                        EmitModify(modify, config, byKey, exprEmitter, body);
-                        break;
-                    default:
-                        return EmitResult.Unsupported(
-                            $"node '{current.Id}' of kind {current.GetType().Name} is not supported (scalar Draw/ModifyState pipeline only).");
-                }
-
-                var outs = outgoing[current.Id];
-                if (outs.Count != 1)
-                    return EmitResult.Unsupported(
-                        $"node '{current.Id}' has {outs.Count} outgoing edges; only a single linear successor is supported.");
-                current = nodeById[outs[0].TargetNodeId];
-            }
-
-            // ── Win extraction at the sink ───────────────────────────────
             string winExpr;
             if (sink.WinStateKey is { } winKey)
             {
@@ -119,13 +113,8 @@ public sealed class CSharpEmitter
                 winExpr = "__df";
             }
 
-            var source = Render(fields, drawTables.ToString(), body.ToString(), winExpr);
-            return new EmitResult
-            {
-                Supported = true,
-                Source = source,
-                FullTypeName = $"{Namespace}.{ClassName}",
-            };
+            var source = Render(fields, ctx.Tables.ToString(), ctx.Body.ToString(), winExpr);
+            return new EmitResult { Supported = true, Source = source, FullTypeName = $"{Namespace}.{ClassName}" };
         }
         catch (CodegenUnsupportedException ex)
         {
@@ -133,51 +122,139 @@ public sealed class CSharpEmitter
         }
     }
 
-    private static void EmitDraw(
-        DrawNode draw, int index, Dictionary<string, Field> byKey,
-        StringBuilder tables, StringBuilder body)
+    // ── Recursive chain walker (mirrors GraphCompiler.GetChain) ───────────
+
+    private static void EmitChain(Context ctx, string nodeId, string indent, HashSet<string> stack)
+    {
+        if (nodeId == ctx.SinkId)
+            return; // sink reached — win is read after the whole chain runs.
+
+        if (!stack.Add(nodeId))
+            throw new CodegenUnsupportedException($"cyclic data flow at node '{nodeId}' — loops are not yet supported by the emitter.");
+
+        try
+        {
+            var node = ctx.NodeById[nodeId];
+            var outs = ctx.Outgoing[nodeId];
+
+            switch (node)
+            {
+                case BranchNode branch:
+                    EmitBranch(ctx, branch, outs, indent, stack);
+                    return; // arms recurse to the sink; nothing follows a branch.
+
+                case DrawNode draw:
+                    EmitDraw(ctx, draw, indent);
+                    break;
+                case ModifyStateNode modify:
+                    EmitModify(ctx, modify, indent);
+                    break;
+                case PutStateNode put:
+                    EmitPutState(ctx, put, indent);
+                    break;
+                case GetStateNode:
+                    // Side-effect-free in the chain model: the data-flow value
+                    // passes through unchanged (GraphCompiler discards the read).
+                    break;
+                case LoopNode:
+                    throw new CodegenUnsupportedException($"node '{nodeId}' is a Loop — not yet supported by the emitter.");
+                default:
+                    throw new CodegenUnsupportedException(
+                        $"node '{nodeId}' of kind {node.GetType().Name} is not supported.");
+            }
+
+            if (outs.Count == 0)
+                return; // dead end
+            if (outs.Count > 1)
+                throw new CodegenUnsupportedException(
+                    $"node '{nodeId}' has {outs.Count} outgoing edges (fan-out not yet supported).");
+
+            EmitChain(ctx, outs[0].TargetNodeId, indent, stack);
+        }
+        finally
+        {
+            stack.Remove(nodeId);
+        }
+    }
+
+    private static void EmitBranch(
+        Context ctx, BranchNode branch, List<Edge> outs, string indent, HashSet<string> stack)
+    {
+        if (!ctx.HasWinStateKey)
+            throw new CodegenUnsupportedException(
+                $"branch '{branch.Id}' requires a MetricsSink WinStateKey (data-flow branch win not yet supported).");
+
+        var trueEdge = outs.FirstOrDefault(e => e.SourcePort == "true");
+        var falseEdge = outs.FirstOrDefault(e => e.SourcePort == "false");
+        if (trueEdge is null && falseEdge is null)
+            throw new CodegenUnsupportedException(
+                $"branch '{branch.Id}' has no true/false ports (fallback branch not yet supported).");
+
+        if (branch.ConditionId is not { } condId
+            || ctx.Config.Expressions is null
+            || !ctx.Config.Expressions.TryGetValue(condId, out var cond))
+            throw new CodegenUnsupportedException($"branch '{branch.Id}' references unknown condition '{branch.ConditionId}'.");
+
+        var c = ctx.Expr.Emit(cond);
+        ctx.Body.AppendLine($"{indent}if ({c})");
+        ctx.Body.AppendLine($"{indent}{{");
+        if (trueEdge is not null) EmitChain(ctx, trueEdge.TargetNodeId, indent + "    ", stack);
+        ctx.Body.AppendLine($"{indent}}}");
+        ctx.Body.AppendLine($"{indent}else");
+        ctx.Body.AppendLine($"{indent}{{");
+        if (falseEdge is not null) EmitChain(ctx, falseEdge.TargetNodeId, indent + "    ", stack);
+        ctx.Body.AppendLine($"{indent}}}");
+    }
+
+    private static void EmitDraw(Context ctx, DrawNode draw, string indent)
     {
         if (draw.WeightExpressionId != null)
-            throw new CodegenUnsupportedException($"draw '{draw.Id}' uses expression weights (constant weights only in G7 v1).");
+            throw new CodegenUnsupportedException($"draw '{draw.Id}' uses expression weights (constant weights only).");
         if (draw.BoardStateKey != null)
             throw new CodegenUnsupportedException($"draw '{draw.Id}' publishes a board array (reel draws unsupported).");
         if (draw.DrawWeights is not { Length: > 0 })
             throw new CodegenUnsupportedException($"draw '{draw.Id}' has no inline weights (reel draws unsupported).");
 
+        var index = ctx.DrawIndex++;
         var dw = draw.DrawWeights;
         var w = string.Join(", ", dw.Select(x => x.Weight.ToString(System.Globalization.CultureInfo.InvariantCulture) + "L"));
         var v = string.Join(", ", dw.Select(x => x.Value.ToString(System.Globalization.CultureInfo.InvariantCulture) + "L"));
-        tables.AppendLine($"    private static readonly long[] __w{index} = new long[] {{ {w} }};");
-        tables.AppendLine($"    private static readonly long[] __v{index} = new long[] {{ {v} }};");
+        ctx.Tables.AppendLine($"    private static readonly long[] __w{index} = new long[] {{ {w} }};");
+        ctx.Tables.AppendLine($"    private static readonly long[] __v{index} = new long[] {{ {v} }};");
 
-        body.AppendLine($"        int __c{index} = __d.Draw(__w{index});");
-        body.AppendLine($"        __df = __v{index}[__c{index}];");
+        ctx.Body.AppendLine($"{indent}int __c{index} = __d.Draw(__w{index});");
+        ctx.Body.AppendLine($"{indent}__df = __v{index}[__c{index}];");
 
         if (draw.StateWriteKey is { } writeKey)
         {
-            if (!byKey.TryGetValue(writeKey, out var wf) || wf.Type != ExprType.String)
+            if (!ctx.ByKey.TryGetValue(writeKey, out var wf) || wf.Type != ExprType.String)
                 throw new CodegenUnsupportedException($"draw '{draw.Id}' StateWriteKey '{writeKey}' is not a string state field.");
             var ids = string.Join(", ", dw.Select(x => Quote(x.OutcomeId)));
-            tables.AppendLine($"    private static readonly string[] __o{index} = new string[] {{ {ids} }};");
-            body.AppendLine($"        {wf.Working} = __o{index}[__c{index}];");
+            ctx.Tables.AppendLine($"    private static readonly string[] __o{index} = new string[] {{ {ids} }};");
+            ctx.Body.AppendLine($"{indent}{wf.Working} = __o{index}[__c{index}];");
         }
     }
 
-    private static void EmitModify(
-        ModifyStateNode modify, GraphConfig config, Dictionary<string, Field> byKey,
-        ExpressionEmitter exprEmitter, StringBuilder body)
+    private static void EmitModify(Context ctx, ModifyStateNode modify, string indent)
     {
         if (modify.OutputKey is not { } outputKey)
             throw new CodegenUnsupportedException($"ModifyState '{modify.Id}' has no OutputKey (legacy path unsupported).");
         if (modify.ExpressionId is not { } exprId
-            || config.Expressions is null
-            || !config.Expressions.TryGetValue(exprId, out var expr))
+            || ctx.Config.Expressions is null
+            || !ctx.Config.Expressions.TryGetValue(exprId, out var expr))
             throw new CodegenUnsupportedException($"ModifyState '{modify.Id}' references unknown expression '{modify.ExpressionId}'.");
-        if (!byKey.TryGetValue(outputKey, out var outField))
+        if (!ctx.ByKey.TryGetValue(outputKey, out var outField))
             throw new CodegenUnsupportedException($"ModifyState '{modify.Id}' OutputKey '{outputKey}' was not derived in the state schema.");
 
-        var rhs = exprEmitter.Emit(expr);
-        body.AppendLine($"        {outField.Working} = {rhs};");
+        ctx.Body.AppendLine($"{indent}{outField.Working} = {ctx.Expr.Emit(expr)};");
+    }
+
+    private static void EmitPutState(Context ctx, PutStateNode put, string indent)
+    {
+        // PutState stores the data-flow value into its key (GraphCompiler: next[key] = v).
+        if (!ctx.ByKey.TryGetValue(put.StateKey, out var f) || f.Type != ExprType.Number)
+            throw new CodegenUnsupportedException($"PutState '{put.Id}' key '{put.StateKey}' is not a numeric state field.");
+        ctx.Body.AppendLine($"{indent}{f.Working} = __df;");
     }
 
     private static string Render(IReadOnlyList<Field> fields, string drawTables, string body, string winExpr)
@@ -203,7 +280,6 @@ public sealed class CSharpEmitter
         }
         sb.AppendLine();
 
-        // SetInitial
         sb.AppendLine("    public void SetInitial(IReadOnlyDictionary<string, object?> __st)");
         sb.AppendLine("    {");
         foreach (var f in fields)
@@ -211,7 +287,6 @@ public sealed class CSharpEmitter
         sb.AppendLine("    }");
         sb.AppendLine();
 
-        // RunSpin
         sb.AppendLine("    public long RunSpin(IDrawDriver __d)");
         sb.AppendLine("    {");
         foreach (var f in fields)
@@ -222,7 +297,6 @@ public sealed class CSharpEmitter
         sb.AppendLine("    }");
         sb.AppendLine();
 
-        // Helpers
         sb.AppendLine("    private static long __L(IReadOnlyDictionary<string, object?> s, string k) =>");
         sb.AppendLine("        s.TryGetValue(k, out var v) ? v switch { BigInteger b => (long)b, long l => l, int i => i, _ => 0L } : 0L;");
         sb.AppendLine("    private static string __S(IReadOnlyDictionary<string, object?> s, string k) =>");
