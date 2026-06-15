@@ -1,5 +1,6 @@
 using System.Numerics;
 using SlotMath.Core.Compiler;
+using SlotMath.Core.Expressions;
 using SlotMath.Core.Math;
 using SlotMath.Core.Mechanics;
 using SlotMath.Core.Mechanics.Evaluators;
@@ -357,6 +358,74 @@ public sealed class DogHouseNoPluginBenchmarkTests : IDisposable
                 new Edge { Id = "e13", SourceNodeId = "loopFS",              SourcePort = "exit",  TargetNodeId = "sink",                 TargetPort = "wins"  },
             },
         };
+    }
+
+    /// <summary>
+    /// The Dog House with sticky wilds as a PURE SUBGRAPH (no C# transform):
+    /// the free-spins loop body replaces the accumulate-wilds / apply-wilds
+    /// transforms with two ModifyState nodes — an array-accumulator fold that
+    /// collects wild positions into state["stickyPositions"] (deduped via
+    /// contains/append) and an array-map that overlays the wild at those
+    /// positions.  Identical mechanic, zero C# molecule.
+    /// </summary>
+    internal static GraphConfig CreatePureStickyConfig()
+    {
+        FieldAccessExpr F(string k) => new() { Target = "state", Path = [k] };
+        ConstantExpr S(string v) => new() { Kind = ConstantKind.String, Value = v };
+
+        var accumulate = new FoldExpr
+        {
+            StateKey = "board",
+            AccName = "acc",
+            ItemName = "sym",
+            IndexName = "i",
+            ItemType = ExprType.String,
+            Init = F("stickyPositions"),
+            Body = new IfExpr
+            {
+                Condition = new BinaryExpr
+                {
+                    Op = BinaryOp.And,
+                    Left = new CompareExpr { Op = CompareOp.Eq, Left = F("sym"), Right = S(Wild) },
+                    Right = new NotExpr { Expr = new CallExpr { Function = "contains", Args = [F("acc"), F("i")] } },
+                },
+                ThenExpr = new CallExpr { Function = "append", Args = [F("acc"), F("i")] },
+                ElseExpr = F("acc"),
+            },
+        };
+        var overlay = new MapExpr
+        {
+            StateKey = "board",
+            ItemName = "sym",
+            IndexName = "i",
+            ItemType = ExprType.String,
+            Body = new IfExpr
+            {
+                Condition = new CallExpr { Function = "contains", Args = [F("stickyPositions"), F("i")] },
+                ThenExpr = S(Wild),
+                ElseExpr = F("sym"),
+            },
+        };
+
+        var c = CreateConfig();
+        var exprs = new Dictionary<string, Expression>(c.Expressions!)
+        {
+            ["accumulate_sticky"] = accumulate,
+            ["overlay_wilds"] = overlay,
+        };
+        Port BoardPort() => new() { Name = "board", Type = PortType.Board };
+        var nodes = c.Nodes
+            .Where(n => n.Id is not ("map-accumulate-wilds" or "map-apply-wilds"))
+            .Append((Node)new ModifyStateNode { Id = "accumulate", ExpressionId = "accumulate_sticky", OutputKey = "stickyPositions", Inputs = new() { ["board"] = BoardPort() }, Outputs = new() { ["board"] = BoardPort() } })
+            .Append(new ModifyStateNode { Id = "overlay", ExpressionId = "overlay_wilds", OutputKey = "board", Inputs = new() { ["board"] = BoardPort() }, Outputs = new() { ["board"] = BoardPort() } })
+            .ToArray();
+        var edges = c.Edges
+            .Where(e => e.Id is not ("e10" or "e11" or "e12"))
+            .Append(new Edge { Id = "e10", SourceNodeId = "draw-free-spin", SourcePort = "board", TargetNodeId = "accumulate", TargetPort = "board" })
+            .Append(new Edge { Id = "e11", SourceNodeId = "accumulate", SourcePort = "board", TargetNodeId = "overlay", TargetPort = "board" })
+            .Append(new Edge { Id = "e12", SourceNodeId = "overlay", SourcePort = "board", TargetNodeId = "eval-free-lines", TargetPort = "board" })
+            .ToArray();
+        return c with { Id = "dog-house-pure-sticky", Expressions = exprs, Nodes = nodes, Edges = edges };
     }
 
     // ═══════════════════════════════════════════════════════════════════════

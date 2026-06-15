@@ -63,7 +63,7 @@ public sealed class CSharpEmitter
             config.Nodes.OfType<DrawNode>().Any(d => d.BoardStateKey != null || d.DrawWeights is not { Length: > 0 })
             || config.Nodes.OfType<MapNode>().Any()
             || config.Nodes.OfType<DataNode>().Any()
-            || (config.Expressions?.Values.Any(IsArrayExpr) ?? false);
+            || (config.Expressions?.Values.Any(e => IsArrayExpr(e) || HasCall(e)) ?? false);
         if (needsDict)
             return EmitDictMode(config, sink);
 
@@ -143,6 +143,20 @@ public sealed class CSharpEmitter
     // ═══════════════════════════════════════════════════════════════════════
 
     private static bool IsArrayExpr(Expression e) => e is FoldExpr or MapExpr or FilterExpr or AggregateExpr;
+
+    private static bool HasCall(Expression e) => e switch
+    {
+        CallExpr => true,
+        BinaryExpr b => HasCall(b.Left) || HasCall(b.Right),
+        CompareExpr c => HasCall(c.Left) || HasCall(c.Right),
+        IfExpr i => HasCall(i.Condition) || HasCall(i.ThenExpr) || HasCall(i.ElseExpr),
+        NotExpr n => HasCall(n.Expr),
+        FoldExpr f => HasCall(f.Init) || HasCall(f.Body),
+        MapExpr m => HasCall(m.Body),
+        FilterExpr ft => HasCall(ft.Predicate),
+        AggregateExpr a => (a.Predicate is { } p && HasCall(p)) || (a.ValueExpr is { } v && HasCall(v)),
+        _ => false,
+    };
 
     private sealed record ReelInfo(ReelStrip[] Strips, int Rows, int Cols, int Total);
 
@@ -225,7 +239,8 @@ public sealed class CSharpEmitter
             ExprType.Number => $"__N(state, {Quote(key)})",
             ExprType.String or ExprType.Symbol => $"__S(state, {Quote(key)})",
             ExprType.Boolean => $"__B(state, {Quote(key)})",
-            _ => throw new CodegenUnsupportedException($"state field '{key}' has non-scalar type {type} in a scalar expression."),
+            ExprType.Array => $"(state[{Quote(key)}] as object?[] ?? System.Array.Empty<object?>())",
+            _ => throw new CodegenUnsupportedException($"state field '{key}' has unsupported type {type}."),
         };
     }
 
@@ -515,9 +530,21 @@ public sealed class CSharpEmitter
                 var aacc = EmitAggregateAcc(ctx, agg, indent);
                 ctx.Body.AppendLine($"{indent}state[{Quote(outKey)}] = {aacc};");
                 return;
+            case FoldExpr fold when outType == ExprType.Array:
+                var afacc = EmitArrayFoldAcc(ctx, fold, indent);
+                ctx.Body.AppendLine($"{indent}state[{Quote(outKey)}] = {afacc};");
+                return;
+            case MapExpr mp when outType == ExprType.Array:
+                var marr = EmitArrayMap(ctx, mp, indent);
+                ctx.Body.AppendLine($"{indent}state[{Quote(outKey)}] = {marr};");
+                return;
+            case FilterExpr ft when outType == ExprType.Array:
+                var farr = EmitArrayFilter(ctx, ft, indent);
+                ctx.Body.AppendLine($"{indent}state[{Quote(outKey)}] = {farr};");
+                return;
             case FoldExpr or MapExpr or FilterExpr or AggregateExpr:
                 throw new CodegenUnsupportedException(
-                    $"ModifyState '{modify.Id}' produces a non-number array result ({outType}) — array-valued folds/maps pending.");
+                    $"ModifyState '{modify.Id}' has an array op whose result type {outType} is not supported here.");
             default:
                 var rhs = ScalarBoxed(ctx, Hoist(ctx, expr, indent), outType);
                 ctx.Body.AppendLine($"{indent}state[{Quote(outKey)}] = {rhs};");
@@ -575,6 +602,72 @@ public sealed class CSharpEmitter
         ctx.Body.AppendLine($"{bi}if ({pred}) {acc} += {add};");
         ctx.Body.AppendLine($"{indent}}}");
         return acc;
+    }
+
+    // Array-accumulator fold (acc is object?[]; e.g. accumulating wild positions).
+    private string EmitArrayFoldAcc(DictContext ctx, FoldExpr fold, string indent)
+    {
+        var n = ctx.TmpIndex++;
+        string acc = $"__acc{n}", arr = $"__arr{n}", it = $"__it{n}", k = $"__k{n}";
+        var bi = indent + "    ";
+        var init = ctx.Expr.Emit(Hoist(ctx, fold.Init, indent));
+        ctx.Body.AppendLine($"{indent}object?[] {acc} = (object?[])({init});");
+        ctx.Body.AppendLine($"{indent}var {arr} = state[{Quote(fold.StateKey)}] as object?[] ?? System.Array.Empty<object?>();");
+        ctx.Body.AppendLine($"{indent}for (int {k} = 0; {k} < {arr}.Length; {k}++)");
+        ctx.Body.AppendLine($"{indent}{{");
+        ctx.Body.AppendLine($"{bi}{ItemDecl(fold.ItemType, it, $"{arr}[{k}]")}");
+        ctx.Locals[fold.AccName] = acc;
+        ctx.Locals[fold.ItemName] = it;
+        if (fold.IndexName is { } ix) ctx.Locals[ix] = $"((long){k})";
+        var body = ctx.Expr.Emit(fold.Body);
+        ctx.Locals.Remove(fold.AccName);
+        ctx.Locals.Remove(fold.ItemName);
+        if (fold.IndexName is { } ix2) ctx.Locals.Remove(ix2);
+        ctx.Body.AppendLine($"{bi}{acc} = (object?[])({body});");
+        ctx.Body.AppendLine($"{indent}}}");
+        return acc;
+    }
+
+    // Array-result map (board → board): a new object?[] of mapped elements.
+    private string EmitArrayMap(DictContext ctx, MapExpr map, string indent)
+    {
+        var n = ctx.TmpIndex++;
+        string src = $"__src{n}", outv = $"__out{n}", it = $"__it{n}", k = $"__k{n}";
+        var bi = indent + "    ";
+        ctx.Body.AppendLine($"{indent}var {src} = state[{Quote(map.StateKey)}] as object?[] ?? System.Array.Empty<object?>();");
+        ctx.Body.AppendLine($"{indent}var {outv} = new object?[{src}.Length];");
+        ctx.Body.AppendLine($"{indent}for (int {k} = 0; {k} < {src}.Length; {k}++)");
+        ctx.Body.AppendLine($"{indent}{{");
+        ctx.Body.AppendLine($"{bi}{ItemDecl(map.ItemType, it, $"{src}[{k}]")}");
+        ctx.Locals[map.ItemName] = it;
+        if (map.IndexName is { } ix) ctx.Locals[ix] = $"((long){k})";
+        var body = ctx.Expr.Emit(map.Body);
+        ctx.Locals.Remove(map.ItemName);
+        if (map.IndexName is { } ix2) ctx.Locals.Remove(ix2);
+        ctx.Body.AppendLine($"{bi}{outv}[{k}] = (object?)({body});");
+        ctx.Body.AppendLine($"{indent}}}");
+        return outv;
+    }
+
+    // Array-result filter: kept elements in order.
+    private string EmitArrayFilter(DictContext ctx, FilterExpr ft, string indent)
+    {
+        var n = ctx.TmpIndex++;
+        string src = $"__src{n}", lst = $"__lst{n}", it = $"__it{n}", k = $"__k{n}";
+        var bi = indent + "    ";
+        ctx.Body.AppendLine($"{indent}var {src} = state[{Quote(ft.StateKey)}] as object?[] ?? System.Array.Empty<object?>();");
+        ctx.Body.AppendLine($"{indent}var {lst} = new System.Collections.Generic.List<object?>();");
+        ctx.Body.AppendLine($"{indent}for (int {k} = 0; {k} < {src}.Length; {k}++)");
+        ctx.Body.AppendLine($"{indent}{{");
+        ctx.Body.AppendLine($"{bi}{ItemDecl(ft.ItemType, it, $"{src}[{k}]")}");
+        ctx.Locals[ft.ItemName] = it;
+        if (ft.IndexName is { } ix) ctx.Locals[ix] = $"((long){k})";
+        var pred = ctx.Expr.Emit(ft.Predicate);
+        ctx.Locals.Remove(ft.ItemName);
+        if (ft.IndexName is { } ix2) ctx.Locals.Remove(ix2);
+        ctx.Body.AppendLine($"{bi}if ({pred}) {lst}.Add({src}[{k}]);");
+        ctx.Body.AppendLine($"{indent}}}");
+        return $"{lst}.ToArray()";
     }
 
     private static string ItemDecl(ExprType type, string name, string access) => type switch
@@ -685,6 +778,28 @@ public sealed class CSharpEmitter
         sb.AppendLine("    private static long __AsNum(object? o) => o switch { BigInteger b => (long)b, long l => l, int i => i, _ => 0L };");
         sb.AppendLine("    private static string __AsStr(object? o) => o as string ?? \"\";");
         sb.AppendLine("    private static bool __AsBool(object? o) => o is bool b && b;");
+        // Array/collection helpers (value semantics; numbers compared by value).
+        sb.AppendLine("    private static bool __Contains(object? coll, object? e)");
+        sb.AppendLine("    {");
+        sb.AppendLine("        if (coll is object?[] a) { foreach (var x in a) if (__ValEq(x, e)) return true; return false; }");
+        sb.AppendLine("        if (coll is string s && e is string sub) return s.Contains(sub);");
+        sb.AppendLine("        return false;");
+        sb.AppendLine("    }");
+        sb.AppendLine("    private static bool __ValEq(object? x, object? y)");
+        sb.AppendLine("    {");
+        sb.AppendLine("        if (x is null || y is null) return x is null && y is null;");
+        sb.AppendLine("        if ((x is long || x is int || x is BigInteger) && (y is long || y is int || y is BigInteger)) return __AsNum(x) == __AsNum(y);");
+        sb.AppendLine("        return x.Equals(y);");
+        sb.AppendLine("    }");
+        sb.AppendLine("    private static object?[] __Append(object?[] arr, object? e)");
+        sb.AppendLine("    {");
+        sb.AppendLine("        var r = new object?[arr.Length + 1];");
+        sb.AppendLine("        System.Array.Copy(arr, r, arr.Length);");
+        sb.AppendLine("        r[arr.Length] = e;");
+        sb.AppendLine("        return r;");
+        sb.AppendLine("    }");
+        sb.AppendLine("    private static long __Len(object? o) => o switch { object?[] a => a.Length, string s => s.Length, _ => 0L };");
+        sb.AppendLine("    private static object? __Index(object?[] arr, int i) => (uint)i < (uint)arr.Length ? arr[i] : null;");
         sb.AppendLine("}");
         return sb.ToString();
     }

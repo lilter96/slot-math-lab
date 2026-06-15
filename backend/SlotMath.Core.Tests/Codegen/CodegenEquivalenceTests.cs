@@ -1223,6 +1223,204 @@ public sealed class CodegenEquivalenceTests
         var type = CompileGenerated(emit);
         Assert.NotNull(Activator.CreateInstance(type));
     }
+
+    // ════════════════════════════════════════════════════════════════════
+    //  Sticky wilds as a PURE subgraph (no C# transform): array-accumulator
+    //  fold (collect wild positions, deduped via contains/append) + array-map
+    //  (overlay wilds).  Proves array-fold / array-map / contains / append.
+    // ════════════════════════════════════════════════════════════════════
+
+    private static FoldExpr AccumulateSticky(string wild) => new()
+    {
+        StateKey = "board",
+        AccName = "acc",
+        ItemName = "sym",
+        IndexName = "i",
+        ItemType = ExprType.String,
+        Init = Field("stickyPositions"),
+        Body = new IfExpr
+        {
+            Condition = And(
+                Eq(Field("sym"), Str(wild)),
+                new NotExpr { Expr = new CallExpr { Function = "contains", Args = [Field("acc"), Field("i")] } }),
+            ThenExpr = new CallExpr { Function = "append", Args = [Field("acc"), Field("i")] },
+            ElseExpr = Field("acc"),
+        },
+    };
+
+    private static MapExpr OverlayWilds(string wild) => new()
+    {
+        StateKey = "board",
+        ItemName = "sym",
+        IndexName = "i",
+        ItemType = ExprType.String,
+        Body = new IfExpr
+        {
+            Condition = new CallExpr { Function = "contains", Args = [Field("stickyPositions"), Field("i")] },
+            ThenExpr = Str(wild),
+            ElseExpr = Field("sym"),
+        },
+    };
+
+    [Fact]
+    public void StickyWilds_PureSubgraph_GeneratedExactPmf_EqualsInterpreter()
+    {
+        EnsureEvaluator("lines_sw", new LinesEvaluator(
+            new Paytable { Id = "pt", Entries = [new PaytableEntry { SymbolId = "A", Counts = [2], Payouts = ["4"] }] },
+            new PaylineSet { Id = "ps", Paylines = [new Payline { Positions = [0, 0] }] },
+            wildSymbolId: "W"));
+
+        var config = new GraphConfig
+        {
+            SchemaVersion = "1.0.0",
+            Id = "sticky-pure",
+            ReelStrips = [new ReelStrip { Id = "r0", Name = "R0", Symbols = ["W", "A"] }, new ReelStrip { Id = "r1", Name = "R1", Symbols = ["W", "A"] }],
+            ReelSets = [new ReelSet { Id = "rs", Name = "Main", StripIds = ["r0", "r1"] }],
+            BoardConfig = new BoardConfig { Rows = 1, Columns = 2 },
+            StateSchema =
+            [
+                new StateFieldSchema { Name = "stickyPositions", Type = "string[]" },
+                new StateFieldSchema { Name = "__iter_loopSW__", Type = "number" },
+                new StateFieldSchema { Name = "__wins_loopSW__", Type = "number" },
+            ],
+            Expressions = new Dictionary<string, Expression> { ["accumulate"] = AccumulateSticky("W"), ["overlay"] = OverlayWilds("W") },
+            Nodes =
+            [
+                new LoopNode { Id = "loopSW", MaxIterations = 2, Outputs = new PortMap { ["body"] = NumPort, ["exit"] = WinsPort } },
+                new DrawNode { Id = "draw-fs", Inputs = new PortMap { ["in"] = NumPort }, Outputs = new PortMap { ["board"] = BoardPort } },
+                new ModifyStateNode { Id = "accumulate", ExpressionId = "accumulate", OutputKey = "stickyPositions", Inputs = new PortMap { ["board"] = BoardPort }, Outputs = new PortMap { ["board"] = BoardPort } },
+                new ModifyStateNode { Id = "overlay", ExpressionId = "overlay", OutputKey = "board", Inputs = new PortMap { ["board"] = BoardPort }, Outputs = new PortMap { ["board"] = BoardPort } },
+                new MapNode { Id = "eval", TransformId = "lines_sw", Inputs = new PortMap { ["board"] = BoardPort } },
+                new MetricsSinkNode { Id = "sink", WinCap = 10_000, Inputs = new PortMap { ["wins"] = WinsPort } },
+            ],
+            Edges =
+            [
+                new Edge { Id = "e0", SourceNodeId = "loopSW", SourcePort = "body", TargetNodeId = "draw-fs", TargetPort = "in" },
+                new Edge { Id = "e1", SourceNodeId = "draw-fs", SourcePort = "board", TargetNodeId = "accumulate", TargetPort = "board" },
+                new Edge { Id = "e2", SourceNodeId = "accumulate", SourcePort = "board", TargetNodeId = "overlay", TargetPort = "board" },
+                new Edge { Id = "e3", SourceNodeId = "overlay", SourcePort = "board", TargetNodeId = "eval", TargetPort = "board" },
+                new Edge { Id = "e4", SourceNodeId = "loopSW", SourcePort = "exit", TargetNodeId = "sink", TargetPort = "wins" },
+            ],
+        };
+
+        var initial = new Dict { ["stickyPositions"] = System.Array.Empty<object?>() };
+        var compile = new GraphCompiler().Compile(config);
+        Assert.True(compile.IsValid, string.Join("; ", compile.Errors.Select(e => $"[{e.Code}] {e.Message}")));
+
+        var emit = new CSharpEmitter().Emit(config);
+        Assert.True(emit.Supported, string.Join("; ", emit.Diagnostics));
+        Assert.Contains("__Append", emit.Source);   // array-accumulator fold
+        Assert.Contains("__Contains", emit.Source);  // contains()
+        var type = CompileGenerated(emit);
+
+        var game = (ICompiledGame)Activator.CreateInstance(type)!;
+        game.SetInitial(initial);
+        var genPmf = ExactPmf.Enumerate(d => game.RunSpin(d));
+        AssertPmfEqual(InterpreterPmf(compile.Program!, initial), genPmf, "sticky-pure");
+    }
+
+    // ════════════════════════════════════════════════════════════════════
+    //  Mini Dog House with sticky wilds as a PURE subgraph (1-to-1): the whole
+    //  game — fan-out + branch(aggregate) + loop + array-fold/map sticky wilds +
+    //  ×2 multiplier — exact PMF ≡ interpreter at enumerable scale.
+    // ════════════════════════════════════════════════════════════════════
+
+    private static GraphConfig MiniPureDogHouse()
+    {
+        EnsureEvaluator("lines_dh2", new LinesEvaluator(
+            new Paytable { Id = "pt", Entries = [new PaytableEntry { SymbolId = "A", Counts = [2], Payouts = ["4"] }] },
+            new PaylineSet { Id = "ps", Paylines = [new Payline { Positions = [0, 0] }] },
+            wildSymbolId: "W"));
+
+        Port Board() => new() { Name = "board", Type = PortType.Board };
+        var mulPort = new Port { Name = "multiplier", Type = PortType.Number, DefaultValue = Int(2) };
+
+        return new GraphConfig
+        {
+            SchemaVersion = "1.0.0",
+            Id = "mini-pure-doghouse",
+            ReelStrips = [new ReelStrip { Id = "r0", Name = "R0", Symbols = ["S", "A", "W"] }, new ReelStrip { Id = "r1", Name = "R1", Symbols = ["S", "A", "W"] }],
+            ReelSets = [new ReelSet { Id = "rs", Name = "Main", StripIds = ["r0", "r1"] }],
+            BoardConfig = new BoardConfig { Rows = 1, Columns = 2 },
+            StateSchema =
+            [
+                new StateFieldSchema { Name = "fsLeft", Type = "number" },
+                new StateFieldSchema { Name = "stickyPositions", Type = "string[]" },
+                new StateFieldSchema { Name = "__iter_loopFS__", Type = "number" },
+                new StateFieldSchema { Name = "__wins_loopFS__", Type = "number" },
+            ],
+            Expressions = new Dictionary<string, Expression>
+            {
+                ["bonus-trigger"] = new CompareExpr { Op = CompareOp.Gte, Left = new AggregateExpr { Func = AggregateFunc.Count, StateKey = "board", ItemName = "cell", ItemType = ExprType.String, Predicate = Eq(Field("cell"), Str("S")) }, Right = Int(2) },
+                ["fs-stop"] = new CompareExpr { Op = CompareOp.Gte, Left = Field("__iter_loopFS__"), Right = Field("fsLeft") },
+                ["accumulate_sticky"] = AccumulateSticky("W"),
+                ["overlay_wilds"] = OverlayWilds("W"),
+            },
+            Nodes =
+            [
+                new DrawNode { Id = "draw-spin", BoardStateKey = "board", Outputs = new PortMap { ["board"] = Board() } },
+                new MapNode { Id = "eval-lines", TransformId = "lines_dh2", Inputs = new PortMap { ["board"] = Board() }, Outputs = new PortMap { ["wins"] = WinsPort } },
+                new BranchNode { Id = "branch-bonus", ConditionId = "bonus-trigger", Inputs = new PortMap { ["board"] = Board() }, Outputs = new PortMap { ["true"] = Board(), ["false"] = Board() } },
+                new DrawNode { Id = "draw-fs-count", DrawWeights = [new DrawWeight { OutcomeId = "fs2", Weight = 1, Value = 2 }], Inputs = new PortMap { ["in"] = Board() }, Outputs = new PortMap { ["out"] = NumPort } },
+                new PutStateNode { Id = "put-fs-left", StateKey = "fsLeft", Inputs = new PortMap { ["in"] = NumPort }, Outputs = new PortMap { ["out"] = NumPort } },
+                new LoopNode { Id = "loopFS", MaxIterations = 10, StopConditionId = "fs-stop", Inputs = new PortMap { ["in"] = NumPort }, Outputs = new PortMap { ["body"] = NumPort, ["exit"] = WinsPort } },
+                new DrawNode { Id = "draw-free-spin", Inputs = new PortMap { ["in"] = NumPort }, Outputs = new PortMap { ["board"] = Board() } },
+                new ModifyStateNode { Id = "accumulate", ExpressionId = "accumulate_sticky", OutputKey = "stickyPositions", Inputs = new PortMap { ["board"] = Board() }, Outputs = new PortMap { ["board"] = Board() } },
+                new ModifyStateNode { Id = "overlay", ExpressionId = "overlay_wilds", OutputKey = "board", Inputs = new PortMap { ["board"] = Board() }, Outputs = new PortMap { ["board"] = Board() } },
+                new MapNode { Id = "eval-free-lines", TransformId = "lines_dh2", Inputs = new PortMap { ["board"] = Board(), ["multiplier"] = mulPort } },
+                new MetricsSinkNode { Id = "sink", WinCap = 100_000, Inputs = new PortMap { ["wins"] = WinsPort } },
+            ],
+            Edges =
+            [
+                new Edge { Id = "e1", SourceNodeId = "draw-spin", SourcePort = "board", TargetNodeId = "eval-lines", TargetPort = "board" },
+                new Edge { Id = "e3", SourceNodeId = "draw-spin", SourcePort = "board", TargetNodeId = "branch-bonus", TargetPort = "board" },
+                new Edge { Id = "e4", SourceNodeId = "eval-lines", SourcePort = "wins", TargetNodeId = "sink", TargetPort = "wins" },
+                new Edge { Id = "e6", SourceNodeId = "branch-bonus", SourcePort = "true", TargetNodeId = "draw-fs-count", TargetPort = "in" },
+                new Edge { Id = "e7", SourceNodeId = "draw-fs-count", SourcePort = "out", TargetNodeId = "put-fs-left", TargetPort = "in" },
+                new Edge { Id = "e8", SourceNodeId = "put-fs-left", SourcePort = "out", TargetNodeId = "loopFS", TargetPort = "in" },
+                new Edge { Id = "e9", SourceNodeId = "loopFS", SourcePort = "body", TargetNodeId = "draw-free-spin", TargetPort = "in" },
+                new Edge { Id = "e10", SourceNodeId = "draw-free-spin", SourcePort = "board", TargetNodeId = "accumulate", TargetPort = "board" },
+                new Edge { Id = "e11", SourceNodeId = "accumulate", SourcePort = "board", TargetNodeId = "overlay", TargetPort = "board" },
+                new Edge { Id = "e12", SourceNodeId = "overlay", SourcePort = "board", TargetNodeId = "eval-free-lines", TargetPort = "board" },
+                new Edge { Id = "e13", SourceNodeId = "loopFS", SourcePort = "exit", TargetNodeId = "sink", TargetPort = "wins" },
+            ],
+        };
+    }
+
+    [Fact]
+    public void MiniPureDogHouse_WholeGraph_GeneratedExactPmf_EqualsInterpreter()
+    {
+        var config = MiniPureDogHouse();
+        var initial = new Dict { ["stickyPositions"] = System.Array.Empty<object?>() };
+        var compile = new GraphCompiler().Compile(config);
+        Assert.True(compile.IsValid, string.Join("; ", compile.Errors.Select(e => $"[{e.Code}] {e.Message}")));
+
+        var emit = new CSharpEmitter().Emit(config);
+        Assert.True(emit.Supported, string.Join("; ", emit.Diagnostics));
+        Assert.Contains("__Append", emit.Source);   // pure sticky-wild accumulator
+        Assert.Contains("__SumWinsMul", emit.Source); // ×2 multiplier
+        var type = CompileGenerated(emit);
+
+        var game = (ICompiledGame)Activator.CreateInstance(type)!;
+        game.SetInitial(initial);
+        var genPmf = ExactPmf.Enumerate(d => game.RunSpin(d));
+        AssertPmfEqual(InterpreterPmf(compile.Program!, initial), genPmf, "mini-pure-doghouse");
+    }
+
+    [Fact]
+    public void FullPureDogHouse_EmitsCompilableCSharp()
+    {
+        // The real Dog House with sticky wilds as a PURE subgraph (zero C#
+        // molecule) emits and Roslyn-compiles.
+        var config = SlotMath.Core.Tests.Benchmarks.DogHouseNoPluginBenchmarkTests.CreatePureStickyConfig();
+        var emit = new CSharpEmitter().Emit(config);
+        Assert.True(emit.Supported, "Pure Dog House did not emit: " + string.Join("; ", emit.Diagnostics));
+        Assert.Contains("__Append", emit.Source);    // sticky accumulator fold
+        Assert.Contains("__Contains", emit.Source);   // dedupe / overlay
+        Assert.DoesNotContain("\"accumulate-wilds\"", emit.Source); // no C# transform
+        var type = CompileGenerated(emit);
+        Assert.NotNull(Activator.CreateInstance(type));
+    }
 }
 
 /// <summary>

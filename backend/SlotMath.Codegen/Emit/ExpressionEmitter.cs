@@ -31,9 +31,25 @@ public sealed class ExpressionEmitter(Func<string, string> resolveStateField)
         CompareExpr c => EmitCompare(c),
         NotExpr n => $"(!{Emit(n.Expr)})",
         IfExpr i => $"({Emit(i.Condition)} ? {Emit(i.ThenExpr)} : {Emit(i.ElseExpr)})",
+        CallExpr call => EmitCall(call),
         _ => throw new CodegenUnsupportedException(
             $"expression node '{expr.GetType().Name}' is not supported by the G7 emitter (scalar subset only)."),
     };
+
+    // Array/collection calls emitted as object?-typed runtime helpers (value
+    // semantics): contains→bool, append→object?[], length→long, index→object?.
+    private string EmitCall(CallExpr c)
+    {
+        string Arg(int i) => Emit(c.Args[i]);
+        return c.Function.ToLowerInvariant() switch
+        {
+            "contains" => $"__Contains({Arg(0)}, (object?)({Arg(1)}))",
+            "append" => $"__Append((object?[])({Arg(0)}), (object?)({Arg(1)}))",
+            "length" => $"__Len({Arg(0)})",
+            "index" => $"__Index((object?[])({Arg(0)}), (int)({Arg(1)}))",
+            _ => throw new CodegenUnsupportedException($"call '{c.Function}' is not supported by the G7 emitter."),
+        };
+    }
 
     private static string EmitConstant(ConstantExpr c) => c.Kind switch
     {

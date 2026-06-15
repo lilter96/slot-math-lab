@@ -139,6 +139,7 @@ public static class StateSchemaDeriver
         "string" => ExprType.String,
         "boolean" => ExprType.Boolean,
         "array" => ExprType.Array,
+        not null when type.EndsWith("[]", StringComparison.Ordinal) => ExprType.Array, // string[], number[], …
         _ => ExprType.Number,
     };
 
