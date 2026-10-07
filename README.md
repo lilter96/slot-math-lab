@@ -1,6 +1,28 @@
 # Slot Math Lab
 
-No-code, node-based constructor for iGaming slot math.
+A .NET 10 / React 19 engineering prototype for composing slot-game mathematics on a visual graph and comparing exact probability calculations with Monte Carlo simulation.
+
+**Author:** Terentiy Gatsukov · **Status:** research / portfolio prototype, not a certified gambling engine.
+
+## Engineering highlights
+
+- **Two interpreters, one program:** exact rational distributions and a stack-safe sampled interpreter, with explicit calculation provenance and budgets.
+- **Reproducible simulation:** xoshiro256** / SplitMix64 and pinned stream splitting; seeded cross-checks and negative controls.
+- **Graph compiler and extensibility:** reusable mechanics, typed expressions, evaluator/transform contracts, and plugin experiments.
+- **Application stack:** ASP.NET Core, PostgreSQL/EF Core, optional Redis caching, Hangfire jobs, SignalR progress, and OpenTelemetry.
+- **Visual editor:** React 19, TypeScript, React Flow, Zustand, and generated API/schema types.
+
+Start with [the core](backend/SlotMath.Core), [cross-check tests](backend/SlotMath.Core.Tests/Mechanics/CrossCheck), and [the build contract](docs/PRD.md). The PRD describes intended behavior and acceptance goals; it is not proof that every goal is complete.
+
+## Scope and verification
+
+This is an experimental engineering showcase. It has no gambling certification, production-readiness claim, or proven plugin security boundary. The bundled database credentials and default JWT settings are development defaults; replace them before any hosted deployment. Plugin support must be treated as trusted-code experimentation.
+
+The latest existing GitHub CI run was unsuccessful; browser E2E and the complete deployment path need further verification. Local verification on 2026-10-07: **704 core tests passed** with .NET SDK 10.0.112 and Node 22.23.3; the frontend production build passed. API integration tests and browser E2E were not rerun during this publication review.
+
+## Development workflow
+
+Development includes AI-assisted implementation. The versioned PRD, deterministic test fixtures, and reviewable commits expose the constraints and verification approach. Architecture, acceptance decisions, and final review remain the author's responsibility.
 
 ## Local bootstrap
 
