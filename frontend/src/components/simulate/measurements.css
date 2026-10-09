@@ -44,3 +44,5 @@
 .execution-configuration fieldset { border: 0; margin-top: 16px; padding: 0; }
 .execution-report { margin: 16px 0; }
 @media (max-width: 700px) { .metric-catalogue-layout { grid-template-columns: minmax(0, 1fr); } .metric-catalogue-list { max-height: 200px; } }
+.measurement-coverage{border:1px solid var(--border);border-radius:8px;padding:12px;margin:12px 0;overflow-wrap:anywhere}
+.measurement-coverage.partial{border-color:var(--warning,#e6bc66)}

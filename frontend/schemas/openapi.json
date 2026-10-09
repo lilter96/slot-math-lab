@@ -443,6 +443,45 @@
         }
       }
     },
+    "/api/runs/{id}/measurements/reference/comparison": {
+      "post": {
+        "tags": [
+          "SlotMath.Api"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ExactLawComparisonRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RetainedReferenceOfExactLawComparisonReport"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/runs/{id}/measurements/reference/distribution": {
       "post": {
         "tags": [
@@ -543,6 +582,35 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/SamplePlanReport"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/runs/measurements/reference/comparison": {
+      "post": {
+        "tags": [
+          "SlotMath.Api"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ExactLawComparisonRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExactLawComparisonReport"
                 }
               }
             }
@@ -903,7 +971,7 @@
         "requestBody": {
           "content": {
             "application/json": {
-              "schema": { }
+              "schema": {}
             }
           },
           "required": true
@@ -1006,7 +1074,7 @@
         "requestBody": {
           "content": {
             "application/json": {
-              "schema": { }
+              "schema": {}
             }
           },
           "required": true
@@ -1151,13 +1219,38 @@
   },
   "components": {
     "schemas": {
+      "AssertionSummary": {
+        "required": [
+          "kind",
+          "checked",
+          "violations",
+          "status"
+        ],
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string"
+          },
+          "checked": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "violations": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "status": {
+            "type": "string"
+          }
+        }
+      },
       "AutoTuneRequest": {
         "required": [
           "config"
         ],
         "type": "object",
         "properties": {
-          "config": { },
+          "config": {},
           "targetRtp": {
             "type": "number",
             "format": "double"
@@ -1215,7 +1308,7 @@
             "type": "integer",
             "format": "int32"
           },
-          "config": { },
+          "config": {},
           "createdAt": {
             "type": "string",
             "format": "date-time"
@@ -1247,13 +1340,37 @@
           }
         }
       },
+      "ContributionNormalization": {
+        "required": [
+          "paidRounds",
+          "externalTurnover",
+          "basis"
+        ],
+        "type": "object",
+        "properties": {
+          "paidRounds": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "externalTurnover": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
+          },
+          "basis": {
+            "type": "string"
+          }
+        }
+      },
       "CreateConfigRequest": {
         "required": [
           "config"
         ],
         "type": "object",
         "properties": {
-          "config": { }
+          "config": {}
         }
       },
       "CreateConfigResponse": {
@@ -1493,6 +1610,146 @@
           }
         }
       },
+      "EnumeratedCohort": {
+        "required": [
+          "key",
+          "validPerRound",
+          "knownSumPerRound",
+          "conditionalMean",
+          "support",
+          "supportComplete",
+          "pair"
+        ],
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string"
+          },
+          "validPerRound": {
+            "type": "string"
+          },
+          "knownSumPerRound": {
+            "type": "string"
+          },
+          "conditionalMean": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "support": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EnumeratedValue"
+            }
+          },
+          "supportComplete": {
+            "type": "boolean"
+          },
+          "pair": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/EnumeratedJointLaw"
+              }
+            ]
+          }
+        }
+      },
+      "EnumeratedJointLaw": {
+        "required": [
+          "pairedPerRound",
+          "support",
+          "complete",
+          "meanX",
+          "meanY",
+          "varianceX",
+          "varianceY",
+          "covariance",
+          "varianceSum",
+          "varianceDifference"
+        ],
+        "type": "object",
+        "properties": {
+          "pairedPerRound": {
+            "type": "string"
+          },
+          "support": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EnumeratedJointValue"
+            }
+          },
+          "complete": {
+            "type": "boolean"
+          },
+          "meanX": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "meanY": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "varianceX": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "varianceY": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "covariance": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "varianceSum": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "varianceDifference": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "EnumeratedJointValue": {
+        "required": [
+          "x",
+          "y",
+          "massPerPaidRound"
+        ],
+        "type": "object",
+        "properties": {
+          "x": {
+            "type": "number",
+            "format": "double"
+          },
+          "y": {
+            "type": "number",
+            "format": "double"
+          },
+          "massPerPaidRound": {
+            "type": "string"
+          }
+        }
+      },
       "EnumeratedMeasurement": {
         "required": [
           "id",
@@ -1546,6 +1803,40 @@
               "null",
               "string"
             ]
+          },
+          "groups": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EnumeratedCohort"
+            }
+          },
+          "groupsComplete": {
+            "type": "boolean"
+          },
+          "pair": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/EnumeratedJointLaw"
+              }
+            ]
+          },
+          "weighting": {
+            "type": "string"
+          },
+          "knownAssertionViolationsPerRound": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "assertionStatus": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
         }
       },
@@ -1595,7 +1886,7 @@
             "type": "integer",
             "format": "int64"
           },
-          "config": { },
+          "config": {},
           "maxBranches": {
             "type": [
               "null",
@@ -1708,6 +1999,95 @@
           }
         }
       },
+      "ExactLawComparisonReport": {
+        "required": [
+          "equal",
+          "leftMean",
+          "rightMean",
+          "meanDifference",
+          "totalVariation",
+          "cdfDistance",
+          "support",
+          "unit",
+          "assumptions"
+        ],
+        "type": "object",
+        "properties": {
+          "equal": {
+            "type": "boolean"
+          },
+          "leftMean": {
+            "type": "string"
+          },
+          "rightMean": {
+            "type": "string"
+          },
+          "meanDifference": {
+            "type": "string"
+          },
+          "totalVariation": {
+            "type": "string"
+          },
+          "cdfDistance": {
+            "type": "string"
+          },
+          "support": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RationalLawDifference"
+            }
+          },
+          "unit": {
+            "type": "string"
+          },
+          "assumptions": {
+            "type": "string"
+          },
+          "authoredInputSha256": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "algorithmVersion": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "coreBinarySha256": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "ExactLawComparisonRequest": {
+        "required": [
+          "left",
+          "right"
+        ],
+        "type": "object",
+        "properties": {
+          "left": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RationalOutcome"
+            }
+          },
+          "right": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RationalOutcome"
+            }
+          },
+          "unit": {
+            "type": "string",
+            "default": "value units"
+          }
+        }
+      },
       "ExecutionOptions": {
         "type": "object",
         "properties": {
@@ -1813,6 +2193,12 @@
               "$ref": "#/components/schemas/MeasurementSnapshot"
             }
           },
+          "monetaryAccounting": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
           "samplingEngine": {
             "type": "string"
           },
@@ -1830,7 +2216,7 @@
       "ExplainRequest": {
         "type": "object",
         "properties": {
-          "config": { },
+          "config": {},
           "rtp": {
             "type": "number",
             "format": "double"
@@ -2074,7 +2460,7 @@
           "epsilon": {
             "type": "number",
             "format": "double",
-            "default": 1E-05
+            "default": 0.00001
           },
           "maxBranches": {
             "type": "integer",
@@ -2193,14 +2579,14 @@
           }
         }
       },
-      "JsonElement": { },
+      "JsonElement": {},
       "LintRequest": {
         "required": [
           "config"
         ],
         "type": "object",
         "properties": {
-          "config": { },
+          "config": {},
           "rtp": {
             "type": [
               "null",
@@ -2665,6 +3051,26 @@
           },
           "groupsComplete": {
             "type": "boolean"
+          },
+          "assertion": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/AssertionSummary"
+              }
+            ]
+          },
+          "normalization": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/ContributionNormalization"
+              }
+            ]
           }
         }
       },
@@ -3408,7 +3814,7 @@
           "configHash": {
             "type": "string"
           },
-          "state": { }
+          "state": {}
         }
       },
       "QuantileEstimate": {
@@ -3469,6 +3875,29 @@
           }
         }
       },
+      "RationalLawDifference": {
+        "required": [
+          "value",
+          "leftProbability",
+          "rightProbability",
+          "difference"
+        ],
+        "type": "object",
+        "properties": {
+          "value": {
+            "type": "string"
+          },
+          "leftProbability": {
+            "type": "string"
+          },
+          "rightProbability": {
+            "type": "string"
+          },
+          "difference": {
+            "type": "string"
+          }
+        }
+      },
       "RationalOutcome": {
         "required": [
           "value",
@@ -3502,6 +3931,32 @@
               "null",
               "string"
             ]
+          }
+        }
+      },
+      "RetainedReferenceOfExactLawComparisonReport": {
+        "required": [
+          "runId",
+          "report",
+          "retention"
+        ],
+        "type": "object",
+        "properties": {
+          "runId": {
+            "type": "string"
+          },
+          "report": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/ExactLawComparisonReport"
+              }
+            ]
+          },
+          "retention": {
+            "$ref": "#/components/schemas/DiagnosticRetention"
           }
         }
       },
@@ -4389,7 +4844,7 @@
         ],
         "type": "object",
         "properties": {
-          "config": { }
+          "config": {}
         }
       },
       "UpperTailEstimate": {
@@ -4486,7 +4941,7 @@
         ],
         "type": "object",
         "properties": {
-          "config": { }
+          "config": {}
         }
       },
       "ValidateResponse": {

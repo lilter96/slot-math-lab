@@ -1124,6 +1124,47 @@ export type paths = {
         patch?: never;
         trace?: never;
     };
+    "/api/runs/{id}/measurements/reference/comparison": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["ExactLawComparisonRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["RetainedReferenceOfExactLawComparisonReport"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/runs/{id}/measurements/reference/distribution": {
         parameters: {
             query?: never;
@@ -1237,6 +1278,45 @@ export type paths = {
                     };
                     content: {
                         "application/json": components["schemas"]["MeasurementReplayReport"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/runs/measurements/reference/comparison": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["ExactLawComparisonRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ExactLawComparisonReport"];
                     };
                 };
             };
@@ -1479,6 +1559,14 @@ export type paths = {
 export type webhooks = Record<string, never>;
 export type components = {
     schemas: {
+        AssertionSummary: {
+            /** Format: int64 */
+            checked: number;
+            kind: string;
+            status: string;
+            /** Format: int64 */
+            violations: number;
+        };
         AutoTuneRequest: {
             config: unknown;
             /** Format: int32 */
@@ -1509,6 +1597,13 @@ export type components = {
             name: string;
             /** Format: date-time */
             updatedAt: string;
+        };
+        ContributionNormalization: {
+            basis: string;
+            /** Format: double */
+            externalTurnover: null | number;
+            /** Format: int64 */
+            paidRounds: number;
         };
         CreateConfigRequest: {
             config: unknown;
@@ -1579,17 +1674,51 @@ export type components = {
             /** Format: int64 */
             unexpectedObservations: number;
         };
+        EnumeratedCohort: {
+            conditionalMean: null | string;
+            key: string;
+            knownSumPerRound: string;
+            pair: null | components["schemas"]["EnumeratedJointLaw"];
+            support: components["schemas"]["EnumeratedValue"][];
+            supportComplete: boolean;
+            validPerRound: string;
+        };
+        EnumeratedJointLaw: {
+            complete: boolean;
+            covariance: null | string;
+            meanX: null | string;
+            meanY: null | string;
+            pairedPerRound: string;
+            support: components["schemas"]["EnumeratedJointValue"][];
+            varianceDifference: null | string;
+            varianceSum: null | string;
+            varianceX: null | string;
+            varianceY: null | string;
+        };
+        EnumeratedJointValue: {
+            massPerPaidRound: string;
+            /** Format: double */
+            x: number;
+            /** Format: double */
+            y: number;
+        };
         EnumeratedMeasurement: {
+            assertionStatus?: null | string;
             conditionalMean: null | string;
             eligiblePerRound: string;
             excludedPerRound: string;
             firstError: null | string;
+            groups?: components["schemas"]["EnumeratedCohort"][];
+            groupsComplete?: boolean;
             id: string;
             invalidPerRound: string;
+            knownAssertionViolationsPerRound?: null | string;
             knownSumPerRound: string;
+            pair?: null | components["schemas"]["EnumeratedJointLaw"];
             support: components["schemas"]["EnumeratedValue"][];
             supportComplete: boolean;
             validPerRound: string;
+            weighting?: string;
         };
         EnumeratedValue: {
             massPerPaidRound: string;
@@ -1648,6 +1777,26 @@ export type components = {
             /** Format: double */
             volatility?: null | number;
         };
+        ExactLawComparisonReport: {
+            algorithmVersion?: null | string;
+            assumptions: string;
+            authoredInputSha256?: null | string;
+            cdfDistance: string;
+            coreBinarySha256?: null | string;
+            equal: boolean;
+            leftMean: string;
+            meanDifference: string;
+            rightMean: string;
+            support: components["schemas"]["RationalLawDifference"][];
+            totalVariation: string;
+            unit: string;
+        };
+        ExactLawComparisonRequest: {
+            left: components["schemas"]["RationalOutcome"][];
+            right: components["schemas"]["RationalOutcome"][];
+            /** @default value units */
+            unit: string;
+        };
         ExecutionOptions: {
             featureMetricId?: null | string;
             /** Format: double */
@@ -1679,6 +1828,7 @@ export type components = {
             interruptedSessions: number;
             loopTerminations?: components["schemas"]["LoopTerminationSummary"][];
             loopTerminationsComplete?: boolean;
+            monetaryAccounting?: null | string;
             regime: string;
             samplingEngine?: string;
             sessionMetrics: components["schemas"]["MeasurementSnapshot"][];
@@ -1851,6 +2001,7 @@ export type components = {
             transientMatrix: string[][];
         };
         MeasurementAnalysis: {
+            assertion?: null | components["schemas"]["AssertionSummary"];
             bins: components["schemas"]["DistributionBin"][];
             checks: components["schemas"]["VerificationCheck"][];
             clusteredMeanInterval: null | components["schemas"]["NumericInterval"];
@@ -1880,6 +2031,7 @@ export type components = {
             /** Format: double */
             min: null | number;
             moments: components["schemas"]["MomentSummary"];
+            normalization?: null | components["schemas"]["ContributionNormalization"];
             pair: null | components["schemas"]["PairSummary"];
             probabilityInterval: null | components["schemas"]["NumericInterval"];
             quantiles: components["schemas"]["QuantileEstimate"][];
@@ -2116,6 +2268,12 @@ export type components = {
             lower: string;
             upper: null | string;
         };
+        RationalLawDifference: {
+            difference: string;
+            leftProbability: string;
+            rightProbability: string;
+            value: string;
+        };
         RationalOutcome: {
             probability: string;
             value: string;
@@ -2124,6 +2282,11 @@ export type components = {
             contract: string;
             pluginId: string;
             version?: null | string;
+        };
+        RetainedReferenceOfExactLawComparisonReport: {
+            report: null | components["schemas"]["ExactLawComparisonReport"];
+            retention: components["schemas"]["DiagnosticRetention"];
+            runId: string;
         };
         RetainedReferenceOfFiniteModelReport: {
             report: null | components["schemas"]["FiniteModelReport"];

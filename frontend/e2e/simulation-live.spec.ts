@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from './fixtures';
 import { readFile } from 'node:fs/promises';
 
 test('Real WebSocket updates inside first chunk, reload restores run, cancellation retains actual payouts', async ({ page }) => {
@@ -87,17 +87,18 @@ test('Mobile simulation dashboard fits viewport and exposes controls and charts'
 
 
 test('Blocked socket falls back to authoritative snapshots and reconnects without losing the run', async ({ page }) => {
-  test.setTimeout(30000);
+  test.setTimeout(180000);
   await page.route('**/hubs/runs/negotiate**', route => route.abort());
   await page.goto('/build?project=dog-house');
   await page.getByRole('tab', { name: 'Simulate', exact: true }).click();
   await page.getByLabel('Simulation spins').fill('10000000');
   await page.getByRole('button', { name: /start run/i }).click();
-  await expect(page.getByTestId('stream-status')).toContainText('recovering');
-  await expect(page.getByTestId('sample-count')).not.toHaveText('0', { timeout: 10000 });
+  await expect(page.getByTestId('stream-status')).toContainText('recovering', { timeout: 70000 });
+  await expect(page.getByTestId('sample-count')).not.toHaveText('0', { timeout: 70000 });
   const first = Number((await page.getByTestId('sample-count').innerText()).replaceAll(',', ''));
   await page.unroute('**/hubs/runs/negotiate**');
-  await expect(page.getByTestId('stream-status')).toContainText('WebSocket live', { timeout: 10000 });
+  // Negotiation and HTTP recovery honor the shared server Retry-After window.
+  await expect(page.getByTestId('stream-status')).toContainText('WebSocket live', { timeout: 70000 });
   await expect.poll(async () => Number((await page.getByTestId('sample-count').innerText()).replaceAll(',', ''))).toBeGreaterThan(first);
   await page.getByRole('button', { name: /cancel run/i }).click();
   await expect(page.locator('.run-status')).toHaveText('cancelled');

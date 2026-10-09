@@ -10,6 +10,73 @@ namespace SlotMath.Core.Tests.Math;
 
 public class DiagnosticEvidenceTests
 {
+    [Fact]
+    public void ContributionDenominatorIncludesAbsentFeatureParentsAndPinsMixedWagerExposure()
+    {
+        var feature = new MeasurementDefinition { Id = "feature", Name = "Feature contribution", NodeId = "reveal", Options = new() { Stake = 2, Group = new ConstantExpr { Kind = ConstantKind.String, Value = "A" } } };
+        var collector = new MeasurementCollector([feature]); collector.Begin();
+        collector.Observe(0, 1, new MeasurementBinding<int>(n => ExprValue.Number(n), null, _ => ExprValue.String("A")));
+        collector.Observe(0, 3, new MeasurementBinding<int>(n => ExprValue.Number(n), null, _ => ExprValue.String("A"))); collector.Commit();
+        collector.Begin(1); collector.Commit(); // Entirely absent feature still costs two units.
+        var analysis = collector.Total[0].Snapshot("feature").Analysis!;
+        Assert.Equal(2, analysis.Count); Assert.Equal(2, analysis.Normalization!.PaidRounds); Assert.Equal(4, analysis.Normalization.ExternalTurnover);
+        Assert.Equal(4, analysis.Groups["A"].Normalization!.ExternalTurnover);
+        Assert.Equal(1, analysis.Bins.Sum(b => b.Sum) / analysis.Normalization.ExternalTurnover); // payout 4 / cost 4
+        var mixed = new MeasurementCollector([feature with { NodeId = null, Options = new() { PairRole = "wager" } }]);
+        for (var round = 0; round < 3; round++) { mixed.Begin(round); mixed.Observe(0, round, new MeasurementBinding<int>(r => ExprValue.Number(2 * r), null, Pair: r => ExprValue.Number(r + 1))); mixed.Commit(); }
+        var result = mixed.Total[0].Snapshot("mixed").Analysis!;
+        Assert.Equal(6, result.Normalization!.ExternalTurnover); Assert.Equal(1, result.Sum / result.Normalization.ExternalTurnover);
+    }
+    [Fact]
+    public void CoefficientOfVariationRequiresPositiveMeanUnderItsDeclaredConvention()
+    {
+        var accumulator = new MeasurementAnalysisAccumulator(new()); accumulator.Add(-1, null, null, null); accumulator.Add(-3, null, null, null);
+        Assert.Null(accumulator.Snapshot(0, true).Moments.CoefficientOfVariation);
+    }
+    [Fact]
+    public void ExactAssertionDoesNotEraseUnderflowFailuresOrInvalidDataAndDiscardsUncommittedRounds()
+    {
+        var plan = new MeasurementDefinition { Id = "residual", Name = "Exact ledger residual", Options = new() { Assertion = "zero" } };
+        var collector = new MeasurementCollector([plan]); collector.Begin();
+        var tiny = ExprValue.Rational(BigInteger.One, BigInteger.Pow(10, 400));
+        collector.Observe(0, 0, _ => ExprValue.Number(0), null);
+        collector.Observe(0, 0, _ => tiny, null);
+        collector.Observe(0, 0, _ => throw new ExpressionEvaluationException("EVAL_MISSING_STATE", "missing residual"), null);
+        collector.Commit();
+        var result = collector.Total[0].Snapshot("residual");
+        Assert.Equal(2, result.Count); Assert.Equal(1, result.Errors); Assert.Equal(0, result.Sum);
+        Assert.Equal(new AssertionSummary("zero", 2, 1, "invalid"), result.Analysis!.Assertion);
+        var witness = result.Witnesses.Single(w => w.Kind == "assertionViolation"); Assert.Equal(0, witness.Value);
+        Assert.Contains("before binary64", witness.Detail);
+        collector.Begin(1); collector.Observe(0, 0, _ => ExprValue.Number(100), null);
+        collector.Begin(2); collector.Observe(0, 0, _ => ExprValue.Number(0), null); collector.Commit();
+        Assert.Equal(1, collector.Total[0].Snapshot("residual").Analysis!.Assertion!.Violations);
+    }
+    [Theory][InlineData(true)][InlineData(false)]
+    public void RuleFailureCountsAndWitnessesMatchManualSpecInBothEngines(bool native)
+    {
+        // Each paid round visits values 2,3,4. The authored failure predicate x != 3
+        // therefore fails exactly twice; reduce neither the predicate nor the failures.
+        MeasurementDefinition[] plan = [new() { Id = "rule", Name = "Rule oracle", NodeId = "end",
+            Value = new CompareExpr { Op = CompareOp.Neq, Left = new FieldAccessExpr { Target = "state", Path = ["spinWin"] }, Right = new ConstantExpr { Kind = ConstantKind.Integer, Value = "3" } },
+            Options = new() { Source = "event", Assertion = "zero" } }];
+        var compiled = new GraphCompiler(optimizeSampling: native).Compile(MeasurementTests.Model, plan); Assert.True(compiled.IsValid);
+        var result = SampledInterpreter.Evaluate(compiled.Program!, new Dict(), new() { Measurements = plan, MaxSpins = 10 });
+        Assert.Equal(new AssertionSummary("zero", 30, 20, "discrepancy"), result.Measurements[0].Analysis!.Assertion);
+        var witness = result.Measurements[0].Witnesses.Single(w => w.Kind == "assertionViolation");
+        Assert.Equal(0, witness.RoundIndex); Assert.Equal(1, witness.ObservationOrdinal); Assert.Equal("end", witness.NodeId);
+        var replay = SampledInterpreter.Evaluate(compiled.Program!, new Dict(), new() { Measurements = plan, MaxSpins = 10, ReplayRoundIndex = witness.RoundIndex });
+        Assert.Equal(new AssertionSummary("zero", 3, 2, "discrepancy"), replay.ReplayedRound![0].Analysis!.Assertion);
+        var law = Assert.Single(GraphMeasurementEnumeration.Evaluate(compiled, plan, 10).Measurements);
+        Assert.Equal("2/1", law.KnownAssertionViolationsPerRound); Assert.Equal("discrepancy", law.AssertionStatus);
+    }
+    [Fact]
+    public void ExactAssertionsCannotAggregatePositiveAndNegativeFailuresIntoZero()
+    {
+        var plan = new MeasurementDefinition { Id = "bad", Name = "Do not cancel failures", Options = new() { Subject = "round", Assertion = "zero" } };
+        var compiled = new GraphCompiler().Compile(MeasurementTests.Model, [plan]);
+        Assert.False(compiled.IsValid); Assert.Contains(compiled.Errors, e => e.Message.Contains("reducing away failures"));
+    }
     [Theory][InlineData(false)][InlineData(true)]
     public void SparseCohortClusterInferenceIncludesParentsBeforeAndAfterItsFirstObservation(bool split)
     {

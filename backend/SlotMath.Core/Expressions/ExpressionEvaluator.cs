@@ -270,7 +270,7 @@ public static class ExactExpressionEvaluator
                 (a, bl) => ExprValue.Div(a, bl)),
             BinaryOp.And => EvalLogical(b.Left, b.Right, ctx, false),
             BinaryOp.Or => EvalLogical(b.Left, b.Right, ctx, true),
-            _ => ExprValue.Number(0),
+            _ => throw new ExpressionEvaluationException("EVAL_INVALID_OPERATOR", "Unknown binary operator."),
         };
     }
 
@@ -281,7 +281,7 @@ public static class ExactExpressionEvaluator
         var l = Eval(left, ctx);
         var r = Eval(right, ctx);
         if (l.Kind != ExprType.Number || r.Kind != ExprType.Number)
-            return ExprValue.Number(0);
+            throw new ExpressionEvaluationException("EVAL_TYPE_ERROR", $"Operator {op} requires numeric operands.");
         return combine(l, r);
     }
 
@@ -289,6 +289,7 @@ public static class ExactExpressionEvaluator
         Expression left, Expression right, EvalContext ctx, bool isOr)
     {
         var l = Eval(left, ctx);
+        if (l.Kind != ExprType.Boolean) throw new ExpressionEvaluationException("EVAL_TYPE_ERROR", "Logical operators require Boolean operands.");
         // Short-circuit
         if (isOr && l.Kind == ExprType.Boolean && l.BoolValue)
             return ExprValue.Bool(true);
@@ -296,8 +297,9 @@ public static class ExactExpressionEvaluator
             return ExprValue.Bool(false);
 
         var r = Eval(right, ctx);
-        var lb = l.Kind == ExprType.Boolean && l.BoolValue;
-        var rb = r.Kind == ExprType.Boolean && r.BoolValue;
+        if (r.Kind != ExprType.Boolean) throw new ExpressionEvaluationException("EVAL_TYPE_ERROR", "Logical operators require Boolean operands.");
+        var lb = l.BoolValue;
+        var rb = r.BoolValue;
         return ExprValue.Bool(isOr ? lb || rb : lb && rb);
     }
 
@@ -355,7 +357,8 @@ public static class ExactExpressionEvaluator
     private static ExprValue EvalIf(IfExpr i, EvalContext ctx)
     {
         var cond = Eval(i.Condition, ctx);
-        var isTrue = cond.Kind == ExprType.Boolean && cond.BoolValue;
+        if (cond.Kind != ExprType.Boolean) throw new ExpressionEvaluationException("EVAL_TYPE_ERROR", "If requires a Boolean condition.");
+        var isTrue = cond.BoolValue;
         return isTrue ? Eval(i.ThenExpr, ctx) : Eval(i.ElseExpr, ctx);
     }
 
@@ -452,7 +455,8 @@ public static class ExactExpressionEvaluator
     private static ExprValue EvalNot(NotExpr n, EvalContext ctx)
     {
         var inner = Eval(n.Expr, ctx);
-        return ExprValue.Bool(!(inner.Kind == ExprType.Boolean && inner.BoolValue));
+        if (inner.Kind != ExprType.Boolean) throw new ExpressionEvaluationException("EVAL_TYPE_ERROR", "Not requires a Boolean operand.");
+        return ExprValue.Bool(!inner.BoolValue);
     }
 
     // ── Bounded fold over a state array ─────────────────────────────────

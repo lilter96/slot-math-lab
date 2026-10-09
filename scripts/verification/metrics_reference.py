@@ -9,6 +9,7 @@ or graph compiler code is imported.
 import argparse
 import json
 import math
+from itertools import combinations
 from fractions import Fraction as F
 
 
@@ -31,12 +32,44 @@ def references():
     assert hit_a == F(1, 2) and hit_b == F(1, 10)
     assert sum(p for x, p in model_a.items() if x >= 5) == 0
     assert sum(p for x, p in model_b.items() if x >= 5) == F(1, 10)
+    support = sorted(set(model_a) | set(model_b))
+    # Definition-based exhaustive event oracle, independent of the production
+    # half-L1 calculation: TV is the largest discrepancy over every event.
+    total_variation = max(abs(sum((model_a.get(x, F(0)) - model_b.get(x, F(0)) for x in event), F(0)))
+                          for size in range(len(support) + 1) for event in combinations(support, size))
+    cdf_distance = max(abs(sum((p for x, p in model_a.items() if x <= edge), F(0))
+                           - sum((p for x, p in model_b.items() if x <= edge), F(0))) for edge in support)
+    assert total_variation == F(1, 2) and cdf_distance == F(2, 5)
 
     episodes = [[F(10)], [F(0)] * 9]
     pooled_mean = sum(map(sum, episodes), F(0)) / sum(map(len, episodes))
     episode_mean = sum(map(sum, episodes), F(0)) / len(episodes)
     mean_of_episode_means = sum((sum(e) / len(e) for e in episodes), F(0)) / len(episodes)
     assert pooled_mean == 1 and episode_mean == mean_of_episode_means == 5
+
+    # Two externally paid rounds; only the first contains two FS reveals.
+    # Absent cohorts retain the second parent's external cost in contribution.
+    external_costs, matching_reveals = [F(2), F(2)], [F(1), F(3)]
+    contribution = sum(matching_reveals) / sum(external_costs)
+    assert contribution == 1 and sum(matching_reveals) / len(matching_reveals) == 2
+
+    # Short decimal money is exact. The hypothetical fixed-horizon trajectory
+    # records ruin at the first point that cannot fund the next 0.1 wager.
+    bankroll, wager = F('0.3'), F('0.1')
+    first_ruin = None
+    for round_number in range(1, 4):
+        bankroll -= wager
+        if first_ruin is None and bankroll < wager:
+            first_ruin = round_number
+    assert first_ruin == 3 and bankroll == 0
+    cent_bank, peak, drawdown = 30, 30, 0
+    balances = []
+    for payout in [0, 25, 5, 0, 10]:
+        cent_bank += payout - 10
+        peak = max(peak, cent_bank)
+        drawdown = max(drawdown, peak - cent_bank)
+        balances.append(cent_bank)
+    assert balances == [20, 35, 30, 20, 20] and drawdown == 15
 
     raw, cap = [F(0), F(100), F(120)], F(100)
     settled = [min(value, cap) for value in raw]
@@ -83,11 +116,14 @@ def references():
             "rtp": str(mean_a),
             "varianceA": str(variance_a), "varianceB": str(variance_b),
             "hitProbabilityA": str(hit_a), "hitProbabilityB": str(hit_b),
+            "totalVariation": str(total_variation), "cdfDistance": str(cdf_distance),
         },
         "subjectWeighting": {
             "pooledFsMean": str(pooled_mean), "episodeTotalMean": str(episode_mean),
             "meanOfEpisodeMeans": str(mean_of_episode_means),
         },
+        "paidTurnover": {"paidRounds": 2, "externalTurnover": "4", "revealMean": "2", "contribution": str(contribution)},
+        "decimalSession": {"firstRuin": first_ruin, "endingBankroll": str(bankroll), "centBalances": balances, "centDrawdown": drawdown},
         "capSemantics": {
             "capReached": str(reached), "rawCapExceeded": str(exceeded),
             "meanDeduction": str(deduction),

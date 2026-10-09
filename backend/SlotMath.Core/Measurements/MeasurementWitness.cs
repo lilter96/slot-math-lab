@@ -26,7 +26,7 @@ internal sealed class WitnessAccumulator
                 || witness.RoundIndex > current.RoundIndex || witness.RoundIndex == current.RoundIndex && witness.ObservationOrdinal >= current.ObservationOrdinal)) return;
         }
         // A closed set of kinds bounds both per-round and merged storage.
-        if (witness.Kind is "first" or "minimum" or "maximum" or "invalid" or "duplicateAward" or "unexpectedSupport") _items[witness.Kind] = witness;
+        if (witness.Kind is "first" or "minimum" or "maximum" or "invalid" or "duplicateAward" or "unexpectedSupport" or "assertionViolation") _items[witness.Kind] = witness;
     }
     public void Merge(WitnessAccumulator source) { foreach (var witness in source._items.Values) Add(witness); }
     public MeasurementWitness[] Snapshot() => _items.Values.OrderBy(w => w.Kind, StringComparer.Ordinal).ToArray();

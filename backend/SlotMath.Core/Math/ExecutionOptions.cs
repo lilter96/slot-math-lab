@@ -41,6 +41,7 @@ public sealed record ExecutionSummary(string Regime, long AttemptedRounds, long 
     long CancelledRounds, long FailedRounds, long CompletedSessions, long InterruptedSessions,
     bool CarriesState, string StateResetPolicy, string SessionPolicy, IReadOnlyList<MeasurementSnapshot> SessionMetrics)
 {
+    public string? MonetaryAccounting { get; init; }
     public string SamplingEngine { get; init; } = "unspecified";
     public LoopTerminationSummary[] LoopTerminations { get; init; } = [];
     public bool LoopTerminationsComplete { get; init; } = true;
@@ -49,33 +50,34 @@ public sealed record ExecutionSummary(string Regime, long AttemptedRounds, long 
 /// <summary>One logical independent session. Memory is constant in the horizon.</summary>
 internal sealed class SessionTrajectory
 {
-    private readonly double initialBankroll, wager;
-    public SessionTrajectory(double initialBankroll, double wager) { this.initialBankroll = initialBankroll; this.wager = wager; _peak = initialBankroll; }
-    private double _profit, _peak, _drawdown, _maximum;
+    private readonly SessionMoney _money;
+    public SessionTrajectory(double initialBankroll, double wager) { _money = new(initialBankroll, wager); }
+    private double _maximum;
     private long _rounds, _drought, _longestDrought;
     private long? _ruinAt;
     private long? _featureAt;
     private bool _invalidFeature;
     public void Add(double payout, bool? feature = false)
     {
-        _rounds++; _profit += payout - wager;
-        var balance = initialBankroll + _profit;
-        _peak = System.Math.Max(_peak, balance); _drawdown = System.Math.Max(_drawdown, _peak - balance);
+        _money.Add(payout); _rounds++;
         _maximum = System.Math.Max(_maximum, payout);
         if (payout == 0) { _drought++; _longestDrought = System.Math.Max(_longestDrought, _drought); } else _drought = 0;
         // Ruin means unable to fund the next fixed wager. Equality can fund it.
-        if (balance < wager && _ruinAt is null) _ruinAt = _rounds;
+        if (!_money.CanFundNextWager && _ruinAt is null) _ruinAt = _rounds;
         if (feature is null) _invalidFeature = true; else if (feature.Value && _featureAt is null) _featureAt = _rounds;
-        if (!double.IsFinite(_profit) || !double.IsFinite(_drawdown)) throw new ArithmeticException("Session accounting exceeds finite range.");
     }
     public void Commit(SessionEvidence evidence, bool trackFeature = false)
     {
-        evidence.Add("return", (_profit + _rounds * wager) / (_rounds * wager));
-        evidence.Add("profit", _profit); evidence.Add("profitable", _profit > 0 ? 1 : 0);
-        evidence.Add("endingBankroll", initialBankroll + _profit); evidence.Add("drawdown", _drawdown);
-        evidence.Add("ruin", _ruinAt is null && initialBankroll >= wager ? 0 : 1);
+        var net = _money.Profit; var ending = _money.EndingBankroll; var drawdown = _money.Drawdown; var ratio = _money.Return;
+        // Validate the complete evidence before mutating its first accumulator.
+        if (!double.IsFinite(net) || !double.IsFinite(ending) || !double.IsFinite(drawdown) || !double.IsFinite(ratio))
+            throw new ArithmeticException("Session accounting exceeds finite report range.");
+        evidence.Add("return", ratio);
+        evidence.Add("profit", net); evidence.Add("profitable", _money.Profitable ? 1 : 0);
+        evidence.Add("endingBankroll", ending); evidence.Add("drawdown", drawdown);
+        evidence.Add("ruin", _ruinAt is null && !_money.InitiallyUnderfunded ? 0 : 1);
         // Censored non-ruined sessions are excluded from the first-passage mean.
-        if (initialBankroll < wager) evidence.Add("ruinTime", 0); else if (_ruinAt is { } at) evidence.Add("ruinTime", at); else evidence.Exclude("ruinTime");
+        if (_money.InitiallyUnderfunded) evidence.Add("ruinTime", 0); else if (_ruinAt is { } at) evidence.Add("ruinTime", at); else evidence.Exclude("ruinTime");
         evidence.Add("duration", _rounds); evidence.Add("drought", _longestDrought); evidence.Add("extreme", _maximum);
         if (trackFeature)
         {

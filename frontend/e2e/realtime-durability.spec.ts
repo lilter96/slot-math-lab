@@ -1,14 +1,13 @@
-import { test, expect, type Page, type WebSocketRoute, type APIRequestContext } from '@playwright/test';
+import { test, expect, type Page, type WebSocketRoute, type APIRequestContext } from './fixtures';
 
 type Frame = { type?: number; target?: string; arguments?: Record<string, unknown>[] };
-const ids = new Set<string>();
 async function launch(page: Page) {
   await page.goto('/build?project=dog-house');
   await page.getByRole('tab', { name: 'Simulate', exact: true }).click();
   await page.getByLabel('Simulation spins').fill('10000000');
   const created = page.waitForResponse(r => r.url().endsWith('/api/runs') && r.request().method() === 'POST');
   await page.getByRole('button', { name: /start run/i }).click();
-  const run = await (await created).json(); ids.add(run.id);
+  const run = await (await created).json();
   await expect(page.getByTestId('stream-status')).toContainText('WebSocket live');
   await expect(page.getByTestId('sample-count')).not.toHaveText('0');
   return run;
@@ -24,8 +23,6 @@ async function stopped(page: Page, request: APIRequestContext, id: string) {
   expect(JSON.parse(snapshot.resultJson).sampleCount).toBe(snapshot.progress.sampleCount);
   return snapshot;
 }
-test.afterEach(async ({ request }) => { for (const id of ids) await request.delete(`/api/runs/${id}`).catch(() => {}); ids.clear(); });
-
 test('app shell preserves one socket and live observations across constructor navigation', async ({ page, request }) => {
   let sockets = 0; page.on('websocket', () => sockets++);
   const run = await launch(page), before = await count(page);

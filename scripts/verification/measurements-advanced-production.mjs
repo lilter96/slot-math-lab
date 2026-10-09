@@ -58,6 +58,8 @@ try {
   await expect(page.locator('.run-status')).toHaveText('completed', { timeout: 120000 }); const run = await finished(created.id), values = run.progress.measurements;
   if (values.length !== 5 || values.some(m => m.errors || m.observations !== m.count + m.excluded + m.errors)) throw new Error('Invalid advanced observation accounting.');
   if (values[0].count !== 100000 || values[3].count !== 100000 || values[1].count !== values[3].sum || values[1].count !== values[4].sum) throw new Error('Paid-round / reveal denominators disagree.');
+  if (values.some(m => m.analysis.normalization?.paidRounds !== 100000 || m.analysis.normalization.externalTurnover !== 100000)
+    || Object.values(values[1].analysis.groups).some(g => g.normalization?.paidRounds !== 100000 || g.normalization.externalTurnover !== 100000)) throw new Error('FS/cohort contributions lost their complete external-turnover denominator.');
   if (!values[1].analysis.groupsComplete || Object.keys(values[1].analysis.groups).length < 2 || values[1].analysis.meanInterval !== null) throw new Error('Grouped FS evidence is incomplete or claims independent reveals.');
   if (!frames.some(f => f.sampleCount > 0 && f.measurements?.some(m => m.analysis))) throw new Error('No rich production WebSocket frame.');
   await page.reload(); await expect(page.getByTestId('sample-count')).toHaveText('100,000');
@@ -66,6 +68,17 @@ try {
   await expect(law.getByLabel('Reconstructed witness')).toContainText('logical stream prefix', { timeout: 90000 });
   await page.goto(base + `/results?run=${run.id}`); await expect(page.getByLabel('Retained diagnostic evidence')).toContainText('witness-replay');
   await page.getByRole('button', { name: 'Calculate reference', exact: true }).click(); await expect(page.locator('.results-reference-value')).toHaveText('98.000%', { timeout: 90000 });
+  await page.goto(base + `/simulate?run=${run.id}`);
+  await page.locator('#reference-workbench > summary').click(); await page.locator('#exact-law-comparison > summary').click();
+  await page.getByRole('button', { name: 'Load equal-98%-mean examples', exact: true }).click();
+  await page.getByRole('button', { name: 'Compare exact laws', exact: true }).click();
+  const comparison = page.getByLabel('Exact law comparison result');
+  await expect(comparison).toContainText('Left / right mean 49/50 / 49/50', { timeout: 90000 });
+  await expect(comparison).toContainText('Exact total variation 1/2');
+  const retained = await get(`/api/runs/${run.id}/evidence`);
+  if (!retained.diagnostics.some(d => d.kind === 'independent-law-comparison' && /^[a-f0-9]{64}$/.test(d.inputSha256) && /^[a-f0-9]{64}$/.test(d.outputSha256))) throw new Error('Authenticated rational law comparison was not retained with its evidence identity.');
+  await page.goto(base + `/results?run=${run.id}`);
+  await expect(page.getByLabel('Retained diagnostic evidence')).toContainText('independent-law-comparison');
   await screenshot('advanced-measurements-production-desktop.png');
   await page.getByRole('button', { name: 'Replay pinned run', exact: true }).click(); await page.getByLabel('Pinned run workers').selectOption('1');
   const replayLaunch = page.waitForResponse(r => r.url().endsWith('/api/runs') && r.request().method() === 'POST' && r.status() === 202);
@@ -93,7 +106,9 @@ try {
     rounds: run.progress.sampleCount, observedRtp: run.progress.runningRtp, authoredReferenceRtp: .98,
     configHash: run.configHash, measurementHash: run.measurementHash, runtimeProvenance: run.runtimeProvenance, measurements: values,
     execution: run.progress.execution, elapsedMs: run.progress.elapsedMs, roundsPerSecond: 100000000 / run.progress.elapsedMs,
-    liveFrames: frames.length, workerReplayBitIdentical: true, mobileFits: true, browserErrors: errors,
+    liveFrames: frames.length, primaryRunLiveFrames: frames.filter(f => f.runId === run.id).length,
+    paidTurnoverReconciled: true, independentLawComparisonRetained: true,
+    workerReplayBitIdentical: true, mobileFits: true, browserErrors: errors,
     simulateUrl: base + `/simulate?run=${run.id}`, resultsUrl: base + `/results?run=${run.id}` });
   await writeFile(root + '/docs/verification/advanced-measurements-production.json', JSON.stringify(report, null, 2) + '\n');
   console.log(JSON.stringify({ runId: run.id, observedRtp: report.observedRtp, referenceRtp: .98, liveFrames: frames.length, simulateUrl: report.simulateUrl }));

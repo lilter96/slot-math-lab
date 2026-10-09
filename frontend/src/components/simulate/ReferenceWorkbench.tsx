@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { calculationRequest } from '../../lib/measurements/requests';
+import { ExactLawComparison } from './ExactLawComparison';
 
 interface Outcome { value: string; probability: string }
 interface Bounds { lower: string; upper: string | null }
@@ -50,5 +51,6 @@ export function ReferenceWorkbench({ runId }: { runId?: string }) {
     {result && <div className="measurement-reference" aria-label="Reference calculation result">{'rtp' in result.report ? <><h3>{result.report.provenance}</h3><dl className="tracked-statistics">{(['mean', 'rtp', 'secondMoment', 'variance', 'hitProbability'] as const).map(key => { const b = (result.report as FiniteReport)[key]; return <div key={key}><dt>{key}</dt><dd>{b.upper === b.lower ? b.lower : `[${b.lower}, ${b.upper ?? 'unbounded'}]`}</dd></div>; })}</dl><p>Retained mass {result.report.retainedMass} · unresolved mass {result.report.prunedMass} · maximum known outcome {result.report.maximumKnownOutcome} · proven maximum {result.report.provenMaximum ?? 'unavailable'} · house edge {result.report.houseEdge ?? 'withheld · incomplete mean'}</p><small>{result.report.assumptions}</small></> : <><h3>{result.report.status}</h3><p>Absorption probability {result.report.absorptionProbability ?? 'not applicable'} · stationary occupation {result.report.stationaryOccupancy?.join(', ') ?? 'not applicable'}</p><p>Expected visits: {result.report.expectedVisits.join(', ')}</p><p>Expected duration {result.report.expectedDuration ?? 'undefined'} · expected reward {result.report.expectedReward ?? 'undefined'}</p><p>Duration second moment / variance {result.report.durationSecondMoment ?? 'undefined'} / {result.report.durationVariance ?? 'undefined'} · long-run reward / cost {result.report.longRunRewardPerStep ?? 'undefined'} / {result.report.longRunCostPerStep ?? 'undefined'} · return {result.report.longRunReturn ?? 'undefined'}</p><small>{result.report.detail}</small></>}
       {result.retention && <p role="status">{result.retention.note}</p>}
       <details><summary>Authored input and exact result</summary><pre>{JSON.stringify(result, null, 2)}</pre></details><button className="btn" onClick={() => { const blob = new Blob([JSON.stringify(result, null, 2)], { type: 'application/json' }); const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = `slotmath-${kind}-reference.json`; a.click(); setTimeout(() => URL.revokeObjectURL(url), 1000); }}>Export reference evidence</button></div>}
+    <ExactLawComparison key={runId ?? 'independent'} runId={runId} />
   </details></section>;
 }

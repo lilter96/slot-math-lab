@@ -49,16 +49,16 @@ internal sealed class SamplingExpressions(Func<string, int> slot)
                 if (b.Op is BinaryOp.And or BinaryOp.Or)
                     return s =>
                     {
-                        var l = left(s);
-                        if (l.Kind == ExprType.Boolean && (b.Op == BinaryOp.Or ? l.BoolValue : !l.BoolValue)) return l;
-                        var r = right(s);
-                        return ExprValue.Bool(b.Op == BinaryOp.Or ? Truth(l) || Truth(r) : Truth(l) && Truth(r));
+                        var l = Truth(left(s));
+                        if (b.Op == BinaryOp.Or ? l : !l) return ExprValue.Bool(l);
+                        var r = Truth(right(s));
+                        return ExprValue.Bool(b.Op == BinaryOp.Or ? l || r : l && r);
                     };
                 return s =>
                 {
                     var l = left(s); var r = right(s);
-                    if (l.Kind != ExprType.Number || r.Kind != ExprType.Number) return ExprValue.Number(0);
-                    return b.Op switch { BinaryOp.Add => ExprValue.Add(l, r), BinaryOp.Sub => ExprValue.Sub(l, r), BinaryOp.Mul => ExprValue.Mul(l, r), BinaryOp.Div => ExprValue.Div(l, r), _ => ExprValue.Number(0) };
+                    if (l.Kind != ExprType.Number || r.Kind != ExprType.Number) throw new ExpressionEvaluationException("EVAL_TYPE_ERROR", $"Operator {b.Op} requires numeric operands.");
+                    return b.Op switch { BinaryOp.Add => ExprValue.Add(l, r), BinaryOp.Sub => ExprValue.Sub(l, r), BinaryOp.Mul => ExprValue.Mul(l, r), BinaryOp.Div => ExprValue.Div(l, r), _ => throw new ExpressionEvaluationException("EVAL_INVALID_OPERATOR", "Unknown binary operator.") };
                 };
             case CompareExpr c:
                 var cl = Compile(c.Left); var cr = Compile(c.Right);
@@ -149,7 +149,7 @@ internal sealed class SamplingExpressions(Func<string, int> slot)
         finally { s.Cells[binding] = savedItem; if (position >= 0) s.Cells[position] = savedIndex; }
     };
 
-    public static bool Truth(ExprValue v) => v.Kind == ExprType.Boolean && v.BoolValue;
+    public static bool Truth(ExprValue v) => RequiredBoolean(v);
     public static bool RequiredBoolean(ExprValue v) => v.Kind == ExprType.Boolean ? v.BoolValue : throw new ExpressionEvaluationException("EVAL_TYPE_ERROR", "Boolean expression required.");
     private static ExprValue ParseNumber(string s) => ExprValue.Number(BigInteger.TryParse(s, NumberStyles.Integer, CultureInfo.InvariantCulture, out var n) ? n : 0);
 

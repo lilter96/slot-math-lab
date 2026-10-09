@@ -9,6 +9,43 @@ namespace SlotMath.Core.Tests.Math;
 
 public class ExecutionPopulationTests
 {
+    [Fact]
+    public void DecimalBankrollFundsEveryEqualWagerBeforeRuinAndReportsExactLoss()
+    {
+        var result = SampledInterpreter.Evaluate(Slot.Pure<Dict, BigInteger>(0), new Dict(), new() { MaxSpins = 6,
+            Execution = new() { Regime = "sessions", SessionLength = 3, InitialBankroll = .3, Wager = .1 } });
+        var metrics = result.Execution!.SessionMetrics.ToDictionary(m => m.Id);
+        Assert.Equal("decimal-roundtrip-v1", result.Execution.MonetaryAccounting);
+        Assert.Equal(3, metrics["session.ruinTime"].Mean);
+        Assert.Equal(0, metrics["session.endingBankroll"].Mean);
+        Assert.Equal(-.3, metrics["session.profit"].Mean);
+        Assert.Equal(.3, metrics["session.drawdown"].Mean);
+    }
+    [Fact]
+    public void DecimalLedgerMatchesIndependentIntegerCentSpecificationAcrossPeakAndScaleChanges()
+    {
+        // Bank 30 cents, wager 10 cents; payouts 0, 25, 5, 0, 10 cents.
+        // Balances 20, 35, 30, 20, 20; peak 35, drawdown 15, net -10, return 40/50.
+        var money = new SessionMoney(.3, .1);
+        foreach (var payout in new[] { 0, .25, .05, 0, .1 }) money.Add(payout);
+        Assert.Equal(-.1, money.Profit); Assert.Equal(.2, money.EndingBankroll);
+        Assert.Equal(.15, money.Drawdown); Assert.Equal(.8, money.Return);
+        Assert.True(money.CanFundNextWager); Assert.False(money.Profitable);
+        // A finer payout unit expands the existing ledger without discarding it.
+        money.Add(.0001);
+        Assert.Equal(-.1999, money.Profit); Assert.Equal(.1001, money.EndingBankroll);
+        Assert.Equal(.2499, money.Drawdown);
+    }
+    [Fact]
+    public void DecimalLedgerPreservesTinyLossesAndSubnormalInputsWithoutEpsilonRules()
+    {
+        var large = new SessionMoney(1e15, .1); large.Add(0); large.Add(0);
+        Assert.Equal(-.2, large.Profit); Assert.Equal(.2, large.Drawdown);
+        var tiny = new SessionMoney(1e-300, 5e-301); tiny.Add(0);
+        Assert.True(tiny.CanFundNextWager); tiny.Add(0); Assert.False(tiny.CanFundNextWager);
+        Assert.Equal(-1e-300, tiny.Profit); Assert.Equal(0, tiny.EndingBankroll);
+        Assert.Throws<ArithmeticException>(() => large.Add(double.NaN));
+    }
     [Theory][InlineData(true)][InlineData(false)]
     public void SessionFeatureWaitingUsesPinnedRoundActivationAndCensorsAbsentFeatures(bool native)
     {

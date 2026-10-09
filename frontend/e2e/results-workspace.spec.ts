@@ -1,4 +1,4 @@
-import { test, expect as assertion, type APIRequestContext, type APIResponse } from '@playwright/test';
+import { test, expect as assertion, type APIRequestContext, type APIResponse } from './fixtures';
 import { readFile } from 'node:fs/promises';
 const expect = assertion.configure({ timeout: 70000 }); // Includes the server's 60s Retry-After window.
 test.beforeEach(async ({ request }) => { test.setTimeout(120000); await permitted(() => request.get('/api/auth/status')); });

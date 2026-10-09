@@ -19,6 +19,7 @@ public sealed record MeasurementOptions
     public string PairRole { get; init; } = "value";
     public Expression? Weight { get; init; }
     public Expression? AwardId { get; init; }
+    public string Assertion { get; init; } = "none";
     public double[] BinEdges { get; init; } = [0, 1, 2, 5, 10, 20, 50, 100, 500, 1000];
     public double[] Quantiles { get; init; } = [0.5, 0.9, 0.95, 0.99];
     public double[] Thresholds { get; init; } = [1, 10, 100];
@@ -52,6 +53,8 @@ public sealed record StateDwell(double State, long CompletedRuns, long Observati
 public sealed record SequenceSummary(long Count, long Events, long LongestEventStreak, long LongestDrought, long CompletedGaps, double? MeanGap, IReadOnlyDictionary<int, double?> Autocorrelations, bool Ordered,
     long EqualAdjacentPairs, long AdjacentPairs, StateDwell[] StateDwell, bool StateDwellComplete);
 public sealed record VerificationCheck(string Id, string Status, double? Observed, double? Reference, double? Difference, string Detail);
+public sealed record AssertionSummary(string Kind, long Checked, long Violations, string Status);
+public sealed record ContributionNormalization(long PaidRounds, double? ExternalTurnover, string Basis);
 public sealed record DistributionComparison(double TotalVariation, double CdfDistance, double? ChiSquare, int DegreesOfFreedom, bool ExpectedCountsAdequate, long UnexpectedObservations, double? PValue, string Calibration);
 public sealed record WeightedSummary(double WeightSum, double WeightSquares, double? EffectiveSampleSize, double? OrdinaryEstimate, double? SelfNormalizedEstimate, double MinWeight, double MaxWeight, NumericInterval? OrdinaryInterval, double? EventEstimate, NumericInterval? EventInterval, double? PairedRatio, NumericInterval? PairedRatioInterval);
 public sealed record MeasurementAnalysis(
@@ -62,7 +65,7 @@ public sealed record MeasurementAnalysis(
     NumericInterval? SequentialMeanInterval, double? MeanStandardError, double? RequiredSampleSize,
     WeightedSummary? Weights, SequenceSummary? Sequence, TransitionFrequency[] Transitions, bool TransitionsComplete, DistributionComparison? Comparison,
     VerificationCheck[] Checks, IReadOnlyDictionary<string, MeasurementAnalysis> Groups)
-{ public bool GroupsComplete { get; init; } = true; }
+{ public bool GroupsComplete { get; init; } = true; public AssertionSummary? Assertion { get; init; } public ContributionNormalization? Normalization { get; init; } }
 
 internal sealed record MeasurementBinding<T>(Func<T, Expressions.ExprValue>? Value,
     Func<T, Expressions.ExprValue>? Filter, Func<T, Expressions.ExprValue>? Group = null,

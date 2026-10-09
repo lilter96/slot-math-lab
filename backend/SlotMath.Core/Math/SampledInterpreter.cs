@@ -262,7 +262,7 @@ public static class SampledInterpreter
         ExecutionSummary Summary(long attempts, long completed, long cancelledRounds, long failed, long sessions, long interruptedSessions, SessionEvidence evidence, LoopTerminationEvidence loops) =>
             new(execution.Regime, attempts, completed, cancelledRounds + failed, cancelledRounds, failed, sessions, interruptedSessions, execution.PersistentKeys.Length > 0,
                 execution.PersistentKeys.Length == 0 ? "Reset all state before each paid round" : $"Retain only declared keys between rounds; reset at {(execution.Regime == "sessions" ? "each session" : "trajectory start")}",
-                "Fixed horizon; ruin is first inability to fund the next wager. Play continues with hypothetical credit; no survivor-only RTP denominator.", evidence.Snapshot()) { SamplingEngine = execution.SamplingEngine != "reference" && program is ICompiledSampling<S, T> ? "compiled-sampling-plan" : "reference-interpreter", LoopTerminations = loops.Snapshot(), LoopTerminationsComplete = loops.Complete };
+                "Fixed horizon; ruin is first inability to fund the next wager. Play continues with hypothetical credit; no survivor-only RTP denominator. Session money uses exact shortest round-trip decimals without currency rounding; report values are binary64.", evidence.Snapshot()) { MonetaryAccounting = execution.Regime == "sessions" ? SessionMoney.Contract : null, SamplingEngine = execution.SamplingEngine != "reference" && program is ICompiledSampling<S, T> ? "compiled-sampling-plan" : "reference-interpreter", LoopTerminations = loops.Snapshot(), LoopTerminationsComplete = loops.Complete };
 
         void RunChunk(int c)
         {

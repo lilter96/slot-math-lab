@@ -1,5 +1,5 @@
 import { chartMeasurements } from '../src/lib/measurements/checkpoints';
-import { test, expect, type Page } from '@playwright/test';
+import { test, expect, type Page, cancelOwnedRun, getWithQuota } from './fixtures';
 import { readFile } from 'node:fs/promises';
 test.beforeEach(async ({ request }) => {
   test.setTimeout(120000);
@@ -48,7 +48,7 @@ test('UI configures a scoped FS metric; real engine, durable export, display con
   const replay = page.waitForResponse(r => r.url().endsWith('/api/runs') && r.request().method() === 'POST'); await page.getByRole('button', { name: 'Start pinned run', exact: true }).click();
   const replayRun = await (await replay).json(); expect(replayRun.measurementHash).toBe(run.measurementHash);
   await expect(page.locator('.run-status')).toHaveText('completed', { timeout: 20000 });
-  const final = await (await page.request.get(`/api/runs/${replayRun.id}`)).json(); expect(final.progress.measurements[0]).toMatchObject(bundle.progress.measurements[0]);
+  const final = await (await getWithQuota(page.request, `/api/runs/${replayRun.id}`)).json(); expect(final.progress.measurements[0]).toMatchObject(bundle.progress.measurements[0]);
   await page.screenshot({ path: '../docs/verification/measurements-scoped.png', fullPage: true });
 });
 test('Editor rejects unknown fields through compiler, and valid empty scopes remain undefined', async ({ page }) => {
@@ -76,6 +76,7 @@ test('Metric editor and customizable workspace fit mobile, preserve draft across
   await page.screenshot({ path: '../docs/verification/measurements-mobile.png', fullPage: true });
 });
 test('Scoped measurements use real sockets, survive HTTP recovery and reload, and retain the cancelled prefix', async ({ page, request }) => {
+  test.setTimeout(240000);
   let matchingFrames = 0;
   page.on('websocket', socket => socket.on('framereceived', ({ payload }) => {
     for (const raw of String(payload).split('\x1e')) {
@@ -87,20 +88,20 @@ test('Scoped measurements use real sockets, survive HTTP recovery and reload, an
   await page.getByLabel('Metric observation level').selectOption('node'); await page.getByLabel('Metric graph node').selectOption('free-spin/snapshot-winHistory');
   await page.getByLabel('Metric numeric expression').fill('state.spinCoins / 20'); await page.getByRole('button', { name: 'Save measurement', exact: true }).click();
   await expect(page.getByRole('dialog')).not.toBeVisible(); await page.route('**/hubs/runs/negotiate**', route => route.abort());
-  await page.getByLabel('Simulation spins').fill('10000000'); const launched = page.waitForResponse(r => r.url().endsWith('/api/runs') && r.request().method() === 'POST');
+  await page.getByLabel('Simulation spins').fill('10000000'); const launched = page.waitForResponse(r => r.url().endsWith('/api/runs') && r.request().method() === 'POST' && r.ok(), { timeout: 70000 });
   await page.getByRole('button', { name: /^▶ Start run$/ }).click(); const run = await (await launched).json();
   try {
     const metric = page.getByRole('article', { name: 'Tracked metric Sticky FS live', exact: true });
-    await expect(page.getByTestId('stream-status')).toContainText('recovering'); await expect(metric.locator('[data-statistic=mean]')).not.toHaveText('—', { timeout: 10000 });
-    await page.unroute('**/hubs/runs/negotiate**'); await expect(page.getByTestId('stream-status')).toContainText('WebSocket live', { timeout: 15000 });
+    await expect(page.getByTestId('stream-status')).toContainText('recovering'); await expect(metric.locator('[data-statistic=mean]')).not.toHaveText('—', { timeout: 70000 });
+    await page.unroute('**/hubs/runs/negotiate**'); await expect(page.getByTestId('stream-status')).toContainText('WebSocket live', { timeout: 70000 });
     await expect.poll(() => matchingFrames).toBeGreaterThan(0);
     await page.reload(); await expect(metric.locator('[data-statistic=mean]')).not.toHaveText('—', { timeout: 10000 });
     await page.getByRole('button', { name: /Cancel run/ }).click(); await expect(page.locator('.run-status')).toHaveText('cancelled', { timeout: 15000 });
-    const final = await (await request.get(`/api/runs/${run.id}`)).json(), m = final.progress.measurements[0];
+    const final = await (await getWithQuota(request, `/api/runs/${run.id}`)).json(), m = final.progress.measurements[0];
     expect(m.count).toBeGreaterThan(0); expect(m.errors).toBe(0); expect(m.observations).toBe(m.count); expect(final.measurementHash).toBe(run.measurementHash);
     const stored = JSON.parse(await page.evaluate(() => localStorage.getItem('slotmath-simulation-v2')!)); expect(stored.progress.measurements).toEqual(chartMeasurements(final.progress.measurements));
     expect(JSON.parse(final.resultJson).measurements).toEqual(final.progress.measurements);
-  } finally { await request.delete(`/api/runs/${run.id}`); }
+  } finally { await cancelOwnedRun(request, run.id); }
 });
 test('Rejected launch honors Retry-After without duplicating an accepted run', async ({ page }) => {
   await page.goto('/build'); await page.getByRole('button', { name: 'Load coin example' }).click(); await page.getByRole('tab', { name: 'Simulate', exact: true }).click();

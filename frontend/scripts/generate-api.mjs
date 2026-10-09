@@ -33,7 +33,7 @@ const backendUrl = urlIndex >= 0 ? args[urlIndex + 1] : null;
 async function getSpec() {
   if (backendUrl) {
     console.log(`Fetching OpenAPI spec from ${backendUrl} …`);
-    const res = await fetch(backendUrl);
+    const res = await fetch(backendUrl, { signal: AbortSignal.timeout(15000) });
     if (!res.ok) {
       throw new Error(`HTTP ${res.status}: ${res.statusText}`);
     }
@@ -54,19 +54,11 @@ async function generate(spec) {
 
 // ── Main ────────────────────────────────────────────────────────────
 async function main() {
-  try {
-    const spec = await getSpec();
-    await generate(spec);
-  } catch (err) {
-    if (backendUrl) {
-      console.warn(`Warning: ${err.message}`);
-      console.warn('Falling back to local seed spec …');
-      const spec = JSON.parse(readFileSync(LOCAL_SPEC, 'utf-8'));
-      await generate(spec);
-    } else {
-      throw err;
-    }
-  }
+  // An explicitly requested backend is authoritative. A failed fetch must not
+  // make stale seed types appear to be a successful contract regeneration.
+  const spec = await getSpec();
+  await generate(spec);
+  if (backendUrl) writeFileSync(LOCAL_SPEC, JSON.stringify(spec, null, 2) + '\n', 'utf-8');
 }
 
 main().catch((err) => {

@@ -34,6 +34,11 @@ public static class RunsEndpoints
             catch (ArgumentException ex) { return Results.BadRequest(new { error = ex.Message }); }
         }).Produces<SlotMath.Core.Measurements.SamplePlanReport>().RequireRateLimiting("compute");
 
+        group.MapPost("/measurements/reference/comparison", (SlotMath.Core.Measurements.ExactLawComparisonRequest request, CancellationToken cancellationToken) =>
+        {
+            try { return Results.Ok(SlotMath.Core.Measurements.FiniteModelAnalysis.Compare(request, cancellationToken) with { AuthoredInputSha256 = RuntimeProvenance.AuthoredInputHash(request), AlgorithmVersion = "finite-law-comparison-rational-v1", CoreBinarySha256 = RuntimeProvenance.Current.CoreBinarySha256 }); }
+            catch (Exception ex) when (ex is ArgumentException or ArithmeticException or FormatException) { return Results.BadRequest(new { error = ex.Message }); }
+        }).Produces<SlotMath.Core.Measurements.ExactLawComparisonReport>().RequireRateLimiting("compute");
         group.MapPost("/measurements/reference/distribution", (SlotMath.Core.Measurements.FiniteModelRequest request, CancellationToken cancellationToken) =>
         {
             try { return Results.Ok(SlotMath.Core.Measurements.FiniteModelAnalysis.Distribution(request, cancellationToken) with { AuthoredInputSha256 = RuntimeProvenance.AuthoredInputHash(request), AlgorithmVersion = "finite-law-rational-v1", CoreBinarySha256 = RuntimeProvenance.Current.CoreBinarySha256 }); }

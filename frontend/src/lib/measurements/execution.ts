@@ -3,6 +3,7 @@ import { validAnalysis } from './validation';
 export interface ExecutionOptions { samplingEngine?: 'auto' | 'reference'; regime: 'independentRounds' | 'persistent' | 'sessions'; persistentKeys: string[]; sessionLength: number; initialBankroll: number; wager: number; featureMetricId?: string | null }
 export const defaultExecution = (): ExecutionOptions => ({ samplingEngine: 'auto', regime: 'independentRounds', persistentKeys: [], sessionLength: 100, initialBankroll: 100, wager: 1 });
 export interface ExecutionSummary {
+  monetaryAccounting?: string | null;
   samplingEngine?: string; regime: string; attemptedRounds: number; completedRounds: number; interruptedRounds: number; cancelledRounds: number; failedRounds: number;
   completedSessions: number; interruptedSessions: number; carriesState: boolean; stateResetPolicy: string; sessionPolicy: string; sessionMetrics: MeasurementSnapshot[];
   loopTerminations?: { nodeId: string; completedInvocations: number; modelLimitCompletions: number; conditionCompletions: number; totalIterations: number; minimumIterations: number; maximumIterations: number }[];
@@ -24,6 +25,7 @@ export function validateExecution(value: ExecutionOptions, rounds: number, worke
 export function validExecutionSummary(value: unknown, completed: number): value is ExecutionSummary {
   if (!value || typeof value !== 'object') return false;
   const v = value as ExecutionSummary, count = (x: number) => Number.isSafeInteger(x) && x >= 0;
+  if (v.monetaryAccounting != null && (v.regime !== 'sessions' || v.monetaryAccounting !== 'decimal-roundtrip-v1')) return false;
   if (v.samplingEngine !== undefined && !['compiled-sampling-plan', 'reference-interpreter', 'unspecified'].includes(v.samplingEngine)) return false;
   if (!['independentRounds', 'persistent', 'sessions'].includes(v.regime) || v.completedRounds !== completed
     || ![v.attemptedRounds, v.interruptedRounds, v.cancelledRounds, v.failedRounds, v.completedSessions, v.interruptedSessions].every(count)

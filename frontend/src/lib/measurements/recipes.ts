@@ -1,11 +1,13 @@
 import catalogue from './catalog.generated.json' with { type: 'json' };
+import coverage from './implementation.generated.json' with { type: 'json' };
 import { defaultOptions, type MeasurementOptions } from './analysis';
 import { newMetric, type MetricDraft, type Reducer } from './model';
 export type RecipeAction = 'measurement' | 'reference' | 'execution' | 'results' | 'planning';
-export interface MetricRecipe { id: string; name: string; definition: string; unit: string; priority: string; family: string; familyName: string; population: string; parameters: string[]; action: RecipeAction; prerequisite: string }
-const references = new Set(['return.theoretical', 'return.house_edge', 'bounds.pruned_mass', 'bounds.mean', 'bounds.event', 'bounds.second_variance', 'states.absorption', 'states.expected_duration', 'states.expected_reward', 'states.nontermination', 'states.long_run_return']);
+export interface MetricRecipe { id: string; name: string; definition: string; unit: string; priority: string; family: string; familyName: string; population: string; parameters: string[]; action: RecipeAction; prerequisite: string; availability: 'ready' | 'authored' | 'partial'; implementationScope: string }
+const references = new Set(['comparison.exact_support', 'return.theoretical', 'return.house_edge', 'bounds.pruned_mass', 'bounds.mean', 'bounds.event', 'bounds.second_variance', 'states.absorption', 'states.expected_duration', 'states.expected_reward', 'states.nontermination', 'states.long_run_return']);
 const results = new Set(['counts.attempted_rounds', 'counts.interrupted_rounds', 'comparison.rtp_delta', 'comparison.probability_delta', 'comparison.component_delta', 'comparison.sensitivity', 'bounds.reachable_max', 'bounds.loop_termination', 'provenance.seed_replay', 'provenance.parallel', 'provenance.engine', 'provenance.serialization', 'provenance.recovery', 'provenance.identity', 'provenance.witness']);
-export const metricRecipes: MetricRecipe[] = catalogue.families.flatMap(f => f.metrics.map(m => ({ id: m[0], name: m[1], definition: m[2], unit: m[3], priority: m[5],
+const reviewed = coverage as Record<string, { status: MetricRecipe['availability']; scope: string }>;
+export const metricRecipes: MetricRecipe[] = catalogue.families.flatMap(f => f.metrics.map(m => ({ id: m[0], name: m[1], definition: m[2], unit: m[3], priority: m[5], availability: reviewed[m[0]].status, implementationScope: reviewed[m[0]].scope,
   family: f.id, familyName: f.name, population: f.subject, parameters: f.parameters,
   action: m[0] === 'inference.sample_plan' ? 'planning' as const : references.has(m[0]) ? 'reference' as const : results.has(m[0]) ? 'results' as const : f.id === 'experience' || m[0] === 'states.long_run_return' ? 'execution' as const : 'measurement' as const,
   prerequisite: references.has(m[0]) ? 'Supply an independent finite payout law or transient transition/reward model. Exact input probabilities and mode cost are required.'
@@ -29,25 +31,27 @@ export function recipeDraft(recipe: MetricRecipe, id?: string): MetricDraft {
   if (family === 'events' && settlementEvents[metric]) { options.source = 'event'; options.referenceStatistic = 'probability'; draft.expression = settlementEvents[metric]; draft.unit = 'probability'; draft.reducers = ['mean', 'count']; }
   if (['counts.eligible', 'counts.matching', 'counts.excluded', 'counts.invalid'].includes(recipe.id)) { options.source = 'count'; draft.valueMode = 'payout'; }
   if (recipe.id === 'counts.completed_rounds') { options.source = 'count'; draft.valueMode = 'payout'; draft.reducers = ['count']; }
-  if (recipe.id === 'counts.accounting_residual') { options.source = 'count'; draft.valueMode = 'payout'; draft.reducers = ['accountingResidual']; }
+  if (recipe.id === 'counts.accounting_residual' || recipe.id === 'return.reconciliation' || recipe.id === 'return.rounding') { options.assertion = recipe.id === 'return.rounding' ? 'none' : 'zero'; draft.valueMode = 'expression'; draft.expression = ''; draft.reducers = ['min', 'max', 'sum', 'count', 'invalid', ...(options.assertion === 'zero' ? ['assertionViolations' as const] : [])]; }
   if (['counts.visits', 'counts.reveals', 'counts.distinct_parents'].includes(recipe.id)) { options.source = 'count'; draft.valueMode = 'payout'; draft.nodeId = '__choose_point__'; if (metric === 'distinct_parents') { options.subject = 'round'; options.reduction = 'any'; } }
   const sources: Record<string, MeasurementOptions['source']> = { 'return.turnover': 'turnover', 'return.net': 'net', 'bounds.cap_deduction': 'capDeduction' };
   if (sources[recipe.id]) { options.source = sources[recipe.id]; draft.valueMode = 'payout'; draft.reducers = ['sum', 'mean']; }
   if (['return.payout', 'return.rtp_fixed', 'return.mode', 'return.rtp_mixed'].includes(recipe.id)) { draft.valueMode = 'payout'; if (['rtp_fixed', 'mode', 'rtp_mixed'].includes(metric)) { options.pairRole = 'wager'; options.referenceStatistic = 'ratio'; draft.reducers = ['ratio']; } }
-  if (['return.component', 'return.reconciliation', 'events.round_activation', 'features.any_retrigger'].includes(recipe.id)) {
+  if (['return.component', 'events.round_activation'].includes(recipe.id)) {
     options.subject = 'round'; draft.nodeId = '__choose_point__';
     if (['round_activation', 'any_retrigger'].includes(metric)) { options.source = 'event'; options.reduction = 'any'; options.referenceStatistic = 'probability'; }
   }
-  if (['features.episode_payout', 'features.played', 'features.zero_episode', 'counts.feature_entries', 'counts.feature_exits'].includes(recipe.id)) {
+  if (['features.episode_payout', 'features.played', 'features.any_retrigger', 'counts.feature_entries', 'counts.feature_exits'].includes(recipe.id)) {
     options.subject = 'episode'; draft.nodeId = '__choose_point__'; if (['played', 'feature_entries', 'feature_exits'].includes(metric)) { options.source = 'count'; draft.valueMode = 'payout'; }
+    if (metric === 'any_retrigger') { options.source = 'event'; options.reduction = 'any'; options.referenceStatistic = 'probability'; }
   }
+  if (recipe.id === 'features.zero_episode') { options.source = 'event'; options.referenceStatistic = 'probability'; draft.nodeId = '__choose_point__'; }
   if (['states.transition_count', 'states.transition_probability'].includes(recipe.id)) { options.subject = 'transition'; draft.nodeId = ''; }
   if (family === 'mechanics' || family === 'rng' || ['reveal_payout', 'ordinal_profile', 'type_mix', 'exit_reason'].includes(metric)) draft.nodeId = '__choose_point__';
   if (['dependence.autocorrelation', 'dependence.gaps', 'dependence.streaks', 'rng.serial', 'rng.duplicates', 'states.dwell', 'events.reciprocal'].includes(recipe.id)) options.lags = [1, 2, 4];
   if (recipe.id === 'events.entry_rate') { options.subject = 'round'; options.source = 'count'; options.reduction = 'sum'; draft.nodeId = '__choose_point__'; draft.valueMode = 'payout'; draft.reducers = ['mean', 'sum', 'count']; }
-  if (recipe.id === 'states.reset_violation') { options.source = 'event'; options.referenceStatistic = 'probability'; draft.nodeId = '__choose_point__'; }
+  if (recipe.id === 'states.reset_violation') { options.source = 'event'; options.referenceStatistic = 'probability'; options.assertion = 'zero'; draft.nodeId = '__choose_point__'; }
   if (recipe.id === 'events.reciprocal' || recipe.id === 'events.conditional' || recipe.id === 'events.threshold' || recipe.id === 'bounds.zero_event') { options.source = 'event'; options.referenceStatistic = 'probability'; }
-  if (recipe.id === 'comparison.invariants') { options.source = 'event'; draft.valueMode = 'expression'; draft.expression = ''; draft.reducers = ['sum', 'count', 'invalid']; }
+  if (recipe.id === 'comparison.invariants') { options.source = 'event'; options.assertion = 'zero'; draft.valueMode = 'expression'; draft.expression = ''; draft.reducers = ['sum', 'count', 'invalid', 'assertionViolations']; }
   if (['bounds.cap_reached', 'bounds.cap_exceeded'].includes(recipe.id)) { options.source = 'event'; options.referenceStatistic = 'probability'; draft.expression = metric === 'cap_exceeded' ? 'measurement.rawPayout > measurement.payout' : ''; }
   return draft;
 }

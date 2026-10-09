@@ -58,7 +58,8 @@ function analysisRows(prefix: string, analysis: import('../measurements/analysis
 }
 function analysisUnit(path: string, unit: string): string {
   const key = path.split('.').at(-1) ?? '';
-  if (/^(count|completedRuns|observations|adjacentPairs|equalAdjacentPairs|entries|exits|distinctParents|uniqueAwards|duplicateAwards|unclosedEpisodes|fromExposure|completedGaps|events|degreesOfFreedom|unexpectedObservations|requiredSampleSize)$/.test(key)) return 'subjects';
+  if (/^(count|completedRuns|observations|checked|violations|paidRounds|adjacentPairs|equalAdjacentPairs|entries|exits|distinctParents|uniqueAwards|duplicateAwards|unclosedEpisodes|fromExposure|completedGaps|events|degreesOfFreedom|unexpectedObservations|requiredSampleSize)$/.test(key)) return 'subjects';
+  if (key === 'externalTurnover') return 'external monetary units';
   if (/^(meanLength|maximumLength|longestEventStreak|longestDrought|meanGap)$/.test(key)) return 'observations';
   if (/^(probability|quantile|tailMass|correlation|ratio|pValue|coefficientOfVariation|skewness|excessKurtosis|totalVariation|cdfDistance|lowerReturnShare|upperReturnShare|chiSquare)$/.test(key) || /probabilityInterval|ratioInterval|autocorrelations|weights/.test(path)) return 'ratio / dimensionless';
   if (/secondMoment|Variance|covariance|sumSquares/.test(path)) return unit ? `(${unit})²` : 'value squared';

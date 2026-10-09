@@ -14,6 +14,10 @@ export function validAnalysis(value: unknown, expectedCount?: number, expectedMe
     || !text(value.subject) || !text(value.reduction)) return false;
   for (const field of ['min', 'max', 'mean', 'sum', 'meanStandardError', 'requiredSampleSize']) if (!nullable(value[field])) return false;
   for (const field of ['distinctParents', 'entries', 'exits', 'unclosedEpisodes', 'uniqueAwards', 'duplicateAwards']) if (!count(value[field])) return false;
+  if (value.normalization != null && (!object(value.normalization) || !count(value.normalization.paidRounds) || value.normalization.paidRounds === 0
+    || !nullable(value.normalization.externalTurnover) || value.normalization.externalTurnover != null && (value.normalization.externalTurnover as number) <= 0 || !text(value.normalization.basis))) return false;
+  if (value.assertion != null && (!object(value.assertion) || value.assertion.kind !== 'zero' || value.assertion.checked !== value.count
+    || !count(value.assertion.violations) || value.assertion.violations > (value.count as number) || !['invalid', 'discrepancy', 'insufficient', 'noObservedViolations'].includes(String(value.assertion.status)))) return false;
   if (!object(value.moments) || !Object.values(value.moments).every(nullable) || !interval(value.meanInterval) || !interval(value.probabilityInterval) || !interval(value.sequentialMeanInterval) || !interval(value.clusteredMeanInterval)) return false;
   if (value.pair != null && (!object(value.pair) || !count(value.pair.count) || value.pair.count !== value.count
     || !['sumY', 'meanY', 'covariance', 'correlation', 'ratio', 'meanDifference'].every(key => nullable(value.pair && (value.pair as Record<string, unknown>)[key])) || !interval(value.pair.ratioInterval))) return false;
@@ -52,8 +56,8 @@ export function validAnalysis(value: unknown, expectedCount?: number, expectedMe
 }
 
 export function validWitnesses(value: unknown): boolean {
-  return value === undefined || Array.isArray(value) && value.length <= 6 && new Set(value.map(w => w?.kind)).size === value.length
+  return value === undefined || Array.isArray(value) && value.length <= 7 && new Set(value.map(w => w?.kind)).size === value.length
     && value.every(w => object(w) && count(w.roundIndex) && count(w.observationOrdinal) && (w.nodeId == null || text(w.nodeId))
-      && ['first', 'minimum', 'maximum', 'invalid', 'duplicateAward', 'unexpectedSupport'].includes(String(w.kind))
+      && ['first', 'minimum', 'maximum', 'invalid', 'duplicateAward', 'unexpectedSupport', 'assertionViolation'].includes(String(w.kind))
       && nullable(w.value) && nullable(w.pair) && (w.group == null || text(w.group)) && (w.detail == null || text(w.detail)));
 }

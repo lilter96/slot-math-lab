@@ -20,7 +20,7 @@ internal sealed class MeasurementAnalysisAccumulator(MeasurementOptions options)
     private RunningMoments _clusterSums, _clusterCounts;
     private double _clusterCoMoment;
     private double _coMoment, _weightSum, _weightSquares, _weightedSum, _minWeight = double.PositiveInfinity, _maxWeight;
-    private long _events, _distinctParents, _entries, _exits, _unclosed, _uniqueAwards, _duplicateAwards;
+    private long _events, _distinctParents, _entries, _exits, _unclosed, _uniqueAwards, _duplicateAwards, _assertionViolations;
     private bool _supportComplete = true;
     private readonly SortedDictionary<double, long> _support = new();
     private readonly SortedDictionary<double, double> _weightSupport = new();
@@ -40,7 +40,7 @@ internal sealed class MeasurementAnalysisAccumulator(MeasurementOptions options)
         _clusterSums = _clusterCounts = default; _clusterCoMoment = 0;
         _weightedMoments = _weightedPairMoments = _weightedEventMoments = default; _weightedEvents = _weightedCoMoment = 0;
         _transitions.Clear(); _transitionsComplete = true;
-        _events = _distinctParents = _entries = _exits = _unclosed = _uniqueAwards = _duplicateAwards = 0;
+        _events = _distinctParents = _entries = _exits = _unclosed = _uniqueAwards = _duplicateAwards = _assertionViolations = 0;
         _supportComplete = true; _support.Clear(); _weightSupport.Clear(); Array.Clear(_binCount); Array.Clear(_binSum); Array.Clear(_binSquares);
         Array.Clear(_tailCount); Array.Clear(_tailSum); Array.Clear(_tailSquares); _sequence?.Reset();
         foreach (var group in _groups.Values) group.Reset();
@@ -51,7 +51,7 @@ internal sealed class MeasurementAnalysisAccumulator(MeasurementOptions options)
         if (observations is { } count)
         { var dx = sum - _clusterSums.Mean; var dy = count - _clusterCounts.Mean; _clusterCoMoment += dx * dy * _clusterSums.Count / (_clusterSums.Count + 1d); _clusterSums.Add(sum); _clusterCounts.Add(count); }
         foreach (var group in _groups.Values) group.Parent(group._moments.Count > 0, 0, 0, 0, 0, 0, group._moments.Count, group._moments.Sum); }
-    public void Add(double value, double? pair, double? weight, string? group)
+    public void Add(double value, double? pair, double? weight, string? group, bool assertionViolation = false)
     {
         if (_groupsComplete && group is not null && !_groups.ContainsKey(group) && _groups.Count >= options.GroupLimit)
         { _groupsComplete = false; _groups.Clear(); }
@@ -81,6 +81,7 @@ internal sealed class MeasurementAnalysisAccumulator(MeasurementOptions options)
             _paired = paired; _coMoment += dx * dy * _moments.Count / (_moments.Count + 1d);
         }
         _moments = moments; if (value != 0) _events++;
+        if (options.Assertion == "zero" && assertionViolation) _assertionViolations++;
         if (options.Subject == "transition" && pair is { } nextState && _transitionsComplete)
         {
             var key = (value, nextState);
@@ -114,7 +115,7 @@ internal sealed class MeasurementAnalysisAccumulator(MeasurementOptions options)
         if (_groupsComplete && group is not null)
         {
             if (!_groups.TryGetValue(group, out var child)) _groups.Add(group, child = GroupAccumulator());
-            child.Add(value, pair, weight, null);
+            child.Add(value, pair, weight, null, assertionViolation);
         }
     }
 
@@ -141,6 +142,7 @@ internal sealed class MeasurementAnalysisAccumulator(MeasurementOptions options)
         }
         _events += other._events; _distinctParents += other._distinctParents; _entries += other._entries; _exits += other._exits;
         _unclosed += other._unclosed; _uniqueAwards += other._uniqueAwards; _duplicateAwards += other._duplicateAwards;
+        _assertionViolations += other._assertionViolations;
         _weightSum += other._weightSum; _weightSquares += other._weightSquares; _weightedSum += other._weightedSum;
         _minWeight = M.Min(_minWeight, other._minWeight); _maxWeight = M.Max(_maxWeight, other._maxWeight);
         if (!_supportComplete || !other._supportComplete) { _supportComplete = false; _support.Clear(); _weightSupport.Clear(); }
@@ -234,11 +236,19 @@ internal sealed class MeasurementAnalysisAccumulator(MeasurementOptions options)
         var tails = options.Thresholds.Select((t, i) => new TailSummary(t, _tailCount[i], n == 0 ? 0 : (double)_tailCount[i] / n, _tailSum[i], _tailCount[i] == 0 ? null : _tailSum[i] / _tailCount[i], n == 0 ? 0 : _tailSquares[i] / n)).ToArray();
         double? mad = _supportComplete && n > 0 ? _support.Sum(p => M.Abs(p.Key - mean) * p.Value) / n : null;
         var moments = new MomentSummary(n == 0 ? null : _moments.M2 / n + mean * mean, n == 0 ? null : _moments.M2 / n, variance,
-            variance is { } varX && mean != 0 ? M.Sqrt(M.Max(0, varX)) / M.Abs(mean) : null,
+            variance is { } varX && mean > 0 ? M.Sqrt(M.Max(0, varX)) / mean : null,
             _moments.M2 > 0 ? Finite(M.Sqrt(n) * (_moments.M3 / _moments.M2) / M.Sqrt(_moments.M2)) : null,
             _moments.M2 > 0 ? Finite((_moments.M4 / _moments.M2) * (n / _moments.M2) - 3) : null, mad);
         var comparison = options.ReferenceDistribution.Length > 0 && _supportComplete && n > 0 && (options.Weight is null || _weightSum > 0) ? Compare(n, independent) : null;
         var checks = new List<VerificationCheck>();
+        AssertionSummary? assertion = null;
+        if (options.Assertion == "zero")
+        {
+            var status = errors > 0 || _unclosed > 0 || _duplicateAwards > 0 ? "invalid" : _assertionViolations > 0 ? "discrepancy" : n == 0 ? "insufficient" : "noObservedViolations";
+            assertion = new("zero", n, _assertionViolations, status);
+            checks.Add(new("exact-zero-assertion", status, _assertionViolations, 0, _assertionViolations,
+                "Each valid scoped expression must be exactly zero or false before binary64 report conversion. Invalid observations cannot pass. No observed violations describes the checked population; it does not prove unobserved cases."));
+        }
         if (errors > 0 || _unclosed > 0 || _duplicateAwards > 0) checks.Add(new("observation-integrity", "invalid", errors + _unclosed + _duplicateAwards, 0, null, "Expression errors, unmatched lifecycle boundaries or duplicate award IDs invalidate this measurement."));
         if (options.ReferenceMean is { } reference)
         {
@@ -259,7 +269,14 @@ internal sealed class MeasurementAnalysisAccumulator(MeasurementOptions options)
             probabilityCi, clusterCi, sequential, se, variance is > 0 && options.Tolerance is > 0 ? Finite(M.Ceiling(z * z * variance.Value / M.Pow(options.Tolerance.Value, 2))) : null,
             options.Weight is null ? null : new(_weightSum, _weightSquares, _weightSquares > 0 ? Finite((_weightSum / _weightSquares) * _weightSum) : null,
                 n == 0 ? null : _weightedSum / n, _weightSum > 0 ? _weightedSum / _weightSum : null, double.IsFinite(_minWeight) ? _minWeight : 0, _maxWeight, weightedCi, n == 0 ? null : _weightedEvents / n, weightedEventCi, weightedRatio, weightedRatioCi),
-            _sequence?.Snapshot(ordered), TransitionSnapshot(), _transitionsComplete, comparison, checks.ToArray(), _groups.Where(p => p.Value._moments.Count > 0).ToDictionary(p => p.Key, p => p.Value.Snapshot(errors, ordered), StringComparer.Ordinal)) { GroupsComplete = _groupsComplete };
+            _sequence?.Snapshot(ordered), TransitionSnapshot(), _transitionsComplete, comparison, checks.ToArray(), _groups.Where(p => p.Value._moments.Count > 0).ToDictionary(p => p.Key, p => p.Value.Snapshot(errors, ordered), StringComparer.Ordinal))
+        {
+            GroupsComplete = _groupsComplete, Assertion = assertion,
+            Normalization = _clusterSums.Count == 0 ? null : new(_clusterSums.Count,
+                options.PairRole == "wager" ? _paired.Sum > 0 ? Finite(_paired.Sum) : null : Finite(_clusterSums.Count * options.Stake),
+                options.PairRole == "wager" ? "Sum of included complete paid-round wager pairs; scope defines conditional mode turnover. Unweighted proposal observations when likelihood weights are present."
+                    : "All settled paid parents multiplied by the pinned fixed external cost; absent cohort/component parents remain in the denominator. Values and cost must use compatible monetary units. Unweighted proposal observations when likelihood weights are present.")
+        };
     }
     private TransitionFrequency[] TransitionSnapshot()
     {

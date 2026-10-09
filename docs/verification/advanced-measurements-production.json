@@ -1,27 +1,27 @@
 {
-  "checkedAt": "2026-10-09T22:52:49.139Z",
+  "checkedAt": "2026-10-09T23:37:56.951Z",
   "endpoint": "https://localhost:8543",
   "anonymousBlocked": true,
-  "runId": "86f71f4b5b4e43dc961f78f5436c33ce",
-  "replayRunId": "c1bba6586df643778caa29d8852d9565",
-  "referenceRunId": "a0532c0bec2e4cb09e0538144d61dd37",
+  "runId": "a4c3f12543654fc3b68b8b9d3bd563fa",
+  "replayRunId": "6b9b9188e4e542668b2b329417bfea2c",
+  "referenceRunId": "c3ebd5afe5c847f59781a5662c48e9aa",
   "crossEngineBitIdentical": true,
-  "referenceElapsedMs": 25279,
+  "referenceElapsedMs": 35873,
   "rounds": 100000,
   "observedRtp": 0.9967189999999915,
   "authoredReferenceRtp": 0.98,
   "configHash": "6ab31814ceb52133e3332855ab8e80aac5af9f9443a886b9361bf5345f0964b4",
-  "measurementHash": "71c15f66d14cdcc3cf7f0fa078c8e04e13caa4fdc94dd41651c9f8588f8fdd61",
+  "measurementHash": "9b0ec99145824050a71c71a1a4e2c5a15d90bfa23a6a9840c7134c4bdc1245d9",
   "runtimeProvenance": {
     "measurementContract": "measurements-v1",
-    "numericalMethods": "central-moments-pebay-v1;bins-v1;clopper-pearson-v1;hoeffding-spending-v1;pearson-gamma-v1;session-accounting-v1;categorical-joint-v1;discrete-null-v1;finite-stationary-v1;witness-prefix-v1;loop-completion-v1;paid-parent-cohorts-v1",
+    "numericalMethods": "central-moments-pebay-v1;bins-v1;clopper-pearson-v1;hoeffding-spending-v1;pearson-gamma-v1;session-accounting-v2-decimal-roundtrip;categorical-joint-v1;discrete-null-v1;finite-stationary-v1;witness-prefix-v1;loop-completion-v1;paid-parent-cohorts-v1;paid-turnover-v1;exact-assertion-v1;enumerated-joint-v2;finite-law-comparison-rational-v1;typed-operators-v1",
     "framework": ".NET 10.0.12",
-    "coreBinarySha256": "5bfb9eb633da87ea3ec09e4a6c379f420805698cb2e95e8c5634488ac1f11cfa",
-    "apiBinarySha256": "1fc6427f93b3ae645b4ff1e8fb14658a3e1884054c3a916882f978665ed49dc7"
+    "coreBinarySha256": "01101ccf68166efa026f64b8fb0bd4f8f01ba112dfab94cda2f3dbfd09ac5db3",
+    "apiBinarySha256": "ce96e41ed510eed0258a50f21328f3be96538341d0e3f11a5ded51051d564370"
   },
   "measurements": [
     {
-      "id": "7e94e5fc-97ba-4fa2-9020-837efa76f5f8",
+      "id": "337863ae-1731-45e7-9b35-77068e616e02",
       "observations": 100000,
       "count": 100000,
       "excluded": 0,
@@ -264,7 +264,13 @@
         "comparison": null,
         "checks": [],
         "groups": {},
-        "groupsComplete": true
+        "groupsComplete": true,
+        "assertion": null,
+        "normalization": {
+          "paidRounds": 100000,
+          "externalTurnover": 100000,
+          "basis": "All settled paid parents multiplied by the pinned fixed external cost; absent cohort/component parents remain in the denominator. Values and cost must use compatible monetary units. Unweighted proposal observations when likelihood weights are present."
+        }
       },
       "witnesses": [
         {
@@ -300,7 +306,7 @@
       ]
     },
     {
-      "id": "8c5d61f6-371b-46f3-a54c-e6f144e4e8a9",
+      "id": "b8a69cbc-fc7c-446a-857d-f9ba18487383",
       "observations": 11275,
       "count": 11275,
       "excluded": 0,
@@ -791,7 +797,13 @@
             "comparison": null,
             "checks": [],
             "groups": {},
-            "groupsComplete": true
+            "groupsComplete": true,
+            "assertion": null,
+            "normalization": {
+              "paidRounds": 100000,
+              "externalTurnover": 100000,
+              "basis": "All settled paid parents multiplied by the pinned fixed external cost; absent cohort/component parents remain in the denominator. Values and cost must use compatible monetary units. Unweighted proposal observations when likelihood weights are present."
+            }
           },
           "13": {
             "count": 208,
@@ -1191,7 +1203,13 @@
             "comparison": null,
             "checks": [],
             "groups": {},
-            "groupsComplete": true
+            "groupsComplete": true,
+            "assertion": null,
+            "normalization": {
+              "paidRounds": 100000,
+              "externalTurnover": 100000,
+              "basis": "All settled paid parents multiplied by the pinned fixed external cost; absent cohort/component parents remain in the denominator. Values and cost must use compatible monetary units. Unweighted proposal observations when likelihood weights are present."
+            }
           },
           "14": {
             "count": 504,
@@ -1881,7 +1899,13 @@
             "comparison": null,
             "checks": [],
             "groups": {},
-            "groupsComplete": true
+            "groupsComplete": true,
+            "assertion": null,
+            "normalization": {
+              "paidRounds": 100000,
+              "externalTurnover": 100000,
+              "basis": "All settled paid parents multiplied by the pinned fixed external cost; absent cohort/component parents remain in the denominator. Values and cost must use compatible monetary units. Unweighted proposal observations when likelihood weights are present."
+            }
           },
           "15": {
             "count": 915,
@@ -2636,7 +2660,13 @@
             "comparison": null,
             "checks": [],
             "groups": {},
-            "groupsComplete": true
+            "groupsComplete": true,
+            "assertion": null,
+            "normalization": {
+              "paidRounds": 100000,
+              "externalTurnover": 100000,
+              "basis": "All settled paid parents multiplied by the pinned fixed external cost; absent cohort/component parents remain in the denominator. Values and cost must use compatible monetary units. Unweighted proposal observations when likelihood weights are present."
+            }
           },
           "16": {
             "count": 1136,
@@ -3646,7 +3676,13 @@
             "comparison": null,
             "checks": [],
             "groups": {},
-            "groupsComplete": true
+            "groupsComplete": true,
+            "assertion": null,
+            "normalization": {
+              "paidRounds": 100000,
+              "externalTurnover": 100000,
+              "basis": "All settled paid parents multiplied by the pinned fixed external cost; absent cohort/component parents remain in the denominator. Values and cost must use compatible monetary units. Unweighted proposal observations when likelihood weights are present."
+            }
           },
           "17": {
             "count": 1513,
@@ -4661,7 +4697,13 @@
             "comparison": null,
             "checks": [],
             "groups": {},
-            "groupsComplete": true
+            "groupsComplete": true,
+            "assertion": null,
+            "normalization": {
+              "paidRounds": 100000,
+              "externalTurnover": 100000,
+              "basis": "All settled paid parents multiplied by the pinned fixed external cost; absent cohort/component parents remain in the denominator. Values and cost must use compatible monetary units. Unweighted proposal observations when likelihood weights are present."
+            }
           },
           "18": {
             "count": 1944,
@@ -5981,7 +6023,13 @@
             "comparison": null,
             "checks": [],
             "groups": {},
-            "groupsComplete": true
+            "groupsComplete": true,
+            "assertion": null,
+            "normalization": {
+              "paidRounds": 100000,
+              "externalTurnover": 100000,
+              "basis": "All settled paid parents multiplied by the pinned fixed external cost; absent cohort/component parents remain in the denominator. Values and cost must use compatible monetary units. Unweighted proposal observations when likelihood weights are present."
+            }
           },
           "19": {
             "count": 1653,
@@ -7111,7 +7159,13 @@
             "comparison": null,
             "checks": [],
             "groups": {},
-            "groupsComplete": true
+            "groupsComplete": true,
+            "assertion": null,
+            "normalization": {
+              "paidRounds": 100000,
+              "externalTurnover": 100000,
+              "basis": "All settled paid parents multiplied by the pinned fixed external cost; absent cohort/component parents remain in the denominator. Values and cost must use compatible monetary units. Unweighted proposal observations when likelihood weights are present."
+            }
           },
           "20": {
             "count": 1320,
@@ -8261,7 +8315,13 @@
             "comparison": null,
             "checks": [],
             "groups": {},
-            "groupsComplete": true
+            "groupsComplete": true,
+            "assertion": null,
+            "normalization": {
+              "paidRounds": 100000,
+              "externalTurnover": 100000,
+              "basis": "All settled paid parents multiplied by the pinned fixed external cost; absent cohort/component parents remain in the denominator. Values and cost must use compatible monetary units. Unweighted proposal observations when likelihood weights are present."
+            }
           },
           "21": {
             "count": 987,
@@ -9356,7 +9416,13 @@
             "comparison": null,
             "checks": [],
             "groups": {},
-            "groupsComplete": true
+            "groupsComplete": true,
+            "assertion": null,
+            "normalization": {
+              "paidRounds": 100000,
+              "externalTurnover": 100000,
+              "basis": "All settled paid parents multiplied by the pinned fixed external cost; absent cohort/component parents remain in the denominator. Values and cost must use compatible monetary units. Unweighted proposal observations when likelihood weights are present."
+            }
           },
           "22": {
             "count": 506,
@@ -10041,7 +10107,13 @@
             "comparison": null,
             "checks": [],
             "groups": {},
-            "groupsComplete": true
+            "groupsComplete": true,
+            "assertion": null,
+            "normalization": {
+              "paidRounds": 100000,
+              "externalTurnover": 100000,
+              "basis": "All settled paid parents multiplied by the pinned fixed external cost; absent cohort/component parents remain in the denominator. Values and cost must use compatible monetary units. Unweighted proposal observations when likelihood weights are present."
+            }
           },
           "23": {
             "count": 276,
@@ -10671,7 +10743,13 @@
             "comparison": null,
             "checks": [],
             "groups": {},
-            "groupsComplete": true
+            "groupsComplete": true,
+            "assertion": null,
+            "normalization": {
+              "paidRounds": 100000,
+              "externalTurnover": 100000,
+              "basis": "All settled paid parents multiplied by the pinned fixed external cost; absent cohort/component parents remain in the denominator. Values and cost must use compatible monetary units. Unweighted proposal observations when likelihood weights are present."
+            }
           },
           "24": {
             "count": 216,
@@ -11176,7 +11254,13 @@
             "comparison": null,
             "checks": [],
             "groups": {},
-            "groupsComplete": true
+            "groupsComplete": true,
+            "assertion": null,
+            "normalization": {
+              "paidRounds": 100000,
+              "externalTurnover": 100000,
+              "basis": "All settled paid parents multiplied by the pinned fixed external cost; absent cohort/component parents remain in the denominator. Values and cost must use compatible monetary units. Unweighted proposal observations when likelihood weights are present."
+            }
           },
           "25": {
             "count": 75,
@@ -11551,10 +11635,22 @@
             "comparison": null,
             "checks": [],
             "groups": {},
-            "groupsComplete": true
+            "groupsComplete": true,
+            "assertion": null,
+            "normalization": {
+              "paidRounds": 100000,
+              "externalTurnover": 100000,
+              "basis": "All settled paid parents multiplied by the pinned fixed external cost; absent cohort/component parents remain in the denominator. Values and cost must use compatible monetary units. Unweighted proposal observations when likelihood weights are present."
+            }
           }
         },
-        "groupsComplete": true
+        "groupsComplete": true,
+        "assertion": null,
+        "normalization": {
+          "paidRounds": 100000,
+          "externalTurnover": 100000,
+          "basis": "All settled paid parents multiplied by the pinned fixed external cost; absent cohort/component parents remain in the denominator. Values and cost must use compatible monetary units. Unweighted proposal observations when likelihood weights are present."
+        }
       },
       "witnesses": [
         {
@@ -11590,7 +11686,7 @@
       ]
     },
     {
-      "id": "3225bbaf-8e4f-4dc4-a59a-d89ecade43d7",
+      "id": "dfb76b6f-b2e5-4410-be33-86644e69a3b3",
       "observations": 11275,
       "count": 6977,
       "excluded": 4298,
@@ -11823,7 +11919,13 @@
         "comparison": null,
         "checks": [],
         "groups": {},
-        "groupsComplete": true
+        "groupsComplete": true,
+        "assertion": null,
+        "normalization": {
+          "paidRounds": 100000,
+          "externalTurnover": 100000,
+          "basis": "All settled paid parents multiplied by the pinned fixed external cost; absent cohort/component parents remain in the denominator. Values and cost must use compatible monetary units. Unweighted proposal observations when likelihood weights are present."
+        }
       },
       "witnesses": [
         {
@@ -11859,7 +11961,7 @@
       ]
     },
     {
-      "id": "50ab0b40-8b58-42e3-abbf-c1386c418529",
+      "id": "99ab46bc-f0e4-427b-b578-cfa791c0a84b",
       "observations": 100000,
       "count": 100000,
       "excluded": 0,
@@ -12178,7 +12280,13 @@
         "comparison": null,
         "checks": [],
         "groups": {},
-        "groupsComplete": true
+        "groupsComplete": true,
+        "assertion": null,
+        "normalization": {
+          "paidRounds": 100000,
+          "externalTurnover": 100000,
+          "basis": "All settled paid parents multiplied by the pinned fixed external cost; absent cohort/component parents remain in the denominator. Values and cost must use compatible monetary units. Unweighted proposal observations when likelihood weights are present."
+        }
       },
       "witnesses": [
         {
@@ -12214,7 +12322,7 @@
       ]
     },
     {
-      "id": "183fdf7c-4d1e-47d0-88c2-ab7a66af8efb",
+      "id": "4a71ce03-0010-4110-90af-ecd49b92ec8a",
       "observations": 630,
       "count": 630,
       "excluded": 0,
@@ -12528,7 +12636,13 @@
         "comparison": null,
         "checks": [],
         "groups": {},
-        "groupsComplete": true
+        "groupsComplete": true,
+        "assertion": null,
+        "normalization": {
+          "paidRounds": 100000,
+          "externalTurnover": 100000,
+          "basis": "All settled paid parents multiplied by the pinned fixed external cost; absent cohort/component parents remain in the denominator. Values and cost must use compatible monetary units. Unweighted proposal observations when likelihood weights are present."
+        }
       },
       "witnesses": [
         {
@@ -12575,8 +12689,9 @@
     "interruptedSessions": 0,
     "carriesState": false,
     "stateResetPolicy": "Reset all state before each paid round",
-    "sessionPolicy": "Fixed horizon; ruin is first inability to fund the next wager. Play continues with hypothetical credit; no survivor-only RTP denominator.",
+    "sessionPolicy": "Fixed horizon; ruin is first inability to fund the next wager. Play continues with hypothetical credit; no survivor-only RTP denominator. Session money uses exact shortest round-trip decimals without currency rounding; report values are binary64.",
     "sessionMetrics": [],
+    "monetaryAccounting": null,
     "samplingEngine": "compiled-sampling-plan",
     "loopTerminations": [
       {
@@ -12600,12 +12715,15 @@
     ],
     "loopTerminationsComplete": true
   },
-  "elapsedMs": 3848,
-  "roundsPerSecond": 25987.525987525987,
-  "liveFrames": 192,
+  "elapsedMs": 11224,
+  "roundsPerSecond": 8909.479686386316,
+  "liveFrames": 388,
+  "primaryRunLiveFrames": 113,
+  "paidTurnoverReconciled": true,
+  "independentLawComparisonRetained": true,
   "workerReplayBitIdentical": true,
   "mobileFits": true,
   "browserErrors": [],
-  "simulateUrl": "https://localhost:8543/simulate?run=86f71f4b5b4e43dc961f78f5436c33ce",
-  "resultsUrl": "https://localhost:8543/results?run=86f71f4b5b4e43dc961f78f5436c33ce"
+  "simulateUrl": "https://localhost:8543/simulate?run=a4c3f12543654fc3b68b8b9d3bd563fa",
+  "resultsUrl": "https://localhost:8543/results?run=a4c3f12543654fc3b68b8b9d3bd563fa"
 }

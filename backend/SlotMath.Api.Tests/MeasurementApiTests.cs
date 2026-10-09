@@ -15,6 +15,21 @@ public class MeasurementApiTests : IClassFixture<WebApplicationFactory<Program>>
     private readonly HttpClient client;
     public MeasurementApiTests(WebApplicationFactory<Program> factory) { this.factory = factory; client = factory.CreateClient(); }
     [Fact]
+    public async Task ExactLawComparisonRetainsDifferentEqualMeanLawsAndRejectsIncompleteEvidence()
+    {
+        var configs = factory.Services.GetRequiredService<InMemoryConfigStore>(); var store = factory.Services.GetRequiredService<InMemoryRunStore>();
+        var configId = configs.Create(Coin()); var run = store.Create(configId, 42, 1, 1, CanonicalHash.Compute(configs.GetVersion(configId, 1)!.Config));
+        var input = new ExactLawComparisonRequest([new("0", "1/2"), new("1.96", "1/2")], [new("0", "9/10"), new("9.8", "1/10")]);
+        var response = await client.PostAsJsonAsync($"/api/runs/{run.Id}/measurements/reference/comparison", input); Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var report = await response.Content.ReadFromJsonAsync<RetainedReference<ExactLawComparisonReport>>();
+        Assert.True(report!.Retention.Retained); Assert.False(report.Report.Equal); Assert.Equal("0/1", report.Report.MeanDifference);
+        Assert.Equal("1/2", report.Report.TotalVariation); Assert.Equal("2/5", report.Report.CdfDistance);
+        var artifact = Assert.Single(store.Get(run.Id)!.Diagnostics); Assert.Equal("independent-law-comparison", artifact.Kind);
+        Assert.Equal(report.Report.AuthoredInputSha256, artifact.InputSha256); Assert.NotNull(report.Report.CoreBinarySha256);
+        var rejected = await client.PostAsJsonAsync($"/api/runs/{run.Id}/measurements/reference/comparison", input with { Right = [new("0", "1/2")] });
+        Assert.Equal(HttpStatusCode.BadRequest, rejected.StatusCode); Assert.Single(store.Get(run.Id)!.Diagnostics);
+    }
+    [Fact]
     public async Task ZeroObservedVarianceDoesNotCertifyAZeroWidthReturnInterval()
     {
         var config = Coin() with { Nodes = Coin().Nodes.Select(n => n is DrawNode d ? d with { DrawWeights = [new() { OutcomeId = "zero", Value = 0, Weight = 1 }] } : n).ToArray() };

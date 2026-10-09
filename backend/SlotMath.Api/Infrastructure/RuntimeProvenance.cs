@@ -10,7 +10,7 @@ namespace SlotMath.Api.Infrastructure;
 public sealed record RuntimeProvenance(string MeasurementContract, string NumericalMethods, string Framework,
     string? CoreBinarySha256, string? ApiBinarySha256)
 {
-    public static RuntimeProvenance Current { get; } = new("measurements-v1", "central-moments-pebay-v1;bins-v1;clopper-pearson-v1;hoeffding-spending-v1;pearson-gamma-v1;session-accounting-v1;categorical-joint-v1;discrete-null-v1;finite-stationary-v1;witness-prefix-v1;loop-completion-v1;paid-parent-cohorts-v1",
+    public static RuntimeProvenance Current { get; } = new("measurements-v1", "central-moments-pebay-v1;bins-v1;clopper-pearson-v1;hoeffding-spending-v1;pearson-gamma-v1;session-accounting-v2-decimal-roundtrip;categorical-joint-v1;discrete-null-v1;finite-stationary-v1;witness-prefix-v1;loop-completion-v1;paid-parent-cohorts-v1;paid-turnover-v1;exact-assertion-v1;enumerated-joint-v2;finite-law-comparison-rational-v1;typed-operators-v1",
         System.Runtime.InteropServices.RuntimeInformation.FrameworkDescription,
         Fingerprint(typeof(SlotMath.Core.Math.SampledInterpreter).Assembly), Fingerprint(typeof(RuntimeProvenance).Assembly));
     private static string? Fingerprint(Assembly assembly)

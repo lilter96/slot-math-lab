@@ -85,6 +85,7 @@ internal sealed class MeasurementCollector(IReadOnlyList<MeasurementDefinition> 
                 var predicate = filter(state); if (predicate.Kind != ExprType.Boolean) throw new InvalidOperationException("Measurement filter must return Boolean.");
                 if (!predicate.BoolValue) { if (!aggregate) _round[index].Excluded++; return; }
             }
+            ExprValue? expressionValue = null;
             var number = options?.Source switch
             {
                 "count" => 1d,
@@ -92,7 +93,7 @@ internal sealed class MeasurementCollector(IReadOnlyList<MeasurementDefinition> 
                 "capDeduction" => rawPayout is { } raw ? raw - payout : throw new InvalidOperationException("Raw settlement is unavailable for this program."),
                 "turnover" => options.Stake,
                 "net" => payout - options.Stake,
-                _ => binding.Value is null ? payout : Numeric(binding.Value(state), options?.Source == "event")
+                _ => binding.Value is null ? payout : Numeric((expressionValue = binding.Value(state)).Value, options?.Source == "event")
             };
             var pair = options?.PairRole == "wager" && options.Subject == "round" ? null : binding.Pair is null ? options?.PairRole == "wager" ? options.Stake : (double?)null : Numeric(binding.Pair(state));
             if (options?.PairRole == "wager" && pair is <= 0) throw new InvalidOperationException("External wager must be positive for every completed paid round.");
@@ -105,7 +106,8 @@ internal sealed class MeasurementCollector(IReadOnlyList<MeasurementDefinition> 
                 if (!ids.Add(id)) { _duplicates[index]++; Capture(index, "duplicateAward", number, pair, group, "Award ID " + id + " was observed again in this paid round."); }
             }
             if (subject is not null) subject.Add(number, pair, weight, group, options!.Reduction);
-            else Add(index, number, pair, weight, group);
+            else Add(index, number, pair, weight, group, options?.Assertion == "zero" && (expressionValue is { } exact
+                ? exact.Kind == ExprType.Boolean ? exact.BoolValue : !exact.NumberNumerator.IsZero : number != 0));
             _matchingChild[index] = true;
         }
         catch (Exception ex) when (IsMeasurementError(ex))
@@ -186,13 +188,14 @@ internal sealed class MeasurementCollector(IReadOnlyList<MeasurementDefinition> 
             subject.WeightCount > 0 ? subject.WeightSum / subject.WeightCount : null, subject.Group); }
         catch (Exception ex) when (IsMeasurementError(ex)) { Error(index, ex.Message); }
     }
-    private void Add(int index, double value, double? pair, double? weight, string? group)
+    private void Add(int index, double value, double? pair, double? weight, string? group, bool assertionViolation = false)
     {
         // Validate the basic accumulator before touching additional statistics.
         var next = _round[index]; next.Add(value);
-        if (definitions[index].Options is { } options) (next.Analysis ??= new(options)).Add(value, pair, weight, group);
+        if (definitions[index].Options is { } options) (next.Analysis ??= new(options)).Add(value, pair, weight, group, assertionViolation);
         _round[index] = next;
         Capture(index, "first", value, pair, group); Capture(index, "minimum", value, pair, group); Capture(index, "maximum", value, pair, group);
+        if (assertionViolation) Capture(index, "assertionViolation", value, pair, group, "Authored residual was exactly nonzero or the failure predicate was true before binary64 report conversion.");
         if (definitions[index].Options is { ReferenceDistribution.Length: > 0 } reference && !reference.ReferenceDistribution.Any(p => p.Value == value && p.Probability > 0)) Capture(index, "unexpectedSupport", value, pair, group);
     }
     private void Error(int index, string message) { _round[index].Errors++; _round[index].FirstError ??= message.Length > 240 ? message[..240] : message; Capture(index, "invalid", detail: message); }

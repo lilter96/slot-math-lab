@@ -4,17 +4,21 @@ export interface MeasurementOptions {
   source: 'value' | 'event' | 'count' | 'rawPayout' | 'capDeduction' | 'turnover' | 'net';
   entryNodeId?: string; exitNodeId?: string; group?: ExpressionAst; pair?: ExpressionAst; weight?: ExpressionAst; awardId?: ExpressionAst;
   entryFilter?: ExpressionAst; exitFilter?: ExpressionAst;
+  assertion?: 'none' | 'zero';
   pairRole: 'value' | 'wager'; referenceStatistic: 'mean' | 'ratio' | 'probability';
   binEdges: number[]; quantiles: number[]; thresholds: number[]; supportLimit: number; groupLimit: number; lags: number[];
   stake: number; lowerBound?: number; upperBound?: number; confidence: number; errorFamilySize: number; independentSubjects: boolean; independentParents?: boolean;
   referenceMean?: number; tolerance?: number; referenceDistribution: { value: number; probability: number }[];
 }
 export const defaultOptions = (): MeasurementOptions => ({ subject: 'observation', reduction: 'sum', source: 'value',
+  assertion: 'none',
   pairRole: 'value', referenceStatistic: 'mean',
   binEdges: [0, 1, 2, 5, 10, 20, 50, 100, 500, 1000], quantiles: [0.5, 0.9, 0.95, 0.99], thresholds: [1, 10, 100], supportLimit: 256,
   groupLimit: 32, lags: [], stake: 1, confidence: 0.95, errorFamilySize: 1, independentSubjects: false, independentParents: false, referenceDistribution: [] });
 export interface NumericInterval { lower: number; upper: number; method: string; assumptions: string }
 export interface MeasurementAnalysis {
+  normalization?: { paidRounds: number; externalTurnover: number | null; basis: string } | null;
+  assertion?: { kind: 'zero'; checked: number; violations: number; status: 'invalid' | 'discrepancy' | 'insufficient' | 'noObservedViolations' } | null;
   count: number; min: number | null; max: number | null; mean: number | null; sum: number | null;
   subject: string; reduction: string; distinctParents: number; entries: number; exits: number; unclosedEpisodes: number;
   uniqueAwards: number; duplicateAwards: number;

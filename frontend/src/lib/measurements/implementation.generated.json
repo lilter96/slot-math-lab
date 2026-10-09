@@ -1,0 +1,638 @@
+{
+  "counts.completed_rounds": {
+    "status": "ready",
+    "scope": "Complete/attempted/interrupted round and scoped observation counters are distinct; cancelled round measurements are discarded transactionally."
+  },
+  "counts.attempted_rounds": {
+    "status": "ready",
+    "scope": "Complete/attempted/interrupted round and scoped observation counters are distinct; cancelled round measurements are discarded transactionally."
+  },
+  "counts.interrupted_rounds": {
+    "status": "ready",
+    "scope": "Complete/attempted/interrupted round and scoped observation counters are distinct; cancelled round measurements are discarded transactionally."
+  },
+  "counts.eligible": {
+    "status": "ready",
+    "scope": "Complete/attempted/interrupted round and scoped observation counters are distinct; cancelled round measurements are discarded transactionally."
+  },
+  "counts.matching": {
+    "status": "ready",
+    "scope": "Complete/attempted/interrupted round and scoped observation counters are distinct; cancelled round measurements are discarded transactionally."
+  },
+  "counts.excluded": {
+    "status": "ready",
+    "scope": "Complete/attempted/interrupted round and scoped observation counters are distinct; cancelled round measurements are discarded transactionally."
+  },
+  "counts.invalid": {
+    "status": "ready",
+    "scope": "Complete/attempted/interrupted round and scoped observation counters are distinct; cancelled round measurements are discarded transactionally."
+  },
+  "counts.visits": {
+    "status": "ready",
+    "scope": "Complete/attempted/interrupted round and scoped observation counters are distinct; cancelled round measurements are discarded transactionally."
+  },
+  "counts.distinct_parents": {
+    "status": "partial",
+    "scope": "Unique paid parents are implemented. Unique episode-parent identity for nested child populations is not yet exposed."
+  },
+  "counts.feature_entries": {
+    "status": "partial",
+    "scope": "Matched lifecycle entries/exits and unclosed episodes are implemented for settled rounds. Cohort lifecycle counts and typed interrupted feature outcomes remain required."
+  },
+  "counts.feature_exits": {
+    "status": "partial",
+    "scope": "Matched lifecycle entries/exits and unclosed episodes are implemented for settled rounds. Cohort lifecycle counts and typed interrupted feature outcomes remain required."
+  },
+  "counts.reveals": {
+    "status": "authored",
+    "scope": "Select the paid-round or authored lifecycle/award boundary and include invalid/excluded exposure."
+  },
+  "counts.unique_awards": {
+    "status": "authored",
+    "scope": "Select the paid-round or authored lifecycle/award boundary and include invalid/excluded exposure."
+  },
+  "counts.accounting_residual": {
+    "status": "authored",
+    "scope": "Author the actual monetary/rule residual or Boolean failure predicate. Exact zero/false assertions count failures before report conversion and retain replayable coordinates; exposure residual is a separate statistic."
+  },
+  "return.turnover": {
+    "status": "ready",
+    "scope": "Complete-round payout and external cost are pinned; variable-cost return uses paired sums, with cost charged once per parent."
+  },
+  "return.payout": {
+    "status": "ready",
+    "scope": "Complete-round payout and external cost are pinned; variable-cost return uses paired sums, with cost charged once per parent."
+  },
+  "return.rtp_fixed": {
+    "status": "ready",
+    "scope": "Complete-round payout and external cost are pinned; variable-cost return uses paired sums, with cost charged once per parent."
+  },
+  "return.rtp_mixed": {
+    "status": "ready",
+    "scope": "Complete-round payout and external cost are pinned; variable-cost return uses paired sums, with cost charged once per parent."
+  },
+  "return.theoretical": {
+    "status": "ready",
+    "scope": "Independent rational finite-law and finite-state calculators retain their own cost/model contract; they are not an inferred specification of the graph."
+  },
+  "return.net": {
+    "status": "ready",
+    "scope": "Complete-round payout and external cost are pinned; variable-cost return uses paired sums, with cost charged once per parent."
+  },
+  "return.house_edge": {
+    "status": "ready",
+    "scope": "Independent rational finite-law and finite-state calculators retain their own cost/model contract; they are not an inferred specification of the graph."
+  },
+  "return.component": {
+    "status": "authored",
+    "scope": "Pin the external cost and allocation/rounding contract. Repeated reveal values are not a paid-round return."
+  },
+  "return.component_share": {
+    "status": "authored",
+    "scope": "Pin the external cost and allocation/rounding contract. Repeated reveal values are not a paid-round return."
+  },
+  "return.conditional": {
+    "status": "authored",
+    "scope": "Pin the external cost and allocation/rounding contract. Repeated reveal values are not a paid-round return."
+  },
+  "return.mode": {
+    "status": "ready",
+    "scope": "Complete-round payout and external cost are pinned; variable-cost return uses paired sums, with cost charged once per parent."
+  },
+  "return.reconciliation": {
+    "status": "authored",
+    "scope": "Author the actual monetary/rule residual or Boolean failure predicate. Exact zero/false assertions count failures before report conversion and retain replayable coordinates; exposure residual is a separate statistic."
+  },
+  "return.rounding": {
+    "status": "partial",
+    "scope": "An authored pre-/post-rounding difference can be tracked. A native monetary settlement/rounding rule and its exact pre-rounding value are not yet provided."
+  },
+  "events.hit": {
+    "status": "ready",
+    "scope": "Money predicates use read-only settlement/cost fields. Empirical reciprocal is undefined at zero and is not a guaranteed gap."
+  },
+  "events.zero": {
+    "status": "ready",
+    "scope": "Money predicates use read-only settlement/cost fields. Empirical reciprocal is undefined at zero and is not a guaranteed gap."
+  },
+  "events.substake": {
+    "status": "ready",
+    "scope": "Money predicates use read-only settlement/cost fields. Empirical reciprocal is undefined at zero and is not a guaranteed gap."
+  },
+  "events.breakeven": {
+    "status": "ready",
+    "scope": "Money predicates use read-only settlement/cost fields. Empirical reciprocal is undefined at zero and is not a guaranteed gap."
+  },
+  "events.profit": {
+    "status": "ready",
+    "scope": "Money predicates use read-only settlement/cost fields. Empirical reciprocal is undefined at zero and is not a guaranteed gap."
+  },
+  "events.match_share": {
+    "status": "ready",
+    "scope": "Money predicates use read-only settlement/cost fields. Empirical reciprocal is undefined at zero and is not a guaranteed gap."
+  },
+  "events.round_activation": {
+    "status": "authored",
+    "scope": "Author a Boolean event with explicit scope and boundaries; declare independence for binomial inference."
+  },
+  "events.entry_rate": {
+    "status": "authored",
+    "scope": "Author a Boolean event with explicit scope and boundaries; declare independence for binomial inference."
+  },
+  "events.conditional": {
+    "status": "authored",
+    "scope": "Author a Boolean event with explicit scope and boundaries; declare independence for binomial inference."
+  },
+  "events.threshold": {
+    "status": "authored",
+    "scope": "Author a Boolean event with explicit scope and boundaries; declare independence for binomial inference."
+  },
+  "events.reciprocal": {
+    "status": "ready",
+    "scope": "Money predicates use read-only settlement/cost fields. Empirical reciprocal is undefined at zero and is not a guaranteed gap."
+  },
+  "moments.sum": {
+    "status": "ready",
+    "scope": "Valid numeric subjects; conventions and empty/constant cases are explicit. Sample maximum is descriptive."
+  },
+  "moments.min": {
+    "status": "ready",
+    "scope": "Valid numeric subjects; conventions and empty/constant cases are explicit. Sample maximum is descriptive."
+  },
+  "moments.max": {
+    "status": "ready",
+    "scope": "Valid numeric subjects; conventions and empty/constant cases are explicit. Sample maximum is descriptive."
+  },
+  "moments.mean": {
+    "status": "ready",
+    "scope": "Valid numeric subjects; conventions and empty/constant cases are explicit. Sample maximum is descriptive."
+  },
+  "moments.second": {
+    "status": "ready",
+    "scope": "Valid numeric subjects; conventions and empty/constant cases are explicit. Sample maximum is descriptive."
+  },
+  "moments.variance": {
+    "status": "ready",
+    "scope": "Valid numeric subjects; conventions and empty/constant cases are explicit. Sample maximum is descriptive."
+  },
+  "moments.sd": {
+    "status": "ready",
+    "scope": "Valid numeric subjects; conventions and empty/constant cases are explicit. Sample maximum is descriptive."
+  },
+  "moments.cv": {
+    "status": "ready",
+    "scope": "Sample SD divided by a strictly positive mean; zero/negative means withhold the coefficient under the declared convention."
+  },
+  "moments.skew": {
+    "status": "ready",
+    "scope": "Valid numeric subjects; conventions and empty/constant cases are explicit. Sample maximum is descriptive."
+  },
+  "moments.kurtosis": {
+    "status": "ready",
+    "scope": "Valid numeric subjects; conventions and empty/constant cases are explicit. Sample maximum is descriptive."
+  },
+  "moments.mean_abs_deviation": {
+    "status": "ready",
+    "scope": "Valid numeric subjects; conventions and empty/constant cases are explicit. Sample maximum is descriptive."
+  },
+  "distribution.pmf": {
+    "status": "ready",
+    "scope": "Full support or complete fixed bins; incomplete support yields enclosures instead of point quantiles."
+  },
+  "distribution.bin_count": {
+    "status": "ready",
+    "scope": "Full support or complete fixed bins; incomplete support yields enclosures instead of point quantiles."
+  },
+  "distribution.bin_sum": {
+    "status": "ready",
+    "scope": "Full support or complete fixed bins; incomplete support yields enclosures instead of point quantiles."
+  },
+  "distribution.bin_return": {
+    "status": "ready",
+    "scope": "Value-band sums divided by explicit external turnover. Fixed cost includes absent-feature parents; mixed wagers use included complete paid-round pair sums. Conditional mode scope and monetary units remain declared."
+  },
+  "distribution.cdf": {
+    "status": "ready",
+    "scope": "Full support or complete fixed bins; incomplete support yields enclosures instead of point quantiles."
+  },
+  "distribution.survival": {
+    "status": "ready",
+    "scope": "Full support or complete fixed bins; incomplete support yields enclosures instead of point quantiles."
+  },
+  "distribution.quantile": {
+    "status": "ready",
+    "scope": "Full support or complete fixed bins; incomplete support yields enclosures instead of point quantiles."
+  },
+  "distribution.tail_return": {
+    "status": "ready",
+    "scope": "Full support or complete fixed bins; incomplete support yields enclosures instead of point quantiles."
+  },
+  "distribution.tail_mean": {
+    "status": "ready",
+    "scope": "Full support or complete fixed bins; incomplete support yields enclosures instead of point quantiles."
+  },
+  "distribution.tail_second": {
+    "status": "ready",
+    "scope": "Full support or complete fixed bins; incomplete support yields enclosures instead of point quantiles."
+  },
+  "distribution.upper_tail_mean": {
+    "status": "ready",
+    "scope": "Full support or complete fixed bins; incomplete support yields enclosures instead of point quantiles."
+  },
+  "distribution.return_concentration": {
+    "status": "ready",
+    "scope": "Full support or complete fixed bins; incomplete support yields enclosures instead of point quantiles."
+  },
+  "features.type_mix": {
+    "status": "authored",
+    "scope": "Bind the authored entry, reveal, award and completion points; episode and paid-round populations differ."
+  },
+  "features.episode_payout": {
+    "status": "authored",
+    "scope": "Bind the authored entry, reveal, award and completion points; episode and paid-round populations differ."
+  },
+  "features.reveal_payout": {
+    "status": "authored",
+    "scope": "Bind the authored entry, reveal, award and completion points; episode and paid-round populations differ."
+  },
+  "features.initial_awards": {
+    "status": "authored",
+    "scope": "Bind a once-at-entry award value, newly added/removed award deltas or an exact remaining-balance assertion at the authored boundary. Reading a remaining counter repeatedly is not an award count."
+  },
+  "features.additional_awards": {
+    "status": "authored",
+    "scope": "Bind a once-at-entry award value, newly added/removed award deltas or an exact remaining-balance assertion at the authored boundary. Reading a remaining counter repeatedly is not an award count."
+  },
+  "features.played": {
+    "status": "authored",
+    "scope": "Bind the authored entry, reveal, award and completion points; episode and paid-round populations differ."
+  },
+  "features.remaining": {
+    "status": "authored",
+    "scope": "Bind a once-at-entry award value, newly added/removed award deltas or an exact remaining-balance assertion at the authored boundary. Reading a remaining counter repeatedly is not an award count."
+  },
+  "features.removed": {
+    "status": "authored",
+    "scope": "Bind a once-at-entry award value, newly added/removed award deltas or an exact remaining-balance assertion at the authored boundary. Reading a remaining counter repeatedly is not an award count."
+  },
+  "features.retriggers": {
+    "status": "authored",
+    "scope": "Bind a once-at-entry award value, newly added/removed award deltas or an exact remaining-balance assertion at the authored boundary. Reading a remaining counter repeatedly is not an award count."
+  },
+  "features.any_retrigger": {
+    "status": "authored",
+    "scope": "The recipe uses an episode Boolean-any reduction and requires entry, exit and retrigger opportunity/predicate. It does not substitute paid-round activation."
+  },
+  "features.zero_episode": {
+    "status": "authored",
+    "scope": "Bind the completed episode-total predicate at its authored exit, with the eligible feature type. A sum of zero child predicates is not a zero-paying episode test."
+  },
+  "features.ordinal_profile": {
+    "status": "partial",
+    "scope": "Scalar ordinal grouping works. Explicit nested episode-parent identity and cross-ordinal profiles remain required."
+  },
+  "features.exit_reason": {
+    "status": "partial",
+    "scope": "Completed loop condition/model-limit reasons and global cancelled/failed rounds exist. Typed per-feature payout-cap/authored-stop/budget/cancel/error causes are not yet reconciled."
+  },
+  "mechanics.reel_stop": {
+    "status": "authored",
+    "scope": "The constructor must expose typed symbol/award/state values at the correct boundary and author the rule predicate."
+  },
+  "mechanics.symbol": {
+    "status": "authored",
+    "scope": "The constructor must expose typed symbol/award/state values at the correct boundary and author the rule predicate."
+  },
+  "mechanics.line_combo": {
+    "status": "authored",
+    "scope": "The constructor must expose typed symbol/award/state values at the correct boundary and author the rule predicate."
+  },
+  "mechanics.payable_lines": {
+    "status": "authored",
+    "scope": "The constructor must expose typed symbol/award/state values at the correct boundary and author the rule predicate."
+  },
+  "mechanics.ways": {
+    "status": "authored",
+    "scope": "The constructor must expose typed symbol/award/state values at the correct boundary and author the rule predicate."
+  },
+  "mechanics.scatter": {
+    "status": "authored",
+    "scope": "The constructor must expose typed symbol/award/state values at the correct boundary and author the rule predicate."
+  },
+  "mechanics.cluster": {
+    "status": "authored",
+    "scope": "The constructor must expose typed symbol/award/state values at the correct boundary and author the rule predicate."
+  },
+  "mechanics.shared_wild": {
+    "status": "authored",
+    "scope": "The constructor must expose typed symbol/award/state values at the correct boundary and author the rule predicate."
+  },
+  "mechanics.sticky": {
+    "status": "authored",
+    "scope": "The constructor must expose typed symbol/award/state values at the correct boundary and author the rule predicate."
+  },
+  "mechanics.cascade": {
+    "status": "authored",
+    "scope": "The constructor must expose typed symbol/award/state values at the correct boundary and author the rule predicate."
+  },
+  "mechanics.collection": {
+    "status": "authored",
+    "scope": "The constructor must expose typed symbol/award/state values at the correct boundary and author the rule predicate."
+  },
+  "mechanics.multiplier": {
+    "status": "authored",
+    "scope": "The constructor must expose typed symbol/award/state values at the correct boundary and author the rule predicate."
+  },
+  "mechanics.award_component": {
+    "status": "authored",
+    "scope": "The constructor must expose typed symbol/award/state values at the correct boundary and author the rule predicate."
+  },
+  "mechanics.strategy": {
+    "status": "partial",
+    "scope": "Author a policy in graph/state and compare separate pinned runs. A native policy/parameter experiment runner is not yet implemented."
+  },
+  "states.transition_count": {
+    "status": "authored",
+    "scope": "Declare exact categorical state codes and lifecycle, or an independent finite transition/reward/cost model."
+  },
+  "states.transition_probability": {
+    "status": "authored",
+    "scope": "Declare exact categorical state codes and lifecycle, or an independent finite transition/reward/cost model."
+  },
+  "states.occupancy": {
+    "status": "authored",
+    "scope": "Declare exact categorical state codes and lifecycle, or an independent finite transition/reward/cost model."
+  },
+  "states.dwell": {
+    "status": "authored",
+    "scope": "Declare exact categorical state codes and lifecycle, or an independent finite transition/reward/cost model."
+  },
+  "states.absorption": {
+    "status": "ready",
+    "scope": "Independent rational finite-state analysis includes partial absorption, duration moments, recurrent classes and occupation-weighted costs; unjustified scalar results are withheld."
+  },
+  "states.expected_duration": {
+    "status": "ready",
+    "scope": "Independent rational finite-state analysis includes partial absorption, duration moments, recurrent classes and occupation-weighted costs; unjustified scalar results are withheld."
+  },
+  "states.expected_reward": {
+    "status": "ready",
+    "scope": "Independent rational finite-state analysis includes partial absorption, duration moments, recurrent classes and occupation-weighted costs; unjustified scalar results are withheld."
+  },
+  "states.retrigger_offspring": {
+    "status": "authored",
+    "scope": "Track newly awarded offspring per eligible reveal under the authored branching assumptions; a generic finite-state reference is also available."
+  },
+  "states.nontermination": {
+    "status": "ready",
+    "scope": "Independent rational finite-state analysis includes partial absorption, duration moments, recurrent classes and occupation-weighted costs; unjustified scalar results are withheld."
+  },
+  "states.long_run_return": {
+    "status": "ready",
+    "scope": "Independent rational finite-state analysis includes partial absorption, duration moments, recurrent classes and occupation-weighted costs; unjustified scalar results are withheld."
+  },
+  "states.reset_violation": {
+    "status": "authored",
+    "scope": "Author the actual monetary/rule residual or Boolean failure predicate. Exact zero/false assertions count failures before report conversion and retain replayable coordinates; exposure residual is a separate statistic."
+  },
+  "dependence.covariance": {
+    "status": "ready",
+    "scope": "Pair values on the same subject or retain final logical sequence order; dependence and censoring remain explicit."
+  },
+  "dependence.correlation": {
+    "status": "ready",
+    "scope": "Pair values on the same subject or retain final logical sequence order; dependence and censoring remain explicit."
+  },
+  "dependence.variance_decomposition": {
+    "status": "partial",
+    "scope": "A paired sum/difference variance with covariance and exact enumerated joint law is implemented. Multi-component variance reconciliation and its residual require a native component ledger."
+  },
+  "dependence.autocorrelation": {
+    "status": "ready",
+    "scope": "Pair values on the same subject or retain final logical sequence order; dependence and censoring remain explicit."
+  },
+  "dependence.gaps": {
+    "status": "ready",
+    "scope": "Pair values on the same subject or retain final logical sequence order; dependence and censoring remain explicit."
+  },
+  "dependence.streaks": {
+    "status": "ready",
+    "scope": "Pair values on the same subject or retain final logical sequence order; dependence and censoring remain explicit."
+  },
+  "dependence.paired_delta": {
+    "status": "authored",
+    "scope": "Place both counterfactual outputs under an explicitly authored random coupling in one subject, then pair them. Same-seed separate runs alone do not establish a paired interval."
+  },
+  "rng.mapped_frequency": {
+    "status": "authored",
+    "scope": "Observe mapped outcomes and pin the intended conditional/joint law. Descriptive tests are not a PRNG certification."
+  },
+  "rng.mapping_bias": {
+    "status": "authored",
+    "scope": "Pin each intended marginal/conditional/joint reference and observe the matching cohort or pair; calibration is withheld for sparse/dependent data unless explicitly supported."
+  },
+  "rng.serial": {
+    "status": "authored",
+    "scope": "Observe mapped outcomes and pin the intended conditional/joint law. Descriptive tests are not a PRNG certification."
+  },
+  "rng.within_draw": {
+    "status": "authored",
+    "scope": "Pin each intended marginal/conditional/joint reference and observe the matching cohort or pair; calibration is withheld for sparse/dependent data unless explicitly supported."
+  },
+  "rng.duplicates": {
+    "status": "partial",
+    "scope": "Adjacent repeated outcomes are descriptive with a pinned marginal law. A complete duplicate-stream detector and calibrated duplication probability are not yet implemented."
+  },
+  "rng.state_conditioned": {
+    "status": "authored",
+    "scope": "Pin each intended marginal/conditional/joint reference and observe the matching cohort or pair; calibration is withheld for sparse/dependent data unless explicitly supported."
+  },
+  "bounds.cap_reached": {
+    "status": "authored",
+    "scope": "Pin the cap/stop rule. Reach includes equality; raw exceedance and deduction use separate pre-/post-settlement values."
+  },
+  "bounds.cap_exceeded": {
+    "status": "authored",
+    "scope": "Pin the cap/stop rule. Reach includes equality; raw exceedance and deduction use separate pre-/post-settlement values."
+  },
+  "bounds.cap_deduction": {
+    "status": "authored",
+    "scope": "Pin the cap/stop rule. Reach includes equality; raw exceedance and deduction use separate pre-/post-settlement values."
+  },
+  "bounds.reachable_max": {
+    "status": "ready",
+    "scope": "Use a proven bound/independent reference, not a sampled maximum; unresolved probability is not renormalized."
+  },
+  "bounds.pruned_mass": {
+    "status": "ready",
+    "scope": "Use a proven bound/independent reference, not a sampled maximum; unresolved probability is not renormalized."
+  },
+  "bounds.mean": {
+    "status": "ready",
+    "scope": "Use a proven bound/independent reference, not a sampled maximum; unresolved probability is not renormalized."
+  },
+  "bounds.event": {
+    "status": "ready",
+    "scope": "Use a proven bound/independent reference, not a sampled maximum; unresolved probability is not renormalized."
+  },
+  "bounds.second_variance": {
+    "status": "ready",
+    "scope": "Use a proven bound/independent reference, not a sampled maximum; unresolved probability is not renormalized."
+  },
+  "bounds.loop_termination": {
+    "status": "partial",
+    "scope": "Completed condition/model-limit loop counts and iteration profiles are implemented. Probability/reward impact of a resource stop versus an uncapped model remains unresolved without a reference."
+  },
+  "bounds.zero_event": {
+    "status": "ready",
+    "scope": "Use a proven bound/independent reference, not a sampled maximum; unresolved probability is not renormalized."
+  },
+  "bounds.weight_diagnostics": {
+    "status": "partial",
+    "scope": "Ordinary likelihood-weighted mean/event/ratio intervals and ESS/extremes exist. Proposal/stratified design, exact target/proposal support validation and a proven likelihood contract remain required."
+  },
+  "bounds.weighted_estimate": {
+    "status": "partial",
+    "scope": "Ordinary likelihood-weighted mean/event/ratio intervals and ESS/extremes exist. Proposal/stratified design, exact target/proposal support validation and a proven likelihood contract remain required."
+  },
+  "comparison.rtp_delta": {
+    "status": "ready",
+    "scope": "Pin compatible subject definitions and an independent reference or separate saved runs; calibration prerequisites apply."
+  },
+  "comparison.probability_delta": {
+    "status": "ready",
+    "scope": "Pin compatible subject definitions and an independent reference or separate saved runs; calibration prerequisites apply."
+  },
+  "comparison.component_delta": {
+    "status": "ready",
+    "scope": "Pin compatible subject definitions and an independent reference or separate saved runs; calibration prerequisites apply."
+  },
+  "comparison.exact_support": {
+    "status": "ready",
+    "scope": "Native exact rational equality, total variation and discrete CDF distance for two independently supplied complete scalar laws. Equivalent rational representations and zero-mass atoms preserve equality; partial mass is rejected, and retained comparisons do not imply graph correctness."
+  },
+  "comparison.total_variation": {
+    "status": "ready",
+    "scope": "Pin compatible subject definitions and an independent reference or separate saved runs; calibration prerequisites apply."
+  },
+  "comparison.cdf_distance": {
+    "status": "ready",
+    "scope": "Pin compatible subject definitions and an independent reference or separate saved runs; calibration prerequisites apply."
+  },
+  "comparison.chi_square": {
+    "status": "ready",
+    "scope": "Pin compatible subject definitions and an independent reference or separate saved runs; calibration prerequisites apply."
+  },
+  "comparison.mean_equivalence": {
+    "status": "ready",
+    "scope": "Pin compatible subject definitions and an independent reference or separate saved runs; calibration prerequisites apply."
+  },
+  "comparison.invariants": {
+    "status": "authored",
+    "scope": "Author the actual monetary/rule residual or Boolean failure predicate. Exact zero/false assertions count failures before report conversion and retain replayable coordinates; exposure residual is a separate statistic."
+  },
+  "comparison.sensitivity": {
+    "status": "partial",
+    "scope": "Compatible pinned saved-run mean/ratio/variance/distribution effects are available with valid independent-run inference. Named perturbations, tail/event deltas and experiment planning are not yet fully native."
+  },
+  "inference.subject_count": {
+    "status": "ready",
+    "scope": "Explicit independence/bounds/cost assumptions and valid subjects; family allocation and repeated-look semantics are pinned."
+  },
+  "inference.mean_se": {
+    "status": "ready",
+    "scope": "Explicit independence/bounds/cost assumptions and valid subjects; family allocation and repeated-look semantics are pinned."
+  },
+  "inference.mean_interval": {
+    "status": "ready",
+    "scope": "Explicit independence/bounds/cost assumptions and valid subjects; family allocation and repeated-look semantics are pinned."
+  },
+  "inference.proportion_interval": {
+    "status": "ready",
+    "scope": "Explicit independence/bounds/cost assumptions and valid subjects; family allocation and repeated-look semantics are pinned."
+  },
+  "inference.ratio_interval": {
+    "status": "ready",
+    "scope": "Explicit independence/bounds/cost assumptions and valid subjects; family allocation and repeated-look semantics are pinned."
+  },
+  "inference.clustered": {
+    "status": "ready",
+    "scope": "Explicit independence/bounds/cost assumptions and valid subjects; family allocation and repeated-look semantics are pinned."
+  },
+  "inference.sample_plan": {
+    "status": "ready",
+    "scope": "Explicit independence/bounds/cost assumptions and valid subjects; family allocation and repeated-look semantics are pinned."
+  },
+  "inference.family_error": {
+    "status": "ready",
+    "scope": "Explicit independence/bounds/cost assumptions and valid subjects; family allocation and repeated-look semantics are pinned."
+  },
+  "inference.sequential": {
+    "status": "ready",
+    "scope": "Explicit independence/bounds/cost assumptions and valid subjects; family allocation and repeated-look semantics are pinned."
+  },
+  "inference.sufficiency": {
+    "status": "partial",
+    "scope": "Typed invalid/insufficient/discrepancy/precision checks and sample planning exist. A predeclared acceptance profile combining all critical measurements still needs a native workflow."
+  },
+  "provenance.seed_replay": {
+    "status": "ready",
+    "scope": "Pinned graph, plan, execution, stream and software artifact; replay proves reproducibility rather than rule correctness."
+  },
+  "provenance.parallel": {
+    "status": "ready",
+    "scope": "Pinned graph, plan, execution, stream and software artifact; replay proves reproducibility rather than rule correctness."
+  },
+  "provenance.engine": {
+    "status": "ready",
+    "scope": "Pinned graph, plan, execution, stream and software artifact; replay proves reproducibility rather than rule correctness."
+  },
+  "provenance.serialization": {
+    "status": "ready",
+    "scope": "Pinned graph, plan, execution, stream and software artifact; replay proves reproducibility rather than rule correctness."
+  },
+  "provenance.recovery": {
+    "status": "ready",
+    "scope": "Pinned graph, plan, execution, stream and software artifact; replay proves reproducibility rather than rule correctness."
+  },
+  "provenance.identity": {
+    "status": "partial",
+    "scope": "Graph/config, measurement and execution identities, seeds/streams and loaded Core/API SHA-256 are pinned. Fully versioned external rule/asset/specification identities are not yet first-class evidence inputs."
+  },
+  "provenance.witness": {
+    "status": "ready",
+    "scope": "Pinned graph, plan, execution, stream and software artifact; replay proves reproducibility rather than rule correctness."
+  },
+  "experience.session_return": {
+    "status": "ready",
+    "scope": "Independent fixed-horizon hypothetical-credit sessions; conditional first-passage times retain censoring. Money uses exact round-trip decimals."
+  },
+  "experience.session_profit": {
+    "status": "ready",
+    "scope": "Independent fixed-horizon hypothetical-credit sessions; conditional first-passage times retain censoring. Money uses exact round-trip decimals."
+  },
+  "experience.drought": {
+    "status": "ready",
+    "scope": "Independent fixed-horizon hypothetical-credit sessions; conditional first-passage times retain censoring. Money uses exact round-trip decimals."
+  },
+  "experience.drawdown": {
+    "status": "ready",
+    "scope": "Independent fixed-horizon hypothetical-credit sessions; conditional first-passage times retain censoring. Money uses exact round-trip decimals."
+  },
+  "experience.ruin": {
+    "status": "ready",
+    "scope": "Independent fixed-horizon hypothetical-credit sessions; conditional first-passage times retain censoring. Money uses exact round-trip decimals."
+  },
+  "experience.duration": {
+    "status": "partial",
+    "scope": "Fixed-horizon duration and censored ruin/feature first-passage distributions exist. Actual early-stopped session policies are not yet executed."
+  },
+  "experience.feature_wait": {
+    "status": "ready",
+    "scope": "Independent fixed-horizon hypothetical-credit sessions; conditional first-passage times retain censoring. Money uses exact round-trip decimals."
+  },
+  "experience.session_extreme": {
+    "status": "ready",
+    "scope": "Independent fixed-horizon hypothetical-credit sessions; conditional first-passage times retain censoring. Money uses exact round-trip decimals."
+  }
+}

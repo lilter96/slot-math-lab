@@ -11,6 +11,8 @@ public static class MeasurementPlanValidator
         if (options is null) yield break;
         if (options.Subject is not ("observation" or "round" or "episode" or "transition")) yield return "Unknown observation subject.";
         if (options.Source is not ("value" or "event" or "count" or "rawPayout" or "capDeduction" or "turnover" or "net")) yield return "Unknown value source.";
+        if (options.Assertion is not ("none" or "zero")) yield return "Choose no assertion or exact zero / false.";
+        if (options.Assertion == "zero" && options.Subject != "observation") yield return "Exact assertions require individual observations; author a completed-subject residual at its boundary instead of reducing away failures.";
         if (options.PairRole is not ("value" or "wager") || options.PairRole == "wager" && (options.Subject == "episode" || options.Subject == "observation" && definition.NodeId is not null)) yield return "External wager pairing requires a complete paid-round subject.";
         if (options.ReferenceStatistic is not ("mean" or "ratio" or "probability")) yield return "Unknown reference statistic.";
         if (options.ReferenceStatistic == "ratio" && options.Pair is null && options.PairRole != "wager") yield return "Ratio verification requires a paired denominator.";
