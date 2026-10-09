@@ -74,6 +74,7 @@ jobs:
         with:
           name: Backend Tests
           artifact: test-results
+          path: '**/*.trx'
           reporter: dotnet-trx
 
   frontend:
