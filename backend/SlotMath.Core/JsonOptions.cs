@@ -9,7 +9,9 @@ public static class JsonOptions
     {
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
         PropertyNameCaseInsensitive = true,
+        AllowOutOfOrderMetadataProperties = true,
         WriteIndented = true,
+        RespectNullableAnnotations = true,
         DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
         Converters =
         {

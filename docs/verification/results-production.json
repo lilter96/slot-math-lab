@@ -1,0 +1,52 @@
+{
+  "checkedAt": "2026-10-09T17:22:26.158Z",
+  "endpoint": "https://localhost:8543",
+  "anonymousArchiveBlocked": true,
+  "referenceKind": "ExactExpectation",
+  "authoredTarget": 0.98,
+  "observedRtp": 0.9967189999999915,
+  "pinnedVersion": 8,
+  "configHash": "6ab31814ceb52133e3332855ab8e80aac5af9f9443a886b9361bf5345f0964b4",
+  "modelHash": "3d318252d5943833a978d390b1ec78fa218deabf32cb22d0117daad8d6e8a709",
+  "histogramCount": 100000,
+  "reference": {
+    "rtp": 0.98,
+    "rational": "4274106686130671864073411854882857376628053067518957036033994471067057232455673459306799988552193246134528430764725348805342072144632200564679998268995277325602174236883043/4361333353194563417168839905477259755886886155321821940473954590336007584011704318572122428325964019330346839769870844504817270784000000000000000000000000000000000000000000",
+    "components": [
+      {
+        "name": "Base paylines",
+        "rtp": 0.5398724489795919,
+        "rational": "21163/39200"
+      },
+      {
+        "name": "Scatter awards",
+        "rtp": 0.030612244897959183,
+        "rational": "3/98"
+      },
+      {
+        "name": "Free spins",
+        "rtp": 0.4095153061224489,
+        "rational": "1786032763235518249324769844520919623543909315185745197900855529646543518137975916545872083841643925617065512964377856569086239834872200564679998268995277325602174236883043/4361333353194563417168839905477259755886886155321821940473954590336007584011704318572122428325964019330346839769870844504817270784000000000000000000000000000000000000000000"
+      }
+    ]
+  },
+  "evidenceExport": {
+    "schema": "slotmath.results.v1",
+    "inputVerified": true,
+    "pinnedNodes": 11
+  },
+  "replay": {
+    "runId": "1e8088a5274a453e8485436b4b2ece44",
+    "originalRunId": "037d8fae59134a318cdf029d78e68978",
+    "originalWorkers": 2,
+    "workers": 1,
+    "sameHash": true,
+    "pinnedVersion": 8,
+    "verdict": "Replay matches"
+  },
+  "emptyBrowserStorage": true,
+  "mobileSectionsVerified": 4,
+  "browserErrors": [],
+  "resultsUrl": "https://localhost:8543/results?run=037d8fae59134a318cdf029d78e68978",
+  "comparisonUrl": "https://localhost:8543/results?run=1e8088a5274a453e8485436b4b2ece44&view=compare&compare=037d8fae59134a318cdf029d78e68978"
+}

@@ -136,6 +136,7 @@ public sealed record BranchNode : Node
 
 public sealed record MapNode : Node
 {
+    public bool ShareWildAcrossSymbols { get; init; }
     public string? TransformId { get; init; }
 }
 

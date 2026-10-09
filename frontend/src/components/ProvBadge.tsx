@@ -1,5 +1,5 @@
 export interface Provenance {
-  kind: 'Exact' | 'ExactWithinEpsilon' | 'Sampled';
+  kind: 'Exact' | 'ExactWithinEpsilon' | 'ExactInterval' | 'ExactWithMassLoss' | 'Sampled';
   n?: number;
   stdErr?: number;
   ci95?: number;
@@ -23,6 +23,8 @@ function provTitle(p: Provenance): string {
     return `Monte-Carlo estimate · n=${fmtN(p.n || 0)} · stdErr ${(p.stdErr || 0).toFixed(5)} · 95% CI ±${(p.ci95 || 0).toFixed(5)}`;
   if (p.kind === 'ExactWithinEpsilon')
     return `Exact up to ε-pruning · ${p.note || ''} · bound ±${p.bound || 0}`;
+  if (p.kind === 'ExactWithMassLoss') return 'Pruned probability mass has no certified bound; non-regulatory';
+  if (p.kind === 'ExactInterval') return 'Bounded exact RTP interval';
   return 'Exact rational — closed form, no sampling';
 }
 
@@ -32,6 +34,8 @@ export default function ProvBadge({ p, mini }: ProvBadgeProps) {
   const map = {
     Exact: { cls: 'exact', label: 'Exact' },
     ExactWithinEpsilon: { cls: 'epsilon', label: mini ? 'ε-pruned' : 'Exact ± ε' },
+    ExactInterval: { cls: 'epsilon', label: 'Exact interval' },
+    ExactWithMassLoss: { cls: 'epsilon', label: 'Mass loss' },
     Sampled: { cls: 'sampled', label: 'Sampled' },
   };
 

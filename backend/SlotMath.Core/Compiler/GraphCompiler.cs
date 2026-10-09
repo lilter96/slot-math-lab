@@ -2,7 +2,9 @@ using System.Numerics;
 using SlotMath.Core.Catalog;
 using SlotMath.Core.Expressions;
 using SlotMath.Core.Mechanics;
+using SlotMath.Core.Mechanics.Evaluators;
 using SlotMath.Core.Model;
+using SlotMath.Core.Measurements;
 using SlotMath.Core.Monad;
 using SlotMath.Core.Plugins;
 using SlotMath.Core.Random;
@@ -33,27 +35,49 @@ namespace SlotMath.Core.Compiler;
 //      state references, and sampled spins share the initial state).
 //    - Fan-out (several outgoing edges from a regular node) evaluates every
 //      downstream path with the same input and sums the resulting amounts.
+//    - Eligible sampled programs also receive an indexed state plan. Its
+//      worker-private mutation never changes the canonical immutable program
+//      consumed by exact evaluation and general monadic composition.
 // ═══════════════════════════════════════════════════════════════════════════
 
 public sealed class GraphCompiler
 {
     private readonly PluginHost? _pluginHost;
+    private readonly bool _allowPlugins;
+    private readonly bool _optimizeSampling;
 
-    public GraphCompiler(PluginHost? pluginHost = null)
+    public GraphCompiler(PluginHost? pluginHost = null, bool allowPlugins = true, bool optimizeSampling = true)
     {
         _pluginHost = pluginHost;
+        _allowPlugins = allowPlugins;
+        _optimizeSampling = optimizeSampling;
     }
 
     /// <summary>
     /// Compile a graph config to a runnable Slot program.
     /// </summary>
-    public CompileResult Compile(GraphConfig config)
+    public CompileResult Compile(GraphConfig config, IReadOnlyList<MeasurementDefinition>? measurements = null)
     {
         // Phase 0a: Merge catalog mechanics with user-provided mechanics so
         // LibraryNode references resolve to the standard catalog without
         // requiring callers to manually supply the built-in subgraphs.
         var mergedMechanics = MechanicCatalog.Default.Merge(config.Mechanics);
         config = config with { Mechanics = mergedMechanics };
+
+        var initial = new Dictionary<string, System.Text.Json.JsonElement>();
+        void AddDefaults(GraphConfig graph, int depth)
+        {
+            if (depth > 10) return; // reference validator reports over-deep/cyclic subgraphs
+            foreach (var library in graph.Nodes.OfType<LibraryNode>())
+                if (mergedMechanics.TryGetValue(library.MechanicName, out var mechanic))
+                {
+                    AddDefaults(graph with { Nodes = mechanic.Nodes }, depth + 1);
+                    foreach (var pair in mechanic.InitialState ?? new()) initial[pair.Key] = pair.Value;
+                }
+        }
+        AddDefaults(config, 0);
+        foreach (var pair in config.InitialState ?? new()) initial[pair.Key] = pair.Value;
+        config = config with { InitialState = initial };
 
         // Phase 0a': Static subgraph-reference check BEFORE inlining — reject
         // circular references and over-deep nesting with a precise coded error
@@ -69,6 +93,8 @@ public sealed class GraphCompiler
         if (inlineErrors.Count > 0)
             return CompileResult.Failure(inlineErrors.ToList());
         config = inlined;
+        if (!_allowPlugins && (config.Plugins.Length > 0 || config.Nodes.OfType<MapNode>().Any(n => n.TransformId?.StartsWith("plugin:") == true)))
+            return CompileResult.Failure(new CompileError { Code = ErrorCodes.PluginNotConformant, Message = "Plugin execution is disabled in this host." });
 
         // Phase 1: Validate
         var errors = GraphValidator.Validate(config, _pluginHost);
@@ -78,12 +104,31 @@ public sealed class GraphCompiler
         // Phase 2: Compile
         try
         {
-            var builder = new ProgramBuilder(config, _pluginHost);
-            var program = builder.Build();
+            config = ExpressionResolver.Resolve(config);
+            var fields = StateSchemaDeriver.Derive(config);
+            var schema = new MeasurementSchema(config.Nodes.Select(n => new MeasurementPoint(n.Id, n.Label ?? n.Id)).ToArray(),
+                fields.Select(f => new MeasurementField(f.Name, f.Type.ToString())).ToArray());
+            var measurementErrors = ValidateMeasurements(config, fields, measurements ?? []);
+            if (measurementErrors.Count > 0) return CompileResult.Failure(measurementErrors);
+            var builder = new ProgramBuilder(config, _pluginHost, measurements ?? []);
+            var raw = builder.Build();
+            var cap = new BigInteger(config.Nodes.OfType<MetricsSinkNode>().Single().WinCap!.Value) * builder.WinScale;
+            var initialized = Slot.Modify<Dictionary<string, object?>>(state =>
+            {
+                var copy = new Dictionary<string, object?>(state);
+                foreach (var (key, value) in initial)
+                    if (!copy.ContainsKey(key)) copy[key] = Materialize(value);
+                return copy;
+            }).SelectMany(_ => raw);
+            var program = initialized.Select(win => win.Sign < 0
+                ? throw new InvalidOperationException("Round payouts must be non-negative.")
+                : BigInteger.Min(win, cap));
             if (config.Plugins is { Length: > 0 })
                 program = Slot.Annotate(program, "compiled-graph", containsPlugin: true);
 
-            return CompileResult.Success(program) with { WinScale = builder.WinScale };
+            var optimized = _optimizeSampling ? SamplingPlan.Wrap(config, builder.WinScale, program, measurements ?? []) : program;
+            return CompileResult.Success(optimized) with { WinScale = builder.WinScale, ReferenceProgram = program,
+                MeasurementSchema = schema, SamplingEngine = optimized is SamplingPlanSlot ? "compiled-state-plan-v1" : "reference-interpreter" };
         }
         catch (CompilationException ex)
         {
@@ -96,6 +141,42 @@ public sealed class GraphCompiler
         }
     }
 
+    private static List<CompileError> ValidateMeasurements(GraphConfig config, IReadOnlyList<FieldDescriptor> fields, IReadOnlyList<MeasurementDefinition> definitions)
+    {
+        var errors = new List<CompileError>();
+        void Error(string message) => errors.Add(new CompileError { Code = "INVALID_MEASUREMENT", Message = message });
+        if (definitions.Count > 32) { Error("At most 32 measurements are allowed."); return errors; }
+        var ids = new HashSet<string>(StringComparer.Ordinal);
+        var ctx = new TypeCheckContext { StateFields = fields, BoardFields = TypeCheckContext.Default.BoardFields, CellFields = TypeCheckContext.Default.CellFields };
+        foreach (var d in definitions)
+        {
+            if (d is null) { Error("Measurement entries cannot be null."); continue; }
+            if (string.IsNullOrWhiteSpace(d.Id) || d.Id.Length > 64 || !ids.Add(d.Id)) Error("Measurement IDs must be unique and 1–64 characters.");
+            if (string.IsNullOrWhiteSpace(d.Name) || d.Name.Length > 80 || (d.Unit is null || d.Unit.Length > 24)) Error("Measurement names must be 1–80 characters; units at most 24 characters.");
+            if (d.NodeId is not null && !config.Nodes.Any(n => n.Id == d.NodeId)) Error($"Measurement '{d.Name}' references unknown node '{d.NodeId}'.");
+            if (d.NodeId is not null && d.Value is null) Error($"Measurement '{d.Name}' needs a numeric value at a node.");
+            foreach (var (expr, type) in new[] { (d.Value, ExprType.Number), (d.Filter, ExprType.Boolean) })
+            {
+                if (expr is null) continue;
+                if (ExpressionCost.Compute(expr) > 1000) { Error($"Measurement '{d.Name}' exceeds the 1000-operation budget."); continue; }
+                foreach (var e in ExpressionTypeChecker.Check(expr, ctx, type)) Error($"Measurement '{d.Name}': {e.Message}");
+            }
+        }
+        return errors;
+    }
+
+    private static object? Materialize(System.Text.Json.JsonElement value) => value.ValueKind switch
+    {
+        System.Text.Json.JsonValueKind.Array => value.EnumerateArray().Select(Materialize).ToArray(),
+        System.Text.Json.JsonValueKind.Object => value.EnumerateObject().ToDictionary(p => p.Name, p => Materialize(p.Value)),
+        System.Text.Json.JsonValueKind.String => value.GetString(),
+        System.Text.Json.JsonValueKind.Number => BigInteger.Parse(value.GetRawText(), System.Globalization.CultureInfo.InvariantCulture),
+        System.Text.Json.JsonValueKind.True => true,
+        System.Text.Json.JsonValueKind.False => false,
+        System.Text.Json.JsonValueKind.Null => null,
+        _ => throw new InvalidOperationException("Unsupported initial state value."),
+    };
+
     // ════════════════════════════════════════════════════════════════════
     //  ProgramBuilder — one compilation pass over a validated graph
     // ════════════════════════════════════════════════════════════════════
@@ -106,6 +187,7 @@ public sealed class GraphCompiler
         // Aliased locally to keep signatures readable.
         private readonly GraphConfig _config;
         private readonly PluginHost? _pluginHost;
+        private readonly HashSet<string> _observed;
         private readonly Dictionary<string, Node> _nodeMap;
         private readonly Dictionary<string, List<Edge>> _incoming;
         private readonly Dictionary<string, List<Edge>> _outgoing;
@@ -115,9 +197,10 @@ public sealed class GraphCompiler
         private readonly BigInteger _winScale;
         private readonly decimal _winScaleDecimal;
 
-        public ProgramBuilder(GraphConfig config, PluginHost? pluginHost)
+        public ProgramBuilder(GraphConfig config, PluginHost? pluginHost, IReadOnlyList<MeasurementDefinition> measurements)
         {
             _config = config;
+            _observed = measurements.Where(d => d.NodeId is not null).Select(d => d.NodeId!).ToHashSet();
             _pluginHost = pluginHost;
             _nodeMap = config.Nodes.ToDictionary(n => n.Id);
             _incoming = BuildEdgeMap(config, e => e.TargetNodeId);
@@ -148,9 +231,11 @@ public sealed class GraphCompiler
                                 System.Globalization.CultureInfo.InvariantCulture,
                                 out var value))
                         {
-                            continue; // evaluators report unparseable payouts themselves
+                            throw new CompilationException(null, ErrorCodes.InvalidGraph, $"Invalid decimal paytable payout '{payout}'.");
                         }
 
+                        if (value < 0)
+                            throw new CompilationException(null, ErrorCodes.InvalidGraph, "Paytable payouts must be non-negative.");
                         var decimals = DecimalPlaces(value);
                         if (decimals > 9)
                             throw new CompilationException(null, ErrorCodes.InvalidGraph,
@@ -254,13 +339,20 @@ public sealed class GraphCompiler
         private BigInteger ReadStateWin(Dictionary<string, object?> state, string key)
         {
             if (!state.TryGetValue(key, out var raw))
-                return BigInteger.Zero;
+                throw new ExpressionEvaluationException("EVAL_MISSING_STATE", $"Payout field '{key}' is absent.", key);
+            if (raw is ExprValue number && number.Kind == ExprType.Number)
+            {
+                var scaled = number.NumberNumerator * _winScale;
+                if (scaled % number.NumberDenominator != 0)
+                    throw new ExpressionEvaluationException("EVAL_PAYOUT_PRECISION", "State payout exceeds the declared paytable precision.", key);
+                return scaled / number.NumberDenominator;
+            }
             var amount = raw switch
             {
                 BigInteger bi => bi,
                 int i => i,
                 long l => l,
-                _ => BigInteger.Zero,
+                _ => throw new ExpressionEvaluationException("EVAL_TYPE_ERROR", $"Payout field '{key}' must be numeric.", key),
             };
             return amount * _winScale;
         }
@@ -286,6 +378,11 @@ public sealed class GraphCompiler
             try
             {
                 var chain = CompileChain(nodeId, sinkId);
+                if (_observed.Contains(nodeId))
+                {
+                    var inner = chain;
+                    chain = input => new ObservationSlot<Dictionary<string, object?>, object?>(nodeId, inner(input));
+                }
                 _chains[key] = chain;
                 return chain;
             }
@@ -462,8 +559,7 @@ public sealed class GraphCompiler
         {
             var iterKey = $"__iter_{node.Id}__";
             var winsKey = $"__wins_{node.Id}__";
-            var maxIter = node.MaxIterations > 0 && node.MaxIterations <= 10000
-                ? node.MaxIterations : 100;
+            var maxIter = node.MaxIterations;
 
             // Stop condition: MaxIterations safety cap + optional expression
             Func<Dictionary<string, object?>, bool> stopFn = s =>
@@ -816,7 +912,24 @@ public sealed class GraphCompiler
             }
 
             // Evaluator registry — evaluators read state but never modify it
-            var registryEvaluator = EvaluatorRegistry.TryGet(transformId);
+            // Built-ins are bound per config, never shared across games.
+            IFastPathEvaluator? registryEvaluator = null;
+            if (transformId is "lines" or "ways" or "cluster" && _config.Paytables.Length > 0
+                && (transformId != "lines" || _config.PaylineSets.Length > 0))
+            {
+                if (_config.Paytables.Length != 1)
+                    throw new CompilationException(nodeId, ErrorCodes.InvalidGraph, "Built-in evaluators require exactly one paytable.");
+                var paytable = _config.Paytables[0];
+                var wild = _config.Symbols.SingleOrDefault(s => s.Kind == SymbolKind.Wild)?.Id;
+                registryEvaluator = transformId switch
+                {
+                    "lines" when _config.PaylineSets.Length == 1 => new LinesEvaluator(paytable, _config.PaylineSets[0], wild),
+                    "ways" => new WaysEvaluator(paytable, wild),
+                    "cluster" => new ClusterEvaluator(paytable, wildSymbolId: wild, shareWildAcrossSymbols: (_nodeMap[nodeId] as MapNode)?.ShareWildAcrossSymbols ?? false),
+                    _ => throw new CompilationException(nodeId, ErrorCodes.InvalidGraph, "Lines requires exactly one payline set."),
+                };
+            }
+            registryEvaluator ??= EvaluatorRegistry.TryGet(transformId);
             if (registryEvaluator != null)
             {
                 return (state, expressionValues) => (

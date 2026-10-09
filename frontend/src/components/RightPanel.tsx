@@ -14,27 +14,28 @@ export default function RightPanel() {
   const [mechanicsTab, setMechanicsTab] = useState<MechanicsTab>('mechanics');
 
   const mainTab: MainTab = selectedNodeId ? 'inspector' : preferredTab;
+  const openTab = (next: MainTab) => { useAppStore.getState().selectNode(null); setPreferredTab(next); };
 
   return (
     <div className="panel" style={{ width: 360, flexShrink: 0, display: 'flex', flexDirection: 'column' }}>
       <div className="panel-h" style={{ padding: '6px 8px', gap: 2 }}>
         <button
           className={'tab' + (mainTab === 'inspector' ? ' active' : '')}
-          onClick={() => setPreferredTab('inspector')}
+          onClick={() => openTab('inspector')}
           style={{ fontSize: 11 }}
         >
           Inspector
         </button>
         <button
           className={'tab' + (mainTab === 'mechanics' ? ' active' : '')}
-          onClick={() => setPreferredTab('mechanics')}
+          onClick={() => openTab('mechanics')}
           style={{ fontSize: 11 }}
         >
           Mechanics
         </button>
         <button
           className={'tab' + (mainTab === 'ai' ? ' active' : '')}
-          onClick={() => setPreferredTab('ai')}
+          onClick={() => openTab('ai')}
           style={{ fontSize: 11 }}
         >
           AI

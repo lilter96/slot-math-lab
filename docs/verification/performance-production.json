@@ -1,0 +1,985 @@
+{
+  "completeWallMs": 4176,
+  "measuredRoundsPerSecond": 30293.850348379277,
+  "checkedAt": "2026-10-09T15:05:34.331Z",
+  "endpoint": "https://localhost:8543",
+  "authenticated": true,
+  "websocketConnections": 2,
+  "streamedSnapshots": 13,
+  "firstProgress": 5000,
+  "reloadRecovered": true,
+  "graphHash": "6ab31814ceb52133e3332855ab8e80aac5af9f9443a886b9361bf5345f0964b4",
+  "seed": 42,
+  "logicalStream": "splitmix64-chunk-65536",
+  "degreeOfParallelism": 2,
+  "status": "completed",
+  "result": {
+    "seed": 42,
+    "configHash": "6ab31814ceb52133e3332855ab8e80aac5af9f9443a886b9361bf5345f0964b4",
+    "configVersion": 4,
+    "degreeOfParallelism": 2,
+    "streamScheme": "splitmix64-chunk-65536",
+    "samplingEngine": "compiled-state-plan-v1",
+    "rtp": 0.9967189999999915,
+    "runningRtp": 0.9967189999999915,
+    "stdErr": 0.04371676642784833,
+    "ci95": [
+      0.9110341378014087,
+      1.082403862198574
+    ],
+    "hitFrequency": 0.27429,
+    "volatility": 13.824455384958378,
+    "volatilityIndex": 13.869962732684435,
+    "maxWin": 1556.5,
+    "sampleCount": 100000,
+    "totalSamples": 100000,
+    "status": "completed",
+    "provenance": "Sampled",
+    "elapsedMs": 3301,
+    "histogram": [
+      {
+        "lo": 0,
+        "hi": 3780.1,
+        "count": 100000
+      },
+      {
+        "lo": 3780.1,
+        "hi": 7560.2,
+        "count": 0
+      },
+      {
+        "lo": 7560.2,
+        "hi": 11340.3,
+        "count": 0
+      },
+      {
+        "lo": 11340.3,
+        "hi": 15120.4,
+        "count": 0
+      },
+      {
+        "lo": 15120.4,
+        "hi": 18900.5,
+        "count": 0
+      },
+      {
+        "lo": 18900.5,
+        "hi": 22680.6,
+        "count": 0
+      },
+      {
+        "lo": 22680.6,
+        "hi": 26460.7,
+        "count": 0
+      },
+      {
+        "lo": 26460.7,
+        "hi": 30240.8,
+        "count": 0
+      },
+      {
+        "lo": 30240.8,
+        "hi": 34020.9,
+        "count": 0
+      },
+      {
+        "lo": 34020.9,
+        "hi": 37801,
+        "count": 0
+      },
+      {
+        "lo": 37801,
+        "hi": 41581.1,
+        "count": 0
+      },
+      {
+        "lo": 41581.1,
+        "hi": 45361.2,
+        "count": 0
+      },
+      {
+        "lo": 45361.2,
+        "hi": 49141.299999999996,
+        "count": 0
+      },
+      {
+        "lo": 49141.299999999996,
+        "hi": 52921.4,
+        "count": 0
+      },
+      {
+        "lo": 52921.4,
+        "hi": 56701.5,
+        "count": 0
+      },
+      {
+        "lo": 56701.5,
+        "hi": 60481.6,
+        "count": 0
+      },
+      {
+        "lo": 60481.6,
+        "hi": 64261.7,
+        "count": 0
+      },
+      {
+        "lo": 64261.7,
+        "hi": 68041.8,
+        "count": 0
+      },
+      {
+        "lo": 68041.8,
+        "hi": 71821.9,
+        "count": 0
+      },
+      {
+        "lo": 71821.9,
+        "hi": 75602,
+        "count": 0
+      },
+      {
+        "lo": 75602,
+        "hi": 79382.09999999999,
+        "count": 0
+      },
+      {
+        "lo": 79382.09999999999,
+        "hi": 83162.2,
+        "count": 0
+      },
+      {
+        "lo": 83162.2,
+        "hi": 86942.3,
+        "count": 0
+      },
+      {
+        "lo": 86942.3,
+        "hi": 90722.4,
+        "count": 0
+      },
+      {
+        "lo": 90722.4,
+        "hi": 94502.5,
+        "count": 0
+      },
+      {
+        "lo": 94502.5,
+        "hi": 98282.59999999999,
+        "count": 0
+      },
+      {
+        "lo": 98282.59999999999,
+        "hi": 102062.7,
+        "count": 0
+      },
+      {
+        "lo": 102062.7,
+        "hi": 105842.8,
+        "count": 0
+      },
+      {
+        "lo": 105842.8,
+        "hi": 109622.9,
+        "count": 0
+      },
+      {
+        "lo": 109622.9,
+        "hi": 113403,
+        "count": 0
+      },
+      {
+        "lo": 113403,
+        "hi": 117183.09999999999,
+        "count": 0
+      },
+      {
+        "lo": 117183.09999999999,
+        "hi": 120963.2,
+        "count": 0
+      },
+      {
+        "lo": 120963.2,
+        "hi": 124743.3,
+        "count": 0
+      },
+      {
+        "lo": 124743.3,
+        "hi": 128523.4,
+        "count": 0
+      },
+      {
+        "lo": 128523.4,
+        "hi": 132303.5,
+        "count": 0
+      },
+      {
+        "lo": 132303.5,
+        "hi": 136083.6,
+        "count": 0
+      },
+      {
+        "lo": 136083.6,
+        "hi": 139863.69999999998,
+        "count": 0
+      },
+      {
+        "lo": 139863.69999999998,
+        "hi": 143643.8,
+        "count": 0
+      },
+      {
+        "lo": 143643.8,
+        "hi": 147423.9,
+        "count": 0
+      },
+      {
+        "lo": 147423.9,
+        "hi": 151204,
+        "count": 0
+      },
+      {
+        "lo": 151204,
+        "hi": 154984.1,
+        "count": 0
+      },
+      {
+        "lo": 154984.1,
+        "hi": 158764.19999999998,
+        "count": 0
+      },
+      {
+        "lo": 158764.19999999998,
+        "hi": 162544.3,
+        "count": 0
+      },
+      {
+        "lo": 162544.3,
+        "hi": 166324.4,
+        "count": 0
+      },
+      {
+        "lo": 166324.4,
+        "hi": 170104.5,
+        "count": 0
+      },
+      {
+        "lo": 170104.5,
+        "hi": 173884.6,
+        "count": 0
+      },
+      {
+        "lo": 173884.6,
+        "hi": 177664.69999999998,
+        "count": 0
+      },
+      {
+        "lo": 177664.69999999998,
+        "hi": 181444.8,
+        "count": 0
+      },
+      {
+        "lo": 181444.8,
+        "hi": 185224.9,
+        "count": 0
+      },
+      {
+        "lo": 185224.9,
+        "hi": 189005,
+        "count": 0
+      }
+    ],
+    "adaptiveHistogram": [
+      {
+        "lo": 0,
+        "hi": 1,
+        "count": 88075
+      },
+      {
+        "lo": 1,
+        "hi": 2,
+        "count": 4903
+      },
+      {
+        "lo": 2,
+        "hi": 3,
+        "count": 1852
+      },
+      {
+        "lo": 3,
+        "hi": 4,
+        "count": 1446
+      },
+      {
+        "lo": 4,
+        "hi": 5,
+        "count": 488
+      },
+      {
+        "lo": 5,
+        "hi": 6,
+        "count": 648
+      },
+      {
+        "lo": 6,
+        "hi": 7,
+        "count": 432
+      },
+      {
+        "lo": 7,
+        "hi": 8,
+        "count": 463
+      },
+      {
+        "lo": 8,
+        "hi": 9,
+        "count": 141
+      },
+      {
+        "lo": 9,
+        "hi": 10,
+        "count": 143
+      },
+      {
+        "lo": 10,
+        "hi": 11,
+        "count": 167
+      },
+      {
+        "lo": 11,
+        "hi": 12,
+        "count": 82
+      },
+      {
+        "lo": 12,
+        "hi": 13,
+        "count": 124
+      },
+      {
+        "lo": 13,
+        "hi": 14,
+        "count": 49
+      },
+      {
+        "lo": 14,
+        "hi": 15,
+        "count": 54
+      },
+      {
+        "lo": 15,
+        "hi": 16,
+        "count": 150
+      },
+      {
+        "lo": 16,
+        "hi": 17,
+        "count": 43
+      },
+      {
+        "lo": 17,
+        "hi": 18,
+        "count": 35
+      },
+      {
+        "lo": 18,
+        "hi": 19,
+        "count": 55
+      },
+      {
+        "lo": 19,
+        "hi": 20,
+        "count": 22
+      },
+      {
+        "lo": 20,
+        "hi": 21,
+        "count": 48
+      },
+      {
+        "lo": 21,
+        "hi": 22,
+        "count": 29
+      },
+      {
+        "lo": 22,
+        "hi": 23,
+        "count": 41
+      },
+      {
+        "lo": 23,
+        "hi": 24,
+        "count": 14
+      },
+      {
+        "lo": 24,
+        "hi": 25,
+        "count": 18
+      },
+      {
+        "lo": 25,
+        "hi": 26,
+        "count": 31
+      },
+      {
+        "lo": 26,
+        "hi": 27,
+        "count": 13
+      },
+      {
+        "lo": 27,
+        "hi": 28,
+        "count": 10
+      },
+      {
+        "lo": 28,
+        "hi": 29,
+        "count": 11
+      },
+      {
+        "lo": 29,
+        "hi": 30,
+        "count": 8
+      },
+      {
+        "lo": 30,
+        "hi": 31,
+        "count": 39
+      },
+      {
+        "lo": 31,
+        "hi": 32,
+        "count": 9
+      },
+      {
+        "lo": 32,
+        "hi": 33,
+        "count": 8
+      },
+      {
+        "lo": 33,
+        "hi": 34,
+        "count": 10
+      },
+      {
+        "lo": 34,
+        "hi": 35,
+        "count": 10
+      },
+      {
+        "lo": 35,
+        "hi": 36,
+        "count": 6
+      },
+      {
+        "lo": 36,
+        "hi": 37,
+        "count": 6
+      },
+      {
+        "lo": 37,
+        "hi": 38,
+        "count": 30
+      },
+      {
+        "lo": 38,
+        "hi": 39,
+        "count": 6
+      },
+      {
+        "lo": 39,
+        "hi": 40,
+        "count": 4
+      },
+      {
+        "lo": 40,
+        "hi": 41,
+        "count": 17
+      },
+      {
+        "lo": 41,
+        "hi": 42,
+        "count": 8
+      },
+      {
+        "lo": 42,
+        "hi": 43,
+        "count": 3
+      },
+      {
+        "lo": 44,
+        "hi": 45,
+        "count": 3
+      },
+      {
+        "lo": 45,
+        "hi": 46,
+        "count": 9
+      },
+      {
+        "lo": 46,
+        "hi": 47,
+        "count": 4
+      },
+      {
+        "lo": 47,
+        "hi": 48,
+        "count": 5
+      },
+      {
+        "lo": 48,
+        "hi": 49,
+        "count": 4
+      },
+      {
+        "lo": 49,
+        "hi": 50,
+        "count": 3
+      },
+      {
+        "lo": 50,
+        "hi": 51,
+        "count": 5
+      },
+      {
+        "lo": 51,
+        "hi": 52,
+        "count": 7
+      },
+      {
+        "lo": 52,
+        "hi": 53,
+        "count": 4
+      },
+      {
+        "lo": 54,
+        "hi": 55,
+        "count": 5
+      },
+      {
+        "lo": 55,
+        "hi": 56,
+        "count": 4
+      },
+      {
+        "lo": 56,
+        "hi": 57,
+        "count": 2
+      },
+      {
+        "lo": 58,
+        "hi": 59,
+        "count": 1
+      },
+      {
+        "lo": 59,
+        "hi": 60,
+        "count": 1
+      },
+      {
+        "lo": 60,
+        "hi": 61,
+        "count": 6
+      },
+      {
+        "lo": 61,
+        "hi": 62,
+        "count": 3
+      },
+      {
+        "lo": 62,
+        "hi": 63,
+        "count": 2
+      },
+      {
+        "lo": 63,
+        "hi": 64,
+        "count": 1
+      },
+      {
+        "lo": 64,
+        "hi": 65,
+        "count": 2
+      },
+      {
+        "lo": 65,
+        "hi": 66,
+        "count": 5
+      },
+      {
+        "lo": 66,
+        "hi": 67,
+        "count": 2
+      },
+      {
+        "lo": 67,
+        "hi": 68,
+        "count": 3
+      },
+      {
+        "lo": 68,
+        "hi": 69,
+        "count": 2
+      },
+      {
+        "lo": 69,
+        "hi": 70,
+        "count": 2
+      },
+      {
+        "lo": 70,
+        "hi": 71,
+        "count": 1
+      },
+      {
+        "lo": 72,
+        "hi": 73,
+        "count": 1
+      },
+      {
+        "lo": 73,
+        "hi": 74,
+        "count": 3
+      },
+      {
+        "lo": 74,
+        "hi": 75,
+        "count": 1
+      },
+      {
+        "lo": 75,
+        "hi": 76,
+        "count": 2
+      },
+      {
+        "lo": 76,
+        "hi": 77,
+        "count": 2
+      },
+      {
+        "lo": 78,
+        "hi": 79,
+        "count": 1
+      },
+      {
+        "lo": 79,
+        "hi": 80,
+        "count": 3
+      },
+      {
+        "lo": 80,
+        "hi": 81,
+        "count": 3
+      },
+      {
+        "lo": 81,
+        "hi": 82,
+        "count": 1
+      },
+      {
+        "lo": 82,
+        "hi": 83,
+        "count": 2
+      },
+      {
+        "lo": 83,
+        "hi": 84,
+        "count": 2
+      },
+      {
+        "lo": 85,
+        "hi": 86,
+        "count": 3
+      },
+      {
+        "lo": 86,
+        "hi": 87,
+        "count": 1
+      },
+      {
+        "lo": 87,
+        "hi": 88,
+        "count": 1
+      },
+      {
+        "lo": 88,
+        "hi": 89,
+        "count": 1
+      },
+      {
+        "lo": 89,
+        "hi": 90,
+        "count": 1
+      },
+      {
+        "lo": 90,
+        "hi": 91,
+        "count": 1
+      },
+      {
+        "lo": 92,
+        "hi": 93,
+        "count": 2
+      },
+      {
+        "lo": 93,
+        "hi": 94,
+        "count": 1
+      },
+      {
+        "lo": 94,
+        "hi": 95,
+        "count": 1
+      },
+      {
+        "lo": 95,
+        "hi": 96,
+        "count": 3
+      },
+      {
+        "lo": 98,
+        "hi": 99,
+        "count": 2
+      },
+      {
+        "lo": 100,
+        "hi": 110,
+        "count": 12
+      },
+      {
+        "lo": 110,
+        "hi": 120,
+        "count": 6
+      },
+      {
+        "lo": 120,
+        "hi": 130,
+        "count": 10
+      },
+      {
+        "lo": 130,
+        "hi": 140,
+        "count": 4
+      },
+      {
+        "lo": 140,
+        "hi": 150,
+        "count": 8
+      },
+      {
+        "lo": 150,
+        "hi": 160,
+        "count": 8
+      },
+      {
+        "lo": 160,
+        "hi": 170,
+        "count": 5
+      },
+      {
+        "lo": 170,
+        "hi": 180,
+        "count": 5
+      },
+      {
+        "lo": 180,
+        "hi": 190,
+        "count": 2
+      },
+      {
+        "lo": 190,
+        "hi": 200,
+        "count": 7
+      },
+      {
+        "lo": 200,
+        "hi": 210,
+        "count": 5
+      },
+      {
+        "lo": 210,
+        "hi": 220,
+        "count": 3
+      },
+      {
+        "lo": 220,
+        "hi": 230,
+        "count": 3
+      },
+      {
+        "lo": 230,
+        "hi": 240,
+        "count": 1
+      },
+      {
+        "lo": 240,
+        "hi": 250,
+        "count": 3
+      },
+      {
+        "lo": 250,
+        "hi": 260,
+        "count": 3
+      },
+      {
+        "lo": 260,
+        "hi": 270,
+        "count": 5
+      },
+      {
+        "lo": 270,
+        "hi": 280,
+        "count": 1
+      },
+      {
+        "lo": 280,
+        "hi": 290,
+        "count": 1
+      },
+      {
+        "lo": 300,
+        "hi": 310,
+        "count": 3
+      },
+      {
+        "lo": 310,
+        "hi": 320,
+        "count": 1
+      },
+      {
+        "lo": 340,
+        "hi": 350,
+        "count": 1
+      },
+      {
+        "lo": 350,
+        "hi": 360,
+        "count": 1
+      },
+      {
+        "lo": 360,
+        "hi": 370,
+        "count": 2
+      },
+      {
+        "lo": 380,
+        "hi": 390,
+        "count": 1
+      },
+      {
+        "lo": 390,
+        "hi": 400,
+        "count": 2
+      },
+      {
+        "lo": 400,
+        "hi": 410,
+        "count": 1
+      },
+      {
+        "lo": 410,
+        "hi": 420,
+        "count": 2
+      },
+      {
+        "lo": 420,
+        "hi": 430,
+        "count": 1
+      },
+      {
+        "lo": 460,
+        "hi": 470,
+        "count": 1
+      },
+      {
+        "lo": 470,
+        "hi": 480,
+        "count": 1
+      },
+      {
+        "lo": 610,
+        "hi": 620,
+        "count": 1
+      },
+      {
+        "lo": 620,
+        "hi": 630,
+        "count": 1
+      },
+      {
+        "lo": 640,
+        "hi": 650,
+        "count": 1
+      },
+      {
+        "lo": 660,
+        "hi": 670,
+        "count": 3
+      },
+      {
+        "lo": 690,
+        "hi": 700,
+        "count": 1
+      },
+      {
+        "lo": 700,
+        "hi": 710,
+        "count": 2
+      },
+      {
+        "lo": 730,
+        "hi": 740,
+        "count": 1
+      },
+      {
+        "lo": 870,
+        "hi": 880,
+        "count": 1
+      },
+      {
+        "lo": 890,
+        "hi": 900,
+        "count": 1
+      },
+      {
+        "lo": 1000,
+        "hi": 1100,
+        "count": 2
+      },
+      {
+        "lo": 1300,
+        "hi": 1400,
+        "count": 1
+      },
+      {
+        "lo": 1500,
+        "hi": 1600,
+        "count": 1
+      }
+    ]
+  },
+  "referenceCheck": "Reference check\n\nTarget and mathematical evidence are distinct.\n\nReference inside CI\nTarget RTP\n98.000%\nExact expectation\n98.000%\nObserved RTP\n99.672%\n95% confidence interval\n91.103% \u2013 108.240%\nDeviation from reference\n1.672 pp\n\nExact expectation from the editable constructor proof; not an exact payout distribution. Confidence intervals describe sampling uncertainty; high volatility can require millions of rounds.\n\nOpen the visual constructor \u2197",
+  "browserErrors": [],
+  "cachedPlayMs": [
+    35,
+    29,
+    24,
+    27,
+    26,
+    25,
+    25,
+    30
+  ],
+  "comparison": {
+    "baselineFile": "simulation-production-report.json",
+    "baselineWorkerMs": 20375,
+    "workerSpeedup": 6.172372008482278,
+    "statisticsBitIdentical": true,
+    "histogramCountsIdentical": true
+  },
+  "verification": {
+    "corePassed": 739,
+    "apiPassed": 57,
+    "browserPassed": 26,
+    "frontendBuildPassed": true,
+    "frontendLintPassed": true
+  }
+}

@@ -745,9 +745,7 @@ public class RegimeDetection_BudgetEdgeCases
                 SampledSpins = 10_000
             });
 
-        // With epsilon, the result should be ExactInterval.
-        Assert.True(
-            result.AggregateProvenance == Provenance.Exact ||
-            result.AggregateProvenance == Provenance.ExactInterval);
+        // No declared win bound: pruned evaluation must disclose mass loss.
+        Assert.Equal(Provenance.ExactWithMassLoss, result.AggregateProvenance);
     }
 }

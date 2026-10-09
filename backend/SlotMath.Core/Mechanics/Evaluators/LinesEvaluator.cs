@@ -53,7 +53,7 @@ public sealed class LinesEvaluator : IFastPathEvaluator
                 if (GridState.IsEmpty(cell)) break;
 
                 var sym = GridState.Symbol(cell);
-                if (sym == _wildSymbolId || (matchSymbol != null && sym == matchSymbol))
+                if (sym == _wildSymbolId || matchSymbol == null || sym == matchSymbol)
                 {
                     // WILD starts the match if firstSym was WILD
                     if (matchSymbol == null && sym != _wildSymbolId)
@@ -103,6 +103,6 @@ public sealed class LinesEvaluator : IFastPathEvaluator
         var idx = Array.IndexOf(entry.Counts, count);
         if (idx < 0) return 0;
 
-        return decimal.Parse(entry.Payouts[idx]);
+        return decimal.Parse(entry.Payouts[idx], System.Globalization.CultureInfo.InvariantCulture);
     }
 }

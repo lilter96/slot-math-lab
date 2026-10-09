@@ -16,12 +16,14 @@ public sealed class ClusterEvaluator : IFastPathEvaluator
     private readonly Paytable _paytable;
     private readonly int _minClusterSize;
     private readonly string? _wildSymbolId;
+    private readonly bool _shareWildAcrossSymbols;
 
-    public ClusterEvaluator(Paytable paytable, int minClusterSize = 3, string? wildSymbolId = null)
+    public ClusterEvaluator(Paytable paytable, int minClusterSize = 3, string? wildSymbolId = null, bool shareWildAcrossSymbols = false)
     {
         _paytable = paytable;
         _minClusterSize = minClusterSize;
         _wildSymbolId = wildSymbolId;
+        _shareWildAcrossSymbols = shareWildAcrossSymbols;
     }
 
     public Win[] Evaluate(IReadOnlyDictionary<string, object?> state)
@@ -32,17 +34,23 @@ public sealed class ClusterEvaluator : IFastPathEvaluator
         var cols = GridState.Cols(state);
         var visited = new bool[rows, cols];
         var wins = new List<Win>();
+        var perSymbolVisited = new Dictionary<string, bool[,]>();
 
         for (var r = 0; r < rows; r++)
             for (var c = 0; c < cols; c++)
             {
-                if (visited[r, c]) continue;
                 var cell = cells[GridState.Index(r, c, cols)];
                 if (GridState.IsEmpty(cell)) continue;
 
                 var sym = GridState.Symbol(cell);
                 if (sym == _wildSymbolId) continue; // wilds are connectors, not cluster starters
 
+                if (_shareWildAcrossSymbols)
+                {
+                    if (!perSymbolVisited.TryGetValue(sym, out visited))
+                        perSymbolVisited[sym] = visited = new bool[rows, cols];
+                }
+                if (visited[r, c]) continue;
                 // Flood-fill this cluster
                 var cluster = FloodFill(cells, rows, cols, r, c, sym, visited);
                 if (cluster.Count >= _minClusterSize)
@@ -117,6 +125,6 @@ public sealed class ClusterEvaluator : IFastPathEvaluator
             if (best < 0) return 0;
             idx = best;
         }
-        return decimal.Parse(entry.Payouts[idx]);
+        return decimal.Parse(entry.Payouts[idx], System.Globalization.CultureInfo.InvariantCulture);
     }
 }

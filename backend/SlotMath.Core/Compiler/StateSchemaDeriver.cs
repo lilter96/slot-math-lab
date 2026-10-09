@@ -38,6 +38,14 @@ public static class StateSchemaDeriver
     public static IReadOnlyList<FieldDescriptor> Derive(GraphConfig config)
     {
         var fields = new Dictionary<string, ExprType>(StringComparer.Ordinal);
+        foreach (var (key, value) in config.InitialState ?? new())
+            fields[key] = value.ValueKind switch
+            {
+                System.Text.Json.JsonValueKind.Array => ExprType.Array,
+                System.Text.Json.JsonValueKind.String => ExprType.String,
+                System.Text.Json.JsonValueKind.True or System.Text.Json.JsonValueKind.False => ExprType.Boolean,
+                _ => ExprType.Number,
+            };
         var authored = new HashSet<string>(config.StateSchema.Select(s => s.Name), StringComparer.Ordinal);
 
         // (1) Structural truth from node kinds.

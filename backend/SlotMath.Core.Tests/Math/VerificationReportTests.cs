@@ -55,7 +55,7 @@ public class VerificationReportTests
         const int budget = 70;
         var b = ExactEmitInterpreter.Evaluate(
             ReferenceFixtureTests.RefB(budget), new ReferenceFixtureTests.FsState(0, budget),
-            s => (BigInteger)(s.Remaining * 1_000_003L + s.Budget), labels: ["base", "freespins"]);
+            s => (BigInteger)(s.Remaining * 1_000_003L + s.Budget), labels: ["base", "freespins"], winCap: 10000);
         var target = new Rational(15, 17);
         var enclosureOk =
             b.ExpectedWin <= target

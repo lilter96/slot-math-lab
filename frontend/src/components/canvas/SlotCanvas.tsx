@@ -1,9 +1,11 @@
-import { useCallback, useRef } from 'react';
+import { useCallback, useRef, useEffect } from 'react';
 import {
   ReactFlow,
   ReactFlowProvider,
   Background,
   Controls,
+  useNodesInitialized,
+  useReactFlow,
   type Connection,
   type Node,
 } from '@xyflow/react';
@@ -11,6 +13,19 @@ import { useAppStore, NODE_DEFAULTS, type GraphNodeData } from '../../store';
 import { nodeTypes } from './nodes';
 import CanvasToolbar from './CanvasToolbar';
 import type { GraphNode } from '../../store';
+import { openMechanic } from '../../lib/projectFiles';
+
+function FitLoadedGraph() {
+  const initialized = useNodesInitialized();
+  const { fitView } = useReactFlow();
+  const graphKey = useAppStore(s => `${s.configName}:${s.graphTrail.map(x => x.mechanic).join('/')}:${s.nodes.map(x => x.id).join(',')}`);
+  useEffect(() => {
+    if (!initialized) return;
+    const frame = requestAnimationFrame(() => { void fitView({ padding: 0.15, maxZoom: 1 }); });
+    return () => cancelAnimationFrame(frame);
+  }, [initialized, graphKey, fitView]);
+  return null;
+}
 
 const defaultEdgeOptions = {
   type: 'default',
@@ -102,17 +117,24 @@ export default function SlotCanvas() {
           onConnect(conn);
         }}
         onNodeClick={onNodeClick}
+        onNodeDoubleClick={(_, node) => {
+          const name = node.data.mechanicName as string | undefined;
+          if (name && (useAppStore.getState().tables.mechanics as Record<string, unknown>)?.[name]) openMechanic(name);
+        }}
         onPaneClick={onPaneClick}
         onDragOver={onDragOver}
         onDrop={onDrop}
         nodeTypes={nodeTypes}
         defaultEdgeOptions={defaultEdgeOptions}
         fitView
+        minZoom={0.1}
+        maxZoom={2}
         deleteKeyCode={['Backspace', 'Delete']}
         multiSelectionKeyCode="Shift"
         selectionKeyCode="Shift"
         style={{ background: 'var(--bg-canvas)' }}
       >
+        <FitLoadedGraph />
         <Background
           gap={26}
           size={1}

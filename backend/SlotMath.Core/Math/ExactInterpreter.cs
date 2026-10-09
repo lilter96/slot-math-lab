@@ -222,9 +222,12 @@ public static class ExactInterpreter
         // When a sub-evaluation finishes, its distribution lands here and the
         // completion loop below folds it into the enclosing draw frame.
         Dist<(S, T)>? completed = null;
+        var operations = 0;
 
         while (true)
         {
+            if (maxTime is { } timeLimit && (operations++ & 255) == 0 && Stopwatch.GetElapsedTime(startTimestamp) > timeLimit)
+                throw new BudgetExceededException(stats.TotalBranchesEvaluated, stats.DrawsEvaluated, config.Budget!, "time");
             if (completed is not null)
             {
                 // ── Fold a finished sub-distribution into the top frame ──

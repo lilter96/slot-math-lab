@@ -23,31 +23,31 @@ public class RunHub : Hub
     /// (or reconnecting) still receives the terminal state instead of
     /// waiting forever for a broadcast that already happened.
     /// </summary>
-    public async Task SubscribeToRun(string runId)
+    public async Task<RunResponse> SubscribeToRun(string runId)
     {
-        await Groups.AddToGroupAsync(Context.ConnectionId, runId);
-
-        var run = _runStore.Get(runId);
-        if (run is not null && run.Status != "pending")
-        {
-            await Clients.Caller.SendAsync("ProgressUpdate", new RunProgressMessage
-            {
-                RunId = runId,
-                SampleCount = run.SampleCount ?? 0,
-                TotalSamples = run.TotalSamples ?? 0,
-                RunningRtp = run.RunningRtp ?? 0,
-                StdErr = run.StdErr ?? 0,
-                Status = run.Status,
-                ElapsedMs = run.ElapsedMs ?? 0,
-            });
-        }
+        GetRun(runId);
+        if (Context.Items.TryGetValue("run", out var previous) && previous is string old && old != runId)
+            await Groups.RemoveFromGroupAsync(Context.ConnectionId, old, Context.ConnectionAborted);
+        await Groups.AddToGroupAsync(Context.ConnectionId, runId, Context.ConnectionAborted);
+        Context.Items["run"] = runId;
+        var snapshot = RunResponse.From(GetRun(runId));
+        await Clients.Caller.SendAsync("ProgressUpdate", snapshot.Progress, Context.ConnectionAborted);
+        return snapshot;
     }
+
+    /// <summary>Application-level liveness acknowledgement and authoritative resync.</summary>
+    public RunResponse GetRunSnapshot(string runId) => RunResponse.From(GetRun(runId));
+
+    private RunEntry GetRun(string runId) => !string.IsNullOrEmpty(runId) && runId.Length <= 128
+        ? _runStore.Get(runId) ?? throw new HubException("RUN_NOT_FOUND")
+        : throw new HubException("RUN_NOT_FOUND");
 
     /// <summary>
     /// Unsubscribe from progress updates for a specific run.
     /// </summary>
     public async Task UnsubscribeFromRun(string runId)
     {
-        await Groups.RemoveFromGroupAsync(Context.ConnectionId, runId);
+        await Groups.RemoveFromGroupAsync(Context.ConnectionId, runId, Context.ConnectionAborted);
+        if (Context.Items.TryGetValue("run", out var current) && current as string == runId) Context.Items.Remove("run");
     }
 }

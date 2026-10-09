@@ -382,9 +382,8 @@ public static class SubgraphInliner
                 ElseExpr = RewriteExprRefs(i.ElseExpr, prefix),
             },
             NotExpr n => n with { Expr = RewriteExprRefs(n.Expr, prefix) },
-            AggregateExpr a => a.Predicate is null
-                ? a
-                : a with { Predicate = RewriteExprRefs(a.Predicate, prefix) },
+            AggregateExpr a => a with { Predicate = a.Predicate is null ? null : RewriteExprRefs(a.Predicate, prefix),
+                ValueExpr = a.ValueExpr is null ? null : RewriteExprRefs(a.ValueExpr, prefix) },
             CallExpr call => call with
             {
                 Args = call.Args.Select(arg => RewriteExprRefs(arg, prefix)).ToArray(),
@@ -400,6 +399,11 @@ public static class SubgraphInliner
 
     private static Expression RewriteFieldAccess(FieldAccessExpr f, string prefix)
     {
+        // Compiler-owned loop counters belong to the loop instance, just like expression IDs.
+        if ((f.Target is "state" or null) && f.Path.Length == 1)
+            foreach (var marker in new[] { "__iter_", "__wins_" })
+                if (f.Path[0].StartsWith(marker, StringComparison.Ordinal) && f.Path[0].EndsWith("__", StringComparison.Ordinal))
+                    return f with { Path = [marker + prefix + f.Path[0][marker.Length..]] };
         // state.expressions.<id>  →  state.expressions.<prefix+id>
         if ((f.Target is "state" or null)
             && f.Path.Length >= 2

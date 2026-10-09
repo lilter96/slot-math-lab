@@ -10,9 +10,11 @@ interface MetricStripProps {
 function provFromLive(p: string, sampleCount?: number, stdErr?: number): Provenance {
   switch (p) {
     case 'Exact': return { kind: 'Exact' };
+    case 'ExactInterval': return { kind: 'ExactInterval' };
+    case 'ExactWithMassLoss': return { kind: 'ExactWithMassLoss' };
     case 'Sampled': return { kind: 'Sampled', n: sampleCount ?? 0, stdErr };
     case 'NeedsFullRun': return { kind: 'Sampled', n: 0, note: 'needs full run' };
-    default: return { kind: 'Exact' };
+    default: return { kind: 'ExactWithMassLoss', note: 'Unavailable' };
   }
 }
 

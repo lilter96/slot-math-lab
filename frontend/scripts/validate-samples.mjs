@@ -5,7 +5,12 @@
 
 import { readFileSync, readdirSync } from "node:fs";
 import { resolve } from "node:path";
-import { GraphConfigSchema } from "../src/generated/graph-schema.zod.ts";
+import ts from "typescript";
+const schemaSource = readFileSync(new URL("../src/generated/graph-schema.zod.ts", import.meta.url), "utf8");
+const schemaJs = ts.transpile(schemaSource, { module: ts.ModuleKind.ESNext });
+// Resolve zod explicitly: a data URL has no relative module base.
+const schemaModule = schemaJs.replace('from "zod"', `from "${import.meta.resolve("zod")}"`);
+const { GraphConfigSchema } = await import(`data:text/javascript;base64,${Buffer.from(schemaModule).toString("base64")}`);
 
 const samplesDir = process.argv[2];
 if (!samplesDir) {

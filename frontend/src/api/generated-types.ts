@@ -129,7 +129,8 @@ export type paths = {
             path?: never;
             cookie?: never;
         };
-        get?: never;
+        /** Cursor-paginated server run archive without result JSON or histograms */
+        get: operations["listRunArchive"];
         put?: never;
         /** Create a new evaluation run */
         post: operations["createRun"];
@@ -152,6 +153,82 @@ export type paths = {
         post?: never;
         /** Cancel a running job */
         delete: operations["cancelRun"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/runs/{id}/evidence": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Retrieve original pinned config and provenance for a run */
+        get: operations["getRunEvidence"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/runs/measurements/schema": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Discover flattened observation points and state fields; optionally validate a measurement plan */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        config: {
+                            [key: string]: unknown;
+                        };
+                        measurements?: components["schemas"]["MeasurementDefinition"][];
+                    };
+                };
+            };
+            responses: {
+                /** @description Compiled measurement schema */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["MeasurementSchema"];
+                    };
+                };
+                /** @description Invalid graph or measurement plan */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Compute limit; honor Retry-After */
+                429: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
@@ -203,8 +280,17 @@ export type components = {
         };
         CreateRunRequest: {
             configId: string;
-            progressBatchSize?: number;
-            sampleSize?: number;
+            /** @description Replay a pinned version; omitted selects latest at creation. */
+            configVersion?: null | number;
+            /** Format: int32 */
+            degreeOfParallelism?: number;
+            measurements?: components["schemas"]["MeasurementDefinition"][];
+            /** Format: int32 */
+            progressBatchSize?: null | number;
+            /** Format: int32 */
+            sampleSize?: null | number;
+            /** Format: int64 */
+            seed?: number;
         };
         EvaluateLightRequest: {
             config: {
@@ -224,6 +310,57 @@ export type components = {
             strategy?: string;
             volatility?: number;
         };
+        MeasurementDefinition: {
+            /** @description Boolean constructor AST; null includes every observation. */
+            filter?: ({
+                exprType: string;
+            } & {
+                [key: string]: unknown;
+            }) | null;
+            id: string;
+            name: string;
+            /** @description Null observes a settled paid round; node ID observes state before each visit to the flattened graph node. */
+            nodeId?: string | null;
+            unit?: string;
+            /** @description Numeric constructor AST; null means settled capped payout at round completion. */
+            value?: ({
+                exprType: string;
+            } & {
+                [key: string]: unknown;
+            }) | null;
+        };
+        MeasurementSchema: {
+            fields: {
+                name: string;
+                type: string;
+            }[];
+            points: {
+                label: string;
+                nodeId: string;
+            }[];
+        };
+        MeasurementSnapshot: {
+            /** Format: int64 */
+            count: number;
+            /** Format: int64 */
+            errors: number;
+            /** Format: int64 */
+            excluded: number;
+            firstError: string | null;
+            id: string;
+            /** Format: double */
+            max: number | null;
+            /** Format: double */
+            mean: number | null;
+            /** Format: double */
+            min: number | null;
+            /** Format: int64 */
+            observations: number;
+            /** Format: double */
+            stdDev: number | null;
+            /** Format: double */
+            sum: number | null;
+        };
         PluginEntry: {
             contract?: string;
             isConformant?: boolean;
@@ -233,23 +370,138 @@ export type components = {
         RegisterPluginRequest: {
             pluginId: string;
         };
+        RunEvidence: {
+            computedConfigHash: null | string;
+            inputVerified: boolean;
+            model: components["schemas"]["RunModel"];
+            pinnedConfig: null | {
+                [key: string]: unknown;
+            };
+            run: components["schemas"]["RunResponse"];
+        };
+        RunHistogramBin: {
+            /** Format: int64 */
+            count: number;
+            /** Format: double */
+            hi: null | number;
+            /** Format: double */
+            lo: number;
+        };
+        RunModel: {
+            modelHash: null | string;
+            name: string;
+            /** Format: double */
+            targetRtp: null | number;
+            /** Format: int64 */
+            winCap: null | number;
+        };
+        RunPage: {
+            /** Format: int64 */
+            active: number;
+            /** Format: int64 */
+            completed: number;
+            /** Format: int64 */
+            failed: number;
+            items: components["schemas"]["RunSummary"][];
+            nextCursor: null | string;
+            /** Format: int64 */
+            partial: number;
+            /** Format: int64 */
+            total: number;
+        };
         RunProgressMessage: {
-            elapsedMs?: number;
-            runId?: string;
-            runningRtp?: number;
-            sampleCount?: number;
-            status?: string;
-            stdErr?: number;
-            totalSamples?: number;
+            /** Format: int64 */
+            capHits?: number;
+            /** Format: date-time */
+            completedAt?: null | string;
+            /** Format: int64 */
+            elapsedMs: number;
+            histogram?: components["schemas"]["RunHistogramBin"][];
+            /** Format: double */
+            hitFrequency?: number;
+            /** Format: double */
+            maxWin?: number;
+            measurementHash?: string | null;
+            measurements?: components["schemas"]["MeasurementSnapshot"][];
+            /** Format: int64 */
+            nonZeroCount?: number;
+            /** @description Complete persisted result carried by terminal snapshots. */
+            resultJson?: null | string;
+            runId: string;
+            /** Format: double */
+            runningRtp: number;
+            /** Format: int64 */
+            sampleCount: number;
+            /**
+             * Format: int64
+             * @description Monotonic revision within streamEpoch, including status transitions.
+             */
+            sequence?: number;
+            status: string;
+            /** Format: double */
+            stdErr: number;
+            /** @description Opaque stream generation. A crash recovery checkpoint starts a new generation. */
+            streamEpoch?: string;
+            /** Format: int64 */
+            totalSamples: number;
+            /** Format: double */
+            volatility?: number;
         };
         RunResponse: {
-            completedAt?: string;
-            configId?: string;
+            /** Format: date-time */
+            completedAt?: null | string;
+            configHash?: null | string;
+            configId: string;
+            /** Format: int32 */
+            configVersion?: number;
+            /** Format: date-time */
             createdAt?: string;
-            id?: string;
-            progress?: components["schemas"]["RunProgressMessage"];
-            resultJson?: string;
-            status?: string;
+            /** Format: int32 */
+            degreeOfParallelism?: number;
+            id: string;
+            measurementHash?: string | null;
+            measurements?: components["schemas"]["MeasurementDefinition"][];
+            progress?: null | components["schemas"]["RunProgressMessage"];
+            resultJson?: null | string;
+            /** Format: int64 */
+            seed?: number;
+            /**
+             * Format: int64
+             * @description Monotonic revision within streamEpoch, including status transitions.
+             */
+            sequence?: number;
+            status: string;
+            /** @description Opaque stream generation. A crash recovery checkpoint starts a new generation. */
+            streamEpoch?: string;
+            streamScheme?: string;
+        };
+        RunSummary: {
+            /** Format: date-time */
+            completedAt: null | string;
+            configHash: null | string;
+            configId: string;
+            /** Format: int32 */
+            configVersion: number;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: int32 */
+            degreeOfParallelism: number;
+            /** Format: int64 */
+            elapsedMs: number;
+            id: string;
+            model: components["schemas"]["RunModel"];
+            /** Format: double */
+            rtp: null | number;
+            /** Format: int64 */
+            sampleCount: number;
+            /** Format: int64 */
+            seed: number;
+            status: string;
+            /** Format: double */
+            stdErr: null | number;
+            streamScheme: string;
+            /** Format: int64 */
+            totalSamples: number;
         };
         UpdateConfigRequest: {
             config: {
@@ -408,6 +660,13 @@ export interface operations {
             };
             /** @description Not found */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Config is pinned by saved run evidence */
+            409: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -583,6 +842,45 @@ export interface operations {
             };
         };
     };
+    listRunArchive: {
+        parameters: {
+            query?: {
+                cursor?: string;
+                limit?: number;
+                search?: string;
+                status?: "all" | "completed" | "partial" | "failed" | "active";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Saved run evidence */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RunPage"];
+                };
+            };
+            /** @description Invalid query or cursor */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Authentication required in production */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     createRun: {
         parameters: {
             query?: never;
@@ -604,6 +902,13 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["RunResponse"];
                 };
+            };
+            /** @description Invalid version, seed, workers or round budget */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Config not found */
             404: {
@@ -654,12 +959,14 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description Cancelling */
+            /** @description Authoritative cancellation snapshot; completion may race with cancellation. */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["RunResponse"];
+                };
             };
             /** @description Not found */
             404: {
@@ -670,6 +977,42 @@ export interface operations {
             };
             /** @description Already completed/failed/cancelled */
             409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    getRunEvidence: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Saved run evidence */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RunEvidence"];
+                };
+            };
+            /** @description Authentication required in production */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Run not found */
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };

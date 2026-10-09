@@ -10,7 +10,8 @@
     "preview": "vite preview",
     "generate-types": "node scripts/generate-types.mjs",
     "generate-api": "node scripts/generate-api.mjs",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "test:unit": "playwright test -c playwright.unit.config.ts"
   },
   "dependencies": {
     "@codemirror/autocomplete": "^6.20.3",

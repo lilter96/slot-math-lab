@@ -59,11 +59,17 @@ public static class ExactEmitInterpreter
         Rational? winCap = null)
         where S : notnull
     {
+        if (winCap is { } declaredCap && declaredCap.Sign <= 0)
+            throw new ArgumentOutOfRangeException(nameof(winCap), "Win cap must be positive.");
         config ??= new ExactConfig();
         var stats = new EvalStats();
         var total = EvalCore(program, initialState, config, recurrenceHasher, labelFilter: null, stats);
         if (winCap is { } cap)
+        {
+            if (labels is { Count: > 0 } && total.Entries.Any(entry => entry.Value > cap))
+                throw new NotSupportedException("Per-label attribution requires an explicit policy when the round win cap binds.");
             total = ClampToCap(total, cap);
+        }
 
         var perLabel = new Dictionary<string, Rational>();
         if (labels is not null)
@@ -76,13 +82,17 @@ public static class ExactEmitInterpreter
             }
         }
 
+        var mass = new Rational(total.PrunedNumerator, total.PrunedDenominator);
+        var known = Expectation(total);
         var provenance = total.IsFullyExact
             ? ProvenanceTag.Exact
-            : ProvenanceTag.Interval(
-                lo: Expectation(total).ToDouble(),
-                hi: Expectation(total).ToDouble() + (double)total.PrunedNumerator / (double)total.PrunedDenominator,
-                prunedMass: (double)total.PrunedNumerator / (double)total.PrunedDenominator,
-                BoundSource.DeclaredWinCap);
+            : winCap is { } bound
+                ? ProvenanceTag.Interval(
+                    lo: System.Math.BitDecrement(known.ToDouble()),
+                    hi: System.Math.BitIncrement((known + mass * bound).ToDouble()),
+                    prunedMass: mass.ToDouble(),
+                    BoundSource.DeclaredWinCap)
+                : ProvenanceTag.MassLoss(mass.ToDouble());
 
         return new ExactEmitResult(total, perLabel, stats, provenance);
     }
@@ -309,8 +319,11 @@ public static class ExactEmitInterpreter
             // ── Emit: accumulate the labeled win (held separate from state) ──
             if (current is IEmitNode emit)
             {
+                var amount = emit.AmountUntyped(state!);
+                if (amount.Sign < 0)
+                    throw new InvalidOperationException("Emit payouts must be non-negative.");
                 if (labelFilter is null || emit.Label == labelFilter)
-                    acc += emit.AmountUntyped(state!);
+                    acc += amount;
                 current = emit.NextUntyped;
                 continue;
             }

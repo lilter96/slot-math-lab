@@ -60,7 +60,7 @@ public static class ExactExpressionEvaluator
     public static bool EvaluateAsBool(Expression expr, EvalContext ctx)
     {
         var v = Eval(expr, ctx);
-        return v.Kind == ExprType.Boolean && v.BoolValue;
+        return v.Kind == ExprType.Boolean ? v.BoolValue : throw new ExpressionEvaluationException("EVAL_TYPE_ERROR", "Boolean expression required.");
     }
 
     /// <summary>Evaluate as a WeightSet (for Draw weight expressions).</summary>
@@ -71,7 +71,7 @@ public static class ExactExpressionEvaluator
         {
             return WeightSet.FromNumerators([v.AsInteger()]);
         }
-        return WeightSet.FromNumerators([BigInteger.Zero]);
+        throw new ExpressionEvaluationException("EVAL_TYPE_ERROR", "Numeric weight expression required.");
     }
 
     // ── Core evaluation ──────────────────────────────────────────────────
@@ -120,7 +120,7 @@ public static class ExactExpressionEvaluator
         }
         if (BigInteger.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out var n))
             return ExprValue.Number(n);
-        return ExprValue.Number(0);
+        throw new ExpressionEvaluationException("EVAL_INVALID_CONSTANT", $"Invalid rational '{value}'.");
     }
 
     private static ExprValue EvalFieldAccess(FieldAccessExpr f, EvalContext ctx)
@@ -138,14 +138,14 @@ public static class ExactExpressionEvaluator
 
     private static ExprValue EvalStateField(string[] path, object? state)
     {
-        if (state == null) return ExprValue.Number(0);
+        if (state == null) throw new ExpressionEvaluationException("EVAL_MISSING_STATE", "State is absent.", string.Join(".", path));
 
         // Handle Dictionary<string, object?> state (used by GraphCompiler)
         if (state is IDictionary<string, object?> dict)
         {
             var key = path[0];
             if (!dict.TryGetValue(key, out var dictVal))
-                return ExprValue.Number(0);
+                throw new ExpressionEvaluationException("EVAL_MISSING_STATE", $"State field '{key}' is absent.", string.Join(".", path));
 
             // Nested record field access: state["cell"]["symbol"] via
             // path = ["cell", "field", ...].  A "cell" element of a board array

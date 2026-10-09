@@ -1,0 +1,11 @@
+{
+  "checkedAt": "2026-10-09T19:08:42.934Z",
+  "runId": "5714da0018534ceb87c2a344392b9047",
+  "simulateUrl": "http://localhost:4173/simulate?run=5714da0018534ceb87c2a344392b9047",
+  "resultsUrl": "http://localhost:4173/results?run=5714da0018534ceb87c2a344392b9047",
+  "rounds": 100000,
+  "productionStatisticsMatch": true,
+  "configuredThroughUi": true,
+  "emptyStoragePermalinkVerified": true,
+  "browserErrors": []
+}

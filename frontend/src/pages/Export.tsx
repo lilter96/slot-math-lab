@@ -1,40 +1,15 @@
-import { useState, useCallback, useRef, useMemo } from 'react';
+import { useState, useCallback, useRef, useMemo, useEffect } from 'react';
 import { useAppStore } from '../store';
 import { useSaveConfig } from '../api/hooks';
+import { buildConfigPayload } from '../lib/configPayload';
+import { loadProject } from '../lib/projectFiles';
+import { useLiveMetrics } from '../hooks/useLiveMetrics';
 import { configHash } from '../lib/hash';
 import { Ic } from '../components/Icons';
 import ProvBadge from '../components/ProvBadge';
 
-// ── Build export payload from current store state ─────────────────
-function buildExportPayload(
-  nodes: ReturnType<typeof useAppStore.getState>['nodes'],
-  edges: ReturnType<typeof useAppStore.getState>['edges'],
-  mechanics: ReturnType<typeof useAppStore.getState>['mechanics'],
-) {
-  return {
-    schemaVersion: '1.0.0',
-    name: 'Slot Math Lab Export',
-    exportedAt: new Date().toISOString(),
-    nodes: nodes.map((n) => ({ id: n.id, type: n.type, position: n.position, data: n.data })),
-    edges: edges.map((e) => ({
-      id: e.id,
-      source: e.source,
-      target: e.target,
-      sourceHandle: e.sourceHandle,
-      targetHandle: e.targetHandle,
-    })),
-    mechanics: mechanics.map((m) => ({
-      id: m.id,
-      name: m.name,
-      description: m.description,
-      nodes: m.nodes,
-      edges: m.edges,
-    })),
-  };
-}
-
 // ── PAR sheet helpers ─────────────────────────────────────────────
-function generateParCsv(metrics?: { rtp?: number; hitFreq?: number; volatility?: number }): string {
+function generateParCsv(metrics?: { rtp?: number; hitFreq?: number; volatility?: number; provenance?: string }): string {
   const header = 'Section,Item,Value,Provenance';
   const rows: string[] = [header];
 
@@ -43,9 +18,9 @@ function generateParCsv(metrics?: { rtp?: number; hitFreq?: number; volatility?:
   rows.push('');
   rows.push('Metrics,,,,');
   if (metrics) {
-    rows.push(`Metrics,RTP,${metrics.rtp != null ? (metrics.rtp * 100).toFixed(2) + '%' : '—'},${metrics.rtp != null ? 'Exact' : '—'}`);
-    rows.push(`Metrics,Hit Frequency,${metrics.hitFreq != null ? (metrics.hitFreq * 100).toFixed(2) + '%' : '—'},${metrics.hitFreq != null ? 'Exact' : '—'}`);
-    rows.push(`Metrics,Volatility Index,${metrics.volatility != null ? metrics.volatility.toFixed(2) : '—'},${metrics.volatility != null ? 'Exact' : '—'}`);
+    rows.push(`Metrics,RTP,${metrics.rtp != null ? (metrics.rtp * 100).toFixed(2) + '%' : '—'},${metrics.rtp != null ? metrics.provenance ?? 'Unknown' : '—'}`);
+    rows.push(`Metrics,Hit Frequency,${metrics.hitFreq != null ? (metrics.hitFreq * 100).toFixed(2) + '%' : '—'},${metrics.hitFreq != null ? metrics.provenance ?? 'Unknown' : '—'}`);
+    rows.push(`Metrics,Volatility Index,${metrics.volatility != null ? metrics.volatility.toFixed(2) : '—'},${metrics.volatility != null ? metrics.provenance ?? 'Unknown' : '—'}`);
   }
   rows.push('');
   rows.push('Provenance Legend,,,,');
@@ -56,7 +31,7 @@ function generateParCsv(metrics?: { rtp?: number; hitFreq?: number; volatility?:
   return rows.join('\n');
 }
 
-function generateParHtml(hash: string, metrics?: { rtp?: number; hitFreq?: number; volatility?: number }): string {
+function generateParHtml(hash: string, metrics?: { rtp?: number; hitFreq?: number; volatility?: number; provenance?: string }): string {
   return `<!DOCTYPE html>
 <html lang="en">
 <head><meta charset="UTF-8"><title>PAR Sheet — Slot Math Lab</title>
@@ -80,14 +55,14 @@ function generateParHtml(hash: string, metrics?: { rtp?: number; hitFreq?: numbe
 
   <h2>Key Metrics</h2>
   <div class="grid">
-    <div class="cell"><div class="l">RTP <span class="prov exact">Exact</span></div><div class="v">${metrics?.rtp != null ? (metrics.rtp * 100).toFixed(2) + '%' : '—'}</div></div>
-    <div class="cell"><div class="l">Hit Frequency <span class="prov exact">Exact</span></div><div class="v">${metrics?.hitFreq != null ? (metrics.hitFreq * 100).toFixed(2) + '%' : '—'}</div></div>
-    <div class="cell"><div class="l">Volatility <span class="prov exact">Exact</span></div><div class="v">${metrics?.volatility != null ? metrics.volatility.toFixed(2) + 'σ' : '—'}</div></div>
+    <div class="cell"><div class="l">RTP <span class="prov">${metrics?.provenance ?? 'Unavailable'}</span></div><div class="v">${metrics?.rtp != null ? (metrics.rtp * 100).toFixed(2) + '%' : '—'}</div></div>
+    <div class="cell"><div class="l">Hit Frequency <span class="prov">${metrics?.provenance ?? 'Unavailable'}</span></div><div class="v">${metrics?.hitFreq != null ? (metrics.hitFreq * 100).toFixed(2) + '%' : '—'}</div></div>
+    <div class="cell"><div class="l">Volatility <span class="prov">${metrics?.provenance ?? 'Unavailable'}</span></div><div class="v">${metrics?.volatility != null ? metrics.volatility.toFixed(2) + 'σ' : '—'}</div></div>
     <div class="cell"><div class="l">Max Win</div><div class="v">—</div></div>
   </div>
 
   <footer>
-    <p>Generated by Slot Math Lab · Provenance: all displayed values are <strong>Exact</strong> (rational closed-form) unless otherwise noted.</p>
+    <p>Generated by Slot Math Lab · Provenance: ${metrics?.provenance ?? 'Unavailable'}.</p>
   </footer>
 </body></html>`;
 }
@@ -104,12 +79,19 @@ export default function Export() {
   const [copied, setCopied] = useState(false);
   const [shareUrl, setShareUrl] = useState<string | null>(null);
   const [savedConfigId, setSavedConfigId] = useState<string | null>(null);
+  const tables = useAppStore(s => s.tables);
+  const { overall } = useLiveMetrics();
+  const metrics = useMemo(() => overall ? { rtp: overall.rtp, hitFreq: overall.hitFrequency, volatility: overall.volatility, provenance: overall.provenance } : undefined, [overall]);
   const fileRef = useRef<HTMLInputElement>(null);
 
   const saveConfig = useSaveConfig();
 
-  const exportPayload = useMemo(() => buildExportPayload(nodes, edges, mechanics), [nodes, edges, mechanics]);
-  const exportHash = useMemo(() => configHash(exportPayload), [exportPayload]);
+  const exportPayload = useMemo(() => {
+    try { return buildConfigPayload(nodes, edges, { name: configName ?? 'Untitled', tables }); }
+    catch { return null; }
+  }, [nodes, edges, configName, tables]);
+  const [exportHash, setExportHash] = useState('');
+  useEffect(() => { let active = true; void configHash(exportPayload).then(hash => { if (active) setExportHash(hash); }); return () => { active = false; }; }, [exportPayload]);
   const exportJson = useMemo(() => JSON.stringify(exportPayload, null, 2), [exportPayload]);
 
   const handleDownload = useCallback(() => {
@@ -139,7 +121,7 @@ export default function Export() {
     const file = e.target.files?.[0];
     if (!file) return;
     const reader = new FileReader();
-    reader.onload = () => {
+    reader.onload = async () => {
       try {
         const data = JSON.parse(reader.result as string);
         if (!data.schemaVersion) {
@@ -147,9 +129,10 @@ export default function Export() {
           setImported(null);
           return;
         }
+        loadProject(data);
         setImported(data);
         setImportError(null);
-        setImportHash(configHash(data));
+        setImportHash(await configHash(data));
       } catch {
         setImportError('Invalid JSON file');
         setImported(null);
@@ -160,12 +143,12 @@ export default function Export() {
     e.target.value = '';
   }, []);
 
-  const handleVerifyRoundTrip = useCallback(() => {
+  const handleVerifyRoundTrip = useCallback(async () => {
     if (!imported) return;
-    const importedHash = configHash(imported);
-    const reExported = JSON.stringify(imported, Object.keys(imported as object).sort());
+    const importedHash = await configHash(imported);
+    const reExported = JSON.stringify(imported);
     const reImported = JSON.parse(reExported);
-    const roundTripHash = configHash(reImported);
+    const roundTripHash = await configHash(reImported);
     setImportHash(roundTripHash);
     if (roundTripHash !== importedHash) {
       setImportError(`Hash mismatch: original=${importedHash}, round-trip=${roundTripHash}`);
@@ -175,7 +158,7 @@ export default function Export() {
   }, [imported]);
 
   const handleParCsv = useCallback(() => {
-    const csv = generateParCsv();
+    const csv = generateParCsv(metrics);
     const blob = new Blob([csv], { type: 'text/csv' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -183,10 +166,10 @@ export default function Export() {
     a.download = `par-sheet-${exportHash}.csv`;
     a.click();
     URL.revokeObjectURL(url);
-  }, [exportHash]);
+  }, [exportHash, metrics]);
 
   const handleParHtml = useCallback(() => {
-    const html = generateParHtml(exportHash);
+    const html = generateParHtml(exportHash, metrics);
     const blob = new Blob([html], { type: 'text/html' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -194,7 +177,7 @@ export default function Export() {
     a.download = `par-sheet-${exportHash}.html`;
     a.click();
     URL.revokeObjectURL(url);
-  }, [exportHash]);
+  }, [exportHash, metrics]);
 
   const hashesMatch = importHash && exportHash === importHash;
 
@@ -297,10 +280,10 @@ export default function Export() {
           <div className="par-section">
             <h2>PAR Sheet Export</h2>
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-              <button className="btn" onClick={handleParCsv}>
+              <button className="btn" disabled={!metrics} onClick={handleParCsv}>
                 <Ic.export style={{ width: 14, height: 14 }} /> Download CSV
               </button>
-              <button className="btn" onClick={handleParHtml}>
+              <button className="btn" disabled={!metrics} onClick={handleParHtml}>
                 <Ic.results style={{ width: 14, height: 14 }} /> Download printable summary (HTML)
               </button>
             </div>

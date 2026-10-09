@@ -52,7 +52,7 @@ public static class ValidateEndpoints
                     Code = e.Code,
                 }).ToList(),
             });
-        });
+        }).Produces<ValidateResponse>();
 
         return group;
     }

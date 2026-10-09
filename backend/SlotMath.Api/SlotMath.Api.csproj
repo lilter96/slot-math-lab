@@ -9,6 +9,8 @@
     <PackageReference Include="Hangfire.AspNetCore" Version="1.8.*" />
     <PackageReference Include="Hangfire.MemoryStorage" Version="1.8.*" />
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.0" />
+    <PackageReference Include="Microsoft.OpenApi" Version="2.7.5" />
+    <PackageReference Include="System.Security.Cryptography.Xml" Version="10.0.12" />
     <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.8" />
     <PackageReference Include="Microsoft.EntityFrameworkCore" Version="10.0.0" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.0" />

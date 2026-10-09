@@ -20,6 +20,7 @@ namespace SlotMath.Core.Math.Regime;
 /// </summary>
 public sealed class RegimeConfig
 {
+    public int ChunkSize { get; init; } = SlotMathConstants.Prng.Chunk;
     /// <summary>Budget controlling exact vs sampled fallback.</summary>
     public Budget Budget { get; init; } = Budget.Default;
 
@@ -260,6 +261,7 @@ public static class HybridEvaluator
     {
         var sampledConfig = new SampledConfig
         {
+            ChunkSize = config.ChunkSize,
             Seed = config.SampledSeed,
             MaxSpins = config.SampledSpins,
             MaxWinCap = config.MaxWinCap,

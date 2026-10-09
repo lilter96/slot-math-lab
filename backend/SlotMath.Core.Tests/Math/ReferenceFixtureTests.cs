@@ -155,7 +155,7 @@ public class ReferenceFixtureTests
         var result = ExactEmitInterpreter.Evaluate(
             RefB(budget), new FsState(0, budget),
             s => (System.Numerics.BigInteger)(s.Remaining * 1_000_003L + s.Budget),
-            labels: ["base", "freespins"]);
+            labels: ["base", "freespins"], winCap: 10000);
 
         var target = new Rational(15, 17);
         var epsilon = new Rational(1, 1_000_000_000); // 1e-9

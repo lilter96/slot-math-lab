@@ -5,6 +5,7 @@ import { useAppStore } from '../../../store';
 import { Ic, NODE_ACCENT } from '../../Icons';
 import ProvBadge from '../../ProvBadge';
 import type { Provenance } from '../../ProvBadge';
+import { openMechanic } from '../../../lib/projectFiles';
 
 interface BaseNodeProps {
   data: GraphNodeData;
@@ -30,23 +31,29 @@ const BaseNodeCard: FC<BaseNodeProps> = ({ data, selected }) => {
   const lvlCls = data.level === 'b' ? 'node-lvl b' : data.level === 'c' ? 'node-lvl plugin' : 'node-lvl';
   const lvlTxt = data.level === 'b' ? 'expr' : data.level === 'c' ? 'plugin' : 'L0';
   // Draw nodes generate values — they have no input handles
-  const hasIn = data.nodeType !== 'draw';
+  const hasIn = data.nodeType !== 'draw' || !!(data.backendNode as { inputs?: object } | undefined)?.inputs;
   const hasOut = data.nodeType !== 'sink' && data.nodeType !== 'branch' && data.nodeType !== 'loop';
+  const backendNode = data.backendNode as { inputs?: Record<string, unknown>; outputs?: Record<string, unknown> } | undefined;
+  const inputPorts = Object.keys(backendNode?.inputs ?? {});
+  const outputPorts = Object.keys(backendNode?.outputs ?? {});
   const liveRtp = useAppStore((s) => s.liveRtp);
   const liveProvenance = useAppStore((s) => s.liveProvenance);
+  const canOpen = useAppStore(s => !!(s.tables.mechanics as Record<string, unknown>)?.[String(data.mechanicName)]);
   const rtpProvenance: Provenance | null = liveProvenance === 'Exact'
     ? { kind: 'Exact' }
+    : liveProvenance === 'ExactInterval' ? { kind: 'ExactInterval' }
+    : liveProvenance === 'ExactWithMassLoss' ? { kind: 'ExactWithMassLoss' }
     : liveProvenance === 'Sampled'
       ? { kind: 'Sampled', n: 0 }
       : null;
 
   return (
     <div className={'node' + (selected ? ' selected' : '')} style={{ '--sel': accent } as React.CSSProperties}>
-      {hasIn && <Handle type="target" position={Position.Left} className="port in" />}
+      {hasIn && (inputPorts.length ? inputPorts.map((id, index) => <Handle key={id} id={id} type="target" position={Position.Left} className="port in" style={{ top: `${(index + 1) * 100 / (inputPorts.length + 1)}%` }} />) : <Handle type="target" position={Position.Left} className="port in" />)}
       <div className="node-head">
         <span className="node-ic" style={{ '--nc': accent } as React.CSSProperties}><IconC /></span>
         <div className="node-tt">
-          <div className="node-title">{data.label}</div>
+          <div className="node-title" title={data.label}>{data.label}</div>
           {data.sub && <div className="node-sub">{data.sub}</div>}
         </div>
         <span className={lvlCls}>{lvlTxt}</span>
@@ -107,6 +114,7 @@ const BaseNodeCard: FC<BaseNodeProps> = ({ data, selected }) => {
             <span className="v" style={{ color: 'var(--exact)' }}>{(data.mechanicName as string) ?? '—'}</span>
           </div>
         )}
+        {data.nodeType === 'library' && canOpen && <button className="btn nodrag nopan node-open-subgraph" aria-label={`Open ${data.label} subgraph`} onClick={event => { event.stopPropagation(); openMechanic(String(data.mechanicName)); }}>Open subgraph ↗</button>}
         {data.nodeType === 'sink' && (
           <div className="mini-row">
             <span className="k">RTP</span>
@@ -117,7 +125,7 @@ const BaseNodeCard: FC<BaseNodeProps> = ({ data, selected }) => {
           </div>
         )}
       </div>
-      {hasOut && <Handle type="source" position={Position.Right} className="port out" />}
+      {hasOut && (outputPorts.length ? outputPorts.map((id, index) => <Handle key={id} id={id} type="source" position={Position.Right} className="port out" style={{ top: `${(index + 1) * 100 / (outputPorts.length + 1)}%` }} />) : <Handle type="source" position={Position.Right} className="port out" />)}
       {data.nodeType === 'branch' && (
         <>
           <Handle id="true" type="source" position={Position.Right}

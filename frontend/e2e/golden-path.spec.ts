@@ -2,7 +2,7 @@
  * G32 — Golden-path E2E test
  *
  * Scenario: build a game → add symbol → check live metrics → navigate to Simulate
- * tab → switch to Results → verify PAR sheet header → Export tab → verify export UI.
+ * tab → switch to Results → verify saved evidence workspace → Export tab.
  *
  * Runs against the production preview build (npm run preview) or a live dev server.
  * Requires `npx playwright install chromium` and browser binaries to be available.
@@ -14,8 +14,8 @@ test.describe('Golden path', () => {
     await page.goto('/');
 
     // ── 1. Build tab renders ──────────────────────────────────────────
-    await expect(page.getByRole('button', { name: /build/i })).toBeVisible();
-    await page.getByRole('button', { name: /build/i }).click();
+    await expect(page.getByRole('tab', { name: /build/i })).toBeVisible();
+    await page.getByRole('tab', { name: /build/i }).click();
 
     // Palette is visible
     await expect(page.getByText('Primitives')).toBeVisible();
@@ -29,21 +29,19 @@ test.describe('Golden path', () => {
     await expect(page.locator('.metric-strip, [class*="metric"]').first()).toBeVisible();
 
     // ── 3. Navigate to Simulate tab ───────────────────────────────────
-    await page.getByRole('button', { name: /simulate/i }).click();
+    await page.getByRole('tab', { name: /simulate/i }).click();
     await expect(page.getByRole('button', { name: /start run/i }).or(
       page.getByText(/simulate/i).first()
     )).toBeVisible();
 
     // ── 4. Navigate to Results tab ───────────────────────────────────
-    await page.getByRole('button', { name: /results/i }).click();
-    // PAR sheet header
-    await expect(page.getByText(/return to player/i)).toBeVisible({ timeout: 5000 });
-
-    // Lint panel is present
-    await expect(page.getByText(/compliance lint/i)).toBeVisible();
+    await page.getByRole('tab', { name: /results/i }).click();
+    await expect(page.getByRole('heading', { name: /Results Make the numbers accountable/i })).toBeVisible();
+    await expect(page.getByRole('complementary', { name: 'Run archive' })).toBeVisible();
+    await expect(page.getByLabel('Search saved runs')).toBeVisible();
 
     // ── 5. Navigate to Export tab ─────────────────────────────────────
-    await page.getByRole('button', { name: /export/i }).click();
+    await page.getByRole('tab', { name: /export/i }).click();
     // Export page renders
     await expect(
       page.getByText(/export/i).or(page.getByText(/PAR/i)).first()
@@ -52,12 +50,10 @@ test.describe('Golden path', () => {
 
   test('AI Generate button opens modal', async ({ page }) => {
     await page.goto('/');
-    await page.getByRole('button', { name: /build/i }).click();
+    await page.getByRole('tab', { name: /build/i }).click();
 
     // Find AI Generate button in the canvas toolbar (star icon)
-    const aiBtn = page.getByRole('button', { name: /ai/i }).or(
-      page.locator('[aria-label*="AI"]').or(page.locator('[title*="AI"]'))
-    ).first();
+    const aiBtn = page.getByRole('button', { name: 'AI Generate graph', exact: true });
 
     // The button may not exist if the canvas toolbar isn't rendered yet
     const count = await aiBtn.count();
@@ -74,7 +70,7 @@ test.describe('Golden path', () => {
 
   test('Auto-tune panel is accessible from AI tab', async ({ page }) => {
     await page.goto('/');
-    await page.getByRole('button', { name: /build/i }).click();
+    await page.getByRole('tab', { name: /build/i }).click();
 
     // Click AI tab in the right panel
     const aiTab = page.getByRole('button', { name: /^ai$/i });

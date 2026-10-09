@@ -199,6 +199,15 @@
         }
       }
     },
+    "initialState": {
+      "type": [
+        "null",
+        "object"
+      ],
+      "additionalProperties": {
+        "$ref": "#/$defs/jsonElement"
+      }
+    },
     "nodes": {
       "$ref": "#/$defs/arrayOfNode"
     },
@@ -261,6 +270,24 @@
       "type": "array",
       "items": {
         "type": "string"
+      }
+    },
+    "jsonElement": {
+      "type": "object",
+      "properties": {
+        "valueKind": {
+          "readOnly": true,
+          "enum": [
+            "Undefined",
+            "Object",
+            "Array",
+            "String",
+            "Number",
+            "True",
+            "False",
+            "Null"
+          ]
+        }
       }
     },
     "arrayOfNode": {
@@ -374,6 +401,15 @@
     "customMechanic": {
       "type": "object",
       "properties": {
+        "initialState": {
+          "type": [
+            "null",
+            "object"
+          ],
+          "additionalProperties": {
+            "$ref": "#/$defs/jsonElement"
+          }
+        },
         "name": {
           "type": "string"
         },

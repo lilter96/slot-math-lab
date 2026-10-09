@@ -23,6 +23,7 @@
 
   <ItemGroup>
     <Using Include="Xunit" />
+    <Content Include="../SlotMath.Core.Tests/TestData/DogHouse/*.json" Link="TestData/DogHouse/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
 </Project>

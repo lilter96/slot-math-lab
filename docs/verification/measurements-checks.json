@@ -1,0 +1,58 @@
+{
+  "checkedAt": "2026-10-09T19:08:42.934Z",
+  "checks": {
+    "core": { "passed": 750, "failed": 0, "skipped": 0 },
+    "api": { "passed": 75, "failed": 0, "skipped": 0 },
+    "frontendUnit": { "passed": 27, "failed": 0 },
+    "browser": { "passed": 49, "failed": 0 },
+    "frontendBuild": "passed",
+    "lint": "passed",
+    "diffWhitespace": "passed",
+    "openApiDocument": "HTTP 200",
+    "independentDogHouseOracle": "passed",
+    "uiFixtureConsistency": "passed",
+    "independentScopedFsOracle": "passed in compiled and reference sampling",
+    "authenticProductionDeployment": "passed",
+    "productionAndPreviewStatistics": "bit identical with the same constructor, seed and measurement definitions"
+  },
+  "independentScopedFsOracle": {
+    "paidRounds": 5,
+    "fsPerRound": 3,
+    "eligibleVisits": 15,
+    "matchingStickyVisits": 10,
+    "excludedOtherVisits": 5,
+    "min": 2,
+    "max": 4,
+    "sum": 30,
+    "average": 3,
+    "sampleVariance": "10/9"
+  },
+  "productionChecks": {
+    "rounds": 100000,
+    "fsVisits": 11275,
+    "bonusRounds": 630,
+    "filteredLongBonusFsVisits": 6977,
+    "runtimeMeasurementErrors": 0,
+    "realWebSocketMeasurementFrames": 7,
+    "replayWorkers": [2, 1],
+    "replayBitIdenticalMeasurements": true,
+    "collectionLeavesGameStatisticsUnchanged": true,
+    "emptyStoragePermalink": true,
+    "mobileDashboard": true,
+    "independentAverageAndRangeChartScales": true,
+    "evidenceExport": true
+  },
+  "previewUrl": "http://localhost:4173/simulate?run=5714da0018534ceb87c2a344392b9047",
+  "productionUrl": "https://localhost:8543/simulate?run=e27afc9d6df04ec3ac705cf27a47b7e4",
+  "productionEvidence": "measurements-production.json",
+  "previewEvidence": "measurements-local.json",
+  "modelTargetRtp": 0.98,
+  "observedSeed42Rtp": 0.9967189999999915,
+  "referenceKind": "ExactExpectation",
+  "limitations": [
+    "Custom numeric statistics are descriptive; correlated feature events do not receive an independent-event confidence interval.",
+    "A feature-type filter requires that feature type to be authored in the constructor state.",
+    "The measured execution-time ratio is one observation, not a benchmark guarantee.",
+    "Local checks were executed here; a remote GitHub CI run was not triggered."
+  ]
+}

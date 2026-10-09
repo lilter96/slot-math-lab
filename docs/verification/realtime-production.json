@@ -1,0 +1,50 @@
+{
+  "checkedAt": "2026-10-09T16:08:31.880Z",
+  "endpoint": "https://localhost:8543",
+  "silentSocket": {
+    "replaced": true,
+    "httpAdvanced": true,
+    "before": 28000,
+    "after": 809432,
+    "socketConnections": 2
+  },
+  "repeatedRecovery": true,
+  "authentication": {
+    "expiredSessionPrompt": true,
+    "recoveredExistingRun": true,
+    "sameSeedAndHash": true,
+    "before": 843432,
+    "after": 887432
+  },
+  "crashRecovery": {
+    "runId": "bc453e3d178d40039f615008fcfa767f",
+    "interrupted": true,
+    "epochChanged": true,
+    "checkpointRounds": 828432,
+    "observedBeforeCrash": 887432,
+    "beforeRevision": 895,
+    "checkpointRevision": 836,
+    "inputPreserved": true,
+    "chartResetToDurablePrefix": true,
+    "result": {
+      "code": "RUN_INTERRUPTED",
+      "error": "Server restarted; last checkpoint retained. Replay with the recorded seed."
+    },
+    "checkpointAgeMs": 1399,
+    "reloadStable": true
+  },
+  "completeRun": {
+    "runId": "037d8fae59134a318cdf029d78e68978",
+    "elapsedMs": 4190,
+    "wallMs": 5045,
+    "roundCount": 100000,
+    "observedRtp": 0.9967189999999915,
+    "sameDeterministicMath": true,
+    "resultDeliveredInline": true,
+    "revision": 105,
+    "graphHash": "6ab31814ceb52133e3332855ab8e80aac5af9f9443a886b9361bf5345f0964b4",
+    "seed": 42,
+    "streamScheme": "splitmix64-chunk-65536"
+  },
+  "browserErrors": []
+}

@@ -1,3 +1,5 @@
+using SlotMath.Core.Measurements;
+
 namespace SlotMath.Api.Infrastructure;
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -57,6 +59,7 @@ public sealed record ValidateErrorItem
 
 public sealed record EvaluateLightRequest
 {
+    public long Seed { get; init; } = 42;
     public required object Config { get; init; }
     public int? MaxBranches { get; init; }
     public int? SampleSize { get; init; }
@@ -64,6 +67,11 @@ public sealed record EvaluateLightRequest
 
 public sealed record EvaluateLightResponse
 {
+    public double? Lo { get; init; }
+    public double? Hi { get; init; }
+    public double? PrunedMass { get; init; }
+    public long Seed { get; init; }
+    public IReadOnlyList<ValidateErrorItem> Errors { get; init; } = Array.Empty<ValidateErrorItem>();
     public required string Strategy { get; init; } // "Exact", "Sampled", "NeedsFullRun"
     public double? Rtp { get; init; }
     public double? HitFrequency { get; init; }
@@ -77,29 +85,68 @@ public sealed record EvaluateLightResponse
 
 public sealed record CreateRunRequest
 {
+    public MeasurementInput[] Measurements { get; init; } = [];
+    public int? ConfigVersion { get; init; }
+    public long Seed { get; init; } = 42;
     public required string ConfigId { get; init; }
     public int? SampleSize { get; init; }
     public int? ProgressBatchSize { get; init; }
+    public int DegreeOfParallelism { get; init; } = 2;
 }
 
 public sealed record RunResponse
 {
+    public MeasurementInput[] Measurements { get; init; } = [];
+    public string? MeasurementHash { get; init; }
+    public string StreamEpoch { get; init; } = "";
+    public long Sequence { get; init; }
+    public int ConfigVersion { get; init; }
+    public string? ConfigHash { get; init; }
+    public int DegreeOfParallelism { get; init; }
+    public string StreamScheme { get; init; } = "splitmix64-chunk-65536";
+    public long Seed { get; init; }
     public required string Id { get; init; }
     public required string ConfigId { get; init; }
     public required string Status { get; init; }
     public string? ResultJson { get; init; }
     public DateTimeOffset CreatedAt { get; init; }
     public DateTimeOffset? CompletedAt { get; init; }
-    /// <summary>Current progress, non-null when the run is "running".</summary>
+    /// <summary>Latest snapshot, including queued and terminal runs.</summary>
     public RunProgressMessage? Progress { get; init; }
+
+    public static RunResponse From(RunEntry run) => new()
+    {
+        Measurements = run.Measurements.Select(MeasurementInput.FromCore).ToArray(), MeasurementHash = run.MeasurementHash,
+        Id = run.Id, ConfigId = run.ConfigId, Seed = run.Seed, ConfigVersion = run.ConfigVersion,
+        ConfigHash = run.ConfigHash, DegreeOfParallelism = run.DegreeOfParallelism, Status = run.Status,
+        Sequence = Math.Max(run.Sequence, run.Progress?.Sequence ?? 0), StreamEpoch = run.StreamEpoch, CreatedAt = run.CreatedAt,
+        CompletedAt = run.CompletedAt, ResultJson = run.ResultJson, Progress = InMemoryRunStore.Snapshot(run),
+    };
 }
 
 /// <summary>
 /// Progress update pushed from server to client via SignalR.
 /// Also included in RunResponse when a run is in-flight.
 /// </summary>
+public sealed record RunHistogramBin(double Lo, double? Hi, long Count);
+
 public sealed record RunProgressMessage
 {
+    public IReadOnlyList<MeasurementSnapshot> Measurements { get; init; } = [];
+    public string? MeasurementHash { get; init; }
+    public string StreamEpoch { get; init; } = "";
+    [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+    public string? ResultJson { get; init; }
+    [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+    public DateTimeOffset? CompletedAt { get; init; }
+    public long Sequence { get; init; }
+    public double HitFrequency { get; init; }
+    public long NonZeroCount { get; init; }
+    public double Volatility { get; init; }
+    public double MaxWin { get; init; }
+    public long CapHits { get; init; }
+    public IReadOnlyList<RunHistogramBin> Histogram { get; init; } = Array.Empty<RunHistogramBin>();
+
     public required string RunId { get; init; }
     public required long SampleCount { get; init; }
     public required long TotalSamples { get; init; }

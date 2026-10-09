@@ -1,0 +1,362 @@
+{
+  "s_bone": {
+    "url": "/dog-house/logo.png",
+    "atlasWidth": 1019,
+    "atlasHeight": 645,
+    "x": 0,
+    "y": 0,
+    "width": 967,
+    "height": 211
+  },
+  "s_jackpot_logo": {
+    "url": "/dog-house/logo.png",
+    "atlasWidth": 1019,
+    "atlasHeight": 645,
+    "x": 0,
+    "y": 426,
+    "width": 1017,
+    "height": 219
+  },
+  "s_logo": {
+    "url": "/dog-house/logo.png",
+    "atlasWidth": 1019,
+    "atlasHeight": 645,
+    "x": 0,
+    "y": 213,
+    "width": 967,
+    "height": 211
+  },
+  "s_doho_basegame_idle_000": {
+    "url": "/dog-house/landscape.jpg",
+    "atlasWidth": 1244,
+    "atlasHeight": 699,
+    "x": 0,
+    "y": 0,
+    "width": 1244,
+    "height": 699
+  },
+  "s_dogs": {
+    "url": "/dog-house/portrait_additional.png",
+    "atlasWidth": 999,
+    "atlasHeight": 557,
+    "x": 0,
+    "y": 127,
+    "width": 907,
+    "height": 430
+  },
+  "s_shadow_top": {
+    "url": "/dog-house/portrait_additional.png",
+    "atlasWidth": 999,
+    "atlasHeight": 557,
+    "x": 0,
+    "y": 2,
+    "width": 999,
+    "height": 123
+  },
+  "s_doho_basegame_bird_000": {
+    "url": "/dog-house/reels.png",
+    "atlasWidth": 1755,
+    "atlasHeight": 1346,
+    "x": 175,
+    "y": 95,
+    "width": 59,
+    "height": 87
+  },
+  "s_doho_basegame_foliage_000_0": {
+    "url": "/dog-house/reels.png",
+    "atlasWidth": 1755,
+    "atlasHeight": 1346,
+    "x": 0,
+    "y": 2,
+    "width": 115,
+    "height": 180
+  },
+  "s_doho_basegame_foliage_000_1": {
+    "url": "/dog-house/reels.png",
+    "atlasWidth": 1755,
+    "atlasHeight": 1346,
+    "x": 117,
+    "y": 37,
+    "width": 56,
+    "height": 145
+  },
+  "s_reels": {
+    "url": "/dog-house/reels.png",
+    "atlasWidth": 1755,
+    "atlasHeight": 1346,
+    "x": 0,
+    "y": 184,
+    "width": 1753,
+    "height": 1162
+  },
+  "s_doho_freegames_bird_sleeping_000": {
+    "url": "/dog-house/reels_fs.png",
+    "atlasWidth": 1833,
+    "atlasHeight": 1685,
+    "x": 113,
+    "y": 379,
+    "width": 58,
+    "height": 93
+  },
+  "s_doho_freegames_foliage_000": {
+    "url": "/dog-house/reels_fs.png",
+    "atlasWidth": 1833,
+    "atlasHeight": 1685,
+    "x": 0,
+    "y": 2,
+    "width": 111,
+    "height": 470
+  },
+  "s_reels_fs": {
+    "url": "/dog-house/reels_fs.png",
+    "atlasWidth": 1833,
+    "atlasHeight": 1685,
+    "x": 0,
+    "y": 474,
+    "width": 1831,
+    "height": 1211
+  },
+  "s_doho_freegames_new_000": {
+    "url": "/dog-house/landscape_fs.jpg",
+    "atlasWidth": 1244,
+    "atlasHeight": 699,
+    "x": 0,
+    "y": 0,
+    "width": 1244,
+    "height": 699
+  },
+  "s_bonus_loop_000": {
+    "url": "/dog-house/fallback.png",
+    "atlasWidth": 1426,
+    "atlasHeight": 1391,
+    "x": 0,
+    "y": 649,
+    "width": 304,
+    "height": 332
+  },
+  "s_bonus_loop_005": {
+    "url": "/dog-house/fallback.png",
+    "atlasWidth": 1426,
+    "atlasHeight": 1391,
+    "x": 0,
+    "y": 983,
+    "width": 441,
+    "height": 408
+  },
+  "s_doho_wild_000": {
+    "url": "/dog-house/fallback.png",
+    "atlasWidth": 1426,
+    "atlasHeight": 1391,
+    "x": 884,
+    "y": 1023,
+    "width": 406,
+    "height": 368
+  },
+  "s_doho_wild_005": {
+    "url": "/dog-house/fallback.png",
+    "atlasWidth": 1426,
+    "atlasHeight": 1391,
+    "x": 443,
+    "y": 991,
+    "width": 439,
+    "height": 400
+  },
+  "s_pic1_rottweiler_dog_000": {
+    "url": "/dog-house/fallback.png",
+    "atlasWidth": 1426,
+    "atlasHeight": 1391,
+    "x": 0,
+    "y": 378,
+    "width": 287,
+    "height": 269
+  },
+  "s_pic1_rottweiler_dog_009": {
+    "url": "/dog-house/fallback.png",
+    "atlasWidth": 1426,
+    "atlasHeight": 1391,
+    "x": 1092,
+    "y": 403,
+    "width": 288,
+    "height": 289
+  },
+  "s_Pic2_Shih_tzu_dog_000": {
+    "url": "/dog-house/fallback.png",
+    "atlasWidth": 1426,
+    "atlasHeight": 1391,
+    "x": 306,
+    "y": 380,
+    "width": 275,
+    "height": 286
+  },
+  "s_Pic2_Shih_tzu_dog_016": {
+    "url": "/dog-house/fallback.png",
+    "atlasWidth": 1426,
+    "atlasHeight": 1391,
+    "x": 884,
+    "y": 694,
+    "width": 346,
+    "height": 327
+  },
+  "s_pic3_Pug_Dog_000": {
+    "url": "/dog-house/fallback.png",
+    "atlasWidth": 1426,
+    "atlasHeight": 1391,
+    "x": 289,
+    "y": 135,
+    "width": 267,
+    "height": 243
+  },
+  "s_pic3_Pug_Dog_020": {
+    "url": "/dog-house/fallback.png",
+    "atlasWidth": 1426,
+    "atlasHeight": 1391,
+    "x": 1092,
+    "y": 130,
+    "width": 294,
+    "height": 271
+  },
+  "s_pic4_Dachshund_dog_000": {
+    "url": "/dog-house/fallback.png",
+    "atlasWidth": 1426,
+    "atlasHeight": 1391,
+    "x": 767,
+    "y": 394,
+    "width": 323,
+    "height": 298
+  },
+  "s_pic4_Dachshund_dog_009": {
+    "url": "/dog-house/fallback.png",
+    "atlasWidth": 1426,
+    "atlasHeight": 1391,
+    "x": 443,
+    "y": 668,
+    "width": 322,
+    "height": 321
+  },
+  "s_pic5_dog_collar_000": {
+    "url": "/dog-house/fallback.png",
+    "atlasWidth": 1426,
+    "atlasHeight": 1391,
+    "x": 558,
+    "y": 26,
+    "width": 214,
+    "height": 124
+  },
+  "s_pic5_dog_collar_020": {
+    "url": "/dog-house/fallback.png",
+    "atlasWidth": 1426,
+    "atlasHeight": 1391,
+    "x": 0,
+    "y": 173,
+    "width": 288,
+    "height": 203
+  },
+  "s_pic6_dog_bone_000": {
+    "url": "/dog-house/fallback.png",
+    "atlasWidth": 1426,
+    "atlasHeight": 1391,
+    "x": 0,
+    "y": 4,
+    "width": 225,
+    "height": 167
+  },
+  "s_pic6_dog_bone_018": {
+    "url": "/dog-house/fallback.png",
+    "atlasWidth": 1426,
+    "atlasHeight": 1391,
+    "x": 583,
+    "y": 152,
+    "width": 310,
+    "height": 240
+  },
+  "s_royals_10_000": {
+    "url": "/dog-house/fallback.png",
+    "atlasWidth": 1426,
+    "atlasHeight": 1391,
+    "x": 1232,
+    "y": 865,
+    "width": 189,
+    "height": 156
+  },
+  "s_royals_10_012": {
+    "url": "/dog-house/fallback.png",
+    "atlasWidth": 1426,
+    "atlasHeight": 1391,
+    "x": 583,
+    "y": 445,
+    "width": 182,
+    "height": 221
+  },
+  "s_royals_a_000": {
+    "url": "/dog-house/fallback.png",
+    "atlasWidth": 1426,
+    "atlasHeight": 1391,
+    "x": 1232,
+    "y": 711,
+    "width": 126,
+    "height": 152
+  },
+  "s_royals_a_012": {
+    "url": "/dog-house/fallback.png",
+    "atlasWidth": 1426,
+    "atlasHeight": 1391,
+    "x": 895,
+    "y": 196,
+    "width": 124,
+    "height": 196
+  },
+  "s_royals_j_000": {
+    "url": "/dog-house/fallback.png",
+    "atlasWidth": 1426,
+    "atlasHeight": 1391,
+    "x": 774,
+    "y": 2,
+    "width": 86,
+    "height": 148
+  },
+  "s_royals_j_012": {
+    "url": "/dog-house/fallback.png",
+    "atlasWidth": 1426,
+    "atlasHeight": 1391,
+    "x": 767,
+    "y": 798,
+    "width": 93,
+    "height": 191
+  },
+  "s_royals_k_000": {
+    "url": "/dog-house/fallback.png",
+    "atlasWidth": 1426,
+    "atlasHeight": 1391,
+    "x": 1292,
+    "y": 1036,
+    "width": 132,
+    "height": 154
+  },
+  "s_royals_k_012": {
+    "url": "/dog-house/fallback.png",
+    "atlasWidth": 1426,
+    "atlasHeight": 1391,
+    "x": 1292,
+    "y": 1192,
+    "width": 126,
+    "height": 199
+  },
+  "s_royals_q_000": {
+    "url": "/dog-house/fallback.png",
+    "atlasWidth": 1426,
+    "atlasHeight": 1391,
+    "x": 895,
+    "y": 16,
+    "width": 136,
+    "height": 178
+  },
+  "s_royals_q_012": {
+    "url": "/dog-house/fallback.png",
+    "atlasWidth": 1426,
+    "atlasHeight": 1391,
+    "x": 306,
+    "y": 761,
+    "width": 134,
+    "height": 220
+  }
+}

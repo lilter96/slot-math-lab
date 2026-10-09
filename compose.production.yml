@@ -1,0 +1,58 @@
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: slotmath
+      POSTGRES_USER: slotmath
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Generate deployment.env first}
+    volumes: [pgdata:/var/lib/postgresql/data]
+    healthcheck:
+      test: [CMD-SHELL, 'pg_isready -U slotmath']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      JWT__Secret: ${JWT_SECRET:?required}
+      Auth__User: ${AUTH_USER:?required}
+      Auth__PasswordHash: ${AUTH_PASSWORD_HASH:?required}
+      Storage__Key: ${STORAGE_KEY:?required}
+      Storage__Directory: /data
+      ConnectionStrings__DefaultConnection: Host=postgres;Database=slotmath;Username=slotmath;Password=${POSTGRES_PASSWORD}
+      ConnectionStrings__Redis: redis:6379
+    volumes: [mathdata:/data]
+    depends_on:
+      postgres: {condition: service_healthy}
+    restart: unless-stopped
+    mem_limit: 2g
+    cpus: 2
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+    depends_on: [api]
+    restart: unless-stopped
+  ingress:
+    image: caddy:2-alpine
+    environment:
+      DOMAIN: ${DOMAIN:?required}
+    ports: ['80:80', '443:443']
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddydata:/data
+      - caddyconfig:/config
+    depends_on: [frontend]
+    restart: unless-stopped
+volumes:
+  pgdata:
+  mathdata:
+  caddydata:
+  caddyconfig:

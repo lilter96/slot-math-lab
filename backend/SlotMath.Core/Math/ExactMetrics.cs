@@ -41,12 +41,12 @@ public static class ExactMetrics
     {
         var provenance = dist.IsFullyExact
             ? ProvenanceTag.Exact
-            : ProvenanceTag.ExactInterval;
+            : ProvenanceTag.MassLoss(new Rational(dist.PrunedNumerator, dist.PrunedDenominator).ToDouble());
 
         var scale = winScale is { } s && s > 1 ? s : BigInteger.One;
         var capScaled = maxWinCap * scale;
 
-        var rtp = ComputeRtp(dist);
+        var rtp = ComputeRtp(dist, capScaled);
         var hitFreq = ComputeHitFrequency(dist);
         var volatility = ComputeVolatility(dist, rtp.DisplayValue);
         var maxWin = ComputeMaxWin(dist, capScaled);
@@ -55,7 +55,7 @@ public static class ExactMetrics
 
         var report = new SlotMathReport
         {
-            AggregateProvenance = provenance.Provenance,
+            AggregateProvenance = dist.IsFullyExact ? Provenance.Exact : Provenance.ExactWithMassLoss,
             Rtp = rtp,
             HitFrequency = hitFreq,
             Volatility = volatility,
@@ -84,6 +84,7 @@ public static class ExactMetrics
         }
         rtp = rtp with
         {
+            Provenance = rtp.Provenance with { Lo = rtp.Provenance.Lo / s, Hi = rtp.Provenance.Hi / s },
             DisplayValue = rtp.DisplayValue / s,
             LoDisplay = rtp.LoDisplay / s,
             HiDisplay = rtp.HiDisplay / s,
@@ -165,39 +166,27 @@ public static class ExactMetrics
     /// Compute RTP from the exact distribution.  Returns both the exact
     /// rational (num/den) and a display-friendly double.
     /// </summary>
-    public static RtpMetric ComputeRtp(Dist<BigInteger> dist)
+    public static RtpMetric ComputeRtp(Dist<BigInteger> dist, BigInteger? maxWinCap = null)
     {
-        var provenance = dist.IsFullyExact
-            ? ProvenanceTag.Exact
-            : ProvenanceTag.ExactInterval;
-
-        var (num, den) = dist.ExpectedBigIntegerValue();
-        var display = (double)num / (double)den;
-
-        var metric = new RtpMetric(provenance)
+        if (maxWinCap is { } cap && cap <= 0) throw new ArgumentOutOfRangeException(nameof(maxWinCap));
+        var known = Rational.Zero;
+        foreach (var entry in dist.Entries)
         {
-            RationalNumerator = num,
-            RationalDenominator = den,
-            DisplayValue = display
-        };
-
-        if (!dist.IsFullyExact)
-        {
-            // Compute interval bounds.
-            var maxWin = BigInteger.Zero;
-            foreach (var e in dist.Entries)
-                if (e.Value > maxWin) maxWin = e.Value;
-
-            var interval = dist.ExpectedBigIntegerValueInterval(BigInteger.Zero, maxWin);
-            metric = metric with
-            {
-                LoDisplay = (double)interval.Lo.Num / (double)interval.Lo.Den,
-                HiDisplay = (double)interval.Hi.Num / (double)interval.Hi.Den,
-                PrunedMass = (double)dist.PrunedNumerator / (double)dist.PrunedDenominator
-            };
+            if (entry.Value.Sign < 0) throw new InvalidOperationException("Payouts must be non-negative.");
+            known += new Rational(entry.Value * entry.Numerator, dist.Denominator);
         }
-
-        return metric;
+        var mass = new Rational(dist.PrunedNumerator, dist.PrunedDenominator);
+        var lo = System.Math.BitDecrement(known.ToDouble());
+        var hi = maxWinCap is { } bound ? System.Math.BitIncrement((known + mass * (Rational)bound).ToDouble()) : (double?)null;
+        var provenance = dist.IsFullyExact ? ProvenanceTag.Exact
+            : hi is { } upper ? ProvenanceTag.Interval(lo, upper, mass.ToDouble(), BoundSource.DeclaredWinCap)
+            : ProvenanceTag.MassLoss(mass.ToDouble());
+        return new RtpMetric(provenance)
+        {
+            RationalNumerator = known.Numerator, RationalDenominator = known.Denominator,
+            DisplayValue = known.ToDouble(), LoDisplay = !dist.IsFullyExact && hi is not null ? lo : null,
+            HiDisplay = !dist.IsFullyExact ? hi : null, PrunedMass = !dist.IsFullyExact ? mass.ToDouble() : null,
+        };
     }
 
     // ── Hit Frequency ────────────────────────────────────────────────────
@@ -209,7 +198,7 @@ public static class ExactMetrics
     {
         var provenance = dist.IsFullyExact
             ? ProvenanceTag.Exact
-            : ProvenanceTag.ExactInterval;
+            : ProvenanceTag.MassLoss(new Rational(dist.PrunedNumerator, dist.PrunedDenominator).ToDouble());
 
         BigInteger nonZeroNum = 0;
         foreach (var e in dist.Entries)
@@ -218,7 +207,7 @@ public static class ExactMetrics
                 nonZeroNum += e.Numerator;
         }
 
-        var den = dist.TotalNumerator > 0 ? dist.TotalNumerator : BigInteger.One;
+        var den = dist.Denominator;
         var display = (double)nonZeroNum / (double)den;
 
         return new HitFrequencyMetric(provenance)
@@ -242,7 +231,7 @@ public static class ExactMetrics
     {
         var provenance = dist.IsFullyExact
             ? ProvenanceTag.Exact
-            : ProvenanceTag.ExactInterval;
+            : ProvenanceTag.MassLoss(new Rational(dist.PrunedNumerator, dist.PrunedDenominator).ToDouble());
 
         if (dist.IsEmpty || dist.TotalNumerator == 0)
         {
@@ -262,7 +251,7 @@ public static class ExactMetrics
         foreach (var e in dist.Entries)
             sumXSq += e.Value * e.Value * e.Numerator;
 
-        var eXSq = (double)sumXSq / (double)dist.TotalNumerator;
+        var eXSq = (double)sumXSq / (double)dist.Denominator;
 
         // Var[X] = E[X²] - (E[X])²
         var variance = eXSq - mean * mean;
@@ -291,7 +280,7 @@ public static class ExactMetrics
     {
         var provenance = dist.IsFullyExact
             ? ProvenanceTag.Exact
-            : ProvenanceTag.ExactInterval;
+            : ProvenanceTag.MassLoss(new Rational(dist.PrunedNumerator, dist.PrunedDenominator).ToDouble());
 
         BigInteger maxWin = 0;
         foreach (var e in dist.Entries)
@@ -314,7 +303,7 @@ public static class ExactMetrics
                     capNum += e.Numerator;
             }
 
-            var den = dist.TotalNumerator > 0 ? dist.TotalNumerator : BigInteger.One;
+            var den = dist.Denominator;
             metric = metric with
             {
                 PCapReached = (double)capNum / (double)den,
@@ -340,7 +329,7 @@ public static class ExactMetrics
     {
         var provenance = dist.IsFullyExact
             ? ProvenanceTag.Exact
-            : ProvenanceTag.ExactInterval;
+            : ProvenanceTag.MassLoss(new Rational(dist.PrunedNumerator, dist.PrunedDenominator).ToDouble());
 
         if (numBins < 1) numBins = 1;
 
@@ -420,7 +409,7 @@ public static class ExactMetrics
 
         var provenance = totalDist.IsFullyExact
             ? ProvenanceTag.Exact
-            : ProvenanceTag.ExactInterval;
+            : ProvenanceTag.MassLoss(new Rational(totalDist.PrunedNumerator, totalDist.PrunedDenominator).ToDouble());
 
         // Compute total RTP rational if not provided.
         var totalNum = totalRtp?.RationalNumerator
@@ -496,7 +485,7 @@ public static class ExactMetrics
     {
         var provenance = stateDist.IsFullyExact
             ? ProvenanceTag.Exact
-            : ProvenanceTag.ExactInterval;
+            : ProvenanceTag.MassLoss(new Rational(stateDist.PrunedNumerator, stateDist.PrunedDenominator).ToDouble());
 
         if (stateDist.IsEmpty || stateDist.TotalNumerator == 0)
             return null;

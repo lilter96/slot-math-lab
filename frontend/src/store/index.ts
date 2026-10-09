@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import { LIMITS } from '../lib/limits';
 import type { Node, Edge, Connection, OnNodesChange, OnEdgesChange, NodeChange, EdgeChange } from '@xyflow/react';
 
-export type TabId = 'build' | 'simulate' | 'results' | 'export';
+export type TabId = 'build' | 'simulate' | 'results' | 'export' | 'play';
 export type Mood = 'slate' | 'ocean' | 'violet' | 'steel';
 export type Density = 'compact' | 'regular';
 
@@ -58,6 +58,7 @@ export type GraphNode = Node<GraphNodeData>;
 export type GraphEdge = Edge<{ metric?: string }>;
 
 export interface GraphState {
+  tables: Record<string, unknown>;
   nodes: GraphNode[];
   edges: GraphEdge[];
   selectedNodeId: string | null;
@@ -86,7 +87,7 @@ export const NODE_DEFAULTS: Record<string, Partial<GraphNodeData>> = {
   map: { label: 'Map', sub: 'Transform result', level: 'a' },
   evaluator: { label: 'Evaluator', sub: 'IEvaluator', level: 'a', evaluatorKind: 'lines' },
   transform: { label: 'Transform', sub: 'ITransform', level: 'a' },
-  sink: { label: 'Sink', sub: 'Metrics output', level: 'a' },
+  sink: { label: 'Sink', sub: 'Metrics output', level: 'a', winCap: 10000 },
   // Catalog (library) mechanics — one entry per built-in subgraph
   'library:scatter':     { label: 'Scatter',      sub: 'Catalog mechanic', level: 'a', nodeType: 'library', mechanicName: 'scatter' },
   'library:lines':       { label: 'Lines',         sub: 'Catalog mechanic', level: 'a', nodeType: 'library', mechanicName: 'lines' },
@@ -100,7 +101,7 @@ export const NODE_DEFAULTS: Record<string, Partial<GraphNodeData>> = {
 
 /** Valid port-to-port connections. sink has no output. */
 const VALID_CONNECTIONS: Record<string, string[]> = {
-  draw: ['evaluator', 'transform', 'library', 'loop', 'branch'],
+  draw: ['sink', 'map', 'state', 'evaluator', 'transform', 'library', 'loop', 'branch'],
   state: ['draw', 'evaluator', 'transform', 'library', 'loop', 'branch', 'map', 'sink'],
   loop: ['evaluator', 'transform', 'library', 'draw', 'branch', 'map', 'sink'],
   branch: ['evaluator', 'transform', 'library', 'draw', 'loop', 'map', 'sink'],
@@ -172,6 +173,9 @@ export interface MechanicsSyncState {
 // ── Store ──────────────────────────────────────────────────────────
 
 export interface AppState extends GraphState, MechanicsState, PluginsState, MechanicsSyncState {
+  resultsDraft: Pick<AppState, 'nodes' | 'edges' | 'tables' | 'graphTrail' | 'verificationSource' | 'configName'> | null;
+  graphTrail: { graph: Record<string, unknown>; mechanic: string }[];
+  verificationSource: Record<string, unknown> | null;
   tab: TabId;
   setTab: (tab: TabId) => void;
   configName: string | null;
@@ -180,8 +184,8 @@ export interface AppState extends GraphState, MechanicsState, PluginsState, Mech
   setTweak: <K extends keyof Tweaks>(key: K, value: Tweaks[K]) => void;
   /** Live metrics from /evaluate/light — shown on sink node and MetricStrip */
   liveRtp: number | null;
-  liveProvenance: 'Exact' | 'Sampled' | 'NeedsFullRun' | null;
-  setLiveMetrics: (rtp: number | null, provenance: 'Exact' | 'Sampled' | 'NeedsFullRun' | null) => void;
+  liveProvenance: 'Exact' | 'ExactInterval' | 'ExactWithMassLoss' | 'Sampled' | 'NeedsFullRun' | null;
+  setLiveMetrics: (rtp: number | null, provenance: 'Exact' | 'ExactInterval' | 'ExactWithMassLoss' | 'Sampled' | 'NeedsFullRun' | null) => void;
 }
 
 export const MOOD_HUE: Record<Mood, number> = {
@@ -192,6 +196,9 @@ export const MOOD_HUE: Record<Mood, number> = {
 };
 
 export const useAppStore = create<AppState>((set, get) => ({
+  resultsDraft: null,
+  graphTrail: [],
+  verificationSource: null,
   tab: 'build',
   setTab: (tab) => set({ tab }),
   configName: 'Untitled',
@@ -212,6 +219,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   setLiveMetrics: (rtp, provenance) => set({ liveRtp: rtp, liveProvenance: provenance }),
 
   // ── Graph state ─────────────────────────────────────────────────
+  tables: {},
   nodes: [],
   edges: [],
   selectedNodeId: null,
@@ -337,4 +345,14 @@ function applyEdgeChanges(
     }
   }
   return next;
+}
+
+if (typeof window !== 'undefined') {
+  try {
+    const draft = JSON.parse(localStorage.getItem('slotmath-draft-v1') ?? 'null');
+    if (draft && Array.isArray(draft.nodes) && Array.isArray(draft.edges)) useAppStore.setState({ nodes: draft.nodes, edges: draft.edges, tables: draft.tables ?? {}, graphTrail: draft.graphTrail ?? [], verificationSource: draft.verificationSource ?? null, configName: draft.configName ?? 'Untitled', resultsDraft: draft.resultsDraft ?? null });
+  } catch { /* a corrupt draft never prevents opening the editor */ }
+  useAppStore.subscribe(s => {
+    try { localStorage.setItem('slotmath-draft-v1', JSON.stringify({ nodes: s.nodes, edges: s.edges, tables: s.tables, graphTrail: s.graphTrail, verificationSource: s.verificationSource, configName: s.configName, resultsDraft: s.resultsDraft })); } catch { /* export remains available when browser storage is full */ }
+  });
 }

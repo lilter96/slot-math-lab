@@ -1,0 +1,28 @@
+{
+  "checkedAt": "2026-10-09T17:26:23.016597+00:00",
+  "checks": {
+    "browser": {
+      "passed": 43,
+      "failed": 0
+    },
+    "frontendUnit": {
+      "passed": 20,
+      "failed": 0
+    },
+    "api": {
+      "passed": 72,
+      "failed": 0
+    },
+    "frontendBuild": "passed",
+    "lint": "passed",
+    "authenticProductionDeployment": "passed",
+    "independentDogHouseOracle": "passed",
+    "uiFixtureConsistency": "passed"
+  },
+  "previewUrl": "http://localhost:4173/results?run=5dec2e9998434342974341b2c6ad5072",
+  "productionUrl": "https://localhost:8543/results?run=037d8fae59134a318cdf029d78e68978",
+  "productionEvidence": "results-production.json",
+  "modelTargetRtp": 0.98,
+  "observedSeed42Rtp": 0.9967189999999915,
+  "referenceKind": "ExactExpectation"
+}

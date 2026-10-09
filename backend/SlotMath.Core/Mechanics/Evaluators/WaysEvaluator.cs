@@ -88,6 +88,6 @@ public sealed class WaysEvaluator : IFastPathEvaluator
         if (entry == null) return 0;
         var idx = Array.IndexOf(entry.Counts, count);
         if (idx < 0) return 0;
-        return decimal.Parse(entry.Payouts[idx]);
+        return decimal.Parse(entry.Payouts[idx], System.Globalization.CultureInfo.InvariantCulture);
     }
 }

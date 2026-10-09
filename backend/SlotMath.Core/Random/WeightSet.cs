@@ -20,7 +20,7 @@ public sealed record WeightSet
     private BigInteger[]? _numerators;
     private readonly int _uniformCount;
     private BigInteger _numeratorSum;
-    private bool _sumComputed;
+    private readonly object _cacheLock = new();
     private AliasMethod? _alias;
 
     private WeightSet(BigInteger[] numerators, BigInteger denominator)
@@ -31,7 +31,8 @@ public sealed record WeightSet
                 throw new ArgumentException("Weights must be non-negative.", nameof(numerators));
         }
 
-        _numerators = numerators;
+        _numerators = (BigInteger[])numerators.Clone();
+        _numeratorSum = numerators.Aggregate(BigInteger.Zero, (sum, value) => sum + value);
         _uniformCount = numerators.Length;
         Denominator = denominator;
     }
@@ -40,7 +41,7 @@ public sealed record WeightSet
     {
         _uniformCount = uniformCount;
         _numeratorSum = uniformCount;
-        _sumComputed = true;
+
         IsUniform = true;
         Denominator = BigInteger.One;
     }
@@ -50,14 +51,17 @@ public sealed record WeightSet
     {
         get
         {
-            var nums = _numerators;
-            if (nums is null)
+            lock (_cacheLock)
             {
-                nums = new BigInteger[_uniformCount];
-                Array.Fill(nums, BigInteger.One);
-                _numerators = nums;
+                var nums = _numerators;
+                if (nums is null)
+                {
+                    nums = new BigInteger[_uniformCount];
+                    Array.Fill(nums, BigInteger.One);
+                    _numerators = nums;
+                }
+                return nums;
             }
-            return nums;
         }
     }
 
@@ -71,21 +75,7 @@ public sealed record WeightSet
     public int Count => _uniformCount;
 
     /// <summary>Sum of all numerators (computed once, then cached).</summary>
-    public BigInteger NumeratorSum
-    {
-        get
-        {
-            if (!_sumComputed)
-            {
-                var sum = BigInteger.Zero;
-                foreach (var n in Numerators)
-                    sum += n;
-                _numeratorSum = sum;
-                _sumComputed = true;
-            }
-            return _numeratorSum;
-        }
-    }
+    public BigInteger NumeratorSum => _numeratorSum;
 
     /// <summary>
     /// The originally-authored weight mass = NumeratorSum / Denominator,
@@ -100,7 +90,10 @@ public sealed record WeightSet
     /// and cached.  Sampling through the cached table is deterministic and
     /// identical to sampling through a freshly-built one.
     /// </summary>
-    public AliasMethod AliasTable => _alias ??= AliasMethod.Build(this);
+    public AliasMethod AliasTable
+    {
+        get { lock (_cacheLock) return _alias ??= AliasMethod.Build(this); }
+    }
 
     // ── Structural equality (BigInteger[] defaults to reference equality) ──
 

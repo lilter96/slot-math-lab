@@ -52,6 +52,16 @@ public static class GraphValidator
 
         // 4. Expression type-checking
         ValidateExpressions(config, typeCheckContext, errors);
+        if (errors.Count == 0)
+        {
+        try { config = ExpressionResolver.Resolve(config); }
+        catch (CompilationException ex)
+        {
+            errors.Add(new CompileError { NodeId = ex.NodeId, Code = ex.ErrorCode, Message = ex.Message });
+            return errors;
+        }
+
+        }
 
         // 5. Plugin validation
         ValidatePlugins(config, pluginHost, errors);
@@ -400,8 +410,8 @@ public static class GraphValidator
                     var curr = bodyQueue.Dequeue();
                     foreach (var edge in adj.Outgoing[curr])
                     {
-                        // Don't follow edges that exit to the main graph (exit/out port)
-                        if (edge.SourcePort == "exit" || edge.SourcePort == "out") continue;
+                        // A nested loop's exit is still inside this body. The owning loop is
+                        // outside this traversal, so its own exit is never followed here.
                         if (loopBodyNodes.Add(edge.TargetNodeId))
                             bodyQueue.Enqueue(edge.TargetNodeId);
                     }
@@ -572,6 +582,20 @@ public static class GraphValidator
     private static void ValidateExpressions(
         GraphConfig config, TypeCheckContext? typeCheckContext, List<CompileError> errors)
     {
+        foreach (var node in config.Nodes)
+        {
+            var reference = node switch
+            {
+                DrawNode d => d.WeightExpressionId,
+                ModifyStateNode m => m.ExpressionId,
+                BranchNode b => b.ConditionId,
+                LoopNode l => l.StopConditionId,
+                _ => null,
+            };
+            if (reference is not null && (config.Expressions is null || !config.Expressions.ContainsKey(reference)))
+                errors.Add(new CompileError { NodeId = node.Id, Code = ErrorCodes.ExpressionTypeError,
+                    Message = $"Expression '{reference}' does not exist." });
+        }
         if (config.Expressions == null || config.Expressions.Count == 0) return;
 
         var ctx = typeCheckContext ?? BuildExpressionTypeContext(config);

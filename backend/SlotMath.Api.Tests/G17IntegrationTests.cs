@@ -56,7 +56,7 @@ public class G17IntegrationTests : IClassFixture<WebApplicationFactory<Program>>
     /// <summary>
     /// Thread-safe evaluator registration — avoids conflicts with parallel tests.
     /// </summary>
-    private static void SafeRegisterEvaluator(string name, IEvaluator evaluator)
+    private static void SafeRegisterEvaluator(string name, IFastPathEvaluator evaluator)
     {
         lock (TestRegistryLock.Lock)
         {
@@ -135,7 +135,7 @@ public class G17IntegrationTests : IClassFixture<WebApplicationFactory<Program>>
                 },
                 new
                 {
-                    nodeType = "metricsSink",
+                    nodeType = "metricsSink", winCap = 10000,
                     id = "sink",
                     label = "Sink",
                     inputs = new { wins = new { name = "wins", type = "Wins" } }
@@ -344,7 +344,7 @@ public class G17IntegrationTests : IClassFixture<WebApplicationFactory<Program>>
             {
                 new { nodeType = "draw", id = "draw", label = "Spin", outputs = new { board = new { name = "board", type = "Board" } } },
                 new { nodeType = "map", id = "eval", label = "Eval", transformId = "lines", inputs = new { board = new { name = "board", type = "Board" } }, outputs = new { wins = new { name = "wins", type = "Wins" } } },
-                new { nodeType = "metricsSink", id = "sink", label = "Sink", inputs = new { wins = new { name = "wins", type = "Wins" } } },
+                new { nodeType = "metricsSink", winCap = 10000, id = "sink", label = "Sink", inputs = new { wins = new { name = "wins", type = "Wins" } } },
             },
             edges = new[]
             {
@@ -659,8 +659,10 @@ public class G17IntegrationTests : IClassFixture<WebApplicationFactory<Program>>
     [Fact]
     public async Task Runs_InvalidConfig_FailsGracefully()
     {
-        // Create a config first, but WITHOUT registering the evaluator
-        var config = CreateReferenceConfig();
+        // Unknown transform is a real invalid config; built-ins need no registration.
+        var source = System.Text.Json.Nodes.JsonNode.Parse(JsonSerializer.Serialize(CreateReferenceConfig()))!;
+        source["nodes"]![1]!["transformId"] = "missing-evaluator";
+        var config = source;
         var response = await _client.PostAsJsonAsync("/api/configs", new { config });
         var configBody = await response.Content.ReadFromJsonAsync<JsonElement>();
         var configId = configBody.GetProperty("id").GetString()!;
@@ -694,4 +696,40 @@ public class G17IntegrationTests : IClassFixture<WebApplicationFactory<Program>>
 
         Assert.True(failed, "Run should have failed due to validation errors");
     }
+    [Fact]
+    public async Task SubscriptionAndHeartbeat_ReturnCompleteVersionedSnapshotsIncludingMissedTerminalResult()
+    {
+        var configId = await CreateConfigAsync();
+        var created = await _client.PostAsJsonAsync("/api/runs", new { configId, sampleSize = 10, seed = 99 });
+        var initial = (await created.Content.ReadFromJsonAsync<RunResponse>())!;
+        RunResponse? final = null;
+        for (var i = 0; i < 100; i++)
+        {
+            final = await _client.GetFromJsonAsync<RunResponse>($"/api/runs/{initial.Id}");
+            if (final!.ResultJson is not null) break;
+            await Task.Delay(50);
+        }
+        Assert.Equal("completed", final!.Status);
+        await using var connection = CreateHubConnection();
+        var received = new TaskCompletionSource<RunProgressMessage>(TaskCreationOptions.RunContinuationsAsynchronously);
+        connection.On<RunProgressMessage>("ProgressUpdate", p => received.TrySetResult(p));
+        await connection.StartAsync();
+        var subscription = await connection.InvokeAsync<RunResponse>("SubscribeToRun", initial.Id);
+        var terminal = await received.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        var heartbeat = await connection.InvokeAsync<RunResponse>("GetRunSnapshot", initial.Id);
+        Assert.Equal(final.Sequence, subscription.Sequence);
+        Assert.Equal(final.StreamEpoch, terminal.StreamEpoch);
+        Assert.Equal(final.ResultJson, terminal.ResultJson);
+        Assert.Equal(final.Sequence, heartbeat.Sequence);
+        Assert.Equal(final.ConfigHash, heartbeat.ConfigHash);
+        Assert.Equal(final.Seed, heartbeat.Seed);
+        Assert.Equal(terminal.SampleCount, terminal.Histogram.Sum(b => b.Count));
+        var missing = await Assert.ThrowsAsync<Microsoft.AspNetCore.SignalR.HubException>(
+            () => connection.InvokeAsync<RunResponse>("SubscribeToRun", "missing"));
+        Assert.Contains("RUN_NOT_FOUND", missing.Message);
+        // A rejected subscription leaves the healthy connection usable.
+        var stillPresent = await connection.InvokeAsync<RunResponse>("GetRunSnapshot", initial.Id);
+        Assert.Equal(final.Sequence, stillPresent.Sequence);
+    }
+
 }

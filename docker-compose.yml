@@ -26,23 +26,6 @@ services:
       timeout: 2s
       retries: 10
 
-  # ── Seed data ──────────────────────────────────────────────────────
-  db-init:
-    image: postgres:17-alpine
-    depends_on:
-      postgres:
-        condition: service_healthy
-    entrypoint: |
-      bash -c '
-        echo "Seeding database..."
-        PGPASSWORD=slotmath psql -h postgres -U slotmath -d slotmath -c "
-          CREATE TABLE IF NOT EXISTS __seed_log (id SERIAL PRIMARY KEY, seeded_at TIMESTAMPTZ DEFAULT NOW());
-          INSERT INTO __seed_log (seeded_at) VALUES (NOW());
-        "
-        echo "Seed complete."
-      '
-    restart: "no"
-
   # ── Backend API ────────────────────────────────────────────────────
   api:
     build:
@@ -51,7 +34,7 @@ services:
     ports:
       - "5152:8080"
     environment:
-      - ASPNETCORE_ENVIRONMENT=Production
+      - ASPNETCORE_ENVIRONMENT=Development
       - ConnectionStrings__DefaultConnection=Host=postgres;Port=5432;Database=slotmath;Username=slotmath;Password=slotmath
       - ConnectionStrings__Redis=redis:6379
     depends_on:
@@ -59,8 +42,6 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
-      db-init:
-        condition: service_completed_successfully
 
   # ── Frontend ───────────────────────────────────────────────────────
   frontend:
@@ -72,7 +53,7 @@ services:
     depends_on:
       - api
     healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://localhost:80/ || exit 1"]
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:80/ || exit 1"]
       interval: 10s
       timeout: 5s
       retries: 3

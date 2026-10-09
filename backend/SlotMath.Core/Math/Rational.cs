@@ -102,7 +102,24 @@ public readonly struct Rational : IEquatable<Rational>, IComparable<Rational>
     public override int GetHashCode() => HashCode.Combine(Numerator, Denominator);
 
     /// <summary>Display float (D1) — derived at the edge, never fed back into computation.</summary>
-    public double ToDouble() => (double)Numerator / (double)Denominator;
+    public double ToDouble()
+    {
+        if (Numerator.IsZero) return 0;
+        var numerator = BigInteger.Abs(Numerator);
+        var exponentLong = numerator.GetBitLength() - Denominator.GetBitLength();
+        if (exponentLong > 1024) return Numerator.Sign * double.PositiveInfinity;
+        if (exponentLong < -1075) return Numerator.Sign * 0.0;
+        var exponent = (int)exponentLong;
+        if (exponent >= 0 ? numerator < (Denominator << exponent) : (numerator << -exponent) < Denominator)
+            exponent--;
+        var shift = exponent < -1022 ? 1074 : 52 - exponent;
+        var scaledNumerator = shift >= 0 ? numerator << shift : numerator;
+        var scaledDenominator = shift >= 0 ? Denominator : Denominator << -shift;
+        var mantissa = BigInteger.DivRem(scaledNumerator, scaledDenominator, out var remainder);
+        var comparison = (remainder * 2).CompareTo(scaledDenominator);
+        if (comparison > 0 || comparison == 0 && !mantissa.IsEven) mantissa++;
+        return Numerator.Sign * System.Math.ScaleB((double)mantissa, -shift);
+    }
 
     /// <summary>Canonical string form "n/d" (D1, D2).</summary>
     public override string ToString() => $"{Numerator}/{Denominator}";

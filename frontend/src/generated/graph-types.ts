@@ -84,6 +84,9 @@ export interface SlotMathLabGraphSchema {
     growable?: boolean;
     [k: string]: unknown;
   };
+  initialState?: null | {
+    [k: string]: JsonElement;
+  };
   nodes?: ArrayOfNode;
   edges?: ArrayOfEdge;
   expressions?: null | {
@@ -98,6 +101,10 @@ export interface SlotMathLabGraphSchema {
     [k: string]: CustomMechanic;
   };
   plugins?: ArrayOfPluginReference;
+  [k: string]: unknown;
+}
+export interface JsonElement {
+  valueKind?: 'Undefined' | 'Object' | 'Array' | 'String' | 'Number' | 'True' | 'False' | 'Null';
   [k: string]: unknown;
 }
 export interface DictionaryOfStringAndPort {
@@ -116,6 +123,9 @@ export interface Expression {
   [k: string]: unknown;
 }
 export interface CustomMechanic {
+  initialState?: null | {
+    [k: string]: JsonElement;
+  };
   name: string;
   description?: null | string;
   nodes?: ArrayOfNode;

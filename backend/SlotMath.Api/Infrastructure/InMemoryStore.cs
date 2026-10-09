@@ -30,6 +30,13 @@ public sealed class InMemoryConfigStore
     private readonly object _gate = new();
     private readonly Dictionary<string, List<ConfigEntry>> _configs = new();
 
+    private readonly EncryptedSnapshots? _snapshots;
+    public InMemoryConfigStore(EncryptedSnapshots? snapshots = null)
+    {
+        _snapshots = snapshots;
+        _configs = snapshots?.Read<Dictionary<string, List<ConfigEntry>>>("configs") ?? new();
+    }
+
     public string Create(GraphConfig config)
     {
         var id = config.Id ?? Guid.NewGuid().ToString("N");
@@ -48,6 +55,7 @@ public sealed class InMemoryConfigStore
                 Config = config with { Id = id },
                 CreatedAt = DateTimeOffset.UtcNow,
             });
+            _snapshots?.Write("configs", _configs);
         }
 
         return id;
@@ -87,6 +95,7 @@ public sealed class InMemoryConfigStore
                 Config = config with { Id = id },
                 CreatedAt = DateTimeOffset.UtcNow,
             });
+            _snapshots?.Write("configs", _configs);
         }
         return id;
     }
@@ -113,11 +122,24 @@ public sealed class InMemoryConfigStore
         }
     }
 
-    public bool Delete(string id)
+    /// <summary>Coordinates run pinning with deletion under the same config gate.</summary>
+    public T? UseVersion<T>(string id, int version, Func<ConfigEntry, T> action) where T : class
     {
         lock (_gate)
         {
-            return _configs.Remove(id);
+            var entry = _configs.GetValueOrDefault(id)?.FirstOrDefault(e => e.Version == version);
+            return entry is null ? null : action(entry);
+        }
+    }
+
+    public bool Delete(string id, Func<bool>? canDelete = null)
+    {
+        lock (_gate)
+        {
+            if (canDelete is not null && !canDelete()) throw new InvalidOperationException("This config is pinned by saved runs and cannot be deleted.");
+            var removed = _configs.Remove(id);
+            if (removed) _snapshots?.Write("configs", _configs);
+            return removed;
         }
     }
 }
@@ -127,6 +149,15 @@ public sealed class InMemoryConfigStore
 /// </summary>
 public sealed record RunEntry
 {
+    public SlotMath.Core.Measurements.MeasurementDefinition[] Measurements { get; init; } = [];
+    public string? MeasurementHash { get; init; }
+    public string StreamEpoch { get; init; } = "";
+    public long Sequence { get; init; }
+    public RunProgressMessage? Progress { get; init; }
+    public string? ConfigHash { get; init; }
+    public int DegreeOfParallelism { get; init; } = 2;
+    public int ConfigVersion { get; init; } = 1;
+    public long Seed { get; init; } = 42;
     public required string Id { get; init; }
     public required string ConfigId { get; init; }
     public required string Status { get; init; } // "pending", "running", "completed", "failed", "cancelled"
@@ -153,21 +184,55 @@ public sealed class InMemoryRunStore
     private readonly object _gate = new();
     private readonly Dictionary<string, RunEntry> _runs = new();
     private readonly ConcurrentDictionary<string, CancellationTokenSource> _cts = new();
-    private int _counter;
-
-    public RunEntry Create(string configId)
+    private readonly EncryptedSnapshots? _snapshots;
+    private readonly TimeProvider _clock;
+    private readonly string _streamEpoch = Guid.NewGuid().ToString("N");
+    private long _lastCheckpoint;
+    public InMemoryRunStore(EncryptedSnapshots? snapshots = null, TimeProvider? clock = null)
     {
-        var id = Interlocked.Increment(ref _counter).ToString();
+        _snapshots = snapshots;
+        _clock = clock ?? TimeProvider.System;
+        _runs = snapshots?.Read<Dictionary<string, RunEntry>>("runs") ?? new();
+        var interrupted = false;
+        foreach (var (id, run) in _runs.ToArray())
+        {
+            var restored = run with { Sequence = Math.Max(run.Sequence, run.Progress?.Sequence ?? 0),
+                StreamEpoch = string.IsNullOrEmpty(run.StreamEpoch) ? _streamEpoch : run.StreamEpoch };
+            if (!Terminal(run.Status))
+            {
+                restored = restored with { Sequence = restored.Sequence + 1, StreamEpoch = _streamEpoch, Status = "failed", CompletedAt = _clock.GetUtcNow(),
+                    ResultJson = "{\"code\":\"RUN_INTERRUPTED\",\"error\":\"Server restarted; last checkpoint retained. Replay with the recorded seed.\"}" };
+                interrupted = true;
+            }
+            if (restored.Progress is not null) restored = restored with { Progress = Snapshot(restored) };
+            _runs[id] = restored;
+        }
+        if (interrupted) Persist();
+        _lastCheckpoint = _clock.GetTimestamp();
+    }
+
+    public RunEntry Create(string configId, long seed = 42, int configVersion = 1, long totalSamples = 0, string? configHash = null, int degreeOfParallelism = 2, SlotMath.Core.Measurements.MeasurementDefinition[]? measurements = null)
+    {
+        // Never reuse an identity after restart, including non-persisted dev runs.
+        var id = Guid.NewGuid().ToString("N");
         var entry = new RunEntry
         {
             Id = id,
+            StreamEpoch = _streamEpoch,
             ConfigId = configId,
+            Seed = seed,
+            ConfigVersion = configVersion,
+            ConfigHash = configHash,
+            DegreeOfParallelism = degreeOfParallelism,
+            Measurements = measurements ?? [], MeasurementHash = measurements is { Length: > 0 } ? MeasurementHash.Compute(measurements) : null,
+            TotalSamples = totalSamples,
             Status = "pending",
-            CreatedAt = DateTimeOffset.UtcNow,
+            CreatedAt = _clock.GetUtcNow(),
         };
         lock (_gate)
         {
             _runs[id] = entry;
+            Persist();
         }
         return entry;
     }
@@ -187,14 +252,20 @@ public sealed class InMemoryRunStore
         {
             if (!_runs.TryGetValue(id, out var entry))
                 throw new KeyNotFoundException($"Run '{id}' not found.");
+            if (Terminal(entry.Status)) return entry;
+            if (status == entry.Status && (resultJson is null || resultJson == entry.ResultJson)) return entry;
+            var sequence = NextSequence(entry);
 
             var updated = entry with
             {
                 Status = status,
+                Sequence = sequence,
+                Progress = entry.Progress is null ? null : entry.Progress with { Status = status, Sequence = sequence },
                 ResultJson = resultJson ?? entry.ResultJson,
-                CompletedAt = status is "completed" or "failed" or "cancelled" ? DateTimeOffset.UtcNow : entry.CompletedAt,
+                CompletedAt = Terminal(status) ? _clock.GetUtcNow() : entry.CompletedAt,
             };
             _runs[id] = updated;
+            if (Terminal(status)) Persist();
             return updated;
         }
     }
@@ -212,19 +283,44 @@ public sealed class InMemoryRunStore
         {
             if (!_runs.TryGetValue(id, out var entry))
                 return;
-            if (entry.Status is "completed" or "failed" or "cancelled")
+            if (entry.Status is "completed" or "failed" or "cancelled" || sampleCount < (entry.SampleCount ?? 0))
                 return;
 
-            _runs[id] = entry with
-            {
-                SampleCount = sampleCount,
-                TotalSamples = totalSamples,
-                RunningRtp = runningRtp,
-                StdErr = stdErr,
-                ElapsedMs = elapsedMs,
-                Status = "running",
-            };
+            PublishProgress(id, Snapshot(entry) with { SampleCount = sampleCount, TotalSamples = totalSamples,
+                RunningRtp = runningRtp, StdErr = stdErr, ElapsedMs = elapsedMs, Status = "running" });
         }
+    }
+
+    public RunProgressMessage? PublishProgress(string id, RunProgressMessage progress)
+    {
+        lock (_gate)
+        {
+            if (!_runs.TryGetValue(id, out var entry) || entry.Status is "completed" or "failed" or "cancelled") return null;
+            if (progress.SampleCount < (entry.SampleCount ?? 0)) return null;
+            var next = progress with { RunId = id, StreamEpoch = entry.StreamEpoch, Sequence = NextSequence(entry), ResultJson = null, CompletedAt = null,
+                Status = entry.Status == "cancelling" ? "cancelling" : progress.Status };
+            _runs[id] = entry with { Sequence = next.Sequence, Progress = next, Status = next.Status, SampleCount = next.SampleCount,
+                TotalSamples = next.TotalSamples, RunningRtp = next.RunningRtp, StdErr = next.StdErr, ElapsedMs = next.ElapsedMs };
+            if (_snapshots is not null && _clock.GetElapsedTime(_lastCheckpoint) >= TimeSpan.FromSeconds(5)) Persist();
+            return next;
+        }
+    }
+
+    public static RunProgressMessage Snapshot(RunEntry run) => (run.Progress ?? new RunProgressMessage
+    {
+        MeasurementHash = run.MeasurementHash,
+        Measurements = run.Measurements.Select(d => new SlotMath.Core.Measurements.MeasurementSnapshot(d.Id, 0, 0, 0, 0, null, null, null, null, null, null)).ToArray(),
+        RunId = run.Id, Status = run.Status, SampleCount = run.SampleCount ?? 0, TotalSamples = run.TotalSamples ?? 0,
+        RunningRtp = run.RunningRtp ?? 0, StdErr = run.StdErr ?? 0, ElapsedMs = run.ElapsedMs ?? 0,
+    }) with { Sequence = Math.Max(run.Sequence, run.Progress?.Sequence ?? 0), StreamEpoch = run.StreamEpoch, Status = run.Status,
+        ResultJson = Terminal(run.Status) ? run.ResultJson : null, CompletedAt = run.CompletedAt };
+
+    private static bool Terminal(string status) => status is "completed" or "failed" or "cancelled";
+    private static long NextSequence(RunEntry run) => Math.Max(run.Sequence, run.Progress?.Sequence ?? 0) + 1;
+    private void Persist()
+    {
+        _snapshots?.Write("runs", _runs);
+        _lastCheckpoint = _clock.GetTimestamp();
     }
 
     /// <summary>
@@ -243,17 +339,19 @@ public sealed class InMemoryRunStore
     /// </summary>
     public bool Cancel(string runId)
     {
-        if (_cts.TryRemove(runId, out var cts))
+        lock (_gate)
         {
-            try
+            if (_cts.TryGetValue(runId, out var cts) && _runs.TryGetValue(runId, out var run) && !Terminal(run.Status))
             {
-                cts.Cancel();
+                if (run.Status != "cancelling")
+                {
+                    var sequence = NextSequence(run);
+                    _runs[runId] = run with { Status = "cancelling", Sequence = sequence,
+                        Progress = run.Progress is null ? null : run.Progress with { Status = "cancelling", Sequence = sequence } };
+                }
+                cts.Cancel(); // Worker owns disposal; retain early cancellation until it starts.
+                return true;
             }
-            finally
-            {
-                cts.Dispose();
-            }
-            return true;
         }
         return false;
     }
@@ -263,20 +361,17 @@ public sealed class InMemoryRunStore
     /// </summary>
     public void RemoveCancellationToken(string runId)
     {
-        if (_cts.TryRemove(runId, out var cts))
+        lock (_gate)
         {
-            try { cts.Dispose(); } catch { /* already disposed */ }
+            if (_cts.TryRemove(runId, out var cts)) cts.Dispose();
         }
     }
 
     public IReadOnlyList<RunEntry> List(string? configId = null)
     {
-        lock (_gate)
-        {
-            var runs = _runs.Values.AsEnumerable();
-            if (configId != null)
-                runs = runs.Where(r => r.ConfigId == configId);
-            return runs.OrderByDescending(r => r.CreatedAt).ToList().AsReadOnly();
-        }
+        RunEntry[] snapshot;
+        lock (_gate) snapshot = _runs.Values.ToArray();
+        return snapshot.Where(r => configId is null || r.ConfigId == configId)
+            .OrderByDescending(r => r.CreatedAt).ThenByDescending(r => r.Id, StringComparer.Ordinal).ToArray();
     }
 }

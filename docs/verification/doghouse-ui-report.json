@@ -1,0 +1,270 @@
+{
+  "verifiedAt": "2026-10-09T13:05:58.451Z",
+  "environment": "Production containers, authenticated Chromium over local HTTPS",
+  "construction": "Build → Dog House · 98%; all game and calibration math in editable graph nodes and typed AST",
+  "targetRtp": 0.98,
+  "targetVerified": true,
+  "targetToleranceRtp": "1/1000000000000",
+  "sourceGraph": "backend/SlotMath.Core.Tests/TestData/DogHouse/dog-house-ui.json",
+  "expectationGraph": "backend/SlotMath.Core.Tests/TestData/DogHouse/dog-house-expectation-ui.json",
+  "independentOracle": "scripts/verification/doghouse_reference.py",
+  "assumptions": [
+    "Uniform circular reel stops",
+    "Public-demo base strips and original payout table",
+    "Custom free strips: ordinary symbols repeated three times on reels 2–4, one Wild per middle reel",
+    "Independent ×2/×3 base multipliers with equal weights; calibrated free multipliers",
+    "Independent uniform bonus awards 1 / 2 / 3, nine cells",
+    "Nonbinding round cap 189005 total stakes"
+  ],
+  "calibratedInputs": {
+    "targetRtpPercent": 98,
+    "freeReelLengths": [
+      29,
+      73,
+      76,
+      85,
+      27
+    ],
+    "freeWildWeights": [
+      [
+        {
+          "outcomeId": "2",
+          "weight": 303792868695691,
+          "value": 0
+        },
+        {
+          "outcomeId": "3",
+          "weight": 696207131304309,
+          "value": 0
+        }
+      ],
+      [
+        {
+          "outcomeId": "2",
+          "weight": 303792868695691,
+          "value": 0
+        },
+        {
+          "outcomeId": "3",
+          "weight": 696207131304309,
+          "value": 0
+        }
+      ],
+      [
+        {
+          "outcomeId": "2",
+          "weight": 303792868695691,
+          "value": 0
+        },
+        {
+          "outcomeId": "3",
+          "weight": 696207131304309,
+          "value": 0
+        }
+      ]
+    ]
+  },
+  "expectationReference": {
+    "scope": "Independent exact expectation, no full-round PMF claim",
+    "rtp": 0.98,
+    "rationalRtp": "4274106686130671864073411854882857376628053067518957036033994471067057232455673459306799988552193246134528430764725348805342072144632200564679998268995277325602174236883043/4361333353194563417168839905477259755886886155321821940473954590336007584011704318572122428325964019330346839769870844504817270784000000000000000000000000000000000000000000",
+    "baseRtp": 0.5398724489795919,
+    "rationalBaseRtp": "21163/39200",
+    "scatterRtp": 0.030612244897959183,
+    "rationalScatterRtp": "3/98",
+    "bonusRtp": 0.4095153061224489,
+    "trigger": "3/490",
+    "conditionalBonus": 66.88749999999999,
+    "targetRtp": 0.98,
+    "rationalTargetRtp": "49/50",
+    "rationalTargetDelta": "-284752051252484857184141095364696428465630481027462230199875796772893879991207251492809211472209748078809378853223687799435320001731004722674397825763116957/4361333353194563417168839905477259755886886155321821940473954590336007584011704318572122428325964019330346839769870844504817270784000000000000000000000000000000000000000000",
+    "targetMet": true,
+    "targetTolerance": "1/1000000000000",
+    "calibration": {
+      "rationalRtp2": "1909982080704904396806158938811964932637428199864965555608672351343372968441912602430540607807552761960142843443629837859516947303660492947055347002852286327/2180666676597281708584419952738629877943443077660910970236977295168003792005852159286061214162982009665173419884935422252408635392000000000000000000000000000",
+      "rationalRtp3": "4472273659978216044329260814539215961595295943035685168242105422986181343755932300839497349745440777342409214725460868250905578120901478841166041008556858981/4361333353194563417168839905477259755886886155321821940473954590336007584011704318572122428325964019330346839769870844504817270784000000000000000000000000000",
+      "rationalRequiredP3": "454142524720863355213145229743784695494292032485454390447130795842541495447645027339598764144339215023454216087213751895687030760999014105889305994295427346/652309498568407250716942936915286096320439543305754057024760720299435406872107095978416134130335253422123527838201192531871683513580492947055347002852286327",
+      "weight2": 303792868695691,
+      "weight3": 696207131304309
+    }
+  },
+  "expectationGraphHash": "7aa1a8173bfd52544d7ee065625f69a4d00a3d6bf940b429f06b0276825fc689",
+  "constructorProof": {
+    "expectedRtp": {
+      "numerator": "4274106686130671864073411854882857376628053067518957036033994471067057232455673459306799988552193246134528430764725348805342072144632200564679998268995277325602174236883043",
+      "denominator": "4361333353194563417168839905477259755886886155321821940473954590336007584011704318572122428325964019330346839769870844504817270784000000000000000000000000000000000000000000",
+      "displayValue": 0.98
+    },
+    "targetRtp": {
+      "numerator": "49",
+      "denominator": "50",
+      "displayValue": 0.98
+    },
+    "targetDelta": {
+      "numerator": "-284752051252484857184141095364696428465630481027462230199875796772893879991207251492809211472209748078809378853223687799435320001731004722674397825763116957",
+      "denominator": "4361333353194563417168839905477259755886886155321821940473954590336007584011704318572122428325964019330346839769870844504817270784000000000000000000000000000000000000000000",
+      "displayValue": -6.529013679816778e-17
+    },
+    "targetMet": true,
+    "calibrationRtp2": {
+      "numerator": "1909982080704904396806158938811964932637428199864965555608672351343372968441912602430540607807552761960142843443629837859516947303660492947055347002852286327",
+      "denominator": "2180666676597281708584419952738629877943443077660910970236977295168003792005852159286061214162982009665173419884935422252408635392000000000000000000000000000",
+      "displayValue": 0.8758707147693227
+    },
+    "calibrationRtp3": {
+      "numerator": "4472273659978216044329260814539215961595295943035685168242105422986181343755932300839497349745440777342409214725460868250905578120901478841166041008556858981",
+      "denominator": "4361333353194563417168839905477259755886886155321821940473954590336007584011704318572122428325964019330346839769870844504817270784000000000000000000000000000",
+      "displayValue": 1.0254372454016596
+    },
+    "requiredP3": {
+      "numerator": "454142524720863355213145229743784695494292032485454390447130795842541495447645027339598764144339215023454216087213751895687030760999014105889305994295427346",
+      "denominator": "652309498568407250716942936915286096320439543305754057024760720299435406872107095978416134130335253422123527838201192531871683513580492947055347002852286327",
+      "displayValue": 0.6962071313043094
+    },
+    "calibrationFeasible": true,
+    "calibratedWeight2": "303792868695691",
+    "calibratedWeight3": "696207131304309"
+  },
+  "results": {
+    "Exact": {
+      "requestedMode": "Exact",
+      "actualStrategy": "Unavailable",
+      "provenance": "BudgetExceeded",
+      "status": "BudgetExceeded",
+      "configHash": "6ab31814ceb52133e3332855ab8e80aac5af9f9443a886b9361bf5345f0964b4",
+      "elapsedMs": 1744.7427,
+      "note": "Full distribution exceeds the branch/time budget. No exact RTP has been calculated."
+    },
+    "Pruned": {
+      "requestedMode": "Pruned",
+      "actualStrategy": "ExactInterval",
+      "provenance": "ExactInterval",
+      "status": "Complete",
+      "rtp": 0,
+      "lower": 0,
+      "upper": 189005.00000000003,
+      "rationalRtp": "0/1",
+      "prunedMass": 1,
+      "samples": 0,
+      "requestedSamples": 100000,
+      "seed": 42,
+      "degreeOfParallelism": 4,
+      "hitFrequency": 0,
+      "streamScheme": "splitmix64-chunks-4096-v1",
+      "chunkSize": 4096,
+      "variance": 0,
+      "maxObserved": 0,
+      "elapsedMs": 67.1822,
+      "configHash": "6ab31814ceb52133e3332855ab8e80aac5af9f9443a886b9361bf5345f0964b4",
+      "note": null
+    },
+    "Sampled": {
+      "requestedMode": "Sampled",
+      "actualStrategy": "Sampled",
+      "provenance": "Sampled",
+      "status": "Complete",
+      "rtp": 0.9706710000000002,
+      "lower": 0.8653108920398619,
+      "upper": 1.0760311079601386,
+      "rationalRtp": null,
+      "prunedMass": 0,
+      "samples": 100000,
+      "requestedSamples": 100000,
+      "seed": 42,
+      "degreeOfParallelism": 4,
+      "hitFrequency": 0.27416,
+      "streamScheme": "splitmix64-chunks-4096-v1",
+      "chunkSize": 4096,
+      "variance": 288.9616917266765,
+      "maxObserved": 3282.05,
+      "elapsedMs": 16142.2068,
+      "configHash": "6ab31814ceb52133e3332855ab8e80aac5af9f9443a886b9361bf5345f0964b4",
+      "note": null
+    },
+    "Hybrid": {
+      "requestedMode": "Hybrid",
+      "actualStrategy": "Sampled",
+      "provenance": "Sampled",
+      "status": "Complete",
+      "rtp": 0.9706710000000002,
+      "lower": 0.8653108920398619,
+      "upper": 1.0760311079601386,
+      "rationalRtp": null,
+      "prunedMass": 0,
+      "samples": 100000,
+      "requestedSamples": 100000,
+      "seed": 42,
+      "degreeOfParallelism": 4,
+      "hitFrequency": 0.27416,
+      "streamScheme": "splitmix64-chunks-4096-v1",
+      "chunkSize": 4096,
+      "variance": 288.9616917266765,
+      "maxObserved": 3282.05,
+      "elapsedMs": 24075.8816,
+      "configHash": "6ab31814ceb52133e3332855ab8e80aac5af9f9443a886b9361bf5345f0964b4",
+      "note": "Automatic Exact/Sampled selection; no mixed exact/sample estimator is claimed."
+    }
+  },
+  "serialSampledValidation": {
+    "requestedMode": "Sampled",
+    "actualStrategy": "Sampled",
+    "provenance": "Sampled",
+    "status": "Complete",
+    "rtp": 0.9706710000000002,
+    "lower": 0.8653108920398619,
+    "upper": 1.0760311079601386,
+    "rationalRtp": null,
+    "prunedMass": 0,
+    "samples": 100000,
+    "requestedSamples": 100000,
+    "seed": 42,
+    "degreeOfParallelism": 1,
+    "hitFrequency": 0.27416,
+    "streamScheme": "splitmix64-chunks-4096-v1",
+    "chunkSize": 4096,
+    "variance": 288.9616917266765,
+    "maxObserved": 3282.05,
+    "elapsedMs": 23554.0266,
+    "configHash": "6ab31814ceb52133e3332855ab8e80aac5af9f9443a886b9361bf5345f0964b4",
+    "note": null
+  },
+  "bonusReplay": {
+    "seed": 42,
+    "roundIndex": 230,
+    "verification": "Manual per-frame payouts, nine-cell sum, all sticky positions/multipliers, identical replay, trace-on/off equivalence"
+  },
+  "checks": {
+    "core": 726,
+    "api": 54,
+    "e2e": 21,
+    "frontendBuild": "passed",
+    "frontendLint": "passed",
+    "targetCalibration": "UI edit to incorrect weights → target failure → apply graph-calculated weights → 98% proof, including production HTTPS",
+    "parallel": "Authenticated production UI: 100000 samples, chunk size 4096; RTP, variance, hit frequency, maximum and CI bit-identical with 1 and 4 workers",
+    "constructorStartup": {
+      "checkedAt": "2026-10-09T13:37:40.499511+00:00",
+      "entry": "http://localhost:4173/build?project=dog-house",
+      "freshBuild": "Automatically loads the complete 98% model",
+      "graphs": {
+        "round": 11,
+        "base": 43,
+        "paylines": 8,
+        "freeSpins": 45
+      },
+      "uniqueEditableNodes": 107,
+      "navigation": "All math subgraphs, reel/paytable data and exact expectation/calibration available above the canvas; library cards open their subgraph directly",
+      "viewport": "All 43 base-game nodes fit in the viewport; root nodes do not overlap",
+      "nestedEdits": "Saved when switching graphs and retained through direct model links",
+      "production": "Authenticated HTTPS entry and graph navigation verified; rational 98% expectation check passed",
+      "mobile": "Constructor controls and data dialogs passed browser test",
+      "snapshot": "docs/verification/doghouse-ready-constructor.png"
+    }
+  },
+  "limitations": [
+    "This is an independently specified 98% profile; original provider weights are unavailable",
+    "Full-round Exact PMF exceeds online budget; exact expectation is calculated by the separate constructor proof",
+    "Pruned interval at epsilon 0.1 removes all mass and is uninformative",
+    "Hybrid currently selects Exact or Sampled; no mixed estimator",
+    "Original visual assets are reference material; no ownership or license grant is asserted"
+  ]
+}

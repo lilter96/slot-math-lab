@@ -23,7 +23,7 @@ public static class ConfigsEndpoints
                 LatestVersion = c.Version,
                 UpdatedAt = c.CreatedAt,
             }));
-        });
+        }).Produces<IEnumerable<ConfigListResponse>>();
 
         group.MapGet("/{id}", (string id, InMemoryConfigStore store) =>
         {
@@ -38,7 +38,7 @@ public static class ConfigsEndpoints
                 Config = entry.Config,
                 CreatedAt = entry.CreatedAt,
             });
-        });
+        }).Produces<ConfigDetailResponse>();
 
         group.MapPost("/", (CreateConfigRequest request, InMemoryConfigStore store) =>
         {
@@ -58,7 +58,7 @@ public static class ConfigsEndpoints
                 Id = id,
                 Version = 1,
             });
-        });
+        }).Produces<CreateConfigResponse>(201);
 
         group.MapPut("/{id}", (string id, UpdateConfigRequest request, InMemoryConfigStore store) =>
         {
@@ -86,7 +86,7 @@ public static class ConfigsEndpoints
             {
                 return Results.NotFound(new { error = $"Config '{id}' not found." });
             }
-        });
+        }).Produces<CreateConfigResponse>();
 
         group.MapGet("/{id}/versions", (string id, InMemoryConfigStore store) =>
         {
@@ -117,10 +117,14 @@ public static class ConfigsEndpoints
             });
         });
 
-        group.MapDelete("/{id}", (string id, InMemoryConfigStore store) =>
+        group.MapDelete("/{id}", (string id, InMemoryConfigStore store, InMemoryRunStore runs) =>
         {
-            if (!store.Delete(id))
-                return Results.NotFound(new { error = $"Config '{id}' not found." });
+            try
+            {
+                if (!store.Delete(id, () => runs.List(id).Count == 0))
+                    return Results.NotFound(new { error = $"Config '{id}' not found." });
+            }
+            catch (InvalidOperationException ex) { return Results.Conflict(new { error = ex.Message }); }
             return Results.NoContent();
         });
 

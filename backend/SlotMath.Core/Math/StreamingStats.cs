@@ -524,7 +524,8 @@ public sealed class StreamingStats
             HitFrequency: HitFrequency,
             HitFrequencyStdErr: HitFrequencyStdErr,
             MaxWinCap: _maxWinCap,
-            Histogram: BuildHistogram());
+            Histogram: BuildHistogram(),
+            AdaptiveHistogram: BuildAdaptiveHistogram());
     }
 
     public override string ToString()
@@ -566,5 +567,6 @@ public sealed record StreamingStatsSnapshot(
     double HitFrequency,
     double HitFrequencyStdErr,
     double? MaxWinCap,
-    HistogramBin[] Histogram
+    HistogramBin[] Histogram,
+    IReadOnlyList<AdaptiveHistogramBin>? AdaptiveHistogram = null
 );

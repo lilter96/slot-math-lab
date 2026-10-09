@@ -22,7 +22,7 @@ namespace SlotMath.Core.Math;
 public sealed record RtpMetric
 {
     /// <summary>Provenance of this RTP value.</summary>
-    public ProvenanceTag Provenance { get; }
+    public ProvenanceTag Provenance { get; init; }
 
     // ── Rational (exact path only — null on sampled) ──────────────────
     /// <summary>Exact rational numerator.  Null when provenance is Sampled.</summary>

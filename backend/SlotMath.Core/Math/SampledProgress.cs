@@ -14,6 +14,7 @@ namespace SlotMath.Core.Math;
 public sealed record SampledProgress
 {
     /// <summary>Number of spins completed so far.</summary>
+    public IReadOnlyList<SlotMath.Core.Measurements.MeasurementSnapshot> Measurements { get; init; } = [];
     public long SpinsCompleted { get; init; }
 
     /// <summary>Total number of spins requested for this run.</summary>

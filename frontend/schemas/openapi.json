@@ -5,7 +5,11 @@
     "version": "1.0.0",
     "description": "No-code slot math constructor API"
   },
-  "servers": [{ "url": "http://localhost:5152" }],
+  "servers": [
+    {
+      "url": "http://localhost:5152"
+    }
+  ],
   "paths": {
     "/api/configs": {
       "get": {
@@ -18,7 +22,9 @@
               "application/json": {
                 "schema": {
                   "type": "array",
-                  "items": { "$ref": "#/components/schemas/ConfigSummary" }
+                  "items": {
+                    "$ref": "#/components/schemas/ConfigSummary"
+                  }
                 }
               }
             }
@@ -32,7 +38,9 @@
           "required": true,
           "content": {
             "application/json": {
-              "schema": { "$ref": "#/components/schemas/CreateConfigRequest" }
+              "schema": {
+                "$ref": "#/components/schemas/CreateConfigRequest"
+              }
             }
           }
         },
@@ -41,7 +49,9 @@
             "description": "Config created",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/CreateConfigResponse" }
+                "schema": {
+                  "$ref": "#/components/schemas/CreateConfigResponse"
+                }
               }
             }
           },
@@ -56,31 +66,51 @@
         "operationId": "getConfig",
         "summary": "Get a config by ID",
         "parameters": [
-          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
         ],
         "responses": {
           "200": {
             "description": "Config detail",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/ConfigDetail" }
+                "schema": {
+                  "$ref": "#/components/schemas/ConfigDetail"
+                }
               }
             }
           },
-          "404": { "description": "Not found" }
+          "404": {
+            "description": "Not found"
+          }
         }
       },
       "put": {
         "operationId": "updateConfig",
         "summary": "Update a config",
         "parameters": [
-          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
         ],
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
-              "schema": { "$ref": "#/components/schemas/UpdateConfigRequest" }
+              "schema": {
+                "$ref": "#/components/schemas/UpdateConfigRequest"
+              }
             }
           }
         },
@@ -89,22 +119,40 @@
             "description": "Updated",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/CreateConfigResponse" }
+                "schema": {
+                  "$ref": "#/components/schemas/CreateConfigResponse"
+                }
               }
             }
           },
-          "404": { "description": "Not found" }
+          "404": {
+            "description": "Not found"
+          }
         }
       },
       "delete": {
         "operationId": "deleteConfig",
         "summary": "Delete a config",
         "parameters": [
-          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
         ],
         "responses": {
-          "204": { "description": "Deleted" },
-          "404": { "description": "Not found" }
+          "204": {
+            "description": "Deleted"
+          },
+          "404": {
+            "description": "Not found"
+          },
+          "409": {
+            "description": "Config is pinned by saved run evidence"
+          }
         }
       }
     },
@@ -113,7 +161,14 @@
         "operationId": "listConfigVersions",
         "summary": "List all versions of a config",
         "parameters": [
-          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
         ],
         "responses": {
           "200": {
@@ -122,12 +177,16 @@
               "application/json": {
                 "schema": {
                   "type": "array",
-                  "items": { "$ref": "#/components/schemas/VersionEntry" }
+                  "items": {
+                    "$ref": "#/components/schemas/VersionEntry"
+                  }
                 }
               }
             }
           },
-          "404": { "description": "Not found" }
+          "404": {
+            "description": "Not found"
+          }
         }
       }
     },
@@ -136,19 +195,37 @@
         "operationId": "getConfigVersion",
         "summary": "Get a specific config version",
         "parameters": [
-          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } },
-          { "name": "version", "in": "path", "required": true, "schema": { "type": "integer" } }
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "version",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
         ],
         "responses": {
           "200": {
             "description": "Config version detail",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/ConfigDetail" }
+                "schema": {
+                  "$ref": "#/components/schemas/ConfigDetail"
+                }
               }
             }
           },
-          "404": { "description": "Not found" }
+          "404": {
+            "description": "Not found"
+          }
         }
       }
     },
@@ -160,13 +237,19 @@
           "required": true,
           "content": {
             "application/json": {
-              "schema": { "$ref": "#/components/schemas/ValidateRequest" }
+              "schema": {
+                "$ref": "#/components/schemas/ValidateRequest"
+              }
             }
           }
         },
         "responses": {
-          "200": { "description": "OK" },
-          "400": { "description": "Invalid JSON" }
+          "200": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Invalid JSON"
+          }
         }
       }
     },
@@ -178,7 +261,9 @@
           "required": true,
           "content": {
             "application/json": {
-              "schema": { "$ref": "#/components/schemas/EvaluateLightRequest" }
+              "schema": {
+                "$ref": "#/components/schemas/EvaluateLightRequest"
+              }
             }
           }
         },
@@ -187,11 +272,15 @@
             "description": "Evaluation result",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/EvaluateLightResponse" }
+                "schema": {
+                  "$ref": "#/components/schemas/EvaluateLightResponse"
+                }
               }
             }
           },
-          "400": { "description": "Invalid JSON" }
+          "400": {
+            "description": "Invalid JSON"
+          }
         }
       }
     },
@@ -203,7 +292,9 @@
           "required": true,
           "content": {
             "application/json": {
-              "schema": { "$ref": "#/components/schemas/CreateRunRequest" }
+              "schema": {
+                "$ref": "#/components/schemas/CreateRunRequest"
+              }
             }
           }
         },
@@ -212,11 +303,81 @@
             "description": "Run enqueued",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/RunResponse" }
+                "schema": {
+                  "$ref": "#/components/schemas/RunResponse"
+                }
               }
             }
           },
-          "404": { "description": "Config not found" }
+          "404": {
+            "description": "Config not found"
+          },
+          "400": {
+            "description": "Invalid version, seed, workers or round budget"
+          }
+        }
+      },
+      "get": {
+        "operationId": "listRunArchive",
+        "summary": "Cursor-paginated server run archive without result JSON or histograms",
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "maxLength": 200
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "all",
+                "completed",
+                "partial",
+                "failed",
+                "active"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Saved run evidence",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RunPage"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid query or cursor"
+          },
+          "401": {
+            "description": "Authentication required in production"
+          }
         }
       }
     },
@@ -225,30 +386,61 @@
         "operationId": "getRun",
         "summary": "Get run status and progress",
         "parameters": [
-          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
         ],
         "responses": {
           "200": {
             "description": "Run status",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/RunResponse" }
+                "schema": {
+                  "$ref": "#/components/schemas/RunResponse"
+                }
               }
             }
           },
-          "404": { "description": "Not found" }
+          "404": {
+            "description": "Not found"
+          }
         }
       },
       "delete": {
         "operationId": "cancelRun",
         "summary": "Cancel a running job",
         "parameters": [
-          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
         ],
         "responses": {
-          "200": { "description": "Cancelling" },
-          "404": { "description": "Not found" },
-          "409": { "description": "Already completed/failed/cancelled" }
+          "200": {
+            "description": "Authoritative cancellation snapshot; completion may race with cancellation.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RunResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found"
+          },
+          "409": {
+            "description": "Already completed/failed/cancelled"
+          }
         }
       }
     },
@@ -263,7 +455,9 @@
               "application/json": {
                 "schema": {
                   "type": "array",
-                  "items": { "$ref": "#/components/schemas/PluginEntry" }
+                  "items": {
+                    "$ref": "#/components/schemas/PluginEntry"
+                  }
                 }
               }
             }
@@ -277,13 +471,19 @@
           "required": true,
           "content": {
             "application/json": {
-              "schema": { "$ref": "#/components/schemas/RegisterPluginRequest" }
+              "schema": {
+                "$ref": "#/components/schemas/RegisterPluginRequest"
+              }
             }
           }
         },
         "responses": {
-          "200": { "description": "Registered" },
-          "409": { "description": "Already registered" }
+          "200": {
+            "description": "Registered"
+          },
+          "409": {
+            "description": "Already registered"
+          }
         }
       }
     },
@@ -292,18 +492,115 @@
         "operationId": "getPlugin",
         "summary": "Get a plugin by ID",
         "parameters": [
-          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
         ],
         "responses": {
           "200": {
             "description": "Plugin detail",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/PluginEntry" }
+                "schema": {
+                  "$ref": "#/components/schemas/PluginEntry"
+                }
               }
             }
           },
-          "404": { "description": "Not found" }
+          "404": {
+            "description": "Not found"
+          }
+        }
+      }
+    },
+    "/api/runs/{id}/evidence": {
+      "get": {
+        "operationId": "getRunEvidence",
+        "summary": "Retrieve original pinned config and provenance for a run",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Saved run evidence",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RunEvidence"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Run not found"
+          },
+          "401": {
+            "description": "Authentication required in production"
+          }
+        }
+      }
+    },
+    "/api/runs/measurements/schema": {
+      "post": {
+        "tags": [
+          "Runs"
+        ],
+        "summary": "Discover flattened observation points and state fields; optionally validate a measurement plan",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "config"
+                ],
+                "properties": {
+                  "config": {
+                    "type": "object",
+                    "additionalProperties": true
+                  },
+                  "measurements": {
+                    "type": "array",
+                    "maxItems": 32,
+                    "items": {
+                      "$ref": "#/components/schemas/MeasurementDefinition"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Compiled measurement schema",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MeasurementSchema"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid graph or measurement plan"
+          },
+          "429": {
+            "description": "Compute limit; honor Retry-After"
+          }
         }
       }
     }
@@ -313,128 +610,844 @@
       "ConfigSummary": {
         "type": "object",
         "properties": {
-          "id": { "type": "string" },
-          "name": { "type": "string" },
-          "latestVersion": { "type": "integer" },
-          "updatedAt": { "type": "string" }
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "latestVersion": {
+            "type": "integer"
+          },
+          "updatedAt": {
+            "type": "string"
+          }
         }
       },
       "ConfigDetail": {
         "type": "object",
         "properties": {
-          "id": { "type": "string" },
-          "version": { "type": "integer" },
-          "config": { "type": "object", "additionalProperties": true },
-          "createdAt": { "type": "string" }
+          "id": {
+            "type": "string"
+          },
+          "version": {
+            "type": "integer"
+          },
+          "config": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "createdAt": {
+            "type": "string"
+          }
         }
       },
       "CreateConfigRequest": {
         "type": "object",
         "properties": {
-          "config": { "type": "object", "additionalProperties": true }
+          "config": {
+            "type": "object",
+            "additionalProperties": true
+          }
         },
-        "required": ["config"]
+        "required": [
+          "config"
+        ]
       },
       "UpdateConfigRequest": {
         "type": "object",
         "properties": {
-          "config": { "type": "object", "additionalProperties": true }
+          "config": {
+            "type": "object",
+            "additionalProperties": true
+          }
         },
-        "required": ["config"]
+        "required": [
+          "config"
+        ]
       },
       "CreateConfigResponse": {
         "type": "object",
         "properties": {
-          "id": { "type": "string" },
-          "version": { "type": "integer" }
+          "id": {
+            "type": "string"
+          },
+          "version": {
+            "type": "integer"
+          }
         }
       },
       "VersionEntry": {
         "type": "object",
         "properties": {
-          "id": { "type": "string" },
-          "version": { "type": "integer" },
-          "createdAt": { "type": "string" }
+          "id": {
+            "type": "string"
+          },
+          "version": {
+            "type": "integer"
+          },
+          "createdAt": {
+            "type": "string"
+          }
         }
       },
       "ValidateRequest": {
         "type": "object",
         "properties": {
-          "config": { "type": "object", "additionalProperties": true }
+          "config": {
+            "type": "object",
+            "additionalProperties": true
+          }
         },
-        "required": ["config"]
+        "required": [
+          "config"
+        ]
       },
       "EvaluateLightRequest": {
         "type": "object",
         "properties": {
-          "config": { "type": "object", "additionalProperties": true },
-          "maxBranches": { "type": "integer" },
-          "sampleSize": { "type": "integer" }
+          "config": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "maxBranches": {
+            "type": "integer"
+          },
+          "sampleSize": {
+            "type": "integer"
+          }
         },
-        "required": ["config"]
+        "required": [
+          "config"
+        ]
       },
       "EvaluateLightResponse": {
         "type": "object",
         "properties": {
-          "strategy": { "type": "string" },
-          "rtp": { "type": "number" },
-          "hitFrequency": { "type": "number" },
-          "volatility": { "type": "number" },
-          "stdErr": { "type": "number" },
-          "ci95": { "type": "string" },
-          "provenance": { "type": "string" },
-          "sampleCount": { "type": "integer" },
-          "elapsedMs": { "type": "number" }
+          "strategy": {
+            "type": "string"
+          },
+          "rtp": {
+            "type": "number"
+          },
+          "hitFrequency": {
+            "type": "number"
+          },
+          "volatility": {
+            "type": "number"
+          },
+          "stdErr": {
+            "type": "number"
+          },
+          "ci95": {
+            "type": "string"
+          },
+          "provenance": {
+            "type": "string"
+          },
+          "sampleCount": {
+            "type": "integer"
+          },
+          "elapsedMs": {
+            "type": "number"
+          }
         }
       },
       "CreateRunRequest": {
+        "required": [
+          "configId"
+        ],
         "type": "object",
         "properties": {
-          "configId": { "type": "string" },
-          "sampleSize": { "type": "integer" },
-          "progressBatchSize": { "type": "integer" }
-        },
-        "required": ["configId"]
+          "seed": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "configId": {
+            "type": "string"
+          },
+          "sampleSize": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "progressBatchSize": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "degreeOfParallelism": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "configVersion": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "minimum": 1,
+            "description": "Replay a pinned version; omitted selects latest at creation."
+          },
+          "measurements": {
+            "type": "array",
+            "maxItems": 32,
+            "items": {
+              "$ref": "#/components/schemas/MeasurementDefinition"
+            }
+          }
+        }
+      },
+      "RunHistogramBin": {
+        "required": [
+          "lo",
+          "hi",
+          "count"
+        ],
+        "type": "object",
+        "properties": {
+          "lo": {
+            "type": "number",
+            "format": "double"
+          },
+          "hi": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
+          },
+          "count": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
       },
       "RunProgressMessage": {
+        "required": [
+          "runId",
+          "sampleCount",
+          "totalSamples",
+          "runningRtp",
+          "stdErr",
+          "status",
+          "elapsedMs"
+        ],
         "type": "object",
         "properties": {
-          "runId": { "type": "string" },
-          "sampleCount": { "type": "integer" },
-          "totalSamples": { "type": "integer" },
-          "runningRtp": { "type": "number" },
-          "stdErr": { "type": "number" },
-          "status": { "type": "string" },
-          "elapsedMs": { "type": "number" }
+          "sequence": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Monotonic revision within streamEpoch, including status transitions."
+          },
+          "hitFrequency": {
+            "type": "number",
+            "format": "double"
+          },
+          "nonZeroCount": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "volatility": {
+            "type": "number",
+            "format": "double"
+          },
+          "maxWin": {
+            "type": "number",
+            "format": "double"
+          },
+          "capHits": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "histogram": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RunHistogramBin"
+            }
+          },
+          "runId": {
+            "type": "string"
+          },
+          "sampleCount": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "totalSamples": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "runningRtp": {
+            "type": "number",
+            "format": "double"
+          },
+          "stdErr": {
+            "type": "number",
+            "format": "double"
+          },
+          "status": {
+            "type": "string"
+          },
+          "elapsedMs": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "streamEpoch": {
+            "type": "string",
+            "description": "Opaque stream generation. A crash recovery checkpoint starts a new generation."
+          },
+          "resultJson": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Complete persisted result carried by terminal snapshots."
+          },
+          "completedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "measurementHash": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "pattern": "^[a-f0-9]{64}$"
+          },
+          "measurements": {
+            "type": "array",
+            "maxItems": 32,
+            "items": {
+              "$ref": "#/components/schemas/MeasurementSnapshot"
+            }
+          }
         }
       },
       "RunResponse": {
+        "required": [
+          "id",
+          "configId",
+          "status"
+        ],
         "type": "object",
         "properties": {
-          "id": { "type": "string" },
-          "configId": { "type": "string" },
-          "status": { "type": "string" },
-          "createdAt": { "type": "string" },
-          "completedAt": { "type": "string" },
-          "resultJson": { "type": "string" },
-          "progress": { "$ref": "#/components/schemas/RunProgressMessage" }
+          "configVersion": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "configHash": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "degreeOfParallelism": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "streamScheme": {
+            "type": "string"
+          },
+          "seed": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "id": {
+            "type": "string"
+          },
+          "configId": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "resultJson": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "completedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "progress": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/RunProgressMessage"
+              }
+            ]
+          },
+          "streamEpoch": {
+            "type": "string",
+            "description": "Opaque stream generation. A crash recovery checkpoint starts a new generation."
+          },
+          "sequence": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Monotonic revision within streamEpoch, including status transitions."
+          },
+          "measurements": {
+            "type": "array",
+            "maxItems": 32,
+            "items": {
+              "$ref": "#/components/schemas/MeasurementDefinition"
+            }
+          },
+          "measurementHash": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "pattern": "^[a-f0-9]{64}$"
+          }
         }
       },
       "PluginEntry": {
         "type": "object",
         "properties": {
-          "pluginId": { "type": "string" },
-          "contract": { "type": "string" },
-          "isConformant": { "type": "boolean" },
-          "version": { "type": "string" }
+          "pluginId": {
+            "type": "string"
+          },
+          "contract": {
+            "type": "string"
+          },
+          "isConformant": {
+            "type": "boolean"
+          },
+          "version": {
+            "type": "string"
+          }
         }
       },
       "RegisterPluginRequest": {
         "type": "object",
         "properties": {
-          "pluginId": { "type": "string" }
+          "pluginId": {
+            "type": "string"
+          }
         },
-        "required": ["pluginId"]
+        "required": [
+          "pluginId"
+        ]
+      },
+      "RunModel": {
+        "type": "object",
+        "required": [
+          "name",
+          "modelHash",
+          "targetRtp",
+          "winCap"
+        ],
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "modelHash": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "targetRtp": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
+          },
+          "winCap": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int64"
+          }
+        }
+      },
+      "RunSummary": {
+        "type": "object",
+        "required": [
+          "configVersion",
+          "configHash",
+          "degreeOfParallelism",
+          "streamScheme",
+          "seed",
+          "id",
+          "configId",
+          "status",
+          "createdAt",
+          "completedAt",
+          "model",
+          "sampleCount",
+          "totalSamples",
+          "rtp",
+          "stdErr",
+          "elapsedMs"
+        ],
+        "properties": {
+          "configVersion": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "configHash": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "degreeOfParallelism": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "streamScheme": {
+            "type": "string"
+          },
+          "seed": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "id": {
+            "type": "string"
+          },
+          "configId": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "completedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "model": {
+            "$ref": "#/components/schemas/RunModel"
+          },
+          "sampleCount": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "totalSamples": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "rtp": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
+          },
+          "stdErr": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
+          },
+          "elapsedMs": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "RunPage": {
+        "type": "object",
+        "required": [
+          "items",
+          "nextCursor",
+          "total",
+          "completed",
+          "partial",
+          "failed",
+          "active"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RunSummary"
+            }
+          },
+          "nextCursor": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "total": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "completed": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "partial": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "failed": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "active": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "RunEvidence": {
+        "type": "object",
+        "required": [
+          "run",
+          "model",
+          "pinnedConfig",
+          "computedConfigHash",
+          "inputVerified"
+        ],
+        "properties": {
+          "run": {
+            "$ref": "#/components/schemas/RunResponse"
+          },
+          "model": {
+            "$ref": "#/components/schemas/RunModel"
+          },
+          "pinnedConfig": {
+            "type": [
+              "null",
+              "object"
+            ],
+            "additionalProperties": true
+          },
+          "computedConfigHash": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "inputVerified": {
+            "type": "boolean"
+          }
+        }
+      },
+      "MeasurementDefinition": {
+        "type": "object",
+        "required": [
+          "id",
+          "name"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "maxLength": 64
+          },
+          "name": {
+            "type": "string",
+            "maxLength": 80
+          },
+          "nodeId": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Null observes a settled paid round; node ID observes state before each visit to the flattened graph node."
+          },
+          "value": {
+            "anyOf": [
+              {
+                "type": "object",
+                "required": [
+                  "exprType"
+                ],
+                "properties": {
+                  "exprType": {
+                    "type": "string"
+                  }
+                },
+                "additionalProperties": true
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Numeric constructor AST; null means settled capped payout at round completion."
+          },
+          "filter": {
+            "anyOf": [
+              {
+                "type": "object",
+                "required": [
+                  "exprType"
+                ],
+                "properties": {
+                  "exprType": {
+                    "type": "string"
+                  }
+                },
+                "additionalProperties": true
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Boolean constructor AST; null includes every observation."
+          },
+          "unit": {
+            "type": "string",
+            "maxLength": 24
+          }
+        }
+      },
+      "MeasurementSnapshot": {
+        "type": "object",
+        "required": [
+          "observations",
+          "count",
+          "excluded",
+          "errors",
+          "min",
+          "max",
+          "mean",
+          "sum",
+          "stdDev",
+          "id",
+          "firstError"
+        ],
+        "properties": {
+          "observations": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "count": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "excluded": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "errors": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "min": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "format": "double"
+          },
+          "max": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "format": "double"
+          },
+          "mean": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "format": "double"
+          },
+          "sum": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "format": "double"
+          },
+          "stdDev": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "format": "double"
+          },
+          "id": {
+            "type": "string"
+          },
+          "firstError": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      },
+      "MeasurementSchema": {
+        "type": "object",
+        "required": [
+          "points",
+          "fields"
+        ],
+        "properties": {
+          "points": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "nodeId",
+                "label"
+              ],
+              "properties": {
+                "nodeId": {
+                  "type": "string"
+                },
+                "label": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "fields": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "name",
+                "type"
+              ],
+              "properties": {
+                "name": {
+                  "type": "string"
+                },
+                "type": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
       }
     }
   }

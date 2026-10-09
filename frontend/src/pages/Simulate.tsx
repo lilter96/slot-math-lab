@@ -1,416 +1,103 @@
-import { useState, useRef, useCallback, useEffect } from 'react';
-import * as signalR from '@microsoft/signalr';
+import { useEffect, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { Link, useSearchParams } from 'react-router-dom';
 import { useAppStore } from '../store';
-import { buildConfigPayload } from '../lib/configPayload';
-import ConvergenceChart, { type ConvergencePoint } from '../components/simulate/ConvergenceChart';
-import Histogram from '../components/simulate/Histogram';
-import ProvBadge from '../components/ProvBadge';
-import type { components } from '../api/generated-types';
-
-type RunProgressMessage = components['schemas']['RunProgressMessage'];
-type EvaluateLightResponse = components['schemas']['EvaluateLightResponse'];
-
-// ── Run state ──────────────────────────────────────────────────────
-type RunStatus = 'idle' | 'running' | 'paused' | 'complete';
-
+import { useSimulation, startSimulation, cancelSimulation, openSimulation, reconnectSimulation, terminal } from '../hooks/useSimulation';
+import { LiveChart } from '../components/simulate/LiveChart';
+import { count } from '../components/simulate/format';
+import { LiveHistogram } from '../components/simulate/LiveHistogram';
+import { downloadJson } from '../games/doghouse/api';
+import { MeasurementWorkspace } from '../components/simulate/MeasurementWorkspace';
+import { validSnapshot } from '../lib/realtime/runProtocol';
+import { useMeasurementWorkspace, type Widget } from '../lib/measurements/store';
+import '../components/simulate/measurements.css';
+import './simulate.css';
+const pct = (v: number) => `${(v * 100).toFixed(3)}%`;
+const duration = (ms: number) => ms < 60000 ? `${(ms / 1000).toFixed(1)}s` : `${Math.floor(ms / 60000)}m ${Math.floor(ms / 1000) % 60}s`;
 export default function Simulate() {
-  const nodes = useAppStore((s) => s.nodes);
-  const edges = useAppStore((s) => s.edges);
-  const configName = useAppStore((s) => s.configName);
-
-  const [status, setStatus] = useState<RunStatus>('idle');
-  const [sampleCount, setSampleCount] = useState(0);
-  const [runningRtp, setRunningRtp] = useState(0);
-  const [stdErr, setStdErr] = useState(0);
-  const [points, setPoints] = useState<ConvergencePoint[]>([]);
-  const [histogram, setHistogram] = useState<Map<number, number>>(new Map());
-  const [winHistogram, setWinHistogram] = useState<Map<number, number> | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [spinsTarget, setSpinsTarget] = useState(100_000);
-
-  // Exact RTP from /api/evaluate/light — null until fetched
-  const [exactRtp, setExactRtp] = useState<number | null>(null);
-  const [exactProvenance, setExactProvenance] = useState<string | null>(null);
-  const [needsFullRun, setNeedsFullRun] = useState(false);
-
-  const hubRef = useRef<signalR.HubConnection | null>(null);
-  const abortRef = useRef(false);
-  const runIdRef = useRef<string | null>(null);
-
-  // ── Stop / cleanup ──────────────────────────────────────────────
-  const stop = useCallback(() => {
-    abortRef.current = true;
-    // Cancel the run server-side too — closing the socket alone would
-    // leave the job burning CPU on the backend.
-    if (runIdRef.current) {
-      void fetch(`/api/runs/${runIdRef.current}`, { method: 'DELETE' }).catch(() => {});
-      runIdRef.current = null;
-    }
-    if (hubRef.current) {
-      hubRef.current.stop();
-      hubRef.current = null;
-    }
-    if (status === 'running') setStatus('paused');
-  }, [status]);
-
-  // ── Start run ───────────────────────────────────────────────────
-  const start = useCallback(async () => {
-    abortRef.current = false;
-    setStatus('running');
-    setError(null);
-    setSampleCount(0);
-    setRunningRtp(0);
-    setStdErr(0);
-    setPoints([]);
-    setHistogram(new Map());
-    setWinHistogram(null);
-    setExactRtp(null);
-    setExactProvenance(null);
-    setNeedsFullRun(false);
-
-    const configPayload = buildConfigPayload(nodes, edges, { name: configName ?? 'Untitled' });
-    if (!configPayload) {
-      setError('No graph nodes. Build a graph in the Build tab first.');
-      setStatus('idle');
-      return;
-    }
-
-    try {
-      // ── Step 1: get exact RTP from /api/evaluate/light ──────────
-      try {
-        const evalRes = await fetch('/api/evaluate/light', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ config: configPayload }),
-        });
-        if (evalRes.ok) {
-          const evalData = (await evalRes.json()) as EvaluateLightResponse;
-          const strat = (evalData.strategy ?? '').toLowerCase();
-          if (strat === 'needsfullrun') {
-            setNeedsFullRun(true);
-          } else if (evalData.rtp != null) {
-            setExactRtp(evalData.rtp);
-            setExactProvenance(evalData.provenance ?? evalData.strategy ?? 'Exact');
-          }
-        }
-      } catch {
-        // evaluate/light failure is non-fatal — continue without exact reference
-      }
-
-      // ── Step 2: persist config ──────────────────────────────────
-      const configRes = await fetch('/api/configs', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ config: configPayload }),
-      });
-      if (!configRes.ok) throw new Error(`Config save failed: HTTP ${configRes.status}`);
-      const configData = (await configRes.json()) as { id?: string };
-      const configId = configData.id;
-      if (!configId) throw new Error('Config save returned no id');
-
-      // ── Step 3: create run ──────────────────────────────────────
-      const runRes = await fetch('/api/runs', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          configId,
-          sampleSize: spinsTarget,
-          progressBatchSize: Math.max(100, Math.floor(spinsTarget / 100)),
-        }),
-      });
-      if (!runRes.ok) throw new Error(`Run create failed: HTTP ${runRes.status}`);
-      const runData = (await runRes.json()) as { id?: string };
-      const runId = runData.id;
-      if (!runId) throw new Error('Run returned no id');
-      runIdRef.current = runId;
-
-      // ── Step 4: SignalR streaming ───────────────────────────────
-      const hub = new signalR.HubConnectionBuilder()
-        .withUrl('/hubs/runs')
-        .withAutomaticReconnect()
-        .build();
-
-      const finishRun = (runStatus: string) => {
-        setStatus(runStatus === 'completed' ? 'complete' : 'paused');
-        if (runStatus === 'failed') setError('Run failed on the server.');
-        runIdRef.current = null;
-        hub.stop();
-        hubRef.current = null;
-
-        // The persisted result carries the real per-spin win histogram.
-        if (runStatus === 'completed') {
-          void fetch(`/api/runs/${runId}`)
-            .then((r) => (r.ok ? r.json() : null))
-            .then((run: { resultJson?: string } | null) => {
-              if (!run?.resultJson) return;
-              const result = JSON.parse(run.resultJson) as {
-                histogram?: { lo: number; hi: number; count: number }[];
-              };
-              if (!result.histogram?.length) return;
-              const bins = new Map<number, number>();
-              for (const b of result.histogram) {
-                if (b.count > 0) bins.set((b.lo + b.hi) / 2, b.count);
-              }
-              if (bins.size > 0) setWinHistogram(bins);
-            })
-            .catch(() => {});
-        }
-      };
-
-      hub.on('ProgressUpdate', (msg: RunProgressMessage) => {
-        if (abortRef.current) return;
-        const n = msg.sampleCount ?? 0;
-        const rtp = msg.runningRtp ?? 0;
-        const se = msg.stdErr ?? 0;
-        setSampleCount(n);
-        setRunningRtp(rtp);
-        setStdErr(se);
-        setPoints((prev) => {
-          const last = prev[prev.length - 1];
-          if (last && n - last.n < spinsTarget / 200) return prev;
-          return [...prev, { n, rtp, stdErr: se }];
-        });
-        setHistogram((prev) => {
-          const next = new Map(prev);
-          const bucket = Math.round(rtp * 20) / 20;
-          next.set(bucket, (next.get(bucket) ?? 0) + 1);
-          return next;
-        });
-
-        const terminal =
-          msg.status === 'completed' || msg.status === 'cancelled' || msg.status === 'failed';
-        if (terminal) finishRun(msg.status ?? 'completed');
-      });
-
-      // Groups are connection-scoped: a reconnected connection has a new
-      // id and must re-join the run's group or it goes silent.
-      hub.onreconnected(() => {
-        if (runIdRef.current) void hub.invoke('SubscribeToRun', runIdRef.current);
-      });
-
-      hubRef.current = hub;
-      await hub.start();
-      await hub.invoke('SubscribeToRun', runId);
-
-      // Fast runs can finish before the subscription lands and their
-      // terminal broadcast is gone — poll once to catch up.
-      try {
-        const statusRes = await fetch(`/api/runs/${runId}`);
-        if (statusRes.ok) {
-          const run = (await statusRes.json()) as {
-            status?: string; sampleCount?: number; runningRtp?: number; stdErr?: number;
-          };
-          const s = run.status ?? '';
-          if (s === 'completed' || s === 'cancelled' || s === 'failed') {
-            if (run.sampleCount != null) setSampleCount(run.sampleCount);
-            if (run.runningRtp != null) setRunningRtp(run.runningRtp);
-            if (run.stdErr != null) setStdErr(run.stdErr);
-            finishRun(s);
-          }
-        }
-      } catch {
-        // status catch-up is best-effort; progress events remain authoritative
-      }
-
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
-      setError(`Backend error: ${msg}. Is the backend running on this host?`);
-      setStatus('idle');
-      if (hubRef.current) { void hubRef.current.stop(); hubRef.current = null; }
-    }
-  }, [spinsTarget, nodes, edges, configName]);
-
-  // ── Cleanup on unmount ──────────────────────────────────────────
+  const [query, setQuery] = useSearchParams();
+  const requestedRun = query.get('run');
+  const measurementWorkspace = useMeasurementWorkspace();
+  const visible = (widget: Widget) => !measurementWorkspace.hiddenWidgets.includes(widget);
+  const s = useSimulation(), currentName = useAppStore(x => x.configName);
+  const authoredTarget = useAppStore(x => Number((x.tables.initialState as Record<string, unknown> | undefined)?.targetRtpPercent) / 100);
+  const target = s.run ? s.target : Number.isFinite(authoredTarget) ? authoredTarget : null;
+  const [seed, setSeed] = useState(s.run?.seed ?? 42), [samples, setSamples] = useState(s.progress?.totalSamples || 100000), [workers, setWorkers] = useState(s.run?.degreeOfParallelism ?? 2);
+  const p = s.progress, hasData = !!p?.sampleCount, active = s.starting || (!!s.run && !terminal(s.run.status) && s.connection !== 'unavailable');
+  const [now, setNow] = useState(Date.now);
+  const selectedRunId = s.run?.id;
+  const linked = useQuery<{ run: import('../lib/realtime/runProtocol').RunSnapshot; model: { name: string; targetRtp: number | null } }>({
+    queryKey: ['simulate-linked-run', requestedRun], enabled: !!requestedRun && requestedRun !== selectedRunId && !active, retry: false,
+    queryFn: async ({ signal }) => {
+      const response = await fetch(`/api/runs/${encodeURIComponent(requestedRun!)}/evidence`, { signal: AbortSignal.any([signal, AbortSignal.timeout(10000)]) });
+      const evidence = await response.json();
+      if (!response.ok) throw new Error(evidence.error ?? `HTTP ${response.status}`);
+      if (!validSnapshot(evidence.run)) throw new Error('The saved run has an invalid snapshot.');
+      return evidence;
+    },
+  });
+  const loadingRun = linked.isFetching;
+  const queryError = linked.error?.message;
   useEffect(() => {
-    return () => {
-      abortRef.current = true;
-      if (hubRef.current) hubRef.current.stop();
-    };
-  }, []);
-
-  const inCI =
-    exactRtp != null &&
-    runningRtp >= exactRtp - 1.96 * stdErr &&
-    runningRtp <= exactRtp + 1.96 * stdErr;
-
-  return (
-    <div className="workspace" style={{ overflow: 'auto' }}>
-      <div className="sim-wrap">
-        {/* ── Controls ── */}
-        <div className="sim-top">
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
-            <div className="field" style={{ margin: 0 }}>
-              <label style={{ fontSize: 10, color: 'var(--faint)' }}>Spins</label>
-              <input
-                className="inp"
-                type="number"
-                value={spinsTarget}
-                onChange={(e) => setSpinsTarget(parseInt(e.target.value) || 100_000)}
-                disabled={status === 'running'}
-                style={{ width: 100, fontFamily: 'var(--mono)' }}
-              />
-            </div>
-            {status === 'idle' && (
-              <button className="btn primary" onClick={start}>
-                <span style={{ color: '#06140d' }}>▶</span> Start Run
-              </button>
-            )}
-            {status === 'running' && (
-              <button className="btn" onClick={stop} style={{ borderColor: 'var(--danger)', color: 'var(--danger)' }}>
-                ■ Cancel
-              </button>
-            )}
-            {(status === 'paused' || status === 'complete') && (
-              <button className="btn primary" onClick={start}>
-                ▶ Restart
-              </button>
-            )}
-          </div>
-
-          {/* Stat cards */}
-          <div className="stat-cards" style={{ marginLeft: 'auto' }}>
-            <div className="stat-card">
-              <div className="sl">Samples</div>
-              <div className="sv">{sampleCount.toLocaleString()}</div>
-            </div>
-            <div className="stat-card">
-              <div className="sl">Running RTP</div>
-              <div className="sv" style={{ color: 'var(--exact)' }}>
-                {sampleCount > 0 ? `${(runningRtp * 100).toFixed(3)}%` : '—'}
-              </div>
-            </div>
-            <div className="stat-card">
-              <div className="sl">±95% CI</div>
-              <div className="sv" style={{ color: 'var(--sampled)' }}>
-                {sampleCount > 0 ? `±${(1.96 * stdErr * 100).toFixed(3)}%` : '—'}
-              </div>
-            </div>
-            <div className="stat-card">
-              <div className="sl">Status</div>
-              <div className="sv" style={{
-                fontSize: 13,
-                color: status === 'complete' ? 'var(--exact)'
-                  : status === 'running' ? 'var(--sampled)'
-                  : 'var(--faint)',
-              }}>
-                {status}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Progress bar */}
-        {status === 'running' && (
-          <div style={{ padding: '0 16px', marginBottom: 8 }}>
-            <div className="progress">
-              <div className="bar" style={{ width: `${(sampleCount / spinsTarget) * 100}%` }} />
-            </div>
-            <div className="hint" style={{ textAlign: 'right' }}>
-              {((sampleCount / spinsTarget) * 100).toFixed(0)}%
-            </div>
-          </div>
-        )}
-
-        {error && (
-          <div style={{ padding: '8px 16px', color: 'var(--danger)', fontSize: 12, fontFamily: 'var(--mono)' }}>
-            {error}
-          </div>
-        )}
-
-        {needsFullRun && !error && (
-          <div style={{ padding: '4px 16px', color: 'var(--epsilon)', fontSize: 11, fontFamily: 'var(--mono)' }}>
-            Graph is too complex for exact evaluation — exact reference line unavailable; sampled only.
-          </div>
-        )}
-
-        {/* ── Convergence chart ── */}
-        <div className="chart-card" style={{ flex: 1, margin: '0 16px 16px' }}>
-          <div className="chart-head">
-            <span className="ct">RTP Convergence</span>
-            <span className="leg">
-              {exactRtp != null && (
-                <span>
-                  <span className="ln" style={{ background: 'var(--exact)', display: 'inline-block', width: 14, height: 2, borderRadius: 2, verticalAlign: 'middle', marginRight: 4 }} />
-                  Exact ({(exactRtp * 100).toFixed(2)}%)
-                </span>
-              )}
-              <span>
-                <span className="ln" style={{ background: 'var(--sampled)', display: 'inline-block', width: 14, height: 2, borderRadius: 2, verticalAlign: 'middle', marginRight: 4 }} />
-                Running
-              </span>
-              <span>
-                <span className="ln" style={{ background: 'var(--sampled-dim)', display: 'inline-block', width: 14, height: 8, borderRadius: 3, verticalAlign: 'middle', marginRight: 4 }} />
-                95% CI
-              </span>
-            </span>
-          </div>
-          <div className="chart-canvas-wrap">
-            <ConvergenceChart
-              points={points}
-              exactRtp={exactRtp}
-              width={900}
-              height={280}
-            />
-          </div>
-        </div>
-
-        {/* ── Bottom row: histogram + comparison ── */}
-        <div className="sim-bottom">
-          <div className="hist-card">
-            <div className="section-label" style={{ marginBottom: 8 }}>
-              {winHistogram ? 'Win Distribution (per spin)' : 'Running RTP Distribution'}
-            </div>
-            <Histogram data={winHistogram ?? histogram} width={420} height={180} />
-          </div>
-          <div className="hist-card">
-            <div className="section-label" style={{ marginBottom: 8 }}>Exact vs Sampled</div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0' }}>
-                <span style={{ color: 'var(--muted)', fontSize: 12 }}>Exact RTP</span>
-                <span style={{ fontFamily: 'var(--mono)', fontSize: 16, color: 'var(--exact)', fontWeight: 500 }}>
-                  {exactRtp != null ? `${(exactRtp * 100).toFixed(2)}%` : needsFullRun ? 'needs full run' : '—'}
-                </span>
-                {exactRtp != null && (
-                  <ProvBadge p={{ kind: exactProvenance?.toLowerCase().includes('sampled') ? 'Sampled' : 'Exact' }} mini />
-                )}
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0' }}>
-                <span style={{ color: 'var(--muted)', fontSize: 12 }}>Sampled RTP</span>
-                <span style={{ fontFamily: 'var(--mono)', fontSize: 16, color: 'var(--sampled)', fontWeight: 500 }}>
-                  {sampleCount > 0 ? `${(runningRtp * 100).toFixed(3)}%` : '—'}
-                </span>
-                {sampleCount > 0 && (
-                  <ProvBadge p={{ kind: 'Sampled', n: sampleCount, stdErr }} mini />
-                )}
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0' }}>
-                <span style={{ color: 'var(--muted)', fontSize: 12 }}>95% CI band</span>
-                <span style={{ fontFamily: 'var(--mono)', fontSize: 13, color: 'var(--sampled)' }}>
-                  {sampleCount > 0
-                    ? `[${((runningRtp - 1.96 * stdErr) * 100).toFixed(3)}% – ${((runningRtp + 1.96 * stdErr) * 100).toFixed(3)}%]`
-                    : '—'}
-                </span>
-                <span style={{
-                  fontSize: 10,
-                  padding: '2px 8px',
-                  borderRadius: 10,
-                  background: sampleCount === 0 ? 'transparent'
-                    : exactRtp == null ? 'var(--sampled-dim)'
-                    : inCI ? 'var(--exact-dim)' : 'var(--danger-dim)',
-                  color: sampleCount === 0 ? 'var(--faint)'
-                    : exactRtp == null ? 'var(--sampled)'
-                    : inCI ? 'var(--exact)' : 'var(--danger)',
-                  fontFamily: 'var(--mono)',
-                }}>
-                  {sampleCount === 0 ? '—'
-                    : exactRtp == null ? 'no ref'
-                    : inCI ? '✓ in band' : '✗ outside'}
-                </span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
+    if (!linked.data || active || requestedRun === selectedRunId || linked.data.run.id !== requestedRun) return;
+    void openSimulation(linked.data.run, { model: linked.data.model.name, target: linked.data.model.targetRtp });
+  }, [linked.data, requestedRun, selectedRunId, active]);
+  useEffect(() => {
+    if (!active) return;
+    const timer = window.setInterval(() => setNow(Date.now()), 1000);
+    return () => window.clearInterval(timer);
+  }, [active]);
+  const syncAge = s.health.lastConfirmedAt ? Math.max(0, now - s.health.lastConfirmedAt) : null;
+  const hasVariance = !!p && p.sampleCount > 1;
+  const status = s.starting ? 'starting' : s.connection === 'unavailable' ? 'unavailable' : s.run?.status ?? 'ready';
+  const rate = p && p.elapsedMs > 0 ? p.sampleCount * 1000 / p.elapsedMs : 0;
+  const percent = p?.totalSamples ? Math.min(100, p.sampleCount / p.totalSamples * 100) : 0;
+  const reference = s.reference;
+  const inBand = hasVariance && reference != null ? Math.abs(p.runningRtp - reference) <= 1.96 * p.stdErr : null;
+  const download = async () => {
+    try {
+      const response = await fetch(`/api/runs/${s.run!.id}/evidence`);
+      const evidence = response.ok ? await response.json() : null;
+      const pinnedGraph = evidence ? { config: evidence.pinnedConfig, inputVerified: evidence.inputVerified, computedConfigHash: evidence.computedConfigHash,
+        configId: s.run!.configId, version: s.run!.configVersion } : { configId: s.run!.configId, version: s.run!.configVersion, error: 'Pinned input unavailable in this export.' };
+      downloadJson(`simulation-${s.run!.id}-seed-${s.run!.seed}.json`, { run: s.run, progress: p, convergence: s.points,
+        targetRtp: target, exactReference: reference, referenceNote: s.referenceNote, pinnedGraph, dashboard: measurementWorkspace, exportedAt: new Date().toISOString() });
+    } catch { downloadJson(`simulation-${s.run!.id}.json`, { run: s.run, progress: p, convergence: s.points }); }
+  };
+  return <div className="workspace simulation-workspace"><div className="simulation-dashboard">
+    <header className="simulation-heading"><div><div className="sim-eyebrow">MATHEMATICAL VERIFICATION / MONTE CARLO</div><h1>Simulation lab <span className={`run-status ${status}`}>{status}</span></h1><p>{s.model || currentName || 'Full constructor model'} <span>· independent paid rounds, including the complete bonus</span></p></div>
+      <div className="stream-state" data-testid="stream-status"><i className={active && s.connection === 'live' ? 'live' : ''} />{active ? s.connection === 'live' ? 'WebSocket live' : `Stream ${s.connection}` : s.connection === 'unavailable' ? 'Run unavailable' : 'Stream idle'}<small>{active ? syncAge != null ? `Server confirmed ${duration(syncAge)} ago${s.health.roundTripMs != null ? ` · ${Math.round(s.health.roundTripMs)} ms` : ''}` : 'Waiting for server acknowledgement' : s.run && terminal(s.run.status) ? 'Result saved on server' : 'Ready to connect'}</small>{active && <small>{s.connection === 'live' ? `Automatic recovery · ${s.health.reconnects} reconnects` : s.connection === 'offline' ? 'Network offline · observations retained' : s.health.nextRetryAt ? `Retry in ${Math.max(0, Math.ceil((s.health.nextRetryAt - now) / 1000))}s · HTTP recovery active` : 'Recovering authoritative snapshots'}</small>}{active && s.connection === 'recovering' && <button className="btn" onClick={reconnectSimulation}>Reconnect now</button>}</div></header>
+    {s.run && <div className="simulation-run-links"><Link to={`/simulate?run=${s.run.id}`}>Permalink to this run ↗</Link><Link to={`/results?run=${s.run.id}`}>Saved evidence and comparisons ↗</Link></div>}
+    <section className="run-controls" aria-label="Simulation configuration"><label>Complete rounds<input aria-label="Simulation spins" type="number" min="1" max="10000000" step="10000" value={samples} disabled={active} onChange={e => setSamples(Number(e.target.value))} /></label>
+      <label>Replay seed<input id="run-seed" type="number" value={seed} disabled={active} onChange={e => setSeed(Number(e.target.value))} /></label>
+      <label>Workers<select aria-label="Simulation workers" value={workers} disabled={active} onChange={e => setWorkers(Number(e.target.value))}>{[1, 2, 3, 4].map(n => <option key={n} value={n}>{n} {n === 1 ? 'worker' : 'workers'}</option>)}</select></label>
+      <div className="run-budget"><strong>Sampled</strong><span>5-minute execution budget<br />Deterministic chunk reduction</span></div>
+      <div className="run-actions">{active ? <button className="btn cancel-run" disabled={status === 'cancelling'} onClick={() => void cancelSimulation()}>{status === 'cancelling' ? 'Cancelling…' : s.starting ? 'Cancel launch' : '■ Cancel run'}</button> : <button className="btn primary start-run" disabled={loadingRun} onClick={() => { setQuery({}, { replace: true }); void startSimulation(seed, samples, workers); }}>▶ {s.run ? 'Start new run' : 'Start run'}</button>}<button className="btn" disabled={!hasData} onClick={() => void download()}>↓ Export evidence</button></div>
+    </section>
+    {requestedRun && requestedRun !== selectedRunId && active && <p className="measurement-next-note">Another simulation is active. Finish or cancel it before opening this linked run. <Link to={`/results?run=${encodeURIComponent(requestedRun)}`}>Inspect its saved results ↗</Link></p>}
+    {loadingRun && <p role="status" className="measurement-next-note">Opening the pinned run and its measurement plan…</p>}
+    {queryError && <p role="alert" className="simulation-error">{queryError} <button className="btn" onClick={() => void linked.refetch()}>Retry saved run</button></p>}
+    {!active && <p className="simulation-next-model">Next run uses the current constructor draft: <strong>{currentName || "Dog House · 98%"}</strong>. Saved runs retain their pinned graph and collection plan.</p>}
+    {s.launchNote && <p role="status" className="measurement-next-note">{s.launchNote}</p>}
+    {s.error && <div className="simulation-error" role="alert">{s.error}</div>}
+    <section className="simulation-progress" aria-label="Run progress"><div><strong data-testid="sample-count">{p?.sampleCount.toLocaleString() ?? '0'}</strong><span> / {(p?.totalSamples || samples).toLocaleString()} rounds</span><b>{percent.toFixed(1)}%</b></div><div className="run-progress-track" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={percent}><div style={{ width: `${percent}%` }} /></div><footer><span>{status === 'pending' ? 'Queued for a worker' : hasData ? `${duration(p.elapsedMs)} elapsed` : 'No observations yet'}</span><span>{active && rate > 0 ? `~${duration((p!.totalSamples - p!.sampleCount) / rate * 1000)} remaining` : status === 'cancelled' ? 'Partial result · stopped by cancellation or execution budget' : 'Full game graph pinned at launch'}</span></footer></section>
+    <MeasurementWorkspace run={s.run} values={p?.measurements} points={s.points} active={active} />
+    <section className="simulation-metrics" aria-label="Live metrics">
+      {visible('rtp') && <Metric label="Observed RTP" value={hasData ? pct(p.runningRtp) : '—'} detail={reference != null ? `Exact reference ${pct(reference)}` : target != null ? `Target ${pct(target)}` : 'Per stake, complete round'} accent="blue" testid="live-rtp" />}
+      {visible('precision') && <Metric label="95% CI half-width" value={hasVariance ? `±${(1.96 * p.stdErr * 100).toFixed(3)} pp` : '—'} detail={hasData && !hasVariance ? "Requires at least 2 rounds" : "Normal approximation · not a guarantee"} accent="violet" />}
+      {visible('hit') && <Metric label="Hit frequency" value={hasData ? pct(p.hitFrequency) : '—'} detail={hasData ? `${p.nonZeroCount.toLocaleString()} winning rounds` : 'Rounds with payout > 0'} testid="live-hit-frequency" />}
+      {visible('max') && <Metric label="Maximum observed" value={hasData ? `${p.maxWin.toFixed(2)}×` : '—'} detail={hasData ? `${p.capHits.toLocaleString()} sampler clippings` : 'Stake multiples'} />}
+      {visible('speed') && <Metric label="Throughput" value={rate ? `${count(rate)}/s` : '—'} detail={s.run ? `${s.run.degreeOfParallelism} workers · fixed PRNG streams` : 'Actual worker speed'} accent="mint" testid="live-throughput" />}
+      {visible('volatility') && <Metric label="Payout volatility" value={hasVariance ? `${p.volatility.toFixed(3)}×` : '—'} detail="Sample standard deviation" />}
+    </section>
+    {visible('convergence') && <section className="simulation-card convergence-card"><div className="simulation-card-head"><div><h2>RTP convergence</h2><p>Each observation aggregates completed rounds. Hover or use arrow keys to inspect.</p></div><div className="chart-key"><span className="key-blue">Observed</span><span className="key-band">95% CI</span>{target != null && <span className="key-target">Target {pct(target)}</span>}{reference != null && <span className="key-mint">Exact {pct(reference)}</span>}</div></div><LiveChart points={s.points} reference={reference} target={target} /></section>}
+    <div className="simulation-two-columns">{visible('distribution') && <section className="simulation-card"><div className="simulation-card-head"><div><h2>Payout distribution</h2><p>Real observed wins, streamed during execution.</p></div><span className="observed-tag">LIVE COUNTS</span></div><LiveHistogram progress={p} /></section>}
+      {visible('reference') && <section className="simulation-card verification-card"><div className="simulation-card-head"><div><h2>Reference check</h2><p>Target and mathematical evidence are distinct.</p></div><span className={`reference-state ${inBand === true ? 'inside' : ''}`}>{inBand === null ? 'Awaiting evidence' : inBand ? 'Reference inside CI' : 'Reference outside CI'}</span></div><dl><div><dt>Target RTP</dt><dd>{target != null ? pct(target) : '—'}</dd></div><div><dt>Exact expectation</dt><dd className="mint">{reference != null ? pct(reference) : '—'}</dd></div><div><dt>Observed RTP</dt><dd className="blue">{hasData ? pct(p.runningRtp) : '—'}</dd></div><div><dt>95% confidence interval</dt><dd>{hasVariance ? `${pct(p.runningRtp - 1.96 * p.stdErr)} – ${pct(p.runningRtp + 1.96 * p.stdErr)}` : '—'}</dd></div><div><dt>Deviation from reference</dt><dd>{hasData && reference != null ? `${((p.runningRtp - reference) * 100).toFixed(3)} pp` : '—'}</dd></div></dl><p className="reference-note">{s.referenceNote} Confidence intervals describe sampling uncertainty; high volatility can require millions of rounds.</p><Link to="/build">Open the visual constructor ↗</Link></section>}</div>
+    <div className="simulation-two-columns compact-charts">{visible('throughput') && <section className="simulation-card"><div className="simulation-card-head"><h2>Worker throughput</h2><span>rounds / second</span></div><LiveChart points={s.points} kind="rate" /></section>}{visible('uncertainty') && <section className="simulation-card"><div className="simulation-card-head"><h2>Sampling precision</h2><span>95% CI half-width · percentage points</span></div><LiveChart points={s.points.filter(point => point.n > 1)} kind="precision" /></section>}</div>
+    <div className="simulation-two-columns"><section className="simulation-card run-evidence"><div className="simulation-card-head"><h2>Reproducibility</h2><span>PINNED INPUT</span></div><dl><div><dt>Run / config version</dt><dd>{s.run ? `#${s.run.id} / v${s.run.configVersion}` : '—'}</dd></div><div><dt>Seed / logical stream</dt><dd>{s.run ? `${s.run.seed} / ${s.run.streamScheme}` : '—'}</dd></div><div><dt>Graph SHA-256</dt><dd className="graph-hash">{s.run?.configHash ?? 'Available after launch'}</dd></div></dl></section><section className="simulation-card"><div className="simulation-card-head"><h2>Run activity</h2><span>{s.events.length} events</span></div><ol className="run-event-log">{s.events.length ? s.events.toReversed().map((event, i) => <li key={`${event.time}-${i}`}><time>{event.time}</time><span>{event.text}</span></li>) : <li><span>Launch a run to see worker and connection events.</span></li>}</ol></section></div>
+    {!!s.history.length && <section className="simulation-card"><div className="simulation-card-head"><h2>Recent results</h2><span>Saved in this browser · server results retained</span></div><div className="run-history">{s.history.map(run => <button key={run.id} disabled={active} onClick={() => { setQuery({}, { replace: true }); void openSimulation(run); }}><strong>Run #{run.id}</strong><span>{run.status}</span><span>Seed {run.seed}</span><span>{run.progress?.sampleCount.toLocaleString()} rounds</span><b>{run.progress?.sampleCount ? pct(run.progress.runningRtp) : '—'}</b></button>)}</div></section>}
+  </div></div>;
+}
+function Metric({ label, value, detail, accent = '', testid }: { label: string; value: string; detail: string; accent?: string; testid?: string }) {
+  return <div className={`simulation-metric ${accent}`}><span>{label}</span><strong data-testid={testid}>{value}</strong><small>{detail}</small></div>;
 }

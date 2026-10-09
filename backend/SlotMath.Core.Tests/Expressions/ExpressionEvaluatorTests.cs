@@ -466,8 +466,8 @@ public class Expression_EdgeCases
     public void Expression_Eval_BoardNull()
     {
         var expr = new FieldAccessExpr { Path = new[] { "rows" }, Target = "board" };
-        var val = ExactExpressionEvaluator.Evaluate(expr, EvalContext.Empty);
-        Assert.Equal(BigInteger.Zero, val.AsInteger());
+        var error = Assert.Throws<ExpressionEvaluationException>(() => ExactExpressionEvaluator.Evaluate(expr, EvalContext.Empty));
+        Assert.Equal("EVAL_MISSING_STATE", error.Code);
     }
 
     [Fact]

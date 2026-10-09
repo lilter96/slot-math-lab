@@ -210,16 +210,31 @@ public sealed class LoopNode<S> : Slot<S, Unit>, ILoopNode
     public Func<S, bool> Stop { get; }
     public Slot<S, Unit> Body { get; }
     public long Cap { get; }
+    private readonly Lazy<Slot<S, Unit>> _desugared;
 
     public LoopNode(Func<S, bool> stop, Slot<S, Unit> body, long cap)
     {
         Stop = stop;
         Body = body;
         Cap = cap;
+        _desugared = new Lazy<Slot<S, Unit>>(BuildBounded);
     }
 
     /// <summary>The cap-free self-referential desugaring (for the exact path).</summary>
-    public Slot<S, Unit> Desugar() => Slot.Loop(Stop, Body);
+    public Slot<S, Unit> Desugar() => _desugared.Value;
+
+    private Slot<S, Unit> BuildBounded()
+    {
+        Slot<S, Unit> next = new GetState<S, Unit>(state =>
+            Stop(state) ? Slot.UnitSlot<S>() : TruncateNode<S>.Instance);
+        for (long iteration = 0; iteration < Cap; iteration++)
+        {
+            var continuation = next;
+            var body = new FlatMap<S, Unit, Unit>(Body, _ => continuation);
+            next = new GetState<S, Unit>(state => Stop(state) ? Slot.UnitSlot<S>() : body);
+        }
+        return next;
+    }
 
     bool ILoopNode.StopUntyped(object state) => Stop((S)state);
     object ILoopNode.BodyUntyped => Body!;

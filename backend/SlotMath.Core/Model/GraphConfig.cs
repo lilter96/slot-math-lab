@@ -30,6 +30,8 @@ public sealed record GraphConfig
     public ReelSet[] ReelSets { get; init; } = Array.Empty<ReelSet>();
     public BoardConfig? BoardConfig { get; init; }
 
+    public Dictionary<string, System.Text.Json.JsonElement>? InitialState { get; init; }
+
     // The graph
     public Node[] Nodes { get; init; } = Array.Empty<Node>();
     public Edge[] Edges { get; init; } = Array.Empty<Edge>();
@@ -51,6 +53,7 @@ public sealed record GraphConfig
 
 public sealed record CustomMechanic
 {
+    public Dictionary<string, System.Text.Json.JsonElement>? InitialState { get; init; }
     public required string Name { get; init; }
     public string? Description { get; init; }
     public Node[] Nodes { get; init; } = Array.Empty<Node>();

@@ -1,0 +1,11 @@
+.git
+production-secrets
+**/node_modules
+**/bin
+**/obj
+**/dist
+**/TestResults
+**/test-results
+**/playwright-report
+**/.env
+**/.env.*

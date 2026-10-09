@@ -20,6 +20,8 @@ using SlotMath.Core.Random;
 //    5. exact-reel     : 512-combination reel product, exact interpreter
 // ═══════════════════════════════════════════════════════════════════════════
 
+if (args.Contains("--graph")) { GraphPerformance.Run(args); return; }
+
 var results = new List<(string Name, double Ms, string Detail)>();
 
 Run("sampled-loop (50k spins × 100 iters)", () =>

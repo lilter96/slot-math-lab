@@ -13,7 +13,7 @@ export interface LiveMetric {
   volatility: number;
   stdErr?: number;
   ci95?: string;
-  provenance: 'Exact' | 'Sampled' | 'NeedsFullRun' | 'Error';
+  provenance: 'Exact' | 'ExactInterval' | 'ExactWithMassLoss' | 'Sampled' | 'NeedsFullRun' | 'Error';
   sampleCount?: number;
   elapsedMs?: number;
   strategy?: string;
@@ -49,18 +49,24 @@ export function useLiveMetrics(
 ) {
   const nodes = useAppStore((s) => s.nodes);
   const edges = useAppStore((s) => s.edges);
+  const tables = useAppStore((s) => s.tables);
+  const trail = useAppStore(s => s.graphTrail);
   const [state, setState] = useState<LiveMetricsState>(EMPTY);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const abortRef = useRef<AbortController | null>(null);
   const seqRef = useRef(0);
 
   const payloadJson = useMemo(() => {
+    if (tables.uiAnalysisKind === 'expectationProof' || trail.length) return null;
+    try {
     const payload = buildConfigPayload(nodes, edges, {
       name: 'Live Preview',
+      tables,
       expressions,
     });
     return payload ? JSON.stringify(payload) : null;
-  }, [nodes, edges, expressions]);
+    } catch { return JSON.stringify({ schemaVersion: '1.0.0', name: 'Invalid expression', nodes: [] }); }
+  }, [nodes, edges, expressions, tables, trail]);
 
   const evaluate = useCallback(async (configJson: string | null) => {
     if (!configJson) {
@@ -92,6 +98,8 @@ export function useLiveMetrics(
       if (seq !== seqRef.current) return;
 
       const provenance: LiveMetric['provenance'] =
+        data.provenance === 'ExactWithMassLoss' ? 'ExactWithMassLoss' :
+        data.provenance === 'ExactInterval' ? 'ExactInterval' :
         data.strategy === 'Exact' ? 'Exact' :
         data.strategy === 'Sampled' ? 'Sampled' :
         data.strategy === 'NeedsFullRun' ? 'NeedsFullRun' : 'Error';
@@ -109,10 +117,10 @@ export function useLiveMetrics(
       };
 
       setState({
-        overall,
+        overall: provenance === 'Error' ? null : overall,
         perEdge: {},
         loading: false,
-        error: data.strategy === 'Error' ? (data.provenance ?? 'Evaluation failed') : null,
+        error: data.strategy === 'Error' ? (data.errors?.map((error: { message: string }) => error.message).join('; ') || data.provenance || 'Evaluation failed') : null,
         lastUpdated: Date.now(),
       });
     } catch (err: unknown) {

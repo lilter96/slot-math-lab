@@ -1,0 +1,9 @@
+import type { RunSnapshot } from '../../lib/realtime/runProtocol';
+import { formatStatistic } from '../../lib/measurements/model';
+export function Measurements({ run }: { run: RunSnapshot }) {
+  if (!run.measurements?.length) return null;
+  return <section className="results-card"><div className="results-card-head"><div><h3>Tracked measurements</h3><p>Saved scoped observations from this run's pinned collection plan. Averages use matching valid observations.</p></div><span className="results-source-tag">SAMPLED / {run.measurements.length} METRICS</span></div><div className="results-table-scroll"><table className="results-table"><thead><tr><th>Measurement / scope</th><th>Eligible</th><th>Matching</th><th>Excluded / invalid</th><th>Minimum</th><th>Maximum</th><th>Average</th><th>Sum</th><th>Std. deviation</th></tr></thead><tbody>{run.measurements.map(d => {
+    const m = run.progress?.measurements?.find(v => v.id === d.id);
+    return <tr key={d.id}><td>{d.name}<br /><small>{d.nodeId ? `Node visits · ${d.nodeId}` : 'Completed paid rounds'}{d.filter ? ' · filtered' : ''}</small></td><td>{m?.observations.toLocaleString() ?? '—'}</td><td>{m?.count.toLocaleString() ?? '—'}</td><td>{m ? `${m.excluded.toLocaleString()} / ${m.errors.toLocaleString()}` : '—'}</td>{(['min', 'max', 'mean', 'sum', 'stdDev'] as const).map(r => <td key={r}>{formatStatistic(m?.[r] ?? null, r, d.unit)}</td>)}</tr>;
+  })}</tbody></table></div>{run.measurements.map(d => <details className="results-raw-details" key={d.id}><summary>{d.name} · value, filter and observation point</summary><pre>{JSON.stringify({ definition: d, observation: run.progress?.measurements?.find(v => v.id === d.id) }, null, 2)}</pre></details>)}<p className="results-body-note">Repeated events within one paid round can be correlated. These are descriptive event statistics; no independent-event confidence interval is inferred. Measurement SHA-256: <code>{run.measurementHash}</code></p></section>;
+}

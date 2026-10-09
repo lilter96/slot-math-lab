@@ -40,7 +40,7 @@ public class IntegrationTests : IClassFixture<WebApplicationFactory<Program>>, I
         }
     }
 
-    private static void SafeRegisterEvaluator(string name, IEvaluator evaluator)
+    private static void SafeRegisterEvaluator(string name, IFastPathEvaluator evaluator)
     {
         lock (TestRegistryLock.Lock)
         {
@@ -117,7 +117,7 @@ public class IntegrationTests : IClassFixture<WebApplicationFactory<Program>>, I
                 },
                 new
                 {
-                    nodeType = "metricsSink",
+                    nodeType = "metricsSink", winCap = 10000,
                     id = "sink",
                     label = "Sink",
                     inputs = new { wins = new { name = "wins", type = "Wins" } }
@@ -148,13 +148,13 @@ public class IntegrationTests : IClassFixture<WebApplicationFactory<Program>>, I
                 },
                 new
                 {
-                    nodeType = "metricsSink",
+                    nodeType = "metricsSink", winCap = 10000,
                     id = "sink1",
                     inputs = new { wins = new { name = "wins", type = "Wins" } }
                 },
                 new
                 {
-                    nodeType = "metricsSink",
+                    nodeType = "metricsSink", winCap = 10000,
                     id = "sink2",
                     inputs = new { wins = new { name = "wins", type = "Wins" } }
                 },
@@ -474,7 +474,7 @@ public class IntegrationTests : IClassFixture<WebApplicationFactory<Program>>, I
             },
             new
             {
-                nodeType = "metricsSink",
+                nodeType = "metricsSink", winCap = 10000,
                 id = "sink",
                 label = "Sink",
                 inputs = new { @in = new { name = "in", type = "Wins" } },

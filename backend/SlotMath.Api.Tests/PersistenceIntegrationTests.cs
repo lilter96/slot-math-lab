@@ -103,7 +103,7 @@ public class PersistenceIntegrationTests : IDisposable
             nodes = new object[]
             {
                 new { nodeType = "draw", id = "draw", outputs = new { board = new { name = "board", type = "Board" } } },
-                new { nodeType = "metricsSink", id = "sink", inputs = new { wins = new { name = "wins", type = "Wins" } } },
+                new { nodeType = "metricsSink", winCap = 10000, id = "sink", inputs = new { wins = new { name = "wins", type = "Wins" } } },
             },
             edges = Array.Empty<object>(),
             plugins = Array.Empty<object>(),

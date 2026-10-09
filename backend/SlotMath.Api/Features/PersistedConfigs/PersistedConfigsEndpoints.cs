@@ -180,8 +180,10 @@ public static class PersistedConfigsEndpoints
         group.MapPost("/cache/{configHash}", async (
             string configHash,
             object result,
+            System.Security.Claims.ClaimsPrincipal user,
             ConfigPersistenceService service) =>
         {
+            if (!JwtAuth.IsAuthenticated(user)) return Results.Unauthorized();
             var json = JsonSerializer.Serialize(result);
             await service.CacheResultAsync(configHash, json);
             return Results.Ok(new { cached = true, hash = configHash });

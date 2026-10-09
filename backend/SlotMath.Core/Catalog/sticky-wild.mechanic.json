@@ -1,6 +1,7 @@
 {
   "name": "sticky-wild",
-  "description": "Sticky wild mechanic implemented as a pure subgraph (invariant 2/4: no C# class, no Board type). Across spins it accumulates the positions of the wild symbol 'W' into state['stickyPositions'] (an index array) and overlays wilds at those positions onto the current board (state['board'], a flat symbol array). Uses index-aware fold (accumulate, deduped via contains+append) and index-aware map (overlay). The host game initialises state['stickyPositions'] to an empty array. Input/output port: 'state'.",
+  "description": "Sticky wild mechanic implemented as a pure subgraph (invariant 2/4: no C# class, no Board type). Across spins it accumulates the positions of the wild symbol 'W' into state['stickyPositions'] (an index array) and overlays wilds at those positions onto the current board (state['board'], a flat symbol array). Uses index-aware fold (accumulate, deduped via contains+append) and index-aware map (overlay). The mechanic declares an empty stickyPositions array as its initial state default. Input/output port: 'state'.",
+  "initialState": { "stickyPositions": [] },
   "nodes": [
     {
       "nodeType": "modifyState",

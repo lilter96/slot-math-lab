@@ -1,0 +1,92 @@
+{
+  "schemaVersion": "1.0.0",
+  "name": "Audit ways",
+  "symbols": [
+    {
+      "id": "W",
+      "name": "Wild",
+      "kind": "Wild"
+    }
+  ],
+  "paytables": [
+    {
+      "id": "pt",
+      "entries": [
+        {
+          "symbolId": "H",
+          "counts": [
+            3
+          ],
+          "payouts": [
+            "5"
+          ]
+        },
+        {
+          "symbolId": "L",
+          "counts": [
+            3
+          ],
+          "payouts": [
+            "2"
+          ]
+        }
+      ]
+    }
+  ],
+  "paylineSets": [
+    {
+      "id": "ps",
+      "paylines": [
+        {
+          "positions": [
+            0,
+            0,
+            0
+          ]
+        }
+      ]
+    }
+  ],
+  "initialState": {
+    "board": [
+      "H",
+      "H",
+      "H"
+    ],
+    "rows": 1,
+    "cols": 3
+  },
+  "nodes": [
+    {
+      "nodeType": "library",
+      "id": "mechanic",
+      "mechanicName": "ways",
+      "outputs": {
+        "wins": {
+          "name": "wins",
+          "type": "Wins"
+        }
+      }
+    },
+    {
+      "nodeType": "metricsSink",
+      "id": "sink",
+      "winCap": 1000,
+      "inputs": {
+        "wins": {
+          "name": "wins",
+          "type": "Wins"
+        }
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "sink-edge",
+      "sourceNodeId": "mechanic",
+      "sourcePort": "wins",
+      "targetNodeId": "sink",
+      "targetPort": "wins"
+    }
+  ]
+}

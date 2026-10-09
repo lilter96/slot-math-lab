@@ -530,7 +530,7 @@ public class Provenance_TagOnEveryMetric
     }
 
     [Fact]
-    public void EpsilonPrunedMetrics_TaggedExactInterval()
+    public void EpsilonPrunedMetrics_WithoutCap_TaggedMassLoss()
     {
         // Create a pruned distribution (by simulating we added pruned mass).
         var builder = new DistBuilder<BigInteger>();
@@ -543,12 +543,12 @@ public class Provenance_TagOnEveryMetric
 
         var report = ExactMetrics.Compute(dist);
 
-        Assert.Equal(Provenance.ExactInterval, report.Rtp.Provenance.Provenance);
-        Assert.Equal(Provenance.ExactInterval, report.HitFrequency.Provenance.Provenance);
-        Assert.Equal(Provenance.ExactInterval, report.Volatility.Provenance.Provenance);
-        Assert.Equal(Provenance.ExactInterval, report.MaxWin.Provenance.Provenance);
-        Assert.Equal(Provenance.ExactInterval, report.Histogram.Provenance.Provenance);
-        Assert.Equal(Provenance.ExactInterval, report.AggregateProvenance);
+        Assert.Equal(Provenance.ExactWithMassLoss, report.Rtp.Provenance.Provenance);
+        Assert.Equal(Provenance.ExactWithMassLoss, report.HitFrequency.Provenance.Provenance);
+        Assert.Equal(Provenance.ExactWithMassLoss, report.Volatility.Provenance.Provenance);
+        Assert.Equal(Provenance.ExactWithMassLoss, report.MaxWin.Provenance.Provenance);
+        Assert.Equal(Provenance.ExactWithMassLoss, report.Histogram.Provenance.Provenance);
+        Assert.Equal(Provenance.ExactWithMassLoss, report.AggregateProvenance);
     }
 
     [Fact]
@@ -645,7 +645,7 @@ public class RtpMetric_ExactRationalAndDisplay
 
         Assert.False(dist.IsFullyExact);
 
-        var rtp = ExactMetrics.ComputeRtp(dist);
+        var rtp = ExactMetrics.ComputeRtp(dist, 1000);
 
         Assert.Equal(Provenance.ExactInterval, rtp.Provenance.Provenance);
         Assert.NotNull(rtp.LoDisplay);

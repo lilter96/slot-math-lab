@@ -15,6 +15,10 @@ public sealed record CompileResult
 {
     /// <summary>The compiled Slot program, or null if validation failed.</summary>
     public Slot<Dictionary<string, object?>, BigInteger>? Program { get; init; }
+    /// <summary>Canonical immutable program for exact evaluation and equivalence checks.</summary>
+    public Slot<Dictionary<string, object?>, BigInteger>? ReferenceProgram { get; init; }
+    public SlotMath.Core.Measurements.MeasurementSchema? MeasurementSchema { get; init; }
+    public string SamplingEngine { get; init; } = "reference-interpreter";
 
     /// <summary>
     /// Sub-credit scale of the program's win amounts.  1 when every payout

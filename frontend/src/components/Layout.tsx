@@ -1,16 +1,20 @@
+import Login from './Login';
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
 import { useEffect } from 'react';
 import { useAppStore, MOOD_HUE, type Mood } from '../store';
 import { Ic } from './Icons';
+import { useSimulationConnection } from '../hooks/useSimulation';
 
 const TABS = [
   { id: 'build' as const, label: 'Build', Icon: Ic.build },
   { id: 'simulate' as const, label: 'Simulate', Icon: Ic.sim },
   { id: 'results' as const, label: 'Results', Icon: Ic.results },
   { id: 'export' as const, label: 'Export', Icon: Ic.export },
+  { id: 'play' as const, label: 'Play', Icon: Ic.sim },
 ];
 
 export default function Layout() {
+  useSimulationConnection();
   const location = useLocation();
   const tab = useAppStore((s) => s.tab);
   const setTab = useAppStore((s) => s.setTab);
@@ -37,6 +41,7 @@ export default function Layout() {
 
   return (
     <div className="app">
+      <Login />
       <a href="#main-content" className="skip-link">
         Skip to main content
       </a>

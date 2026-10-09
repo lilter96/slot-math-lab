@@ -2,6 +2,7 @@ import { useCallback } from 'react';
 import { useAppStore, type DrawWeightEntry } from '../store';
 import { Ic } from './Icons';
 import ExprEditor from './editor/ExprEditor';
+import NativeInspector from './editor/NativeInspector';
 
 export default function Inspector() {
   const selectedNodeId = useAppStore((s) => s.selectedNodeId);
@@ -30,6 +31,7 @@ export default function Inspector() {
   }
 
   const data = node.data;
+  if (data.backendNode) return <NativeInspector node={node} />;
 
   return (
     <>
@@ -49,6 +51,11 @@ export default function Inspector() {
           />
         </div>
 
+        {data.nodeType === 'sink' && <div className="field">
+          <label htmlFor="win-cap">Round win cap</label>
+          <input id="win-cap" className="inp" type="number" min="1" step="1" value={Number(data.winCap ?? 10000)}
+            onChange={(e) => setNodeData(node.id, { winCap: Number(e.target.value) })} />
+        </div>}
         {/* ── Draw node config ── */}
         {data.nodeType === 'draw' && (
           <>

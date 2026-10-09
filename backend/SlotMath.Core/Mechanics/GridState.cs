@@ -58,7 +58,7 @@ public static class GridState
     /// <summary>Read an integer dimension (rows/cols) from state; 0 if absent.</summary>
     public static int Dim(IReadOnlyDictionary<string, object?> state, string key) =>
         state.TryGetValue(key, out var v) && v is not null
-            ? Convert.ToInt32(v, System.Globalization.CultureInfo.InvariantCulture)
+            ? v is System.Numerics.BigInteger integer ? checked((int)integer) : Convert.ToInt32(v, System.Globalization.CultureInfo.InvariantCulture)
             : 0;
 
     public static int Rows(IReadOnlyDictionary<string, object?> state) => Dim(state, RowsKey);

@@ -32,7 +32,7 @@ public class LintEndpointsTests : IClassFixture<WebApplicationFactory<Program>>,
     public void Dispose()
     {
         _client.Dispose();
-        _factory.Dispose();
+
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────

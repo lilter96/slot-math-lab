@@ -1,0 +1,126 @@
+{
+  "schemaVersion": "1.0.0",
+  "name": "Audit cascade",
+  "symbols": [
+    {
+      "id": "W",
+      "name": "Wild",
+      "kind": "Wild"
+    }
+  ],
+  "paytables": [
+    {
+      "id": "pt",
+      "entries": [
+        {
+          "symbolId": "H",
+          "counts": [
+            3
+          ],
+          "payouts": [
+            "5"
+          ]
+        },
+        {
+          "symbolId": "L",
+          "counts": [
+            3
+          ],
+          "payouts": [
+            "2"
+          ]
+        }
+      ]
+    }
+  ],
+  "paylineSets": [
+    {
+      "id": "ps",
+      "paylines": [
+        {
+          "positions": [
+            0,
+            0,
+            0
+          ]
+        }
+      ]
+    }
+  ],
+  "initialState": {
+    "board": [
+      "H",
+      "H",
+      "H"
+    ],
+    "rows": 1,
+    "cols": 3,
+    "winningPositions": [
+      0,
+      1,
+      2
+    ],
+    "refill": [
+      "L",
+      "L",
+      "L"
+    ]
+  },
+  "nodes": [
+    {
+      "nodeType": "library",
+      "id": "mechanic",
+      "mechanicName": "cascade",
+      "outputs": {
+        "state": {
+          "name": "state",
+          "type": "State"
+        }
+      }
+    },
+    {
+      "nodeType": "map",
+      "id": "eval",
+      "transformId": "lines",
+      "inputs": {
+        "state": {
+          "name": "state",
+          "type": "State"
+        }
+      },
+      "outputs": {
+        "wins": {
+          "name": "wins",
+          "type": "Wins"
+        }
+      }
+    },
+    {
+      "nodeType": "metricsSink",
+      "id": "sink",
+      "winCap": 1000,
+      "inputs": {
+        "wins": {
+          "name": "wins",
+          "type": "Wins"
+        }
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "evaluate",
+      "sourceNodeId": "mechanic",
+      "sourcePort": "state",
+      "targetNodeId": "eval",
+      "targetPort": "state"
+    },
+    {
+      "id": "sink-edge",
+      "sourceNodeId": "eval",
+      "sourcePort": "wins",
+      "targetNodeId": "sink",
+      "targetPort": "wins"
+    }
+  ]
+}

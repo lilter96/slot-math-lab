@@ -2,6 +2,9 @@ using System.Diagnostics;
 using System.Numerics;
 using SlotMath.Core.Monad;
 using SlotMath.Core.Random;
+using SlotMath.Core.Compiler;
+using SlotMath.Core.Measurements;
+using SlotMath.Core.Expressions;
 
 namespace SlotMath.Core.Math;
 
@@ -26,6 +29,9 @@ namespace SlotMath.Core.Math;
 /// </summary>
 public sealed class SampledConfig
 {
+    /// <summary>Fixed logical stream size. Record this with seed for reproduction; it never depends on worker count.</summary>
+    public IReadOnlyList<MeasurementDefinition> Measurements { get; init; } = [];
+    public int ChunkSize { get; init; } = SlotMathConstants.Prng.Chunk;
     /// <summary>Master seed for the PRNG. Ensures deterministic reproducibility.</summary>
     public long Seed { get; init; }
 
@@ -87,6 +93,7 @@ public sealed class SampledConfig
 public sealed class SampledResult<S>
 {
     /// <summary>Streaming statistics accumulated across all completed spins.</summary>
+    public IReadOnlyList<MeasurementSnapshot> Measurements { get; internal init; } = [];
     public StreamingStats Stats { get; }
 
     /// <summary>Number of spins completed (may be less than MaxSpins if cancelled).</summary>
@@ -122,6 +129,19 @@ public sealed class SampledResult<S>
 
 public static class SampledInterpreter
 {
+    /// <summary>Run the same compiled program used by Monte Carlo, returning its final state for a playable UI/replay.</summary>
+    public static (T Value, S State) RunSingle<S, T>(Slot<S, T> program, S initialState, long seed, long roundIndex = 0, CancellationToken cancellationToken = default)
+        where S : notnull
+    {
+        if (program is ICompiledSampling<S, T> compiled)
+        {
+            var runner = compiled.CreateRunner(initialState);
+            var value = runner.Run(SeededRandom.ForStream(unchecked((ulong)seed), roundIndex), cancellationToken);
+            return (value, runner.ExportState());
+        }
+        var traced = program.SelectMany(value => Slot.GetState<S>().Select(state => (value, state)));
+        return RunOneSpin(traced, initialState, SeededRandom.ForStream(unchecked((ulong)seed), roundIndex), new Stack<IFlatMapNode>(), cancellationToken);
+    }
     /// <summary>
     /// Evaluate a program via Monte Carlo sampling.
     ///
@@ -135,7 +155,7 @@ public static class SampledInterpreter
         SampledConfig config)
         where S : notnull
         => EvaluateChunked(program, initialState, config,
-            (stats, win) => stats.Add((double)win / config.WinScale));
+            (stats, win) => stats.Add((double)win / config.WinScale), win => (double)win / config.WinScale);
 
     /// <summary>
     /// Evaluate with a selector function that extracts a BigInteger value from T.
@@ -147,7 +167,7 @@ public static class SampledInterpreter
         SampledConfig config)
         where S : notnull
         => EvaluateChunked(program, initialState, config,
-            (stats, value) => stats.Add(selector(value)));
+            (stats, value) => stats.Add(selector(value)), value => (double)selector(value));
 
     // ═══════════════════════════════════════════════════════════════════════
     //  Chunk-based evaluation (D3)
@@ -164,14 +184,15 @@ public static class SampledInterpreter
         Slot<S, T> program,
         S initialState,
         SampledConfig config,
-        Action<StreamingStats, T> add)
+        Action<StreamingStats, T> add, Func<T, double> payoutSelector)
         where S : notnull
     {
         var startedAt = Stopwatch.GetTimestamp();
         double? maxWinCapDouble = config.MaxWinCap.HasValue ? (double)config.MaxWinCap.Value : null;
         var totalSpins = config.MaxSpins;
 
-        var chunkSize = SlotMathConstants.Prng.Chunk; // 65,536 (D3)
+        var chunkSize = config.ChunkSize;
+        if (chunkSize is < 1 or > SlotMathConstants.Prng.Chunk) throw new ArgumentOutOfRangeException(nameof(config.ChunkSize));
         var nChunks = totalSpins <= 0 ? 0 : (int)((totalSpins + chunkSize - 1) / chunkSize);
 
         if (nChunks == 0)
@@ -179,75 +200,109 @@ public static class SampledInterpreter
             var empty = new StreamingStats(config.HistogramBins, maxWinCapDouble);
             return new SampledResult<S>(
                 empty, 0, config.CancellationToken.IsCancellationRequested,
-                config.Seed, Stopwatch.GetElapsedTime(startedAt));
+                config.Seed, Stopwatch.GetElapsedTime(startedAt))
+            { Measurements = MeasurementCollector.Snapshot(config.Measurements, new MeasurementAccumulator[config.Measurements.Count]) };
         }
 
+        var chunkMeasurements = new MeasurementAccumulator[]?[nChunks];
+        var mergedMeasurements = new MeasurementAccumulator[config.Measurements.Count];
         var chunkStats = new StreamingStats?[nChunks];
         var chunkDone = new long[nChunks];
         var cancelFlag = 0;
 
-        // Progress is display-only: a completion-order running merge guarded by
-        // a lock.  The FINAL result re-merges chunks in ascending index order
-        // for bit-identical determinism (float addition is not associative).
+        // Display snapshots merge small deltas while logical PRNG chunks stay fixed.
+        // Serialize callbacks as well as merges: concurrent workers must never
+        // publish decreasing sample counts. Final stats still merge full chunks
+        // in ascending index order, independent of reporting cadence and DoP.
         var progressLock = new object();
         var progressMerged = new StreamingStats(config.HistogramBins, maxWinCapDouble);
-        long progressReported = 0;
 
         void RunChunk(int c)
         {
-            if (Volatile.Read(ref cancelFlag) != 0) return;
-
+            if (Volatile.Read(ref cancelFlag) != 0 || config.CancellationToken.IsCancellationRequested)
+            { Interlocked.Exchange(ref cancelFlag, 1); return; }
             var start = (long)c * chunkSize;
             var end = System.Math.Min(start + chunkSize, totalSpins);
             var rng = new SeededRandom(DeriveStreamSeed(config.Seed, c));
             var stats = new StreamingStats(config.HistogramBins, maxWinCapDouble);
+            var delta = config.ProgressCallback is null ? null : new StreamingStats(config.HistogramBins, maxWinCapDouble);
+            var lastReport = Stopwatch.GetTimestamp();
             var stack = new Stack<IFlatMapNode>();
+            var measurements = config.Measurements.Count == 0 ? null : new MeasurementCollector(config.Measurements);
+            var runner = (program as ICompiledSampling<S, T>)?.CreateRunner(initialState, measurements);
+            var evaluators = config.Measurements.Select(d => (
+                Value: d.Value is { } value ? (Func<EvalContext, ExprValue>)(context => ExactExpressionEvaluator.Evaluate(value, context)) : null,
+                Filter: d.Filter is { } filter ? (Func<EvalContext, ExprValue>)(context => ExactExpressionEvaluator.Evaluate(filter, context)) : null)).ToArray();
+            var nodeMeasurements = config.Measurements.Select((d, i) => (d, i)).Where(p => p.d.NodeId is not null)
+                .GroupBy(p => p.d.NodeId!).ToDictionary(g => g.Key, g => g.Select(p => p.i).ToArray());
+            void ObserveNode(string nodeId, S state)
+            {
+                if (measurements is null || !nodeMeasurements.TryGetValue(nodeId, out var indexes)) return;
+                var context = new EvalContext { State = state };
+                foreach (var index in indexes) measurements.Observe(index, context, evaluators[index].Value, evaluators[index].Filter);
+            }
+            S finalState = initialState;
+            Action<S>? exportState = measurements is null ? null : state => finalState = state;
+            Action<string, S>? observer = measurements is null ? null : ObserveNode;
             long done = 0;
 
-            for (var i = start; i < end; i++)
+            void Flush()
             {
-                if (done > 0 && done % config.CancellationCheckInterval == 0
-                    && config.CancellationToken.IsCancellationRequested)
-                {
-                    Volatile.Write(ref cancelFlag, 1);
-                    break;
-                }
-
-                add(stats, RunOneSpin(program, initialState, rng, stack));
-                done++;
-            }
-
-            chunkStats[c] = stats;
-            Volatile.Write(ref chunkDone[c], done);
-
-            if (config.ProgressCallback is not null)
-            {
-                StreamingStatsSnapshot? snapshot = null;
-                long completed = 0;
+                if (delta is null || delta.Count == 0) return;
                 lock (progressLock)
                 {
-                    progressMerged.Merge(stats);
-                    var snap = progressMerged.Snapshot();
-                    completed = snap.Count;
-                    if (completed - progressReported >= config.ProgressReportInterval
-                        || completed >= totalSpins)
+                    progressMerged.Merge(delta);
+                    if (measurements is not null) MeasurementCollector.Merge(mergedMeasurements, measurements.Delta);
+                    config.ProgressCallback!(new SampledProgress
                     {
-                        progressReported = completed;
-                        snapshot = snap;
-                    }
-                }
-
-                if (snapshot is not null)
-                {
-                    config.ProgressCallback(new SampledProgress
-                    {
-                        SpinsCompleted = completed,
+                        SpinsCompleted = progressMerged.Count,
                         TotalSpins = totalSpins,
-                        Stats = snapshot,
+                        Stats = progressMerged.Snapshot(),
+                        Measurements = MeasurementCollector.Snapshot(config.Measurements, mergedMeasurements),
                         Elapsed = Stopwatch.GetElapsedTime(startedAt),
                     });
                 }
+                if (measurements is not null) Array.Clear(measurements.Delta);
+                delta = new StreamingStats(config.HistogramBins, maxWinCapDouble);
+                lastReport = Stopwatch.GetTimestamp();
             }
+            for (var i = start; i < end; i++)
+            {
+                if (done % config.CancellationCheckInterval == 0 && config.CancellationToken.IsCancellationRequested)
+                { Interlocked.Exchange(ref cancelFlag, 1); break; }
+                try
+                {
+                    measurements?.Begin();
+                    var value = runner is null ? RunOneSpin(program, initialState, rng, stack, config.CancellationToken,
+                        observer, exportState) : runner.Run(rng, config.CancellationToken);
+                    if (measurements is not null)
+                    {
+                        // Settled payout uses the same scale and cap as global stats.
+                        var payout = payoutSelector(value);
+                        if (maxWinCapDouble is { } cap) payout = System.Math.Min(payout, cap);
+                        if (runner is not null) runner.ObserveRound(payout);
+                        else
+                        {
+                            var context = new EvalContext { State = finalState };
+                            for (var m = 0; m < config.Measurements.Count; m++)
+                                if (config.Measurements[m].NodeId is null)
+                                    measurements.Observe(m, context, evaluators[m].Value, evaluators[m].Filter, payout);
+                        }
+                        measurements.Commit();
+                    }
+                    add(stats, value);
+                    if (delta is not null) add(delta, value);
+                }
+                catch (OperationCanceledException) when (config.CancellationToken.IsCancellationRequested)
+                { Interlocked.Exchange(ref cancelFlag, 1); break; }
+                done++;
+                if (delta is not null && (done % System.Math.Max(1, config.ProgressReportInterval) == 0
+                    || (done % 16 == 0 && Stopwatch.GetElapsedTime(lastReport).TotalMilliseconds >= 250))) Flush();
+            }
+            Flush();
+            chunkMeasurements[c] = measurements?.Total;
+            chunkStats[c] = stats;
+            Volatile.Write(ref chunkDone[c], done);
         }
 
         if (config.DegreeOfParallelism > 1 && nChunks > 1)
@@ -267,11 +322,13 @@ public static class SampledInterpreter
 
         // D3: strict ascending chunk-index-order merge ⇒ bit-identical result.
         var total = new StreamingStats(config.HistogramBins, maxWinCapDouble);
+        var finalMeasurements = new MeasurementAccumulator[config.Measurements.Count];
         long spinsCompleted = 0;
         for (var c = 0; c < nChunks; c++)
         {
             if (chunkStats[c] is null) continue;
             total.Merge(chunkStats[c]!);
+            if (chunkMeasurements[c] is { } measured) MeasurementCollector.Merge(finalMeasurements, measured);
             spinsCompleted += Volatile.Read(ref chunkDone[c]);
         }
 
@@ -285,11 +342,13 @@ public static class SampledInterpreter
                 SpinsCompleted = spinsCompleted,
                 TotalSpins = totalSpins,
                 Stats = total.Snapshot(),
+                Measurements = MeasurementCollector.Snapshot(config.Measurements, finalMeasurements),
                 Elapsed = elapsed,
             });
         }
 
-        return new SampledResult<S>(total, spinsCompleted, cancelled, config.Seed, elapsed);
+        return new SampledResult<S>(total, spinsCompleted, cancelled, config.Seed, elapsed)
+        { Measurements = MeasurementCollector.Snapshot(config.Measurements, finalMeasurements) };
     }
 
     /// <summary>
@@ -335,15 +394,17 @@ public static class SampledInterpreter
         Slot<S, T> program,
         S initialState,
         SeededRandom rng,
-        Stack<IFlatMapNode> stack)
+        Stack<IFlatMapNode> stack, CancellationToken cancellationToken = default, Action<string, S>? observe = null, Action<S>? completed = null)
         where S : notnull
     {
         var state = initialState;
         object current = program!;
         stack.Clear();
+        var operations = 0;
 
         while (true)
         {
+            if (cancellationToken.CanBeCanceled && (operations++ & 255) == 0) cancellationToken.ThrowIfCancellationRequested();
             // ── FlatMap: push the node itself as the continuation ──────
             if (current is IFlatMapNode fm)
             {
@@ -356,7 +417,7 @@ public static class SampledInterpreter
             if (current is IPureNode pure)
             {
                 if (stack.Count == 0)
-                    return (T)pure.ValueUntyped;
+                { completed?.Invoke(state); return (T)pure.ValueUntyped; }
 
                 current = stack.Pop().ApplyUntyped(pure.ValueUntyped);
                 continue;
@@ -397,6 +458,7 @@ public static class SampledInterpreter
             // ── Annotation: transparent pass-through ───────────────────
             if (current is IAnnotationNode ann)
             {
+                if (current is IObservationNode point) observe?.Invoke(point.NodeId, state);
                 current = ann.InnerUntyped;
                 continue;
             }

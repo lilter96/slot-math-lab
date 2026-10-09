@@ -55,6 +55,9 @@ public readonly struct ExprValue : IEquatable<ExprValue>
     public BigInteger NumberNumerator { get; }
     public BigInteger NumberDenominator { get; }
     public bool BoolValue { get; }
+    // Immutable arrays carry this once, so storing/rebinding them need not
+    // scan every item to reproduce ToStateObject's symbol normalization.
+    internal bool ContainsSymbols { get; }
     public string? StringValue { get; }
 
     /// <summary>Array items — non-null only when Kind == Array.</summary>
@@ -69,8 +72,16 @@ public readonly struct ExprValue : IEquatable<ExprValue>
         NumberNumerator = num;
         NumberDenominator = den;
         BoolValue = b;
+        ContainsSymbols = kind == ExprType.Symbol || HasSymbols(arr);
         StringValue = s;
         ArrayValue = arr;
+    }
+
+    private static bool HasSymbols(IReadOnlyList<ExprValue>? items)
+    {
+        if (items is null) return false;
+        for (var i = 0; i < items.Count; i++) if (items[i].ContainsSymbols) return true;
+        return false;
     }
 
     public static ExprValue Number(BigInteger value)
@@ -79,6 +90,7 @@ public readonly struct ExprValue : IEquatable<ExprValue>
     public static ExprValue Rational(BigInteger num, BigInteger den)
     {
         if (den == 0) throw new DivideByZeroException("Denominator cannot be zero.");
+        if (den.IsOne) return Number(num);
         var reduced = Math.Rational.Reduce(num, den);
         return new ExprValue(ExprType.Number, reduced.Num, reduced.Den, false, null);
     }
@@ -108,6 +120,8 @@ public readonly struct ExprValue : IEquatable<ExprValue>
     /// <summary>Arithmetic multiply of two number values.</summary>
     public static ExprValue Mul(ExprValue a, ExprValue b)
     {
+        if (a.NumberDenominator.IsOne && b.NumberDenominator.IsOne)
+            return Number(a.NumberNumerator * b.NumberNumerator);
         var num = a.NumberNumerator * b.NumberNumerator;
         var den = a.NumberDenominator * b.NumberDenominator;
         return Rational(num, den);
@@ -131,6 +145,8 @@ public readonly struct ExprValue : IEquatable<ExprValue>
     /// <summary>Arithmetic add.</summary>
     public static ExprValue Add(ExprValue a, ExprValue b)
     {
+        if (a.NumberDenominator.IsOne && b.NumberDenominator.IsOne)
+            return Number(a.NumberNumerator + b.NumberNumerator);
         var num = a.NumberNumerator * b.NumberDenominator + b.NumberNumerator * a.NumberDenominator;
         var den = a.NumberDenominator * b.NumberDenominator;
         return Rational(num, den);
@@ -139,6 +155,8 @@ public readonly struct ExprValue : IEquatable<ExprValue>
     /// <summary>Arithmetic subtract.</summary>
     public static ExprValue Sub(ExprValue a, ExprValue b)
     {
+        if (a.NumberDenominator.IsOne && b.NumberDenominator.IsOne)
+            return Number(a.NumberNumerator - b.NumberNumerator);
         var num = a.NumberNumerator * b.NumberDenominator - b.NumberNumerator * a.NumberDenominator;
         var den = a.NumberDenominator * b.NumberDenominator;
         return Rational(num, den);

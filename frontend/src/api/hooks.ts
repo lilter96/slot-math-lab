@@ -2,7 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useEffect } from 'react';
 import { apiClient } from './client';
 import { useAppStore, type PluginEntry, type CustomMechanic, type GraphNode, type GraphEdge } from '../store';
-import { mapNodeToBackend } from '../lib/configPayload';
+import { buildConfigPayload, mapNodeToBackend } from '../lib/configPayload';
 
 // ═══════════════════════════════════════════════════════════════════
 // Plugins API hooks
@@ -138,8 +138,7 @@ export function useSaveConfig() {
       // through the canonical mapping.
       const body = {
         config: {
-          schemaVersion: '1.0.0',
-          name: config.name,
+          ...buildConfigPayload(config.nodes ?? [], config.edges ?? [], { name: config.name, tables: useAppStore.getState().tables }),
           mechanics: config.mechanics ? Object.fromEntries(
             config.mechanics.map((m) => [m.id, {
               name: m.name,
@@ -148,8 +147,7 @@ export function useSaveConfig() {
               edges: mapEdgesToBackend(m.edges),
             }])
           ) : undefined,
-          nodes: config.nodes ? config.nodes.map(mapNodeToBackend) : undefined,
-          edges: config.edges ? mapEdgesToBackend(config.edges) : undefined,
+
         },
       };
 

@@ -106,10 +106,20 @@ public sealed class FastPathEquivalenceTests
         Left = new BinaryExpr
         {
             Op = BinaryOp.And,
-            Left = new CompareExpr { Op = CompareOp.Eq, Left = Cell(0), Right = StrConst(sym) },
-            Right = CellIsSymOrWild(1, sym),
+            Left = new BinaryExpr { Op = BinaryOp.And, Left = CellIsSymOrWild(0, sym), Right = CellIsSymOrWild(1, sym) },
+            Right = CellIsSymOrWild(2, sym),
         },
-        Right = CellIsSymOrWild(2, sym),
+        Right = new BinaryExpr
+        {
+            Op = BinaryOp.Or,
+            Left = new CompareExpr { Op = CompareOp.Eq, Left = Cell(0), Right = StrConst(sym) },
+            Right = new BinaryExpr
+            {
+                Op = BinaryOp.Or,
+                Left = new CompareExpr { Op = CompareOp.Eq, Left = Cell(1), Right = StrConst(sym) },
+                Right = new CompareExpr { Op = CompareOp.Eq, Left = Cell(2), Right = StrConst(sym) },
+            },
+        },
     };
 
     private static readonly Expression LinesWinExpr = new IfExpr
@@ -213,10 +223,10 @@ public sealed class FastPathEquivalenceTests
     }
 
     [Fact]
-    public void Lines_EdgeCase_WildAnchor_NoWin()
+    public void Lines_EdgeCase_WildAnchor_Substitutes()
     {
-        Assert.Equal(0m, FastPathLinesPayout(["W", "H", "H"]));
-        Assert.Equal(0m, FastPathLinesPayout(["W", "L", "L"]));
+        Assert.Equal(5m, FastPathLinesPayout(["W", "H", "H"]));
+        Assert.Equal(2m, FastPathLinesPayout(["W", "L", "L"]));
     }
 
     // ════════════════════════════════════════════════════════════════════

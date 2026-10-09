@@ -1,0 +1,43 @@
+{
+  "source": "https://demogamesfree.pragmaticplay.net/gs2c/openGame.do?gameSymbol=vs20doghouse&jurisdiction=99&lang=en&cur=USD",
+  "provider": "Pragmatic Play",
+  "capturedAt": "2026-10-09",
+  "usage": "Original public demo visual reference. Native atlases are unchanged; SVG viewports select sprite regions. Attribution does not grant ownership or a redistribution license.",
+  "assets": [
+    {
+      "file": "reels.png",
+      "sha256": "2b7eea71512f3d1bd0127d3226ec5bc688371b87e3601ef50a56fdf1e8d78290",
+      "bytes": 474286
+    },
+    {
+      "file": "portrait_additional.png",
+      "sha256": "bef0ba9a4050c3dd795f86ded70d74294eec341ca5a37ea1bb13eaeee133015a",
+      "bytes": 142186
+    },
+    {
+      "file": "reels_fs.png",
+      "sha256": "f376d6cd7f03c743f002f725dd594d9f278b822a192eb4e168bd76828edd4305",
+      "bytes": 604518
+    },
+    {
+      "file": "landscape.jpg",
+      "sha256": "7d8547b4aa4feeb0dca69d4658e8b10906f33b58b2d93b33ce1f45327b799ba7",
+      "bytes": 80006
+    },
+    {
+      "file": "landscape_fs.jpg",
+      "sha256": "7e65f39395a1a82341fe8826ecf7d301a9e65811229f9c1fb770c55cffe5ec6d",
+      "bytes": 54888
+    },
+    {
+      "file": "logo.png",
+      "sha256": "b06607f988c1ee3d2e6aa0bfeada86c68e5c0567f8afd38a7ed0946d0c9394d5",
+      "bytes": 201188
+    },
+    {
+      "file": "fallback.png",
+      "sha256": "e9e723580a07ddddef6df11a1f1e244812111564b94583b4afa793134fabea1d",
+      "bytes": 515441
+    }
+  ]
+}
