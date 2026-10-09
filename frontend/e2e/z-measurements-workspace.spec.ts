@@ -1,3 +1,4 @@
+import { chartMeasurements } from '../src/lib/measurements/checkpoints';
 import { test, expect, type Page } from '@playwright/test';
 import { readFile } from 'node:fs/promises';
 test.beforeEach(async ({ request }) => {
@@ -97,7 +98,7 @@ test('Scoped measurements use real sockets, survive HTTP recovery and reload, an
     await page.getByRole('button', { name: /Cancel run/ }).click(); await expect(page.locator('.run-status')).toHaveText('cancelled', { timeout: 15000 });
     const final = await (await request.get(`/api/runs/${run.id}`)).json(), m = final.progress.measurements[0];
     expect(m.count).toBeGreaterThan(0); expect(m.errors).toBe(0); expect(m.observations).toBe(m.count); expect(final.measurementHash).toBe(run.measurementHash);
-    const stored = JSON.parse(await page.evaluate(() => localStorage.getItem('slotmath-simulation-v2')!)); expect(stored.progress.measurements).toEqual(final.progress.measurements);
+    const stored = JSON.parse(await page.evaluate(() => localStorage.getItem('slotmath-simulation-v2')!)); expect(stored.progress.measurements).toEqual(chartMeasurements(final.progress.measurements));
     expect(JSON.parse(final.resultJson).measurements).toEqual(final.progress.measurements);
   } finally { await request.delete(`/api/runs/${run.id}`); }
 });
@@ -111,8 +112,8 @@ test('Rejected launch honors Retry-After without duplicating an accepted run', a
     return route.continue();
   });
   await page.getByLabel('Simulation spins').fill('10000'); await page.getByRole('button', { name: /^▶ Start run$/ }).click();
-  await expect(page.getByText(/retrying the rejected request in 1s/).first()).toBeVisible();
-  await expect(page.locator('.run-status')).toHaveText('completed', { timeout: 15000 });
+  await expect(page.getByText(/retrying the rejected request in 1s/).first()).toBeVisible({ timeout: 70000 });
+  await expect(page.locator('.run-status')).toHaveText('completed', { timeout: 70000 });
   expect(attempts).toBe(2); expect(times[1] - times[0]).toBeGreaterThanOrEqual(950);
 });
 test('Waiting launch can be cancelled without sending the deferred run POST', async ({ page }) => {

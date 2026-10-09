@@ -1,3 +1,5 @@
+import { validateExecution, sameExecution } from '../lib/measurements/execution';
+import { chartMeasurements, serializeCheckpoint } from '../lib/measurements/checkpoints';
 import { useEffect } from 'react';
 import { create } from 'zustand';
 import { RunConnection, HttpFailure, type ConnectionHealth, type ConnectionPhase } from '../lib/realtime/RunConnection';
@@ -39,11 +41,11 @@ useSession.subscribe((s, previous) => {
     || s.connection !== previous.connection && ['offline', 'auth-required', 'unavailable'].includes(s.connection);
   if (!transition && Date.now() - lastSave < 500 && !terminal(s.run?.status)) return;
   lastSave = Date.now();
-  try { localStorage.setItem(key, JSON.stringify(s)); } catch { /* The running job remains available on the server. */ }
+  try { localStorage.setItem(key, serializeCheckpoint(s)); } catch { /* The running job remains available on the server. */ }
 });
 // Flush the latest observation before a suspended tab or page reload. Recovery
 // still verifies this browser checkpoint against the pinned server snapshot.
-function flushSession() { try { localStorage.setItem(key, JSON.stringify(useSession.getState())); } catch { /* Server retains the run. */ } }
+function flushSession() { try { localStorage.setItem(key, serializeCheckpoint(useSession.getState())); } catch { /* Server retains the run. */ } }
 window.addEventListener('pagehide', flushSession);
 document.addEventListener('visibilitychange', () => { if (document.hidden) flushSession(); });
 function log(text: string) {
@@ -109,7 +111,7 @@ function accept(value: unknown): Decision {
     const baseline = state.points.findLast(point => msg.elapsedMs - point.elapsedMs >= 1000);
     const rate = baseline ? (msg.sampleCount - baseline.n) * 1000 / (msg.elapsedMs - baseline.elapsedMs)
       : msg.sampleCount * 1000 / Math.max(1, msg.elapsedMs);
-    const point = { n: msg.sampleCount, rtp: msg.runningRtp, stdErr: msg.stdErr, elapsedMs: msg.elapsedMs, rate: Math.max(0, rate), measurements: msg.measurements };
+    const point = { n: msg.sampleCount, rtp: msg.runningRtp, stdErr: msg.stdErr, elapsedMs: msg.elapsedMs, rate: Math.max(0, rate), measurements: chartMeasurements(msg.measurements) };
     points = last?.n === msg.sampleCount ? [...points.slice(0, -1), point] : [...points, point];
     const pointBudget = Math.min(600, Math.max(80, Math.floor(2400 / Math.max(1, msg.measurements?.length ?? 0))));
     if (points.length > pointBudget) points = points.filter((_, i) => i % 2 === 0 || i === points.length - 1);
@@ -129,7 +131,7 @@ function acceptSnapshot(value: unknown): Decision {
     const p = run.progress!;
     const prefix = current.points.filter(point => point.n < p.sampleCount);
     const points = p.sampleCount ? [...prefix, { n: p.sampleCount, rtp: p.runningRtp, stdErr: p.stdErr,
-      elapsedMs: p.elapsedMs, rate: p.sampleCount * 1000 / Math.max(1, p.elapsedMs), measurements: p.measurements }] : [];
+      elapsedMs: p.elapsedMs, rate: p.sampleCount * 1000 / Math.max(1, p.elapsedMs), measurements: chartMeasurements(p.measurements) }] : [];
     useSession.setState({ run, progress: p, points, receivedAt: Date.now() });
     log('Server restart · recovered checkpoint; interrupted run can be replayed with its recorded seed');
   } else {
@@ -139,7 +141,7 @@ function acceptSnapshot(value: unknown): Decision {
   recordTerminal(useSession.getState().run!);
   return decision;
 }
-export async function startSimulation(seed: number, samples: number, workers: number) {
+export async function startSimulation(seed: number, samples: number, workers: number, execution?: import('../lib/measurements/execution').ExecutionOptions) {
   if (useSession.getState().starting || (useSession.getState().run && !terminal(useSession.getState().run?.status) && useSession.getState().connection !== 'unavailable')) return;
   if (!Number.isSafeInteger(seed) || !Number.isInteger(samples) || samples < 1 || samples > 10_000_000 || !Number.isInteger(workers) || workers < 1 || workers > 4) {
     useSession.setState({ error: 'Use a safe integer seed, 1–10,000,000 complete rounds and 1–4 workers.' }); return;
@@ -155,18 +157,19 @@ export async function startSimulation(seed: number, samples: number, workers: nu
     const config = rootProject();
     if (!config) throw new Error('Build a valid model before running.');
     const measurements = useMeasurementWorkspace.getState().metrics.map(definition);
+    if (execution) validateExecution(execution, samples, workers);
     const target = Number((config.initialState as Record<string, unknown>)?.targetRtpPercent) / 100;
     const history = useSession.getState().history;
     useSession.setState({ starting: true, error: '', launchNote: '' });
     log('Saving and pinning the full constructor graph');
     const saved = await launchRequest<{ id: string }>('/api/configs', { config }, controller.signal);
-    const run = await launchRequest<RunSnapshot>('/api/runs', { configId: saved.id, seed, sampleSize: samples, degreeOfParallelism: workers, progressBatchSize: 1000, measurements }, controller.signal);
+    const run = await launchRequest<RunSnapshot>('/api/runs', { configId: saved.id, seed, sampleSize: samples, degreeOfParallelism: workers, progressBatchSize: 1000, measurements, execution }, controller.signal);
     if (controller.signal.aborted) {
       if (validSnapshot(run)) await request(`/api/runs/${encodeURIComponent(run.id)}`, { method: 'DELETE' }).catch(() => {});
       controller.signal.throwIfAborted();
     }
     if (!validSnapshot(run) || run.configId !== saved.id || run.seed !== seed || run.degreeOfParallelism !== workers || run.progress?.totalSamples !== samples
-      || !samePlan(measurements, run.measurements ?? [])) {
+      || !samePlan(measurements, run.measurements ?? []) || !sameExecution(execution, run.execution)) {
       if (validSnapshot(run)) await request(`/api/runs/${encodeURIComponent(run.id)}`, { method: 'DELETE' }).catch(() => {});
       throw new Error('The server did not pin the requested measurement plan and run inputs.');
     }
@@ -212,7 +215,7 @@ export async function cancelSimulation() {
 export async function openSimulation(run: RunSnapshot, metadata?: { model: string; target: number | null }) {
   const progress = run.progress ?? null;
   const points: LivePoint[] = progress?.sampleCount ? [{ n: progress.sampleCount, rtp: progress.runningRtp, stdErr: progress.stdErr,
-    elapsedMs: progress.elapsedMs, rate: progress.sampleCount * 1000 / Math.max(1, progress.elapsedMs), measurements: progress.measurements }] : [];
+    elapsedMs: progress.elapsedMs, rate: progress.sampleCount * 1000 / Math.max(1, progress.elapsedMs), measurements: chartMeasurements(progress.measurements) }] : [];
   useSession.setState({ ...defaults, history: useSession.getState().history, run, progress, points, model: metadata?.model ?? `Saved run #${run.id}`, target: metadata?.target ?? null });
   try { acceptSnapshot(await request<RunSnapshot>(`/api/runs/${run.id}`)); }
   catch (error) { if (useSession.getState().run?.id === run.id) useSession.setState({ error: String(error) }); }
@@ -247,22 +250,23 @@ export function useSimulationConnection() {
 
 /** Replay/extend an immutable saved version, without saving the editor or repinning latest. */
 export async function startPinnedSimulation(input: { configId: string; configVersion: number; configHash: string; model: string;
-  target: number | null; seed: number; samples: number; workers: number; reference?: number | null; referenceNote?: string; measurements?: MeasurementDefinition[]; measurementHash?: string | null }) {
+  target: number | null; seed: number; samples: number; workers: number; reference?: number | null; referenceNote?: string; measurements?: MeasurementDefinition[]; measurementHash?: string | null; execution?: import('../lib/measurements/execution').ExecutionOptions | null }) {
   const state = useSession.getState();
   if (state.starting || state.run && !terminal(state.run.status) && state.connection !== 'unavailable') throw new Error('Another run is active. Finish or cancel it in Simulate before launching a new run.');
   if (!Number.isSafeInteger(input.seed) || !Number.isInteger(input.samples) || input.samples < 1 || input.samples > 10_000_000
     || !Number.isInteger(input.workers) || input.workers < 1 || input.workers > 4) throw new Error('Use a safe integer seed, 1–10,000,000 rounds and 1–4 workers.');
+  if (input.execution) validateExecution(input.execution, input.samples, input.workers);
   const controller = new AbortController(); launchController = controller;
   useSession.setState({ starting: true, error: '', launchNote: '' });
   try {
     const run = await launchRequest<RunSnapshot>('/api/runs', { configId: input.configId, configVersion: input.configVersion, seed: input.seed, sampleSize: input.samples,
-        degreeOfParallelism: input.workers, progressBatchSize: 1000, measurements: input.measurements ?? [] }, controller.signal);
+        degreeOfParallelism: input.workers, progressBatchSize: 1000, measurements: input.measurements ?? [], execution: input.execution }, controller.signal);
     if (controller.signal.aborted) {
       if (validSnapshot(run)) await request(`/api/runs/${encodeURIComponent(run.id)}`, { method: 'DELETE' }).catch(() => {});
       controller.signal.throwIfAborted();
     }
     if (!validSnapshot(run) || run.configId !== input.configId || run.configHash !== input.configHash || run.configVersion !== input.configVersion
-      || (run.measurementHash ?? null) !== (input.measurementHash ?? null) || run.seed !== input.seed || run.degreeOfParallelism !== input.workers || run.progress?.totalSamples !== input.samples) {
+      || !sameExecution(input.execution, run.execution) || (run.measurementHash ?? null) !== (input.measurementHash ?? null) || run.seed !== input.seed || run.degreeOfParallelism !== input.workers || run.progress?.totalSamples !== input.samples) {
       if (validSnapshot(run)) await request(`/api/runs/${encodeURIComponent(run.id)}`, { method: 'DELETE' }).catch(() => {});
       throw new Error('The server did not pin the requested model, seed and round budget. The earlier run is retained.');
     }

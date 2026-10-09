@@ -14,7 +14,8 @@ public sealed record RunSummary(string Id, string ConfigId, int ConfigVersion, s
 public sealed record RunPage(IReadOnlyList<RunSummary> Items, string? NextCursor, int Total,
     int Completed, int Partial, int Failed, int Active);
 public sealed record RunEvidence(RunResponse Run, RunModel Model, System.Text.Json.JsonElement? PinnedConfig,
-    string? ComputedConfigHash, bool InputVerified);
+    string? ComputedConfigHash, bool InputVerified)
+{ public DiagnosticArtifact[] Diagnostics { get; init; } = []; }
 
 /// <summary>Read-only archive. Document identity is excluded from the comparison
 /// fingerprint; every other serialized model field participates.</summary>
@@ -73,7 +74,7 @@ public static class RunArchive
         {
             var p = InMemoryRunStore.Snapshot(r);
             return new RunSummary(r.Id, r.ConfigId, r.ConfigVersion, r.ConfigHash, Describe(Config(r), r.ConfigId),
-                r.Status, r.CreatedAt, r.CompletedAt, r.Seed, r.DegreeOfParallelism, "splitmix64-chunk-65536",
+                r.Status, r.CreatedAt, r.CompletedAt, r.Seed, r.DegreeOfParallelism, r.Execution?.StreamScheme ?? "splitmix64-chunk-65536",
                 p.SampleCount, p.TotalSamples, p.SampleCount > 0 ? p.RunningRtp : null,
                 p.SampleCount > 1 ? p.StdErr : null, p.ElapsedMs);
         }).ToArray();

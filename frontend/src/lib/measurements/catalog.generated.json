@@ -1,0 +1,320 @@
+{
+  "schemaVersion": "1.0.0",
+  "status": "researched requirements; not an implemented API contract",
+  "researchedAt": "2026-10-09",
+  "reviewedCommit": "217f8ca",
+  "specification": "MATH_VERIFICATION_METRICS.md",
+  "columns": ["id", "name", "definition", "unit", "currentCoverage", "priority"],
+  "coverage": {
+    "live": "Available in the current sampled API and user interface for its documented population.",
+    "custom": "Current numeric expression/point/filter collector can provide it when the graph authors the required value and semantics; no automatic lifecycle or event binding.",
+    "partial": "A constrained implementation, manual derivation, or related evidence exists, but the generic requested capability is incomplete.",
+    "core": "A mathematical core representation/reducer exists; this does not imply generic live collection or full UI support.",
+    "planned": "Required or optional new capability; not implemented by this research."
+  },
+  "priorities": {
+    "P0": "Core release evidence or immediately needed when the relevant mechanic exists.",
+    "P1": "Required for applicable complex/stateful models or advanced verification.",
+    "P2": "Specialized estimator or optional design/session analysis."
+  },
+  "notation": {
+    "N": "Number of completed independent paid rounds, unless the family declares another subject.",
+    "B": "External wager charged for a paid round, including mode costs.",
+    "W": "Final settled payout of the complete paid round.",
+    "X": "W divided by fixed parent stake; a bonus buy may have a different external cost.",
+    "A_f": "Allocated additive payout component f per paid round, zero when absent.",
+    "Y": "A typed numeric value on the selected subject.",
+    "F": "A specified event or feature predicate.",
+    "C": "Proven final payout bound in the same units as the measured payout.",
+    "p_pruned": "Unresolved probability mass, not renormalized away."
+  },
+  "families": [
+    {
+      "id": "counts",
+      "name": "Exposure, counts and accounting",
+      "subject": "Explicit round, episode, reveal, award or node-visit population",
+      "parameters": ["subject", "scope", "featureType", "mode", "stake", "groupKey"],
+      "metrics": [
+        ["counts.completed_rounds", "Completed paid rounds", "Count completely settled paid rounds; denominator for fixed-stake round statistics", "rounds", "live", "P0"],
+        ["counts.attempted_rounds", "Attempted paid rounds", "Count started rounds, including interrupted work; never substitute for completed exposure", "rounds", "planned", "P0"],
+        ["counts.interrupted_rounds", "Interrupted paid rounds", "Count rounds discarded before settlement and classify cancellation or runtime failure", "rounds", "partial", "P0"],
+        ["counts.eligible", "Eligible observations", "Count visits or completed rounds considered by a metric before filter/value evaluation", "subjects", "custom", "P0"],
+        ["counts.matching", "Matching valid observations", "Count subjects satisfying scope with a valid value", "subjects", "custom", "P0"],
+        ["counts.excluded", "Excluded observations", "Count subjects for which the valid Boolean scope is false", "subjects", "custom", "P0"],
+        ["counts.invalid", "Invalid observations", "Count missing/type/nonfinite/expression errors; critical measurements cannot pass by ignoring them", "subjects", "custom", "P0"],
+        ["counts.visits", "Graph-point visits", "Count execution of a selected flattened point, including repeated loop visits", "visits", "custom", "P0"],
+        ["counts.distinct_parents", "Distinct matching parent subjects", "Count unique rounds or episodes containing at least one matching child event", "parents", "planned", "P0"],
+        ["counts.feature_entries", "Feature entries", "Count explicit lifecycle entry events, distinguishing multiple instances in one round", "episodes", "partial", "P0"],
+        ["counts.feature_exits", "Feature exits", "Count matched lifecycle exits and reconcile open/interrupted episodes", "episodes", "planned", "P0"],
+        ["counts.reveals", "Reveals played", "Count typed base/FS/respin/cascade reveals, not all node visits", "reveals", "partial", "P0"],
+        ["counts.unique_awards", "Unique paid awards", "Count unique settled award IDs; detect duplicate crediting separately", "awards", "planned", "P0"],
+        ["counts.accounting_residual", "Accounting residual", "Expected ledger total minus actual settlement; exact zero required under declared rounding", "credits", "planned", "P0"]
+      ]
+    },
+    {
+      "id": "return",
+      "name": "Wagers, return and payout components",
+      "subject": "Completed paid round with externally charged wager and settled payout",
+      "parameters": ["mode", "stake", "paytable", "component", "capAllocation"],
+      "metrics": [
+        ["return.turnover", "Total turnover", "sum B, including ante/buy/extra charges exactly once", "credits", "partial", "P0"],
+        ["return.payout", "Total settled payout", "sum W for completed rounds", "credits", "custom", "P0"],
+        ["return.rtp_fixed", "Fixed-stake RTP", "mean X for independent complete rounds at the same external cost", "ratio", "live", "P0"],
+        ["return.rtp_mixed", "Mixed-stake RTP", "sum W / sum B; not the unweighted mean of individual payout/wager ratios", "ratio", "planned", "P0"],
+        ["return.theoretical", "Theoretical RTP", "Expected settled payout divided by cost from an independent model with stated assumptions", "ratio", "partial", "P0"],
+        ["return.net", "Net player result", "sum(W-B); house result has the opposite sign under this accounting model", "credits", "planned", "P0"],
+        ["return.house_edge", "Theoretical house edge", "1 - theoretical RTP for the defined mode and cost", "ratio", "partial", "P0"],
+        ["return.component", "Component RTP contribution", "E[A_f] across all paid rounds, including zeros for absent components", "parent stake", "partial", "P0"],
+        ["return.component_share", "Component share of RTP", "E[A_f] / E[X] when total expected payout is positive", "ratio", "core", "P0"],
+        ["return.conditional", "Conditional payout mean", "E[Y | declared subject scope]; not automatically an RTP contribution", "value unit", "custom", "P0"],
+        ["return.mode", "Mode-normalized RTP", "E[settled payout for mode] / externally charged mode cost", "ratio", "planned", "P0"],
+        ["return.reconciliation", "Component return reconciliation", "Total settled return minus allocated component returns and declared adjustments", "parent stake", "planned", "P0"],
+        ["return.rounding", "Rounding impact", "Settled monetary amount under declared rounding minus exact pre-rounding amount", "credits", "planned", "P0"]
+      ]
+    },
+    {
+      "id": "events",
+      "name": "Event frequencies and probabilities",
+      "subject": "One independent parent subject or explicitly dependent event population",
+      "parameters": ["predicate", "eligiblePredicate", "subject", "threshold", "band", "featureType"],
+      "metrics": [
+        ["events.hit", "Nonzero-payout probability", "P(X>0) across completed paid rounds", "probability", "live", "P0"],
+        ["events.zero", "Zero-payout probability", "P(X=0), complementary to round hit probability when observations are valid", "probability", "live", "P0"],
+        ["events.substake", "Below-stake payout probability", "P(0<X<1); distinguish from zero payout and actual player profit", "probability", "partial", "P0"],
+        ["events.breakeven", "Break-even probability", "P(W=B) using exact monetary equality", "probability", "partial", "P0"],
+        ["events.profit", "Profit probability", "P(W>B) for the subject's actual external cost", "probability", "partial", "P0"],
+        ["events.match_share", "Matching valid share", "matching valid count / all eligible observations; with errors this is descriptive, not a clean event probability", "ratio", "custom", "P0"],
+        ["events.round_activation", "Feature activation probability", "P(at least one feature F in a paid round), counting each parent once", "probability", "partial", "P0"],
+        ["events.entry_rate", "Feature entry rate", "Number of F entries / eligible paid rounds; may exceed one", "entries per round", "partial", "P0"],
+        ["events.conditional", "Conditional event probability", "P(F | eligible subject predicate), with a declared denominator and no ignored invalid data", "probability", "partial", "P0"],
+        ["events.threshold", "Threshold probability", "P(Y>=t), P(Y>t) or declared band membership with pinned inclusive/exclusive boundaries", "probability", "partial", "P0"],
+        ["events.reciprocal", "Reciprocal frequency", "1/p labeled one-in-k eligible subjects; undefined at zero estimated p, not a guaranteed gap", "subjects", "planned", "P1"]
+      ]
+    },
+    {
+      "id": "moments",
+      "name": "Numeric summary and higher moments",
+      "subject": "Typed numeric value on the declared subject after any inner reduction",
+      "parameters": ["subject", "value", "scope", "group", "estimatorConvention"],
+      "metrics": [
+        ["moments.sum", "Sum", "sum Y over matching valid subjects", "value unit", "custom", "P0"],
+        ["moments.min", "Minimum observed", "min Y over matching valid subjects; undefined with zero matches", "value unit", "custom", "P0"],
+        ["moments.max", "Maximum observed", "max Y over matching valid subjects; does not establish theoretical reachability limits", "value unit", "custom", "P0"],
+        ["moments.mean", "Average", "sum Y / matching valid subject count", "value unit", "custom", "P0"],
+        ["moments.second", "Second raw moment", "E[Y^2] or its declared sample estimator", "squared value unit", "partial", "P0"],
+        ["moments.variance", "Variance", "Population E[Y^2]-E[Y]^2, or sample M2/(n-1); label the convention", "squared value unit", "partial", "P0"],
+        ["moments.sd", "Standard deviation", "sqrt declared variance; sample SD undefined below two valid observations", "value unit", "custom", "P0"],
+        ["moments.cv", "Coefficient of variation", "sigma/mean under a declared valid positive-mean convention", "ratio", "core", "P1"],
+        ["moments.skew", "Skewness", "Third standardized central moment with explicit sample/bias convention and undefined cases", "dimensionless", "planned", "P1"],
+        ["moments.kurtosis", "Kurtosis", "Fourth standardized central moment; declare raw versus excess and sample correction", "dimensionless", "planned", "P1"],
+        ["moments.mean_abs_deviation", "Mean absolute deviation", "E[abs(Y-center)] for an explicitly fixed or estimated center", "value unit", "planned", "P2"]
+      ]
+    },
+    {
+      "id": "distribution",
+      "name": "Discrete support, histograms, CDF and tails",
+      "subject": "One declared numeric population; fixed stake or explicit normalization",
+      "parameters": ["value", "subject", "scope", "binEdges", "q", "t", "supportBudget"],
+      "metrics": [
+        ["distribution.pmf", "Exact-value frequency/probability map", "Count or exact rational probability of each distinct value in a bounded support", "count or probability", "core", "P0"],
+        ["distribution.bin_count", "Win-band count", "Number of Y values in pinned semantic bins", "subjects", "partial", "P0"],
+        ["distribution.bin_sum", "Win-band payout sum", "sum Y within each bin; cannot reconstruct this from bin counts alone", "value unit", "planned", "P0"],
+        ["distribution.bin_return", "Win-band RTP contribution", "sum of round payouts in band / total turnover, or fixed-stake E[X 1{band}]", "ratio", "planned", "P0"],
+        ["distribution.cdf", "Cumulative distribution", "F(t)=P(Y<=t); histogram-only evidence is exact for observed counts at bin boundaries", "probability", "partial", "P0"],
+        ["distribution.survival", "Survival curve", "P(Y>=t) with explicit discrete boundary convention", "probability", "partial", "P0"],
+        ["distribution.quantile", "Configurable quantile", "Q(q)=inf{x:F(x)>=q}; distinguish exact support, histogram bounds and sketch estimates", "value unit", "partial", "P0"],
+        ["distribution.tail_return", "Tail contribution to mean", "E[Y 1{Y>=t}] with the full eligible population denominator", "value unit", "planned", "P0"],
+        ["distribution.tail_mean", "Conditional threshold-tail mean", "E[Y 1{Y>=t}]/P(Y>=t), undefined if the denominator is zero", "value unit", "planned", "P1"],
+        ["distribution.tail_second", "Tail contribution to second moment", "E[Y^2 1{Y>=t}], identifying variance-dominating rare payouts", "squared value unit", "planned", "P1"],
+        ["distribution.upper_tail_mean", "Upper quantile-tail mean", "Mean of exactly the upper 1-q probability mass, splitting ties at Q(q)", "value unit", "planned", "P1"],
+        ["distribution.return_concentration", "Return concentration", "Share of total payout from a declared top fraction of subjects with a tie rule", "ratio", "planned", "P2"]
+      ]
+    },
+    {
+      "id": "features",
+      "name": "Feature lifecycle, inner reductions and FS accounting",
+      "subject": "One typed feature episode, with parent paid-round identity",
+      "parameters": ["featureType", "entryScope", "eventScope", "exitScope", "innerReducer", "ordinal"],
+      "metrics": [
+        ["features.type_mix", "Feature-type selection distribution", "Probability of each selected type among eligible feature entries, and unconditional activation separately", "probability", "partial", "P0"],
+        ["features.episode_payout", "Feature-episode payout distribution", "Sum allocated awards within each episode, then measure across episodes", "parent stake", "partial", "P0"],
+        ["features.reveal_payout", "Feature-reveal payout distribution", "One value per matching FS/respin/cascade reveal, not one value per episode", "parent stake", "custom", "P0"],
+        ["features.initial_awards", "Initially awarded reveals", "FS/respin budget recorded once at episode entry", "reveals", "custom", "P0"],
+        ["features.additional_awards", "Additional awarded reveals", "Sum newly awarded FS/respins during the episode, not repeated remaining-counter reads", "reveals", "planned", "P0"],
+        ["features.played", "Actual reveals per episode", "Count typed reveals within the episode and report duration distribution", "reveals", "partial", "P0"],
+        ["features.remaining", "Remaining reveal balance", "initial+additional-played-removed; equals recorded remaining at every boundary", "reveals", "planned", "P0"],
+        ["features.removed", "Removed/unplayed awarded reveals", "Reveals explicitly forfeited by authored termination rules", "reveals", "planned", "P0"],
+        ["features.retriggers", "Retriggers per episode", "Count retrigger events with opportunities and type-specific award rules", "events", "planned", "P0"],
+        ["features.any_retrigger", "Episode retrigger probability", "P(at least one retrigger | eligible episode), using episode Boolean any reduction", "probability", "planned", "P0"],
+        ["features.zero_episode", "Zero-paying episode probability", "P(episode total=0 | completed episode type)", "probability", "partial", "P0"],
+        ["features.ordinal_profile", "Feature ordinal profile", "Value distribution by FS/respin/cascade index with parent-episode identity", "value unit", "planned", "P1"],
+        ["features.exit_reason", "Feature exit-reason distribution", "Ordinary completion, payout cap, authored stop, budget, cancellation and error separately", "probability", "planned", "P0"]
+      ]
+    },
+    {
+      "id": "mechanics",
+      "name": "Symbol, award and rule-specific diagnostics",
+      "subject": "Mapped draw, visible board, evaluated reveal or unique award as specified",
+      "parameters": ["symbol", "reel", "position", "line", "matchLength", "mechanicType", "wildPolicy", "depth"],
+      "metrics": [
+        ["mechanics.reel_stop", "Reel-stop distribution", "Observed or exact frequency of each stop against authored strip weights", "probability", "planned", "P0"],
+        ["mechanics.symbol", "Visible symbol distribution", "Symbol counts by reel/position/reveal type; do not assume uniform visible symbols", "count or probability", "partial", "P0"],
+        ["mechanics.line_combo", "Line symbol/match-length distribution", "Winning symbol, substituted symbol, leading/all Wild case and length per line", "count or probability", "planned", "P0"],
+        ["mechanics.payable_lines", "Payable line count", "Number of payable line awards in a reveal under overlapping-award rules", "lines", "partial", "P0"],
+        ["mechanics.ways", "Ways multiplicity", "Product of matching position counts for each payable combination", "ways", "planned", "P0"],
+        ["mechanics.scatter", "Scatter count/award distribution", "Count scatters with reel/location eligibility and pay/trigger rule mapping", "count or payout", "partial", "P0"],
+        ["mechanics.cluster", "Cluster size/award distribution", "Connected component sizes and awarded components under authored adjacency", "cells or payout", "planned", "P0"],
+        ["mechanics.shared_wild", "Wild participation reconciliation", "Wild membership, substitution and ownership follow the chosen rule, including shared clusters", "violations", "planned", "P0"],
+        ["mechanics.sticky", "Sticky retention and occupancy", "New/retained/removed cells and occupancy before/after a reveal; reset at correct episode boundary", "cells", "planned", "P0"],
+        ["mechanics.cascade", "Cascade depth and award profile", "Depth distribution, payout by depth, removal/survivor/refill correctness", "steps or payout", "planned", "P0"],
+        ["mechanics.collection", "Hold/collect reconciliation", "Unique collected values, respin resets, terminal occupancy and exactly-once award settlement", "values or violations", "planned", "P0"],
+        ["mechanics.multiplier", "Multiplier distribution and order", "Multiplier states, transitions and awards after the authored application order", "multiplier", "partial", "P0"],
+        ["mechanics.award_component", "Award component contribution", "Return from distinct symbol/line/scatter/cluster award classes with overlap policy", "parent stake", "planned", "P0"],
+        ["mechanics.strategy", "Choice/strategy conditional return", "Outcome distribution and EV for each allowed policy in a choice-sensitive game", "ratio", "planned", "P1"]
+      ]
+    },
+    {
+      "id": "states",
+      "name": "State processes, reachability and termination",
+      "subject": "Explicit ordered state transitions, feature episode or persistent regeneration cycle",
+      "parameters": ["stateKey", "fromState", "toState", "initialState", "terminationRule", "resetPolicy"],
+      "metrics": [
+        ["states.transition_count", "Transition counts", "Count typed before/after state pairs in the intended subject order", "transitions", "planned", "P1"],
+        ["states.transition_probability", "Transition probabilities", "Count(i->j)/eligible departures from i, compared with authored transition law", "probability", "planned", "P1"],
+        ["states.occupancy", "State occupancy", "Time/step-weighted occupancy under a declared initial/reset/persistent regime", "ratio", "planned", "P1"],
+        ["states.dwell", "State dwell duration", "Consecutive steps spent in each state, including boundary censoring", "steps", "planned", "P1"],
+        ["states.absorption", "Terminal-state probabilities", "Probability of each absorbing result, including distinct game and resource stops", "probability", "planned", "P1"],
+        ["states.expected_duration", "Expected feature duration", "For a valid finite transient Q, (I-Q)^-1 times the vector of ones", "steps", "planned", "P1"],
+        ["states.expected_reward", "Expected feature reward", "Expected transient visits multiplied by correctly defined per-state/transition rewards", "payout", "planned", "P1"],
+        ["states.retrigger_offspring", "Retrigger offspring factor", "Mean new reveals generated per eligible reveal in a specified branching model", "reveals per reveal", "planned", "P1"],
+        ["states.nontermination", "Non-termination/recurrent-class probability", "Reachability and probability of never reaching the authored terminal state", "probability", "planned", "P1"],
+        ["states.long_run_return", "Persistent-state long-run return", "Long-run payout/turnover using a justified recurrent-state or regenerative analysis", "ratio", "planned", "P1"],
+        ["states.reset_violation", "State reset/preservation violations", "Count transitions violating authored episode and paid-round reset/persistence policies", "violations", "planned", "P0"]
+      ]
+    },
+    {
+      "id": "dependence",
+      "name": "Paired values, covariance and ordered sequences",
+      "subject": "Paired values on the same parent subject or ordered logical subject stream",
+      "parameters": ["pairedValues", "parentSubject", "lag", "predicate", "gapConvention"],
+      "metrics": [
+        ["dependence.covariance", "Component covariance", "Cov(A_f,A_g) from paired per-round values including absent-component zeros", "squared parent stake", "planned", "P1"],
+        ["dependence.correlation", "Paired correlation", "Cov(Y,Z)/(sd(Y)*sd(Z)); undefined when either SD is zero", "ratio", "planned", "P1"],
+        ["dependence.variance_decomposition", "Variance reconciliation", "Var(sum A_f)-sum Var(A_f)-2 sum pair covariance; expected residual zero", "squared parent stake", "planned", "P1"],
+        ["dependence.autocorrelation", "Lag autocorrelation", "Ordered subject correlation at configured lags under a declared dependence null", "ratio", "planned", "P1"],
+        ["dependence.gaps", "Event-gap distribution", "Completed inter-event gaps plus explicitly censored leading/trailing exposure", "subjects", "planned", "P1"],
+        ["dependence.streaks", "Run/streak distribution", "Lengths of consecutive predicate successes/failures in logical order", "subjects", "planned", "P1"],
+        ["dependence.paired_delta", "Paired model difference", "Subject-level output difference under a defined random coupling, with paired uncertainty", "value unit", "partial", "P1"]
+      ]
+    },
+    {
+      "id": "rng",
+      "name": "Generating distributions and independence diagnostics",
+      "subject": "Named mapped RNG draws under the declared game model",
+      "parameters": ["drawId", "weightSet", "mapping", "conditionalState", "lag", "streamScheme"],
+      "metrics": [
+        ["rng.mapped_frequency", "Mapped outcome frequency", "Draw outcome counts compared with exact WeightSet probabilities", "probability", "core", "P0"],
+        ["rng.mapping_bias", "Mapping/scaling discrepancy", "Difference between intended probabilities and the distribution induced by scaling/shuffling", "effect size", "core", "P0"],
+        ["rng.serial", "Inter-draw dependence", "Serial correlation/runs diagnostics under intended independence or authored state conditioning", "statistic", "core", "P1"],
+        ["rng.within_draw", "Within-draw dependence", "Joint outcomes versus intended joint law, preserving without-replacement dependencies", "statistic", "planned", "P1"],
+        ["rng.duplicates", "Unexpected duplicate streams/outcomes", "Stream duplication diagnostics versus the probability of legitimate repeated outcomes", "count or statistic", "partial", "P1"],
+        ["rng.state_conditioned", "State-conditioned draw law", "Compare draw frequencies to each explicitly authored state-dependent distribution", "probability", "planned", "P1"]
+      ]
+    },
+    {
+      "id": "bounds",
+      "name": "Cap, pruning, truncation and rare-event guarantees",
+      "subject": "Raw and settled payout paired per round; retained exact mass or weighted rare-event sample",
+      "parameters": ["payoutBound", "threshold", "loopPolicy", "proposalDistribution", "provenance"],
+      "metrics": [
+        ["bounds.cap_reached", "Cap reached probability", "P(settled payout=C), including exact equality; not the clipping counter", "probability", "partial", "P0"],
+        ["bounds.cap_exceeded", "Raw cap exceedance probability", "P(raw payout>C) before settlement and under the declared stop policy", "probability", "partial", "P0"],
+        ["bounds.cap_deduction", "Expected cap deduction", "E[raw payout-settled payout] with valid paired raw/settled accounting", "parent stake", "planned", "P0"],
+        ["bounds.reachable_max", "Maximum reachable payout", "Maximum supported by the complete authored model, distinguished from sample maximum and declared cap", "parent stake", "core", "P0"],
+        ["bounds.pruned_mass", "Unresolved probability mass", "Missing exact mass retained without renormalizing survivors", "probability", "core", "P0"],
+        ["bounds.mean", "Conservative expectation bound", "known first moment <= E[X] <= known first moment+p_pruned*C when the finite bound is valid", "parent stake", "partial", "P0"],
+        ["bounds.event", "Conservative event-probability bound", "known event mass <= P(F) <= min(1,known event mass+p_pruned)", "probability", "planned", "P0"],
+        ["bounds.second_variance", "Second-moment/variance bounds", "Bound unresolved second moment by p_pruned*C^2, then use compatible mean/second-moment constraints", "squared parent stake", "planned", "P1"],
+        ["bounds.loop_termination", "Loop-budget termination impact", "Probability and reward impact of budget stops, separately from authored terminal rules", "probability or payout", "partial", "P0"],
+        ["bounds.zero_event", "Zero-observation event upper bound", "1-alpha^(1/n) for independent fixed-count Bernoulli subjects with no successes", "probability", "partial", "P0"],
+        ["bounds.weight_diagnostics", "Importance-weight diagnostics", "Proposal coverage, weight sums/extremes and effective-size diagnostic; not a stand-alone guarantee", "weights or subjects", "planned", "P2"],
+        ["bounds.weighted_estimate", "Rare-event weighted estimate", "Correctly likelihood-weighted event/return estimator with a justified variance and support contract", "probability or payout", "planned", "P2"]
+      ]
+    },
+    {
+      "id": "comparison",
+      "name": "Independent references, equivalence and distribution tests",
+      "subject": "Compatible model/reference populations with explicit precision and error budget",
+      "parameters": ["reference", "mode", "scope", "tolerance", "alpha", "testFamily", "binning"],
+      "metrics": [
+        ["comparison.rtp_delta", "RTP deviation", "Observed-minus-independent-reference mean, with units and uncertainty", "percentage points", "live", "P0"],
+        ["comparison.probability_delta", "Event-probability deviation", "Observed event probability minus compatible reference probability", "probability", "planned", "P0"],
+        ["comparison.component_delta", "Component return deviation", "Per-round component return versus independent feature reference", "parent stake", "planned", "P0"],
+        ["comparison.exact_support", "Exact distribution equality", "Rational equality of outcome probability maps on independent small reference models", "agreement", "core", "P0"],
+        ["comparison.total_variation", "Total variation distance", "0.5*sum(abs(p_i-q_i)) on compatible discrete support", "distance", "planned", "P1"],
+        ["comparison.cdf_distance", "Maximum CDF discrepancy", "sup_t abs(F_observed(t)-F_reference(t)); test calibration must match discrete/tied data", "distance", "planned", "P0"],
+        ["comparison.chi_square", "Discrete goodness-of-fit", "Pearson or exact/calibrated multinomial test with pinned bins and validated sparse-count treatment", "statistic and p-value", "planned", "P0"],
+        ["comparison.mean_equivalence", "Mean agreement within tolerance", "Appropriate interval contained in the authored reference tolerance band; compatibility alone is weaker", "verdict", "partial", "P0"],
+        ["comparison.invariants", "Rule/accounting invariant violations", "Count exact failures and retain bounded replayable witnesses", "violations", "planned", "P0"],
+        ["comparison.sensitivity", "Parameter sensitivity", "Change in return/events/tails under an explicit parameter perturbation with independent or defined paired inference", "derivative or effect size", "planned", "P2"]
+      ]
+    },
+    {
+      "id": "inference",
+      "name": "Sampling precision, error control and sufficiency",
+      "subject": "Independent subjects, clusters or a justified dependent-process estimator",
+      "parameters": ["subject", "estimator", "confidenceLevel", "alphaBudget", "tolerance", "stoppingPolicy"],
+      "metrics": [
+        ["inference.subject_count", "Independent subject count", "Independent rounds/episodes/cycles used by inference; not the number of correlated child visits", "subjects", "partial", "P0"],
+        ["inference.mean_se", "Mean standard error", "s/sqrt(n) only when the subject/variance assumptions are appropriate", "value unit", "live", "P0"],
+        ["inference.mean_interval", "Mean uncertainty interval", "Declared fixed-count approximate or valid bounded/dependent estimator interval", "value unit", "partial", "P0"],
+        ["inference.proportion_interval", "Event-probability interval", "Validated Wilson/exact or appropriate dependent-subject interval including zero/all events", "probability", "partial", "P0"],
+        ["inference.ratio_interval", "Payout/turnover ratio uncertainty", "Paired payout/wager inference for the ratio of sums; not a constant-stake mean interval", "ratio", "planned", "P0"],
+        ["inference.clustered", "Parent-clustered uncertainty", "Inference using independent parent rounds/episodes or a validated cluster estimator", "value unit", "planned", "P1"],
+        ["inference.sample_plan", "Precision/sample-size planning", "Declared approximation/bound based on variance, event rarity, tolerance and error level", "subjects", "partial", "P0"],
+        ["inference.family_error", "Critical-family error budget", "Predeclared simultaneous testing/error control across required measurements", "alpha budget", "planned", "P0"],
+        ["inference.sequential", "Sequentially valid uncertainty", "Confidence sequence or validated repeated-look design for automated acceptance/stopping", "interval or verdict", "planned", "P1"],
+        ["inference.sufficiency", "Evidence sufficiency", "Precision, expected event count, invalid data, unresolved mass and inference assumptions meet the acceptance profile", "verdict", "partial", "P0"]
+      ]
+    },
+    {
+      "id": "provenance",
+      "name": "Evidence identity and execution consistency",
+      "subject": "Pinned graph, measurement definition, run and calculation mode",
+      "parameters": ["graphHash", "planHash", "seed", "streamScheme", "engineVersion", "budgets"],
+      "metrics": [
+        ["provenance.seed_replay", "Seeded replay agreement", "Same inputs/stream reproduce payouts and aggregates; this establishes reproducibility, not mathematical correctness", "agreement", "live", "P0"],
+        ["provenance.parallel", "Worker-count agreement", "Final outcomes and aggregates invariant under supported worker counts with fixed logical chunks", "agreement", "live", "P0"],
+        ["provenance.engine", "Reference/optimized engine agreement", "Production execution versus independent/reference semantics on the same authored models", "agreement", "partial", "P0"],
+        ["provenance.serialization", "Constructor serialization agreement", "UI save/load/API AST produces the same validated graph and behavior", "agreement", "partial", "P0"],
+        ["provenance.recovery", "Recovery/checkpoint consistency", "Recovered durable prefix, counters and measurement plan agree without fabricating lost work", "agreement", "live", "P0"],
+        ["provenance.identity", "Complete evidence identity", "Pinned graph/expanded mechanics/tables/initialization/normalization/plan/RNG/semantics/software versions and budgets", "fingerprints", "partial", "P0"],
+        ["provenance.witness", "Replayable failure witnesses", "Bounded subject-level state/event evidence and replay coordinates for an assertion failure", "witnesses", "planned", "P0"]
+      ]
+    },
+    {
+      "id": "experience",
+      "name": "Optional session and game-experience analysis",
+      "subject": "Declared ordered session with bankroll, wager and stopping rules",
+      "parameters": ["horizon", "bankroll", "wagerPolicy", "stopPolicy", "event", "initialState"],
+      "metrics": [
+        ["experience.session_return", "Session net-return distribution", "Distribution of sum(W-B) over a declared finite session; include state and cost rules", "credits", "planned", "P2"],
+        ["experience.session_profit", "Session profit probability", "P(session net result>0) for declared horizon and stopping policy", "probability", "planned", "P2"],
+        ["experience.drought", "Bonus/win drought risk", "Probability of no event over a declared horizon; do not assume geometric gaps in stateful models", "probability", "planned", "P2"],
+        ["experience.drawdown", "Maximum drawdown", "Largest ordered bankroll decline from a previous session peak", "credits", "planned", "P2"],
+        ["experience.ruin", "Bankroll exhaustion probability", "Probability of inability to fund the next allowed wager before the horizon", "probability", "planned", "P2"],
+        ["experience.duration", "Playable session duration", "Distribution of rounds until a defined stop/exhaustion/target condition", "rounds", "planned", "P2"],
+        ["experience.feature_wait", "Time to first feature", "First-passage distribution to a defined feature under actual state/reset rules", "rounds", "planned", "P2"],
+        ["experience.session_extreme", "Session maximum payout", "Distribution of the maximum settled round payout within a declared session", "parent stake", "planned", "P2"]
+      ]
+    }
+  ],
+  "constraints": [
+    "Families and parameterized instances are a researched catalogue, not a universal certification checklist.",
+    "All probabilities require compatible numerator, denominator, subject and invalid-data policies.",
+    "Feature components require attribution and settlement rules; overlapping cohorts do not add to total return.",
+    "Custom values require explicit units and proven bounds before any finite guarantee is applied.",
+    "RTP compatibility, reproducibility and absence of observed defects are distinct from a proof of the complete mathematical model.",
+    "Session measurements are optional design analysis; persistent mechanics and RNG security require additional applicable review."
+  ]
+}

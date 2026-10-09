@@ -105,15 +105,28 @@ test('Blocked socket falls back to authoritative snapshots and reconnects withou
 
 
 test('One observed round does not claim a zero-width confidence interval or known sample variance', async ({ page }) => {
+  test.setTimeout(120000);
+  // Production quotas remain active in CI. Wait on safe GETs; never retry an
+  // accepted run POST or parse an empty 429 response as run evidence.
+  async function readWithQuota(path: string) {
+    for (let attempt = 0; attempt < 3; attempt++) {
+      const response = await page.request.get(path);
+      if (response.status() !== 429) { expect(response.ok()).toBe(true); return response; }
+      const seconds = Number(response.headers()['retry-after'] ?? '1');
+      await new Promise(resolve => setTimeout(resolve, Math.min(60, Math.max(1, seconds)) * 1000));
+    }
+    throw new Error('API quota did not recover.');
+  }
+  await readWithQuota('/api/auth/status');
   await page.goto('/build');
   await page.getByRole('button', { name: 'Load coin example' }).click();
   await page.getByRole('tab', { name: 'Simulate', exact: true }).click();
   await page.getByLabel('Simulation spins').fill('1');
   await page.getByRole('button', { name: /start run/i }).click();
-  await expect(page.locator('.run-status')).toHaveText('completed');
+  await expect(page.locator('.run-status')).toHaveText('completed', { timeout: 70000 });
   await expect(page.getByTestId('sample-count')).toHaveText('1');
   const stored = JSON.parse(await page.evaluate(() => localStorage.getItem('slotmath-simulation-v2')!));
-  const run = await (await page.request.get(`/api/runs/${stored.run.id}`)).json();
+  const run = await (await readWithQuota(`/api/runs/${stored.run.id}`)).json();
   expect(JSON.parse(run.resultJson).ci95).toBeNull();
   expect(JSON.parse(run.resultJson).volatility).toBeNull();
   await expect(page.getByText('95% CI half-width', { exact: true }).locator('..')).toContainText('Requires at least 2 rounds');

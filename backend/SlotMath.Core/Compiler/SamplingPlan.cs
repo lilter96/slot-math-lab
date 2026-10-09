@@ -12,7 +12,7 @@ namespace SlotMath.Core.Compiler;
 
 internal interface ICompiledSampling<S, T>
 {
-    ISamplingRunner<S, T> CreateRunner(S initial, MeasurementCollector? measurements = null);
+    ISamplingRunner<S, T> CreateRunner(S initial, MeasurementCollector? measurements = null, string[]? persistentKeys = null, SlotMath.Core.Math.LoopTerminationEvidence? loopEvidence = null);
 }
 
 internal interface ISamplingRunner<S, T>
@@ -20,6 +20,8 @@ internal interface ISamplingRunner<S, T>
     T Run(SeededRandom rng, CancellationToken token);
     S ExportState();
     void ObserveRound(double payout) { }
+    double? RawPayout => null;
+    void ResetTrajectory() { }
 }
 
 // Exact interpreters and program analysis unwrap this annotation. Sampled
@@ -29,7 +31,7 @@ internal sealed class SamplingPlanSlot(Slot<Dictionary<string, object?>, BigInte
     : Slot<Dictionary<string, object?>, BigInteger>, IAnnotationNode, ICompiledSampling<Dictionary<string, object?>, BigInteger>
 {
     object IAnnotationNode.InnerUntyped => reference;
-    public ISamplingRunner<Dictionary<string, object?>, BigInteger> CreateRunner(Dictionary<string, object?> initial, MeasurementCollector? measurements = null) => plan.CreateRunner(initial, measurements);
+    public ISamplingRunner<Dictionary<string, object?>, BigInteger> CreateRunner(Dictionary<string, object?> initial, MeasurementCollector? measurements = null, string[]? persistentKeys = null, SlotMath.Core.Math.LoopTerminationEvidence? loopEvidence = null) => plan.CreateRunner(initial, measurements, persistentKeys, loopEvidence);
 }
 
 internal sealed class SamplingPlan
@@ -46,7 +48,7 @@ internal sealed class SamplingPlan
     private readonly Func<SamplingFrame, SeededRandom, BigInteger> _run;
     private readonly SamplingCell[] _defaults;
     private readonly IReadOnlyList<MeasurementDefinition> _measurements;
-    private readonly Dictionary<int, (Func<SamplingFrame, ExprValue>? Value, Func<SamplingFrame, ExprValue>? Filter)> _measurementExpressions = new();
+    private readonly Dictionary<int, MeasurementBinding<SamplingFrame>> _measurementExpressions = new();
 
     public static Slot<Dictionary<string, object?>, BigInteger> Wrap(GraphConfig config, BigInteger scale, Slot<Dictionary<string, object?>, BigInteger> reference, IReadOnlyList<MeasurementDefinition> measurements)
     {
@@ -70,8 +72,10 @@ internal sealed class SamplingPlan
         _outgoing = config.Nodes.ToDictionary(n => n.Id, n => config.Edges.Where(e => e.SourceNodeId == n.Id).ToArray());
         _expressions = new SamplingExpressions(SlotIndex);
         for (var i = 0; i < measurements.Count; i++)
-            _measurementExpressions[i] = (measurements[i].Value is { } value ? _expressions.Compile(value) : null,
-                measurements[i].Filter is { } filter ? _expressions.Compile(filter) : null);
+            _measurementExpressions[i] = new(CompileMeasurement(measurements[i].Value), CompileMeasurement(measurements[i].Filter),
+                CompileMeasurement(measurements[i].Options?.Group), CompileMeasurement(measurements[i].Options?.Pair),
+                CompileMeasurement(measurements[i].Options?.Weight), CompileMeasurement(measurements[i].Options?.AwardId),
+                CompileMeasurement(measurements[i].Options?.EntryFilter), CompileMeasurement(measurements[i].Options?.ExitFilter));
         var defaults = new Dictionary<int, SamplingCell>();
         foreach (var (key, value) in config.InitialState ?? new())
         {
@@ -102,30 +106,37 @@ internal sealed class SamplingPlan
                     throw new ExpressionEvaluationException("EVAL_PAYOUT_PRECISION", "State payout exceeds the declared paytable precision.", key);
                 win = scaled / cell.Value.NumberDenominator;
             }
+            frame.RawPayout = win;
             return win.Sign < 0 ? throw new InvalidOperationException("Round payouts must be non-negative.") : BigInteger.Min(win, _cap);
         };
         _defaults = new SamplingCell[_layout.Count];
         foreach (var (index, cell) in defaults) _defaults[index] = cell;
     }
 
-    public ISamplingRunner<Dictionary<string, object?>, BigInteger> CreateRunner(Dictionary<string, object?> initial, MeasurementCollector? measurements = null) => new Runner(this, initial, measurements);
-    private sealed class Runner(SamplingPlan plan, Dictionary<string, object?> initial, MeasurementCollector? measurements) : ISamplingRunner<Dictionary<string, object?>, BigInteger>
+    public ISamplingRunner<Dictionary<string, object?>, BigInteger> CreateRunner(Dictionary<string, object?> initial, MeasurementCollector? measurements = null, string[]? persistentKeys = null, SlotMath.Core.Math.LoopTerminationEvidence? loopEvidence = null) => new Runner(this, initial, measurements, persistentKeys, loopEvidence);
+    private sealed class Runner(SamplingPlan plan, Dictionary<string, object?> initial, MeasurementCollector? measurements, string[]? persistentKeys, SlotMath.Core.Math.LoopTerminationEvidence? loopEvidence) : ISamplingRunner<Dictionary<string, object?>, BigInteger>
     {
         private readonly SamplingFrame _frame = new(plan._layout, plan._defaults, initial);
+        private readonly bool[]? _retained = persistentKeys is { Length: > 0 } ? plan._layout.OrderBy(p => p.Value).Select(p => persistentKeys.Contains(p.Key, StringComparer.Ordinal)).ToArray() : null;
+        private bool _started;
+        public void ResetTrajectory() => _started = false;
+        public double? RawPayout => (double)_frame.RawPayout / (double)plan._scale;
         public void ObserveRound(double payout)
         {
             if (measurements is null) return;
             for (var i = 0; i < plan._measurements.Count; i++)
             {
-                var definition = plan._measurements[i]; if (definition.NodeId is not null) continue;
-                var (value, filter) = plan._measurementExpressions[i];
-                if (value is null && filter is null) measurements.ObservePayout(i, payout);
-                else measurements.Observe(i, _frame, value, filter, payout);
+                _frame.Settlement = new(payout, RawPayout, plan._measurements[i].Options?.Stake ?? 1);
+                var binding = plan._measurementExpressions[i];
+                measurements.CompleteRound(i, _frame, binding, payout, RawPayout);
             }
+            _frame.Settlement = null;
         }
-        public BigInteger Run(SeededRandom rng, CancellationToken token) { _frame.Reset(token); _frame.Measurements = measurements; return plan._run(_frame, rng); }
+        public BigInteger Run(SeededRandom rng, CancellationToken token) { _frame.Reset(token, _started ? _retained : null); _started = true; _frame.Measurements = measurements; _frame.LoopEvidence = loopEvidence; return plan._run(_frame, rng); }
         public Dictionary<string, object?> ExportState() => _frame.Export();
     }
+
+    private Func<SamplingFrame, ExprValue>? CompileMeasurement(Expression? expression) => expression is null ? null : _expressions.Compile(expression);
 
     private int SlotIndex(string key)
     {
@@ -179,6 +190,7 @@ internal sealed class SamplingPlan
                         s.Cells[wins] = SamplingCell.Typed(ExprValue.Number(previous + amount));
                     }
                 }
+                s.LoopEvidence?.Observe(loop.Id, (int)s.Cells[counter].Raw!, loop.MaxIterations);
                 var total = s.Cells[wins].Export();
                 return exit is null ? total : exit(s, rng, total);
             };
@@ -205,15 +217,14 @@ internal sealed class SamplingPlan
 
     private Chain ObserveChain(string id, Chain inner)
     {
-        var indexes = _measurements.Select((d, i) => (d, i)).Where(p => p.d.NodeId == id).Select(p => p.i).ToArray();
+        var indexes = _measurements.Select((d, i) => (d, i)).Where(p => p.d.NodeId == id || p.d.Options?.EntryNodeId == id || p.d.Options?.ExitNodeId == id).Select(p => p.i).ToArray();
         if (indexes.Length == 0) return inner;
         return (frame, rng, input) =>
         {
             if (frame.Measurements is { } collector)
                 foreach (var index in indexes)
                 {
-                    var (value, filter) = _measurementExpressions[index];
-                    collector.Observe(index, frame, value!, filter);
+                    collector.Point(index, id, frame, _measurementExpressions[index]);
                 }
             return inner(frame, rng, input);
         };

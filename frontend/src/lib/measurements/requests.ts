@@ -1,0 +1,34 @@
+import { HttpFailure } from '../realtime/RunConnection';
+
+function wait(delay: number, signal: AbortSignal): Promise<void> {
+  signal.throwIfAborted();
+  return new Promise((resolve, reject) => {
+    const abort = () => { clearTimeout(timer); reject(signal.reason); };
+    const timer = setTimeout(() => { signal.removeEventListener('abort', abort); resolve(); }, delay);
+    signal.addEventListener('abort', abort, { once: true });
+  });
+}
+
+/** A calculation may be repeated only after an explicit rejection before execution.
+ * Each accepted attempt has its own timeout; waiting for quota never consumes that
+ * execution budget. Network errors, timeouts and server errors remain ambiguous. */
+export async function calculationRequest<T>(path: string, input: unknown, signal: AbortSignal,
+  status: (message: string) => void, timeout = 25000): Promise<T> {
+  const body = JSON.stringify(input);
+  for (let attempt = 0; ; attempt++) {
+    signal.throwIfAborted();
+    status(attempt ? 'Retrying the rejected calculation…' : 'Calculating…');
+    const response = await fetch(path, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body,
+      signal: AbortSignal.any([signal, AbortSignal.timeout(timeout)]) });
+    const data = await response.json().catch(() => ({}));
+    if (response.ok) return data;
+    if (response.status === 401) window.dispatchEvent(new Event('slotmath:auth-required'));
+    const header = response.headers.get('Retry-After');
+    const parsed = header ? /^\d+$/.test(header) ? Number(header) * 1000 : Date.parse(header) - Date.now() : 1000;
+    const delay = Number.isFinite(parsed) ? Math.max(1000, parsed) : 1000;
+    if (response.status !== 429 || attempt >= 2 || delay > 60000)
+      throw new HttpFailure(data.error ?? data.title ?? (response.status === 429 ? 'Calculation quota is busy. Try again shortly.' : `HTTP ${response.status}`), response.status, delay);
+    status(`Server quota · retrying the rejected calculation in ${Math.ceil(delay / 1000)}s. Cancel to stop waiting.`);
+    await wait(delay, signal);
+  }
+}

@@ -52,6 +52,7 @@ test('acceptance uses the whole interval and withholds verdicts for partial or u
   const zero = evidence(); zero.run.progress!.volatility = zero.run.progress!.stdErr = 0;
   refresh(zero);
   expect(assess(zero.run, .75, 10).title).toBe('Variance unresolved');
+  expect(interval(zero.run.progress)).toBeNull();
 });
 test('integrity catches conflicting terminal metrics, malformed JSON and overlapping histograms', () => {
   for (const patch of [{ seed: 43 }, { configHash: 'x' }, { rtp: 0 }, { volatility: 2 }, { adaptiveHistogram: [] }]) {
@@ -109,7 +110,7 @@ test('portable evidence preserves pinned inputs and escapes HTML and spreadsheet
   expect(reportCsv(a, { ...reference, sourceHash: 'other' })).not.toContain('3/4');
   expect(reportCsv(a, reference)).toContain('"\'=SUM(1,2)');
   const html = reportHtml(a, reference, .5); expect(html).not.toContain('<script>'); expect(html).toContain('&lt;script&gt;');
-  expect(reportCsv(a, reference)).toContain('upstream cap events are not instrumented');
+  expect(reportCsv(a, reference)).toContain('use raw-payout predicate for actual exceedance');
   expect(html).toContain(a.run.configHash); expect(html).toContain('75.000%');
   const noTarget = evidence(1000000); noTarget.model.targetRtp = null;
   const withReference = evidenceBundle(noTarget, reference, .5);

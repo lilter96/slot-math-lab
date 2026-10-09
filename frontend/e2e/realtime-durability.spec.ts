@@ -84,8 +84,11 @@ test('network return reconciles terminal results missed offline and stops reconn
   await expect(page.locator('.run-status')).toHaveText('cancelled');
   const final = await stopped(page, request, run.id);
   const restored = JSON.parse(await page.evaluate(() => localStorage.getItem('slotmath-simulation-v2')!));
-  expect(restored.run.id).toBe(run.id); expect(restored.history.filter((r: { id: string }) => r.id === run.id)).toHaveLength(1);
-  expect(restored.run.resultJson).toBe(final.resultJson);
+  expect(restored.run.id).toBe(run.id); expect(restored.history.filter((r: { id: string }) => r.id === run.id)).toHaveLength(0); // Current run identity is stored once.
+  expect(restored.run.resultJson).toBeNull(); // Rich final evidence is rehydrated from the server.
+  expect(restored.progress.sampleCount).toBe(final.progress.sampleCount);
+  await page.reload(); await expect(page.locator('.run-status')).toHaveText('cancelled');
+  await expect.poll(() => count(page)).toBe(final.progress.sampleCount);
   await expect(page.getByTestId('stream-status')).toContainText('Stream idle');
 });
 

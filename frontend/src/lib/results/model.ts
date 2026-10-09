@@ -1,3 +1,4 @@
+import { sameExecution } from '../measurements/execution';
 import { validSnapshot, terminal, type RunSnapshot, type LiveProgress } from '../realtime/runProtocol';
 export interface RunModel { name: string; modelHash: string | null; targetRtp: number | null; winCap: number | null }
 export interface RunSummary {
@@ -6,7 +7,8 @@ export interface RunSummary {
   streamScheme: string; sampleCount: number; totalSamples: number; rtp: number | null; stdErr: number | null; elapsedMs: number;
 }
 export interface RunPage { items: RunSummary[]; nextCursor: string | null; total: number; completed: number; partial: number; failed: number; active: number }
-export interface RunEvidence { run: RunSnapshot; model: RunModel; pinnedConfig: Record<string, unknown> | null; computedConfigHash: string | null; inputVerified: boolean }
+export interface DiagnosticArtifact { id: string; kind: string; createdAt: string; inputSha256: string; outputSha256: string; configHash: string | null; measurementHash: string | null; runtimeProvenance: { coreBinarySha256: string | null }; input: unknown; output: unknown }
+export interface RunEvidence { run: RunSnapshot; model: RunModel; pinnedConfig: Record<string, unknown> | null; computedConfigHash: string | null; inputVerified: boolean; diagnostics?: DiagnosticArtifact[] }
 export interface Reference {
   sourceHash: string; kind: 'ExactExpectation' | 'ExactDistribution' | 'ExactInterval' | 'Unavailable';
   rtp?: number; lower?: number; upper?: number; rational?: string; note: string; calculatedAt: string;
@@ -60,7 +62,7 @@ export function inspectRun(run: RunSnapshot) {
     error: typeof result?.error === 'string' ? result.error : null };
 }
 export function interval(p?: LiveProgress) {
-  if (!p || p.sampleCount < 2 || !finite(p.stdErr) || p.stdErr < 0) return null;
+  if (!p || p.execution?.carriesState || p.sampleCount < 2 || !finite(p.stdErr) || p.stdErr <= 0) return null;
   return [p.runningRtp - 1.96 * p.stdErr, p.runningRtp + 1.96 * p.stdErr] as const;
 }
 export function wilson(successes: number, n: number) {
@@ -70,7 +72,7 @@ export function wilson(successes: number, n: number) {
   return [Math.max(0, centre - half), Math.min(1, centre + half)] as const;
 }
 export function planSamples(p: LiveProgress | undefined, tolerancePp: number) {
-  if (!p || p.sampleCount < 2 || !finite(tolerancePp) || tolerancePp <= 0 || !finite(p.volatility) || p.volatility <= 0) return null;
+  if (!p || p.execution?.carriesState || p.sampleCount < 2 || !finite(tolerancePp) || tolerancePp <= 0 || !finite(p.volatility) || p.volatility <= 0) return null;
   const estimated = Math.ceil((1.96 * p.volatility / (tolerancePp / 100)) ** 2);
   if (!Number.isSafeInteger(estimated)) return null;
   return { total: Math.max(2, estimated), additional: Math.max(0, estimated - p.sampleCount), exceedsRunLimit: estimated > 10_000_000 };
@@ -81,7 +83,8 @@ export function assess(run: RunSnapshot, target: number | null, tolerancePp: num
   if (check.issues.length) return { kind: 'invalid', title: 'Evidence needs attention', note: check.issues[0] };
   if (!check.complete) return { kind: 'partial', title: terminal(run.status) ? 'Incomplete evidence' : 'Run in progress',
     note: 'Acceptance checks require a completed run. Partial observations remain available for diagnosis.' };
-  if (!p || p.sampleCount < 2) return { kind: 'insufficient', title: 'Insufficient observations', note: 'At least two rounds are required to estimate sampling uncertainty.' };
+  if (p?.execution?.carriesState) return { kind: 'insufficient', title: 'Dependent paid rounds', note: 'This run retains state between rounds. Use independent complete-session evidence or a justified dependence-aware reference; the ordinary round interval is withheld.' };
+  if (!p || p.execution?.carriesState || p.sampleCount < 2) return { kind: 'insufficient', title: 'Insufficient observations', note: 'At least two rounds are required to estimate sampling uncertainty.' };
   if (p.volatility === 0) return { kind: 'insufficient', title: 'Variance unresolved', note: 'No variation was observed. A zero estimated interval does not rule out rare payouts.' };
   if (target == null || !finite(target)) return { kind: 'unverified', title: 'No acceptance target', note: 'This pinned model has no authored target. Calculate its reference to interpret observed RTP.' };
   if (!finite(tolerancePp) || tolerancePp <= 0 || !ci) return { kind: 'insufficient', title: 'Set a valid tolerance', note: 'Tolerance must be a positive number of percentage points.' };
@@ -108,7 +111,7 @@ export function tailBounds(p: LiveProgress, threshold: number) {
     if (bin.lo >= threshold) { lower += bin.count; upper += bin.count; }
     else if ((bin.hi ?? Infinity) > threshold && p.maxWin >= threshold) upper += bin.count;
   }
-  return { lower, upper, zeroEventUpper95: upper === 0 && p.sampleCount ? -Math.expm1(Math.log(.05) / p.sampleCount) : null };
+  return { lower, upper, zeroEventUpper95: upper === 0 && p.sampleCount && !p.execution?.carriesState ? -Math.expm1(Math.log(.05) / p.sampleCount) : null };
 }
 export function compareRuns(a: RunEvidence, b: RunEvidence) {
   const ap = a.run.progress, bp = b.run.progress;
@@ -118,18 +121,20 @@ export function compareRuns(a: RunEvidence, b: RunEvidence) {
     return { kind: 'different', title: 'Different or unverified inputs', note: 'Metrics can be inspected side by side. An agreement verdict requires the same model fingerprint and verified pinned inputs.', delta, ci: null };
   if (!inspectRun(a.run).complete || !inspectRun(b.run).complete || !ap || !bp)
     return { kind: 'partial', title: 'Incomplete comparison', note: 'Partial, failed or inconsistent runs cannot establish a replay or sampling agreement.', delta, ci: null };
-  if (a.run.streamScheme !== b.run.streamScheme)
+  if (!sameExecution(a.run.execution, b.run.execution, false) || a.run.streamScheme !== b.run.streamScheme)
     return { kind: 'correlated', title: 'Stream schemes differ', note: 'Stream compatibility is not established; no replay or independent-difference interval is claimed.', delta, ci: null };
   if (a.run.seed === b.run.seed) {
+    if (a.run.runtimeProvenance?.coreBinarySha256 !== b.run.runtimeProvenance?.coreBinarySha256) return { kind: 'different', title: 'Algorithm artifacts differ', note: 'The saved runs used different Core binaries. Inspect effects side by side; an original-artifact replay verdict is withheld.', delta, ci: null };
     if (ap.sampleCount !== bp.sampleCount) return { kind: 'correlated', title: 'Overlapping seeded streams', note: 'The seeds match but lengths differ. These observations are correlated and must not be pooled or treated as independent.', delta, ci: null };
     const fields = ['sampleCount', 'runningRtp', 'stdErr', 'hitFrequency', 'nonZeroCount', 'volatility', 'maxWin', 'capHits'] as const;
     const sameMeasurementPlan = (a.run.measurementHash ?? null) === (b.run.measurementHash ?? null);
     const measurementMatch = !sameMeasurementPlan || JSON.stringify(ap.measurements ?? []) === JSON.stringify(bp.measurements ?? []);
-    const identical = measurementMatch && fields.every(key => ap[key] === bp[key]) && JSON.stringify(ap.histogram) === JSON.stringify(bp.histogram);
+    const sessionMatch = JSON.stringify(ap.execution?.sessionMetrics ?? []) === JSON.stringify(bp.execution?.sessionMetrics ?? []);
+    const identical = sessionMatch && measurementMatch && fields.every(key => ap[key] === bp[key]) && JSON.stringify(ap.histogram) === JSON.stringify(bp.histogram);
     return { kind: identical ? 'replay-match' : 'replay-mismatch', title: identical ? 'Replay matches' : 'Replay mismatch',
-      note: `Same model, seed, length and stream scheme. Comparing payout aggregates and histogram; elapsed time and worker count are excluded. ${sameMeasurementPlan ? 'Matching collection plans also compare tracked aggregates.' : 'Collection plans differ, so scoped measurements are not compared.'}`, delta, ci: null };
+      note: `Same model, seed, length and stream scheme. Comparing payout aggregates, histogram and complete-session evidence; elapsed time and worker count are excluded. ${sameMeasurementPlan ? 'Matching collection plans also compare tracked aggregates.' : 'Collection plans differ, so scoped measurements are not compared.'}`, delta, ci: null };
   }
-  if (ap.sampleCount < 2 || bp.sampleCount < 2 || ap.volatility === 0 || bp.volatility === 0)
+  if (ap.execution?.carriesState || bp.execution?.carriesState || ap.sampleCount < 2 || bp.sampleCount < 2 || ap.volatility === 0 || bp.volatility === 0)
     return { kind: 'insufficient', title: 'Variance unresolved', note: 'The available runs cannot estimate the uncertainty of their difference.', delta, ci: null };
   const half = 1.96 * Math.hypot(ap.stdErr, bp.stdErr), ci = [delta! - half, delta! + half] as const;
   return { kind: 'independent', title: ci[0] <= 0 && ci[1] >= 0 ? 'Difference includes zero' : 'Difference excludes zero',

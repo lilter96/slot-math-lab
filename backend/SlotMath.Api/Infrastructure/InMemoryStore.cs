@@ -149,6 +149,9 @@ public sealed class InMemoryConfigStore
 /// </summary>
 public sealed record RunEntry
 {
+    public DiagnosticArtifact[] Diagnostics { get; init; } = [];
+    public RuntimeProvenance? RuntimeProvenance { get; init; }
+    public SlotMath.Core.Math.ExecutionOptions? Execution { get; init; }
     public SlotMath.Core.Measurements.MeasurementDefinition[] Measurements { get; init; } = [];
     public string? MeasurementHash { get; init; }
     public string StreamEpoch { get; init; } = "";
@@ -211,13 +214,15 @@ public sealed class InMemoryRunStore
         _lastCheckpoint = _clock.GetTimestamp();
     }
 
-    public RunEntry Create(string configId, long seed = 42, int configVersion = 1, long totalSamples = 0, string? configHash = null, int degreeOfParallelism = 2, SlotMath.Core.Measurements.MeasurementDefinition[]? measurements = null)
+    public RunEntry Create(string configId, long seed = 42, int configVersion = 1, long totalSamples = 0, string? configHash = null, int degreeOfParallelism = 2, SlotMath.Core.Measurements.MeasurementDefinition[]? measurements = null, SlotMath.Core.Math.ExecutionOptions? execution = null)
     {
         // Never reuse an identity after restart, including non-persisted dev runs.
         var id = Guid.NewGuid().ToString("N");
         var entry = new RunEntry
         {
             Id = id,
+            RuntimeProvenance = RuntimeProvenance.Current,
+            Execution = execution,
             StreamEpoch = _streamEpoch,
             ConfigId = configId,
             Seed = seed,
@@ -243,6 +248,30 @@ public sealed class InMemoryRunStore
         {
             _runs.TryGetValue(id, out var entry);
             return entry;
+        }
+    }
+
+    public DiagnosticRetention RetainDiagnostic(string id, string kind, object input, object output)
+    {
+        var inputHash = RuntimeProvenance.AuthoredInputHash(input);
+        var outputHash = RuntimeProvenance.AuthoredInputHash(output);
+        var artifactId = RuntimeProvenance.AuthoredInputHash(new { kind, inputHash, outputHash, RuntimeProvenance.Current.CoreBinarySha256 });
+        var artifact = new DiagnosticArtifact(artifactId, kind, _clock.GetUtcNow(), inputHash, outputHash, null, null,
+            RuntimeProvenance.Current, System.Text.Json.JsonSerializer.SerializeToElement(input, SlotMath.Core.JsonOptions.Default),
+            System.Text.Json.JsonSerializer.SerializeToElement(output, SlotMath.Core.JsonOptions.Default));
+        lock (_gate)
+        {
+            if (!_runs.TryGetValue(id, out var run)) return new(null, false, "Run no longer available. Export this calculation to retain it.");
+            if (run.Diagnostics.Any(d => d.Id == artifactId)) return new(artifactId, true, "Identical server evidence is already retained.");
+            artifact = artifact with { ConfigHash = run.ConfigHash, MeasurementHash = run.MeasurementHash };
+            var next = run.Diagnostics.Append(artifact).ToArray();
+            if (next.Length > 16 || System.Text.Json.JsonSerializer.SerializeToUtf8Bytes(next, SlotMath.Core.JsonOptions.Default).Length > 2_000_000)
+                return new(null, false, "Saved diagnostic budget reached (16 artifacts / 2 MB per run). Existing evidence is preserved; export this calculation.");
+            _runs[id] = run with { Diagnostics = next };
+            try { Persist(); }
+            catch (IOException)
+            { _runs[id] = run; return new(null, false, "Diagnostic storage failed. Existing evidence is preserved; export this calculation."); }
+            return new(artifactId, true, _snapshots is null ? "Retained in the server's current in-memory archive." : "Retained in the encrypted durable archive.");
         }
     }
 

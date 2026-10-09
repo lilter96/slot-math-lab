@@ -85,6 +85,7 @@ public sealed record EvaluateLightResponse
 
 public sealed record CreateRunRequest
 {
+    public SlotMath.Core.Math.ExecutionOptions? Execution { get; init; }
     public MeasurementInput[] Measurements { get; init; } = [];
     public int? ConfigVersion { get; init; }
     public long Seed { get; init; } = 42;
@@ -96,6 +97,8 @@ public sealed record CreateRunRequest
 
 public sealed record RunResponse
 {
+    public RuntimeProvenance? RuntimeProvenance { get; init; }
+    public SlotMath.Core.Math.ExecutionOptions? Execution { get; init; }
     public MeasurementInput[] Measurements { get; init; } = [];
     public string? MeasurementHash { get; init; }
     public string StreamEpoch { get; init; } = "";
@@ -116,6 +119,7 @@ public sealed record RunResponse
 
     public static RunResponse From(RunEntry run) => new()
     {
+        RuntimeProvenance = run.RuntimeProvenance, Execution = run.Execution, StreamScheme = run.Execution?.StreamScheme ?? "splitmix64-chunk-65536",
         Measurements = run.Measurements.Select(MeasurementInput.FromCore).ToArray(), MeasurementHash = run.MeasurementHash,
         Id = run.Id, ConfigId = run.ConfigId, Seed = run.Seed, ConfigVersion = run.ConfigVersion,
         ConfigHash = run.ConfigHash, DegreeOfParallelism = run.DegreeOfParallelism, Status = run.Status,
@@ -132,6 +136,7 @@ public sealed record RunHistogramBin(double Lo, double? Hi, long Count);
 
 public sealed record RunProgressMessage
 {
+    public SlotMath.Core.Math.ExecutionSummary? Execution { get; init; }
     public IReadOnlyList<MeasurementSnapshot> Measurements { get; init; } = [];
     public string? MeasurementHash { get; init; }
     public string StreamEpoch { get; init; } = "";

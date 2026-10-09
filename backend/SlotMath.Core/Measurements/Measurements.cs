@@ -14,61 +14,25 @@ public sealed record MeasurementDefinition
     public Expression? Value { get; init; }
     public Expression? Filter { get; init; }
     public string Unit { get; init; } = "";
+    public MeasurementOptions? Options { get; init; }
 }
 public sealed record MeasurementPoint(string NodeId, string Label);
 public sealed record MeasurementField(string Name, string Type);
 public sealed record MeasurementSchema(IReadOnlyList<MeasurementPoint> Points, IReadOnlyList<MeasurementField> Fields);
 public sealed record MeasurementSnapshot(string Id, long Observations, long Count, long Excluded, long Errors,
-    double? Min, double? Max, double? Mean, double? Sum, double? StdDev, string? FirstError);
-
-/// <summary>Worker-private bounded storage. A round is committed atomically: observations from an
-/// interrupted round are discarded. No histories, state copies or RNG calls are retained.</summary>
-internal sealed class MeasurementCollector(IReadOnlyList<MeasurementDefinition> definitions)
+    double? Min, double? Max, double? Mean, double? Sum, double? StdDev, string? FirstError)
 {
-    private readonly MeasurementAccumulator[] _round = new MeasurementAccumulator[definitions.Count];
-    public MeasurementAccumulator[] Total { get; } = new MeasurementAccumulator[definitions.Count];
-    public MeasurementAccumulator[] Delta { get; } = new MeasurementAccumulator[definitions.Count];
-    public IReadOnlyList<MeasurementDefinition> Definitions => definitions;
-    public void Begin() => Array.Clear(_round);
-    public void Observe<T>(int index, T state, Func<T, ExprValue>? value, Func<T, ExprValue>? filter, double payout = 0)
-    {
-        ref var accumulator = ref _round[index];
-        accumulator.Observations++;
-        try
-        {
-            if (filter is not null)
-            {
-                var predicate = filter(state);
-                if (predicate.Kind != ExprType.Boolean) throw new InvalidOperationException("Measurement filter must return Boolean.");
-                if (!predicate.BoolValue) { accumulator.Excluded++; return; }
-            }
-            if (value is null) { accumulator.Add(payout); return; }
-            var number = value(state);
-            if (number.Kind != ExprType.Number) throw new InvalidOperationException("Measurement value must return Number.");
-            accumulator.Add(number.AsDouble());
-        }
-        catch (Exception ex) when (ex is ExpressionEvaluationException or InvalidOperationException or FormatException or ArithmeticException or ArgumentException)
-        { accumulator.Errors++; accumulator.FirstError ??= ex.Message.Length > 240 ? ex.Message[..240] : ex.Message; }
-    }
-    public void ObservePayout(int index, double payout)
-    {
-        _round[index].Observations++;
-        _round[index].Add(payout);
-    }
-    public void Commit()
-    {
-        Merge(Total, _round); Merge(Delta, _round);
-    }
-    public static void Merge(MeasurementAccumulator[] target, MeasurementAccumulator[] source)
-    { for (var i = 0; i < target.Length; i++) target[i].Merge(source[i]); }
-    public static MeasurementSnapshot[] Snapshot(IReadOnlyList<MeasurementDefinition> definitions, MeasurementAccumulator[] values)
-        => values.Select((value, i) => value.Snapshot(definitions[i].Id)).ToArray();
+    public MeasurementAnalysis? Analysis { get; init; }
+    public MeasurementWitness[] Witnesses { get; init; } = [];
 }
+
 internal struct MeasurementAccumulator
 {
     public long Observations, Count, Excluded, Errors;
     public double Min, Max, Mean, Sum, M2;
     public string? FirstError;
+    public MeasurementAnalysisAccumulator? Analysis;
+    public WitnessAccumulator? Witnesses;
     public void Add(double value)
     {
         var count = Count + 1;
@@ -83,6 +47,12 @@ internal struct MeasurementAccumulator
     }
     public void Merge(MeasurementAccumulator other)
     {
+        if (other.Witnesses is not null) (Witnesses ??= new()).Merge(other.Witnesses);
+        if (other.Analysis is not null)
+        {
+            Analysis ??= other.Analysis.Empty();
+            Analysis.Merge(other.Analysis);
+        }
         Observations += other.Observations; Excluded += other.Excluded; Errors += other.Errors; FirstError ??= other.FirstError;
         if (other.Count == 0) return;
         if (Count == 0) { Count = other.Count; Min = other.Min; Max = other.Max; Mean = other.Mean; Sum = other.Sum; M2 = other.M2; return; }
@@ -94,7 +64,7 @@ internal struct MeasurementAccumulator
         if (!double.IsFinite(Mean) || !double.IsFinite(M2) || !double.IsFinite(Sum))
             throw new InvalidOperationException("Measurement aggregate exceeds finite numeric range.");
     }
-    public readonly MeasurementSnapshot Snapshot(string id) => new(id, Observations, Count, Excluded, Errors,
+    public readonly MeasurementSnapshot Snapshot(string id, bool ordered = true) => new(id, Observations, Count, Excluded, Errors,
         Count == 0 ? null : Min, Count == 0 ? null : Max, Count == 0 ? null : Mean, Count == 0 ? null : Sum,
-        Count < 2 ? null : System.Math.Sqrt(System.Math.Max(0, M2 / (Count - 1))), FirstError);
+        Count < 2 ? null : System.Math.Sqrt(System.Math.Max(0, M2 / (Count - 1))), FirstError) { Analysis = Analysis?.Snapshot(Errors, ordered), Witnesses = Witnesses?.Snapshot() ?? [] };
 }

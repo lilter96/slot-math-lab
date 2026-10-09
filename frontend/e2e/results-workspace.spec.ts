@@ -45,7 +45,7 @@ test('reference and exports use saved version after latest config changes; graph
   const bundle = JSON.parse(await readFile((await (await jsonDownload).path())!, 'utf8'));
   expect(bundle.evidence.pinnedConfig.name).toBe(config.name); expect(bundle.evidence.run.configVersion).toBe(1); expect(bundle.reference.rational).toBe('3/4');
   expect(bundle.evidence.run.configHash).toBe(original.configHash);
-  for (const [label, contains] of [['Download metrics CSV', 'Sampler clipping count'], ['Printable report HTML', original.configHash]]) {
+  for (const [label, contains] of [['Download metrics CSV', 'Win-cap reach count'], ['Printable report HTML', original.configHash]]) {
     const pending = page.waitForEvent('download'); await page.getByRole('button', { name: label, exact: true }).click();
     expect(await readFile((await (await pending).path())!, 'utf8')).toContain(contains);
   }

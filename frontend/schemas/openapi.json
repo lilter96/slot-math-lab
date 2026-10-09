@@ -1,29 +1,138 @@
 {
-  "openapi": "3.1.0",
+  "openapi": "3.1.1",
   "info": {
-    "title": "Slot Math Lab API",
-    "version": "1.0.0",
-    "description": "No-code slot math constructor API"
+    "title": "SlotMath.Api | v1",
+    "version": "1.0.0"
   },
   "servers": [
     {
-      "url": "http://localhost:5152"
+      "url": "http://localhost:5152/"
     }
   ],
   "paths": {
-    "/api/configs": {
+    "/ready": {
       "get": {
-        "operationId": "listConfigs",
-        "summary": "List all configs",
+        "tags": [
+          "SlotMath.Api"
+        ],
         "responses": {
           "200": {
-            "description": "Config list",
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/evaluate/graph": {
+      "post": {
+        "tags": [
+          "SlotMath.Api"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GraphEvaluationRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/play/round": {
+      "post": {
+        "tags": [
+          "SlotMath.Api"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PlayRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlayResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/token": {
+      "post": {
+        "tags": [
+          "SlotMath.Api"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TokenRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/auth/status": {
+      "get": {
+        "tags": [
+          "SlotMath.Api"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/auth/logout": {
+      "post": {
+        "tags": [
+          "SlotMath.Api"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/configs": {
+      "get": {
+        "tags": [
+          "SlotMath.Api"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
             "content": {
               "application/json": {
                 "schema": {
                   "type": "array",
                   "items": {
-                    "$ref": "#/components/schemas/ConfigSummary"
+                    "$ref": "#/components/schemas/ConfigListResponse"
                   }
                 }
               }
@@ -32,21 +141,22 @@
         }
       },
       "post": {
-        "operationId": "createConfig",
-        "summary": "Create a new config",
+        "tags": [
+          "SlotMath.Api"
+        ],
         "requestBody": {
-          "required": true,
           "content": {
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/CreateConfigRequest"
               }
             }
-          }
+          },
+          "required": true
         },
         "responses": {
           "201": {
-            "description": "Config created",
+            "description": "Created",
             "content": {
               "application/json": {
                 "schema": {
@@ -54,17 +164,15 @@
                 }
               }
             }
-          },
-          "400": {
-            "description": "Invalid JSON"
           }
         }
       }
     },
     "/api/configs/{id}": {
       "get": {
-        "operationId": "getConfig",
-        "summary": "Get a config by ID",
+        "tags": [
+          "SlotMath.Api"
+        ],
         "parameters": [
           {
             "name": "id",
@@ -77,23 +185,21 @@
         ],
         "responses": {
           "200": {
-            "description": "Config detail",
+            "description": "OK",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ConfigDetail"
+                  "$ref": "#/components/schemas/ConfigDetailResponse"
                 }
               }
             }
-          },
-          "404": {
-            "description": "Not found"
           }
         }
       },
       "put": {
-        "operationId": "updateConfig",
-        "summary": "Update a config",
+        "tags": [
+          "SlotMath.Api"
+        ],
         "parameters": [
           {
             "name": "id",
@@ -105,18 +211,18 @@
           }
         ],
         "requestBody": {
-          "required": true,
           "content": {
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/UpdateConfigRequest"
               }
             }
-          }
+          },
+          "required": true
         },
         "responses": {
           "200": {
-            "description": "Updated",
+            "description": "OK",
             "content": {
               "application/json": {
                 "schema": {
@@ -124,42 +230,13 @@
                 }
               }
             }
-          },
-          "404": {
-            "description": "Not found"
           }
         }
       },
       "delete": {
-        "operationId": "deleteConfig",
-        "summary": "Delete a config",
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
+        "tags": [
+          "SlotMath.Api"
         ],
-        "responses": {
-          "204": {
-            "description": "Deleted"
-          },
-          "404": {
-            "description": "Not found"
-          },
-          "409": {
-            "description": "Config is pinned by saved run evidence"
-          }
-        }
-      }
-    },
-    "/api/configs/{id}/versions": {
-      "get": {
-        "operationId": "listConfigVersions",
-        "summary": "List all versions of a config",
         "parameters": [
           {
             "name": "id",
@@ -172,28 +249,38 @@
         ],
         "responses": {
           "200": {
-            "description": "Version list",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/VersionEntry"
-                  }
-                }
-              }
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/configs/{id}/versions": {
+      "get": {
+        "tags": [
+          "SlotMath.Api"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
             }
-          },
-          "404": {
-            "description": "Not found"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
           }
         }
       }
     },
     "/api/configs/{id}/versions/{version}": {
       "get": {
-        "operationId": "getConfigVersion",
-        "summary": "Get a specific config version",
+        "tags": [
+          "SlotMath.Api"
+        ],
         "parameters": [
           {
             "name": "id",
@@ -208,68 +295,65 @@
             "in": "path",
             "required": true,
             "schema": {
-              "type": "integer"
+              "type": "integer",
+              "format": "int32"
             }
           }
         ],
         "responses": {
           "200": {
-            "description": "Config version detail",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ConfigDetail"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Not found"
+            "description": "OK"
           }
         }
       }
     },
     "/api/validate": {
       "post": {
-        "operationId": "validateConfig",
-        "summary": "Validate a graph config",
+        "tags": [
+          "SlotMath.Api"
+        ],
         "requestBody": {
-          "required": true,
           "content": {
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/ValidateRequest"
               }
             }
-          }
+          },
+          "required": true
         },
         "responses": {
           "200": {
-            "description": "OK"
-          },
-          "400": {
-            "description": "Invalid JSON"
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidateResponse"
+                }
+              }
+            }
           }
         }
       }
     },
     "/api/evaluate/light": {
       "post": {
-        "operationId": "evaluateLight",
-        "summary": "Fast regime-aware evaluation",
+        "tags": [
+          "SlotMath.Api"
+        ],
         "requestBody": {
-          "required": true,
           "content": {
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/EvaluateLightRequest"
               }
             }
-          }
+          },
+          "required": true
         },
         "responses": {
           "200": {
-            "description": "Evaluation result",
+            "description": "OK",
             "content": {
               "application/json": {
                 "schema": {
@@ -277,58 +361,265 @@
                 }
               }
             }
+          }
+        }
+      }
+    },
+    "/api/runs/{id}/measurements/replay": {
+      "post": {
+        "tags": [
+          "SlotMath.Api"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MeasurementReplayRequest"
+              }
+            }
           },
-          "400": {
-            "description": "Invalid JSON"
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MeasurementReplayReport"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/runs/{id}/measurements/calibration": {
+      "post": {
+        "tags": [
+          "SlotMath.Api"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MeasurementCalibrationRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MeasurementCalibrationReport"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/runs/{id}/measurements/reference/distribution": {
+      "post": {
+        "tags": [
+          "SlotMath.Api"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FiniteModelRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RetainedReferenceOfFiniteModelReport"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/runs/{id}/measurements/reference/markov": {
+      "post": {
+        "tags": [
+          "SlotMath.Api"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MarkovModelRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RetainedReferenceOfMarkovModelReport"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/runs/measurements/reference/planning": {
+      "post": {
+        "tags": [
+          "SlotMath.Api"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SamplePlanRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SamplePlanReport"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/runs/measurements/reference/distribution": {
+      "post": {
+        "tags": [
+          "SlotMath.Api"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FiniteModelRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FiniteModelReport"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/runs/measurements/reference/markov": {
+      "post": {
+        "tags": [
+          "SlotMath.Api"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MarkovModelRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MarkovModelReport"
+                }
+              }
+            }
           }
         }
       }
     },
     "/api/runs": {
-      "post": {
-        "operationId": "createRun",
-        "summary": "Create a new evaluation run",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CreateRunRequest"
-              }
-            }
-          }
-        },
-        "responses": {
-          "202": {
-            "description": "Run enqueued",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/RunResponse"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Config not found"
-          },
-          "400": {
-            "description": "Invalid version, seed, workers or round budget"
-          }
-        }
-      },
       "get": {
-        "operationId": "listRunArchive",
-        "summary": "Cursor-paginated server run archive without result JSON or histograms",
+        "tags": [
+          "SlotMath.Api"
+        ],
         "parameters": [
           {
             "name": "limit",
             "in": "query",
             "schema": {
               "type": "integer",
-              "minimum": 1,
-              "maximum": 100,
-              "default": 20
+              "format": "int32"
             }
           },
           {
@@ -339,31 +630,23 @@
             }
           },
           {
-            "name": "search",
-            "in": "query",
-            "schema": {
-              "type": "string",
-              "maxLength": 200
-            }
-          },
-          {
             "name": "status",
             "in": "query",
             "schema": {
-              "type": "string",
-              "enum": [
-                "all",
-                "completed",
-                "partial",
-                "failed",
-                "active"
-              ]
+              "type": "string"
+            }
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "schema": {
+              "type": "string"
             }
           }
         ],
         "responses": {
           "200": {
-            "description": "Saved run evidence",
+            "description": "OK",
             "content": {
               "application/json": {
                 "schema": {
@@ -371,157 +654,42 @@
                 }
               }
             }
-          },
-          "400": {
-            "description": "Invalid query or cursor"
-          },
-          "401": {
-            "description": "Authentication required in production"
-          }
-        }
-      }
-    },
-    "/api/runs/{id}": {
-      "get": {
-        "operationId": "getRun",
-        "summary": "Get run status and progress",
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Run status",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/RunResponse"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Not found"
-          }
-        }
-      },
-      "delete": {
-        "operationId": "cancelRun",
-        "summary": "Cancel a running job",
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Authoritative cancellation snapshot; completion may race with cancellation.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/RunResponse"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Not found"
-          },
-          "409": {
-            "description": "Already completed/failed/cancelled"
-          }
-        }
-      }
-    },
-    "/api/plugins": {
-      "get": {
-        "operationId": "listPlugins",
-        "summary": "List all registered plugins",
-        "responses": {
-          "200": {
-            "description": "Plugin list",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/PluginEntry"
-                  }
-                }
-              }
-            }
           }
         }
       },
       "post": {
-        "operationId": "registerPlugin",
-        "summary": "Register a new plugin",
+        "tags": [
+          "SlotMath.Api"
+        ],
         "requestBody": {
-          "required": true,
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/RegisterPluginRequest"
+                "$ref": "#/components/schemas/CreateRunRequest"
               }
             }
-          }
+          },
+          "required": true
         },
         "responses": {
-          "200": {
-            "description": "Registered"
-          },
-          "409": {
-            "description": "Already registered"
-          }
-        }
-      }
-    },
-    "/api/plugins/{id}": {
-      "get": {
-        "operationId": "getPlugin",
-        "summary": "Get a plugin by ID",
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Plugin detail",
+          "202": {
+            "description": "Accepted",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/PluginEntry"
+                  "$ref": "#/components/schemas/RunResponse"
                 }
               }
             }
-          },
-          "404": {
-            "description": "Not found"
           }
         }
       }
     },
     "/api/runs/{id}/evidence": {
       "get": {
-        "operationId": "getRunEvidence",
-        "summary": "Retrieve original pinned config and provenance for a run",
+        "tags": [
+          "SlotMath.Api"
+        ],
         "parameters": [
           {
             "name": "id",
@@ -534,7 +702,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Saved run evidence",
+            "description": "OK",
             "content": {
               "application/json": {
                 "schema": {
@@ -542,12 +710,45 @@
                 }
               }
             }
+          }
+        }
+      }
+    },
+    "/api/runs/{id}/measurements/reference": {
+      "post": {
+        "tags": [
+          "SlotMath.Api"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EnumerationBudget"
+              }
+            }
           },
-          "404": {
-            "description": "Run not found"
-          },
-          "401": {
-            "description": "Authentication required in production"
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GraphMeasurementReference"
+                }
+              }
+            }
           }
         }
       }
@@ -555,38 +756,21 @@
     "/api/runs/measurements/schema": {
       "post": {
         "tags": [
-          "Runs"
+          "SlotMath.Api"
         ],
-        "summary": "Discover flattened observation points and state fields; optionally validate a measurement plan",
         "requestBody": {
-          "required": true,
           "content": {
             "application/json": {
               "schema": {
-                "type": "object",
-                "required": [
-                  "config"
-                ],
-                "properties": {
-                  "config": {
-                    "type": "object",
-                    "additionalProperties": true
-                  },
-                  "measurements": {
-                    "type": "array",
-                    "maxItems": 32,
-                    "items": {
-                      "$ref": "#/components/schemas/MeasurementDefinition"
-                    }
-                  }
-                }
+                "$ref": "#/components/schemas/MeasurementSchemaRequest"
               }
             }
-          }
+          },
+          "required": true
         },
         "responses": {
           "200": {
-            "description": "Compiled measurement schema",
+            "description": "OK",
             "content": {
               "application/json": {
                 "schema": {
@@ -594,12 +778,372 @@
                 }
               }
             }
+          }
+        }
+      }
+    },
+    "/api/runs/{id}": {
+      "get": {
+        "tags": [
+          "SlotMath.Api"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RunResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "SlotMath.Api"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/plugins": {
+      "get": {
+        "tags": [
+          "SlotMath.Api"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "SlotMath.Api"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterPluginRequest"
+              }
+            }
           },
-          "400": {
-            "description": "Invalid graph or measurement plan"
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/plugins/{id}": {
+      "get": {
+        "tags": [
+          "SlotMath.Api"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/persisted/{projectId}/configs": {
+      "post": {
+        "tags": [
+          "SlotMath.Api"
+        ],
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": { }
+            }
           },
-          "429": {
-            "description": "Compute limit; honor Retry-After"
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "SlotMath.Api"
+        ],
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/persisted/{projectId}/configs/latest": {
+      "get": {
+        "tags": [
+          "SlotMath.Api"
+        ],
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/persisted/{projectId}/configs/{version}": {
+      "get": {
+        "tags": [
+          "SlotMath.Api"
+        ],
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "version",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/persisted/cache/{configHash}": {
+      "post": {
+        "tags": [
+          "SlotMath.Api"
+        ],
+        "parameters": [
+          {
+            "name": "configHash",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": { }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "SlotMath.Api"
+        ],
+        "parameters": [
+          {
+            "name": "configHash",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/persisted/cache/{configHash}/recompute-count": {
+      "get": {
+        "tags": [
+          "SlotMath.Api"
+        ],
+        "parameters": [
+          {
+            "name": "configHash",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/ai/generate-graph": {
+      "post": {
+        "tags": [
+          "SlotMath.Api"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GenerateGraphRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/ai/auto-tune": {
+      "post": {
+        "tags": [
+          "SlotMath.Api"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AutoTuneRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/ai/lint": {
+      "post": {
+        "tags": [
+          "SlotMath.Api"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LintRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/ai/explain": {
+      "post": {
+        "tags": [
+          "SlotMath.Api"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ExplainRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
           }
         }
       }
@@ -607,7 +1151,84 @@
   },
   "components": {
     "schemas": {
-      "ConfigSummary": {
+      "AutoTuneRequest": {
+        "required": [
+          "config"
+        ],
+        "type": "object",
+        "properties": {
+          "config": { },
+          "targetRtp": {
+            "type": "number",
+            "format": "double"
+          },
+          "maxIterations": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "volatilityMin": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
+          },
+          "volatilityMax": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
+          },
+          "maxWinMin": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
+          },
+          "maxWinMax": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
+          }
+        }
+      },
+      "ConfigDetailResponse": {
+        "required": [
+          "id",
+          "version",
+          "config",
+          "createdAt"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "version": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "config": { },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "ConfigListResponse": {
+        "required": [
+          "id",
+          "name",
+          "latestVersion",
+          "updatedAt"
+        ],
         "type": "object",
         "properties": {
           "id": {
@@ -617,139 +1238,37 @@
             "type": "string"
           },
           "latestVersion": {
-            "type": "integer"
+            "type": "integer",
+            "format": "int32"
           },
           "updatedAt": {
-            "type": "string"
-          }
-        }
-      },
-      "ConfigDetail": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string"
-          },
-          "version": {
-            "type": "integer"
-          },
-          "config": {
-            "type": "object",
-            "additionalProperties": true
-          },
-          "createdAt": {
-            "type": "string"
+            "type": "string",
+            "format": "date-time"
           }
         }
       },
       "CreateConfigRequest": {
-        "type": "object",
-        "properties": {
-          "config": {
-            "type": "object",
-            "additionalProperties": true
-          }
-        },
         "required": [
           "config"
-        ]
-      },
-      "UpdateConfigRequest": {
+        ],
         "type": "object",
         "properties": {
-          "config": {
-            "type": "object",
-            "additionalProperties": true
-          }
-        },
-        "required": [
-          "config"
-        ]
+          "config": { }
+        }
       },
       "CreateConfigResponse": {
+        "required": [
+          "id",
+          "version"
+        ],
         "type": "object",
         "properties": {
           "id": {
             "type": "string"
           },
           "version": {
-            "type": "integer"
-          }
-        }
-      },
-      "VersionEntry": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string"
-          },
-          "version": {
-            "type": "integer"
-          },
-          "createdAt": {
-            "type": "string"
-          }
-        }
-      },
-      "ValidateRequest": {
-        "type": "object",
-        "properties": {
-          "config": {
-            "type": "object",
-            "additionalProperties": true
-          }
-        },
-        "required": [
-          "config"
-        ]
-      },
-      "EvaluateLightRequest": {
-        "type": "object",
-        "properties": {
-          "config": {
-            "type": "object",
-            "additionalProperties": true
-          },
-          "maxBranches": {
-            "type": "integer"
-          },
-          "sampleSize": {
-            "type": "integer"
-          }
-        },
-        "required": [
-          "config"
-        ]
-      },
-      "EvaluateLightResponse": {
-        "type": "object",
-        "properties": {
-          "strategy": {
-            "type": "string"
-          },
-          "rtp": {
-            "type": "number"
-          },
-          "hitFrequency": {
-            "type": "number"
-          },
-          "volatility": {
-            "type": "number"
-          },
-          "stdErr": {
-            "type": "number"
-          },
-          "ci95": {
-            "type": "string"
-          },
-          "provenance": {
-            "type": "string"
-          },
-          "sampleCount": {
-            "type": "integer"
-          },
-          "elapsedMs": {
-            "type": "number"
+            "type": "integer",
+            "format": "int32"
           }
         }
       },
@@ -759,6 +1278,29 @@
         ],
         "type": "object",
         "properties": {
+          "execution": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/ExecutionOptions"
+              }
+            ]
+          },
+          "measurements": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MeasurementInput"
+            }
+          },
+          "configVersion": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
           "seed": {
             "type": "integer",
             "format": "int64"
@@ -783,20 +1325,2277 @@
           "degreeOfParallelism": {
             "type": "integer",
             "format": "int32"
+          }
+        }
+      },
+      "DiagnosticArtifact": {
+        "required": [
+          "id",
+          "kind",
+          "createdAt",
+          "inputSha256",
+          "outputSha256",
+          "configHash",
+          "measurementHash",
+          "runtimeProvenance",
+          "input",
+          "output"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
           },
-          "configVersion": {
+          "kind": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "inputSha256": {
+            "type": "string"
+          },
+          "outputSha256": {
+            "type": "string"
+          },
+          "configHash": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "measurementHash": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "runtimeProvenance": {
+            "$ref": "#/components/schemas/RuntimeProvenance"
+          },
+          "input": {
+            "$ref": "#/components/schemas/JsonElement"
+          },
+          "output": {
+            "$ref": "#/components/schemas/JsonElement"
+          }
+        }
+      },
+      "DiagnosticRetention": {
+        "required": [
+          "artifactId",
+          "retained",
+          "note"
+        ],
+        "type": "object",
+        "properties": {
+          "artifactId": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "retained": {
+            "type": "boolean"
+          },
+          "note": {
+            "type": "string"
+          }
+        }
+      },
+      "DistributionBin": {
+        "required": [
+          "lower",
+          "upper",
+          "count",
+          "sum",
+          "sumSquares"
+        ],
+        "type": "object",
+        "properties": {
+          "lower": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
+          },
+          "upper": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
+          },
+          "count": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "sum": {
+            "type": "number",
+            "format": "double"
+          },
+          "sumSquares": {
+            "type": "number",
+            "format": "double"
+          }
+        }
+      },
+      "DistributionComparison": {
+        "required": [
+          "totalVariation",
+          "cdfDistance",
+          "chiSquare",
+          "degreesOfFreedom",
+          "expectedCountsAdequate",
+          "unexpectedObservations",
+          "pValue",
+          "calibration"
+        ],
+        "type": "object",
+        "properties": {
+          "totalVariation": {
+            "type": "number",
+            "format": "double"
+          },
+          "cdfDistance": {
+            "type": "number",
+            "format": "double"
+          },
+          "chiSquare": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
+          },
+          "degreesOfFreedom": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "expectedCountsAdequate": {
+            "type": "boolean"
+          },
+          "unexpectedObservations": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "pValue": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
+          },
+          "calibration": {
+            "type": "string"
+          }
+        }
+      },
+      "EnumeratedMeasurement": {
+        "required": [
+          "id",
+          "eligiblePerRound",
+          "validPerRound",
+          "excludedPerRound",
+          "invalidPerRound",
+          "knownSumPerRound",
+          "conditionalMean",
+          "support",
+          "supportComplete",
+          "firstError"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "eligiblePerRound": {
+            "type": "string"
+          },
+          "validPerRound": {
+            "type": "string"
+          },
+          "excludedPerRound": {
+            "type": "string"
+          },
+          "invalidPerRound": {
+            "type": "string"
+          },
+          "knownSumPerRound": {
+            "type": "string"
+          },
+          "conditionalMean": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "support": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EnumeratedValue"
+            }
+          },
+          "supportComplete": {
+            "type": "boolean"
+          },
+          "firstError": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "EnumeratedValue": {
+        "required": [
+          "value",
+          "massPerPaidRound"
+        ],
+        "type": "object",
+        "properties": {
+          "value": {
+            "type": "number",
+            "format": "double"
+          },
+          "massPerPaidRound": {
+            "type": "string"
+          }
+        }
+      },
+      "EnumerationBudget": {
+        "type": "object",
+        "properties": {
+          "maximumPaths": {
+            "type": "integer",
+            "format": "int32",
+            "default": 10000
+          },
+          "maximumOperations": {
+            "type": "integer",
+            "format": "int32",
+            "default": 250000
+          },
+          "maximumFrontier": {
+            "type": "integer",
+            "format": "int32",
+            "default": 2048
+          }
+        }
+      },
+      "EvaluateLightRequest": {
+        "required": [
+          "config"
+        ],
+        "type": "object",
+        "properties": {
+          "seed": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "config": { },
+          "maxBranches": {
             "type": [
               "null",
               "integer"
             ],
-            "minimum": 1,
-            "description": "Replay a pinned version; omitted selects latest at creation."
+            "format": "int32"
+          },
+          "sampleSize": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          }
+        }
+      },
+      "EvaluateLightResponse": {
+        "required": [
+          "strategy"
+        ],
+        "type": "object",
+        "properties": {
+          "lo": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
+          },
+          "hi": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
+          },
+          "prunedMass": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
+          },
+          "seed": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "errors": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ValidateErrorItem"
+            }
+          },
+          "strategy": {
+            "type": "string"
+          },
+          "rtp": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
+          },
+          "hitFrequency": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
+          },
+          "volatility": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
+          },
+          "stdErr": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
+          },
+          "ci95": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "provenance": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "sampleCount": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "elapsedMs": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
+          }
+        }
+      },
+      "ExecutionOptions": {
+        "type": "object",
+        "properties": {
+          "samplingEngine": {
+            "type": "string"
+          },
+          "regime": {
+            "type": "string"
+          },
+          "persistentKeys": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "sessionLength": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "initialBankroll": {
+            "type": "number",
+            "format": "double"
+          },
+          "wager": {
+            "type": "number",
+            "format": "double"
+          },
+          "featureMetricId": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "streamScheme": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        },
+        "additionalProperties": false
+      },
+      "ExecutionSummary": {
+        "required": [
+          "regime",
+          "attemptedRounds",
+          "completedRounds",
+          "interruptedRounds",
+          "cancelledRounds",
+          "failedRounds",
+          "completedSessions",
+          "interruptedSessions",
+          "carriesState",
+          "stateResetPolicy",
+          "sessionPolicy",
+          "sessionMetrics"
+        ],
+        "type": "object",
+        "properties": {
+          "regime": {
+            "type": "string"
+          },
+          "attemptedRounds": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "completedRounds": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "interruptedRounds": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "cancelledRounds": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "failedRounds": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "completedSessions": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "interruptedSessions": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "carriesState": {
+            "type": "boolean"
+          },
+          "stateResetPolicy": {
+            "type": "string"
+          },
+          "sessionPolicy": {
+            "type": "string"
+          },
+          "sessionMetrics": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MeasurementSnapshot"
+            }
+          },
+          "samplingEngine": {
+            "type": "string"
+          },
+          "loopTerminations": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LoopTerminationSummary"
+            }
+          },
+          "loopTerminationsComplete": {
+            "type": "boolean"
+          }
+        }
+      },
+      "ExplainRequest": {
+        "type": "object",
+        "properties": {
+          "config": { },
+          "rtp": {
+            "type": "number",
+            "format": "double"
+          },
+          "hitFrequency": {
+            "type": "number",
+            "format": "double"
+          },
+          "volatility": {
+            "type": "number",
+            "format": "double"
+          },
+          "ci95": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "FiniteModelReport": {
+        "required": [
+          "provenance",
+          "retainedMass",
+          "prunedMass",
+          "cost",
+          "mean",
+          "rtp",
+          "secondMoment",
+          "variance",
+          "hitProbability",
+          "houseEdge",
+          "maximumKnownOutcome",
+          "provenMaximum",
+          "skewness",
+          "excessKurtosis",
+          "assumptions"
+        ],
+        "type": "object",
+        "properties": {
+          "provenance": {
+            "type": "string"
+          },
+          "retainedMass": {
+            "type": "string"
+          },
+          "prunedMass": {
+            "type": "string"
+          },
+          "cost": {
+            "type": "string"
+          },
+          "mean": {
+            "$ref": "#/components/schemas/RationalBounds"
+          },
+          "rtp": {
+            "$ref": "#/components/schemas/RationalBounds"
+          },
+          "secondMoment": {
+            "$ref": "#/components/schemas/RationalBounds"
+          },
+          "variance": {
+            "$ref": "#/components/schemas/RationalBounds"
+          },
+          "hitProbability": {
+            "$ref": "#/components/schemas/RationalBounds"
+          },
+          "houseEdge": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "maximumKnownOutcome": {
+            "type": "string"
+          },
+          "provenMaximum": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "skewness": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "excessKurtosis": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "assumptions": {
+            "type": "string"
+          },
+          "authoredInputSha256": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "algorithmVersion": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "coreBinarySha256": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "FiniteModelRequest": {
+        "required": [
+          "outcomes"
+        ],
+        "type": "object",
+        "properties": {
+          "outcomes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RationalOutcome"
+            }
+          },
+          "cost": {
+            "type": "string",
+            "default": "1"
+          },
+          "prunedMass": {
+            "type": "string",
+            "default": "0"
+          },
+          "provenMaximum": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "GenerateGraphRequest": {
+        "required": [
+          "prompt"
+        ],
+        "type": "object",
+        "properties": {
+          "prompt": {
+            "type": "string"
+          }
+        }
+      },
+      "GraphEnumerationReport": {
+        "required": [
+          "status",
+          "completedPaths",
+          "operations",
+          "retainedRoundMass",
+          "unresolvedRoundMass",
+          "roundMean",
+          "measurements",
+          "numericalSemantics"
+        ],
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string"
+          },
+          "completedPaths": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "operations": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "retainedRoundMass": {
+            "type": "string"
+          },
+          "unresolvedRoundMass": {
+            "type": "string"
+          },
+          "roundMean": {
+            "$ref": "#/components/schemas/RationalBounds"
           },
           "measurements": {
             "type": "array",
-            "maxItems": 32,
             "items": {
-              "$ref": "#/components/schemas/MeasurementDefinition"
+              "$ref": "#/components/schemas/EnumeratedMeasurement"
+            }
+          },
+          "numericalSemantics": {
+            "type": "string"
+          },
+          "maximumKnownPayout": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "reachableMaximum": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "GraphEvaluationRequest": {
+        "required": [
+          "config"
+        ],
+        "type": "object",
+        "properties": {
+          "config": {
+            "$ref": "#/components/schemas/JsonElement"
+          },
+          "mode": {
+            "type": "string",
+            "default": "Sampled"
+          },
+          "seed": {
+            "type": "integer",
+            "format": "int64",
+            "default": 42
+          },
+          "samples": {
+            "type": "integer",
+            "format": "int32",
+            "default": 10000
+          },
+          "degreeOfParallelism": {
+            "type": "integer",
+            "format": "int32",
+            "default": 1
+          },
+          "epsilon": {
+            "type": "number",
+            "format": "double",
+            "default": 1E-05
+          },
+          "maxBranches": {
+            "type": "integer",
+            "format": "int32",
+            "default": 10000
+          }
+        }
+      },
+      "GraphMeasurementReference": {
+        "required": [
+          "configHash",
+          "measurementHash",
+          "runtimeProvenance",
+          "report"
+        ],
+        "type": "object",
+        "properties": {
+          "configHash": {
+            "type": "string"
+          },
+          "measurementHash": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "runtimeProvenance": {
+            "$ref": "#/components/schemas/RuntimeProvenance"
+          },
+          "report": {
+            "$ref": "#/components/schemas/GraphEnumerationReport"
+          },
+          "retention": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/DiagnosticRetention"
+              }
+            ]
+          }
+        }
+      },
+      "JointDiagnostics": {
+        "required": [
+          "complete",
+          "support",
+          "chiSquare",
+          "degreesOfFreedom",
+          "expectedCountsAdequate",
+          "pValue",
+          "calibration"
+        ],
+        "type": "object",
+        "properties": {
+          "complete": {
+            "type": "boolean"
+          },
+          "support": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/JointFrequency"
+            }
+          },
+          "chiSquare": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
+          },
+          "degreesOfFreedom": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "expectedCountsAdequate": {
+            "type": "boolean"
+          },
+          "pValue": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
+          },
+          "calibration": {
+            "type": "string"
+          }
+        }
+      },
+      "JointFrequency": {
+        "required": [
+          "x",
+          "y",
+          "count",
+          "probability"
+        ],
+        "type": "object",
+        "properties": {
+          "x": {
+            "type": "number",
+            "format": "double"
+          },
+          "y": {
+            "type": "number",
+            "format": "double"
+          },
+          "count": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "probability": {
+            "type": "number",
+            "format": "double"
+          }
+        }
+      },
+      "JsonElement": { },
+      "LintRequest": {
+        "required": [
+          "config"
+        ],
+        "type": "object",
+        "properties": {
+          "config": { },
+          "rtp": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
+          }
+        }
+      },
+      "LoopTerminationSummary": {
+        "required": [
+          "nodeId",
+          "completedInvocations",
+          "modelLimitCompletions",
+          "conditionCompletions",
+          "totalIterations",
+          "minimumIterations",
+          "maximumIterations"
+        ],
+        "type": "object",
+        "properties": {
+          "nodeId": {
+            "type": "string"
+          },
+          "completedInvocations": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "modelLimitCompletions": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "conditionCompletions": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "totalIterations": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "minimumIterations": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "maximumIterations": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "MarkovModelReport": {
+        "required": [
+          "status",
+          "expectedVisits",
+          "expectedDuration",
+          "expectedReward",
+          "reachableStates",
+          "detail"
+        ],
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string"
+          },
+          "expectedVisits": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "expectedDuration": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "expectedReward": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "reachableStates": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          "detail": {
+            "type": "string"
+          },
+          "authoredInputSha256": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "algorithmVersion": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "coreBinarySha256": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "absorptionProbability": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "durationSecondMoment": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "durationVariance": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "stationaryOccupancy": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "string"
+            }
+          },
+          "longRunRewardPerStep": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "longRunCostPerStep": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "longRunReturn": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "MarkovModelRequest": {
+        "required": [
+          "transientMatrix",
+          "rewards"
+        ],
+        "type": "object",
+        "properties": {
+          "transientMatrix": {
+            "type": "array",
+            "items": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          "rewards": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "initialState": {
+            "type": "integer",
+            "format": "int32",
+            "default": 0
+          },
+          "stationary": {
+            "type": "boolean",
+            "default": false
+          },
+          "costs": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "MeasurementAnalysis": {
+        "required": [
+          "count",
+          "min",
+          "max",
+          "mean",
+          "sum",
+          "subject",
+          "reduction",
+          "distinctParents",
+          "entries",
+          "exits",
+          "unclosedEpisodes",
+          "uniqueAwards",
+          "duplicateAwards",
+          "moments",
+          "pair",
+          "support",
+          "supportComplete",
+          "bins",
+          "quantiles",
+          "tails",
+          "upperTails",
+          "meanAbsoluteDeviationBounds",
+          "meanInterval",
+          "probabilityInterval",
+          "clusteredMeanInterval",
+          "sequentialMeanInterval",
+          "meanStandardError",
+          "requiredSampleSize",
+          "weights",
+          "sequence",
+          "transitions",
+          "transitionsComplete",
+          "comparison",
+          "checks",
+          "groups"
+        ],
+        "type": "object",
+        "properties": {
+          "count": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "min": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
+          },
+          "max": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
+          },
+          "mean": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
+          },
+          "sum": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
+          },
+          "subject": {
+            "type": "string"
+          },
+          "reduction": {
+            "type": "string"
+          },
+          "distinctParents": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "entries": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "exits": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "unclosedEpisodes": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "uniqueAwards": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "duplicateAwards": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "moments": {
+            "$ref": "#/components/schemas/MomentSummary"
+          },
+          "pair": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/PairSummary"
+              }
+            ]
+          },
+          "support": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ValueFrequency"
+            }
+          },
+          "supportComplete": {
+            "type": "boolean"
+          },
+          "bins": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DistributionBin"
+            }
+          },
+          "quantiles": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/QuantileEstimate"
+            }
+          },
+          "tails": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TailSummary"
+            }
+          },
+          "upperTails": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/UpperTailEstimate"
+            }
+          },
+          "meanAbsoluteDeviationBounds": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/NumericInterval"
+              }
+            ]
+          },
+          "meanInterval": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/NumericInterval"
+              }
+            ]
+          },
+          "probabilityInterval": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/NumericInterval"
+              }
+            ]
+          },
+          "clusteredMeanInterval": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/NumericInterval"
+              }
+            ]
+          },
+          "sequentialMeanInterval": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/NumericInterval"
+              }
+            ]
+          },
+          "meanStandardError": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
+          },
+          "requiredSampleSize": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
+          },
+          "weights": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/WeightedSummary"
+              }
+            ]
+          },
+          "sequence": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/SequenceSummary"
+              }
+            ]
+          },
+          "transitions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TransitionFrequency"
+            }
+          },
+          "transitionsComplete": {
+            "type": "boolean"
+          },
+          "comparison": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/DistributionComparison"
+              }
+            ]
+          },
+          "checks": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/VerificationCheck"
+            }
+          },
+          "groups": {
+            "type": "object",
+            "additionalProperties": {
+              "$ref": "#/components/schemas/MeasurementAnalysis"
+            }
+          },
+          "groupsComplete": {
+            "type": "boolean"
+          }
+        }
+      },
+      "MeasurementCalibrationReport": {
+        "required": [
+          "runId",
+          "measurementHash",
+          "measurementId",
+          "report"
+        ],
+        "type": "object",
+        "properties": {
+          "runId": {
+            "type": "string"
+          },
+          "measurementHash": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "measurementId": {
+            "type": "string"
+          },
+          "report": {
+            "$ref": "#/components/schemas/NullCalibrationReport"
+          },
+          "retention": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/DiagnosticRetention"
+              }
+            ]
+          }
+        }
+      },
+      "MeasurementCalibrationRequest": {
+        "required": [
+          "measurementId"
+        ],
+        "type": "object",
+        "properties": {
+          "measurementId": {
+            "type": "string"
+          },
+          "statistic": {
+            "type": "string",
+            "default": "cdf"
+          },
+          "replicates": {
+            "type": "integer",
+            "format": "int32",
+            "default": 2000
+          },
+          "seed": {
+            "type": "integer",
+            "format": "int64",
+            "default": 42
+          }
+        }
+      },
+      "MeasurementField": {
+        "required": [
+          "name",
+          "type"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          }
+        }
+      },
+      "MeasurementInput": {
+        "required": [
+          "id",
+          "name"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "nodeId": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "value": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/JsonElement"
+              }
+            ]
+          },
+          "filter": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/JsonElement"
+              }
+            ]
+          },
+          "options": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/JsonElement"
+              }
+            ]
+          },
+          "unit": {
+            "type": "string"
+          }
+        }
+      },
+      "MeasurementPoint": {
+        "required": [
+          "nodeId",
+          "label"
+        ],
+        "type": "object",
+        "properties": {
+          "nodeId": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          }
+        }
+      },
+      "MeasurementReplayReport": {
+        "required": [
+          "runId",
+          "roundIndex",
+          "configHash",
+          "measurementHash",
+          "runtimeProvenance",
+          "measurements",
+          "reconstruction"
+        ],
+        "type": "object",
+        "properties": {
+          "runId": {
+            "type": "string"
+          },
+          "roundIndex": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "configHash": {
+            "type": "string"
+          },
+          "measurementHash": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "runtimeProvenance": {
+            "$ref": "#/components/schemas/RuntimeProvenance"
+          },
+          "measurements": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MeasurementSnapshot"
+            }
+          },
+          "reconstruction": {
+            "type": "string"
+          },
+          "retention": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/DiagnosticRetention"
+              }
+            ]
+          }
+        }
+      },
+      "MeasurementReplayRequest": {
+        "required": [
+          "roundIndex"
+        ],
+        "type": "object",
+        "properties": {
+          "roundIndex": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "MeasurementSchema": {
+        "required": [
+          "points",
+          "fields"
+        ],
+        "type": "object",
+        "properties": {
+          "points": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MeasurementPoint"
+            }
+          },
+          "fields": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MeasurementField"
+            }
+          }
+        }
+      },
+      "MeasurementSchemaRequest": {
+        "required": [
+          "config"
+        ],
+        "type": "object",
+        "properties": {
+          "config": {
+            "$ref": "#/components/schemas/JsonElement"
+          },
+          "measurements": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/MeasurementInput"
+            }
+          }
+        }
+      },
+      "MeasurementSnapshot": {
+        "required": [
+          "id",
+          "observations",
+          "count",
+          "excluded",
+          "errors",
+          "min",
+          "max",
+          "mean",
+          "sum",
+          "stdDev",
+          "firstError"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "observations": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "count": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "excluded": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "errors": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "min": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
+          },
+          "max": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
+          },
+          "mean": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
+          },
+          "sum": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
+          },
+          "stdDev": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
+          },
+          "firstError": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "analysis": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/MeasurementAnalysis"
+              }
+            ]
+          },
+          "witnesses": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MeasurementWitness"
+            }
+          }
+        }
+      },
+      "MeasurementWitness": {
+        "required": [
+          "roundIndex",
+          "observationOrdinal",
+          "nodeId",
+          "kind",
+          "value",
+          "pair",
+          "group",
+          "detail"
+        ],
+        "type": "object",
+        "properties": {
+          "roundIndex": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "observationOrdinal": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "nodeId": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "kind": {
+            "type": "string"
+          },
+          "value": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
+          },
+          "pair": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
+          },
+          "group": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "detail": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "MomentSummary": {
+        "required": [
+          "secondMoment",
+          "populationVariance",
+          "sampleVariance",
+          "coefficientOfVariation",
+          "skewness",
+          "excessKurtosis",
+          "meanAbsoluteDeviation"
+        ],
+        "type": "object",
+        "properties": {
+          "secondMoment": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
+          },
+          "populationVariance": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
+          },
+          "sampleVariance": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
+          },
+          "coefficientOfVariation": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
+          },
+          "skewness": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
+          },
+          "excessKurtosis": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
+          },
+          "meanAbsoluteDeviation": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
+          }
+        }
+      },
+      "NullCalibrationReport": {
+        "required": [
+          "method",
+          "statistic",
+          "subjects",
+          "observedStatistic",
+          "pValue",
+          "evaluations",
+          "extremeEvaluations",
+          "minimumResolvablePValue",
+          "monteCarloTailInterval",
+          "seed",
+          "assumptions"
+        ],
+        "type": "object",
+        "properties": {
+          "method": {
+            "type": "string"
+          },
+          "statistic": {
+            "type": "string"
+          },
+          "subjects": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "observedStatistic": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
+          },
+          "pValue": {
+            "type": "number",
+            "format": "double"
+          },
+          "evaluations": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "extremeEvaluations": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "minimumResolvablePValue": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
+          },
+          "monteCarloTailInterval": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/NumericInterval"
+              }
+            ]
+          },
+          "seed": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "assumptions": {
+            "type": "string"
+          },
+          "authoredInputSha256": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "coreBinarySha256": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "NumericInterval": {
+        "required": [
+          "lower",
+          "upper",
+          "method",
+          "assumptions"
+        ],
+        "type": "object",
+        "properties": {
+          "lower": {
+            "type": "number",
+            "format": "double"
+          },
+          "upper": {
+            "type": "number",
+            "format": "double"
+          },
+          "method": {
+            "type": "string"
+          },
+          "assumptions": {
+            "type": "string"
+          }
+        }
+      },
+      "PairSummary": {
+        "required": [
+          "count",
+          "sumY",
+          "meanY",
+          "covariance",
+          "correlation",
+          "ratio",
+          "ratioInterval",
+          "meanDifference"
+        ],
+        "type": "object",
+        "properties": {
+          "count": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "sumY": {
+            "type": "number",
+            "format": "double"
+          },
+          "meanY": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
+          },
+          "covariance": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
+          },
+          "correlation": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
+          },
+          "ratio": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
+          },
+          "ratioInterval": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/NumericInterval"
+              }
+            ]
+          },
+          "meanDifference": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
+          },
+          "sampleVarianceY": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
+          },
+          "sampleVarianceSum": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
+          },
+          "sampleVarianceDifference": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
+          },
+          "differenceInterval": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/NumericInterval"
+              }
+            ]
+          },
+          "joint": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/JointDiagnostics"
+              }
+            ]
+          }
+        }
+      },
+      "PlayRequest": {
+        "required": [
+          "config"
+        ],
+        "type": "object",
+        "properties": {
+          "config": {
+            "$ref": "#/components/schemas/JsonElement"
+          },
+          "seed": {
+            "type": "integer",
+            "format": "int64",
+            "default": 42
+          },
+          "roundIndex": {
+            "type": "integer",
+            "format": "int64",
+            "default": 0
+          },
+          "trace": {
+            "type": "boolean",
+            "default": false
+          }
+        }
+      },
+      "PlayResponse": {
+        "required": [
+          "win",
+          "winNumerator",
+          "winDenominator",
+          "seed",
+          "roundIndex",
+          "configHash",
+          "state"
+        ],
+        "type": "object",
+        "properties": {
+          "win": {
+            "type": "number",
+            "format": "double"
+          },
+          "winNumerator": {
+            "type": "string"
+          },
+          "winDenominator": {
+            "type": "string"
+          },
+          "seed": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "roundIndex": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "configHash": {
+            "type": "string"
+          },
+          "state": { }
+        }
+      },
+      "QuantileEstimate": {
+        "required": [
+          "probability",
+          "value",
+          "lower",
+          "upper",
+          "method"
+        ],
+        "type": "object",
+        "properties": {
+          "probability": {
+            "type": "number",
+            "format": "double"
+          },
+          "value": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
+          },
+          "lower": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
+          },
+          "upper": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
+          },
+          "method": {
+            "type": "string"
+          }
+        }
+      },
+      "RationalBounds": {
+        "required": [
+          "lower",
+          "upper"
+        ],
+        "type": "object",
+        "properties": {
+          "lower": {
+            "type": "string"
+          },
+          "upper": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "RationalOutcome": {
+        "required": [
+          "value",
+          "probability"
+        ],
+        "type": "object",
+        "properties": {
+          "value": {
+            "type": "string"
+          },
+          "probability": {
+            "type": "string"
+          }
+        }
+      },
+      "RegisterPluginRequest": {
+        "required": [
+          "pluginId",
+          "contract"
+        ],
+        "type": "object",
+        "properties": {
+          "pluginId": {
+            "type": "string"
+          },
+          "contract": {
+            "type": "string"
+          },
+          "version": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "RetainedReferenceOfFiniteModelReport": {
+        "required": [
+          "runId",
+          "report",
+          "retention"
+        ],
+        "type": "object",
+        "properties": {
+          "runId": {
+            "type": "string"
+          },
+          "report": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/FiniteModelReport"
+              }
+            ]
+          },
+          "retention": {
+            "$ref": "#/components/schemas/DiagnosticRetention"
+          }
+        }
+      },
+      "RetainedReferenceOfMarkovModelReport": {
+        "required": [
+          "runId",
+          "report",
+          "retention"
+        ],
+        "type": "object",
+        "properties": {
+          "runId": {
+            "type": "string"
+          },
+          "report": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/MarkovModelReport"
+              }
+            ]
+          },
+          "retention": {
+            "$ref": "#/components/schemas/DiagnosticRetention"
+          }
+        }
+      },
+      "RunEvidence": {
+        "required": [
+          "run",
+          "model",
+          "pinnedConfig",
+          "computedConfigHash",
+          "inputVerified"
+        ],
+        "type": "object",
+        "properties": {
+          "run": {
+            "$ref": "#/components/schemas/RunResponse"
+          },
+          "model": {
+            "$ref": "#/components/schemas/RunModel"
+          },
+          "pinnedConfig": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/JsonElement"
+              }
+            ]
+          },
+          "computedConfigHash": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "inputVerified": {
+            "type": "boolean"
+          },
+          "diagnostics": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DiagnosticArtifact"
             }
           }
         }
@@ -826,6 +3625,86 @@
           }
         }
       },
+      "RunModel": {
+        "required": [
+          "name",
+          "modelHash",
+          "targetRtp",
+          "winCap"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "modelHash": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "targetRtp": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
+          },
+          "winCap": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int64"
+          }
+        }
+      },
+      "RunPage": {
+        "required": [
+          "items",
+          "nextCursor",
+          "total",
+          "completed",
+          "partial",
+          "failed",
+          "active"
+        ],
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RunSummary"
+            }
+          },
+          "nextCursor": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "total": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "completed": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "partial": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "failed": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "active": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
       "RunProgressMessage": {
         "required": [
           "runId",
@@ -838,10 +3717,47 @@
         ],
         "type": "object",
         "properties": {
+          "execution": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/ExecutionSummary"
+              }
+            ]
+          },
+          "measurements": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MeasurementSnapshot"
+            }
+          },
+          "measurementHash": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "streamEpoch": {
+            "type": "string"
+          },
+          "resultJson": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "completedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
           "sequence": {
             "type": "integer",
-            "format": "int64",
-            "description": "Monotonic revision within streamEpoch, including status transitions."
+            "format": "int64"
           },
           "hitFrequency": {
             "type": "number",
@@ -894,38 +3810,6 @@
           "elapsedMs": {
             "type": "integer",
             "format": "int64"
-          },
-          "streamEpoch": {
-            "type": "string",
-            "description": "Opaque stream generation. A crash recovery checkpoint starts a new generation."
-          },
-          "resultJson": {
-            "type": [
-              "null",
-              "string"
-            ],
-            "description": "Complete persisted result carried by terminal snapshots."
-          },
-          "completedAt": {
-            "type": [
-              "null",
-              "string"
-            ],
-            "format": "date-time"
-          },
-          "measurementHash": {
-            "type": [
-              "string",
-              "null"
-            ],
-            "pattern": "^[a-f0-9]{64}$"
-          },
-          "measurements": {
-            "type": "array",
-            "maxItems": 32,
-            "items": {
-              "$ref": "#/components/schemas/MeasurementSnapshot"
-            }
           }
         }
       },
@@ -937,6 +3821,45 @@
         ],
         "type": "object",
         "properties": {
+          "runtimeProvenance": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/RuntimeProvenance"
+              }
+            ]
+          },
+          "execution": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/ExecutionOptions"
+              }
+            ]
+          },
+          "measurements": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MeasurementInput"
+            }
+          },
+          "measurementHash": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "streamEpoch": {
+            "type": "string"
+          },
+          "sequence": {
+            "type": "integer",
+            "format": "int64"
+          },
           "configVersion": {
             "type": "integer",
             "format": "int32"
@@ -993,115 +3916,36 @@
                 "$ref": "#/components/schemas/RunProgressMessage"
               }
             ]
-          },
-          "streamEpoch": {
-            "type": "string",
-            "description": "Opaque stream generation. A crash recovery checkpoint starts a new generation."
-          },
-          "sequence": {
-            "type": "integer",
-            "format": "int64",
-            "description": "Monotonic revision within streamEpoch, including status transitions."
-          },
-          "measurements": {
-            "type": "array",
-            "maxItems": 32,
-            "items": {
-              "$ref": "#/components/schemas/MeasurementDefinition"
-            }
-          },
-          "measurementHash": {
-            "type": [
-              "string",
-              "null"
-            ],
-            "pattern": "^[a-f0-9]{64}$"
-          }
-        }
-      },
-      "PluginEntry": {
-        "type": "object",
-        "properties": {
-          "pluginId": {
-            "type": "string"
-          },
-          "contract": {
-            "type": "string"
-          },
-          "isConformant": {
-            "type": "boolean"
-          },
-          "version": {
-            "type": "string"
-          }
-        }
-      },
-      "RegisterPluginRequest": {
-        "type": "object",
-        "properties": {
-          "pluginId": {
-            "type": "string"
-          }
-        },
-        "required": [
-          "pluginId"
-        ]
-      },
-      "RunModel": {
-        "type": "object",
-        "required": [
-          "name",
-          "modelHash",
-          "targetRtp",
-          "winCap"
-        ],
-        "properties": {
-          "name": {
-            "type": "string"
-          },
-          "modelHash": {
-            "type": [
-              "null",
-              "string"
-            ]
-          },
-          "targetRtp": {
-            "type": [
-              "null",
-              "number"
-            ],
-            "format": "double"
-          },
-          "winCap": {
-            "type": [
-              "null",
-              "integer"
-            ],
-            "format": "int64"
           }
         }
       },
       "RunSummary": {
-        "type": "object",
         "required": [
-          "configVersion",
-          "configHash",
-          "degreeOfParallelism",
-          "streamScheme",
-          "seed",
           "id",
           "configId",
+          "configVersion",
+          "configHash",
+          "model",
           "status",
           "createdAt",
           "completedAt",
-          "model",
+          "seed",
+          "degreeOfParallelism",
+          "streamScheme",
           "sampleCount",
           "totalSamples",
           "rtp",
           "stdErr",
           "elapsedMs"
         ],
+        "type": "object",
         "properties": {
+          "id": {
+            "type": "string"
+          },
+          "configId": {
+            "type": "string"
+          },
           "configVersion": {
             "type": "integer",
             "format": "int32"
@@ -1112,22 +3956,8 @@
               "string"
             ]
           },
-          "degreeOfParallelism": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "streamScheme": {
-            "type": "string"
-          },
-          "seed": {
-            "type": "integer",
-            "format": "int64"
-          },
-          "id": {
-            "type": "string"
-          },
-          "configId": {
-            "type": "string"
+          "model": {
+            "$ref": "#/components/schemas/RunModel"
           },
           "status": {
             "type": "string"
@@ -1143,8 +3973,16 @@
             ],
             "format": "date-time"
           },
-          "model": {
-            "$ref": "#/components/schemas/RunModel"
+          "seed": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "degreeOfParallelism": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "streamScheme": {
+            "type": "string"
           },
           "sampleCount": {
             "type": "integer",
@@ -1174,281 +4012,670 @@
           }
         }
       },
-      "RunPage": {
-        "type": "object",
+      "RuntimeProvenance": {
         "required": [
-          "items",
-          "nextCursor",
-          "total",
-          "completed",
-          "partial",
-          "failed",
-          "active"
+          "measurementContract",
+          "numericalMethods",
+          "framework",
+          "coreBinarySha256",
+          "apiBinarySha256"
         ],
+        "type": "object",
         "properties": {
-          "items": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/RunSummary"
-            }
+          "measurementContract": {
+            "type": "string"
           },
-          "nextCursor": {
+          "numericalMethods": {
+            "type": "string"
+          },
+          "framework": {
+            "type": "string"
+          },
+          "coreBinarySha256": {
             "type": [
               "null",
               "string"
             ]
           },
-          "total": {
-            "type": "integer",
-            "format": "int64"
-          },
-          "completed": {
-            "type": "integer",
-            "format": "int64"
-          },
-          "partial": {
-            "type": "integer",
-            "format": "int64"
-          },
-          "failed": {
-            "type": "integer",
-            "format": "int64"
-          },
-          "active": {
-            "type": "integer",
-            "format": "int64"
+          "apiBinarySha256": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
         }
       },
-      "RunEvidence": {
-        "type": "object",
+      "SamplePlanReport": {
         "required": [
-          "run",
-          "model",
-          "pinnedConfig",
-          "computedConfigHash",
-          "inputVerified"
+          "allocatedAlpha",
+          "normalCritical",
+          "approximateMeanRounds",
+          "timeUniformBoundedMeanRounds",
+          "eventDetectionRounds",
+          "zeroObservedEventUpper",
+          "meanBudgetSufficient",
+          "detectionBudgetSufficient",
+          "assumptions"
         ],
+        "type": "object",
         "properties": {
-          "run": {
-            "$ref": "#/components/schemas/RunResponse"
+          "allocatedAlpha": {
+            "type": "number",
+            "format": "double"
           },
-          "model": {
-            "$ref": "#/components/schemas/RunModel"
+          "normalCritical": {
+            "type": "number",
+            "format": "double"
           },
-          "pinnedConfig": {
+          "approximateMeanRounds": {
             "type": [
               "null",
-              "object"
+              "number"
             ],
-            "additionalProperties": true
+            "format": "double"
           },
-          "computedConfigHash": {
+          "timeUniformBoundedMeanRounds": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int64"
+          },
+          "eventDetectionRounds": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
+          },
+          "zeroObservedEventUpper": {
+            "type": "number",
+            "format": "double"
+          },
+          "meanBudgetSufficient": {
+            "type": [
+              "null",
+              "boolean"
+            ]
+          },
+          "detectionBudgetSufficient": {
+            "type": [
+              "null",
+              "boolean"
+            ]
+          },
+          "assumptions": {
+            "type": "string"
+          },
+          "authoredInputSha256": {
             "type": [
               "null",
               "string"
             ]
           },
-          "inputVerified": {
+          "coreBinarySha256": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "SamplePlanRequest": {
+        "type": "object",
+        "properties": {
+          "confidence": {
+            "type": "number",
+            "format": "double",
+            "default": 0.95
+          },
+          "errorFamilySize": {
+            "type": "integer",
+            "format": "int32",
+            "default": 1
+          },
+          "precision": {
+            "type": "number",
+            "format": "double",
+            "default": 0.001
+          },
+          "variance": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
+          },
+          "lowerBound": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
+          },
+          "upperBound": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
+          },
+          "eventProbability": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
+          },
+          "detectionPower": {
+            "type": "number",
+            "format": "double",
+            "default": 0.95
+          },
+          "roundBudget": {
+            "type": "integer",
+            "format": "int64",
+            "default": 100000
+          }
+        }
+      },
+      "SequenceSummary": {
+        "required": [
+          "count",
+          "events",
+          "longestEventStreak",
+          "longestDrought",
+          "completedGaps",
+          "meanGap",
+          "autocorrelations",
+          "ordered",
+          "equalAdjacentPairs",
+          "adjacentPairs",
+          "stateDwell",
+          "stateDwellComplete"
+        ],
+        "type": "object",
+        "properties": {
+          "count": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "events": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "longestEventStreak": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "longestDrought": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "completedGaps": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "meanGap": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
+          },
+          "autocorrelations": {
+            "type": "object",
+            "additionalProperties": {
+              "type": [
+                "null",
+                "number"
+              ],
+              "format": "double"
+            }
+          },
+          "ordered": {
+            "type": "boolean"
+          },
+          "equalAdjacentPairs": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "adjacentPairs": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "stateDwell": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/StateDwell"
+            }
+          },
+          "stateDwellComplete": {
             "type": "boolean"
           }
         }
       },
-      "MeasurementDefinition": {
-        "type": "object",
+      "StateDwell": {
         "required": [
-          "id",
-          "name"
+          "state",
+          "completedRuns",
+          "observations",
+          "maximumLength",
+          "meanLength"
         ],
+        "type": "object",
         "properties": {
-          "id": {
-            "type": "string",
-            "maxLength": 64
+          "state": {
+            "type": "number",
+            "format": "double"
           },
-          "name": {
-            "type": "string",
-            "maxLength": 80
+          "completedRuns": {
+            "type": "integer",
+            "format": "int64"
           },
-          "nodeId": {
-            "type": [
-              "string",
-              "null"
-            ],
-            "description": "Null observes a settled paid round; node ID observes state before each visit to the flattened graph node."
+          "observations": {
+            "type": "integer",
+            "format": "int64"
           },
-          "value": {
-            "anyOf": [
-              {
-                "type": "object",
-                "required": [
-                  "exprType"
-                ],
-                "properties": {
-                  "exprType": {
-                    "type": "string"
-                  }
-                },
-                "additionalProperties": true
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "Numeric constructor AST; null means settled capped payout at round completion."
+          "maximumLength": {
+            "type": "integer",
+            "format": "int64"
           },
-          "filter": {
-            "anyOf": [
-              {
-                "type": "object",
-                "required": [
-                  "exprType"
-                ],
-                "properties": {
-                  "exprType": {
-                    "type": "string"
-                  }
-                },
-                "additionalProperties": true
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "Boolean constructor AST; null includes every observation."
-          },
-          "unit": {
-            "type": "string",
-            "maxLength": 24
+          "meanLength": {
+            "type": "number",
+            "format": "double"
           }
         }
       },
-      "MeasurementSnapshot": {
-        "type": "object",
+      "TailSummary": {
         "required": [
-          "observations",
+          "threshold",
           "count",
-          "excluded",
-          "errors",
-          "min",
-          "max",
-          "mean",
+          "probability",
           "sum",
-          "stdDev",
-          "id",
-          "firstError"
+          "mean",
+          "secondMoment"
         ],
+        "type": "object",
         "properties": {
-          "observations": {
-            "type": "integer",
-            "format": "int64",
-            "minimum": 0
+          "threshold": {
+            "type": "number",
+            "format": "double"
           },
           "count": {
             "type": "integer",
-            "format": "int64",
-            "minimum": 0
+            "format": "int64"
           },
-          "excluded": {
-            "type": "integer",
-            "format": "int64",
-            "minimum": 0
-          },
-          "errors": {
-            "type": "integer",
-            "format": "int64",
-            "minimum": 0
-          },
-          "min": {
-            "type": [
-              "number",
-              "null"
-            ],
+          "probability": {
+            "type": "number",
             "format": "double"
           },
-          "max": {
-            "type": [
-              "number",
-              "null"
-            ],
+          "sum": {
+            "type": "number",
             "format": "double"
           },
           "mean": {
             "type": [
-              "number",
-              "null"
+              "null",
+              "number"
             ],
             "format": "double"
           },
-          "sum": {
-            "type": [
-              "number",
-              "null"
-            ],
+          "secondMoment": {
+            "type": "number",
             "format": "double"
-          },
-          "stdDev": {
-            "type": [
-              "number",
-              "null"
-            ],
-            "format": "double"
-          },
-          "id": {
+          }
+        }
+      },
+      "TokenRequest": {
+        "required": [
+          "userId",
+          "email"
+        ],
+        "type": "object",
+        "properties": {
+          "userId": {
             "type": "string"
           },
-          "firstError": {
+          "email": {
             "type": [
-              "string",
-              "null"
+              "null",
+              "string"
+            ]
+          },
+          "password": {
+            "type": [
+              "null",
+              "string"
             ]
           }
         }
       },
-      "MeasurementSchema": {
-        "type": "object",
+      "TransitionFrequency": {
         "required": [
-          "points",
-          "fields"
+          "from",
+          "to",
+          "count",
+          "fromExposure",
+          "probability"
         ],
+        "type": "object",
         "properties": {
-          "points": {
-            "type": "array",
-            "items": {
-              "type": "object",
-              "required": [
-                "nodeId",
-                "label"
-              ],
-              "properties": {
-                "nodeId": {
-                  "type": "string"
-                },
-                "label": {
-                  "type": "string"
-                }
-              }
-            }
+          "from": {
+            "type": "number",
+            "format": "double"
           },
-          "fields": {
+          "to": {
+            "type": "number",
+            "format": "double"
+          },
+          "count": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "fromExposure": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "probability": {
+            "type": "number",
+            "format": "double"
+          }
+        }
+      },
+      "UpdateConfigRequest": {
+        "required": [
+          "config"
+        ],
+        "type": "object",
+        "properties": {
+          "config": { }
+        }
+      },
+      "UpperTailEstimate": {
+        "required": [
+          "quantile",
+          "tailMass",
+          "mean",
+          "lowerMean",
+          "upperMean",
+          "lowerReturnShare",
+          "upperReturnShare",
+          "method"
+        ],
+        "type": "object",
+        "properties": {
+          "quantile": {
+            "type": "number",
+            "format": "double"
+          },
+          "tailMass": {
+            "type": "number",
+            "format": "double"
+          },
+          "mean": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
+          },
+          "lowerMean": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
+          },
+          "upperMean": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
+          },
+          "lowerReturnShare": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
+          },
+          "upperReturnShare": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
+          },
+          "method": {
+            "type": "string"
+          }
+        }
+      },
+      "ValidateErrorItem": {
+        "required": [
+          "message",
+          "code"
+        ],
+        "type": "object",
+        "properties": {
+          "nodeId": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "edgeId": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "message": {
+            "type": "string"
+          },
+          "code": {
+            "type": "string"
+          }
+        }
+      },
+      "ValidateRequest": {
+        "required": [
+          "config"
+        ],
+        "type": "object",
+        "properties": {
+          "config": { }
+        }
+      },
+      "ValidateResponse": {
+        "required": [
+          "isValid"
+        ],
+        "type": "object",
+        "properties": {
+          "isValid": {
+            "type": "boolean"
+          },
+          "errors": {
             "type": "array",
             "items": {
-              "type": "object",
-              "required": [
-                "name",
-                "type"
-              ],
-              "properties": {
-                "name": {
-                  "type": "string"
-                },
-                "type": {
-                  "type": "string"
-                }
-              }
+              "$ref": "#/components/schemas/ValidateErrorItem"
             }
+          }
+        }
+      },
+      "ValueFrequency": {
+        "required": [
+          "value",
+          "count",
+          "sum"
+        ],
+        "type": "object",
+        "properties": {
+          "value": {
+            "type": "number",
+            "format": "double"
+          },
+          "count": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "sum": {
+            "type": "number",
+            "format": "double"
+          }
+        }
+      },
+      "VerificationCheck": {
+        "required": [
+          "id",
+          "status",
+          "observed",
+          "reference",
+          "difference",
+          "detail"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "observed": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
+          },
+          "reference": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
+          },
+          "difference": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
+          },
+          "detail": {
+            "type": "string"
+          }
+        }
+      },
+      "WeightedSummary": {
+        "required": [
+          "weightSum",
+          "weightSquares",
+          "effectiveSampleSize",
+          "ordinaryEstimate",
+          "selfNormalizedEstimate",
+          "minWeight",
+          "maxWeight",
+          "ordinaryInterval",
+          "eventEstimate",
+          "eventInterval",
+          "pairedRatio",
+          "pairedRatioInterval"
+        ],
+        "type": "object",
+        "properties": {
+          "weightSum": {
+            "type": "number",
+            "format": "double"
+          },
+          "weightSquares": {
+            "type": "number",
+            "format": "double"
+          },
+          "effectiveSampleSize": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
+          },
+          "ordinaryEstimate": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
+          },
+          "selfNormalizedEstimate": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
+          },
+          "minWeight": {
+            "type": "number",
+            "format": "double"
+          },
+          "maxWeight": {
+            "type": "number",
+            "format": "double"
+          },
+          "ordinaryInterval": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/NumericInterval"
+              }
+            ]
+          },
+          "eventEstimate": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
+          },
+          "eventInterval": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/NumericInterval"
+              }
+            ]
+          },
+          "pairedRatio": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
+          },
+          "pairedRatioInterval": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/NumericInterval"
+              }
+            ]
           }
         }
       }
     }
-  }
+  },
+  "tags": [
+    {
+      "name": "SlotMath.Api"
+    }
+  ]
 }

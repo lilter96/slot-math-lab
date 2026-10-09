@@ -30,6 +30,7 @@ internal sealed class SamplingExpressions(Func<string, int> slot)
                 Remember(constant);
                 return _ => constant;
             case FieldAccessExpr f:
+                if (f.Target == "measurement") return s => f.Path.Length == 1 && s.Settlement is { } settlement ? settlement.Read(f.Path[0]) : throw new ExpressionEvaluationException("EVAL_MISSING_SETTLEMENT", "Settlement fields require completed-round measurement context.");
                 if (f.Path.Length == 0) return _ => ExprValue.Number(0);
                 var key = f.Path[0]; var index = slot(key); var location = string.Join('.', f.Path);
                 if (f.Path.Length == 1) return s => s.Read(index, location);

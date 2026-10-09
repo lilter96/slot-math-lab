@@ -11,7 +11,7 @@ public class MeasurementTests
 {
     private static ConstantExpr N(int value) => new() { Kind = ConstantKind.Integer, Value = value.ToString() };
     private static FieldAccessExpr F(string field) => new() { Target = "state", Path = [field] };
-    private static readonly GraphConfig Model = JsonSerializer.Deserialize<GraphConfig>("""
+    internal static readonly GraphConfig Model = JsonSerializer.Deserialize<GraphConfig>("""
     {"schemaVersion":"1.0.0","name":"Independent three-spin feature","nodes":[
       {"nodeType":"loop","id":"fs","maxIterations":3,"outputs":{"body":{"name":"body","type":"State"},"exit":{"name":"exit","type":"Wins"}}},
       {"nodeType":"modifyState","id":"type","expressionId":"type","outputKey":"fsType","inputs":{"in":{"name":"in","type":"State"}},"outputs":{"out":{"name":"out","type":"State"}}},
@@ -59,7 +59,7 @@ public class MeasurementTests
         var a = Run(plan, 131073, workers: 1); var b = Run(plan, 131073, workers: 4, progress: p => {
             Assert.Equal(p.SpinsCompleted * 2, p.Measurements[0].Count); Assert.Equal(p.SpinsCompleted, p.Measurements[1].Count);
         });
-        Assert.Equal(a.Measurements, b.Measurements); Assert.Equal(a.Stats.Mean, b.Stats.Mean);
+        Assert.Equal(System.Text.Json.JsonSerializer.Serialize(a.Measurements), System.Text.Json.JsonSerializer.Serialize(b.Measurements)); Assert.Equal(a.Stats.Mean, b.Stats.Mean);
         var plain = Run([], 131073); Assert.Equal(plain.Stats.Mean, a.Stats.Mean); Assert.Equal(plain.Stats.Histogram.Select(b => (b.LowerBound, b.UpperBound, b.Count)), a.Stats.Histogram.Select(b => (b.LowerBound, b.UpperBound, b.Count)));
     }
     [Fact]

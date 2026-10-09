@@ -84,6 +84,10 @@ internal struct SamplingCell
 
 internal sealed class SamplingFrame
 {
+    public SlotMath.Core.Measurements.SettlementContext? Settlement { get; set; }
+    public SlotMath.Core.Math.LoopTerminationEvidence? LoopEvidence;
+    public BigInteger RawPayout { get; set; }
+
     public readonly SamplingCell[] Cells;
     private readonly SamplingCell[] _initial;
     private readonly IReadOnlyDictionary<string, int> _layout;
@@ -103,11 +107,13 @@ internal sealed class SamplingFrame
         Cells = new SamplingCell[defaults.Length];
     }
 
-    public void Reset(CancellationToken token)
+    public void Reset(CancellationToken token, bool[]? retained = null)
     {
         token.ThrowIfCancellationRequested();
-        Array.Copy(_initial, Cells, Cells.Length);
+        if (retained is null) Array.Copy(_initial, Cells, Cells.Length);
+        else for (var i = 0; i < Cells.Length; i++) if (!retained[i]) Cells[i] = _initial[i];
         CancellationToken = token;
+        Settlement = null;
         _operations = 0;
     }
 

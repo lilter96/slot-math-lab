@@ -238,6 +238,7 @@ public sealed record FieldDescriptor
 /// </summary>
 public sealed class TypeCheckContext
 {
+    public IReadOnlyList<FieldDescriptor> MeasurementFields { get; init; } = [];
     /// <summary>Expected result type for the expression (Number, Boolean, String, Weights).</summary>
     public ExprType ExpectedType { get; init; } = ExprType.Number;
 
@@ -280,6 +281,7 @@ public sealed class TypeCheckContext
         IReadOnlyList<FieldDescriptor> fields;
         if (target == "state")
             fields = StateFields;
+        else if (target == "measurement") fields = MeasurementFields;
         else if (target == "board" || target == null)
             fields = BoardFields;
         else

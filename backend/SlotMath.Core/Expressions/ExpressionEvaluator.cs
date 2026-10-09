@@ -25,6 +25,7 @@ namespace SlotMath.Core.Expressions;
 /// </summary>
 public sealed class EvalContext
 {
+    public SlotMath.Core.Measurements.SettlementContext? Measurement { get; init; }
     /// <summary>The current recurrence state (nullable).</summary>
     public object? State { get; init; }
 
@@ -125,6 +126,8 @@ public static class ExactExpressionEvaluator
 
     private static ExprValue EvalFieldAccess(FieldAccessExpr f, EvalContext ctx)
     {
+        if (f.Target == "measurement") return f.Path.Length == 1 && ctx.Measurement is { } settlement ? settlement.Read(f.Path[0])
+            : throw new ExpressionEvaluationException("EVAL_MISSING_SETTLEMENT", "Settlement fields exist only at completed-round measurement points.");
         // All field access reads from state (invariant 4: the engine has no
         // Board type — a "board" is a user-defined array in state S, read via
         // state["board"] + fold/map/filter/aggregate).
@@ -379,6 +382,7 @@ public static class ExactExpressionEvaluator
                 {
                     State = new Dictionary<string, object?>(baseState) { [a.ItemName] = item },
                     DecorationParser = ctx.DecorationParser,
+                    Measurement = ctx.Measurement,
                     SymbolToNumericValue = ctx.SymbolToNumericValue,
                 };
 
@@ -476,6 +480,7 @@ public static class ExactExpressionEvaluator
             {
                 State = iterState,
                 DecorationParser = ctx.DecorationParser,
+                    Measurement = ctx.Measurement,
                 SymbolToNumericValue = ctx.SymbolToNumericValue,
             });
             index++;
@@ -523,6 +528,7 @@ public static class ExactExpressionEvaluator
             {
                 State = iterState,
                 DecorationParser = ctx.DecorationParser,
+                    Measurement = ctx.Measurement,
                 SymbolToNumericValue = ctx.SymbolToNumericValue,
             }));
             index++;
@@ -553,6 +559,7 @@ public static class ExactExpressionEvaluator
             {
                 State = iterState,
                 DecorationParser = ctx.DecorationParser,
+                    Measurement = ctx.Measurement,
                 SymbolToNumericValue = ctx.SymbolToNumericValue,
             });
             if (pred.Kind == ExprType.Boolean && pred.BoolValue)

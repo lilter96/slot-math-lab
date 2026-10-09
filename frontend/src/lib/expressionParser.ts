@@ -39,7 +39,8 @@ export function parseExpression(source: string): ExpressionAst {
     } else if (token?.startsWith('"')) left = constant('String', JSON.parse(token));
     else if (token?.startsWith("'")) left = constant('String', token.slice(1, -1));
     else if (token && /^[A-Za-z_]/.test(token)) {
-      const path = token === 'state' ? [] : [token];
+      const settlement = token === 'measurement' && tokens[pos] === '.';
+      const path = token === 'state' || settlement ? [] : [token];
       while (tokens[pos] === '.' || tokens[pos] === '[') {
         const access = tokens[pos++]; const key = tokens[pos++];
         if (!key) throw new Error('Missing state field');
@@ -47,7 +48,7 @@ export function parseExpression(source: string): ExpressionAst {
         if (access === '[') take(']');
       }
       if (!path.length) throw new Error('Select a state field');
-      left = { exprType: 'fieldAccess', target: 'state', path };
+      left = { exprType: 'fieldAccess', target: settlement ? 'measurement' : 'state', path };
     } else throw new Error(`Expected expression at token ${pos}`);
     while (operators[tokens[pos]] && operators[tokens[pos]][0] >= min) {
       const [precedence, exprType, op] = operators[tokens[pos++]];

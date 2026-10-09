@@ -120,9 +120,7 @@ public sealed class GraphCompiler
                     if (!copy.ContainsKey(key)) copy[key] = Materialize(value);
                 return copy;
             }).SelectMany(_ => raw);
-            var program = initialized.Select(win => win.Sign < 0
-                ? throw new InvalidOperationException("Round payouts must be non-negative.")
-                : BigInteger.Min(win, cap));
+            Slot<Dictionary<string, object?>, BigInteger> program = new SettlementSlot<Dictionary<string, object?>>(initialized, cap);
             if (config.Plugins is { Length: > 0 })
                 program = Slot.Annotate(program, "compiled-graph", containsPlugin: true);
 
@@ -146,20 +144,30 @@ public sealed class GraphCompiler
         var errors = new List<CompileError>();
         void Error(string message) => errors.Add(new CompileError { Code = "INVALID_MEASUREMENT", Message = message });
         if (definitions.Count > 32) { Error("At most 32 measurements are allowed."); return errors; }
+        if (definitions.Any(d => d?.Options is { } o && (o.BinEdges is null || o.Quantiles is null || o.Thresholds is null || o.Lags is null || o.ReferenceDistribution is null)))
+        { Error("Measurement collection arrays cannot be null."); return errors; }
+        var storageCells = definitions.Where(d => d?.Options is not null).Sum(d =>
+            (long)(1 + (d.Options!.Group is null ? 0 : d.Options.GroupLimit)) * (d.Options.SupportLimit + d.Options.BinEdges.Length * 3 + d.Options.Thresholds.Length * 3 + d.Options.Lags.Length * 3 + 32));
+        if (storageCells > 32768) Error("Measurement plan exceeds the 32768-cell storage budget. Reduce groups, support, bins or tracked populations.");
+        if (System.Text.Json.JsonSerializer.SerializeToUtf8Bytes(definitions, JsonOptions.Default).Length > 262144)
+            Error("Measurement plan exceeds the 256 KiB serialized budget. Reduce expressions or reference support.");
         var ids = new HashSet<string>(StringComparer.Ordinal);
         var ctx = new TypeCheckContext { StateFields = fields, BoardFields = TypeCheckContext.Default.BoardFields, CellFields = TypeCheckContext.Default.CellFields };
         foreach (var d in definitions)
         {
             if (d is null) { Error("Measurement entries cannot be null."); continue; }
+            var pointContext = new TypeCheckContext { StateFields = ctx.StateFields, BoardFields = ctx.BoardFields, CellFields = ctx.CellFields,
+                MeasurementFields = d.NodeId is null && d.Options?.Subject is not ("episode" or "transition") ? SettlementContext.Fields : [] };
             if (string.IsNullOrWhiteSpace(d.Id) || d.Id.Length > 64 || !ids.Add(d.Id)) Error("Measurement IDs must be unique and 1–64 characters.");
             if (string.IsNullOrWhiteSpace(d.Name) || d.Name.Length > 80 || (d.Unit is null || d.Unit.Length > 24)) Error("Measurement names must be 1–80 characters; units at most 24 characters.");
             if (d.NodeId is not null && !config.Nodes.Any(n => n.Id == d.NodeId)) Error($"Measurement '{d.Name}' references unknown node '{d.NodeId}'.");
-            if (d.NodeId is not null && d.Value is null) Error($"Measurement '{d.Name}' needs a numeric value at a node.");
-            foreach (var (expr, type) in new[] { (d.Value, ExprType.Number), (d.Filter, ExprType.Boolean) })
+            if (d.NodeId is not null && d.Value is null && d.Options?.Source != "count") Error($"Measurement '{d.Name}' needs a value at a node.");
+            foreach (var message in MeasurementPlanValidator.Validate(d, config.Nodes.Select(n => n.Id).ToHashSet(), pointContext)) Error($"Measurement '{d.Name}': {message}");
+            foreach (var (expr, type) in new[] { (d.Value, d.Options?.Source == "event" ? ExprType.Boolean : ExprType.Number), (d.Filter, ExprType.Boolean) })
             {
                 if (expr is null) continue;
                 if (ExpressionCost.Compute(expr) > 1000) { Error($"Measurement '{d.Name}' exceeds the 1000-operation budget."); continue; }
-                foreach (var e in ExpressionTypeChecker.Check(expr, ctx, type)) Error($"Measurement '{d.Name}': {e.Message}");
+                foreach (var e in ExpressionTypeChecker.Check(expr, pointContext, type)) Error($"Measurement '{d.Name}': {e.Message}");
             }
         }
         return errors;
@@ -200,7 +208,7 @@ public sealed class GraphCompiler
         public ProgramBuilder(GraphConfig config, PluginHost? pluginHost, IReadOnlyList<MeasurementDefinition> measurements)
         {
             _config = config;
-            _observed = measurements.Where(d => d.NodeId is not null).Select(d => d.NodeId!).ToHashSet();
+            _observed = measurements.SelectMany(d => new[] { d.NodeId, d.Options?.EntryNodeId, d.Options?.ExitNodeId }).OfType<string>().ToHashSet();
             _pluginHost = pluginHost;
             _nodeMap = config.Nodes.ToDictionary(n => n.Id);
             _incoming = BuildEdgeMap(config, e => e.TargetNodeId);
@@ -617,7 +625,7 @@ public sealed class GraphCompiler
                     return next;
                 })
                 .SelectMany(_ => Slot.Loop(stopFn, body))
-                .SelectMany(_ => readWins);
+                .SelectMany(_ => new LoopCompletionSlot<Dictionary<string, object?>, object?>(node.Id, iterKey, maxIter, readWins));
 
             if (exitEdge != null)
             {
@@ -1082,8 +1090,7 @@ public sealed class GraphCompiler
 
         private Slot<Dictionary<string, object?>, object?> CompileLegacyLoop(LoopNode node)
         {
-            int maxIter = node.MaxIterations > 0 && node.MaxIterations <= 500
-                ? node.MaxIterations : 5;
+            var maxIter = node.MaxIterations;
 
             var iterKey = $"__legacyiter_{node.Id}__";
             Func<Dictionary<string, object?>, bool> stopFn = s =>
@@ -1132,8 +1139,9 @@ public sealed class GraphCompiler
                 })
                 .SelectMany(_ => Slot.Loop(stopFn, body))
                 .SelectMany(_ =>
-                    Slot.GetState<Dictionary<string, object?>, object?>(s =>
-                        s.TryGetValue(winsKey, out var w) ? w : (object?)BigInteger.Zero));
+                    new LoopCompletionSlot<Dictionary<string, object?>, object?>(node.Id, iterKey, maxIter,
+                        Slot.GetState<Dictionary<string, object?>, object?>(s =>
+                            s.TryGetValue(winsKey, out var w) ? w : (object?)BigInteger.Zero)));
         }
 
         // ── Helpers ─────────────────────────────────────────────────────

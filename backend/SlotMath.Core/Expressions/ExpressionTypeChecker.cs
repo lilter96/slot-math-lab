@@ -227,6 +227,7 @@ public static class ExpressionTypeChecker
         {
             ExpectedType = ExprType.Boolean,
             BoardFields = ctx.BoardFields,
+            MeasurementFields = ctx.MeasurementFields,
             StateFields = lambdaFields,
             CellFields = ctx.CellFields,
             DecorationTypes = ctx.DecorationTypes,
@@ -247,6 +248,7 @@ public static class ExpressionTypeChecker
             {
                 ExpectedType = ExprType.Number,
                 BoardFields = ctx.BoardFields,
+            MeasurementFields = ctx.MeasurementFields,
                 StateFields = lambdaFields,
                 CellFields = ctx.CellFields,
                 DecorationTypes = ctx.DecorationTypes,
@@ -363,6 +365,7 @@ public static class ExpressionTypeChecker
         {
             ExpectedType = initType,
             BoardFields = ctx.BoardFields,
+            MeasurementFields = ctx.MeasurementFields,
             StateFields = lambdaFields,
             CellFields = ctx.CellFields,
             DecorationTypes = ctx.DecorationTypes,
@@ -397,6 +400,7 @@ public static class ExpressionTypeChecker
         {
             ExpectedType = ExprType.Number,
             BoardFields = ctx.BoardFields,
+            MeasurementFields = ctx.MeasurementFields,
             StateFields = lambdaFields,
             CellFields = ctx.CellFields,
             DecorationTypes = ctx.DecorationTypes,
@@ -427,6 +431,7 @@ public static class ExpressionTypeChecker
         {
             ExpectedType = ExprType.Boolean,
             BoardFields = ctx.BoardFields,
+            MeasurementFields = ctx.MeasurementFields,
             StateFields = lambdaFields,
             CellFields = ctx.CellFields,
             DecorationTypes = ctx.DecorationTypes,

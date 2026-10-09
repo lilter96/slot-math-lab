@@ -149,7 +149,7 @@ public sealed class StreamingStats
     /// Create a streaming stats collector.
     /// </summary>
     /// <param name="histogramBins">Number of equal-width bins for the histogram (default 50).</param>
-    /// <param name="maxWinCap">Optional cap — values above this are clamped and counted as cap-hits.</param>
+    /// <param name="maxWinCap">Optional cap — values above this are clamped; values at or above it count as reaching the cap.</param>
     public StreamingStats(int histogramBins = 50, double? maxWinCap = null)
     {
         if (histogramBins < 1)
@@ -179,7 +179,7 @@ public sealed class StreamingStats
 
         // ── Cap enforcement ──────────────────────────────────────────
         double clamped = value;
-        if (_maxWinCap.HasValue && value > _maxWinCap.Value)
+        if (_maxWinCap.HasValue && value >= _maxWinCap.Value)
         {
             clamped = _maxWinCap.Value;
             _capHitCount++;
