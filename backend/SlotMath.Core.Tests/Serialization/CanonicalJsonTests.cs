@@ -1,5 +1,6 @@
 using SlotMath.Core.Model;
 using SlotMath.Core.Serialization;
+using System.Text.Json;
 
 namespace SlotMath.Core.Tests.Serialization;
 
@@ -9,6 +10,22 @@ namespace SlotMath.Core.Tests.Serialization;
 
 public class CanonicalJsonTests
 {
+    [Fact]
+    public void DecimalStateContentHashesPreserveNestedLiteralValuesAndNumericType()
+    {
+        GraphConfig Graph(string literal) => new() { SchemaVersion = "1.0.0", InitialState = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(literal) };
+        var graph = Graph("""{"small":1e-9,"record":{"values":[0.1,-2.5e-7]}}""");
+        var canonical = CanonicalJson.Serialize(graph);
+        using var parsed = JsonDocument.Parse(canonical);
+        var initial = parsed.RootElement.GetProperty("initialState");
+        Assert.Equal(.000000001m, initial.GetProperty("small").GetDecimal());
+        Assert.Equal(.1m, initial.GetProperty("record").GetProperty("values")[0].GetDecimal());
+        Assert.Equal(ConfigHash.Compute(graph), ConfigHash.Compute(Graph("""{"record":{"values":[0.1,-2.5e-7]},"small":1e-9}""")));
+        Assert.NotEqual(ConfigHash.Compute(graph), ConfigHash.Compute(Graph("""{"small":"1e-9","record":{"values":[0.1,-2.5e-7]}}""")));
+        Assert.NotEqual(ConfigHash.Compute(graph), ConfigHash.Compute(Graph("""{"small":0,"record":{"values":[0.1,-2.5e-7]}}""")));
+        Assert.NotEqual(ConfigHash.Compute(graph), ConfigHash.Compute(Graph("""{"small":2e-9,"record":{"values":[0.1,-2.5e-7]}}""")));
+        Assert.Throws<InvalidOperationException>(() => CanonicalJson.Serialize(new { typedMath = .1 }));
+    }
     private static GraphConfig ConfigWithParameters(params (string key, string value)[] parameters)
     {
         var dict = new Dictionary<string, string>();

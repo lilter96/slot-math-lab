@@ -2,6 +2,16 @@
 
 Simulate is a measurement workspace. Game rules and state remain authored in Build. The collection plan selects a numeric constructor expression, a Boolean filter and an execution point. It is independent of the dashboard's presentation settings.
 
+## Numeric input and display precision
+
+Initial-state JSON numbers support decimal and scientific literals, including numbers inside arrays and records. The compiler preserves their exact authored rational value: `1e-9` is `1/1000000000`, and `0.1` is `1/10`. Compiled templates parse once and supply private mutable collections to each round. State literals have a 4096-character / ±4096 decimal-power budget; exceeding it rejects compilation. Every API launch compiles its graph before creating a queued run, including launches without tracked metrics.
+
+Direct CLR `double` and `float` inputs retain their finite binary value exactly; `decimal` inputs retain their exact decimal value. Binary floating-point `0.1` and authored JSON `0.1` therefore have different exact fractions. Nonfinite floating inputs produce `EVAL_NONFINITE_NUMBER`. Expression residual assertions run before reporting conversion. The collector and measurement enumeration retain their documented binary64 observation contract; enumeration's conditional metric mean describes those reported values, rather than claiming to preserve the source decimal fraction after conversion.
+
+State decimal tokens retain numeric type and exact literal content in canonical config hashes, including nested mechanics. Strings with the same spelling have a different hash and type. Typed mathematical fields continue to require their declared integer/rational representation. Archived integer-only config hashes remain unchanged.
+
+Nonzero values below display precision use scientific notation in metric cards, analysis, trend axes and Results. Constant tiny trends use a range relative to their magnitude. Presentation does not round stored evidence or alter the payout scale: payouts still require the precision declared by the game's paytable, and extra fractional units produce `EVAL_PAYOUT_PRECISION`.
+
 ## Configure and display
 
 Choose **Track metric** in Simulate. Give it a name, select its observation point, choose the value and filter, label its units, then select the statistics and optional chart. Numeric and scope field selectors are derived from the compiled, flattened graph, including nested catalog and custom mechanics. Search nodes by name or path. Schema discovery does not navigate away from an open constructor subgraph.

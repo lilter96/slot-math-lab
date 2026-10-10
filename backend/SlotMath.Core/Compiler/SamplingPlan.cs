@@ -1,6 +1,5 @@
 using System.Globalization;
 using System.Numerics;
-using System.Text.Json;
 using SlotMath.Core.Expressions;
 using SlotMath.Core.Model;
 using SlotMath.Core.Monad;
@@ -79,7 +78,7 @@ internal sealed class SamplingPlan
         var defaults = new Dictionary<int, SamplingCell>();
         foreach (var (key, value) in config.InitialState ?? new())
         {
-            var cell = SamplingCell.FromRaw(Materialize(value));
+            var cell = SamplingCell.FromRaw(InitialStateValues.Materialize(value));
             defaults[SlotIndex(key)] = cell; _expressions.Remember(cell.Value);
         }
         var sink = config.Nodes.OfType<MetricsSinkNode>().Single();
@@ -273,12 +272,4 @@ internal sealed class SamplingPlan
         _ => BigInteger.Zero,
     };
     private BigInteger ScaleWin(decimal value) => new(decimal.Round(value * (decimal)_scale, 0, MidpointRounding.ToEven));
-    private static object? Materialize(JsonElement value) => value.ValueKind switch
-    {
-        JsonValueKind.Array => value.EnumerateArray().Select(Materialize).ToArray(),
-        JsonValueKind.Object => value.EnumerateObject().ToDictionary(p => p.Name, p => Materialize(p.Value)),
-        JsonValueKind.String => value.GetString(), JsonValueKind.Number => BigInteger.Parse(value.GetRawText(), CultureInfo.InvariantCulture),
-        JsonValueKind.True => true, JsonValueKind.False => false, JsonValueKind.Null => null,
-        _ => throw new InvalidOperationException("Unsupported initial state value."),
-    };
 }

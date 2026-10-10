@@ -144,11 +144,11 @@ public static class RunsEndpoints
                 }
             }
             catch (ArgumentException ex) { return Results.BadRequest(new { error = ex.Message }); }
-            if (measurements.Length > 0)
-            {
-                var validation = compiledGraphs.Compile(configEntry.Config, measurements);
-                if (!validation.IsValid) return Results.BadRequest(new { error = "Measurement plan validation failed.", errors = validation.Errors });
-            }
+            // A run with no custom metrics still needs a valid executable graph.
+            // The cache shares this preflight with the queued worker; rejected
+            // initial-state budgets must never allocate a run/job first.
+            var validation = compiledGraphs.Compile(configEntry.Config, measurements);
+            if (!validation.IsValid) return Results.BadRequest(new { error = "Graph or measurement plan validation failed.", errors = validation.Errors });
             var run = configStore.UseVersion(request.ConfigId, configEntry.Version, pinned =>
                 runStore.Create(request.ConfigId, request.Seed, pinned.Version, request.SampleSize ?? 100_000,
                     CanonicalHash.Compute(pinned.Config), request.DegreeOfParallelism, measurements, request.Execution, request.VerificationProfile));

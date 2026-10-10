@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import type { MeasurementAnalysis as Analysis, NumericInterval } from '../../lib/measurements/analysis';
+import { formatNumber } from '../../lib/numberFormat';
 
-const number = (value: number | null | undefined, digits = 5) => value == null ? '—' : value.toLocaleString(undefined, { maximumFractionDigits: digits });
+const number = (value: number | null | undefined, digits = 5) => formatNumber(value, digits);
 /** Shared live/final view. Every chart and test reads the same pinned, persisted statistics. */
 export function MeasurementAnalysis({ analysis, unit }: { analysis?: Analysis | null; unit: string }) {
   const [tab, setTab] = useState('distribution'), [group, setGroup] = useState(''), [curve, setCurve] = useState('frequency');

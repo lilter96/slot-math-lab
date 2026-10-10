@@ -36,8 +36,15 @@ test('A feature cohort with no matching children retains lifecycle exposure in l
       groups: { empty: { count: 0, mean: null, entries: 100, exits: 100, unclosedEpisodes: 0, distinctParents: 0, normalization: { paidRounds: 100 } } } } });
     if (previous) expect(metric).toEqual(previous); previous = metric;
     // A direct retained link must work without first loading the lazy Simulate route.
-    await page.goto(`/results?run=${id}`); await page.reload();
+    await page.goto(`/results?run=${id}`);
+    // Reproduce a legal pause longer than the local paint assertion. This is
+    // an explicitly rejected read; production limiter settings are unchanged.
+    await page.route(`**/api/runs/${id}/evidence`, route => route.fulfill({ status: 429, headers: { 'Retry-After': '6' }, body: '' }), { times: 1 });
+    await page.reload();
     const saved = page.getByRole('region', { name: 'Saved measurement Empty feature cohort', exact: true });
+    // Loading honors an explicit server Retry-After window. Check CSS only
+    // after authoritative evidence is present; rendering keeps its 5s limit.
+    await expect(saved).toBeVisible({ timeout: 70000 });
     await expect(saved.locator('.measurement-quantiles')).toHaveCSS('display', 'grid');
     await expect(saved.getByRole('tab', { name: 'distribution', exact: true })).toHaveCSS('background-color', 'rgb(20, 86, 72)');
     await saved.getByRole('tab', { name: 'accounting', exact: true }).click(); await saved.getByLabel('Analysis population').selectOption('empty');

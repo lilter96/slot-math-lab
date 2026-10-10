@@ -10,7 +10,9 @@ namespace SlotMath.Core.Serialization;
 //
 //  Canonical JSON: UTF-8, object keys sorted by ordinal, no insignificant
 //  whitespace, arrays order-significant, rationals as the string "n/d", no
-//  floats in hashed content. Two semantically identical configs (differing
+//  floats in typed mathematical content. Initial-state JSON numbers retain
+//  their authored literal (including decimals/exponents) without binary64
+//  conversion. Two semantically identical configs (differing
 //  only in key order or rational representation) serialize identically and
 //  therefore hash identically; a one-bit semantic change changes the hash.
 //
@@ -19,7 +21,9 @@ namespace SlotMath.Core.Serialization;
 //                 so configs pin subgraph content by hash (D22/D23).
 // ═══════════════════════════════════════════════════════════════════════════
 
-/// <summary>D2 canonical JSON serializer (ordinal-sorted keys, compact, float-free).</summary>
+/// <summary>D2 canonical JSON serializer (ordinal-sorted keys and compact).
+/// Initial-state numeric literals are preserved losslessly; typed mathematical
+/// fields continue to require integer/rational representations.</summary>
 public static class CanonicalJson
 {
     /// <summary>Serialize <paramref name="value"/> to canonical JSON (D2).</summary>
@@ -32,26 +36,27 @@ public static class CanonicalJson
 
     private static readonly JsonSerializerOptions CompactOptions = new() { WriteIndented = false };
 
-    private static JsonNode? Canonicalize(JsonNode? node)
+    private static JsonNode? Canonicalize(JsonNode? node, bool initialState = false)
     {
         switch (node)
         {
             case JsonObject obj:
                 var sorted = new JsonObject();
                 foreach (var kvp in obj.OrderBy(k => k.Key, StringComparer.Ordinal))
-                    sorted[kvp.Key] = Canonicalize(kvp.Value?.DeepClone());
+                    sorted[kvp.Key] = Canonicalize(kvp.Value?.DeepClone(), initialState || kvp.Key == "initialState");
                 return sorted;
 
             case JsonArray arr:
                 var array = new JsonArray();
                 foreach (var item in arr)
-                    array.Add(Canonicalize(item?.DeepClone()));
+                    array.Add(Canonicalize(item?.DeepClone(), initialState));
                 return array;
 
             default:
-                // Leaf (string / number / bool / null). Reject floats in hashed
-                // content (D2): the exact-path config must be integer/rational only.
-                if (node is JsonValue value && value.TryGetValue<double>(out var d) && d != System.Math.Floor(d))
+                // State literals are parsed as exact rationals by the compiler.
+                // Hash their authored JSON token without rounding, converting
+                // to a string or aliasing it with an integer/string value.
+                if (!initialState && node is JsonValue value && value.TryGetValue<double>(out var d) && d != System.Math.Floor(d))
                     throw new InvalidOperationException(
                         "Canonical JSON must not contain non-integer floats (D2). Use rationals as \"n/d\".");
                 return node?.DeepClone();

@@ -126,7 +126,15 @@ test('Dog House retains its 98% AST reference with contribution metrics, distrib
 });
 test('failed and zero-variance runs never gain a green acceptance verdict', async ({ page }) => {
   const invalid = coin('Results invalid'); delete (invalid.nodes[1] as { winCap?: number }).winCap;
-  const failed = await launch(page.request, await save(page.request, invalid)); await finish(page.request, failed.id, 'failed');
+  const configId = await save(page.request, invalid);
+  const rejected = await permitted(() => page.request.post('/api/runs', { data: { configId, sampleSize: 1000 } }));
+  expect(rejected.status()).toBe(400); expect((await rejected.json()).errors.length).toBeGreaterThan(0);
+  // Structurally invalid graphs never create runs. To check failed evidence,
+  // use a valid model whose payout violates its declared integer quantum at
+  // execution: numeric state input 0.1 cannot become a paid integer credit.
+  const source = coin('Results runtime precision failure'), runtime = { ...source, initialState: { ...source.initialState, payout: .1 },
+    nodes: source.nodes.map(node => node.id === 'sink' ? { ...node, winStateKey: 'payout' } : node) };
+  const failed = await launch(page.request, await save(page.request, runtime)); await finish(page.request, failed.id, 'failed');
   await page.goto(`/results?run=${failed.id}`); await expect(page.getByTestId('results-rtp')).toHaveText('—');
   await expect(page.getByTestId('results-assessment')).toHaveText('Incomplete evidence');
   await expect(page.getByRole('alert').filter({ hasText: 'Run interrupted or failed' })).toBeVisible();

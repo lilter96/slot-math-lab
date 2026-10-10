@@ -112,10 +112,15 @@ public readonly struct ExprValue : IEquatable<ExprValue>
         Kind == ExprType.Number ? NumberNumerator / NumberDenominator : 0;
 
     /// <summary>Convert to double (for sampled/hybrid).</summary>
-    public double AsDouble() =>
-        Kind == ExprType.Number
-            ? (double)NumberNumerator / (double)NumberDenominator
-            : 0.0;
+    public double AsDouble()
+    {
+        if (Kind != ExprType.Number) return 0;
+        var numerator = (double)NumberNumerator;
+        if (NumberDenominator.IsOne) return numerator;
+        var denominator = (double)NumberDenominator;
+        return double.IsFinite(numerator) && double.IsFinite(denominator) ? numerator / denominator
+            : new Math.Rational(NumberNumerator, NumberDenominator).ToDouble();
+    }
 
     /// <summary>Arithmetic multiply of two number values.</summary>
     public static ExprValue Mul(ExprValue a, ExprValue b)

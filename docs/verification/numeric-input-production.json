@@ -1,0 +1,860 @@
+{
+  "checkedAt": "2026-10-10T04:50:29.519Z",
+  "endpoint": "https://localhost:8543",
+  "specification": "Every valid observation has exact authored value 1/1000000000. Its exact decimal residual is zero; each round pays 1.",
+  "anonymousBlocked": true,
+  "previousIntegerInput": {
+    "runId": "d20d4f21352146fab78ee6a661d3e278",
+    "inputVerified": true,
+    "configHash": "2748e5232e4ca76474c15abb96cf7d9944d65d3e55423fa04b813f218e00e48b",
+    "computedConfigHash": "2748e5232e4ca76474c15abb96cf7d9944d65d3e55423fa04b813f218e00e48b",
+    "originalProducer": {
+      "measurementContract": "measurements-v1",
+      "numericalMethods": "central-moments-pebay-v1;bins-v1;clopper-pearson-v1;hoeffding-spending-v1;pearson-gamma-v1;session-accounting-v2-decimal-roundtrip;categorical-joint-v1;discrete-null-v1;finite-stationary-v1;witness-prefix-v1;loop-completion-v1;paid-parent-cohorts-v1;paid-turnover-v1;exact-assertion-v1;enumerated-joint-v2;finite-law-comparison-rational-v1;typed-operators-v1;rational-functions-v1;strict-collections-v1;typed-array-index-v1;cohort-lifecycle-v1;empty-tail-population-v1;matching-parent-exposure-v1",
+      "framework": ".NET 10.0.12",
+      "coreBinarySha256": "e16d8bc36b90a49f5f0c38c9f8c9f519340f55ef5afa940e78176f6cf22265fc",
+      "apiBinarySha256": "7b054ffb2bd8fcdc0670795b88ce91217280140978cd119dbd5a6cd8f2e60c94"
+    }
+  },
+  "runs": [
+    {
+      "id": "736c9a5690fc4ccd9fd97c60d15340ca",
+      "execution": {
+        "samplingEngine": "auto",
+        "regime": "independentRounds",
+        "persistentKeys": [],
+        "sessionLength": 100,
+        "initialBankroll": 100,
+        "wager": 1,
+        "featureMetricId": null,
+        "streamScheme": "splitmix64-chunk-65536"
+      },
+      "paidRounds": 100000,
+      "measurements": [
+        {
+          "id": "7ddde511-4ea8-4097-9fc0-a32d6ea7388c",
+          "observations": 100000,
+          "count": 100000,
+          "excluded": 0,
+          "errors": 0,
+          "min": 1e-9,
+          "max": 1e-9,
+          "mean": 1e-9,
+          "sum": 0.00010000000000005431,
+          "stdDev": 0,
+          "firstError": null,
+          "analysis": null,
+          "witnesses": [
+            {
+              "roundIndex": 0,
+              "observationOrdinal": 1,
+              "nodeId": "sink",
+              "kind": "first",
+              "value": 1e-9,
+              "pair": null,
+              "group": null,
+              "detail": null
+            },
+            {
+              "roundIndex": 0,
+              "observationOrdinal": 1,
+              "nodeId": "sink",
+              "kind": "maximum",
+              "value": 1e-9,
+              "pair": null,
+              "group": null,
+              "detail": null
+            },
+            {
+              "roundIndex": 0,
+              "observationOrdinal": 1,
+              "nodeId": "sink",
+              "kind": "minimum",
+              "value": 1e-9,
+              "pair": null,
+              "group": null,
+              "detail": null
+            }
+          ]
+        },
+        {
+          "id": "d990aa1b-b703-4f55-a858-d3a542af13fb",
+          "observations": 100000,
+          "count": 100000,
+          "excluded": 0,
+          "errors": 0,
+          "min": 0,
+          "max": 0,
+          "mean": 0,
+          "sum": 0,
+          "stdDev": 0,
+          "firstError": null,
+          "analysis": {
+            "count": 100000,
+            "min": 0,
+            "max": 0,
+            "mean": 0,
+            "sum": 0,
+            "subject": "observation",
+            "reduction": "sum",
+            "distinctParents": 100000,
+            "entries": 0,
+            "exits": 0,
+            "unclosedEpisodes": 0,
+            "uniqueAwards": 0,
+            "duplicateAwards": 0,
+            "moments": {
+              "secondMoment": 0,
+              "populationVariance": 0,
+              "sampleVariance": 0,
+              "coefficientOfVariation": null,
+              "skewness": null,
+              "excessKurtosis": null,
+              "meanAbsoluteDeviation": 0
+            },
+            "pair": null,
+            "support": [
+              {
+                "value": 0,
+                "count": 100000,
+                "sum": 0
+              }
+            ],
+            "supportComplete": true,
+            "bins": [
+              {
+                "lower": null,
+                "upper": 0,
+                "count": 0,
+                "sum": 0,
+                "sumSquares": 0
+              },
+              {
+                "lower": 0,
+                "upper": 1,
+                "count": 100000,
+                "sum": 0,
+                "sumSquares": 0
+              },
+              {
+                "lower": 1,
+                "upper": 2,
+                "count": 0,
+                "sum": 0,
+                "sumSquares": 0
+              },
+              {
+                "lower": 2,
+                "upper": 5,
+                "count": 0,
+                "sum": 0,
+                "sumSquares": 0
+              },
+              {
+                "lower": 5,
+                "upper": 10,
+                "count": 0,
+                "sum": 0,
+                "sumSquares": 0
+              },
+              {
+                "lower": 10,
+                "upper": 20,
+                "count": 0,
+                "sum": 0,
+                "sumSquares": 0
+              },
+              {
+                "lower": 20,
+                "upper": 50,
+                "count": 0,
+                "sum": 0,
+                "sumSquares": 0
+              },
+              {
+                "lower": 50,
+                "upper": 100,
+                "count": 0,
+                "sum": 0,
+                "sumSquares": 0
+              },
+              {
+                "lower": 100,
+                "upper": 500,
+                "count": 0,
+                "sum": 0,
+                "sumSquares": 0
+              },
+              {
+                "lower": 500,
+                "upper": 1000,
+                "count": 0,
+                "sum": 0,
+                "sumSquares": 0
+              },
+              {
+                "lower": 1000,
+                "upper": null,
+                "count": 0,
+                "sum": 0,
+                "sumSquares": 0
+              }
+            ],
+            "quantiles": [
+              {
+                "probability": 0.5,
+                "value": 0,
+                "lower": 0,
+                "upper": 0,
+                "method": "Exact empirical inverse CDF"
+              },
+              {
+                "probability": 0.9,
+                "value": 0,
+                "lower": 0,
+                "upper": 0,
+                "method": "Exact empirical inverse CDF"
+              },
+              {
+                "probability": 0.95,
+                "value": 0,
+                "lower": 0,
+                "upper": 0,
+                "method": "Exact empirical inverse CDF"
+              },
+              {
+                "probability": 0.99,
+                "value": 0,
+                "lower": 0,
+                "upper": 0,
+                "method": "Exact empirical inverse CDF"
+              }
+            ],
+            "tails": [
+              {
+                "threshold": 1,
+                "count": 0,
+                "probability": 0,
+                "sum": 0,
+                "mean": null,
+                "secondMoment": 0
+              },
+              {
+                "threshold": 10,
+                "count": 0,
+                "probability": 0,
+                "sum": 0,
+                "mean": null,
+                "secondMoment": 0
+              },
+              {
+                "threshold": 100,
+                "count": 0,
+                "probability": 0,
+                "sum": 0,
+                "mean": null,
+                "secondMoment": 0
+              }
+            ],
+            "upperTails": [
+              {
+                "quantile": 0.5,
+                "tailMass": 0.5,
+                "mean": 0,
+                "lowerMean": 0,
+                "upperMean": 0,
+                "lowerReturnShare": null,
+                "upperReturnShare": null,
+                "method": "Exact empirical highest-tail mass; fractional tie allocation"
+              },
+              {
+                "quantile": 0.9,
+                "tailMass": 0.09999999999999998,
+                "mean": 0,
+                "lowerMean": 0,
+                "upperMean": 0,
+                "lowerReturnShare": null,
+                "upperReturnShare": null,
+                "method": "Exact empirical highest-tail mass; fractional tie allocation"
+              },
+              {
+                "quantile": 0.95,
+                "tailMass": 0.050000000000000044,
+                "mean": 0,
+                "lowerMean": 0,
+                "upperMean": 0,
+                "lowerReturnShare": null,
+                "upperReturnShare": null,
+                "method": "Exact empirical highest-tail mass; fractional tie allocation"
+              },
+              {
+                "quantile": 0.99,
+                "tailMass": 0.010000000000000009,
+                "mean": 0,
+                "lowerMean": 0,
+                "upperMean": 0,
+                "lowerReturnShare": null,
+                "upperReturnShare": null,
+                "method": "Exact empirical highest-tail mass; fractional tie allocation"
+              }
+            ],
+            "meanAbsoluteDeviationBounds": {
+              "lower": 0,
+              "upper": 0,
+              "method": "Exact empirical absolute deviation",
+              "assumptions": "Descriptive population of retained observations."
+            },
+            "meanInterval": null,
+            "probabilityInterval": null,
+            "clusteredMeanInterval": null,
+            "sequentialMeanInterval": null,
+            "meanStandardError": null,
+            "requiredSampleSize": null,
+            "weights": null,
+            "sequence": null,
+            "transitions": [],
+            "transitionsComplete": true,
+            "comparison": null,
+            "checks": [
+              {
+                "id": "exact-zero-assertion",
+                "status": "noObservedViolations",
+                "observed": 0,
+                "reference": 0,
+                "difference": 0,
+                "detail": "Each valid scoped expression must be exactly zero or false before binary64 report conversion. Invalid observations cannot pass. No observed violations describes the checked population; it does not prove unobserved cases."
+              }
+            ],
+            "groups": {},
+            "groupsComplete": true,
+            "assertion": {
+              "kind": "zero",
+              "checked": 100000,
+              "violations": 0,
+              "status": "noObservedViolations"
+            },
+            "normalization": {
+              "paidRounds": 100000,
+              "externalTurnover": 100000,
+              "basis": "All settled paid parents multiplied by the pinned fixed external cost; absent cohort/component parents remain in the denominator. Values and cost must use compatible monetary units. Unweighted proposal observations when likelihood weights are present."
+            },
+            "parentExposure": {
+              "paidRoundsWithMatchingChildren": 100000,
+              "episodesWithMatchingChildren": null
+            }
+          },
+          "witnesses": [
+            {
+              "roundIndex": 0,
+              "observationOrdinal": 1,
+              "nodeId": "sink",
+              "kind": "first",
+              "value": 0,
+              "pair": null,
+              "group": null,
+              "detail": null
+            },
+            {
+              "roundIndex": 0,
+              "observationOrdinal": 1,
+              "nodeId": "sink",
+              "kind": "maximum",
+              "value": 0,
+              "pair": null,
+              "group": null,
+              "detail": null
+            },
+            {
+              "roundIndex": 0,
+              "observationOrdinal": 1,
+              "nodeId": "sink",
+              "kind": "minimum",
+              "value": 0,
+              "pair": null,
+              "group": null,
+              "detail": null
+            }
+          ]
+        }
+      ],
+      "profileHash": "6334ad145486a44428fb1a8df67ab5df4310007908a211e4a2c0f06f798632df",
+      "profileReport": {
+        "runId": "736c9a5690fc4ccd9fd97c60d15340ca",
+        "source": {
+          "configHash": "634476630265b94e26f713513f9a559b404f2e8caf3368b080c02c7e1f7e347b",
+          "measurementHash": "09476d6cb7b2d6a96422b7947af6f3abfd5e9f3f3b0709435ee3852e9142a303",
+          "sequence": 105,
+          "paidRounds": 100000,
+          "producer": {
+            "measurementContract": "measurements-v1",
+            "numericalMethods": "central-moments-pebay-v1;bins-v1;clopper-pearson-v1;hoeffding-spending-v1;pearson-gamma-v1;session-accounting-v2-decimal-roundtrip;categorical-joint-v1;discrete-null-v1;finite-stationary-v1;witness-prefix-v1;loop-completion-v1;paid-parent-cohorts-v1;paid-turnover-v1;exact-assertion-v1;enumerated-joint-v2;finite-law-comparison-rational-v1;typed-operators-v1;rational-functions-v1;strict-collections-v1;typed-array-index-v1;cohort-lifecycle-v1;empty-tail-population-v1;matching-parent-exposure-v1;numeric-state-input-v1",
+            "framework": ".NET 10.0.12",
+            "coreBinarySha256": "d28a14f818ad2b4c84101107990231097a50445e17ccd594fe75c18c5cfea400",
+            "apiBinarySha256": "06686b618e17ac03d98fc5c5b5f5fb74580a3dc872419a251d6054ffffad2e3d"
+          }
+        },
+        "report": {
+          "name": "Decimal input identity",
+          "profileHash": "6334ad145486a44428fb1a8df67ab5df4310007908a211e4a2c0f06f798632df",
+          "status": "criteriaMet",
+          "familyConfidence": 0.95,
+          "allocatedAlpha": 0,
+          "criteria": [
+            {
+              "measurementId": "7ddde511-4ea8-4097-9fc0-a32d6ea7388c",
+              "name": "Tiny signal",
+              "check": "observation-integrity",
+              "status": "noObservedViolations",
+              "count": 100000,
+              "minimumCount": 100000,
+              "detail": "The completed required population meets this observed-case check; unobserved cases are not proven."
+            },
+            {
+              "measurementId": "d990aa1b-b703-4f55-a858-d3a542af13fb",
+              "name": "Decimal residual",
+              "check": "exact-zero-assertion",
+              "status": "noObservedViolations",
+              "count": 100000,
+              "minimumCount": 100000,
+              "detail": "The completed required population meets this observed-case check; unobserved cases are not proven."
+            }
+          ],
+          "detail": "Only these checks were declared before launch. Logical checks cover observed cases; statistical checks require every marginal interval's assumptions. Family allocation uses the sum of marginal error budgets without assuming independence between checks. Approximate intervals retain approximate coverage. A sampled profile is not an exact payout-law certificate.",
+          "algorithmVersion": "predeclared-verification-v1"
+        }
+      },
+      "runtimeProvenance": {
+        "measurementContract": "measurements-v1",
+        "numericalMethods": "central-moments-pebay-v1;bins-v1;clopper-pearson-v1;hoeffding-spending-v1;pearson-gamma-v1;session-accounting-v2-decimal-roundtrip;categorical-joint-v1;discrete-null-v1;finite-stationary-v1;witness-prefix-v1;loop-completion-v1;paid-parent-cohorts-v1;paid-turnover-v1;exact-assertion-v1;enumerated-joint-v2;finite-law-comparison-rational-v1;typed-operators-v1;rational-functions-v1;strict-collections-v1;typed-array-index-v1;cohort-lifecycle-v1;empty-tail-population-v1;matching-parent-exposure-v1;numeric-state-input-v1",
+        "framework": ".NET 10.0.12",
+        "coreBinarySha256": "d28a14f818ad2b4c84101107990231097a50445e17ccd594fe75c18c5cfea400",
+        "apiBinarySha256": "06686b618e17ac03d98fc5c5b5f5fb74580a3dc872419a251d6054ffffad2e3d"
+      }
+    },
+    {
+      "id": "8d351dff34424c7f938217442af8048c",
+      "execution": {
+        "samplingEngine": "reference",
+        "regime": "independentRounds",
+        "persistentKeys": [],
+        "sessionLength": 100,
+        "initialBankroll": 100,
+        "wager": 1,
+        "featureMetricId": null,
+        "streamScheme": "splitmix64-chunk-65536"
+      },
+      "paidRounds": 100000,
+      "measurements": [
+        {
+          "id": "7ddde511-4ea8-4097-9fc0-a32d6ea7388c",
+          "observations": 100000,
+          "count": 100000,
+          "excluded": 0,
+          "errors": 0,
+          "min": 1e-9,
+          "max": 1e-9,
+          "mean": 1e-9,
+          "sum": 0.00010000000000005431,
+          "stdDev": 0,
+          "firstError": null,
+          "analysis": null,
+          "witnesses": [
+            {
+              "roundIndex": 0,
+              "observationOrdinal": 1,
+              "nodeId": "sink",
+              "kind": "first",
+              "value": 1e-9,
+              "pair": null,
+              "group": null,
+              "detail": null
+            },
+            {
+              "roundIndex": 0,
+              "observationOrdinal": 1,
+              "nodeId": "sink",
+              "kind": "maximum",
+              "value": 1e-9,
+              "pair": null,
+              "group": null,
+              "detail": null
+            },
+            {
+              "roundIndex": 0,
+              "observationOrdinal": 1,
+              "nodeId": "sink",
+              "kind": "minimum",
+              "value": 1e-9,
+              "pair": null,
+              "group": null,
+              "detail": null
+            }
+          ]
+        },
+        {
+          "id": "d990aa1b-b703-4f55-a858-d3a542af13fb",
+          "observations": 100000,
+          "count": 100000,
+          "excluded": 0,
+          "errors": 0,
+          "min": 0,
+          "max": 0,
+          "mean": 0,
+          "sum": 0,
+          "stdDev": 0,
+          "firstError": null,
+          "analysis": {
+            "count": 100000,
+            "min": 0,
+            "max": 0,
+            "mean": 0,
+            "sum": 0,
+            "subject": "observation",
+            "reduction": "sum",
+            "distinctParents": 100000,
+            "entries": 0,
+            "exits": 0,
+            "unclosedEpisodes": 0,
+            "uniqueAwards": 0,
+            "duplicateAwards": 0,
+            "moments": {
+              "secondMoment": 0,
+              "populationVariance": 0,
+              "sampleVariance": 0,
+              "coefficientOfVariation": null,
+              "skewness": null,
+              "excessKurtosis": null,
+              "meanAbsoluteDeviation": 0
+            },
+            "pair": null,
+            "support": [
+              {
+                "value": 0,
+                "count": 100000,
+                "sum": 0
+              }
+            ],
+            "supportComplete": true,
+            "bins": [
+              {
+                "lower": null,
+                "upper": 0,
+                "count": 0,
+                "sum": 0,
+                "sumSquares": 0
+              },
+              {
+                "lower": 0,
+                "upper": 1,
+                "count": 100000,
+                "sum": 0,
+                "sumSquares": 0
+              },
+              {
+                "lower": 1,
+                "upper": 2,
+                "count": 0,
+                "sum": 0,
+                "sumSquares": 0
+              },
+              {
+                "lower": 2,
+                "upper": 5,
+                "count": 0,
+                "sum": 0,
+                "sumSquares": 0
+              },
+              {
+                "lower": 5,
+                "upper": 10,
+                "count": 0,
+                "sum": 0,
+                "sumSquares": 0
+              },
+              {
+                "lower": 10,
+                "upper": 20,
+                "count": 0,
+                "sum": 0,
+                "sumSquares": 0
+              },
+              {
+                "lower": 20,
+                "upper": 50,
+                "count": 0,
+                "sum": 0,
+                "sumSquares": 0
+              },
+              {
+                "lower": 50,
+                "upper": 100,
+                "count": 0,
+                "sum": 0,
+                "sumSquares": 0
+              },
+              {
+                "lower": 100,
+                "upper": 500,
+                "count": 0,
+                "sum": 0,
+                "sumSquares": 0
+              },
+              {
+                "lower": 500,
+                "upper": 1000,
+                "count": 0,
+                "sum": 0,
+                "sumSquares": 0
+              },
+              {
+                "lower": 1000,
+                "upper": null,
+                "count": 0,
+                "sum": 0,
+                "sumSquares": 0
+              }
+            ],
+            "quantiles": [
+              {
+                "probability": 0.5,
+                "value": 0,
+                "lower": 0,
+                "upper": 0,
+                "method": "Exact empirical inverse CDF"
+              },
+              {
+                "probability": 0.9,
+                "value": 0,
+                "lower": 0,
+                "upper": 0,
+                "method": "Exact empirical inverse CDF"
+              },
+              {
+                "probability": 0.95,
+                "value": 0,
+                "lower": 0,
+                "upper": 0,
+                "method": "Exact empirical inverse CDF"
+              },
+              {
+                "probability": 0.99,
+                "value": 0,
+                "lower": 0,
+                "upper": 0,
+                "method": "Exact empirical inverse CDF"
+              }
+            ],
+            "tails": [
+              {
+                "threshold": 1,
+                "count": 0,
+                "probability": 0,
+                "sum": 0,
+                "mean": null,
+                "secondMoment": 0
+              },
+              {
+                "threshold": 10,
+                "count": 0,
+                "probability": 0,
+                "sum": 0,
+                "mean": null,
+                "secondMoment": 0
+              },
+              {
+                "threshold": 100,
+                "count": 0,
+                "probability": 0,
+                "sum": 0,
+                "mean": null,
+                "secondMoment": 0
+              }
+            ],
+            "upperTails": [
+              {
+                "quantile": 0.5,
+                "tailMass": 0.5,
+                "mean": 0,
+                "lowerMean": 0,
+                "upperMean": 0,
+                "lowerReturnShare": null,
+                "upperReturnShare": null,
+                "method": "Exact empirical highest-tail mass; fractional tie allocation"
+              },
+              {
+                "quantile": 0.9,
+                "tailMass": 0.09999999999999998,
+                "mean": 0,
+                "lowerMean": 0,
+                "upperMean": 0,
+                "lowerReturnShare": null,
+                "upperReturnShare": null,
+                "method": "Exact empirical highest-tail mass; fractional tie allocation"
+              },
+              {
+                "quantile": 0.95,
+                "tailMass": 0.050000000000000044,
+                "mean": 0,
+                "lowerMean": 0,
+                "upperMean": 0,
+                "lowerReturnShare": null,
+                "upperReturnShare": null,
+                "method": "Exact empirical highest-tail mass; fractional tie allocation"
+              },
+              {
+                "quantile": 0.99,
+                "tailMass": 0.010000000000000009,
+                "mean": 0,
+                "lowerMean": 0,
+                "upperMean": 0,
+                "lowerReturnShare": null,
+                "upperReturnShare": null,
+                "method": "Exact empirical highest-tail mass; fractional tie allocation"
+              }
+            ],
+            "meanAbsoluteDeviationBounds": {
+              "lower": 0,
+              "upper": 0,
+              "method": "Exact empirical absolute deviation",
+              "assumptions": "Descriptive population of retained observations."
+            },
+            "meanInterval": null,
+            "probabilityInterval": null,
+            "clusteredMeanInterval": null,
+            "sequentialMeanInterval": null,
+            "meanStandardError": null,
+            "requiredSampleSize": null,
+            "weights": null,
+            "sequence": null,
+            "transitions": [],
+            "transitionsComplete": true,
+            "comparison": null,
+            "checks": [
+              {
+                "id": "exact-zero-assertion",
+                "status": "noObservedViolations",
+                "observed": 0,
+                "reference": 0,
+                "difference": 0,
+                "detail": "Each valid scoped expression must be exactly zero or false before binary64 report conversion. Invalid observations cannot pass. No observed violations describes the checked population; it does not prove unobserved cases."
+              }
+            ],
+            "groups": {},
+            "groupsComplete": true,
+            "assertion": {
+              "kind": "zero",
+              "checked": 100000,
+              "violations": 0,
+              "status": "noObservedViolations"
+            },
+            "normalization": {
+              "paidRounds": 100000,
+              "externalTurnover": 100000,
+              "basis": "All settled paid parents multiplied by the pinned fixed external cost; absent cohort/component parents remain in the denominator. Values and cost must use compatible monetary units. Unweighted proposal observations when likelihood weights are present."
+            },
+            "parentExposure": {
+              "paidRoundsWithMatchingChildren": 100000,
+              "episodesWithMatchingChildren": null
+            }
+          },
+          "witnesses": [
+            {
+              "roundIndex": 0,
+              "observationOrdinal": 1,
+              "nodeId": "sink",
+              "kind": "first",
+              "value": 0,
+              "pair": null,
+              "group": null,
+              "detail": null
+            },
+            {
+              "roundIndex": 0,
+              "observationOrdinal": 1,
+              "nodeId": "sink",
+              "kind": "maximum",
+              "value": 0,
+              "pair": null,
+              "group": null,
+              "detail": null
+            },
+            {
+              "roundIndex": 0,
+              "observationOrdinal": 1,
+              "nodeId": "sink",
+              "kind": "minimum",
+              "value": 0,
+              "pair": null,
+              "group": null,
+              "detail": null
+            }
+          ]
+        }
+      ],
+      "profileHash": "6334ad145486a44428fb1a8df67ab5df4310007908a211e4a2c0f06f798632df",
+      "profileReport": {
+        "runId": "8d351dff34424c7f938217442af8048c",
+        "source": {
+          "configHash": "85ea6af5831c5a67a19cad1fd2b5a58113423a80381a3299aec94c07f61d1cdc",
+          "measurementHash": "09476d6cb7b2d6a96422b7947af6f3abfd5e9f3f3b0709435ee3852e9142a303",
+          "sequence": 105,
+          "paidRounds": 100000,
+          "producer": {
+            "measurementContract": "measurements-v1",
+            "numericalMethods": "central-moments-pebay-v1;bins-v1;clopper-pearson-v1;hoeffding-spending-v1;pearson-gamma-v1;session-accounting-v2-decimal-roundtrip;categorical-joint-v1;discrete-null-v1;finite-stationary-v1;witness-prefix-v1;loop-completion-v1;paid-parent-cohorts-v1;paid-turnover-v1;exact-assertion-v1;enumerated-joint-v2;finite-law-comparison-rational-v1;typed-operators-v1;rational-functions-v1;strict-collections-v1;typed-array-index-v1;cohort-lifecycle-v1;empty-tail-population-v1;matching-parent-exposure-v1;numeric-state-input-v1",
+            "framework": ".NET 10.0.12",
+            "coreBinarySha256": "d28a14f818ad2b4c84101107990231097a50445e17ccd594fe75c18c5cfea400",
+            "apiBinarySha256": "06686b618e17ac03d98fc5c5b5f5fb74580a3dc872419a251d6054ffffad2e3d"
+          }
+        },
+        "report": {
+          "name": "Decimal input identity",
+          "profileHash": "6334ad145486a44428fb1a8df67ab5df4310007908a211e4a2c0f06f798632df",
+          "status": "criteriaMet",
+          "familyConfidence": 0.95,
+          "allocatedAlpha": 0,
+          "criteria": [
+            {
+              "measurementId": "7ddde511-4ea8-4097-9fc0-a32d6ea7388c",
+              "name": "Tiny signal",
+              "check": "observation-integrity",
+              "status": "noObservedViolations",
+              "count": 100000,
+              "minimumCount": 100000,
+              "detail": "The completed required population meets this observed-case check; unobserved cases are not proven."
+            },
+            {
+              "measurementId": "d990aa1b-b703-4f55-a858-d3a542af13fb",
+              "name": "Decimal residual",
+              "check": "exact-zero-assertion",
+              "status": "noObservedViolations",
+              "count": 100000,
+              "minimumCount": 100000,
+              "detail": "The completed required population meets this observed-case check; unobserved cases are not proven."
+            }
+          ],
+          "detail": "Only these checks were declared before launch. Logical checks cover observed cases; statistical checks require every marginal interval's assumptions. Family allocation uses the sum of marginal error budgets without assuming independence between checks. Approximate intervals retain approximate coverage. A sampled profile is not an exact payout-law certificate.",
+          "algorithmVersion": "predeclared-verification-v1"
+        }
+      },
+      "runtimeProvenance": {
+        "measurementContract": "measurements-v1",
+        "numericalMethods": "central-moments-pebay-v1;bins-v1;clopper-pearson-v1;hoeffding-spending-v1;pearson-gamma-v1;session-accounting-v2-decimal-roundtrip;categorical-joint-v1;discrete-null-v1;finite-stationary-v1;witness-prefix-v1;loop-completion-v1;paid-parent-cohorts-v1;paid-turnover-v1;exact-assertion-v1;enumerated-joint-v2;finite-law-comparison-rational-v1;typed-operators-v1;rational-functions-v1;strict-collections-v1;typed-array-index-v1;cohort-lifecycle-v1;empty-tail-population-v1;matching-parent-exposure-v1;numeric-state-input-v1",
+        "framework": ".NET 10.0.12",
+        "coreBinarySha256": "d28a14f818ad2b4c84101107990231097a50445e17ccd594fe75c18c5cfea400",
+        "apiBinarySha256": "06686b618e17ac03d98fc5c5b5f5fb74580a3dc872419a251d6054ffffad2e3d"
+      }
+    }
+  ],
+  "replayId": "197da78ffe8a4053a2a675bb84cf42c3",
+  "bitIdenticalAcrossEngines": true,
+  "authoritativeExportVerified": true,
+  "emptyWorkspaceRestoreVerified": true,
+  "responsive": {
+    "desktop": true,
+    "mobile": true
+  },
+  "webSocketFrames": 7,
+  "browserErrors": [],
+  "success": true
+}

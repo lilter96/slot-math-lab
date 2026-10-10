@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Net.Http.Json;
+using Microsoft.Extensions.DependencyInjection;
 using System.Text.Json;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.SignalR.Client;
@@ -657,7 +658,7 @@ public class G17IntegrationTests : IClassFixture<WebApplicationFactory<Program>>
     // ═══════════════════════════════════════════════════════════════════════
 
     [Fact]
-    public async Task Runs_InvalidConfig_FailsGracefully()
+    public async Task Runs_InvalidConfig_IsRejectedBeforeAJobIsCreated()
     {
         // Unknown transform is a real invalid config; built-ins need no registration.
         var source = System.Text.Json.Nodes.JsonNode.Parse(JsonSerializer.Serialize(CreateReferenceConfig()))!;
@@ -667,34 +668,18 @@ public class G17IntegrationTests : IClassFixture<WebApplicationFactory<Program>>
         var configBody = await response.Content.ReadFromJsonAsync<JsonElement>();
         var configId = configBody.GetProperty("id").GetString()!;
 
-        // Don't register the lines evaluator — compilation should fail
+        // No tracked metrics: graph preflight must still reject the unknown
+        // evaluator without allocating a run or occupying a worker.
         var runResponse = await _client.PostAsJsonAsync("/api/runs", new
         {
             configId,
             sampleSize = 1000,
         });
-        Assert.Equal(System.Net.HttpStatusCode.Accepted, runResponse.StatusCode);
+        Assert.Equal(System.Net.HttpStatusCode.BadRequest, runResponse.StatusCode);
         var runBody = await runResponse.Content.ReadFromJsonAsync<JsonElement>();
-        var runId = runBody.GetProperty("id").GetString()!;
-
-        // Poll for failed status
-        var failed = false;
-        for (var i = 0; i < 30; i++)
-        {
-            await Task.Delay(500);
-            var getResponse = await _client.GetAsync($"/api/runs/{runId}");
-            if (getResponse.IsSuccessStatusCode)
-            {
-                var body = await getResponse.Content.ReadFromJsonAsync<JsonElement>();
-                if (body.GetProperty("status").GetString() == "failed")
-                {
-                    failed = true;
-                    break;
-                }
-            }
-        }
-
-        Assert.True(failed, "Run should have failed due to validation errors");
+        Assert.NotEmpty(runBody.GetProperty("errors").EnumerateArray());
+        Assert.Contains("missing-evaluator", runBody.GetRawText());
+        Assert.Empty(_factory.Services.GetRequiredService<InMemoryRunStore>().List(configId));
     }
     [Fact]
     public async Task SubscriptionAndHeartbeat_ReturnCompleteVersionedSnapshotsIncludingMissedTerminalResult()

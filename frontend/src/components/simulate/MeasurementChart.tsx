@@ -2,6 +2,7 @@ import { useState } from 'react';
 import type { LivePoint } from '../../hooks/useSimulation';
 import { usePlotWidth } from '../../hooks/usePlotWidth';
 import { availableReducers, chartReducer, formatStatistic, reducerNames, type MetricDraft } from '../../lib/measurements/model';
+import { formatNumber, formatPercent } from '../../lib/numberFormat';
 import { trendStatistic } from '../../lib/measurements/trends';
 
 export function MeasurementChart({ metric, points, customize }: { metric: MetricDraft; points: LivePoint[]; customize(patch: Partial<MetricDraft>): void }) {
@@ -14,9 +15,12 @@ export function MeasurementChart({ metric, points, customize }: { metric: Metric
   const ticks = width < 450 ? [0, .5, 1] : [0, .25, .5, .75, 1];
   const values = available.flatMap(d => rangeMode && d.metric?.min != null && d.metric.max != null ? [d.metric.min, d.metric.max] : [d.value!]);
   const low = values.length ? Math.min(...values) : 0, high = values.length ? Math.max(...values) : 1;
-  const margin = high > low ? (high - low) * .1 : Math.max(1, Math.abs(high)) * .1;
-  const min = low - margin, max = high + margin, maxN = Math.max(1, data.at(-1)?.n ?? 1);
-  const x = (n: number) => left + n / maxN * (width - left - right), y = (v: number) => top + (max - v) / (max - min) * (height - top - bottom);
+  // Normalize before differences so opposite large finite values do not
+  // overflow, and constant tiny measurements retain a useful visible range.
+  const scale = Math.max(Math.abs(low), Math.abs(high)) || 1;
+  const lower = low / scale, upper = high / scale, margin = upper > lower ? (upper - lower) * .1 : .1;
+  const min = Math.max(-Number.MAX_VALUE / scale, lower - margin), max = Math.min(Number.MAX_VALUE / scale, upper + margin), maxN = Math.max(1, data.at(-1)?.n ?? 1);
+  const x = (n: number) => left + n / maxN * (width - left - right), y = (v: number) => top + (max - v / scale) / (max - min) * (height - top - bottom);
   const selected = data[Math.min(hover ?? data.length - 1, data.length - 1)];
   const path = data.map((d, i) => d.value == null ? '' : `${i > 0 && data[i - 1].value != null ? 'L' : 'M'}${x(d.n)},${y(d.value)}`).join(' ');
   // Missing samples split both the line and the observed-range envelope.
@@ -40,7 +44,7 @@ export function MeasurementChart({ metric, points, customize }: { metric: Metric
     onKeyDown={e => { if (['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(e.key)) { e.preventDefault(); setHover(e.key === 'Home' ? 0 : e.key === 'End' ? data.length - 1 : Math.max(0, Math.min(data.length - 1, (hover ?? data.length - 1) + (e.key === 'ArrowRight' ? 1 : -1)))); } }}
     onPointerLeave={e => { if (e.pointerType === 'mouse') setHover(null); }} onPointerMove={e => { if (e.pointerType === 'mouse') selectAt(e.currentTarget, e.clientX); }} onPointerDown={e => selectAt(e.currentTarget, e.clientX)}>
     <desc>Each snapshot summarizes the pinned observation population up to its paid-round count. Arrow keys, Home and End inspect snapshots. Missing values break the trend.</desc>
-    {ticks.map(t => { const v = min + (max - min) * t; return <g key={t}><line className="plot-grid" x1={left} x2={width - right} y1={y(v)} y2={y(v)} /><text className="plot-label" x={left - 8} y={y(v) + 4} textAnchor="end">{reducer === 'matchRate' ? `${(v * 100).toLocaleString(undefined, { maximumFractionDigits: 1 })}%` : v.toLocaleString(undefined, { maximumFractionDigits: 3, notation: 'compact' })}</text><text className="plot-label" x={x(maxN * t)} y={height - 28} textAnchor="middle">{Math.round(maxN * t).toLocaleString(undefined, { notation: width < 450 ? 'compact' : 'standard', maximumFractionDigits: 1 })}</text></g>; })}
+    {ticks.map(t => { const v = (min + (max - min) * t) * scale; return <g key={t}><line className="plot-grid" x1={left} x2={width - right} y1={y(v)} y2={y(v)} /><text className="plot-label" x={left - 8} y={y(v) + 4} textAnchor="end">{reducer === 'matchRate' ? formatPercent(v, 1) : formatNumber(v, 3, { notation: 'compact' })}</text><text className="plot-label" x={x(maxN * t)} y={height - 28} textAnchor="middle">{Math.round(maxN * t).toLocaleString(undefined, { notation: width < 450 ? 'compact' : 'standard', maximumFractionDigits: 1 })}</text></g>; })}
     <text className="plot-label" x={(left + width - right) / 2} y={height - 8} textAnchor="middle">Completed paid rounds</text>
     {available.length > 1 && <>{rangeMode && <path className="plot-band" d={range} />}<path className="plot-line" d={path} /></>}
     {data.map((d, i) => d.value != null && d !== selected && (i === 0 || data[i - 1].value == null) && (i === data.length - 1 || data[i + 1].value == null) ? <circle key={d.n} className="plot-dot" cx={x(d.n)} cy={y(d.value)} r="2.5" /> : null)}

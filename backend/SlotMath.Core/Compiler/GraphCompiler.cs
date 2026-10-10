@@ -113,11 +113,12 @@ public sealed class GraphCompiler
             var builder = new ProgramBuilder(config, _pluginHost, measurements ?? []);
             var raw = builder.Build();
             var cap = new BigInteger(config.Nodes.OfType<MetricsSinkNode>().Single().WinCap!.Value) * builder.WinScale;
+            var initialValues = initial.ToDictionary(p => p.Key, p => InitialStateValues.Materialize(p.Value));
             var initialized = Slot.Modify<Dictionary<string, object?>>(state =>
             {
                 var copy = new Dictionary<string, object?>(state);
-                foreach (var (key, value) in initial)
-                    if (!copy.ContainsKey(key)) copy[key] = Materialize(value);
+                foreach (var (key, value) in initialValues)
+                    if (!copy.ContainsKey(key)) copy[key] = InitialStateValues.Clone(value);
                 return copy;
             }).SelectMany(_ => raw);
             Slot<Dictionary<string, object?>, BigInteger> program = new SettlementSlot<Dictionary<string, object?>>(initialized, cap);
@@ -136,6 +137,10 @@ public sealed class GraphCompiler
                 Code = ex.ErrorCode,
                 Message = ex.Message,
             });
+        }
+        catch (ExpressionEvaluationException ex)
+        {
+            return CompileResult.Failure(new CompileError { Code = ex.Code, Message = ex.Message });
         }
     }
 
@@ -172,18 +177,6 @@ public sealed class GraphCompiler
         }
         return errors;
     }
-
-    private static object? Materialize(System.Text.Json.JsonElement value) => value.ValueKind switch
-    {
-        System.Text.Json.JsonValueKind.Array => value.EnumerateArray().Select(Materialize).ToArray(),
-        System.Text.Json.JsonValueKind.Object => value.EnumerateObject().ToDictionary(p => p.Name, p => Materialize(p.Value)),
-        System.Text.Json.JsonValueKind.String => value.GetString(),
-        System.Text.Json.JsonValueKind.Number => BigInteger.Parse(value.GetRawText(), System.Globalization.CultureInfo.InvariantCulture),
-        System.Text.Json.JsonValueKind.True => true,
-        System.Text.Json.JsonValueKind.False => false,
-        System.Text.Json.JsonValueKind.Null => null,
-        _ => throw new InvalidOperationException("Unsupported initial state value."),
-    };
 
     // ════════════════════════════════════════════════════════════════════
     //  ProgramBuilder — one compilation pass over a validated graph

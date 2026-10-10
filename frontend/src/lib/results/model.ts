@@ -1,4 +1,5 @@
 import { sameExecution } from '../measurements/execution';
+import { formatNumber, formatPercent } from '../numberFormat';
 import { validSnapshot, terminal, type RunSnapshot, type LiveProgress } from '../realtime/runProtocol';
 export interface RunModel { name: string; modelHash: string | null; targetRtp: number | null; winCap: number | null }
 export interface RunSummary {
@@ -142,6 +143,6 @@ export function compareRuns(a: RunEvidence, b: RunEvidence) {
   return { kind: 'independent', title: ci[0] <= 0 && ci[1] >= 0 ? 'Difference includes zero' : 'Difference excludes zero',
     note: 'Approximate 95% interval assuming independent seeded runs of the same model. This does not prove that the implementation is correct.', delta, ci };
 }
-export const percent = (v: number | null | undefined, digits = 3) => v != null && finite(v) ? `${(v * 100).toFixed(digits)}%` : '—';
+export const percent = formatPercent;
 export const pp = (v: number | null | undefined) => v != null && finite(v) ? `${v >= 0 ? '+' : ''}${(v * 100).toFixed(3)} pp` : '—';
-export const number = (v: number | null | undefined) => v != null && finite(v) ? v.toLocaleString(undefined, { maximumFractionDigits: 2 }) : '—';
+export const number = (v: number | null | undefined) => formatNumber(v, 2);

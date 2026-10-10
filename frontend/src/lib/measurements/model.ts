@@ -1,4 +1,5 @@
 import { parseExpression, type ExpressionAst } from '../expressionParser';
+import { formatNumber, formatPercent } from '../numberFormat';
 import type { MeasurementAnalysis, MeasurementOptions } from './analysis';
 export interface MeasurementDefinition { id: string; name: string; nodeId: string | null; value: ExpressionAst | null; filter: ExpressionAst | null; unit: string; options?: MeasurementOptions }
 export interface MeasurementWitness { roundIndex: number; observationOrdinal: number; nodeId: string | null; kind: string; value: number | null; pair: number | null; group: string | null; detail: string | null }
@@ -78,11 +79,11 @@ export function statistic(snapshot: MeasurementSnapshot | undefined, reducer: Re
 }
 export function formatStatistic(value: number | null, reducer: Reducer, unit: string): string {
   if (value == null) return '—';
-  if (reducer === 'matchRate') return `${(value * 100).toFixed(2)}%`;
+  if (reducer === 'matchRate') return formatPercent(value, 2);
   if (['assertionViolations', 'count', 'matchingEpisodes', 'distinctParents', 'uniqueAwards', 'duplicateAwards', 'eligible', 'excluded', 'invalid', 'featureEntries', 'featureExits', 'unclosedEpisodes'].includes(reducer)) return value.toLocaleString();
   if (['coefficientOfVariation', 'skewness', 'excessKurtosis', 'correlation', 'ratio', 'eventReciprocal', 'accountingResidual'].includes(reducer)) unit = '';
   if (['secondMoment', 'populationVariance', 'sampleVariance', 'covariance', 'varianceSum', 'varianceDifference'].includes(reducer) && unit) unit = `(${unit})²`;
-  return `${value.toLocaleString(undefined, { maximumFractionDigits: 4 })}${unit ? ` ${unit}` : ''}`;
+  return `${formatNumber(value)}${unit ? ` ${unit}` : ''}`;
 }
 
 export function samePlan(a: MeasurementDefinition[], b: MeasurementDefinition[]): boolean {

@@ -109,7 +109,7 @@ try {
     independentIntervalVerified: true, dogHouseEngineAndWorkerBitIdentical: true, richPrimaryFrames: rich.length, richFrames: frames.length, runtimeProvenance: dog.runtimeProvenance,
     simulateUrl: base + `/simulate?run=${dog.id}`, resultsUrl: base + `/results?run=${dog.id}`, fixtureResultsUrl: base + `/results?run=${run.id}` });
   if (errors.length) throw new Error('Browser errors: ' + errors.join('; ')); report.browserErrors = [];
-  await writeFile(root + '/docs/verification/verification-profile-production.json', JSON.stringify(report, null, 2) + '\n');
+  await writeFile(process.env.MEASUREMENTS_REPORT_FILE ?? root + '/docs/verification/verification-profile-production.json', JSON.stringify(report, null, 2) + '\n');
   console.log(JSON.stringify({ runId: dog.id, status: report.dogHouseProfileStatus, authoredRtp: .98, observedRtp: report.observedRtp, simulateUrl: report.simulateUrl }));
 } finally {
   await page.goto('about:blank').catch(() => {});

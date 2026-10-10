@@ -1,0 +1,10 @@
+{
+  "schemaVersion": "1.0.0",
+  "name": "Independent decimal state oracle",
+  "initialState": { "signal": 1e-9, "payout": 1, "record": { "values": [0.1, -2.5e-7] } },
+  "nodes": [
+    { "nodeType": "draw", "id": "draw", "drawWeights": [{ "outcomeId": "fixed", "value": 0, "weight": 1 }], "outputs": { "out": { "name": "out", "type": "Wins" } } },
+    { "nodeType": "metricsSink", "id": "sink", "winCap": 10, "winStateKey": "payout", "inputs": { "in": { "name": "in", "type": "Wins" } } }
+  ],
+  "edges": [{ "id": "e", "sourceNodeId": "draw", "sourcePort": "out", "targetNodeId": "sink", "targetPort": "in" }]
+}

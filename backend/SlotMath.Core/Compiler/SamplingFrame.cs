@@ -21,6 +21,7 @@ internal struct SamplingCell
     private static ExprValue Convert(object? raw) => raw switch
     {
         BigInteger n => ExprValue.Number(n), int n => ExprValue.Number(n), long n => ExprValue.Number(n),
+        double n => NumericValues.FromDouble(n), float n => NumericValues.FromDouble(n), decimal n => NumericValues.FromDecimal(n),
         bool b => ExprValue.Bool(b), string s => ExprValue.String(s), ExprValue v => v,
         IEnumerable a => ExprValue.Array(a.Cast<object?>().Select(Convert).ToArray()),
         _ => ExprValue.Number(0),
@@ -45,7 +46,7 @@ internal struct SamplingCell
     }
 
     public readonly ExprValue FilterValue => HasRaw
-        ? Raw is string or BigInteger or int or long or bool or ExprValue ? Value : ExprValue.Number(0)
+        ? Raw is string or BigInteger or int or long or double or float or decimal or bool or ExprValue ? Value : ExprValue.Number(0)
         : Value.Kind == ExprType.Array ? ExprValue.Number(0) : Value;
 
     public readonly int RequireArrayCount(string key)
