@@ -48,7 +48,11 @@ public sealed class VerificationProfileTests
         Assert.Throws<ArgumentException>(() => ProfileVerification.Validate(Profile(new VerificationCriterion("x", "observation-integrity"), new VerificationCriterion("x", "observation-integrity")), plan));
     }
 
-    [Theory][InlineData(0, false)][InlineData(1, false)][InlineData(2, false)][InlineData(2000, true)]
+    [Theory]
+    [InlineData(0, false)]
+    [InlineData(1, false)]
+    [InlineData(2, false)]
+    [InlineData(2000, true)]
     public void EmptyWideFilteredAndInterruptedEvidenceIsInsufficient(int count, bool filtered)
     {
         MeasurementDefinition[] plan = [D("x", Precision())]; var profile = Profile(new VerificationCriterion("x", "mean-equivalence"));
@@ -98,7 +102,9 @@ public sealed class VerificationProfileTests
         Assert.Throws<ArgumentException>(() => ProfileVerification.Validate(profile, plan));
     }
 
-    [Theory][InlineData(.5, "withinPrecision")][InlineData(1, "discrepancy")]
+    [Theory]
+    [InlineData(.5, "withinPrecision")]
+    [InlineData(1, "discrepancy")]
     public void NumericNonzeroProbabilityUsesEventCountRatherThanBoundedValueMean(double reference, string status)
     {
         // Independent specification: values alternate 0 and 2. The numeric mean

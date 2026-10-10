@@ -203,12 +203,21 @@ public sealed class InMemoryRunStore
         var interrupted = false;
         foreach (var (id, run) in _runs.ToArray())
         {
-            var restored = run with { Sequence = Math.Max(run.Sequence, run.Progress?.Sequence ?? 0),
-                StreamEpoch = string.IsNullOrEmpty(run.StreamEpoch) ? _streamEpoch : run.StreamEpoch };
+            var restored = run with
+            {
+                Sequence = Math.Max(run.Sequence, run.Progress?.Sequence ?? 0),
+                StreamEpoch = string.IsNullOrEmpty(run.StreamEpoch) ? _streamEpoch : run.StreamEpoch
+            };
             if (!Terminal(run.Status))
             {
-                restored = restored with { Sequence = restored.Sequence + 1, StreamEpoch = _streamEpoch, Status = "failed", CompletedAt = _clock.GetUtcNow(),
-                    ResultJson = "{\"code\":\"RUN_INTERRUPTED\",\"error\":\"Server restarted; last checkpoint retained. Replay with the recorded seed.\"}" };
+                restored = restored with
+                {
+                    Sequence = restored.Sequence + 1,
+                    StreamEpoch = _streamEpoch,
+                    Status = "failed",
+                    CompletedAt = _clock.GetUtcNow(),
+                    ResultJson = "{\"code\":\"RUN_INTERRUPTED\",\"error\":\"Server restarted; last checkpoint retained. Replay with the recorded seed.\"}"
+                };
                 interrupted = true;
             }
             if (restored.Progress is not null) restored = restored with { Progress = Snapshot(restored) };
@@ -241,7 +250,8 @@ public sealed class InMemoryRunStore
             ConfigVersion = configVersion,
             ConfigHash = configHash,
             DegreeOfParallelism = degreeOfParallelism,
-            Measurements = measurements ?? [], MeasurementHash = measurements is { Length: > 0 } ? MeasurementHash.Compute(measurements) : null,
+            Measurements = measurements ?? [],
+            MeasurementHash = measurements is { Length: > 0 } ? MeasurementHash.Compute(measurements) : null,
             TotalSamples = totalSamples,
             Status = "pending",
             CreatedAt = _clock.GetUtcNow(),
@@ -327,8 +337,15 @@ public sealed class InMemoryRunStore
             if (entry.Status is "completed" or "failed" or "cancelled" || sampleCount < (entry.SampleCount ?? 0))
                 return;
 
-            PublishProgress(id, Snapshot(entry) with { SampleCount = sampleCount, TotalSamples = totalSamples,
-                RunningRtp = runningRtp, StdErr = stdErr, ElapsedMs = elapsedMs, Status = "running" });
+            PublishProgress(id, Snapshot(entry) with
+            {
+                SampleCount = sampleCount,
+                TotalSamples = totalSamples,
+                RunningRtp = runningRtp,
+                StdErr = stdErr,
+                ElapsedMs = elapsedMs,
+                Status = "running"
+            });
         }
     }
 
@@ -338,10 +355,26 @@ public sealed class InMemoryRunStore
         {
             if (!_runs.TryGetValue(id, out var entry) || entry.Status is "completed" or "failed" or "cancelled") return null;
             if (progress.SampleCount < (entry.SampleCount ?? 0)) return null;
-            var next = progress with { RunId = id, StreamEpoch = entry.StreamEpoch, Sequence = NextSequence(entry), ResultJson = null, CompletedAt = null,
-                Status = entry.Status == "cancelling" ? "cancelling" : progress.Status };
-            _runs[id] = entry with { Sequence = next.Sequence, Progress = next, Status = next.Status, SampleCount = next.SampleCount,
-                TotalSamples = next.TotalSamples, RunningRtp = next.RunningRtp, StdErr = next.StdErr, ElapsedMs = next.ElapsedMs };
+            var next = progress with
+            {
+                RunId = id,
+                StreamEpoch = entry.StreamEpoch,
+                Sequence = NextSequence(entry),
+                ResultJson = null,
+                CompletedAt = null,
+                Status = entry.Status == "cancelling" ? "cancelling" : progress.Status
+            };
+            _runs[id] = entry with
+            {
+                Sequence = next.Sequence,
+                Progress = next,
+                Status = next.Status,
+                SampleCount = next.SampleCount,
+                TotalSamples = next.TotalSamples,
+                RunningRtp = next.RunningRtp,
+                StdErr = next.StdErr,
+                ElapsedMs = next.ElapsedMs
+            };
             if (_snapshots is not null && _clock.GetElapsedTime(_lastCheckpoint) >= TimeSpan.FromSeconds(5)) Persist();
             return next;
         }
@@ -351,10 +384,21 @@ public sealed class InMemoryRunStore
     {
         MeasurementHash = run.MeasurementHash,
         Measurements = run.Measurements.Select(d => new SlotMath.Core.Measurements.MeasurementSnapshot(d.Id, 0, 0, 0, 0, null, null, null, null, null, null)).ToArray(),
-        RunId = run.Id, Status = run.Status, SampleCount = run.SampleCount ?? 0, TotalSamples = run.TotalSamples ?? 0,
-        RunningRtp = run.RunningRtp ?? 0, StdErr = run.StdErr ?? 0, ElapsedMs = run.ElapsedMs ?? 0,
-    }) with { Sequence = Math.Max(run.Sequence, run.Progress?.Sequence ?? 0), StreamEpoch = run.StreamEpoch, Status = run.Status,
-        ResultJson = Terminal(run.Status) ? run.ResultJson : null, CompletedAt = run.CompletedAt };
+        RunId = run.Id,
+        Status = run.Status,
+        SampleCount = run.SampleCount ?? 0,
+        TotalSamples = run.TotalSamples ?? 0,
+        RunningRtp = run.RunningRtp ?? 0,
+        StdErr = run.StdErr ?? 0,
+        ElapsedMs = run.ElapsedMs ?? 0,
+    }) with
+    {
+        Sequence = Math.Max(run.Sequence, run.Progress?.Sequence ?? 0),
+        StreamEpoch = run.StreamEpoch,
+        Status = run.Status,
+        ResultJson = Terminal(run.Status) ? run.ResultJson : null,
+        CompletedAt = run.CompletedAt
+    };
 
     private static bool Terminal(string status) => status is "completed" or "failed" or "cancelled";
     private static long NextSequence(RunEntry run) => Math.Max(run.Sequence, run.Progress?.Sequence ?? 0) + 1;
@@ -387,8 +431,13 @@ public sealed class InMemoryRunStore
                 if (run.Status != "cancelling")
                 {
                     var sequence = NextSequence(run);
-                    _runs[runId] = run with { Status = "cancelling", Sequence = sequence, CancellationReason = reason,
-                        Progress = run.Progress is null ? null : run.Progress with { Status = "cancelling", Sequence = sequence } };
+                    _runs[runId] = run with
+                    {
+                        Status = "cancelling",
+                        Sequence = sequence,
+                        CancellationReason = reason,
+                        Progress = run.Progress is null ? null : run.Progress with { Status = "cancelling", Sequence = sequence }
+                    };
                 }
                 cts.Cancel(); // Worker owns disposal; retain early cancellation until it starts.
                 return true;

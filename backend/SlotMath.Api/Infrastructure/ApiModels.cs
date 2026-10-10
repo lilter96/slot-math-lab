@@ -124,13 +124,28 @@ public sealed record RunResponse
 
     public static RunResponse From(RunEntry run) => new()
     {
-        CancellationReason = run.CancellationReason, ExternalEvidence = run.ExternalEvidence, VerificationProfile = run.VerificationProfile, VerificationProfileHash = run.VerificationProfileHash,
-        RuntimeProvenance = run.RuntimeProvenance, Execution = run.Execution, StreamScheme = run.Execution?.StreamScheme ?? "splitmix64-chunk-65536",
-        Measurements = run.Measurements.Select(MeasurementInput.FromCore).ToArray(), MeasurementHash = run.MeasurementHash,
-        Id = run.Id, ConfigId = run.ConfigId, Seed = run.Seed, ConfigVersion = run.ConfigVersion,
-        ConfigHash = run.ConfigHash, DegreeOfParallelism = run.DegreeOfParallelism, Status = run.Status,
-        Sequence = Math.Max(run.Sequence, run.Progress?.Sequence ?? 0), StreamEpoch = run.StreamEpoch, CreatedAt = run.CreatedAt,
-        CompletedAt = run.CompletedAt, ResultJson = run.ResultJson, Progress = InMemoryRunStore.Snapshot(run),
+        CancellationReason = run.CancellationReason,
+        ExternalEvidence = run.ExternalEvidence,
+        VerificationProfile = run.VerificationProfile,
+        VerificationProfileHash = run.VerificationProfileHash,
+        RuntimeProvenance = run.RuntimeProvenance,
+        Execution = run.Execution,
+        StreamScheme = run.Execution?.StreamScheme ?? "splitmix64-chunk-65536",
+        Measurements = run.Measurements.Select(MeasurementInput.FromCore).ToArray(),
+        MeasurementHash = run.MeasurementHash,
+        Id = run.Id,
+        ConfigId = run.ConfigId,
+        Seed = run.Seed,
+        ConfigVersion = run.ConfigVersion,
+        ConfigHash = run.ConfigHash,
+        DegreeOfParallelism = run.DegreeOfParallelism,
+        Status = run.Status,
+        Sequence = Math.Max(run.Sequence, run.Progress?.Sequence ?? 0),
+        StreamEpoch = run.StreamEpoch,
+        CreatedAt = run.CreatedAt,
+        CompletedAt = run.CompletedAt,
+        ResultJson = run.ResultJson,
+        Progress = InMemoryRunStore.Snapshot(run),
     };
 }
 

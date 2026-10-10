@@ -183,9 +183,12 @@ public static class ExactMetrics
             : ProvenanceTag.MassLoss(mass.ToDouble());
         return new RtpMetric(provenance)
         {
-            RationalNumerator = known.Numerator, RationalDenominator = known.Denominator,
-            DisplayValue = known.ToDouble(), LoDisplay = !dist.IsFullyExact && hi is not null ? lo : null,
-            HiDisplay = !dist.IsFullyExact ? hi : null, PrunedMass = !dist.IsFullyExact ? mass.ToDouble() : null,
+            RationalNumerator = known.Numerator,
+            RationalDenominator = known.Denominator,
+            DisplayValue = known.ToDouble(),
+            LoDisplay = !dist.IsFullyExact && hi is not null ? lo : null,
+            HiDisplay = !dist.IsFullyExact ? hi : null,
+            PrunedMass = !dist.IsFullyExact ? mass.ToDouble() : null,
         };
     }
 

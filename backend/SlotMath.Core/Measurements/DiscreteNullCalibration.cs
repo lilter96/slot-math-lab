@@ -1,6 +1,7 @@
 using SlotMath.Core.Random;
 using M = System.Math;
 namespace SlotMath.Core.Measurements;
+
 public sealed record NullCalibrationRequest(ValueFrequency[] Observed, ReferenceMass[] Reference, string Statistic = "cdf", int Replicates = 2000, long Seed = 42);
 public sealed record NullCalibrationReport(string Method, string Statistic, long Subjects, double? ObservedStatistic, double PValue,
     long Evaluations, long ExtremeEvaluations, double? MinimumResolvablePValue, NumericInterval? MonteCarloTailInterval, long Seed, string Assumptions)
@@ -47,7 +48,8 @@ public static class DiscreteNullCalibration
                 if (index == sample.Length - 1)
                 {
                     sample[index] = remaining; var mass = M.Exp(logFactorial[count] + logMass + remaining * M.Log(probabilities[index]) - logFactorial[remaining]); totalMass += mass; evaluations++;
-                    if (Statistic(sample) + tolerance >= statistic) { tailMass += mass; extreme++; } return;
+                    if (Statistic(sample) + tolerance >= statistic) { tailMass += mass; extreme++; }
+                    return;
                 }
                 for (long c = 0; c <= remaining; c++) { sample[index] = c; Enumerate(index + 1, remaining - c, logMass + c * M.Log(probabilities[index]) - logFactorial[c]); }
             }

@@ -1,5 +1,6 @@
 using SlotMath.Core.Expressions;
 namespace SlotMath.Core.Measurements;
+
 public static class ExitClassification
 {
     public static string Read(ExprValue value) => value.Kind == ExprType.String && value.StringValue is "condition" or "modelLimit" or "payoutCap" or "authoredStop" or "resourceExpiry"

@@ -11,9 +11,18 @@ public sealed class ParentExposureTests
     private sealed record Child(string Group = "sticky", bool Included = true, bool Exit = true, long Value = 1);
     private static MeasurementDefinition Definition(string subject = "episode", int groupLimit = 32) => new()
     {
-        Id = "parents", Name = "Matching parent exposure", NodeId = "reveal",
-        Options = new() { Subject = subject, Reduction = "sum", EntryNodeId = "enter", ExitNodeId = "exit", GroupLimit = groupLimit,
-            Group = new ConstantExpr { Kind = ConstantKind.String, Value = "binding" } }
+        Id = "parents",
+        Name = "Matching parent exposure",
+        NodeId = "reveal",
+        Options = new()
+        {
+            Subject = subject,
+            Reduction = "sum",
+            EntryNodeId = "enter",
+            ExitNodeId = "exit",
+            GroupLimit = groupLimit,
+            Group = new ConstantExpr { Kind = ConstantKind.String, Value = "binding" }
+        }
     };
     private static readonly MeasurementBinding<Child> Binding = new(c => ExprValue.Number(c.Value), c => ExprValue.Bool(c.Included),
         Group: c => ExprValue.String(c.Group), EntryFilter: c => ExprValue.Bool(c.Included), ExitFilter: c => ExprValue.Bool(c.Exit));
@@ -100,7 +109,9 @@ public sealed class ParentExposureTests
         Assert.False(a.GroupsComplete); Assert.Empty(a.Groups);
     }
 
-    [Theory][InlineData(false)][InlineData(true)]
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
     public void BothEnginesDistinguishAcceptedChildrenFromEmptyRoundReduction(bool optimize)
     {
         var value = new FieldAccessExpr { Target = "state", Path = ["spinWin"] };

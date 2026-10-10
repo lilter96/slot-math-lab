@@ -70,7 +70,8 @@ internal sealed class SessionTrajectory
     private long? _ruinAt;
     private long? _featureAt;
     private bool _invalidFeature;
-    public string? StopReason(ExecutionOptions options) => options.SessionStop switch {
+    public string? StopReason(ExecutionOptions options) => options.SessionStop switch
+    {
         "ruin" when !_money.CanFundNextWager => "ruin",
         "profitTarget" when _money.Profit >= options.StopThreshold => "profitTarget",
         "lossLimit" when _money.Profit <= -options.StopThreshold => "lossLimit",
@@ -115,8 +116,13 @@ internal sealed class SessionEvidence
     private readonly Dictionary<string, MeasurementAccumulator> _metrics = new(StringComparer.Ordinal);
     private MeasurementAccumulator Get(string name)
     {
-        if (!_metrics.TryGetValue(name, out var accumulator)) accumulator.Analysis = new(new() { Subject = "session", IndependentSubjects = true,
-            Source = name is "ruin" or "profitable" or "featureSeen" || name.StartsWith("stop.", StringComparison.Ordinal) ? "event" : "value", BinEdges = [-100, -10, 0, 1, 5, 10, 50, 100, 500, 1000] });
+        if (!_metrics.TryGetValue(name, out var accumulator)) accumulator.Analysis = new(new()
+        {
+            Subject = "session",
+            IndependentSubjects = true,
+            Source = name is "ruin" or "profitable" or "featureSeen" || name.StartsWith("stop.", StringComparison.Ordinal) ? "event" : "value",
+            BinEdges = [-100, -10, 0, 1, 5, 10, 50, 100, 500, 1000]
+        });
         return accumulator;
     }
     public void Add(string name, double value, double? pair = null)

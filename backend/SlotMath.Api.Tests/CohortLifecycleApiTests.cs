@@ -12,7 +12,9 @@ namespace SlotMath.Api.Tests;
 [Collection("SerialTests")]
 public sealed class CohortLifecycleApiTests(WebApplicationFactory<Program> factory) : IClassFixture<WebApplicationFactory<Program>>
 {
-    [Theory][InlineData("auto")][InlineData("reference")]
+    [Theory]
+    [InlineData("auto")]
+    [InlineData("reference")]
     public async Task EmptyFeatureCohortsKeepLifecycleCountsInFinalAndRetainedApiEvidence(string engine)
     {
         var graph = JsonSerializer.Deserialize<GraphConfig>(File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "TestData", "measurement-model.json")), SlotMath.Core.JsonOptions.Default)!;

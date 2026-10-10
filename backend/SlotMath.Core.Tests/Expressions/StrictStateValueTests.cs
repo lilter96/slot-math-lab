@@ -22,11 +22,18 @@ public sealed class StrictStateValueTests
         return program(frame);
     }
 
-    [Theory][InlineData(false)][InlineData(true)]
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
     public void EverySegmentMustResolveAndFailuresNeverProduceZero(bool compiled)
     {
-        var state = new Dict { ["scalar"] = 9, ["record"] = new Dict { ["value"] = 3, ["0"] = 7, ["empty"] = null },
-            ["items"] = new object?[] { new Dict { ["fraction"] = ExprValue.Rational(1, 4) }, null, new object() }, ["unsupported"] = new object() };
+        var state = new Dict
+        {
+            ["scalar"] = 9,
+            ["record"] = new Dict { ["value"] = 3, ["0"] = 7, ["empty"] = null },
+            ["items"] = new object?[] { new Dict { ["fraction"] = ExprValue.Rational(1, 4) }, null, new object() },
+            ["unsupported"] = new object()
+        };
         (string[] Path, string Code)[] invalid = [([], "EVAL_INVALID_PATH"), (["scalar", "ignored"], "EVAL_TYPE_ERROR"),
             (["scalar", "0", "ignored"], "EVAL_TYPE_ERROR"), (["record", "missing"], "EVAL_MISSING_STATE"),
             (["record", "empty"], "EVAL_NULL_VALUE"), (["items", "1"], "EVAL_NULL_VALUE"),
@@ -45,13 +52,23 @@ public sealed class StrictStateValueTests
             Evaluate(new FieldAccessExpr { Target = "other", Path = ["scalar"] }, state, compiled)).Code);
     }
 
-    [Theory][InlineData(false)][InlineData(true)]
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
     public void FilteringRetainsRecordsNestedCollectionsAndExplicitNulls(bool compiled)
     {
-        var state = new Dict { ["items"] = new object?[] { new Dict { ["award"] = ExprValue.Rational(1, 4),
-            ["nested"] = new object?[] { new object?[] { 3, null } } } } };
-        var filtered = Evaluate(new FilterExpr { StateKey = "items", ItemName = "item", ItemType = ExprType.Record,
-            Predicate = new ConstantExpr { Kind = ConstantKind.Boolean, Value = "true" } }, state, compiled);
+        var state = new Dict
+        {
+            ["items"] = new object?[] { new Dict { ["award"] = ExprValue.Rational(1, 4),
+            ["nested"] = new object?[] { new object?[] { 3, null } } } }
+        };
+        var filtered = Evaluate(new FilterExpr
+        {
+            StateKey = "items",
+            ItemName = "item",
+            ItemType = ExprType.Record,
+            Predicate = new ConstantExpr { Kind = ConstantKind.Boolean, Value = "true" }
+        }, state, compiled);
         var record = Assert.Single(filtered.ArrayValue!); Assert.Equal(ExprType.Record, record.Kind);
         Assert.Equal(ExprValue.Rational(1, 4), record.RecordValue!["award"]);
         Assert.Equal(ExprType.Null, record.RecordValue["nested"].ArrayValue![0].ArrayValue![1].Kind);
@@ -63,13 +80,19 @@ public sealed class StrictStateValueTests
         Assert.Equal(ExprValue.Rational(1, 4), record.RecordValue["award"]); // Immutable expression snapshot.
     }
 
-    [Theory][InlineData(false)][InlineData(true)]
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
     public void AnUnusedInvalidValueDoesNotPoisonALazyBranchOrARecordSibling(bool compiled)
     {
         var state = new Dict { ["bad"] = new object(), ["record"] = new Dict { ["bad"] = new object(), ["good"] = 7 } };
         Assert.Equal(ExprValue.Number(7), Evaluate(Field("record", "good"), state, compiled));
-        Assert.Equal(ExprValue.Number(7), Evaluate(new IfExpr { Condition = new ConstantExpr { Kind = ConstantKind.Boolean, Value = "false" },
-            ThenExpr = Field("bad"), ElseExpr = Field("record", "good") }, state, compiled));
+        Assert.Equal(ExprValue.Number(7), Evaluate(new IfExpr
+        {
+            Condition = new ConstantExpr { Kind = ConstantKind.Boolean, Value = "false" },
+            ThenExpr = Field("bad"),
+            ElseExpr = Field("record", "good")
+        }, state, compiled));
     }
 
     [Fact]
@@ -98,7 +121,9 @@ public sealed class StrictStateValueTests
         Assert.False(new GraphCompiler().Compile(incorrect).IsValid);
     }
 
-    [Theory][InlineData(false)][InlineData(true)]
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
     public void RecordSelectionHasTheIndependentlySpecifiedFullPayoutLaw(bool compiled)
     {
         var result = new GraphCompiler(optimizeSampling: compiled).Compile(Model());

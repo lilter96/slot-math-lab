@@ -35,7 +35,8 @@ public sealed class NumericInputTests
             yield return [optimized, decimal.MaxValue, "79228162514264337593543950335", "1"];
         }
     }
-    [Theory][MemberData(nameof(Inputs))]
+    [Theory]
+    [MemberData(nameof(Inputs))]
     public void StateRecordsArraysAndSelectorsRetainSpecifiedFractions(bool optimized, object input, string numerator, string denominator)
     {
         var expected = ExprValue.Rational(BigInteger.Parse(numerator), BigInteger.Parse(denominator));
@@ -49,7 +50,9 @@ public sealed class NumericInputTests
         Assert.Equal(expected, Evaluate(new MapExpr { StateKey = "items", ItemName = "item", Body = Field("item") }, state, optimized).ArrayValue![0]);
     }
 
-    [Theory][InlineData(false)][InlineData(true)]
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
     public void ReflectedValuesAndSubnormalNumbersAreNeverTruncatedToZero(bool optimized)
     {
         var state = new Dict { ["small"] = 1e-9, ["smallest"] = double.Epsilon };
@@ -68,7 +71,9 @@ public sealed class NumericInputTests
         Assert.Equal(ExprValue.Rational(1, 10), ExactExpressionEvaluator.Evaluate(Field("Decimal"), context));
     }
 
-    [Theory][InlineData(false)][InlineData(true)]
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
     public void NonfiniteInputsFailExplicitlyBeforeAcquiringAnObservation(bool optimized)
     {
         foreach (var value in new[] { double.NaN, double.PositiveInfinity, double.NegativeInfinity })
@@ -82,7 +87,9 @@ public sealed class NumericInputTests
       "edges":[{"id":"e","sourceNodeId":"draw","sourcePort":"out","targetNodeId":"sink","targetPort":"in"}]}
     """.Replace("SIGNAL", signal).Replace("PAYOUT", payout), JsonOptions.Default)!;
 
-    [Theory][InlineData(false)][InlineData(true)]
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
     public void AuthoredJsonDecimalAndScientificStateHaveExactResidualsInSamplingAndEnumeration(bool optimized)
     {
         MeasurementDefinition[] plan = [new() { Id = "signal", Name = "Tiny signal", NodeId = "sink", Value = Field("signal"),
@@ -108,14 +115,19 @@ public sealed class NumericInputTests
         Assert.Equal(ExprValue.Rational(1, 10), ((object?[])((Dict)next.State["record"]!)["values"]!)[0]);
     }
 
-    [Theory][InlineData(false)][InlineData(true)]
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
     public void MeasurementPrecisionCannotSilentlyChangeTheDeclaredPayoutQuantum(bool optimized)
     {
         var graph = new GraphCompiler(optimizeSampling: optimized).Compile(Model(payout: "0.1")); Assert.True(graph.IsValid); Assert.Equal(BigInteger.One, graph.WinScale);
         Assert.Equal("EVAL_PAYOUT_PRECISION", Assert.Throws<ExpressionEvaluationException>(() => SampledInterpreter.RunSingle(graph.Program!, new Dict(), 817)).Code);
     }
 
-    [Theory][InlineData("1e4097")][InlineData("1e-4097")][InlineData("1e9999999999999")]
+    [Theory]
+    [InlineData("1e4097")]
+    [InlineData("1e-4097")]
+    [InlineData("1e9999999999999")]
     public void NumericStateResourceBudgetsFailCompilationBeforeAJobCanStart(string literal)
     {
         foreach (var optimized in new[] { false, true })

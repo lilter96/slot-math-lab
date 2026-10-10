@@ -12,16 +12,27 @@ public sealed class InterruptedLifecycleTests
 {
     private static MeasurementDefinition Plan(string subject = "episode", int groups = 32) => new()
     {
-        Id = "feature", Name = "Interrupted feature", NodeId = "reveal",
+        Id = "feature",
+        Name = "Interrupted feature",
+        NodeId = "reveal",
         Value = new ConstantExpr { Kind = ConstantKind.Integer, Value = "7" },
-        Options = new() { Subject = subject, EntryNodeId = "enter", ExitNodeId = "exit", Reduction = "sum", GroupLimit = groups,
-            Group = new ConstantExpr { Kind = ConstantKind.String, Value = "binding" } },
+        Options = new()
+        {
+            Subject = subject,
+            EntryNodeId = "enter",
+            ExitNodeId = "exit",
+            Reduction = "sum",
+            GroupLimit = groups,
+            Group = new ConstantExpr { Kind = ConstantKind.String, Value = "binding" }
+        },
     };
     private static readonly MeasurementBinding<string> Binding = new(_ => ExprValue.Number(7), null, Group: ExprValue.String);
     private static MeasurementSnapshot Snapshot(MeasurementCollector collector) => collector.Total[0].Snapshot("feature");
     private static void At(MeasurementCollector collector, string point, string group) => collector.Point(0, point, group, Binding);
 
-    [Theory][InlineData("episode")][InlineData("transition")]
+    [Theory]
+    [InlineData("episode")]
+    [InlineData("transition")]
     public void CancellationKeepsNestedEntryCohortsAndClosedBoundariesWithoutPartialValues(string subject)
     {
         // Manual boundary sequence: outer enter, inner enter/reveal/exit, outer reveal, cancel.

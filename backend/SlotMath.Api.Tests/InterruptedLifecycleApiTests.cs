@@ -12,7 +12,9 @@ namespace SlotMath.Api.Tests;
 [Collection("SerialTests")]
 public sealed class InterruptedLifecycleApiTests(WebApplicationFactory<Program> factory) : IClassFixture<WebApplicationFactory<Program>>
 {
-    [Theory][InlineData("auto")][InlineData("reference")]
+    [Theory]
+    [InlineData("auto")]
+    [InlineData("reference")]
     public async Task RuntimeFailureRetainsTypedLifecycleExposureWithoutSettlingTheFeature(string engine)
     {
         // Independently specified fixture: enter feature, write type, divide by zero before

@@ -9,8 +9,15 @@ public class RealtimeDurabilityTests
 {
     private static RunProgressMessage Progress(long count) => new()
     {
-        RunId = "ignored", Status = "running", SampleCount = count, TotalSamples = 1000,
-        RunningRtp = .98, StdErr = .1, ElapsedMs = count, NonZeroCount = count / 2, HitFrequency = .5,
+        RunId = "ignored",
+        Status = "running",
+        SampleCount = count,
+        TotalSamples = 1000,
+        RunningRtp = .98,
+        StdErr = .1,
+        ElapsedMs = count,
+        NonZeroCount = count / 2,
+        HitFrequency = .5,
         Histogram = [new RunHistogramBin(0, null, count)]
     };
 

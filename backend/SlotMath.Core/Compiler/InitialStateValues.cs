@@ -11,7 +11,9 @@ internal static class InitialStateValues
         JsonValueKind.Object => value.EnumerateObject().ToDictionary(p => p.Name, p => Materialize(p.Value)),
         JsonValueKind.String => value.GetString(),
         JsonValueKind.Number => NumericValues.FromJsonNumber(value.GetRawText()).ToStateObject(),
-        JsonValueKind.True => true, JsonValueKind.False => false, JsonValueKind.Null => null,
+        JsonValueKind.True => true,
+        JsonValueKind.False => false,
+        JsonValueKind.Null => null,
         _ => throw new InvalidOperationException("Unsupported initial state value."),
     };
 

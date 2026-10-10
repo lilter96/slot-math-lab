@@ -265,7 +265,8 @@ public static class SampledInterpreter
         ExecutionSummary Summary(long attempts, long completed, long cancelledRounds, long failed, long sessions, long interruptedSessions, SessionEvidence evidence, LoopTerminationEvidence loops) =>
             new(execution.Regime, attempts, completed, cancelledRounds + failed, cancelledRounds, failed, sessions, interruptedSessions, execution.PersistentKeys.Length > 0,
                 execution.PersistentKeys.Length == 0 ? "Reset all state before each paid round" : $"Retain only declared keys between rounds; reset at {(execution.Regime == "sessions" ? "each session" : "trajectory start")}",
-                execution.SessionStop == "fixedHorizon" ? "Fixed horizon; hypothetical credit after ruin. All completed rounds remain in the denominator." : $"Predeclared {execution.SessionStop} session stopping, horizon {execution.SessionLength}. Paid-round outcomes are a stopping-dependent population; use independent-session evidence for inference. Unplayed slots are not zero payouts.", evidence.Snapshot()) { MonetaryAccounting = execution.Regime == "sessions" ? SessionMoney.Contract : null, SamplingEngine = execution.SamplingEngine != "reference" && program is ICompiledSampling<S, T> ? "compiled-sampling-plan" : "reference-interpreter", LoopTerminations = loops.Snapshot(), LoopTerminationsComplete = loops.Complete, SessionStop = execution.SessionStop, PlannedRoundSlots = totalSpins };
+                execution.SessionStop == "fixedHorizon" ? "Fixed horizon; hypothetical credit after ruin. All completed rounds remain in the denominator." : $"Predeclared {execution.SessionStop} session stopping, horizon {execution.SessionLength}. Paid-round outcomes are a stopping-dependent population; use independent-session evidence for inference. Unplayed slots are not zero payouts.", evidence.Snapshot())
+            { MonetaryAccounting = execution.Regime == "sessions" ? SessionMoney.Contract : null, SamplingEngine = execution.SamplingEngine != "reference" && program is ICompiledSampling<S, T> ? "compiled-sampling-plan" : "reference-interpreter", LoopTerminations = loops.Snapshot(), LoopTerminationsComplete = loops.Complete, SessionStop = execution.SessionStop, PlannedRoundSlots = totalSpins };
 
         void RunChunk(int c)
         {
@@ -565,7 +566,8 @@ public static class SampledInterpreter
         var cancelled = Volatile.Read(ref cancelFlag) != 0;
         TimeSpan elapsed = Stopwatch.GetElapsedTime(startedAt);
         var executionSummary = Summary(chunkAttempts.Sum(), spinsCompleted, chunkCancelled.Sum(), 0, chunkSessions.Sum(),
-            chunkInterruptedSessions.Sum(), finalSessionEvidence, finalLoopEvidence) with { RandomStreams = execution.AuditRandomStreams ? RandomStreamEvidence.Analyze(auditedStreams.Values, execution.Regime == "sessions" ? totalSpins / execution.SessionLength : nChunks, !cancelled) : null };
+            chunkInterruptedSessions.Sum(), finalSessionEvidence, finalLoopEvidence) with
+        { RandomStreams = execution.AuditRandomStreams ? RandomStreamEvidence.Analyze(auditedStreams.Values, execution.Regime == "sessions" ? totalSpins / execution.SessionLength : nChunks, !cancelled) : null };
 
         if (!cancelled && config.ProgressCallback is not null)
         {

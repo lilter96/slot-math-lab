@@ -21,9 +21,13 @@ public class AuditRegressionTests
     [Fact]
     public void SharedWild_PolicyIsExplicitAndPaysEachSymbol()
     {
-        var paytable = new Paytable { Id = "pt", Entries = [
+        var paytable = new Paytable
+        {
+            Id = "pt",
+            Entries = [
             new PaytableEntry { SymbolId = "H", Counts = [2], Payouts = ["5"] },
-            new PaytableEntry { SymbolId = "L", Counts = [2], Payouts = ["2"] }] };
+            new PaytableEntry { SymbolId = "L", Counts = [2], Payouts = ["2"] }]
+        };
         var state = new Dictionary<string, object?> { ["board"] = new object?[] { "H", "W", "L" }, ["rows"] = 1, ["cols"] = 3 };
         var shared = new SlotMath.Core.Mechanics.Evaluators.ClusterEvaluator(paytable, 2, "W", true).Evaluate(state);
         Assert.Equal(2, shared.Length);

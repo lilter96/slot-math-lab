@@ -1,11 +1,11 @@
 using System.Globalization;
 using System.Numerics;
 using SlotMath.Core.Expressions;
+using SlotMath.Core.Measurements;
+using SlotMath.Core.Mechanics;
 using SlotMath.Core.Model;
 using SlotMath.Core.Monad;
-using SlotMath.Core.Mechanics;
 using SlotMath.Core.Random;
-using SlotMath.Core.Measurements;
 
 namespace SlotMath.Core.Compiler;
 

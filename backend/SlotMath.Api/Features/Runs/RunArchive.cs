@@ -65,8 +65,11 @@ public static class RunArchive
             || r.Seed.ToString(CultureInfo.InvariantCulture) == search.Trim()).ToArray();
         var filtered = all.Where(r => status switch
         {
-            "completed" => r.Status == "completed", "partial" => r.Status == "cancelled", "failed" => r.Status == "failed",
-            "active" => r.Status is "pending" or "running" or "cancelling", _ => true
+            "completed" => r.Status == "completed",
+            "partial" => r.Status == "cancelled",
+            "failed" => r.Status == "failed",
+            "active" => r.Status is "pending" or "running" or "cancelling",
+            _ => true
         }).ToArray();
         var page = filtered.Where(r => before is null || r.CreatedAt < before
             || r.CreatedAt == before && string.CompareOrdinal(r.Id, beforeId) < 0).Take(take + 1).ToArray();

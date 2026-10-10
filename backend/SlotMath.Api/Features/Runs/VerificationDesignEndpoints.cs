@@ -1,6 +1,7 @@
 using SlotMath.Api.Infrastructure;
 using SlotMath.Core.Measurements;
 namespace SlotMath.Api.Features.Runs;
+
 public sealed record DesignEvidence<T>(string AuthoredInputSha256, RuntimeProvenance Runtime, T Report, DiagnosticRetention? Retention);
 public static class VerificationDesignEndpoints
 {
