@@ -48,14 +48,19 @@ internal struct SamplingCell
         ? Raw is string or BigInteger or int or long or bool or ExprValue ? Value : ExprValue.Number(0)
         : Value.Kind == ExprType.Array ? ExprValue.Number(0) : Value;
 
-    // Iteration consumes CLR arrays/enumerables, whereas a raw ExprValue.Array
-    // is not a CLR enumerable. Keep this distinction from the reference engine.
-    public readonly int ArrayCount => Value.Kind == ExprType.Array && (!HasRaw || Raw is IEnumerable) ? Value.ArrayValue!.Count : 0;
+    public readonly int RequireArrayCount(string key)
+    {
+        if (!Present) throw new ExpressionEvaluationException("EVAL_MISSING_STATE", $"State array '{key}' is absent.", key);
+        if (Value.Kind != ExprType.Array || HasRaw && (Raw is string or IDictionary || Raw is not IEnumerable && Raw is not ExprValue { Kind: ExprType.Array }))
+            throw new ExpressionEvaluationException("EVAL_TYPE_ERROR", $"State field '{key}' must be an array.", key);
+        return Value.ArrayValue!.Count;
+    }
     public readonly SamplingCell Item(int index)
     {
         if (!HasRaw) return Typed(Value.ArrayValue![index]);
         return Raw switch
         {
+            ExprValue { Kind: ExprType.Array } typed => FromRaw(typed.ArrayValue![index]),
             object?[] a => FromRaw(a[index]),
             IList a => FromRaw(a[index]),
             _ => FromRaw(((IEnumerable)Raw!).Cast<object?>().ElementAt(index)),
@@ -64,21 +69,11 @@ internal struct SamplingCell
 
     public readonly ExprValue IndexedField(int index, string key)
     {
-        if (HasRaw && Raw is not object?[] && Raw is not string[]) return ExprValue.Number(0);
-        if (Value.Kind != ExprType.Array) return ExprValue.Number(0);
-        var length = Value.ArrayValue!.Count;
+        var length = RequireArrayCount(key);
         if (index < 0 || index >= length)
             throw new ExpressionEvaluationException(EvalErrorCodes.IndexOutOfRange,
                 $"Index {index} is out of range [0, {length}) for state array '{key}' (D1).", $"{key}[{index}]");
-        if (HasRaw)
-            return ((object?[])Raw!)[index] switch
-            {
-                string s => ExprValue.String(s), BigInteger n => ExprValue.Number(n),
-                int n => ExprValue.Number(n), bool b => ExprValue.Bool(b), _ => ExprValue.Number(0),
-            };
-        var item = Value.ArrayValue[index];
-        return item.Kind is ExprType.String or ExprType.Boolean || item.Kind == ExprType.Number && item.NumberDenominator.IsOne
-            ? item : ExprValue.Number(0);
+        return Item(index).Value;
     }
 }
 

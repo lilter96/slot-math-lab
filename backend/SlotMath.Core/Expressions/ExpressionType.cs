@@ -228,6 +228,8 @@ public sealed record FieldDescriptor
 {
     public required string Name { get; init; }
     public ExprType Type { get; init; }
+    /// <summary>Homogeneous scalar element type, when it can be established from the authored graph.</summary>
+    public ExprType? ArrayItemType { get; init; }
     public string? Description { get; init; }
 }
 
@@ -297,6 +299,9 @@ public sealed class TypeCheckContext
                 string.Equals(f.Name, first, StringComparison.OrdinalIgnoreCase));
         }
 
+        if (fd is not null && path.Length > 1 && int.TryParse(path[1],
+                System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture, out var index))
+            return fd.Type == ExprType.Array && index >= 0 && path.Length == 2 ? fd.ArrayItemType : null;
         return fd?.Type;
     }
 }

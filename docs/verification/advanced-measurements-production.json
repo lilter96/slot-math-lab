@@ -1,27 +1,27 @@
 {
-  "checkedAt": "2026-10-09T23:37:56.951Z",
+  "checkedAt": "2026-10-10T00:08:30.754Z",
   "endpoint": "https://localhost:8543",
   "anonymousBlocked": true,
-  "runId": "a4c3f12543654fc3b68b8b9d3bd563fa",
-  "replayRunId": "6b9b9188e4e542668b2b329417bfea2c",
-  "referenceRunId": "c3ebd5afe5c847f59781a5662c48e9aa",
+  "runId": "8a38d2b44ab7428fb340f17df17ab5f3",
+  "replayRunId": "38661f9438414c2eb2d203ba0ea61f1c",
+  "referenceRunId": "fa501d4a82834a1b9f67939020466194",
   "crossEngineBitIdentical": true,
-  "referenceElapsedMs": 35873,
+  "referenceElapsedMs": 24753,
   "rounds": 100000,
   "observedRtp": 0.9967189999999915,
   "authoredReferenceRtp": 0.98,
   "configHash": "6ab31814ceb52133e3332855ab8e80aac5af9f9443a886b9361bf5345f0964b4",
-  "measurementHash": "9b0ec99145824050a71c71a1a4e2c5a15d90bfa23a6a9840c7134c4bdc1245d9",
+  "measurementHash": "50408fdeac076798faf50f617c3d9879d38327f9041d7a2dbe911e20410c9343",
   "runtimeProvenance": {
     "measurementContract": "measurements-v1",
-    "numericalMethods": "central-moments-pebay-v1;bins-v1;clopper-pearson-v1;hoeffding-spending-v1;pearson-gamma-v1;session-accounting-v2-decimal-roundtrip;categorical-joint-v1;discrete-null-v1;finite-stationary-v1;witness-prefix-v1;loop-completion-v1;paid-parent-cohorts-v1;paid-turnover-v1;exact-assertion-v1;enumerated-joint-v2;finite-law-comparison-rational-v1;typed-operators-v1",
+    "numericalMethods": "central-moments-pebay-v1;bins-v1;clopper-pearson-v1;hoeffding-spending-v1;pearson-gamma-v1;session-accounting-v2-decimal-roundtrip;categorical-joint-v1;discrete-null-v1;finite-stationary-v1;witness-prefix-v1;loop-completion-v1;paid-parent-cohorts-v1;paid-turnover-v1;exact-assertion-v1;enumerated-joint-v2;finite-law-comparison-rational-v1;typed-operators-v1;rational-functions-v1;strict-collections-v1;typed-array-index-v1",
     "framework": ".NET 10.0.12",
-    "coreBinarySha256": "01101ccf68166efa026f64b8fb0bd4f8f01ba112dfab94cda2f3dbfd09ac5db3",
-    "apiBinarySha256": "ce96e41ed510eed0258a50f21328f3be96538341d0e3f11a5ded51051d564370"
+    "coreBinarySha256": "980e113952cee121b6608fe35e5aebcb195f584e1548d10c07b946d81549a623",
+    "apiBinarySha256": "724d6c2eb5eaab0bc7776a1e6f5694ad5a378f36de00fc15b3cea111028384f1"
   },
   "measurements": [
     {
-      "id": "337863ae-1731-45e7-9b35-77068e616e02",
+      "id": "e53877c6-2b72-427c-b5b6-cd7ac29dbac9",
       "observations": 100000,
       "count": 100000,
       "excluded": 0,
@@ -306,7 +306,7 @@
       ]
     },
     {
-      "id": "b8a69cbc-fc7c-446a-857d-f9ba18487383",
+      "id": "9d250035-2758-4378-82e9-882733f27a22",
       "observations": 11275,
       "count": 11275,
       "excluded": 0,
@@ -11686,7 +11686,7 @@
       ]
     },
     {
-      "id": "dfb76b6f-b2e5-4410-be33-86644e69a3b3",
+      "id": "00f7a06f-6821-429a-9fb9-625096524943",
       "observations": 11275,
       "count": 6977,
       "excluded": 4298,
@@ -11961,7 +11961,7 @@
       ]
     },
     {
-      "id": "99ab46bc-f0e4-427b-b578-cfa791c0a84b",
+      "id": "00f752d2-e449-469e-83d1-42947f8d603c",
       "observations": 100000,
       "count": 100000,
       "excluded": 0,
@@ -12322,7 +12322,7 @@
       ]
     },
     {
-      "id": "4a71ce03-0010-4110-90af-ecd49b92ec8a",
+      "id": "8683b056-de02-42c5-9e8c-ab160cc2d08f",
       "observations": 630,
       "count": 630,
       "excluded": 0,
@@ -12715,15 +12715,15 @@
     ],
     "loopTerminationsComplete": true
   },
-  "elapsedMs": 11224,
-  "roundsPerSecond": 8909.479686386316,
-  "liveFrames": 388,
-  "primaryRunLiveFrames": 113,
+  "elapsedMs": 2830,
+  "roundsPerSecond": 35335.68904593639,
+  "liveFrames": 188,
+  "primaryRunLiveFrames": 20,
   "paidTurnoverReconciled": true,
   "independentLawComparisonRetained": true,
   "workerReplayBitIdentical": true,
   "mobileFits": true,
   "browserErrors": [],
-  "simulateUrl": "https://localhost:8543/simulate?run=a4c3f12543654fc3b68b8b9d3bd563fa",
-  "resultsUrl": "https://localhost:8543/results?run=a4c3f12543654fc3b68b8b9d3bd563fa"
+  "simulateUrl": "https://localhost:8543/simulate?run=8a38d2b44ab7428fb340f17df17ab5f3",
+  "resultsUrl": "https://localhost:8543/results?run=8a38d2b44ab7428fb340f17df17ab5f3"
 }

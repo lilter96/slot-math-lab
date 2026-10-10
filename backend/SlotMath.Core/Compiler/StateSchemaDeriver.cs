@@ -38,7 +38,9 @@ public static class StateSchemaDeriver
     public static IReadOnlyList<FieldDescriptor> Derive(GraphConfig config)
     {
         var fields = new Dictionary<string, ExprType>(StringComparer.Ordinal);
+        var items = new Dictionary<string, ExprType?>(StringComparer.Ordinal);
         foreach (var (key, value) in config.InitialState ?? new())
+        {
             fields[key] = value.ValueKind switch
             {
                 System.Text.Json.JsonValueKind.Array => ExprType.Array,
@@ -46,6 +48,12 @@ public static class StateSchemaDeriver
                 System.Text.Json.JsonValueKind.True or System.Text.Json.JsonValueKind.False => ExprType.Boolean,
                 _ => ExprType.Number,
             };
+            if (value.ValueKind == System.Text.Json.JsonValueKind.Array)
+            {
+                var types = value.EnumerateArray().Select(JsonScalarType).Distinct().ToArray();
+                items[key] = types.Length == 1 ? types[0] : null;
+            }
+        }
         var authored = new HashSet<string>(config.StateSchema.Select(s => s.Name), StringComparer.Ordinal);
 
         // (1) Structural truth from node kinds.
@@ -67,6 +75,7 @@ public static class StateSchemaDeriver
                     break;
                 case DataNode dn:
                     fields[dn.StateKey] = ExprType.Array;
+                    items[dn.StateKey] = ExprType.String;
                     break;
                 case PutStateNode p:
                     if (!fields.ContainsKey(p.StateKey)) fields[p.StateKey] = ExprType.Number;
@@ -91,9 +100,9 @@ public static class StateSchemaDeriver
             fields[sf.Name] = MapType(sf.Type);
 
         // (4) Fixpoint: a ModifyState output's type IS the type of its expression.
-        for (var pass = 0; pass < 4; pass++)
+        for (var pass = 0; pass <= config.Nodes.OfType<ModifyStateNode>().Count(); pass++)
         {
-            var ctx = BuildContext(config, fields);
+            var ctx = BuildContext(config, fields, items);
             var changed = false;
             foreach (var m in config.Nodes.OfType<ModifyStateNode>())
             {
@@ -107,10 +116,21 @@ public static class StateSchemaDeriver
                     changed = true;
                 }
             }
+            foreach (var writers in config.Nodes.OfType<ModifyStateNode>().Where(m => m.OutputKey != null).GroupBy(m => m.OutputKey!))
+            {
+                var inferred = writers.Select(m => LookupExpr(config, m.ExpressionId))
+                    .Select(e => e is not null ? InferArrayItem(e, ctx) : null).Distinct().ToArray();
+                var itemType = fields.GetValueOrDefault(writers.Key) == ExprType.Array && inferred.Length == 1 ? inferred[0] : null;
+                if (items.GetValueOrDefault(writers.Key) != itemType)
+                {
+                    items[writers.Key] = itemType;
+                    changed = true;
+                }
+            }
             if (!changed) break;
         }
 
-        return fields.Select(kv => new FieldDescriptor { Name = kv.Key, Type = kv.Value })
+        return fields.Select(kv => new FieldDescriptor { Name = kv.Key, Type = kv.Value, ArrayItemType = items.GetValueOrDefault(kv.Key) })
                      .OrderBy(f => f.Name, StringComparer.Ordinal)
                      .ToList();
     }
@@ -150,9 +170,42 @@ public static class StateSchemaDeriver
         _ => ExprType.Number,
     };
 
-    private static TypeCheckContext BuildContext(GraphConfig config, Dictionary<string, ExprType> fields)
+    private static ExprType? JsonScalarType(System.Text.Json.JsonElement value) => value.ValueKind switch
     {
-        var stateFields = fields.Select(kv => new FieldDescriptor { Name = kv.Key, Type = kv.Value }).ToList();
+        System.Text.Json.JsonValueKind.Number => ExprType.Number,
+        System.Text.Json.JsonValueKind.String => ExprType.String,
+        System.Text.Json.JsonValueKind.True or System.Text.Json.JsonValueKind.False => ExprType.Boolean,
+        _ => null,
+    };
+
+    private static ExprType? InferArrayItem(Expression expr, TypeCheckContext ctx) => expr switch
+    {
+        MapExpr m => ScalarType(m.Body, WithBindings(ctx, new FieldDescriptor { Name = m.ItemName, Type = m.ItemType },
+            new FieldDescriptor { Name = m.IndexName ?? "__unused_index__", Type = ExprType.Number })),
+        FilterExpr f => ctx.StateFields.FirstOrDefault(x => x.Name == f.StateKey)?.ArrayItemType,
+        FieldAccessExpr f when f.Target == "state" && f.Path.Length == 1 => ctx.StateFields.FirstOrDefault(x => x.Name == f.Path[0])?.ArrayItemType,
+        IfExpr i => CommonItemType(InferArrayItem(i.ThenExpr, ctx), InferArrayItem(i.ElseExpr, ctx)),
+        _ => null,
+    };
+
+    private static ExprType? ScalarType(Expression expr, TypeCheckContext ctx)
+    {
+        var type = ExpressionTypeChecker.InferType(expr, ctx);
+        return type is ExprType.Number or ExprType.Boolean or ExprType.String or ExprType.Symbol ? type : null;
+    }
+
+    private static ExprType? CommonItemType(ExprType? left, ExprType? right) => left == right ? left : null;
+
+    private static TypeCheckContext WithBindings(TypeCheckContext ctx, params FieldDescriptor[] bindings) => new()
+    {
+        BoardFields = ctx.BoardFields, CellFields = ctx.CellFields, MeasurementFields = ctx.MeasurementFields,
+        DecorationTypes = ctx.DecorationTypes,
+        StateFields = ctx.StateFields.Where(x => !bindings.Any(b => b.Name == x.Name)).Concat(bindings).ToArray(),
+    };
+
+    private static TypeCheckContext BuildContext(GraphConfig config, Dictionary<string, ExprType> fields, Dictionary<string, ExprType?> items)
+    {
+        var stateFields = fields.Select(kv => new FieldDescriptor { Name = kv.Key, Type = kv.Value, ArrayItemType = items.GetValueOrDefault(kv.Key) }).ToList();
         // Synthetic "expressions" accessor (named expression references).
         if (config.Expressions is { Count: > 0 })
             stateFields.Add(new FieldDescriptor { Name = "expressions", Type = ExprType.Number });

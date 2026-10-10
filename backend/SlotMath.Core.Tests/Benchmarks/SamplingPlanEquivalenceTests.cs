@@ -89,7 +89,7 @@ public class SamplingPlanEquivalenceTests
     [Fact]
     public void PartialOperationsPreserveLocatedErrors_AndIfRemainsLazy()
     {
-        var errors = new Expression[] { F("absent"), Call("index", F("values"), N(-1)), new FieldAccessExpr { Path = ["values", "3"] }, new BinaryExpr { Op = BinaryOp.Div, Left = N(1), Right = N(0) }, new AggregateExpr { StateKey = "empty", Func = AggregateFunc.Min } };
+        var errors = new Expression[] { F("absent"), Call("index", F("values"), N(-1)), new FieldAccessExpr { Path = ["values", "3"] }, new BinaryExpr { Op = BinaryOp.Div, Left = N(1), Right = N(0) }, new AggregateExpr { StateKey = "empty", Func = AggregateFunc.Min }, new AggregateExpr { StateKey = "missing", Func = AggregateFunc.Product } };
         var state = new Dict { ["values"] = new object[] { 1 }, ["empty"] = Array.Empty<object>() };
         foreach (var expr in errors)
         {
@@ -101,7 +101,7 @@ public class SamplingPlanEquivalenceTests
     }
 
     [Fact]
-    public void RecordFieldsRawTypesAndMissingArraySemanticsArePreserved()
+    public void RecordFieldsRawTypesAndTypedArraySemanticsArePreserved()
     {
         var state = new Dict { ["record"] = new Dict { ["a"] = new Dict { ["b"] = new BigInteger(7) } }, ["values"] = new object?[] { 8L, ExprValue.Rational(1, 3), null, true, "2", new object[] { 1 } }, ["rawTypedArray"] = ExprValue.Array([ExprValue.Number(3)]), ["list"] = new List<object?> { 5L, "6" } };
         Equivalent(new FieldAccessExpr { Path = ["record", "a", "b"] }, state);
@@ -110,7 +110,6 @@ public class SamplingPlanEquivalenceTests
         Equivalent(new FilterExpr { StateKey = "values", ItemName = "item", Predicate = new ConstantExpr { Kind = ConstantKind.Boolean, Value = "true" } }, state);
         Equivalent(F("record"), state);
         Equivalent(new FoldExpr { StateKey = "rawTypedArray", ItemName = "item", AccName = "acc", Init = N(9), Body = N(0) }, state);
-        Equivalent(new AggregateExpr { StateKey = "missing", Func = AggregateFunc.Product }, state);
         Equivalent(new AggregateExpr { StateKey = "list", Func = AggregateFunc.Sum }, state);
     }
 

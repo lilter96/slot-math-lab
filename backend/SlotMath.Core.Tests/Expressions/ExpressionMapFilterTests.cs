@@ -100,7 +100,7 @@ public class MapExpr_EvaluationTests
     }
 
     [Fact]
-    public void Map_MissingStateKey_ReturnsEmptyArray()
+    public void Map_MissingStateKey_IsAnErrorDistinctFromAnExplicitEmptyArray()
     {
         var expr = new MapExpr
         {
@@ -109,10 +109,8 @@ public class MapExpr_EvaluationTests
             Body = new ConstantExpr { Kind = ConstantKind.Integer, Value = "1" },
         };
 
-        var result = ExactExpressionEvaluator.Evaluate(expr, StateWith(new()));
-
-        Assert.Equal(ExprType.Array, result.Kind);
-        Assert.Empty(result.ArrayValue!);
+        var error = Assert.Throws<ExpressionEvaluationException>(() => ExactExpressionEvaluator.Evaluate(expr, StateWith(new())));
+        Assert.Equal("EVAL_MISSING_STATE", error.Code);
     }
 
     [Fact]

@@ -4,7 +4,7 @@
 export type ExpressionAst = { exprType: string; [key: string]: unknown };
 export function parseExpression(source: string): ExpressionAst {
   const tokens: string[] = [];
-  const pattern = /\s*(\d+(?:\.\d+)?|true\b|false\b|[A-Za-z_][A-Za-z_0-9]*|"(?:[^"\\]|\\.)*"|'[^']*'|==|!=|<=|>=|&&|\|\||[+*/!<>()?:.[\]-])/gy;
+  const pattern = /\s*(\d+(?:\.\d+)?|true\b|false\b|[A-Za-z_][A-Za-z_0-9]*|"(?:[^"\\]|\\.)*"|'[^']*'|==|!=|<=|>=|&&|\|\||[,+*/!<>()?:.[\]-])/gy;
   let offset = 0;
   while (offset < source.trimEnd().length) {
     pattern.lastIndex = offset;
@@ -25,6 +25,7 @@ export function parseExpression(source: string): ExpressionAst {
     '<': [4, 'compare', 'Lt'], '>': [4, 'compare', 'Gt'], '<=': [4, 'compare', 'Lte'], '>=': [4, 'compare', 'Gte'],
     '+': [5, 'binary', 'Add'], '-': [5, 'binary', 'Sub'], '*': [6, 'binary', 'Mul'], '/': [6, 'binary', 'Div'],
   };
+  const functions: Record<string, number> = { abs: 1, min: 2, max: 2, floor: 1, ceil: 1, round: 1 };
   function expression(min = 0): ExpressionAst {
     if (++depth > 64) throw new Error('Expression nesting exceeds 64');
     const token = tokens[pos++];
@@ -38,6 +39,21 @@ export function parseExpression(source: string): ExpressionAst {
       left = fraction ? constant('Rational', `${BigInt(whole + fraction)}/${10n ** BigInt(fraction.length)}`) : constant('Integer', token);
     } else if (token?.startsWith('"')) left = constant('String', JSON.parse(token));
     else if (token?.startsWith("'")) left = constant('String', token.slice(1, -1));
+    else if (token && /^[A-Za-z_]/.test(token) && tokens[pos] === '(') {
+      const name = token.toLowerCase(), arity = Object.hasOwn(functions, name) ? functions[name] : undefined;
+      if (arity === undefined) throw new Error(`Unsupported function '${token}'`);
+      pos++; const args: ExpressionAst[] = [];
+      if (tokens[pos] !== ')') {
+        for (;;) {
+          args.push(expression());
+          if (tokens[pos] !== ',') break;
+          pos++;
+        }
+      }
+      take(')');
+      if (args.length !== arity) throw new Error(`${name} requires ${arity} argument${arity === 1 ? '' : 's'}`);
+      left = { exprType: 'call', function: name, args };
+    }
     else if (token && /^[A-Za-z_]/.test(token)) {
       const settlement = token === 'measurement' && tokens[pos] === '.';
       const path = token === 'state' || settlement ? [] : [token];

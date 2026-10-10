@@ -78,11 +78,11 @@ internal sealed class SamplingExpressions(Func<string, int> slot)
                 var init = Compile(f.Init); var body = Compile(f.Body);
                 return s =>
                 {
-                    var value = init(s); var array = s.Cells[source];
+                    var value = init(s); var array = s.Cells[source]; var length = array.RequireArrayCount(f.StateKey);
                     var savedAcc = s.Cells[acc]; var savedItem = s.Cells[item]; var savedIndex = position < 0 ? default : s.Cells[position];
                     try
                     {
-                        for (var j = 0; j < array.ArrayCount; j++)
+                        for (var j = 0; j < length; j++)
                         {
                             s.CheckCancellation();
                             s.Cells[acc] = SamplingCell.Typed(value); s.Cells[item] = array.Item(j);
@@ -94,35 +94,35 @@ internal sealed class SamplingExpressions(Func<string, int> slot)
                     finally { s.Cells[acc] = savedAcc; s.Cells[item] = savedItem; if (position >= 0) s.Cells[position] = savedIndex; }
                 };
             case MapExpr m:
-                return CompileMap(slot(m.StateKey), slot(m.ItemName), m.IndexName is null ? -1 : slot(m.IndexName), Compile(m.Body), false);
+                return CompileMap(m.StateKey, slot(m.StateKey), slot(m.ItemName), m.IndexName is null ? -1 : slot(m.IndexName), Compile(m.Body), false);
             case FilterExpr f:
-                return CompileMap(slot(f.StateKey), slot(f.ItemName), f.IndexName is null ? -1 : slot(f.IndexName), Compile(f.Predicate), true);
+                return CompileMap(f.StateKey, slot(f.StateKey), slot(f.ItemName), f.IndexName is null ? -1 : slot(f.IndexName), Compile(f.Predicate), true);
             case AggregateExpr a:
+                if (a.Func is not (AggregateFunc.Sum or AggregateFunc.Product or AggregateFunc.Min or AggregateFunc.Max or AggregateFunc.Count))
+                    throw new ExpressionEvaluationException("EVAL_INVALID_OPERATOR", "Unknown aggregate operator.");
                 var src = slot(a.StateKey); var binding = slot(a.ItemName);
                 var predicate = a.Predicate is null ? null : Compile(a.Predicate); var selector = a.ValueExpr is null ? null : Compile(a.ValueExpr);
                 return s =>
                 {
-                    var array = s.Cells[src]; var saved = s.Cells[binding];
-                    var count = 0; var total = a.Func == AggregateFunc.Product ? BigInteger.One : BigInteger.Zero;
+                    var array = s.Cells[src]; var length = array.RequireArrayCount(a.StateKey); var saved = s.Cells[binding];
+                    var count = 0; var total = ExprValue.Number(a.Func == AggregateFunc.Product ? 1 : 0);
                     try
                     {
-                        for (var j = 0; j < array.ArrayCount; j++)
+                        for (var j = 0; j < length; j++)
                         {
                             s.CheckCancellation(); var cell = array.Item(j); s.Cells[binding] = cell;
                             if (predicate is not null && !Truth(predicate(s))) continue;
                             var value = selector is not null ? selector(s) : cell.Value.Kind == ExprType.String ? ParseNumber(cell.Value.StringValue!) : cell.Value;
-                            var n = value.AsInteger();
-                            total = a.Func switch
+                            if (a.Func != AggregateFunc.Count)
                             {
-                                AggregateFunc.Sum => total + n, AggregateFunc.Product => total * n,
-                                AggregateFunc.Min => count == 0 ? n : BigInteger.Min(total, n),
-                                AggregateFunc.Max => count == 0 ? n : BigInteger.Max(total, n), _ => total,
-                            };
+                                if (selector is null && value.Kind != ExprType.Number) value = ExprValue.Number(0);
+                                total = NumericFunctions.Aggregate(a.Func, total, value, count == 0);
+                            }
                             count++;
                         }
                         if (count == 0 && a.Func is AggregateFunc.Min or AggregateFunc.Max)
                             throw new ExpressionEvaluationException(EvalErrorCodes.EmptyMinMax, $"{a.Func} over an empty array is undefined (D1).", a.Func.ToString().ToLowerInvariant());
-                        return ExprValue.Number(a.Func == AggregateFunc.Count ? count : total);
+                        return a.Func == AggregateFunc.Count ? ExprValue.Number(count) : total;
                     }
                     finally { s.Cells[binding] = saved; }
                 };
@@ -130,13 +130,13 @@ internal sealed class SamplingExpressions(Func<string, int> slot)
         }
     }
 
-    private static Func<SamplingFrame, ExprValue> CompileMap(int source, int binding, int position, Func<SamplingFrame, ExprValue> body, bool filter) => s =>
+    private static Func<SamplingFrame, ExprValue> CompileMap(string key, int source, int binding, int position, Func<SamplingFrame, ExprValue> body, bool filter) => s =>
     {
-        var array = s.Cells[source]; var savedItem = s.Cells[binding]; var savedIndex = position < 0 ? default : s.Cells[position];
-        var values = new ExprValue[array.ArrayCount]; var count = 0;
+        var array = s.Cells[source]; var length = array.RequireArrayCount(key); var savedItem = s.Cells[binding]; var savedIndex = position < 0 ? default : s.Cells[position];
+        var values = new ExprValue[length]; var count = 0;
         try
         {
-            for (var j = 0; j < array.ArrayCount; j++)
+            for (var j = 0; j < length; j++)
             {
                 s.CheckCancellation(); var cell = array.Item(j); s.Cells[binding] = cell;
                 if (position >= 0) s.Cells[position] = SamplingCell.FromRaw(j);
@@ -167,12 +167,8 @@ internal sealed class SamplingExpressions(Func<string, int> slot)
     {
         switch (function)
         {
-            case "abs": return ExprValue.Number(count > 0 ? BigInteger.Abs(a.AsInteger()) : 0);
-            case "min": return ExprValue.Number(count >= 2 ? BigInteger.Min(a.AsInteger(), b.AsInteger()) : 0);
-            case "max": return ExprValue.Number(count >= 2 ? BigInteger.Max(a.AsInteger(), b.AsInteger()) : 0);
-            case "floor": return ExprValue.Number(count > 0 ? a.AsInteger() : 0);
-            case "ceil": return count == 0 ? ExprValue.Number(0) : ExprValue.Number(a.NumberNumerator.Sign >= 0 ? (a.NumberNumerator + a.NumberDenominator - 1) / a.NumberDenominator : a.NumberNumerator / a.NumberDenominator);
-            case "round": return count == 0 ? ExprValue.Number(0) : ExprValue.Number((a.NumberNumerator + (a.NumberNumerator.Sign >= 0 ? a.NumberDenominator / 2 : -a.NumberDenominator / 2)) / a.NumberDenominator);
+            case "abs": case "min": case "max": case "floor": case "ceil": case "round":
+                return NumericFunctions.Call(function, a, b, count);
             case "tonumber": return count > 0 && a.Kind == ExprType.String ? _numbers.TryGetValue(a.StringValue!, out var n) ? n : ParseNumber(a.StringValue!) : ExprValue.Number(0);
             case "tostring": return ExprValue.String(count > 0 ? a.AsInteger().ToString() : "0");
             case "length": return ExprValue.Number(count == 0 ? 0 : a.Kind == ExprType.Array ? a.ArrayValue!.Count : a.StringValue?.Length ?? 0);

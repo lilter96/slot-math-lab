@@ -1,6 +1,7 @@
 using System.Net.Http.Json;
 using System.Text.Json;
 using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.Extensions.DependencyInjection;
 using SlotMath.Api.Infrastructure;
 using SlotMath.Core.Mechanics;
 using SlotMath.Core.Mechanics.Evaluators;
@@ -423,16 +424,19 @@ public class IntegrationTests : IClassFixture<WebApplicationFactory<Program>>, I
     [Fact]
     public async Task EvaluateLight_IdenticalConfig_IsServedFromCache()
     {
-        // Sampled light evals use a tick-derived seed, so two uncached calls
-        // would essentially never agree bit-for-bit.  A cached repeat returns
-        // the stored response — identical rtp proves the cache hit.
+        // A fixed seed gives identical uncached math too. Count actual misses
+        // rather than mistake reproducibility for evidence of cache reuse.
         var config = CreateLoopConfig(maxIterations: 50);
         var request = new { config, sampleSize = 3_000, maxBranches = 500 };
+        var cache = _factory.Services.GetRequiredService<IResultCache>();
+        var misses = cache.RecomputeCount;
 
         var first = await (await _client.PostAsJsonAsync("/api/evaluate/light", request))
             .Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal(misses + 1, cache.RecomputeCount);
         var second = await (await _client.PostAsJsonAsync("/api/evaluate/light", request))
             .Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal(misses + 1, cache.RecomputeCount);
 
         Assert.Equal("Sampled", first.GetProperty("strategy").GetString());
         Assert.Equal(

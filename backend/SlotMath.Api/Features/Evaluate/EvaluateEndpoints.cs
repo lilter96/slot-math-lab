@@ -29,15 +29,9 @@ public static class EvaluateEndpoints
             deadline.CancelAfter(TimeSpan.FromSeconds(3));
 
             // 0. Cache lookup — the debounced UI re-sends identical configs
-            //    constantly; identical (config, knobs) returns the cached
+            //    constantly; identical (config, knobs, engine, policy) returns the cached
             //    response without recompiling or re-evaluating.
-            var cacheKey = "light:" + CanonicalHash.Compute(new
-            {
-                config = request.Config,
-                seed = request.Seed,
-                maxBranches = request.MaxBranches,
-                sampleSize = request.SampleSize,
-            });
+            var cacheKey = LightEvaluationCacheKey.Compute(request, allowPlugins: !environment.IsProduction());
             var cached = await cache.GetAsync(cacheKey);
             if (cached is not null)
             {
@@ -64,6 +58,7 @@ public static class EvaluateEndpoints
                 return Results.BadRequest(new EvaluateLightResponse
                 {
                     Strategy = "Error",
+                    Seed = request.Seed,
                     Provenance = "InvalidJson",
                     ElapsedMs = sw.Elapsed.TotalMilliseconds,
                 });
@@ -79,6 +74,7 @@ public static class EvaluateEndpoints
                 return Results.Ok(new EvaluateLightResponse
                 {
                     Strategy = "Error",
+                    Seed = request.Seed,
                     Provenance = "ValidationFailed",
                     Errors = compileResult.Errors.Select(e => new ValidateErrorItem { Code = e.Code, Message = e.Message, NodeId = e.NodeId, EdgeId = e.EdgeId }).ToArray(),
                     ElapsedMs = sw.Elapsed.TotalMilliseconds,
@@ -138,7 +134,7 @@ public static class EvaluateEndpoints
                 }
                 catch (SlotMath.Core.Expressions.ExpressionEvaluationException error)
                 {
-                    return Results.BadRequest(new EvaluateLightResponse { Strategy = "Error", Provenance = "EvaluationFailed",
+                    return Results.BadRequest(new EvaluateLightResponse { Seed = request.Seed, Strategy = "Error", Provenance = "EvaluationFailed",
                         Errors = [new ValidateErrorItem { Code = error.Code, Message = error.Message }] });
                 }
             }
@@ -183,12 +179,12 @@ public static class EvaluateEndpoints
             }
             catch (SlotMath.Core.Expressions.ExpressionEvaluationException error)
             {
-                return Results.BadRequest(new EvaluateLightResponse { Strategy = "Error", Provenance = "EvaluationFailed",
+                return Results.BadRequest(new EvaluateLightResponse { Seed = request.Seed, Strategy = "Error", Provenance = "EvaluationFailed",
                     Errors = [new ValidateErrorItem { Code = error.Code, Message = error.Message }] });
             }
             catch (Exception error) when (error is InvalidOperationException or ArgumentException or FormatException)
             {
-                return Results.BadRequest(new EvaluateLightResponse { Strategy = "Error", Provenance = "EvaluationFailed",
+                return Results.BadRequest(new EvaluateLightResponse { Seed = request.Seed, Strategy = "Error", Provenance = "EvaluationFailed",
                     Errors = [new ValidateErrorItem { Code = "EVALUATION_FAILED", Message = error.Message }] });
             }
             catch (BudgetExceededException)
@@ -197,6 +193,7 @@ public static class EvaluateEndpoints
                 return Results.Ok(new EvaluateLightResponse
                 {
                     Strategy = "NeedsFullRun",
+                    Seed = request.Seed,
                     Provenance = "TooExpensive",
                     ElapsedMs = sw.Elapsed.TotalMilliseconds,
                 });

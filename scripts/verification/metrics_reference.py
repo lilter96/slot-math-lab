@@ -21,6 +21,11 @@ def moments(law):
 
 
 def references():
+    # Constructor AST fixture checked independently with Python's rational
+    # arithmetic, including negative floor and a fractional indexed value.
+    fractions = [F(-6, 12), F(8, 12), F(15, 12)]
+    fractional_payout = sum(fractions) * 12 + min(F(3, 2), F(7, 4)) * 4 + abs(fractions[0]) * 2 + math.floor(F(-1, 2)) + 1
+    assert fractional_payout == 24 and abs(fractions[0]) == F(1, 2)
     model_a = {F(0): F(1, 2), F(49, 25): F(1, 2)}
     model_b = {F(0): F(9, 10), F(49, 5): F(1, 10)}
     mean_a, variance_a = moments(model_a)
@@ -112,6 +117,7 @@ def references():
     assert one_event_trials == 29957322
 
     return {
+        "fractionalConstructor": {"payout": str(fractional_payout), "trackedMagnitude": str(abs(fractions[0]))},
         "sameRtpDifferentDistributions": {
             "rtp": str(mean_a),
             "varianceA": str(variance_a), "varianceB": str(variance_b),

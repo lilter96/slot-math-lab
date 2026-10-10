@@ -174,17 +174,15 @@ public static class ExactExpressionEvaluator
                     case object[] oarr:
                         if (idx < 0 || idx >= oarr.Length)
                             throw IndexError(key, idx, oarr.Length);
-                        return oarr[idx] switch
-                        {
-                            string s => ExprValue.String(s),
-                            BigInteger bi => ExprValue.Number(bi),
-                            int i => ExprValue.Number(i),
-                            bool b => ExprValue.Bool(b),
-                            _ => ExprValue.Number(0),
-                        };
+                        return ToExprValue(oarr[idx]);
+                    case ExprValue { Kind: ExprType.Array } typed:
+                        if (idx < 0 || idx >= typed.ArrayValue!.Count) throw IndexError(key, idx, typed.ArrayValue!.Count);
+                        return typed.ArrayValue![idx];
+                    case System.Collections.IList list:
+                        if (idx < 0 || idx >= list.Count) throw IndexError(key, idx, list.Count);
+                        return ToExprValue(list[idx]);
                     default:
-                        // Not an array: not an index-out-of-range (handled as a type-level miss).
-                        return ExprValue.Number(0);
+                        throw new ExpressionEvaluationException("EVAL_TYPE_ERROR", $"State field '{key}' must be an array for indexed access.", key);
                 }
             }
 
@@ -366,6 +364,8 @@ public static class ExactExpressionEvaluator
 
     private static ExprValue EvalAggregate(AggregateExpr a, EvalContext ctx)
     {
+        if (a.Func is not (AggregateFunc.Sum or AggregateFunc.Product or AggregateFunc.Min or AggregateFunc.Max or AggregateFunc.Count))
+            throw new ExpressionEvaluationException("EVAL_INVALID_OPERATOR", "Unknown aggregate operator.");
         // Aggregate over the state array named by StateKey.  Each element is
         // bound under ItemName so the optional Predicate (filter) and ValueExpr
         // (selector) can reference it — exactly like fold/map/filter.  Elements
@@ -392,7 +392,8 @@ public static class ExactExpressionEvaluator
                 if (a.Predicate != null)
                 {
                     var predResult = Eval(a.Predicate, iterCtx);
-                    if (predResult.Kind != ExprType.Boolean || !predResult.BoolValue)
+                    if (predResult.Kind != ExprType.Boolean) throw new ExpressionEvaluationException("EVAL_TYPE_ERROR", "Aggregate predicate requires Boolean.");
+                    if (!predResult.BoolValue)
                         continue;
                 }
 
@@ -421,15 +422,16 @@ public static class ExactExpressionEvaluator
         if (a.Func == AggregateFunc.Count)
             return ExprValue.Number(values.Count);
 
-        var nums = values.Select(v => v.AsInteger()).ToList();
-        return a.Func switch
+        var total = ExprValue.Number(a.Func == AggregateFunc.Product ? 1 : 0);
+        for (var index = 0; index < values.Count; index++)
         {
-            AggregateFunc.Sum => ExprValue.Number(nums.Aggregate(BigInteger.Zero, (x, y) => x + y)),
-            AggregateFunc.Product => ExprValue.Number(nums.Aggregate(BigInteger.One, (x, y) => x * y)),
-            AggregateFunc.Min => ExprValue.Number(nums.Aggregate((x, y) => x < y ? x : y)),
-            AggregateFunc.Max => ExprValue.Number(nums.Aggregate((x, y) => x > y ? x : y)),
-            _ => ExprValue.Number(0),
-        };
+            var value = values[index];
+            // Preserve the documented implicit symbol-score convention when
+            // no selector is authored. Explicit numeric selectors are strict.
+            if (a.ValueExpr is null && value.Kind != ExprType.Number) value = ExprValue.Number(0);
+            total = NumericFunctions.Aggregate(a.Func, total, value, index == 0);
+        }
+        return total;
     }
 
     /// <summary>
@@ -501,11 +503,12 @@ public static class ExactExpressionEvaluator
             {
                 string[] sarr => sarr.Cast<object?>(),
                 object[] oarr => oarr,
-                System.Collections.IEnumerable en when val is not string => en.Cast<object?>(),
-                _ => null,
+                ExprValue { Kind: ExprType.Array } typed => typed.ArrayValue!.Cast<object?>(),
+                System.Collections.IEnumerable en when val is not string && val is not System.Collections.IDictionary => en.Cast<object?>(),
+                _ => throw new ExpressionEvaluationException("EVAL_TYPE_ERROR", $"State field '{key}' must be an array.", key),
             };
         }
-        return null;
+        throw new ExpressionEvaluationException("EVAL_MISSING_STATE", $"State array '{key}' is absent.", key);
     }
 
     private static object? ExprValueToStateObject(ExprValue v) => v.ToStateObject();
@@ -566,7 +569,8 @@ public static class ExactExpressionEvaluator
                     Measurement = ctx.Measurement,
                 SymbolToNumericValue = ctx.SymbolToNumericValue,
             });
-            if (pred.Kind == ExprType.Boolean && pred.BoolValue)
+            if (pred.Kind != ExprType.Boolean) throw new ExpressionEvaluationException("EVAL_TYPE_ERROR", "Filter predicate requires Boolean.");
+            if (pred.BoolValue)
                 result.Add(ObjectToExprValue(item));
             index++;
         }
@@ -594,29 +598,8 @@ public static class ExactExpressionEvaluator
 
         return c.Function.ToLowerInvariant() switch
         {
-            "abs" => args.Length > 0
-                ? ExprValue.Number(BigInteger.Abs(args[0].AsInteger()))
-                : ExprValue.Number(0),
-
-            "min" => args.Length >= 2
-                ? ExprValue.Number(BigInteger.Min(args[0].AsInteger(), args[1].AsInteger()))
-                : ExprValue.Number(0),
-
-            "max" => args.Length >= 2
-                ? ExprValue.Number(BigInteger.Max(args[0].AsInteger(), args[1].AsInteger()))
-                : ExprValue.Number(0),
-
-            "floor" => args.Length > 0
-                ? ExprValue.Number(args[0].AsInteger()) // BigInteger division truncates toward zero
-                : ExprValue.Number(0),
-
-            "ceil" => args.Length > 0
-                ? Ceil(args[0])
-                : ExprValue.Number(0),
-
-            "round" => args.Length > 0
-                ? Round(args[0])
-                : ExprValue.Number(0),
+            "abs" or "min" or "max" or "floor" or "ceil" or "round" => NumericFunctions.Call(c.Function.ToLowerInvariant(),
+                args.Length > 0 ? args[0] : default, args.Length > 1 ? args[1] : default, args.Length),
 
             // Case labels must be lowercase — the switch is on ToLowerInvariant().
             "tonumber" => args.Length > 0 && args[0].Kind == ExprType.String
@@ -662,27 +645,6 @@ public static class ExactExpressionEvaluator
                 $"index({i}) is out of range [0, {arr.Count}) (D1).",
                 $"index[{i}]");
         return arr[i];
-    }
-
-    private static ExprValue Ceil(ExprValue v)
-    {
-        var num = v.NumberNumerator;
-        var den = v.NumberDenominator;
-        // Ceil(a/b) = (a + b - 1) / b for positive; for negative just a/b truncates to ceil.
-        if (num >= 0)
-            return ExprValue.Number((num + den - 1) / den);
-        return ExprValue.Number(num / den);
-    }
-
-    private static ExprValue Round(ExprValue v)
-    {
-        var num = v.NumberNumerator;
-        var den = v.NumberDenominator;
-        // Round half-up: (a + b/2) / b
-        var halfDen = den / 2;
-        if (num >= 0)
-            return ExprValue.Number((num + halfDen) / den);
-        return ExprValue.Number((num - halfDen) / den);
     }
 
     private static ExprValue ParseNumber(string s)

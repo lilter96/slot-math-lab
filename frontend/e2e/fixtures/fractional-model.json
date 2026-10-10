@@ -1,0 +1,221 @@
+{
+  "schemaVersion": "1.0.0",
+  "name": "Independent fractional constructor oracle",
+  "initialState": {
+    "rawValues": [
+      -6,
+      8,
+      15
+    ]
+  },
+  "nodes": [
+    {
+      "nodeType": "draw",
+      "id": "draw",
+      "drawWeights": [
+        {
+          "outcomeId": "zero",
+          "value": 0,
+          "weight": 1
+        }
+      ],
+      "outputs": {
+        "out": {
+          "name": "out",
+          "type": "Wins"
+        }
+      }
+    },
+    {
+      "nodeType": "modifyState",
+      "id": "fractions",
+      "expressionId": "fractions",
+      "outputKey": "fractions",
+      "inputs": {
+        "in": {
+          "name": "in",
+          "type": "Wins"
+        }
+      },
+      "outputs": {
+        "out": {
+          "name": "out",
+          "type": "Wins"
+        }
+      }
+    },
+    {
+      "nodeType": "modifyState",
+      "id": "payout",
+      "expressionId": "payout",
+      "outputKey": "payout",
+      "inputs": {
+        "in": {
+          "name": "in",
+          "type": "Wins"
+        }
+      },
+      "outputs": {
+        "out": {
+          "name": "out",
+          "type": "Wins"
+        }
+      }
+    },
+    {
+      "nodeType": "metricsSink",
+      "id": "sink",
+      "winStateKey": "payout",
+      "winCap": 100,
+      "inputs": {
+        "in": {
+          "name": "in",
+          "type": "Wins"
+        }
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "0",
+      "sourceNodeId": "draw",
+      "sourcePort": "out",
+      "targetNodeId": "fractions",
+      "targetPort": "in"
+    },
+    {
+      "id": "1",
+      "sourceNodeId": "fractions",
+      "sourcePort": "out",
+      "targetNodeId": "payout",
+      "targetPort": "in"
+    },
+    {
+      "id": "2",
+      "sourceNodeId": "payout",
+      "sourcePort": "out",
+      "targetNodeId": "sink",
+      "targetPort": "in"
+    }
+  ],
+  "expressions": {
+    "fractions": {
+      "exprType": "map",
+      "stateKey": "rawValues",
+      "itemName": "item",
+      "body": {
+        "exprType": "binary",
+        "op": "Div",
+        "left": {
+          "exprType": "fieldAccess",
+          "target": "state",
+          "path": [
+            "item"
+          ]
+        },
+        "right": {
+          "exprType": "constant",
+          "kind": "Rational",
+          "value": "12"
+        }
+      },
+      "itemType": "Number"
+    },
+    "payout": {
+      "exprType": "binary",
+      "op": "Add",
+      "left": {
+        "exprType": "binary",
+        "op": "Add",
+        "left": {
+          "exprType": "binary",
+          "op": "Add",
+          "left": {
+            "exprType": "binary",
+            "op": "Mul",
+            "left": {
+              "exprType": "aggregate",
+              "func": "Sum",
+              "stateKey": "fractions",
+              "itemName": "item",
+              "itemType": "Number"
+            },
+            "right": {
+              "exprType": "constant",
+              "kind": "Rational",
+              "value": "12"
+            }
+          },
+          "right": {
+            "exprType": "binary",
+            "op": "Mul",
+            "left": {
+              "exprType": "call",
+              "function": "min",
+              "args": [
+                {
+                  "exprType": "constant",
+                  "kind": "Rational",
+                  "value": "3/2"
+                },
+                {
+                  "exprType": "constant",
+                  "kind": "Rational",
+                  "value": "7/4"
+                }
+              ]
+            },
+            "right": {
+              "exprType": "constant",
+              "kind": "Rational",
+              "value": "4"
+            }
+          }
+        },
+        "right": {
+          "exprType": "binary",
+          "op": "Mul",
+          "left": {
+            "exprType": "call",
+            "function": "abs",
+            "args": [
+              {
+                "exprType": "fieldAccess",
+                "target": "state",
+                "path": [
+                  "fractions",
+                  "0"
+                ]
+              }
+            ]
+          },
+          "right": {
+            "exprType": "constant",
+            "kind": "Rational",
+            "value": "2"
+          }
+        }
+      },
+      "right": {
+        "exprType": "binary",
+        "op": "Add",
+        "left": {
+          "exprType": "call",
+          "function": "floor",
+          "args": [
+            {
+              "exprType": "constant",
+              "kind": "Rational",
+              "value": "-1/2"
+            }
+          ]
+        },
+        "right": {
+          "exprType": "constant",
+          "kind": "Rational",
+          "value": "1"
+        }
+      }
+    }
+  }
+}
