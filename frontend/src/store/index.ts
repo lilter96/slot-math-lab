@@ -1,6 +1,16 @@
 import { create } from 'zustand';
 import { LIMITS } from '../lib/limits';
-import type { Node, Edge, Connection, OnNodesChange, OnEdgesChange, NodeChange, EdgeChange } from '@xyflow/react';
+import {
+  applyNodeChanges,
+  applyEdgeChanges,
+  type Node,
+  type Edge,
+  type Connection,
+  type OnNodesChange,
+  type OnEdgesChange,
+  type NodeChange,
+  type EdgeChange,
+} from '@xyflow/react';
 
 export type TabId = 'build' | 'simulate' | 'results' | 'export' | 'play';
 export type Mood = 'slate' | 'ocean' | 'violet' | 'steel';
@@ -233,7 +243,19 @@ export const useAppStore = create<AppState>((set, get) => ({
   setAuth: (authenticated, name) => set({ isAuthenticated: authenticated, userDisplayName: name ?? null }),
 
   onNodesChange: (changes: NodeChange<GraphNode>[]) =>
-    set((s) => ({ nodes: applyNodeChanges(changes, s.nodes) })),
+    set((s) => {
+      const nodes = applyNodeChanges(changes, s.nodes);
+      // Defensive cleanup: if any nodes were removed, drop their connected
+      // edges too. React Flow normally emits matching edge-removal changes,
+      // but this keeps the invariant regardless of RF version/behaviour.
+      const removedIds = changes
+        .filter((ch): ch is Extract<NodeChange<GraphNode>, { type: 'remove' }> => ch.type === 'remove')
+        .map((ch) => ch.id);
+      const edges = removedIds.length
+        ? s.edges.filter((e) => !removedIds.includes(e.source) && !removedIds.includes(e.target))
+        : s.edges;
+      return { nodes, edges };
+    }),
 
   onEdgesChange: (changes: EdgeChange<GraphEdge>[]) =>
     set((s) => ({ edges: applyEdgeChanges(changes, s.edges) })),
@@ -314,45 +336,51 @@ export const useAppStore = create<AppState>((set, get) => ({
   // ── Table data (used by live metrics) ───────────────────────────
 }));
 
-// ── Minimal Node/Edge change handlers (avoid heavy immer dependency) ─
-
-function applyNodeChanges(
-  changes: NodeChange<GraphNode>[],
-  nodes: GraphNode[],
-): GraphNode[] {
-  let next = [...nodes];
-  for (const ch of changes) {
-    if (ch.type === 'position' && ch.position) {
-      const idx = next.findIndex((n) => n.id === ch.id);
-      if (idx >= 0) {
-        next[idx] = { ...next[idx], position: ch.position };
-      }
-    } else if (ch.type === 'remove') {
-      next = next.filter((n) => n.id !== ch.id);
-    }
-  }
-  return next;
-}
-
-function applyEdgeChanges(
-  changes: EdgeChange<GraphEdge>[],
-  edges: GraphEdge[],
-): GraphEdge[] {
-  let next = [...edges];
-  for (const ch of changes) {
-    if (ch.type === 'remove') {
-      next = next.filter((e) => e.id !== ch.id);
-    }
-  }
-  return next;
-}
-
+// ── Draft persistence (debounced) ───────────────────────────────────
+// NOTE: previously we stringified the whole graph into localStorage on
+// every store change (including every mousemove during a node drag),
+// which blocked the main thread and made dragging visibly janky. We now
+// debounce the write so dragging stays smooth; a `beforeunload` flush
+// keeps the last state from being lost on tab close.
 if (typeof window !== 'undefined') {
+  const DRAFT_KEY = 'slotmath-draft-v1';
+  const SAVE_DEBOUNCE_MS = 400;
+  let saveTimer: number | undefined;
+
+  const persistNow = () => {
+    const s = useAppStore.getState();
+    try {
+      localStorage.setItem(DRAFT_KEY, JSON.stringify({
+        nodes: s.nodes,
+        edges: s.edges,
+        tables: s.tables,
+        graphTrail: s.graphTrail,
+        verificationSource: s.verificationSource,
+        configName: s.configName,
+        resultsDraft: s.resultsDraft,
+      }));
+    } catch { /* export remains available when browser storage is full */ }
+  };
+
+  const schedulePersist = () => {
+    if (saveTimer !== undefined) clearTimeout(saveTimer);
+    saveTimer = window.setTimeout(() => {
+      saveTimer = undefined;
+      persistNow();
+    }, SAVE_DEBOUNCE_MS);
+  };
+
   try {
-    const draft = JSON.parse(localStorage.getItem('slotmath-draft-v1') ?? 'null');
+    const draft = JSON.parse(localStorage.getItem(DRAFT_KEY) ?? 'null');
     if (draft && Array.isArray(draft.nodes) && Array.isArray(draft.edges)) useAppStore.setState({ nodes: draft.nodes, edges: draft.edges, tables: draft.tables ?? {}, graphTrail: draft.graphTrail ?? [], verificationSource: draft.verificationSource ?? null, configName: draft.configName ?? 'Untitled', resultsDraft: draft.resultsDraft ?? null });
   } catch { /* a corrupt draft never prevents opening the editor */ }
-  useAppStore.subscribe(s => {
-    try { localStorage.setItem('slotmath-draft-v1', JSON.stringify({ nodes: s.nodes, edges: s.edges, tables: s.tables, graphTrail: s.graphTrail, verificationSource: s.verificationSource, configName: s.configName, resultsDraft: s.resultsDraft })); } catch { /* export remains available when browser storage is full */ }
+
+  useAppStore.subscribe(schedulePersist);
+  window.addEventListener('beforeunload', () => {
+    if (saveTimer !== undefined) {
+      clearTimeout(saveTimer);
+      saveTimer = undefined;
+    }
+    persistNow();
   });
 }
