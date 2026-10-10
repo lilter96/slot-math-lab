@@ -5,6 +5,46 @@ import { useAppStore, type PluginEntry, type CustomMechanic, type GraphNode, typ
 import { buildConfigPayload, mapNodeToBackend } from '../lib/configPayload';
 
 // ═══════════════════════════════════════════════════════════════════
+// Feature flags API hook
+// ═══════════════════════════════════════════════════════════════════
+
+/** Backend-controlled UI feature gates (GET /api/features). */
+export interface FeatureFlags {
+  ai: boolean;
+  autoTune: boolean;
+  plugins: boolean;
+  play: boolean;
+}
+
+/**
+ * Fail-closed defaults: while the flags request is in flight, and whenever it
+ * is missing or fails, every optional (non-1.0) surface stays hidden.
+ */
+export const DEFAULT_FEATURES: FeatureFlags = { ai: false, autoTune: false, plugins: false, play: false };
+
+const FEATURES_KEY = ['features'];
+
+/** Fetch UI feature flags. Raw fetch: /api/features is not in generated-types. */
+export function useFeaturesQuery() {
+  return useQuery({
+    queryKey: FEATURES_KEY,
+    queryFn: async () => {
+      const res = await fetch('/api/features');
+      if (!res.ok) throw new Error(`Failed to load feature flags: HTTP ${res.status}`);
+      const data = (await res.json()) as Partial<FeatureFlags>;
+      // Only explicit `true` enables a surface — anything else collapses to off.
+      return {
+        ai: data.ai === true,
+        autoTune: data.autoTune === true,
+        plugins: data.plugins === true,
+        play: data.play === true,
+      } satisfies FeatureFlags;
+    },
+    staleTime: Infinity,
+  });
+}
+
+// ═══════════════════════════════════════════════════════════════════
 // Plugins API hooks
 // ═══════════════════════════════════════════════════════════════════
 
