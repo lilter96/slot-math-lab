@@ -62,15 +62,9 @@ public sealed class AliasMethod
             throw new ArgumentException("At least one weight must be positive.", nameof(weights));
         }
 
-        // ── 1. BigInteger Normalization ──────────────────────────────────────────
-        // Prevents double.PositiveInfinity overflow if weights exceed ~1.79e308 (2^1024).
-        // A numerator is scaled by n (up to 31 bits) before the shift, so the
-        // total keeps 960 bits: the scaled value then stays below 2^991.
-        var totalBits = totalNum.GetBitLength();
-        var bitShift = totalBits > 960 ? (int)(totalBits - 960) : 0;
-
-        BigInteger divisorBigInt = bitShift > 0 ? totalNum >> bitShift : totalNum;
-        var divisor = (double)divisorBigInt;
+        // ── 1. Scaling ───────────────────────────────────────────────────────────
+        // scaled[i] = weight · n / total. See Ratio for totals beyond the double range.
+        var divisor = (double)totalNum;
         var bigN = new BigInteger(n);
 
         // ── 2. Memory Workspace (Zero GC for N <= 256) ───────────────────────────
@@ -104,13 +98,7 @@ public sealed class AliasMethod
                 }
                 else
                 {
-                    BigInteger scaledNumer = numer * bigN;
-                    if (bitShift > 0)
-                    {
-                        scaledNumer >>= bitShift;
-                    }
-
-                    scaled[i] = (double)scaledNumer / divisor;
+                    scaled[i] = Ratio(numer * bigN, totalNum, divisor);
                 }
             }
 
@@ -199,6 +187,28 @@ public sealed class AliasMethod
                 ArrayPool<int>.Shared.Return(rentedWork);
             }
         }
+    }
+
+    /// <summary>
+    ///     <paramref name="numerator" /> / <paramref name="denominator" /> as a double.
+    ///     While both operands convert to a finite double this is the plain quotient,
+    ///     so thresholds keep the bits seeded replay depends on (D24). Beyond that
+    ///     range the quotient of the leading 64 bits is rescaled by the difference in
+    ///     magnitude: a positive weight keeps a positive share as long as a double
+    ///     can represent it, and nothing overflows.
+    /// </summary>
+    private static double Ratio(BigInteger numerator, BigInteger denominator, double denominatorAsDouble)
+    {
+        var top = (double)numerator;
+        if (double.IsFinite(top) && double.IsFinite(denominatorAsDouble))
+        {
+            return top / denominatorAsDouble;
+        }
+
+        var numeratorShift = (int)System.Math.Max(0, numerator.GetBitLength() - 64);
+        var denominatorShift = (int)System.Math.Max(0, denominator.GetBitLength() - 64);
+        return System.Math.ScaleB((double)(numerator >> numeratorShift) / (double)(denominator >> denominatorShift),
+            numeratorShift - denominatorShift);
     }
 
     /// <summary>

@@ -23,6 +23,17 @@ export const RUN_WORKERS = Array.from({ length: LIMITS.maxRunWorkers }, (_, i) =
  * without one, so a long run asks for one snapshot per PRNG stream. */
 export const progressBatchSize = (rounds: number) => rounds > 10_000_000 ? 65_536 : 1000;
 
+/** Execution budget of a run in minutes: five for every started ten million
+ * rounds (backend RunJobService.ResourceBudget). */
+export const runBudgetMinutes = (rounds: number) =>
+  5 * Math.max(1, Math.ceil((Number.isFinite(rounds) ? rounds : 0) / 10_000_000));
+
+/** The budget as shown beside the launch controls: "5-minute", "1 h 40 min", "83 h 20 min". */
+export function runBudgetLabel(rounds: number) {
+  const minutes = runBudgetMinutes(rounds), hours = Math.floor(minutes / 60);
+  return hours === 0 ? `${minutes}-minute` : minutes % 60 === 0 ? `${hours}-hour` : `${hours} h ${minutes % 60} min`;
+}
+
 export interface LimitError {
   field: string;
   message: string;

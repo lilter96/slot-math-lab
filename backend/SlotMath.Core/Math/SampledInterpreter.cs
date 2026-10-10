@@ -244,11 +244,8 @@ public static class SampledInterpreter
 
         // D3: strict ascending chunk-index-order merge ⇒ bit-identical result.
         // A finished chunk is folded into the totals as soon as every earlier
-        // chunk has been folded. Chunks are handed out in index order, so at most
-        // one result per worker waits in `pending`, however long the run is.
-        var mergeLock = new Lock();
-        var pending = new Dictionary<int, ChunkResult>();
-        var frontier = 0;
+        // chunk has been folded (see `merge` below), so the memory a run needs
+        // does not depend on its length.
         var total = new StreamingStats(config.HistogramBins, maxWinCapDouble);
         var finalMeasurements = new MeasurementAccumulator[config.Measurements.Count];
         var prefixClosed = false;
@@ -257,9 +254,16 @@ public static class SampledInterpreter
         var finalSessionEvidence = new SessionEvidence();
         var finalLoopEvidence = new LoopTerminationEvidence();
 
-        // Call in ascending chunk order only.
-        void Fold(int c, in ChunkResult result)
+        // Call in ascending chunk order only. A chunk that did not run (cancellation,
+        // or a replay of one round elsewhere) closes the completed prefix.
+        void Fold(int c, ChunkResult? chunk)
         {
+            if (chunk is not { } result)
+            {
+                prefixClosed = true;
+                return;
+            }
+
             if (prefixClosed && result.Done > 0)
             {
                 orderedPrefix = false;
@@ -300,17 +304,17 @@ public static class SampledInterpreter
 
         var compiledSampling = execution.SamplingEngine == "reference" ? null : program as ICompiledSampling<S, T>;
 
-        void RunChunk(int c, ICompiledSampling<S, T>? sampling)
+        ChunkResult? RunChunk(int c, ICompiledSampling<S, T>? sampling)
         {
             if (Volatile.Read(ref cancelFlag) != 0 || config.CancellationToken.IsCancellationRequested)
             {
                 Interlocked.Exchange(ref cancelFlag, 1);
-                return;
+                return null;
             }
 
             var start = (long)c * partitionSize;
             var end = System.Math.Min(start + partitionSize, totalSpins);
-            if (config.ReplayRoundIndex is { } requested && (requested < start || requested >= end)) return;
+            if (config.ReplayRoundIndex is { } requested && (requested < start || requested >= end)) return null;
             if (config.ReplayRoundIndex is { } lastRound) end = lastRound + 1;
             var rng = new SeededRandom(DeriveStreamSeed(config.Seed, c));
             long auditIndex = c;
@@ -533,39 +537,35 @@ public static class SampledInterpreter
             if (rng.AuditSnapshot(auditIndex) is { } audit) auditedStreams[auditIndex] = audit;
             rng.EndAudit();
             Flush();
-            var result = new ChunkResult(stats, measurements?.Total, done, attempts, cancelledRounds, sessions, interruptedSessions, sessionEvidence, loopEvidence);
-            lock (mergeLock)
-            {
-                pending.Add(c, result);
-                while (pending.Remove(frontier, out var next))
-                {
-                    Fold(frontier, next);
-                    frontier++;
-                }
-            }
+            return new ChunkResult(stats, measurements?.Total, done, attempts, cancelledRounds, sessions, interruptedSessions, sessionEvidence, loopEvidence);
         }
 
         // Chunk c always draws from stream c, whichever worker runs it. Workers
-        // take the next index from one counter, which keeps completion close to
-        // index order. A failure in one worker stops the others at their next chunk.
+        // take the next index from one counter. A worker whose chunk is too far
+        // ahead of the first unfolded one waits, so a slow chunk cannot make the
+        // finished ones pile up. A failure in one worker stops the others.
+        var workers = System.Math.Min(config.DegreeOfParallelism, nChunks);
+        var merge = new OrderedChunkFold<ChunkResult>(workers * MergeWindowPerWorker, Fold);
         var nextChunk = -1;
         var faulted = 0;
+        bool Stopped() => Volatile.Read(ref cancelFlag) != 0 || Volatile.Read(ref faulted) != 0 || config.CancellationToken.IsCancellationRequested;
         void RunChunks(ICompiledSampling<S, T>? sampling)
         {
             while (Volatile.Read(ref cancelFlag) == 0 && Volatile.Read(ref faulted) == 0)
             {
                 var c = Interlocked.Increment(ref nextChunk);
-                if (c >= nChunks)
+                if (c >= nChunks || !merge.Admit(c, Stopped))
                 {
                     break;
                 }
 
-                try { RunChunk(c, sampling); }
+                ChunkResult? result;
+                try { result = RunChunk(c, sampling); }
                 catch { Volatile.Write(ref faulted, 1); throw; }
+                merge.Complete(c, result);
             }
         }
 
-        var workers = System.Math.Min(config.DegreeOfParallelism, nChunks);
         if (workers > 1)
         {
             // Every worker leases a private instance of the compiled program and
@@ -588,15 +588,12 @@ public static class SampledInterpreter
             finally { if (sampling is not null) compiledSampling!.Return(sampling); }
         }
 
-        // What still waits lies beyond a chunk that never ran (cancellation, or a
-        // replay of one round): the completed chunks no longer form a prefix.
-        if (pending.Count > 0)
+        // What still waits lies beyond a chunk whose worker stopped before
+        // running it: the completed chunks no longer form a prefix.
+        if (merge.Waiting > 0)
         {
             prefixClosed = true;
-            foreach (var c in pending.Keys.Order())
-            {
-                Fold(c, pending[c]);
-            }
+            merge.FoldRemaining();
         }
 
         var cancelled = Volatile.Read(ref cancelFlag) != 0;
@@ -629,6 +626,9 @@ public static class SampledInterpreter
     ///     Derive a per-chunk seed from the master seed — SplitMix64-style so
     ///     streams are statistically independent yet fully reproducible.
     /// </summary>
+    /// <summary>Chunks a worker may start past the first unfolded one, per worker.</summary>
+    private const int MergeWindowPerWorker = 16;
+
     private readonly record struct ChunkResult(StreamingStats Stats, MeasurementAccumulator[]? Measurements, long Done, long Attempts,
         long Cancelled, long Sessions, long InterruptedSessions, SessionEvidence SessionEvidence, LoopTerminationEvidence LoopEvidence);
 

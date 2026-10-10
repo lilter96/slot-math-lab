@@ -79,7 +79,11 @@ workers, a progress snapshot every 1,000 rounds), a warm process measures
    7.1 → 4.8 ns, weighted draw through the `WeightSet` cache 15.3 → 8.3 ns.
    Output is bit-identical: the table is still built by first-in, first-out
    pairing, because the pairing order decides which outcome a seeded draw
-   returns.
+   returns, and a threshold is still the plain double quotient while the
+   weights fit the double range. Beyond it (totals above about 2^1024, where
+   the previous build produced infinities) the quotient is computed from the
+   leading 64 bits, so a positive weight keeps a positive share as long as a
+   double can represent it.
 6. **Collector mode.** See below.
 
 ### Runtime configuration
@@ -98,8 +102,10 @@ workers, a progress snapshot every 1,000 rounds), a warm process measures
 - **Run limits.** A run takes 1–10,000,000,000 rounds and 1–8 workers. Its
   resource budget is five minutes per started 10,000,000 rounds. Finished
   streams are folded into the totals in stream order as soon as every earlier
-  stream has been folded, so memory does not grow with the length of the run:
-  at most one finished stream per worker waits. At 1,570,000 rounds/second the
+  stream has been folded, so memory does not grow with the length of the run.
+  A worker does not start a stream that is 16 × workers or more ahead of the
+  first unfolded one, so fewer than that many finished streams wait even when
+  one stream is much slower than the rest. At 1,570,000 rounds/second the
   largest run takes about 1 hour 46 minutes. Runs above 10,000,000 rounds
   report progress once per stream or after 250 ms, whichever comes first.
 - **Run length.** A PRNG stream covers 65,536 rounds, and a stream is never split

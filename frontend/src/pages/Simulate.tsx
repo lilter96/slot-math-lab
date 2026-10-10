@@ -1,5 +1,5 @@
 import { SamplePlanning } from '../components/simulate/SamplePlanning';
-import { LIMITS, RUN_WORKERS } from '../lib/limits';
+import { LIMITS, RUN_WORKERS, runBudgetLabel } from '../lib/limits';
 import { defaultExecution, allowsRoundInference } from '../lib/measurements/execution';
 import { ExecutionConfiguration, ExecutionReport } from '../components/simulate/ExecutionConfiguration';
 import { ReferenceWorkbench } from '../components/simulate/ReferenceWorkbench';
@@ -92,7 +92,7 @@ export default function Simulate() {
     <section className="run-controls" aria-label="Simulation configuration"><label>Complete rounds<input aria-label="Simulation spins" type="number" min="1" max={LIMITS.maxRunRounds} step="10000" value={samples} disabled={active} onChange={e => setSamples(Number(e.target.value))} /></label>
       <label>Replay seed<input id="run-seed" type="number" value={seed} disabled={active} onChange={e => setSeed(Number(e.target.value))} /></label>
       <label>Workers<select aria-label="Simulation workers" value={workers} disabled={active} onChange={e => setWorkers(Number(e.target.value))}>{RUN_WORKERS.map(n => <option key={n} value={n}>{n} {n === 1 ? 'worker' : 'workers'}</option>)}</select></label>
-      <div className="run-budget"><strong>Sampled</strong><span>5-minute execution budget<br />Deterministic chunk reduction</span></div>
+      <div className="run-budget"><strong>Sampled</strong><span data-testid="run-budget">{runBudgetLabel(samples)} execution budget<br />Deterministic chunk reduction</span></div>
       <div className="run-actions">{active ? <button className="btn cancel-run" disabled={status === 'cancelling'} onClick={() => void cancelSimulation()}>{status === 'cancelling' ? 'Cancelling…' : s.starting ? 'Cancel launch' : '■ Cancel run'}</button> : <button className="btn primary start-run" disabled={loadingRun} onClick={() => { setQuery({}, { replace: true }); void startSimulation(seed, samples, workers, execution); }}>▶ {s.run ? 'Start new run' : 'Start run'}</button>}<button className="btn" disabled={!s.run || exporting} onClick={() => void download()}>{exporting ? 'Preparing evidence…' : '↓ Export evidence'}</button></div>
     </section>
     {exporting && <p role="status" className="measurement-next-note">{exportState?.message} <button className="btn" onClick={() => { exportRequest.current?.abort(); setExportState(null); }}>Cancel export</button></p>}

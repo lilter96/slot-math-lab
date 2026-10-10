@@ -6,7 +6,8 @@ namespace SlotMath.Core.Random;
 
 /// <summary>
 ///     Deterministic PRNG: xoshiro256** seeded via SplitMix64 (PRD v3.1, D3).
-///     Fully certified for GLI-19 / BMM Testlabs RNG requirements.
+///     The sequence for a seed is pinned by golden vectors in the test suite.
+///     No laboratory certification is claimed here.
 /// </summary>
 public sealed class SeededRandom
 {
@@ -61,7 +62,7 @@ public sealed class SeededRandom
         _s2 = NextSplitMix(ref x);
         _s3 = NextSplitMix(ref x);
 
-        // GLI-19 Integrity Guard: Perturb degenerate all-zero state deterministically.
+        // xoshiro256** never leaves the all-zero state: replace it deterministically.
         if ((_s0 | _s1 | _s2 | _s3) == 0UL)
         {
             _s0 = Gamma;
@@ -132,7 +133,6 @@ public sealed class SeededRandom
 
     /// <summary>
     ///     Returns a uniform double in [0.0, 1.0) using 53-bit mantissa precision.
-    ///     Fully compliant with standard statistical randomness test batteries (Dieharder, TestU01).
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public double NextDouble() => (NextUInt64() >> 11) * DoubleUnit;

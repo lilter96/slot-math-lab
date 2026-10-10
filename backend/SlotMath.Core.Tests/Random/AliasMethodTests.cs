@@ -365,7 +365,10 @@ public sealed class AliasMethodTests
         Gen.Const(BigInteger.One),
         // Far apart magnitudes: remainders that round to just below zero.
         Gen.Int[0, 800].Select(bits => BigInteger.One << bits),
-        Gen.Select(Gen.Int[60, 800], Gen.Long[1, long.MaxValue]).Select((bits, low) => (BigInteger.One << bits) + low));
+        Gen.Select(Gen.Int[60, 800], Gen.Long[1, long.MaxValue]).Select((bits, low) => (BigInteger.One << bits) + low),
+        // Close to the double range: 400 of these, scaled by the outcome count, stay below 2^1024.
+        Gen.Int[801, 1010].Select(bits => BigInteger.One << bits),
+        Gen.Select(Gen.Int[801, 1010], Gen.Long[1, long.MaxValue]).Select((bits, low) => (BigInteger.One << bits) + low));
 
     private static readonly Gen<BigInteger[]> Weights = Gen.OneOf(
         Weight.Array[2, 12],
@@ -422,6 +425,9 @@ public sealed class AliasMethodTests
     [InlineData(1000)]
     [InlineData(1023)]
     [InlineData(1024)]
+    [InlineData(1025)]
+    [InlineData(1100)]
+    [InlineData(5000)]
     public void AliasMethod_NearDoubleRange_KeepsFiniteThresholdsAndExactRatio(int bits)
     {
         // Three outcomes weighted 1:1:2 with a total around 2^bits. Scaling a numerator
@@ -431,6 +437,38 @@ public sealed class AliasMethodTests
 
         Assert.Equal([0.75, 0.75, 1.0], prob);
         Assert.Equal([2, 2, 2], alias);
+    }
+
+    [Theory]
+    [InlineData(961)]
+    [InlineData(1000)]
+    [InlineData(1022)]
+    public void AliasMethod_TinyWeightBesideHugeOne_KeepsThePlainQuotient(int bits)
+    {
+        // Both operands still convert to a finite double: the threshold is the
+        // plain quotient, as it was before the table was rewritten.
+        BigInteger huge = BigInteger.One << bits;
+        var (prob, alias) = AliasMethod.Build(WeightSet.FromNumerators([BigInteger.One, huge])).GetTables();
+
+        Assert.Equal(2.0 / (double)(huge + 1), prob[0]);
+        Assert.True(prob[0] > 0.0);
+        Assert.Equal(1, alias[0]);
+        Assert.Equal(1.0, prob[1]);
+    }
+
+    [Fact]
+    public void AliasMethod_TinyWeightBeyondDoubleRange_StaysPositiveWhileRepresentable()
+    {
+        // 2 / (2^1050 + 1): the total is not a finite double, the share is a subnormal one.
+        var (prob, alias) = AliasMethod.Build(WeightSet.FromNumerators([BigInteger.One, BigInteger.One << 1050])).GetTables();
+
+        Assert.Equal(System.Math.ScaleB(1.0, -1049), prob[0]);
+        Assert.Equal(1, alias[0]);
+        Assert.Equal(1.0, prob[1]);
+
+        // Below the smallest double the share is zero, and nothing is NaN or infinite.
+        var (underflow, _) = AliasMethod.Build(WeightSet.FromNumerators([BigInteger.One, BigInteger.One << 1200])).GetTables();
+        Assert.Equal([0.0, 1.0], underflow);
     }
 
     [Fact]
