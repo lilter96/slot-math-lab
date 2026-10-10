@@ -1,4 +1,4 @@
-import { waitForRunLaunch, test, expect, getWithQuota } from './fixtures';
+import { saveMeasurement, waitForRunLaunch, test, expect, getWithQuota } from './fixtures';
 
 test.beforeEach(async ({ request }) => {
   test.setTimeout(120000);
@@ -18,7 +18,7 @@ test('Authored episode, grouped distribution, reference verdict, WebSocket evide
   await page.getByText('Uncertainty, precision and reference checks', { exact: true }).click(); await page.getByLabel('Independent measurement subjects').check();
   await page.getByRole('button', { name: 'Add reference outcome', exact: true }).click(); await page.getByLabel('Reference outcome 1', { exact: true }).fill('6'); await page.getByLabel('Reference probability 1', { exact: true }).fill('1');
   await page.getByLabel('Reference mean', { exact: true }).fill('6'); await page.getByLabel('Acceptance tolerance', { exact: true }).fill('0.01'); await page.getByLabel('Proven minimum', { exact: true }).fill('6'); await page.getByLabel('Proven maximum', { exact: true }).fill('6');
-  await page.getByRole('button', { name: 'Save measurement', exact: true }).click(); await expect(page.getByRole('dialog')).not.toBeVisible();
+  await saveMeasurement(page);
   await page.getByLabel('Simulation spins').fill('5000'); const launch = waitForRunLaunch(page); await page.getByRole('button', { name: /^▶ Start run$/ }).click(); const created = await (await launch).json();
   await expect(page.locator('.run-status')).toHaveText('completed', { timeout: 70000 }); const card = page.getByRole('article', { name: 'Tracked metric Sticky episode total', exact: true });
   await expect(card.locator('[data-statistic=mean]')).toHaveText('6 coins'); await expect(card).toContainText('Complete feature episodes'); await expect(card.getByRole('img', { name: 'frequency by payout band' })).toBeVisible();
@@ -61,7 +61,7 @@ test('Catalogue recipe becomes a visual Boolean AST and fixed-horizon session ev
   await page.getByLabel('Metric name').fill('Zero payout'); await page.getByLabel('Metric value source').selectOption('visual');
   await expect(page.getByLabel('Metric value node type', { exact: true })).toHaveValue('compare');
   await page.getByLabel('Metric value Left namespace', { exact: true }).selectOption('measurement');
-  await page.getByRole('button', { name: 'Save measurement', exact: true }).click(); await expect(page.getByRole('dialog')).not.toBeVisible();
+  await saveMeasurement(page);
   await page.locator('#execution-configuration > summary').click(); await page.getByLabel('Execution regime').selectOption('sessions');
   await page.getByLabel('Session horizon').fill('10'); await page.getByLabel('Session bankroll').fill('3'); await page.getByLabel('Session feature activation').selectOption({ label: 'Zero payout' });
   await page.getByLabel('Simulation spins').fill('1000');
@@ -87,8 +87,7 @@ test('An authored rule assertion retains exact failure counts and a replayable v
   await page.getByLabel('Metric name').fill('Reveal rule residual'); await page.getByLabel('Metric observation level').selectOption('node');
   await page.getByLabel('Metric graph node').selectOption('end'); await page.getByLabel('Enable advanced measurement').check();
   await page.getByLabel('Measurement source', { exact: true }).selectOption('event'); await page.getByLabel('Metric numeric expression').fill('state.spinWin != 3');
-  await page.getByLabel('Assert exactly zero or false').check(); await page.getByRole('button', { name: 'Save measurement', exact: true }).click();
-  await expect(page.getByRole('dialog')).not.toBeVisible(); await page.getByLabel('Simulation spins').fill('100');
+  await page.getByLabel('Assert exactly zero or false').check(); await saveMeasurement(page); await page.getByLabel('Simulation spins').fill('100');
   const launch = waitForRunLaunch(page);
   await page.getByRole('button', { name: /^▶ Start run$/ }).click(); const created = await (await launch).json();
   await expect(page.locator('.run-status')).toHaveText('completed', { timeout: 70000 });

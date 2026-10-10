@@ -1,4 +1,4 @@
-import { waitForRunLaunch, test, expect, getWithQuota, type Page } from './fixtures';
+import { saveMeasurement, waitForRunLaunch, test, expect, getWithQuota, type Page } from './fixtures';
 import { readFile } from 'node:fs/promises';
 
 async function metric(page: Page, name: string, expression: string, assertion = false) {
@@ -10,7 +10,7 @@ async function metric(page: Page, name: string, expression: string, assertion = 
   } else {
     await page.getByLabel('Metric filter mode').selectOption('expression'); await page.getByLabel('Metric filter expression').fill('state.signal > 0');
   }
-  await page.getByRole('button', { name: 'Save measurement', exact: true }).click(); await expect(page.getByRole('dialog')).not.toBeVisible();
+  await saveMeasurement(page);
 }
 
 test('Native decimal state retains nonzero metrics, exact assertions, charts, exported input and both-engine replay', async ({ page, request }) => {

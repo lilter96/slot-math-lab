@@ -1,4 +1,4 @@
-import { waitForRunLaunch } from './requests.mjs';
+import { waitForRunLaunch, saveMeasurement } from './requests.mjs';
 import { chromium } from '../../frontend/node_modules/playwright/index.mjs';
 import { expect } from '../../frontend/node_modules/@playwright/test/index.mjs';
 import { readFile, writeFile } from 'node:fs/promises';
@@ -27,7 +27,7 @@ async function metric(name, expression, assertion = false) {
   await page.getByLabel('Metric graph node').selectOption('sink'); await page.getByLabel('Metric numeric expression').fill(expression); await page.getByLabel('Metric unit').fill('signal');
   if (assertion) { await page.getByLabel('Enable advanced measurement').check(); await page.getByLabel('Assert exactly zero or false').check(); }
   else { await page.getByLabel('Metric filter mode').selectOption('expression'); await page.getByLabel('Metric filter expression').fill('state.signal > 0'); }
-  await page.getByRole('button', { name: 'Save measurement', exact: true }).click(); await expect(page.getByRole('dialog')).not.toBeVisible();
+  await saveMeasurement(page);
 }
 async function checkSignal() {
   const signal = page.getByRole('article', { name: 'Tracked metric Tiny signal', exact: true });

@@ -1,4 +1,4 @@
-import { waitForRunLaunch, test, expect, getWithQuota } from './fixtures';
+import { saveMeasurement, waitForRunLaunch, test, expect, getWithQuota } from './fixtures';
 
 test('A feature cohort with no matching children retains lifecycle exposure in live and saved UI', async ({ page }) => {
   test.setTimeout(180000);
@@ -14,7 +14,7 @@ test('A feature cohort with no matching children retains lifecycle exposure in l
   await page.getByLabel('Episode entry', { exact: true }).selectOption('fs'); await page.getByLabel('Episode exit', { exact: true }).selectOption('sink');
   await page.getByLabel('Metric filter mode').selectOption('expression'); await page.getByLabel('Metric filter expression').fill('false');
   await page.getByText('Group, pair and award accounting', { exact: true }).click(); await page.getByLabel('Group / cohort key', { exact: true }).fill('"empty"');
-  await page.getByRole('button', { name: 'Save measurement', exact: true }).click(); await expect(page.getByRole('dialog')).not.toBeVisible();
+  await saveMeasurement(page);
   await page.getByLabel('Simulation spins').fill('100');
   let previous: unknown;
   for (const engine of ['auto', 'reference']) {

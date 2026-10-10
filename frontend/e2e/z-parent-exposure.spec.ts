@@ -1,4 +1,4 @@
-import { waitForRunLaunch, test, expect, getWithQuota } from './fixtures';
+import { saveMeasurement, waitForRunLaunch, test, expect, getWithQuota } from './fixtures';
 
 test('Native scoped feature counters distinguish matching children, paid parents and owning episodes', async ({ page }) => {
   test.setTimeout(180000);
@@ -14,7 +14,19 @@ test('Native scoped feature counters distinguish matching children, paid parents
   await page.getByLabel('Episode entry', { exact: true }).selectOption('fs'); await page.getByLabel('Episode exit', { exact: true }).selectOption('sink');
   await page.getByLabel('Metric filter mode').selectOption('expression'); await page.getByLabel('Metric filter expression').fill('state.fsType == "sticky"');
   await page.getByLabel('Paid rounds with matching children', { exact: true }).check(); await page.getByLabel('Feature episodes with matching children', { exact: true }).check();
-  await page.getByRole('button', { name: 'Save measurement', exact: true }).click(); await expect(page.getByRole('dialog')).not.toBeVisible();
+  const attempts: number[] = [];
+  await page.route('**/api/runs/measurements/schema', route => {
+    if (route.request().method() !== 'POST' || !route.request().postDataJSON().measurements?.length) return route.continue();
+    attempts.push(Date.now());
+    return attempts.length === 1
+      ? route.fulfill({ status: 429, headers: { 'Retry-After': '6' }, body: '' }) : route.continue();
+  });
+  const saved = saveMeasurement(page);
+  await expect(page.getByRole('dialog').getByRole('status')).toContainText('retrying the rejected calculation in 6s');
+  await expect(page.getByLabel('Metric name')).toBeDisabled();
+  await saved;
+  expect(attempts.length).toBeGreaterThanOrEqual(2); expect(attempts[1] - attempts[0]).toBeGreaterThanOrEqual(5900);
+  await page.unroute('**/api/runs/measurements/schema');
   await page.getByLabel('Simulation spins').fill('100');
   let prior: unknown;
   for (const engine of ['auto', 'reference']) {

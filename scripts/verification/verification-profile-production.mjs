@@ -1,4 +1,4 @@
-import { waitForRunLaunch } from './requests.mjs';
+import { waitForRunLaunch, saveMeasurement } from './requests.mjs';
 import { chromium } from '../../frontend/node_modules/playwright/index.mjs';
 import { expect } from '../../frontend/node_modules/@playwright/test/index.mjs';
 import { readFile, writeFile } from 'node:fs/promises';
@@ -25,7 +25,7 @@ async function metric(name, field, reference, tolerance) {
   if (field) { await page.getByLabel('Metric observation level').selectOption('node'); await page.getByLabel('Metric graph node').selectOption('sink'); await page.getByLabel('Metric numeric expression').fill('state.' + field); }
   await page.getByLabel('Enable advanced measurement').check(); await page.getByText('Uncertainty, precision and reference checks', { exact: true }).click();
   await page.getByLabel('Independent measurement subjects').check(); await page.getByLabel('Reference mean', { exact: true }).fill(String(reference)); await page.getByLabel('Acceptance tolerance').fill(String(tolerance));
-  await page.getByRole('button', { name: 'Save measurement', exact: true }).click(); await expect(page.getByRole('dialog')).not.toBeVisible();
+  await saveMeasurement(page);
 }
 async function profile(name, names, minimum) {
   await page.getByRole('button', { name: 'Configure verification profile', exact: true }).click(); await page.getByLabel('Verification profile name').fill(name);
@@ -66,7 +66,7 @@ try {
   await page.locator('.measurement-plan li').filter({ hasText: 'Mean X' }).getByRole('button', { name: 'Edit', exact: true }).click();
   await page.getByText('Uncertainty, precision and reference checks', { exact: true }).click(); await page.getByLabel('Reference statistic', { exact: true }).selectOption('probability');
   await page.getByLabel('Proven minimum', { exact: true }).fill('0'); await page.getByLabel('Proven maximum', { exact: true }).fill('2'); await page.getByLabel('Acceptance tolerance').fill('.1');
-  await page.getByRole('button', { name: 'Save measurement', exact: true }).click(); await expect(page.getByRole('dialog')).not.toBeVisible();
+  await saveMeasurement(page);
   const probabilityRun = await launch(), probability = await evaluate(probabilityRun), probabilityRow = probability.output.report.criteria[0];
   if (probability.output.report.status !== 'discrepancy' || probabilityRow.interval.method !== 'Clopper–Pearson, two-sided' || probabilityRow.evidence.observed > .6 || probabilityRun.progress.measurements[0].mean < .9) throw new Error('Numeric mean was incorrectly used as nonzero-event probability.');
   Object.assign(report, { probabilityRunId: probabilityRun.id, probabilityStatus: probability.output.report.status, numericMean: probabilityRun.progress.measurements[0].mean, nonzeroProbability: probabilityRow.evidence.observed, probabilityInterval: probabilityRow.interval });

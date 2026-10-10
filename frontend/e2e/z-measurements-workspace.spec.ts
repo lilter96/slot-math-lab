@@ -1,5 +1,5 @@
 import { scalarMeasurements } from '../src/lib/measurements/trends';
-import { waitForRunLaunch, test, expect, type Page, cancelOwnedRun, getWithQuota } from './fixtures';
+import { saveMeasurement, waitForRunLaunch, test, expect, type Page, cancelOwnedRun, getWithQuota } from './fixtures';
 import { readFile } from 'node:fs/promises';
 test.beforeEach(async ({ request }) => {
   test.setTimeout(180000);
@@ -19,8 +19,7 @@ async function sticky(page: Page, name = 'Sticky FS payout') {
   await page.getByLabel('Metric observation level').selectOption('node'); await page.getByLabel('Metric graph node').selectOption('end');
   await page.getByLabel('Metric numeric expression').fill('state.spinWin'); await page.getByLabel('Metric unit').fill('coins');
   await page.getByLabel('Metric filter mode').selectOption('expression'); await page.getByLabel('Metric filter expression').fill('state.fsType == "sticky"');
-  await page.getByRole('button', { name: 'Save measurement', exact: true }).click();
-  await expect(page.getByRole('dialog')).not.toBeVisible();
+  await saveMeasurement(page);
 }
 test('UI configures a scoped FS metric; real engine, durable export, display controls and pinned replay agree', async ({ page }) => {
   await prepare(page); await sticky(page);
@@ -62,10 +61,12 @@ test('UI configures a scoped FS metric; real engine, durable export, display con
 test('Editor rejects unknown fields through compiler, and valid empty scopes remain undefined', async ({ page }) => {
   await prepare(page); await page.getByRole('button', { name: '＋ Track metric', exact: true }).click();
   await page.getByLabel('Metric name').fill('Invalid scope'); await page.getByLabel('Metric filter mode').selectOption('expression');
-  await page.getByLabel('Metric filter expression').fill('state.unknownType == "sticky"'); await page.getByRole('button', { name: 'Save measurement', exact: true }).click();
+  await page.getByLabel('Metric filter expression').fill('state.unknownType == "sticky"');
+  const rejected = page.waitForResponse(response => response.url().endsWith('/api/runs/measurements/schema') && response.status() === 400, { timeout: 70000 });
+  await page.getByRole('button', { name: 'Save measurement', exact: true }).click(); await rejected;
   await expect(page.getByRole('dialog').getByRole('alert')).toContainText('Unknown field');
   await page.getByLabel('Metric name').fill('No matching rounds'); await page.getByLabel('Metric filter expression').fill('false');
-  await page.getByRole('button', { name: 'Save measurement', exact: true }).click(); await expect(page.getByRole('dialog')).not.toBeVisible();
+  await saveMeasurement(page);
   await page.getByLabel('Simulation spins').fill('16'); await page.getByRole('button', { name: /^▶ Start run$/ }).click();
   await expect(page.locator('.run-status')).toHaveText('completed', { timeout: 70000 });
   const metric = page.getByRole('article', { name: 'Tracked metric No matching rounds', exact: true }); await expect(metric.locator('[data-statistic=mean]')).toHaveText('—');
@@ -77,7 +78,7 @@ test('Metric editor and customizable workspace fit mobile, preserve draft across
   await page.getByRole('button', { name: '＋ Track metric', exact: true }).click(); await page.getByLabel('Metric name').fill('Sticky free spin payout');
   await page.getByLabel('Metric observation level').selectOption('node'); await page.getByLabel('Find measurement node').fill('free-spin/snapshot');
   await page.getByLabel('Metric graph node').selectOption('free-spin/snapshot-winHistory'); await page.getByLabel('Metric numeric expression').fill('state.spinCoins / 20');
-  await page.getByRole('button', { name: 'Save measurement', exact: true }).click(); await expect(page.getByRole('dialog')).not.toBeVisible();
+  await saveMeasurement(page);
   await expect(page.getByRole('article', { name: 'Tracked metric Sticky free spin payout' })).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   await page.reload(); await expect(page.getByRole('article', { name: 'Tracked metric Sticky free spin payout' })).toBeVisible();
@@ -94,8 +95,7 @@ test('Scoped measurements use real sockets, survive HTTP recovery and reload, an
   await page.goto('/build?project=dog-house'); await page.getByRole('tab', { name: 'Simulate', exact: true }).click();
   await page.getByRole('button', { name: '＋ Track metric', exact: true }).click(); await page.getByLabel('Metric name').fill('Sticky FS live');
   await page.getByLabel('Metric observation level').selectOption('node'); await page.getByLabel('Metric graph node').selectOption('free-spin/snapshot-winHistory');
-  await page.getByLabel('Metric numeric expression').fill('state.spinCoins / 20'); await page.getByRole('button', { name: 'Save measurement', exact: true }).click();
-  await expect(page.getByRole('dialog')).not.toBeVisible(); await page.route('**/hubs/runs/negotiate**', route => route.abort());
+  await page.getByLabel('Metric numeric expression').fill('state.spinCoins / 20'); await saveMeasurement(page); await page.route('**/hubs/runs/negotiate**', route => route.abort());
   await page.getByLabel('Simulation spins').fill('10000000'); const launched = waitForRunLaunch(page);
   await page.getByRole('button', { name: /^▶ Start run$/ }).click(); const run = await (await launched).json();
   try {

@@ -1,4 +1,4 @@
-import { waitForRunLaunch } from './requests.mjs';
+import { waitForRunLaunch, saveMeasurement } from './requests.mjs';
 import { chromium } from '../../frontend/node_modules/playwright/index.mjs';
 import { expect } from '../../frontend/node_modules/@playwright/test/index.mjs';
 import { readFile, writeFile } from 'node:fs/promises';
@@ -29,7 +29,7 @@ async function metric(name, nodeId, value, unit, filter) {
   if (nodeId) { await page.getByLabel('Metric observation level').selectOption('node'); await page.getByLabel('Metric graph node').selectOption(nodeId); await page.getByLabel('Metric numeric expression').fill(value); }
   await page.getByLabel('Metric unit').fill(unit);
   if (filter) { await page.getByLabel('Metric filter mode').selectOption('expression'); await page.getByLabel('Metric filter expression').fill(filter); }
-  await page.getByRole('button', { name: 'Save measurement', exact: true }).click(); await expect(page.getByRole('dialog')).not.toBeVisible();
+  await saveMeasurement(page);
 }
 try {
   report.anonymousMetricsBlocked = (await context.request.post(base + '/api/runs/measurements/schema', { data: { config: {} } })).status() === 401;

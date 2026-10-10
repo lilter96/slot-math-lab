@@ -1,4 +1,4 @@
-import { waitForRunLaunch, test, expect, getWithQuota } from './fixtures';
+import { saveMeasurement, waitForRunLaunch, test, expect, getWithQuota } from './fixtures';
 
 test('Native charts select counts and higher moments, retain them after reload and keep empty means undefined', async ({ page }) => {
   test.setTimeout(180000);
@@ -10,11 +10,11 @@ test('Native charts select counts and higher moments, retain them after reload a
   await page.getByLabel('Metric numeric expression').fill('state.spinWin'); await page.getByLabel('Enable advanced measurement').check();
   await page.getByLabel('Metric filter mode').selectOption('expression'); await page.getByLabel('Metric filter expression').fill('state.fsType == "sticky"');
   await page.getByLabel('Metric chart statistic', { exact: true }).selectOption('max');
-  await page.getByRole('button', { name: 'Save measurement', exact: true }).click(); await expect(page.getByRole('dialog')).not.toBeVisible();
+  await saveMeasurement(page);
   await page.getByRole('button', { name: '＋ Track metric', exact: true }).click();
   await page.getByLabel('Metric name').fill('Empty scope trend'); await page.getByLabel('Metric filter mode').selectOption('expression'); await page.getByLabel('Metric filter expression').fill('false');
   await page.getByLabel('Metric chart statistic', { exact: true }).selectOption('count');
-  await page.getByRole('button', { name: 'Save measurement', exact: true }).click(); await expect(page.getByRole('dialog')).not.toBeVisible();
+  await saveMeasurement(page);
   await page.getByLabel('Simulation spins').fill('5000');
   const launch = waitForRunLaunch(page);
   await page.getByRole('button', { name: /^▶ Start run$/ }).click(); const run = await (await launch).json();

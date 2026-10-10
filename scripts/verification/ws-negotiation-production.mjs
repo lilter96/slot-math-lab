@@ -1,4 +1,4 @@
-import { waitForRunLaunch } from './requests.mjs';
+import { waitForRunLaunch, saveMeasurement } from './requests.mjs';
 import { chromium } from '../../frontend/node_modules/playwright/index.mjs';
 import { expect } from '../../frontend/node_modules/@playwright/test/index.mjs';
 import { readFile, writeFile } from 'node:fs/promises';
@@ -7,11 +7,14 @@ import { fileURLToPath } from 'node:url';
 
 const root = fileURLToPath(new URL('../..', import.meta.url)), base = process.env.REALTIME_BASE_URL;
 if (!base) throw new Error('Set REALTIME_BASE_URL to the authenticated deployment.');
+const validationRetrySeconds = Number(process.env.REALTIME_VALIDATION_RETRY_SECONDS ?? '0');
+if (!Number.isInteger(validationRetrySeconds) || validationRetrySeconds < 0 || validationRetrySeconds > 60)
+  throw new Error('REALTIME_VALIDATION_RETRY_SECONDS must be an integer from 0 to 60.');
 const browser = await chromium.launch({ executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE });
 const context = await browser.newContext({ ignoreHTTPSErrors: true, viewport: { width: 1440, height: 1050 } });
 const page = await context.newPage(), sockets = [], frames = [], errors = [], owned = [];
 const report = { checkedAt: new Date().toISOString(), endpoint: base,
-  faultScope: 'Browser-injected negotiation responses; established WebSockets and authoritative run endpoints use the authenticated production API.' };
+  faultScope: 'Browser-injected negotiation and optional validation quota responses; accepted validation, established WebSockets and authoritative run endpoints use the authenticated production API.' };
 page.on('pageerror', error => errors.push(error.message));
 await page.routeWebSocket('**/hubs/runs?*', socket => {
   sockets.push(socket); const server = socket.connectToServer();
@@ -67,8 +70,24 @@ try {
   await page.getByLabel('Metric observation level').selectOption('node');
   await page.getByLabel('Metric graph node').selectOption('free-spin/snapshot-winHistory');
   await page.getByLabel('Metric numeric expression').fill('state.spinCoins / 20');
-  await page.getByRole('button', { name: 'Save measurement', exact: true }).click();
-  await expect(page.getByRole('dialog')).not.toBeVisible();
+  const validationAttempts = [];
+  if (validationRetrySeconds) await page.route('**/api/runs/measurements/schema', route => {
+    if (route.request().method() !== 'POST' || !route.request().postDataJSON().measurements?.length) return route.continue();
+    validationAttempts.push(Date.now());
+    return validationAttempts.length === 1 ? route.fulfill({ status: 429,
+      headers: { 'Retry-After': String(validationRetrySeconds) }, body: '' }) : route.continue();
+  });
+  await Promise.all([saveMeasurement(page), ...(validationRetrySeconds ? [(async () => {
+    await expect(page.getByRole('dialog').getByRole('status')).toContainText(`retrying the rejected calculation in ${validationRetrySeconds}s`);
+    await expect(page.getByLabel('Metric name')).toBeDisabled();
+  })()] : [])]);
+  if (validationRetrySeconds) {
+    expect(validationAttempts.length).toBeGreaterThanOrEqual(2);
+    expect(validationAttempts[1] - validationAttempts[0]).toBeGreaterThanOrEqual(validationRetrySeconds * 1000 - 100);
+    await page.unroute('**/api/runs/measurements/schema');
+  }
+  report.validation = { accepted: true, injectedRetryAfterSeconds: validationRetrySeconds,
+    retryDelayMs: validationAttempts.length > 1 ? validationAttempts[1] - validationAttempts[0] : null };
   await page.getByLabel('Simulation spins').fill('10000000');
   const accepted = waitForRunLaunch(page);
   await page.getByRole('button', { name: /start run/i }).click();
@@ -137,7 +156,7 @@ try {
 finally {
   await page.goto('about:blank').catch(() => {});
   for (const id of owned) await cancel(id);
-  await writeFile(root + '/docs/verification/ws-negotiation-production.json', JSON.stringify(report, null, 2) + '\n');
+  await writeFile(root + '/docs/verification/' + (process.env.REALTIME_REPORT_FILE ?? 'ws-negotiation-production.json'), JSON.stringify(report, null, 2) + '\n');
   await browser.close();
 }
 console.log(JSON.stringify({ success: report.success, run: report.run.id, quotas: report.quotas,

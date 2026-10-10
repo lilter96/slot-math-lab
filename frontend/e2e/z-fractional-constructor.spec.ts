@@ -1,4 +1,4 @@
-import { waitForRunLaunch, test, expect, getWithQuota } from './fixtures';
+import { saveMeasurement, waitForRunLaunch, test, expect, getWithQuota } from './fixtures';
 
 test('Fractional constructor arithmetic survives the UI, both samplers, exact law and saved evidence', async ({ page }) => {
   test.setTimeout(180000);
@@ -15,8 +15,7 @@ test('Fractional constructor arithmetic survives the UI, both samplers, exact la
   await page.getByLabel('Metric value source').selectOption('expression');
   await page.getByLabel('Metric numeric expression').fill('abs(state.fractions[0])');
   await page.getByLabel('Enable advanced measurement').check();
-  await page.getByRole('button', { name: 'Save measurement', exact: true }).click();
-  await expect(page.getByRole('dialog')).not.toBeVisible();
+  await saveMeasurement(page);
   await page.getByLabel('Simulation spins').fill('100');
   let previous: unknown;
   for (const engine of ['auto', 'reference']) {

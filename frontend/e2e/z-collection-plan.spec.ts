@@ -1,4 +1,4 @@
-import { waitForRunLaunch, test, expect, getWithQuota } from './fixtures';
+import { saveMeasurement, waitForRunLaunch, test, expect, getWithQuota } from './fixtures';
 
 test('Saving validates shared collection storage and an adjusted complete plan runs', async ({ page }) => {
   test.setTimeout(180000);
@@ -21,7 +21,7 @@ test('Saving validates shared collection storage and an adjusted complete plan r
       // Four together exceed 32,768 cells; one constant cohort for D fits.
       await page.getByLabel('Maximum groups', { exact: true }).fill('1');
     }
-    await page.getByRole('button', { name: 'Save measurement', exact: true }).click(); await expect(page.getByRole('dialog')).not.toBeVisible();
+    await saveMeasurement(page);
   }
   await expect(page.locator('.measurement-plan > summary')).toContainText('4 / 32 metrics');
   await page.getByLabel('Simulation spins').fill('100'); const launch = waitForRunLaunch(page);

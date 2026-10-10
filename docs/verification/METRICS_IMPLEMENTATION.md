@@ -168,6 +168,14 @@ Authenticated production verification used the real API, TLS ingress, browser co
 
 Catalogue readiness remains **95 ready / 51 authored-contract prerequisites / 13 partial workflows**. This transport phase does not certify those remaining mathematical workflows.
 
+## Validation readiness and retained retry diagnostics
+
+Transport commit `7b91b48fef7e82bb8bab1dd78edee1203faee49a` passed [remote CI 38028897611](https://github.com/lilter96/slot-math-lab/actions/runs/38028897611): **1,033 Core / 100 API / 74 frontend unit tests**, Docker images and smoke verification. The browser summary records **69 first-pass successes / 1 retry-assisted pass**. The parent-exposure fixture demanded dialog closure in five seconds after submitting asynchronous whole-plan validation; the retry passed in 1.1 minutes. Its first-failure attachments were not retained because the workflow uploaded browser diagnostics only when the entire job failed.
+
+Successful metric-save fixtures now wait for accepted whole-plan validation through the existing quota window, while surfacing compiler/schema rejection immediately. This readiness wait is shared across native measurement scenarios and authenticated production scripts; subsequent paint, accounting and mathematical assertions remain unchanged. The parent-exposure workflow deliberately rejects the first real validation request with an empty-body **six-second Retry-After**, checks that fields remain frozen, verifies no early resubmission, then checks both samplers, exact enumeration and saved evidence. The unknown-field negative fixture waits for its actual compiler rejection before checking the visible error. CI now retains HTML reports, error contexts, traces and screenshots on successful/retried runs as well as failed runs.
+
+All **12 affected native workflows passed** in **2.1 minutes** (`/tmp/measurement-save-readiness-native.log`), covering explicit delayed validation plus the legal server quota window, negative compiler rejection, in-flight dismissal, whole-plan budgets, scoped replay, durable parent evidence and pinned profiles. Lint and verification-script syntax checks passed. The authenticated deployment regression also passed with a deliberately rejected six-second save, **6,060 ms** observed validation retry, both negotiation retry formats, reauthentication into the same run and **29 real measurement frames**. It retained **1,051,977 paid rounds** with consistent export/reload and no browser errors. The original transport report remains unchanged; see the separately retained [validation-save-production.json](validation-save-production.json). The frontend asset and Core/API producer artifacts are unchanged in this fixture/diagnostics phase.
+
 ## Required remaining work
 
 1. Close the explicitly recorded partial workflows in the definition-by-definition review, with independent scenario fixtures and correct game-author prerequisites.

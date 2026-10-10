@@ -11,6 +11,23 @@ export function waitForRunLaunch(page: Page): Promise<BrowserResponse> {
     .then(response => { expect(response.status(), 'Run launch was accepted').toBe(202); return response; });
 }
 
+/** A successful save follows asynchronous whole-plan validation. Preserve the
+ * production quota window, but surface a rejected plan immediately. */
+export async function saveMeasurement(page: Page): Promise<void> {
+  test.setTimeout(Math.max(test.info().timeout, 180000));
+  const dialog = page.getByRole('dialog');
+  await dialog.getByRole('button', { name: 'Save measurement', exact: true }).click();
+  let rejected = '';
+  await expect.poll(async () => {
+    if (!await dialog.isVisible()) return true;
+    const error = dialog.getByRole('alert').first();
+    if (await error.isVisible()) { rejected = await error.innerText(); return true; }
+    return false;
+  }, { timeout: 70000, message: 'Waiting for whole-plan validation before saving the measurement' }).toBe(true);
+  if (rejected) throw new Error(`Measurement was rejected: ${rejected}`);
+  await expect(dialog).not.toBeVisible();
+}
+
 /** Test-side authoritative reads follow the same explicit-rejection contract as
  * the UI. An empty 429 body is never mistaken for malformed run JSON. */
 export async function getWithQuota(request: APIRequestContext, path: string): Promise<APIResponse> {

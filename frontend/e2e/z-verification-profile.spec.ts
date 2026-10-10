@@ -1,4 +1,4 @@
-import { waitForRunLaunch, test, expect, getWithQuota } from './fixtures';
+import { saveMeasurement, waitForRunLaunch, test, expect, getWithQuota } from './fixtures';
 import type { Page } from '@playwright/test';
 
 async function metric(page: Page, id: string) {
@@ -7,7 +7,7 @@ async function metric(page: Page, id: string) {
   await page.getByLabel('Metric numeric expression').fill(`state.${id}`); await page.getByLabel('Enable advanced measurement').check();
   await page.getByText('Uncertainty, precision and reference checks', { exact: true }).click();
   await page.getByLabel('Independent measurement subjects').check(); await page.getByLabel('Reference mean', { exact: true }).fill('1'); await page.getByLabel('Acceptance tolerance').fill('.2');
-  await page.getByRole('button', { name: 'Save measurement', exact: true }).click(); await expect(page.getByRole('dialog')).not.toBeVisible();
+  await saveMeasurement(page);
 }
 async function declare(page: Page) {
   await page.locator('#metric-catalogue > summary').click(); await page.getByLabel('Search metric catalogue').fill('inference.sufficiency');
@@ -70,7 +70,7 @@ test('Numeric nonzero-event probability cannot pass a bounded numeric-mean refer
   await page.goto('/build'); await page.getByLabel('Import project file').setInputFiles('e2e/fixtures/component-accounting-model.json'); await page.getByRole('tab', { name: 'Simulate', exact: true }).click(); await metric(page, 'x');
   await page.locator('.measurement-plan > summary').click(); await page.locator('.measurement-plan').getByRole('button', { name: 'Edit', exact: true }).click();
   await page.getByText('Uncertainty, precision and reference checks', { exact: true }).click(); await page.getByLabel('Reference statistic', { exact: true }).selectOption('probability'); await page.getByLabel('Proven minimum', { exact: true }).fill('0'); await page.getByLabel('Proven maximum', { exact: true }).fill('2');
-  await page.getByRole('button', { name: 'Save measurement', exact: true }).click(); await expect(page.getByRole('dialog')).not.toBeVisible();
+  await saveMeasurement(page);
   await page.getByRole('button', { name: 'Configure verification profile', exact: true }).click(); await page.getByLabel('Required check 1', { exact: true }).selectOption('mean-equivalence');
   await page.getByRole('button', { name: 'Save verification profile', exact: true }).click(); await expect(page.getByRole('dialog')).not.toBeVisible();
   await page.getByLabel('Simulation spins').fill('2000'); const launch = waitForRunLaunch(page);

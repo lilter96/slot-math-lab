@@ -1,0 +1,105 @@
+{
+  "checkedAt": "2026-10-10T06:14:09.808Z",
+  "endpoint": "https://localhost:8543",
+  "faultScope": "Browser-injected negotiation and optional validation quota responses; accepted validation, established WebSockets and authoritative run endpoints use the authenticated production API.",
+  "frontend": {
+    "asset": "/assets/index-cjEJuZ21.js",
+    "sha256": "45357199c737d0721c0b375c25c22acd8f5bba6a24d756aa385980c848025180"
+  },
+  "validation": {
+    "accepted": true,
+    "injectedRetryAfterSeconds": 6,
+    "retryDelayMs": 6060
+  },
+  "run": {
+    "id": "8e9c897715cd45d3ae7913afede8dc31",
+    "seed": 42,
+    "configHash": "2748e5232e4ca76474c15abb96cf7d9944d65d3e55423fa04b813f218e00e48b",
+    "measurementHash": "ffa0bd4e81538a4f9cd1bfdacae0f815bb25c92ee1acca2a69fccd9e1c8622fa",
+    "runtimeProvenance": {
+      "measurementContract": "measurements-v1",
+      "numericalMethods": "central-moments-pebay-v1;bins-v1;clopper-pearson-v1;hoeffding-spending-v1;pearson-gamma-v1;session-accounting-v2-decimal-roundtrip;categorical-joint-v1;discrete-null-v1;finite-stationary-v1;witness-prefix-v1;loop-completion-v1;paid-parent-cohorts-v1;paid-turnover-v1;exact-assertion-v1;enumerated-joint-v2;finite-law-comparison-rational-v1;typed-operators-v1;rational-functions-v1;strict-collections-v1;typed-array-index-v1;cohort-lifecycle-v1;empty-tail-population-v1;matching-parent-exposure-v1;numeric-state-input-v1",
+      "framework": ".NET 10.0.12",
+      "coreBinarySha256": "d28a14f818ad2b4c84101107990231097a50445e17ccd594fe75c18c5cfea400",
+      "apiBinarySha256": "06686b618e17ac03d98fc5c5b5f5fb74580a3dc872419a251d6054ffffad2e3d"
+    }
+  },
+  "quotas": [
+    {
+      "format": "seconds",
+      "retryDelayMs": 6007,
+      "noEarlyAttempt": true,
+      "manualWakePreservedDeadline": true,
+      "realFramesResumed": true
+    },
+    {
+      "format": "http-date",
+      "retryDelayMs": 7449,
+      "noEarlyAttempt": true,
+      "manualWakePreservedDeadline": true,
+      "realFramesResumed": true
+    }
+  ],
+  "authentication": {
+    "negotiationOnlyRejection": true,
+    "retriesPaused": true,
+    "signInRestoredSameRun": true
+  },
+  "final": {
+    "paidRounds": 1051977,
+    "sequence": 1064,
+    "streamEpoch": "e72ecc4a809d49508613e9ac08f47e55",
+    "measurement": {
+      "id": "b7735fdb-2484-4627-b8c4-eba4c477bca8",
+      "observations": 115806,
+      "count": 115806,
+      "excluded": 0,
+      "errors": 0,
+      "min": 0,
+      "max": 1328.5,
+      "mean": 3.7158895048615785,
+      "sum": 430322.29999999976,
+      "stdDev": 20.712400967386436,
+      "firstError": null,
+      "analysis": null,
+      "witnesses": [
+        {
+          "roundIndex": 79,
+          "observationOrdinal": 1,
+          "nodeId": "free-spin/snapshot-winHistory",
+          "kind": "first",
+          "value": 0,
+          "pair": null,
+          "group": null,
+          "detail": null
+        },
+        {
+          "roundIndex": 5408181,
+          "observationOrdinal": 12,
+          "nodeId": "free-spin/snapshot-winHistory",
+          "kind": "maximum",
+          "value": 1328.5,
+          "pair": null,
+          "group": null,
+          "detail": null
+        },
+        {
+          "roundIndex": 79,
+          "observationOrdinal": 1,
+          "nodeId": "free-spin/snapshot-winHistory",
+          "kind": "minimum",
+          "value": 0,
+          "pair": null,
+          "group": null,
+          "detail": null
+        }
+      ]
+    },
+    "archiveVerified": true,
+    "exportVerified": true,
+    "reloadVerified": true
+  },
+  "realMeasurementFrames": 29,
+  "browserErrors": [],
+  "success": true
+}

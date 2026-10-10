@@ -1,4 +1,4 @@
-import { waitForRunLaunch } from './requests.mjs';
+import { waitForRunLaunch, saveMeasurement } from './requests.mjs';
 import { chromium } from '../../frontend/node_modules/playwright/index.mjs';
 import { expect } from '../../frontend/node_modules/@playwright/test/index.mjs';
 import { readFile, writeFile } from 'node:fs/promises';
@@ -40,7 +40,7 @@ async function metric(name, { node, expression, source, subject, group, filter, 
   if (filter) { await page.getByLabel('Metric filter mode').selectOption('expression'); await page.getByLabel('Metric filter expression').fill(filter); }
   if (group) { await page.getByText('Group, pair and award accounting', { exact: true }).click(); await page.getByLabel('Group / cohort key', { exact: true }).fill(group); if (groupLimit) await page.getByLabel('Maximum groups', { exact: true }).fill(String(groupLimit)); }
   if (independent) { await page.getByText('Uncertainty, precision and reference checks', { exact: true }).click(); await page.getByLabel('Independent measurement subjects').check(); }
-  await page.getByRole('button', { name: 'Save measurement', exact: true }).click(); await expect(page.getByRole('dialog')).not.toBeVisible();
+  await saveMeasurement(page);
 }
 async function finished(id) {
   await expect.poll(async () => (await get('/api/runs/' + id)).status, { timeout: 120000, intervals: [1000, 2000] }).toBe('completed');
