@@ -1,0 +1,52 @@
+{
+  "schemaVersion": "1.0.0",
+  "name": "Independent strict expression oracle",
+  "initialState": {
+    "values": [
+      0.5,
+      0.25
+    ],
+    "text": "H",
+    "payout": 1
+  },
+  "nodes": [
+    {
+      "nodeType": "draw",
+      "id": "draw",
+      "drawWeights": [
+        {
+          "outcomeId": "fixed",
+          "value": 0,
+          "weight": 1
+        }
+      ],
+      "outputs": {
+        "out": {
+          "name": "out",
+          "type": "Wins"
+        }
+      }
+    },
+    {
+      "nodeType": "metricsSink",
+      "id": "sink",
+      "winCap": 10,
+      "winStateKey": "payout",
+      "inputs": {
+        "in": {
+          "name": "in",
+          "type": "Wins"
+        }
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "e",
+      "sourceNodeId": "draw",
+      "sourcePort": "out",
+      "targetNodeId": "sink",
+      "targetPort": "in"
+    }
+  ]
+}

@@ -1,4 +1,4 @@
-import { waitForRunLaunch } from './requests.mjs';
+import { saveValidatedDialog, waitForRunLaunch } from './requests.mjs';
 import { chromium } from '../../frontend/node_modules/playwright/index.mjs';
 import { expect } from '../../frontend/node_modules/@playwright/test/index.mjs';
 import { readFile, writeFile } from 'node:fs/promises';
@@ -47,7 +47,7 @@ try {
   await page.getByLabel('Reconciliation name').fill('Three components'); await page.getByLabel('Accounting observation point').selectOption('sink'); await page.getByLabel('Accounting unit').fill('coins'); await page.getByLabel('Accounting external cost').fill('2'); await page.getByLabel('Accounting total value').selectOption('state:total');
   for (const [i, name] of ['x', 'y', 'z'].entries()) { if (i === 2) await page.getByRole('button', { name: 'Add component', exact: true }).click(); await page.getByLabel(`Component ${i + 1} name`).fill(name.toUpperCase()); await page.getByLabel(`Component ${i + 1} value`).selectOption('state:' + name); }
   await page.getByLabel('Accounting cohorts enabled').check(); await page.getByLabel('Accounting cohort node type').selectOption('fieldAccess'); await page.getByLabel('Accounting cohort state path').fill('cohort');
-  await page.getByRole('button', { name: 'Save accounting plan', exact: true }).click(); await expect(page.getByRole('dialog')).not.toBeVisible();
+  await saveValidatedDialog(page, 'Save accounting plan');
   const run = await launch(), artifact = await reconcile(run, 'all'), r = artifact.output.report;
   const variance = run.progress.measurements[0].analysis.moments.sampleVariance;
   if (Math.abs(r.componentVarianceSum - 3 * variance) > 1e-9 || Math.abs(r.twiceCovarianceSum + 2 * variance) > 1e-9 || Math.abs(r.reconstructedVariance - variance) > 1e-9 || r.covariances.length !== 3) throw new Error('Three-component covariance oracle failed.');
@@ -69,7 +69,7 @@ try {
   await page.getByLabel('Reconciliation name').fill('Dog House payout cap'); await page.getByLabel('Component 1 name').fill('Raw payout'); await page.getByLabel('Component 1 value').selectOption('measurement:rawPayout');
   await page.getByLabel('Component 2 name').fill('Negative cap deduction'); await page.getByLabel('Component 2 value').selectOption('visual'); await page.getByLabel('Component 2 node type', { exact: true }).selectOption('binary'); await page.getByLabel('Component 2 operator', { exact: true }).selectOption('Sub');
   await page.getByLabel('Component 2 Right node type', { exact: true }).selectOption('fieldAccess'); await page.getByLabel('Component 2 Right namespace', { exact: true }).selectOption('measurement'); await page.getByLabel('Component 2 Right state path', { exact: true }).fill('capDeduction');
-  await page.getByRole('button', { name: 'Save accounting plan', exact: true }).click(); await expect(page.getByRole('dialog')).not.toBeVisible();
+  await saveValidatedDialog(page, 'Save accounting plan');
   const dog = await launch(), cap = await reconcile(dog);
   await page.goto(base + `/results?run=${dog.id}`); await page.getByRole('button', { name: 'Calculate reference', exact: true }).click(); await expect(page.locator('.results-reference-value')).toHaveText('98.000%', { timeout: 90000 });
   const dogReference = await launchFromSaved(dog);

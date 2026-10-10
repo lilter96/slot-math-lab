@@ -1,4 +1,4 @@
-import { waitForRunLaunch, test, expect, getWithQuota } from './fixtures';
+import { saveValidatedDialog, waitForRunLaunch, test, expect, getWithQuota } from './fixtures';
 
 test('A native three-component plan collects all covariances and retains accounting across both engines and an empty browser', async ({ page }) => {
   test.setTimeout(240000);
@@ -11,7 +11,7 @@ test('A native three-component plan collects all covariances and retains account
   await page.getByLabel('Component 2 name').fill('Y'); await page.getByLabel('Component 2 value').selectOption('state:y');
   await page.getByRole('button', { name: 'Add component', exact: true }).click(); await page.getByLabel('Component 3 name').fill('Z'); await page.getByLabel('Component 3 value').selectOption('state:z');
   await page.getByLabel('Accounting cohorts enabled').check(); await page.getByLabel('Accounting cohort node type').selectOption('fieldAccess'); await page.getByLabel('Accounting cohort state path').fill('cohort');
-  await page.getByRole('button', { name: 'Save accounting plan', exact: true }).click(); await expect(page.getByRole('dialog')).not.toBeVisible();
+  await saveValidatedDialog(page, 'Save accounting plan');
   await expect(page.locator('.measurement-plan > summary')).toContainText('8 / 32 metrics');
   await page.getByLabel('Simulation spins').fill('100');
   let prior: unknown;
@@ -58,7 +58,7 @@ test('Compiler errors reject the entire accounting plan and a corrected residual
   await page.getByLabel('Reconciliation name').fill('Incomplete components'); await page.getByLabel('Accounting observation point').selectOption('sink'); await page.getByLabel('Accounting total value').selectOption('state:total');
   await page.getByLabel('Component 1 value').selectOption('state:x'); await page.getByLabel('Component 2 value').selectOption('visual'); await page.getByLabel('Component 2 state path').fill('missing');
   await page.getByRole('button', { name: 'Save accounting plan', exact: true }).click(); await expect(page.getByRole('dialog').getByRole('alert')).toContainText('missing');
-  await page.getByLabel('Component 2 state path').fill('y'); await page.getByRole('button', { name: 'Save accounting plan', exact: true }).click(); await expect(page.getByRole('dialog')).not.toBeVisible();
+  await page.getByLabel('Component 2 state path').fill('y'); await saveValidatedDialog(page, 'Save accounting plan');
   await expect(page.locator('.measurement-plan > summary')).toContainText('5 / 32 metrics');
   await page.getByLabel('Simulation spins').fill('100'); const launch = waitForRunLaunch(page);
   await page.getByRole('button', { name: /^▶ Start run$/ }).click(); await launch; await expect(page.locator('.run-status')).toHaveText('completed', { timeout: 70000 });

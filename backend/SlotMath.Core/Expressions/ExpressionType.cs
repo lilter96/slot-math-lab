@@ -235,6 +235,8 @@ public sealed record FieldDescriptor
     public ExprType Type { get; init; }
     /// <summary>Homogeneous scalar element type, when it can be established from the authored graph.</summary>
     public ExprType? ArrayItemType { get; init; }
+    /// <summary>Proven empty array identity, used only during element inference.</summary>
+    public bool ArrayIsEmpty { get; init; }
     public string? Description { get; init; }
 }
 

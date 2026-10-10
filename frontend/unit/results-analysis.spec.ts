@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { assess, compareRuns, inspectRun, interval, planSamples, quantileBounds, tailBounds, wilson, type RunEvidence, type Reference } from '../src/lib/results/model';
+import { assess, compareRuns, inspectRun, interval, mergeRunEvidenceSnapshot, planSamples, quantileBounds, tailBounds, wilson, type RunEvidence, type Reference } from '../src/lib/results/model';
 import { evidenceBundle, reportCsv, reportHtml } from '../src/lib/results/export';
 import { completed } from './realtime-fixtures';
 
@@ -18,6 +18,19 @@ function evidence(n = 1000): RunEvidence {
   return { run, model: { name: 'Coin', modelHash: 'b'.repeat(64), targetRtp: .75, winCap: 10000 },
     pinnedConfig: { name: 'Coin', nodes: [], edges: [] }, inputVerified: true, computedConfigHash: run.configHash };
 }
+test('Archived terminal result enriches a duplicate live frame without hiding disagreements', () => {
+  const saved = evidence().run, live = structuredClone(saved);
+  delete live.resultJson; delete live.progress!.resultJson;
+  const merged = mergeRunEvidenceSnapshot(saved, live);
+  expect(merged.resultJson).toBe(saved.resultJson); expect(inspectRun(merged).issues).toEqual([]);
+  expect(live.resultJson).toBeUndefined(); expect(live.progress!.resultJson).toBeUndefined();
+  expect(merged.progress).toEqual({ ...live.progress, resultJson: saved.resultJson });
+  live.progress!.runningRtp = .8;
+  expect(inspectRun(mergeRunEvidenceSnapshot(saved, live)).issues).toContain('Persisted rtp differs from the observed metrics.');
+  expect(mergeRunEvidenceSnapshot(saved, other({ ...evidence(), run: live }).run)).toBe(saved);
+  const newer = structuredClone(live); newer.progress!.sequence++; newer.sequence = newer.progress!.sequence;
+  expect(mergeRunEvidenceSnapshot(saved, newer).resultJson).toBeUndefined();
+});
 function other(a: RunEvidence, id = 'second') {
   const b = structuredClone(a); b.run.id = b.run.progress!.runId = id; return b;
 }

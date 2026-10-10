@@ -1,4 +1,4 @@
-import { waitForRunLaunch, saveMeasurement } from './requests.mjs';
+import { saveValidatedDialog, waitForRunLaunch, saveMeasurement } from './requests.mjs';
 import { chromium } from '../../frontend/node_modules/playwright/index.mjs';
 import { expect } from '../../frontend/node_modules/@playwright/test/index.mjs';
 import { readFile, writeFile } from 'node:fs/promises';
@@ -54,7 +54,7 @@ try {
   await page.getByLabel('Required check 1', { exact: true }).selectOption('observation-integrity'); await page.getByLabel('Required minimum 1').fill('100000');
   await page.getByRole('button', { name: 'Add required check', exact: true }).click(); await page.getByLabel('Required measurement 2').selectOption({ label: 'Decimal residual' });
   await page.getByLabel('Required check 2', { exact: true }).selectOption('exact-zero-assertion'); await page.getByLabel('Required minimum 2').fill('100000');
-  await page.getByRole('button', { name: 'Save verification profile', exact: true }).click(); await expect(page.getByRole('dialog')).not.toBeVisible();
+  await saveValidatedDialog(page, 'Save verification profile');
   const evidence = [];
   for (const engine of ['auto', 'reference']) {
     await page.getByLabel('Simulation spins').fill('100000'); await page.locator('#execution-configuration').evaluate(el => { el.open = true; });

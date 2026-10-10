@@ -8,21 +8,17 @@ import { useSimulation, terminal } from '../hooks/useSimulation';
 import { useAppStore } from '../store';
 import { loadProject } from '../lib/projectFiles';
 import { useRunArchive, useRunEvidence, useResultSnapshot, usePinnedReference } from '../lib/results/api';
-import { assess, compareRuns, inspectRun, interval, number, percent, planSamples, pp, wilson, type RunEvidence, type RunSummary } from '../lib/results/model';
+import { assess, compareRuns, inspectRun, interval, mergeRunEvidenceSnapshot, number, percent, planSamples, pp, wilson, type RunEvidence, type RunSummary } from '../lib/results/model';
 import { downloadReport, evidenceBundle, reportCsv, reportHtml } from '../lib/results/export';
 import { Distribution } from '../components/results/Distribution';
 import { IntervalPlot } from '../components/results/IntervalPlot';
 import { RunLaunchDialog } from '../components/results/RunLaunchDialog';
-import { snapshotDecision, type RunSnapshot } from '../lib/realtime/runProtocol';
 import { HttpFailure } from '../lib/realtime/RunConnection';
 import { Measurements } from '../components/results/Measurements';
 import './results.css';
 const sections = ['Overview', 'Distribution', 'Compare', 'Reproducibility'] as const;
 function date(value: string) { return new Date(value).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' }); }
 function duration(ms: number) { return ms < 60000 ? `${(ms / 1000).toFixed(2)}s` : `${Math.floor(ms / 60000)}m ${Math.floor(ms / 1000) % 60}s`; }
-function newest(saved: RunSnapshot, live?: RunSnapshot | null) {
-  return live && ['accept', 'duplicate', 'reset'].includes(snapshotDecision(saved, saved.progress ?? null, live)) ? live : saved;
-}
 function useDebounced(value: string) {
   const [settled, setSettled] = useState(value);
   useEffect(() => { const timer = window.setTimeout(() => setSettled(value), 250); return () => clearTimeout(timer); }, [value]);
@@ -61,9 +57,9 @@ function SavedRun({ id, candidates }: { id: string; candidates: RunSummary[] }) 
   const baselineId = useSearchParams()[0].get('compare') ?? undefined;
   const baselineQuery = useRunEvidence(baselineId), baselineSnapshot = useResultSnapshot(baselineId, s.run);
   const data = evidenceQuery.data;
-  const snapshot = data ? newest(data.run, s.run?.id === id ? s.run : snapshotQuery.data) : undefined;
+  const snapshot = data ? mergeRunEvidenceSnapshot(data.run, s.run?.id === id ? s.run : snapshotQuery.data) : undefined;
   const evidence = data && snapshot ? { ...data, run: snapshot } : undefined;
-  const baseline = baselineQuery.data ? { ...baselineQuery.data, run: newest(baselineQuery.data.run, s.run?.id === baselineId ? s.run : baselineSnapshot.data) } : undefined;
+  const baseline = baselineQuery.data ? { ...baselineQuery.data, run: mergeRunEvidenceSnapshot(baselineQuery.data.run, s.run?.id === baselineId ? s.run : baselineSnapshot.data) } : undefined;
   if (evidenceQuery.isPending) return <div className="results-loading" role="status">Loading pinned run and evidence…</div>;
   if (evidenceQuery.error || !evidence) return <div className="results-empty"><h2>Run could not be retrieved</h2><p role="alert">{evidenceQuery.error?.message ?? 'This run is unavailable.'}</p><code>{id}</code><button className="btn" onClick={() => void evidenceQuery.refetch()}>Retry this run</button><Link to="/simulate">Open simulation history</Link></div>;
   return <RunReport evidence={evidence} baseline={baseline} candidates={candidates} snapshotError={snapshotQuery.error?.message}

@@ -1,4 +1,4 @@
-import { saveMeasurement, waitForRunLaunch, test, expect, getWithQuota } from './fixtures';
+import { saveValidatedDialog, saveMeasurement, waitForRunLaunch, test, expect, getWithQuota } from './fixtures';
 import type { Page } from '@playwright/test';
 
 async function metric(page: Page, id: string) {
@@ -22,7 +22,7 @@ test('Native predeclared mean family rejects underallocation, retains final crit
   await metric(page, 'x'); await metric(page, 'y'); await declare(page);
   await page.getByLabel('Allocate verification family budget').uncheck(); await page.getByRole('button', { name: 'Save verification profile', exact: true }).click();
   await expect(page.getByRole('dialog').getByRole('alert')).toContainText('shared family error budget');
-  await page.getByLabel('Allocate verification family budget').check(); await page.getByRole('button', { name: 'Save verification profile', exact: true }).click(); await expect(page.getByRole('dialog')).not.toBeVisible();
+  await page.getByLabel('Allocate verification family budget').check(); await saveValidatedDialog(page, 'Save verification profile');
   await page.getByLabel('Simulation spins').fill('2000'); const launch = waitForRunLaunch(page);
   await page.getByRole('button', { name: /^▶ Start run$/ }).click(); const run = await (await launch).json();
   expect(run.verificationProfile.criteria).toHaveLength(2); expect(run.measurements.every((m: { options: { errorFamilySize: number } }) => m.options.errorFamilySize === 2)).toBe(true);
@@ -37,7 +37,7 @@ test('Native predeclared mean family rejects underallocation, retains final crit
   await expect(page.getByRole('button', { name: 'Evaluate pinned verification profile', exact: true })).toHaveCount(1);
   expect(consecutive.verificationProfileHash).toBe(run.verificationProfileHash);
   await page.getByRole('button', { name: 'Configure verification profile', exact: true }).click(); await page.getByLabel('Required minimum 1').fill('10000000');
-  await page.getByRole('button', { name: 'Save verification profile', exact: true }).click(); await expect(page.getByRole('dialog')).not.toBeVisible();
+  await saveValidatedDialog(page, 'Save verification profile');
   await expect(page.locator('#verification-profile')).toContainText('1,000'); await expect(page.locator('#verification-profile')).not.toContainText('10,000,000');
   await page.goto(`/results?run=${run.id}`); await page.evaluate(() => localStorage.clear()); await page.reload();
   await expect(page.getByLabel('Verification profile result')).toHaveAttribute('data-profile-status', 'criteriaMet'); await expect(page.locator('#verification-profile')).toContainText('Retained server profile restored');
@@ -72,7 +72,7 @@ test('Numeric nonzero-event probability cannot pass a bounded numeric-mean refer
   await page.getByText('Uncertainty, precision and reference checks', { exact: true }).click(); await page.getByLabel('Reference statistic', { exact: true }).selectOption('probability'); await page.getByLabel('Proven minimum', { exact: true }).fill('0'); await page.getByLabel('Proven maximum', { exact: true }).fill('2');
   await saveMeasurement(page);
   await page.getByRole('button', { name: 'Configure verification profile', exact: true }).click(); await page.getByLabel('Required check 1', { exact: true }).selectOption('mean-equivalence');
-  await page.getByRole('button', { name: 'Save verification profile', exact: true }).click(); await expect(page.getByRole('dialog')).not.toBeVisible();
+  await saveValidatedDialog(page, 'Save verification profile');
   await page.getByLabel('Simulation spins').fill('2000'); const launch = waitForRunLaunch(page);
   await page.getByRole('button', { name: /^▶ Start run$/ }).click(); const { id } = await (await launch).json(); await expect(page.locator('.run-status')).toHaveText('completed', { timeout: 70000 });
   await page.getByRole('button', { name: 'Evaluate pinned verification profile', exact: true }).click(); const result = page.getByLabel('Verification profile result');

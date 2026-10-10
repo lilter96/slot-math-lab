@@ -39,6 +39,7 @@ public static class StateSchemaDeriver
     {
         var fields = new Dictionary<string, ExprType>(StringComparer.Ordinal);
         var items = new Dictionary<string, ExprType?>(StringComparer.Ordinal);
+        var empty = new HashSet<string>(StringComparer.Ordinal);
         foreach (var (key, value) in config.InitialState ?? new())
         {
             fields[key] = value.ValueKind switch
@@ -52,6 +53,7 @@ public static class StateSchemaDeriver
             {
                 var types = value.EnumerateArray().Select(JsonScalarType).Distinct().ToArray();
                 items[key] = types.Length == 1 ? types[0] : null;
+                if (types.Length == 0) empty.Add(key);
             }
         }
         var authored = new HashSet<string>(config.StateSchema.Select(s => s.Name), StringComparer.Ordinal);
@@ -64,18 +66,21 @@ public static class StateSchemaDeriver
                 case DrawNode d when IsReelDraw(d, config):
                     // A reel-strip draw publishes board + dims (GraphCompiler).
                     fields[d.BoardStateKey ?? GridState.CellsKey] = ExprType.Array;
+                    items[d.BoardStateKey ?? GridState.CellsKey] = ExprType.String;
+                    empty.Remove(d.BoardStateKey ?? GridState.CellsKey);
                     fields[GridState.RowsKey] = ExprType.Number;
                     fields[GridState.ColsKey] = ExprType.Number;
                     if (d.StateWriteKey != null) fields[d.StateWriteKey] = ExprType.String;
                     break;
                 case DrawNode d:
                     // A weighted value draw may publish a board key / outcome id.
-                    if (d.BoardStateKey != null) fields[d.BoardStateKey] = ExprType.Array;
+                    if (d.BoardStateKey != null) { fields[d.BoardStateKey] = ExprType.Array; items[d.BoardStateKey] = ExprType.String; empty.Remove(d.BoardStateKey); }
                     if (d.StateWriteKey != null) fields[d.StateWriteKey] = ExprType.String;
                     break;
                 case DataNode dn:
                     fields[dn.StateKey] = ExprType.Array;
                     items[dn.StateKey] = ExprType.String;
+                    empty.Remove(dn.StateKey);
                     break;
                 case PutStateNode p:
                     if (!fields.ContainsKey(p.StateKey)) fields[p.StateKey] = ExprType.Number;
@@ -102,7 +107,7 @@ public static class StateSchemaDeriver
         // (4) Fixpoint: a ModifyState output's type IS the type of its expression.
         for (var pass = 0; pass <= config.Nodes.OfType<ModifyStateNode>().Count(); pass++)
         {
-            var ctx = BuildContext(config, fields, items);
+            var ctx = BuildContext(config, fields, items, empty);
             var changed = false;
             foreach (var m in config.Nodes.OfType<ModifyStateNode>())
             {
@@ -119,18 +124,24 @@ public static class StateSchemaDeriver
             foreach (var writers in config.Nodes.OfType<ModifyStateNode>().Where(m => m.OutputKey != null).GroupBy(m => m.OutputKey!))
             {
                 var inferred = writers.Select(m => LookupExpr(config, m.ExpressionId))
-                    .Select(e => e is not null ? InferArrayItem(e, ctx) : null).Distinct().ToArray();
-                var itemType = fields.GetValueOrDefault(writers.Key) == ExprType.Array && inferred.Length == 1 ? inferred[0] : null;
+                    .Select(e => e is not null ? ArrayExpressionTypes.Infer(e, ctx) : default).ToArray();
+                var shape = inferred.Aggregate(ArrayExpressionType.Join);
+                var itemType = fields.GetValueOrDefault(writers.Key) == ExprType.Array ? shape.ItemType : null;
                 if (items.GetValueOrDefault(writers.Key) != itemType)
                 {
                     items[writers.Key] = itemType;
+                    changed = true;
+                }
+                if (shape.IsEmpty != empty.Contains(writers.Key))
+                {
+                    if (shape.IsEmpty) empty.Add(writers.Key); else empty.Remove(writers.Key);
                     changed = true;
                 }
             }
             if (!changed) break;
         }
 
-        return fields.Select(kv => new FieldDescriptor { Name = kv.Key, Type = kv.Value, ArrayItemType = items.GetValueOrDefault(kv.Key) })
+        return fields.Select(kv => new FieldDescriptor { Name = kv.Key, Type = kv.Value, ArrayItemType = items.GetValueOrDefault(kv.Key), ArrayIsEmpty = empty.Contains(kv.Key) })
                      .OrderBy(f => f.Name, StringComparer.Ordinal)
                      .ToList();
     }
@@ -178,34 +189,9 @@ public static class StateSchemaDeriver
         _ => null,
     };
 
-    private static ExprType? InferArrayItem(Expression expr, TypeCheckContext ctx) => expr switch
+    private static TypeCheckContext BuildContext(GraphConfig config, Dictionary<string, ExprType> fields, Dictionary<string, ExprType?> items, HashSet<string> empty)
     {
-        MapExpr m => ScalarType(m.Body, WithBindings(ctx, new FieldDescriptor { Name = m.ItemName, Type = m.ItemType },
-            new FieldDescriptor { Name = m.IndexName ?? "__unused_index__", Type = ExprType.Number })),
-        FilterExpr f => ctx.StateFields.FirstOrDefault(x => x.Name == f.StateKey)?.ArrayItemType,
-        FieldAccessExpr f when f.Target == "state" && f.Path.Length == 1 => ctx.StateFields.FirstOrDefault(x => x.Name == f.Path[0])?.ArrayItemType,
-        IfExpr i => CommonItemType(InferArrayItem(i.ThenExpr, ctx), InferArrayItem(i.ElseExpr, ctx)),
-        _ => null,
-    };
-
-    private static ExprType? ScalarType(Expression expr, TypeCheckContext ctx)
-    {
-        var type = ExpressionTypeChecker.InferType(expr, ctx);
-        return type is ExprType.Number or ExprType.Boolean or ExprType.String or ExprType.Symbol ? type : null;
-    }
-
-    private static ExprType? CommonItemType(ExprType? left, ExprType? right) => left == right ? left : null;
-
-    private static TypeCheckContext WithBindings(TypeCheckContext ctx, params FieldDescriptor[] bindings) => new()
-    {
-        BoardFields = ctx.BoardFields, CellFields = ctx.CellFields, MeasurementFields = ctx.MeasurementFields,
-        DecorationTypes = ctx.DecorationTypes,
-        StateFields = ctx.StateFields.Where(x => !bindings.Any(b => b.Name == x.Name)).Concat(bindings).ToArray(),
-    };
-
-    private static TypeCheckContext BuildContext(GraphConfig config, Dictionary<string, ExprType> fields, Dictionary<string, ExprType?> items)
-    {
-        var stateFields = fields.Select(kv => new FieldDescriptor { Name = kv.Key, Type = kv.Value, ArrayItemType = items.GetValueOrDefault(kv.Key) }).ToList();
+        var stateFields = fields.Select(kv => new FieldDescriptor { Name = kv.Key, Type = kv.Value, ArrayItemType = items.GetValueOrDefault(kv.Key), ArrayIsEmpty = empty.Contains(kv.Key) }).ToList();
         // Synthetic "expressions" accessor (named expression references).
         if (config.Expressions is { Count: > 0 })
             stateFields.Add(new FieldDescriptor { Name = "expressions", Type = ExprType.Number });

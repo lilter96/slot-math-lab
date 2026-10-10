@@ -12,15 +12,18 @@ export function waitForRunLaunch(page, timeout = 90000) {
     });
 }
 export async function saveMeasurement(page) {
+  return saveValidatedDialog(page, 'Save measurement');
+}
+export async function saveValidatedDialog(page, buttonName) {
   const dialog = page.getByRole('dialog');
-  await dialog.getByRole('button', { name: 'Save measurement', exact: true }).click();
+  await dialog.getByRole('button', { name: buttonName, exact: true }).click();
   let rejected = '';
   await expect.poll(async () => {
     if (!await dialog.isVisible()) return true;
     const error = dialog.getByRole('alert').first();
     if (await error.isVisible()) { rejected = await error.innerText(); return true; }
     return false;
-  }, { timeout: 70000, message: 'Waiting for whole-plan validation before saving the measurement' }).toBe(true);
-  if (rejected) throw new Error(`Measurement was rejected: ${rejected}`);
+  }, { timeout: 70000, message: `Waiting for whole-plan validation: ${buttonName}` }).toBe(true);
+  if (rejected) throw new Error(`${buttonName} was rejected: ${rejected}`);
   await expect(dialog).not.toBeVisible();
 }

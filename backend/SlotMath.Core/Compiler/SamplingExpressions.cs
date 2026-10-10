@@ -12,8 +12,12 @@ internal sealed class SamplingExpressions(Func<string, int> slot)
     private readonly Dictionary<string, ExprValue> _numbers = new(StringComparer.Ordinal);
     public void Remember(ExprValue value)
     {
-        if (value.Kind == ExprType.String && value.StringValue is { } s)
-            _numbers.TryAdd(s, ParseNumber(s));
+        // Cache only valid integer symbols without interpreting every text
+        // label as an explicit conversion. Invalid strings remain errors when
+        // tonumber is actually evaluated, including in conditional branches.
+        if (value.Kind == ExprType.String && value.StringValue is { Length: <= 4096 } s
+            && BigInteger.TryParse(s, NumberStyles.Integer, CultureInfo.InvariantCulture, out var integer))
+            _numbers.TryAdd(s, ExprValue.Number(integer));
         if (value.Kind == ExprType.Array)
             foreach (var item in value.ArrayValue!) Remember(item);
     }
@@ -163,30 +167,7 @@ internal sealed class SamplingExpressions(Func<string, int> slot)
         return ExprValue.Bool(op switch { CompareOp.Eq => cmp == 0, CompareOp.Neq => cmp != 0, CompareOp.Lt => cmp < 0, CompareOp.Gt => cmp > 0, CompareOp.Lte => cmp <= 0, CompareOp.Gte => cmp >= 0, _ => false });
     }
 
-    private ExprValue Call(string function, ExprValue a, ExprValue b, int count)
-    {
-        switch (function)
-        {
-            case "abs": case "min": case "max": case "floor": case "ceil": case "round":
-                return NumericFunctions.Call(function, a, b, count);
-            case "tonumber": return count > 0 && a.Kind == ExprType.String ? _numbers.TryGetValue(a.StringValue!, out var n) ? n : ParseNumber(a.StringValue!) : ExprValue.Number(0);
-            case "tostring": return ExprValue.String(count > 0 ? a.AsInteger().ToString() : "0");
-            case "length": return ExprValue.Number(count == 0 ? 0 : a.Kind == ExprType.Array ? a.ArrayValue!.Count : a.StringValue?.Length ?? 0);
-            case "contains":
-                if (count < 2) return ExprValue.Bool(false);
-                if (a.Kind != ExprType.Array) return ExprValue.Bool(a.StringValue?.Contains(b.StringValue ?? "", StringComparison.Ordinal) ?? false);
-                foreach (var value in a.ArrayValue!) if (value.Equals(b)) return ExprValue.Bool(true);
-                return ExprValue.Bool(false);
-            case "append" when count >= 2 && a.Kind == ExprType.Array:
-                var values = new ExprValue[a.ArrayValue!.Count + 1];
-                for (var j = 0; j < values.Length - 1; j++) values[j] = a.ArrayValue[j];
-                values[^1] = b; return ExprValue.Array(values);
-            case "index" when count >= 2 && a.Kind == ExprType.Array:
-                var index = (int)b.AsInteger();
-                if (index < 0 || index >= a.ArrayValue!.Count)
-                    throw new ExpressionEvaluationException(EvalErrorCodes.IndexOutOfRange, $"index({index}) is out of range [0, {a.ArrayValue!.Count}) (D1).", $"index[{index}]");
-                return a.ArrayValue![index];
-            default: return ExprValue.Number(0);
-        }
-    }
+    private ExprValue Call(string function, ExprValue a, ExprValue b, int count) => function == "tonumber"
+        && count == 1 && a.Kind is ExprType.String or ExprType.Symbol && _numbers.TryGetValue(a.StringValue!, out var number)
+        ? number : CollectionFunctions.Call(function, a, b, count);
 }

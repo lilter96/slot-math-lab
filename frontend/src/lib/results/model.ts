@@ -1,6 +1,6 @@
 import { sameExecution } from '../measurements/execution';
 import { formatNumber, formatPercent } from '../numberFormat';
-import { validSnapshot, terminal, type RunSnapshot, type LiveProgress } from '../realtime/runProtocol';
+import { snapshotDecision, validSnapshot, terminal, type RunSnapshot, type LiveProgress } from '../realtime/runProtocol';
 export interface RunModel { name: string; modelHash: string | null; targetRtp: number | null; winCap: number | null }
 export interface RunSummary {
   id: string; configId: string; configVersion: number; configHash: string | null; model: RunModel;
@@ -17,6 +17,19 @@ export interface Reference {
 }
 const finite = (v: unknown): v is number => typeof v === 'number' && Number.isFinite(v);
 const close = (a: number, b: number) => Math.abs(a - b) <= 1e-12 * Math.max(1, Math.abs(a), Math.abs(b));
+/** A live frame can share the archived terminal revision without its persisted
+ * result. Keep the authoritative result while inspecting the selected frame's
+ * metrics; discrepancies must still be reported, never hidden by this merge. */
+export function mergeRunEvidenceSnapshot(saved: RunSnapshot, live?: RunSnapshot | null): RunSnapshot {
+  if (!live) return saved;
+  const decision = snapshotDecision(saved, saved.progress ?? null, live);
+  if (!['accept', 'duplicate', 'reset'].includes(decision)) return saved;
+  if (decision === 'duplicate' && terminal(saved.status) && live.status === saved.status
+    && !live.resultJson && saved.resultJson && live.progress?.sampleCount === saved.progress?.sampleCount)
+    return { ...live, resultJson: saved.resultJson, progress: { ...live.progress!, resultJson: saved.resultJson },
+      completedAt: live.completedAt ?? saved.completedAt };
+  return live;
+}
 export function inspectRun(run: RunSnapshot) {
   const issues: string[] = [];
   if (!validSnapshot(run)) issues.push('The run snapshot has invalid or inconsistent fields.');

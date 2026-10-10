@@ -1,4 +1,4 @@
-import { waitForRunLaunch, saveMeasurement } from './requests.mjs';
+import { saveValidatedDialog, waitForRunLaunch, saveMeasurement } from './requests.mjs';
 import { chromium } from '../../frontend/node_modules/playwright/index.mjs';
 import { expect } from '../../frontend/node_modules/@playwright/test/index.mjs';
 import { readFile, writeFile } from 'node:fs/promises';
@@ -33,7 +33,7 @@ async function profile(name, names, minimum) {
     if (i) await page.getByRole('button', { name: 'Add required check', exact: true }).click();
     await page.getByLabel(`Required measurement ${i + 1}`).selectOption({ label }); await page.getByLabel(`Required check ${i + 1}`, { exact: true }).selectOption('mean-equivalence'); await page.getByLabel(`Required minimum ${i + 1}`).fill(String(minimum));
   }
-  await page.getByRole('button', { name: 'Save verification profile', exact: true }).click(); await expect(page.getByRole('dialog')).not.toBeVisible();
+  await saveValidatedDialog(page, 'Save verification profile');
 }
 async function launch(engine = 'auto', workers = '2') {
   await page.getByLabel('Simulation spins').fill('100000'); await page.getByLabel('Simulation workers').selectOption(workers);

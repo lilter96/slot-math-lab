@@ -277,21 +277,27 @@ public static class ExpressionTypeChecker
 
     private static ExprType InferCall(CallExpr c, TypeCheckContext ctx, List<TypeCheckError> errors)
     {
-        // Polymorphic array/string functions: length/contains accept String OR
-        // Array; append takes (Array, item) → Array.  Their first argument's
-        // type is not strictly enforced; the args are still inferred so nested
-        // errors surface.
         var fn = c.Function.ToLowerInvariant();
         if (fn is "length" or "contains" or "append" or "index")
         {
-            foreach (var a in c.Args) Infer(a, ctx, errors);
-            return fn switch
+            var count = fn == "length" ? 1 : 2;
+            if (c.Args.Length != count) return Fail(c, $"Function '{fn}' expects {count} arguments, got {c.Args.Length}.", errors);
+            var first = Infer(c.Args[0], ctx, errors);
+            var second = count == 2 ? Infer(c.Args[1], ctx, errors) : ExprType.Error;
+            if (first == ExprType.Error || count == 2 && second == ExprType.Error) return ExprType.Error;
+            if (fn is "length" or "contains")
             {
-                "length" => ExprType.Number,
-                "contains" => ExprType.Boolean,
-                "append" => ExprType.Array,
-                _ => ExprType.String, // index(arr, i) → element (board cells are symbols)
-            };
+                if (first is not (ExprType.Array or ExprType.String or ExprType.Symbol))
+                    return Fail(c, $"Function '{fn}' requires an array or text.", errors);
+                if (fn == "contains" && first != ExprType.Array && second is not (ExprType.String or ExprType.Symbol))
+                    return Fail(c, "String contains requires a text substring.", errors);
+                return fn == "length" ? ExprType.Number : ExprType.Boolean;
+            }
+            if (first != ExprType.Array) return Fail(c, $"Function '{fn}' requires an array.", errors);
+            if (fn == "append") return ExprType.Array;
+            if (second != ExprType.Number) return Fail(c, "Function 'index' requires a numeric integer position.", errors);
+            var element = ArrayExpressionTypes.Infer(c.Args[0], ctx).ItemType;
+            return element ?? Fail(c, "Function 'index' requires a known homogeneous array element type; mixed or unknown elements need an explicit typed selector.", errors);
         }
 
         // Built-in functions: a closed set — no user-defined recursion.

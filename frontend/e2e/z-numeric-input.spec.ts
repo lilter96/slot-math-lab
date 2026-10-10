@@ -1,4 +1,4 @@
-import { saveMeasurement, waitForRunLaunch, test, expect, getWithQuota, type Page } from './fixtures';
+import { saveValidatedDialog, saveMeasurement, waitForRunLaunch, test, expect, getWithQuota, type Page } from './fixtures';
 import { readFile } from 'node:fs/promises';
 
 async function metric(page: Page, name: string, expression: string, assertion = false) {
@@ -22,8 +22,7 @@ test('Native decimal state retains nonzero metrics, exact assertions, charts, ex
   await page.getByLabel('Verification profile name').fill('Decimal input identity'); await page.getByLabel('Required check 1', { exact: true }).selectOption('observation-integrity');
   await page.getByLabel('Required minimum 1').fill('1000'); await page.getByRole('button', { name: 'Add required check', exact: true }).click();
   await page.getByLabel('Required measurement 2').selectOption({ label: 'Decimal residual' }); await page.getByLabel('Required check 2', { exact: true }).selectOption('exact-zero-assertion');
-  await page.getByLabel('Required minimum 2').fill('1000'); await page.getByRole('button', { name: 'Save verification profile', exact: true }).click();
-  await expect(page.getByRole('dialog')).not.toBeVisible();
+  await page.getByLabel('Required minimum 2').fill('1000'); await saveValidatedDialog(page, 'Save verification profile');
   const records = [];
   for (const engine of ['auto', 'reference']) {
     await page.getByLabel('Simulation spins').fill('1000'); await page.locator('#execution-configuration').evaluate((el: HTMLDetailsElement) => { el.open = true; });

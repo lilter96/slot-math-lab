@@ -609,62 +609,8 @@ public static class ExactExpressionEvaluator
     {
         var args = c.Args.Select(a => Eval(a, ctx)).ToArray();
 
-        return c.Function.ToLowerInvariant() switch
-        {
-            "abs" or "min" or "max" or "floor" or "ceil" or "round" => NumericFunctions.Call(c.Function.ToLowerInvariant(),
-                args.Length > 0 ? args[0] : default, args.Length > 1 ? args[1] : default, args.Length),
-
-            // Case labels must be lowercase — the switch is on ToLowerInvariant().
-            "tonumber" => args.Length > 0 && args[0].Kind == ExprType.String
-                ? ParseNumber(args[0].StringValue!)
-                : ExprValue.Number(0),
-
-            "tostring" => args.Length > 0
-                ? ExprValue.String(args[0].AsInteger().ToString())
-                : ExprValue.String("0"),
-
-            // length(arr) → element count; length(str) → character count.
-            "length" => args.Length > 0
-                ? ExprValue.Number(args[0].Kind == ExprType.Array
-                    ? args[0].ArrayValue!.Count
-                    : args[0].StringValue?.Length ?? 0)
-                : ExprValue.Number(0),
-
-            // contains(arr, x) → array membership; contains(str, sub) → substring.
-            "contains" => args.Length >= 2
-                ? ExprValue.Bool(args[0].Kind == ExprType.Array
-                    ? args[0].ArrayValue!.Any(e => e.Equals(args[1]))
-                    : args[0].StringValue?.Contains(args[1].StringValue ?? "", StringComparison.Ordinal) ?? false)
-                : ExprValue.Bool(false),
-
-            // append(arr, x) → a new array with x appended (bounded; for fold accumulation).
-            "append" when args.Length >= 2 && args[0].Kind == ExprType.Array =>
-                ExprValue.Array([.. args[0].ArrayValue!, args[1]]),
-
-            // index(arr, i) → element at i (e.g. refill[idx]); out-of-range is a
-            // located error (D1), never a silent value.
-            "index" when args.Length >= 2 && args[0].Kind == ExprType.Array =>
-                IndexArray(args[0].ArrayValue!, (int)args[1].AsInteger()),
-
-            _ => ExprValue.Number(0),
-        };
-    }
-
-    private static ExprValue IndexArray(IReadOnlyList<ExprValue> arr, int i)
-    {
-        if (i < 0 || i >= arr.Count)
-            throw new ExpressionEvaluationException(
-                EvalErrorCodes.IndexOutOfRange,
-                $"index({i}) is out of range [0, {arr.Count}) (D1).",
-                $"index[{i}]");
-        return arr[i];
-    }
-
-    private static ExprValue ParseNumber(string s)
-    {
-        if (BigInteger.TryParse(s, NumberStyles.Integer, CultureInfo.InvariantCulture, out var n))
-            return ExprValue.Number(n);
-        return ExprValue.Number(0);
+        return CollectionFunctions.Call(c.Function.ToLowerInvariant(), args.Length > 0 ? args[0] : default,
+            args.Length > 1 ? args[1] : default, args.Length);
     }
 }
 

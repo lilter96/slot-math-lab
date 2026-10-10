@@ -25,7 +25,8 @@ export function parseExpression(source: string): ExpressionAst {
     '<': [4, 'compare', 'Lt'], '>': [4, 'compare', 'Gt'], '<=': [4, 'compare', 'Lte'], '>=': [4, 'compare', 'Gte'],
     '+': [5, 'binary', 'Add'], '-': [5, 'binary', 'Sub'], '*': [6, 'binary', 'Mul'], '/': [6, 'binary', 'Div'],
   };
-  const functions: Record<string, number> = { abs: 1, min: 2, max: 2, floor: 1, ceil: 1, round: 1 };
+  const functions: Record<string, number> = { abs: 1, min: 2, max: 2, floor: 1, ceil: 1, round: 1,
+    tonumber: 1, tostring: 1, length: 1, contains: 2, append: 2, index: 2 };
   function expression(min = 0): ExpressionAst {
     if (++depth > 64) throw new Error('Expression nesting exceeds 64');
     const token = tokens[pos++];

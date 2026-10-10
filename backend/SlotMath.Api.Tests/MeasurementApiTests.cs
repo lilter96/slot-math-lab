@@ -172,6 +172,36 @@ public class MeasurementApiTests : IClassFixture<WebApplicationFactory<Program>>
         Assert.Equal(HttpStatusCode.BadRequest, (await client.PostAsJsonAsync("/api/runs", new { configId = id, measurements = new[] { invalid } })).StatusCode);
         Assert.Equal(HttpStatusCode.BadRequest, (await client.PostAsJsonAsync("/api/runs", new { configId = id, measurements = (object?)null })).StatusCode);
     }
+    [Theory][InlineData("auto")][InlineData("reference")]
+    public async Task StrictConversionsRetainExactAssertionsAndInvalidObservationEvidence(string engine)
+    {
+        var config = Coin() with { InitialState = new()
+            { ["values"] = JsonSerializer.Deserialize<JsonElement>("[0.5,0.25]"), ["text"] = JsonSerializer.Deserialize<JsonElement>("\"H\"") } };
+        var configs = factory.Services.GetRequiredService<InMemoryConfigStore>(); var store = factory.Services.GetRequiredService<InMemoryRunStore>();
+        var id = configs.Create(config);
+        FieldAccessExpr Values() => new() { Target = "state", Path = ["values"] };
+        ConstantExpr Number(string number) => new() { Kind = ConstantKind.Rational, Value = number };
+        CallExpr Call(string function, params Expression[] args) => new() { Function = function, Args = args };
+        MeasurementDefinition[] plan = [
+            new() { Id = "number", Name = "Numeric array index", NodeId = "sink", Value = Call("index", Values(), Number("0")) },
+            new() { Id = "roundtrip", Name = "Exact text roundtrip", NodeId = "sink", Value = new BinaryExpr { Op = BinaryOp.Sub,
+                Left = Call("tonumber", Call("tostring", Number("1/3"))), Right = Number("1/3") }, Options = new() { Assertion = "zero" } },
+            new() { Id = "invalid", Name = "Invalid authored conversion", NodeId = "sink", Value = Call("tonumber", new FieldAccessExpr { Target = "state", Path = ["text"] }) }
+        ];
+        var rejected = plan[0] with { Value = Call("length", Number("1")) };
+        Assert.Equal(HttpStatusCode.BadRequest, (await client.PostAsJsonAsync("/api/runs", new { configId = id, measurements = new[] { rejected } })).StatusCode);
+        var run = store.Create(id, 42, 1, 100, CanonicalHash.Compute(configs.GetVersion(id, 1)!.Config), 1, plan, new() { SamplingEngine = engine });
+        await factory.Services.GetRequiredService<RunJobService>().ExecuteRunAsync(run.Id, 100, 16);
+        var saved = (await client.GetFromJsonAsync<RunResponse>($"/api/runs/{run.Id}"))!;
+        Assert.Equal("completed", saved.Status);
+        var numeric = saved.Progress!.Measurements[0]; Assert.Equal(100, numeric.Count); Assert.Equal(.5, numeric.Mean); Assert.Equal(0, numeric.Errors);
+        Assert.Equal("noObservedViolations", saved.Progress.Measurements[1].Analysis!.Assertion!.Status);
+        var invalid = saved.Progress.Measurements[2]; Assert.Equal(100, invalid.Observations); Assert.Equal(100, invalid.Errors);
+        Assert.Equal(0, invalid.Count); Assert.Null(invalid.Mean); Assert.Null(invalid.Sum); Assert.Contains("tonumber", invalid.FirstError);
+        using var result = JsonDocument.Parse(saved.ResultJson!);
+        Assert.Equal(100, result.RootElement.GetProperty("measurements")[2].GetProperty("errors").GetInt64());
+        Assert.True((await client.GetFromJsonAsync<RunEvidence>($"/api/runs/{run.Id}/evidence"))!.InputVerified);
+    }
     [Fact]
     public async Task SchemaIncludesInlinedNodesAndDerivedFieldTypes()
     {

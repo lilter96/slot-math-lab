@@ -11,6 +11,13 @@ test('Numeric calls produce structured ASTs with nested arithmetic and indexed s
 });
 
 test('Unknown code, wrong arities, malformed arguments and excessive nesting fail locally', () => {
-  for (const text of ['eval(1)', 'constructor(1)', 'toString(1)', 'Math.abs(1)', 'abs()', 'abs(1,2)', 'min(1)', 'max(1,2,3)', 'floor(1,)', 'abs(,1)', 'abs(1) trailing', `${'abs('.repeat(65)}1${')'.repeat(65)}`])
+  for (const text of ['eval(1)', 'constructor(1)', 'Math.abs(1)', 'abs()', 'abs(1,2)', 'min(1)', 'max(1,2,3)', 'floor(1,)', 'abs(,1)', 'abs(1) trailing', 'length()', 'index(state.a)', 'tonumber(1,2)', `${'abs('.repeat(65)}1${')'.repeat(65)}`])
     expect(() => parseExpression(text), text).toThrow();
+});
+
+test('Collection and exact text conversions remain typed calls in the native editor', () => {
+  expect(parseExpression('toNumber(index(state.paytable, 2)) + length(state.awards)')).toMatchObject({ exprType: 'binary', op: 'Add',
+    left: { function: 'tonumber', args: [{ function: 'index', args: [{ path: ['paytable'] }, { value: '2' }] }] },
+    right: { function: 'length', args: [{ path: ['awards'] }] } });
+  expect(parseExpression('contains(state.awards, 1) ? tonumber(tostring(1 / 3)) : 0')).toMatchObject({ exprType: 'if', condition: { function: 'contains' }, thenExpr: { function: 'tonumber', args: [{ function: 'tostring' }] } });
 });
