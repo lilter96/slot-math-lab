@@ -39,7 +39,9 @@ test('A failed feature keeps interrupted boundaries in live and saved UI without
     expect(exported.progress.measurements[0]).toEqual(metric); expect(exported.pinnedGraph.inputVerified).toBe(true);
     expect(exported.integrity.complete).toBe(false); expect(exported.progress.sampleCount).toBe(0);
     if (previous) expect(metric).toEqual(previous); previous = metric;
-    await page.reload(); await expect(card.locator('[data-statistic=interruptedOpenEpisodes]')).toHaveText('1');
+    // Detailed terminal evidence is recovered from the server after reload.
+    // Respect the production snapshot quota rather than assuming a five-second read.
+    await page.reload(); await expect(card.locator('[data-statistic=interruptedOpenEpisodes]')).toHaveText('1', { timeout: 70000 });
     await page.goto(`/results?run=${id}`);
     const saved = page.getByRole('region', { name: 'Saved measurement Interrupted feature', exact: true }); await expect(saved).toBeVisible({ timeout: 70000 });
     await saved.getByRole('tab', { name: 'accounting', exact: true }).click(); await saved.getByLabel('Analysis population').selectOption('sticky');
