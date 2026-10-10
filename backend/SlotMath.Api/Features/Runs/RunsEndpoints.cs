@@ -27,6 +27,7 @@ public static class RunsEndpoints
         var group = app.MapGroup("/api/runs");
         MeasurementReplay.Map(group, configStore, runStore);
         MeasurementCalibration.Map(group, runStore);
+        MeasurementAccounting.Map(group, runStore);
         DiagnosticReferences.Map(group, runStore);
         group.MapPost("/measurements/reference/planning", (SlotMath.Core.Measurements.SamplePlanRequest request) =>
         {

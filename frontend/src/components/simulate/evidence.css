@@ -64,3 +64,15 @@
 .results-table-scroll:focus-visible { outline: 2px solid var(--sampled); outline-offset: 2px; }
 .measurement-scroll-note { display: none; color: var(--faint); font-size: 10px; margin-top: 8px; }
 @media (max-width: 768px) { .measurement-scroll-note { display: block; } }
+.component-accounting { padding: 16px; overflow-wrap: anywhere; }
+.component-accounting summary { cursor: pointer; line-height: 1.7; }
+.component-accounting label { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.component-accounting :is(input:not([type=checkbox]), select) { width: 100%; min-width: 0; box-sizing: border-box; padding: 8px; background: var(--bg-2); color: var(--text); border: 1px solid var(--line); border-radius: 5px; }
+.component-accounting .measurement-reducers label { flex-direction: row; align-items: center; }
+.component-accounting .tracked-statistics { grid-template-columns: repeat(auto-fit, minmax(min(100%, 170px), 1fr)); }
+.component-accounting caption { text-align: left; padding: 12px 0; color: var(--muted); }
+.accounting-component { padding: 14px 0; border-bottom: 1px solid var(--line); margin-bottom: 12px; }
+.component-accounting [data-accounting-status=discrepancy] h3, .component-accounting [data-accounting-status=invalid] h3 { color: var(--danger); }
+.component-accounting [data-accounting-status=numericalResolution] h3, .component-accounting [data-accounting-status=insufficient] h3 { color: var(--epsilon); }
+@media (max-width: 700px) { .component-accounting { padding: 12px; } .component-accounting .tracked-statistics { grid-template-columns: 1fr 1fr; } }
+.component-accounting .results-table th:first-child { min-width: 100px; overflow-wrap: normal; }

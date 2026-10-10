@@ -1,0 +1,228 @@
+{
+  "schemaVersion": "1.0.0",
+  "name": "Independent three-component accounting oracle",
+  "nodes": [
+    {
+      "nodeType": "draw",
+      "id": "draw",
+      "drawWeights": [
+        {
+          "outcomeId": "low",
+          "value": 0,
+          "weight": 1
+        },
+        {
+          "outcomeId": "high",
+          "value": 1,
+          "weight": 1
+        }
+      ],
+      "outputs": {
+        "out": {
+          "name": "out",
+          "type": "Wins"
+        }
+      },
+      "stateWriteKey": "pick"
+    },
+    {
+      "nodeType": "modifyState",
+      "id": "x",
+      "outputKey": "x",
+      "expressionId": "x",
+      "inputs": {
+        "in": {
+          "name": "in",
+          "type": "Wins"
+        }
+      },
+      "outputs": {
+        "out": {
+          "name": "out",
+          "type": "Wins"
+        }
+      }
+    },
+    {
+      "nodeType": "modifyState",
+      "id": "y",
+      "outputKey": "y",
+      "expressionId": "y",
+      "inputs": {
+        "in": {
+          "name": "in",
+          "type": "Wins"
+        }
+      },
+      "outputs": {
+        "out": {
+          "name": "out",
+          "type": "Wins"
+        }
+      }
+    },
+    {
+      "nodeType": "modifyState",
+      "id": "z",
+      "outputKey": "z",
+      "expressionId": "z",
+      "inputs": {
+        "in": {
+          "name": "in",
+          "type": "Wins"
+        }
+      },
+      "outputs": {
+        "out": {
+          "name": "out",
+          "type": "Wins"
+        }
+      }
+    },
+    {
+      "nodeType": "modifyState",
+      "id": "total",
+      "outputKey": "total",
+      "expressionId": "total",
+      "inputs": {
+        "in": {
+          "name": "in",
+          "type": "Wins"
+        }
+      },
+      "outputs": {
+        "out": {
+          "name": "out",
+          "type": "Wins"
+        }
+      }
+    },
+    {
+      "nodeType": "metricsSink",
+      "id": "sink",
+      "winStateKey": "total",
+      "winCap": 100,
+      "inputs": {
+        "in": {
+          "name": "in",
+          "type": "Wins"
+        }
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "0",
+      "sourceNodeId": "draw",
+      "sourcePort": "out",
+      "targetNodeId": "x",
+      "targetPort": "in"
+    },
+    {
+      "id": "1",
+      "sourceNodeId": "x",
+      "sourcePort": "out",
+      "targetNodeId": "y",
+      "targetPort": "in"
+    },
+    {
+      "id": "2",
+      "sourceNodeId": "y",
+      "sourcePort": "out",
+      "targetNodeId": "z",
+      "targetPort": "in"
+    },
+    {
+      "id": "3",
+      "sourceNodeId": "z",
+      "sourcePort": "out",
+      "targetNodeId": "total",
+      "targetPort": "in"
+    },
+    {
+      "id": "4",
+      "sourceNodeId": "total",
+      "sourcePort": "out",
+      "targetNodeId": "sink",
+      "targetPort": "in"
+    }
+  ],
+  "expressions": {
+    "x": {
+      "exprType": "if",
+      "condition": {
+        "exprType": "compare",
+        "op": "Eq",
+        "left": {
+          "exprType": "fieldAccess",
+          "target": "state",
+          "path": [
+            "pick"
+          ]
+        },
+        "right": {
+          "exprType": "constant",
+          "kind": "String",
+          "value": "high"
+        }
+      },
+      "thenExpr": {
+        "exprType": "constant",
+        "kind": "Integer",
+        "value": "2"
+      },
+      "elseExpr": {
+        "exprType": "constant",
+        "kind": "Integer",
+        "value": "0"
+      }
+    },
+    "y": {
+      "exprType": "fieldAccess",
+      "target": "state",
+      "path": [
+        "x"
+      ]
+    },
+    "z": {
+      "exprType": "binary",
+      "op": "Sub",
+      "left": {
+        "exprType": "constant",
+        "kind": "Integer",
+        "value": "2"
+      },
+      "right": {
+        "exprType": "fieldAccess",
+        "target": "state",
+        "path": [
+          "x"
+        ]
+      }
+    },
+    "total": {
+      "exprType": "binary",
+      "op": "Add",
+      "left": {
+        "exprType": "constant",
+        "kind": "Integer",
+        "value": "2"
+      },
+      "right": {
+        "exprType": "fieldAccess",
+        "target": "state",
+        "path": [
+          "x"
+        ]
+      }
+    }
+  },
+  "initialState": {
+    "pick": "low",
+    "x": 0,
+    "y": 0,
+    "z": 0,
+    "total": 0,
+    "cohort": "all"
+  }
+}

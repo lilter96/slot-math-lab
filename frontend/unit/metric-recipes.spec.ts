@@ -6,7 +6,7 @@ import { defaultOptions } from '../src/lib/measurements/analysis';
 test('Every researched requirement has a unique discoverable native workflow and explicit population', () => {
   expect(metricRecipes).toHaveLength(159); expect(new Set(metricRecipes.map(r => r.id)).size).toBe(159);
   expect(new Set(metricRecipes.map(r => r.family)).size).toBe(15);
-  for (const recipe of metricRecipes) { expect(recipe.population.length).toBeGreaterThan(20); expect(recipe.prerequisite.length).toBeGreaterThan(20); expect(['measurement', 'reference', 'execution', 'results', 'planning']).toContain(recipe.action); expect(['ready', 'authored', 'partial']).toContain(recipe.availability); expect(recipe.implementationScope.length).toBeGreaterThan(30); }
+  for (const recipe of metricRecipes) { expect(recipe.population.length).toBeGreaterThan(20); expect(recipe.prerequisite.length).toBeGreaterThan(20); expect(['measurement', 'accounting', 'reference', 'execution', 'results', 'planning']).toContain(recipe.action); expect(['ready', 'authored', 'partial']).toContain(recipe.availability); expect(recipe.implementationScope.length).toBeGreaterThan(30); }
 });
 test('Money-event recipes compare actual read-only settlement fields; mixed return uses a wager denominator', () => {
   const zero = definition(recipeDraft(metricRecipes.find(r => r.id === 'events.zero')!, 'zero'));

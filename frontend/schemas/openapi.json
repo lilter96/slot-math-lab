@@ -443,6 +443,45 @@
         }
       }
     },
+    "/api/runs/{id}/measurements/accounting": {
+      "post": {
+        "tags": [
+          "SlotMath.Api"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ComponentAccountingRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RetainedReferenceOfMeasurementAccountingReport"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/runs/{id}/measurements/reference/comparison": {
       "post": {
         "tags": [
@@ -1219,6 +1258,127 @@
   },
   "components": {
     "schemas": {
+      "AccountingComponent": {
+        "required": [
+          "measurementId",
+          "name",
+          "count",
+          "mean",
+          "sum",
+          "sampleVariance",
+          "paidTurnoverContribution"
+        ],
+        "type": "object",
+        "properties": {
+          "measurementId": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "count": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "mean": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
+          },
+          "sum": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
+          },
+          "sampleVariance": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
+          },
+          "paidTurnoverContribution": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
+          }
+        }
+      },
+      "AccountingCovariance": {
+        "required": [
+          "leftMeasurementId",
+          "rightMeasurementId",
+          "pairMeasurementId",
+          "covariance"
+        ],
+        "type": "object",
+        "properties": {
+          "leftMeasurementId": {
+            "type": "string"
+          },
+          "rightMeasurementId": {
+            "type": "string"
+          },
+          "pairMeasurementId": {
+            "type": "string"
+          },
+          "covariance": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
+          }
+        }
+      },
+      "AccountingEvidenceSource": {
+        "required": [
+          "configHash",
+          "measurementHash",
+          "sequence",
+          "paidRounds",
+          "producer"
+        ],
+        "type": "object",
+        "properties": {
+          "configHash": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "measurementHash": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "sequence": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "paidRounds": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "producer": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/RuntimeProvenance"
+              }
+            ]
+          }
+        }
+      },
       "AssertionSummary": {
         "required": [
           "kind",
@@ -1289,6 +1449,177 @@
               "number"
             ],
             "format": "double"
+          }
+        }
+      },
+      "ComponentAccountingReport": {
+        "required": [
+          "name",
+          "status",
+          "unit",
+          "nodeId",
+          "groupKey",
+          "count",
+          "components",
+          "covariances",
+          "totalMean",
+          "totalSampleVariance",
+          "componentMeanSum",
+          "componentVarianceSum",
+          "twiceCovarianceSum",
+          "reconstructedVariance",
+          "meanResidual",
+          "varianceResidual",
+          "numericalTolerance",
+          "exactViolations",
+          "detail"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "unit": {
+            "type": "string"
+          },
+          "nodeId": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "groupKey": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "count": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "components": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AccountingComponent"
+            }
+          },
+          "covariances": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AccountingCovariance"
+            }
+          },
+          "totalMean": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
+          },
+          "totalSampleVariance": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
+          },
+          "componentMeanSum": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
+          },
+          "componentVarianceSum": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
+          },
+          "twiceCovarianceSum": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
+          },
+          "reconstructedVariance": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
+          },
+          "meanResidual": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
+          },
+          "varianceResidual": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
+          },
+          "numericalTolerance": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
+          },
+          "exactViolations": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int64"
+          },
+          "detail": {
+            "type": "string"
+          },
+          "algorithmVersion": {
+            "type": "string"
+          }
+        }
+      },
+      "ComponentAccountingRequest": {
+        "required": [
+          "name",
+          "totalMeasurementId",
+          "componentMeasurementIds",
+          "residualMeasurementId"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "totalMeasurementId": {
+            "type": "string"
+          },
+          "componentMeasurementIds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "residualMeasurementId": {
+            "type": "string"
+          },
+          "groupKey": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
         }
       },
@@ -2828,6 +3159,25 @@
           }
         }
       },
+      "MeasurementAccountingReport": {
+        "required": [
+          "runId",
+          "source",
+          "report"
+        ],
+        "type": "object",
+        "properties": {
+          "runId": {
+            "type": "string"
+          },
+          "source": {
+            "$ref": "#/components/schemas/AccountingEvidenceSource"
+          },
+          "report": {
+            "$ref": "#/components/schemas/ComponentAccountingReport"
+          }
+        }
+      },
       "MeasurementAnalysis": {
         "required": [
           "count",
@@ -4076,6 +4426,32 @@
               },
               {
                 "$ref": "#/components/schemas/MarkovModelReport"
+              }
+            ]
+          },
+          "retention": {
+            "$ref": "#/components/schemas/DiagnosticRetention"
+          }
+        }
+      },
+      "RetainedReferenceOfMeasurementAccountingReport": {
+        "required": [
+          "runId",
+          "report",
+          "retention"
+        ],
+        "type": "object",
+        "properties": {
+          "runId": {
+            "type": "string"
+          },
+          "report": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/MeasurementAccountingReport"
               }
             ]
           },

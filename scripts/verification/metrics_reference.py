@@ -103,6 +103,24 @@ def references():
     assert component_variance == 1 and total_variance == 4
     assert total_variance == 2 * component_variance + 2 * covariance
 
+    # Independent sample ledger, rather than the production accumulator:
+    # X=(0,2), Y=(0,2), Z=(2,0), T=(2,4). Include every cross term.
+    vectors = [[F(0), F(2)], [F(0), F(2)], [F(2), F(0)]]
+    means = [sum(v) / len(v) for v in vectors]
+    sample_var = lambda v: sum((x - sum(v) / len(v)) ** 2 for x in v) / (len(v) - 1)
+    matrix = [[sum((x - means[i]) * (y - means[j]) for x, y in zip(a, b)) / (len(a) - 1)
+               for j, b in enumerate(vectors)] for i, a in enumerate(vectors)]
+    diagonal = sum(matrix[i][i] for i in range(3))
+    cross = 2 * sum(matrix[i][j] for i in range(3) for j in range(i + 1, 3))
+    total = [sum(row) for row in zip(*vectors)]
+    assert matrix == [[2, 2, -2], [2, 2, -2], [-2, -2, 2]]
+    assert diagonal == 6 and cross == -4 and sample_var(total) == diagonal + cross == 2
+    assert all(t == sum(row) for t, row in zip(total, zip(*vectors)))
+    # Means of two equal-length samples with a constant total can conceal
+    # per-observation mistakes; the exact residual must still count both.
+    wrong_total = [F(3), F(3)]
+    assert sum(wrong_total) == sum(total) and sum(t != sum(row) for t, row in zip(wrong_total, zip(*vectors))) == 2
+
     # Known mass: P(0)=1/2, P(2)=1/4. The last quarter is unresolved in [0,8].
     known_first, known_second, missing, bound = F(1, 2), F(1), F(1, 4), F(8)
     mean_upper = known_first + missing * bound
@@ -150,6 +168,7 @@ def references():
             "meanDeduction": str(deduction),
         },
         "covariance": {"sumComponentVariances": "2", "totalVariance": "4", "covariance": "1"},
+        "multiComponentSample": {"matrix": [[str(v) for v in row] for row in matrix], "mean": "3", "diagonal": "6", "cross": "-4", "totalVariance": "2", "equalMeanExactMismatches": 2},
         "pruning": {"knownMean": "1/2", "meanUpper": "5/2", "knownSecondMoment": "1", "secondMomentUpper": "17"},
         "markovFeature": {"expectedDuration": str(duration), "expectedReward": str(reward)},
         "rareEvents": {"zeroSuccessUpper95At100000": zero_upper, "trialsFor95ChanceOfOneEventAt1eMinus7": one_event_trials},

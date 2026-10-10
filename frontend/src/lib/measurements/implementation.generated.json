@@ -404,8 +404,8 @@
     "scope": "Pair values on the same subject or retain final logical sequence order; dependence and censoring remain explicit."
   },
   "dependence.variance_decomposition": {
-    "status": "partial",
-    "scope": "A paired sum/difference variance with covariance and exact enumerated joint law is implemented. Multi-component variance reconciliation and its residual require a native component ledger."
+    "status": "ready",
+    "scope": "Native bounded 2\u20136 component accounting authors total/components, every pair and an exact ordered residual on one unweighted observation population. Reports reconcile means and sample variance including all covariance terms, reject incompatible scopes or invalid/incomplete cohort evidence, distinguish exact violations and numeric cancellation, and retain pinned producer/snapshot identity. Completed feature component totals require an authored boundary; no population-law or independence certificate is inferred."
   },
   "dependence.autocorrelation": {
     "status": "ready",

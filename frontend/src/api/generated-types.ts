@@ -1042,6 +1042,47 @@ export type paths = {
         patch?: never;
         trace?: never;
     };
+    "/api/runs/{id}/measurements/accounting": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["ComponentAccountingRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["RetainedReferenceOfMeasurementAccountingReport"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/runs/{id}/measurements/calibration": {
         parameters: {
             query?: never;
@@ -1559,6 +1600,36 @@ export type paths = {
 export type webhooks = Record<string, never>;
 export type components = {
     schemas: {
+        AccountingComponent: {
+            /** Format: int64 */
+            count: number;
+            /** Format: double */
+            mean: null | number;
+            measurementId: string;
+            name: string;
+            /** Format: double */
+            paidTurnoverContribution: null | number;
+            /** Format: double */
+            sampleVariance: null | number;
+            /** Format: double */
+            sum: null | number;
+        };
+        AccountingCovariance: {
+            /** Format: double */
+            covariance: null | number;
+            leftMeasurementId: string;
+            pairMeasurementId: string;
+            rightMeasurementId: string;
+        };
+        AccountingEvidenceSource: {
+            configHash: null | string;
+            measurementHash: null | string;
+            /** Format: int64 */
+            paidRounds: number;
+            producer: null | components["schemas"]["RuntimeProvenance"];
+            /** Format: int64 */
+            sequence: number;
+        };
         AssertionSummary: {
             /** Format: int64 */
             checked: number;
@@ -1581,6 +1652,46 @@ export type components = {
             volatilityMax?: null | number;
             /** Format: double */
             volatilityMin?: null | number;
+        };
+        ComponentAccountingReport: {
+            algorithmVersion?: string;
+            /** Format: double */
+            componentMeanSum: null | number;
+            components: components["schemas"]["AccountingComponent"][];
+            /** Format: double */
+            componentVarianceSum: null | number;
+            /** Format: int64 */
+            count: number;
+            covariances: components["schemas"]["AccountingCovariance"][];
+            detail: string;
+            /** Format: int64 */
+            exactViolations: null | number;
+            groupKey: null | string;
+            /** Format: double */
+            meanResidual: null | number;
+            name: string;
+            nodeId: null | string;
+            /** Format: double */
+            numericalTolerance: null | number;
+            /** Format: double */
+            reconstructedVariance: null | number;
+            status: string;
+            /** Format: double */
+            totalMean: null | number;
+            /** Format: double */
+            totalSampleVariance: null | number;
+            /** Format: double */
+            twiceCovarianceSum: null | number;
+            unit: string;
+            /** Format: double */
+            varianceResidual: null | number;
+        };
+        ComponentAccountingRequest: {
+            componentMeasurementIds: string[];
+            groupKey?: null | string;
+            name: string;
+            residualMeasurementId: string;
+            totalMeasurementId: string;
         };
         ConfigDetailResponse: {
             config: unknown;
@@ -2007,6 +2118,11 @@ export type components = {
             stationary: boolean;
             transientMatrix: string[][];
         };
+        MeasurementAccountingReport: {
+            report: components["schemas"]["ComponentAccountingReport"];
+            runId: string;
+            source: components["schemas"]["AccountingEvidenceSource"];
+        };
         MeasurementAnalysis: {
             assertion?: null | components["schemas"]["AssertionSummary"];
             bins: components["schemas"]["DistributionBin"][];
@@ -2309,6 +2425,11 @@ export type components = {
         };
         RetainedReferenceOfMarkovModelReport: {
             report: null | components["schemas"]["MarkovModelReport"];
+            retention: components["schemas"]["DiagnosticRetention"];
+            runId: string;
+        };
+        RetainedReferenceOfMeasurementAccountingReport: {
+            report: null | components["schemas"]["MeasurementAccountingReport"];
             retention: components["schemas"]["DiagnosticRetention"];
             runId: string;
         };
