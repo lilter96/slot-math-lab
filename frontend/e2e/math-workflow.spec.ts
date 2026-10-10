@@ -1,13 +1,4 @@
 import { test, expect, waitForRunLaunch } from './fixtures';
-import { parseExpression } from '../src/lib/expressionParser';
-
-test('Expression authoring creates typed ASTs and rejects invalid syntax', () => {
-  expect(parseExpression('state.total >= 3 && true')).toEqual({ exprType: 'binary', op: 'And',
-    left: { exprType: 'compare', op: 'Gte', left: { exprType: 'fieldAccess', target: 'state', path: ['total'] }, right: { exprType: 'constant', kind: 'Integer', value: '3' } },
-    right: { exprType: 'constant', kind: 'Boolean', value: 'true' } });
-  expect(parseExpression('0.25')).toEqual({ exprType: 'constant', kind: 'Rational', value: '25/100' });
-  expect(() => parseExpression('2 + @')).toThrow();
-});
 
 test('Real UI → API → compiler → exact → sampled workflow', async ({ page }) => {
   await page.goto('/');

@@ -37,113 +37,63 @@ public static class StateSchemaDeriver
     /// </summary>
     public static IReadOnlyList<FieldDescriptor> Derive(GraphConfig config)
     {
-        var fields = new Dictionary<string, ExprType>(StringComparer.Ordinal);
-        var items = new Dictionary<string, ExprType?>(StringComparer.Ordinal);
-        var empty = new HashSet<string>(StringComparer.Ordinal);
-        foreach (var (key, value) in config.InitialState ?? new())
-        {
-            fields[key] = value.ValueKind switch
-            {
-                System.Text.Json.JsonValueKind.Array => ExprType.Array,
-                System.Text.Json.JsonValueKind.String => ExprType.String,
-                System.Text.Json.JsonValueKind.True or System.Text.Json.JsonValueKind.False => ExprType.Boolean,
-                _ => ExprType.Number,
-            };
-            if (value.ValueKind == System.Text.Json.JsonValueKind.Array)
-            {
-                var types = value.EnumerateArray().Select(JsonScalarType).Distinct().ToArray();
-                items[key] = types.Length == 1 ? types[0] : null;
-                if (types.Length == 0) empty.Add(key);
-            }
-        }
+        var fields = new Dictionary<string, FieldDescriptor>(StringComparer.Ordinal);
+        foreach (var (key, value) in config.InitialState ?? new()) fields[key] = ExpressionShapes.FromJson(key, value);
         var authored = new HashSet<string>(config.StateSchema.Select(s => s.Name), StringComparer.Ordinal);
-
-        // (1) Structural truth from node kinds.
+        void Write(string key, ExprType type) => fields[key] = ExpressionShapes.Field(key, type);
+        void WriteArray(string key) => fields[key] = ExpressionShapes.Array(ExpressionShapes.Field("item", ExprType.String)) with { Name = key };
         foreach (var node in config.Nodes)
         {
             switch (node)
             {
                 case DrawNode d when IsReelDraw(d, config):
-                    // A reel-strip draw publishes board + dims (GraphCompiler).
-                    fields[d.BoardStateKey ?? GridState.CellsKey] = ExprType.Array;
-                    items[d.BoardStateKey ?? GridState.CellsKey] = ExprType.String;
-                    empty.Remove(d.BoardStateKey ?? GridState.CellsKey);
-                    fields[GridState.RowsKey] = ExprType.Number;
-                    fields[GridState.ColsKey] = ExprType.Number;
-                    if (d.StateWriteKey != null) fields[d.StateWriteKey] = ExprType.String;
+                    WriteArray(d.BoardStateKey ?? GridState.CellsKey);
+                    Write(GridState.RowsKey, ExprType.Number); Write(GridState.ColsKey, ExprType.Number);
+                    if (d.StateWriteKey != null) Write(d.StateWriteKey, ExprType.String);
                     break;
                 case DrawNode d:
-                    // A weighted value draw may publish a board key / outcome id.
-                    if (d.BoardStateKey != null) { fields[d.BoardStateKey] = ExprType.Array; items[d.BoardStateKey] = ExprType.String; empty.Remove(d.BoardStateKey); }
-                    if (d.StateWriteKey != null) fields[d.StateWriteKey] = ExprType.String;
+                    if (d.BoardStateKey != null) WriteArray(d.BoardStateKey);
+                    if (d.StateWriteKey != null) Write(d.StateWriteKey, ExprType.String);
                     break;
-                case DataNode dn:
-                    fields[dn.StateKey] = ExprType.Array;
-                    items[dn.StateKey] = ExprType.String;
-                    empty.Remove(dn.StateKey);
-                    break;
+                case DataNode dn: WriteArray(dn.StateKey); break;
                 case PutStateNode p:
-                    if (!fields.ContainsKey(p.StateKey)) fields[p.StateKey] = ExprType.Number;
+                    if (!fields.ContainsKey(p.StateKey)) Write(p.StateKey, ExprType.Number);
                     break;
-                case LoopNode l:
-                    fields[$"__iter_{l.Id}__"] = ExprType.Number;
-                    fields[$"__wins_{l.Id}__"] = ExprType.Number;
-                    break;
+                case LoopNode l: Write($"__iter_{l.Id}__", ExprType.Number); Write($"__wins_{l.Id}__", ExprType.Number); break;
             }
         }
-
-        // (2) Provisional seed for ModifyState output keys (shape of the writer).
         foreach (var m in config.Nodes.OfType<ModifyStateNode>())
-        {
-            if (m.OutputKey == null || authored.Contains(m.OutputKey)) continue;
-            if (!fields.ContainsKey(m.OutputKey))
-                fields[m.OutputKey] = ProvisionalType(LookupExpr(config, m.ExpressionId));
-        }
-
-        // (3) Author StateSchema overrides (explicit, optional).
+            if (m.OutputKey != null && !fields.ContainsKey(m.OutputKey)) Write(m.OutputKey, ProvisionalType(LookupExpr(config, m.ExpressionId)));
         foreach (var sf in config.StateSchema)
-            fields[sf.Name] = MapType(sf.Type);
-
-        // (4) Fixpoint: a ModifyState output's type IS the type of its expression.
+        {
+            var type = MapType(sf.Type);
+            if (!fields.TryGetValue(sf.Name, out var known) || known.Type != type) Write(sf.Name, type);
+        }
+        var writers = config.Nodes.OfType<ModifyStateNode>().Where(m => m.OutputKey != null).GroupBy(m => m.OutputKey!).ToArray();
         for (var pass = 0; pass <= config.Nodes.OfType<ModifyStateNode>().Count(); pass++)
         {
-            var ctx = BuildContext(config, fields, items, empty);
+            var ctx = BuildContext(fields);
             var changed = false;
-            foreach (var m in config.Nodes.OfType<ModifyStateNode>())
+            foreach (var group in writers)
             {
-                if (m.OutputKey == null || authored.Contains(m.OutputKey)) continue;
-                var expr = LookupExpr(config, m.ExpressionId);
-                if (expr == null) continue;
-                var t = ExpressionTypeChecker.InferType(expr, ctx);
-                if (t != ExprType.Error && fields.GetValueOrDefault(m.OutputKey) != t)
+                var inferred = group.Select(m => LookupExpr(config, m.ExpressionId))
+                    .Select(e => e is not null ? ExpressionShapes.Infer(e, ctx) : null).ToArray();
+                var shape = inferred.Aggregate(ExpressionShapes.Join);
+                if (config.InitialState?.TryGetValue(group.Key, out var initialValue) == true)
+                    shape = ExpressionShapes.Join(ExpressionShapes.FromJson(group.Key, initialValue), shape);
+                if (shape is null) shape = ExpressionShapes.Field(group.Key, ExprType.Error);
+                if (authored.Contains(group.Key))
                 {
-                    fields[m.OutputKey] = t;
-                    changed = true;
+                    // An explicit scalar type cannot invent record fields or
+                    // restore a conflicting array's homogeneous item shape.
+                    if (fields[group.Key].Type != shape.Type) continue;
                 }
-            }
-            foreach (var writers in config.Nodes.OfType<ModifyStateNode>().Where(m => m.OutputKey != null).GroupBy(m => m.OutputKey!))
-            {
-                var inferred = writers.Select(m => LookupExpr(config, m.ExpressionId))
-                    .Select(e => e is not null ? ArrayExpressionTypes.Infer(e, ctx) : default).ToArray();
-                var shape = inferred.Aggregate(ArrayExpressionType.Join);
-                var itemType = fields.GetValueOrDefault(writers.Key) == ExprType.Array ? shape.ItemType : null;
-                if (items.GetValueOrDefault(writers.Key) != itemType)
-                {
-                    items[writers.Key] = itemType;
-                    changed = true;
-                }
-                if (shape.IsEmpty != empty.Contains(writers.Key))
-                {
-                    if (shape.IsEmpty) empty.Add(writers.Key); else empty.Remove(writers.Key);
-                    changed = true;
-                }
+                shape = shape with { Name = group.Key };
+                if (!ExpressionShapes.Same(fields[group.Key], shape)) { fields[group.Key] = shape; changed = true; }
             }
             if (!changed) break;
         }
-
-        return fields.Select(kv => new FieldDescriptor { Name = kv.Key, Type = kv.Value, ArrayItemType = items.GetValueOrDefault(kv.Key), ArrayIsEmpty = empty.Contains(kv.Key) })
-                     .OrderBy(f => f.Name, StringComparer.Ordinal)
-                     .ToList();
+        return fields.Values.OrderBy(f => f.Name, StringComparer.Ordinal).ToArray();
     }
 
     private static bool IsReelDraw(DrawNode d, GraphConfig config) =>
@@ -178,30 +128,17 @@ public static class StateSchemaDeriver
         "string" => ExprType.String,
         "boolean" => ExprType.Boolean,
         "array" => ExprType.Array,
+        "record" => ExprType.Record,
+        "null" => ExprType.Null,
         _ => ExprType.Number,
     };
 
-    private static ExprType? JsonScalarType(System.Text.Json.JsonElement value) => value.ValueKind switch
+    private static TypeCheckContext BuildContext(Dictionary<string, FieldDescriptor> fields) => new()
     {
-        System.Text.Json.JsonValueKind.Number => ExprType.Number,
-        System.Text.Json.JsonValueKind.String => ExprType.String,
-        System.Text.Json.JsonValueKind.True or System.Text.Json.JsonValueKind.False => ExprType.Boolean,
-        _ => null,
+        ExpectedType = ExprType.Number,
+        BoardFields = TypeCheckContext.Default.BoardFields,
+        StateFields = fields.Values.ToArray(),
+        CellFields = TypeCheckContext.Default.CellFields,
+        DecorationTypes = TypeCheckContext.Default.DecorationTypes,
     };
-
-    private static TypeCheckContext BuildContext(GraphConfig config, Dictionary<string, ExprType> fields, Dictionary<string, ExprType?> items, HashSet<string> empty)
-    {
-        var stateFields = fields.Select(kv => new FieldDescriptor { Name = kv.Key, Type = kv.Value, ArrayItemType = items.GetValueOrDefault(kv.Key), ArrayIsEmpty = empty.Contains(kv.Key) }).ToList();
-        // Synthetic "expressions" accessor (named expression references).
-        if (config.Expressions is { Count: > 0 })
-            stateFields.Add(new FieldDescriptor { Name = "expressions", Type = ExprType.Number });
-        return new TypeCheckContext
-        {
-            ExpectedType = ExprType.Number,
-            BoardFields = TypeCheckContext.Default.BoardFields,
-            StateFields = stateFields,
-            CellFields = TypeCheckContext.Default.CellFields,
-            DecorationTypes = TypeCheckContext.Default.DecorationTypes,
-        };
-    }
 }

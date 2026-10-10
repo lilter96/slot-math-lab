@@ -1,5 +1,22 @@
 import { expect } from '../../frontend/node_modules/@playwright/test/index.mjs';
 
+/** Compose starting a container does not establish HTTP readiness. Probe the
+ * unauthenticated status endpoint before opening the sign-in workflow. */
+export async function waitForDeployment(request, base, timeout = 45000) {
+  const deadline = Date.now() + timeout;
+  while (Date.now() < deadline) {
+    try {
+      const response = await request.get(base + '/api/auth/status', { timeout: 5000 });
+      if (response.status() === 200) return;
+      if (![502, 503, 504].includes(response.status())) throw new Error(`Deployment readiness HTTP ${response.status()}`);
+    } catch (error) {
+      if (error.message?.startsWith('Deployment readiness HTTP')) throw error;
+    }
+    await new Promise(resolve => setTimeout(resolve, 1000));
+  }
+  throw new Error('Deployment did not expose its authentication status before the readiness deadline.');
+}
+
 /** Positive-path launch evidence must come from the accepted request. Explicit
  * quota rejections belong to the UI retry contract, never to run JSON. Other
  * responses fail immediately so validation/authentication errors stay visible. */

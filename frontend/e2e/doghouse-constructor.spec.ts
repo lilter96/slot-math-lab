@@ -3,7 +3,7 @@ import fs from 'node:fs/promises';
 async function build(page: import('@playwright/test').Page) { await page.goto('/build'); await page.getByRole('button', { name: 'Build Dog House graph', exact: true }).click(); }
 async function focus(page: import('@playwright/test').Page, id: string) { await page.getByLabel('Focus graph node').selectOption(id); }
 
-test('A fresh Build opens the complete model and all math graphs without loading a preset manually', async ({ page }) => {
+test('A fresh Build opens the complete model and all math graphs without loading a preset manually', { tag: '@critical' }, async ({ page }) => {
   await page.goto('/build');
   await expect(page.locator('.react-flow__node')).toHaveCount(12);
   await expect(page.getByTestId('model-navigation')).toContainText('target 98%');
@@ -40,7 +40,7 @@ test('A direct model link opens the full canvas and retains edits saved inside a
   await expect(page.getByLabel('Data row 11', { exact: true })).toHaveValue('200');
 });
 
-test('Dog House math is editable in nested constructor graphs and affects actual payouts', async ({ page }) => {
+test('Dog House math is editable in nested constructor graphs and affects actual payouts', { tag: '@critical' }, async ({ page }) => {
   await build(page);
   await focus(page, 'base-spin'); await page.getByRole('button', { name: 'Open subgraph', exact: true }).click();
   await focus(page, 'wild-1'); await expect(page.getByLabel('Outcome 2 weight')).toHaveValue('1');
@@ -71,7 +71,7 @@ test('Dog House math is editable in nested constructor graphs and affects actual
   await page.getByRole('button', { name: 'Close dialog', exact: true }).click();
 });
 
-test('All modes and independent rational expectation run through the real UI graph pipeline', async ({ page }) => {
+test('All modes and independent rational expectation run through the real UI graph pipeline', { tag: '@critical' }, async ({ page }) => {
   test.setTimeout(90000);
   await build(page); await page.getByRole('tab', { name: 'Play', exact: true }).click();
   await page.getByRole('button', { name: 'Verify RTP', exact: true }).click();

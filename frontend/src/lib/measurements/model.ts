@@ -4,7 +4,9 @@ import type { MeasurementAnalysis, MeasurementOptions } from './analysis';
 export interface MeasurementDefinition { id: string; name: string; nodeId: string | null; value: ExpressionAst | null; filter: ExpressionAst | null; unit: string; options?: MeasurementOptions }
 export interface MeasurementWitness { roundIndex: number; observationOrdinal: number; nodeId: string | null; kind: string; value: number | null; pair: number | null; group: string | null; detail: string | null }
 export interface MeasurementSnapshot { witnesses?: MeasurementWitness[]; id: string; observations: number; count: number; excluded: number; errors: number; min: number | null; max: number | null; mean: number | null; sum: number | null; stdDev: number | null; firstError: string | null; analysis?: MeasurementAnalysis | null }
-export interface MeasurementSchema { points: { nodeId: string; label: string }[]; fields: { name: string; type: string }[] }
+export interface MeasurementSchema { points: { nodeId: string; label: string }[]; fields: { name: string; type: string; path?: string[] | null }[] }
+export const stateFieldExpression = (field: MeasurementSchema['fields'][number]) =>
+  `state${(field.path ?? [field.name]).map(segment => `[${JSON.stringify(segment)}]`).join('')}`;
 export function measurementPopulation(value: { nodeId?: string | null; options?: MeasurementOptions }): string {
   if (value.options?.subject === 'episode') return 'feature episodes';
   if (value.options?.subject === 'transition') return 'state transitions';

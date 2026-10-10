@@ -23,11 +23,20 @@ public sealed class ArrayElementSchemaTests
     [Theory]
     [InlineData("[]")]
     [InlineData("[1,\"A\"]")]
-    [InlineData("[[1],[2]]")]
     public void UnknownOrMixedItemsAreNeverInventedAsNumbers(string json)
     {
         var fields = StateSchemaDeriver.Derive(new GraphConfig { SchemaVersion = "1.0.0", InitialState = new() { ["values"] = JsonSerializer.Deserialize<JsonElement>(json) } });
         Assert.Null(new TypeCheckContext { StateFields = fields }.ResolvePath(["values", "0"], "state"));
+    }
+
+    [Fact]
+    public void NestedArraysRetainTheirContainerAndLeafTypes()
+    {
+        var fields = StateSchemaDeriver.Derive(new GraphConfig { SchemaVersion = "1.0.0", InitialState = new() { ["values"] = JsonSerializer.Deserialize<JsonElement>("[[1],[2]]") } });
+        var context = new TypeCheckContext { StateFields = fields };
+        Assert.Equal(ExprType.Array, context.ResolvePath(["values", "0"], "state"));
+        Assert.Equal(ExprType.Number, context.ResolvePath(["values", "0", "0"], "state"));
+        Assert.Null(context.ResolvePath(["values", "0", "0", "unsupported"], "state"));
     }
 
     [Fact]

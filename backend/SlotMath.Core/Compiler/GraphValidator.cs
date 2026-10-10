@@ -50,18 +50,27 @@ public static class GraphValidator
         var adjacency = BuildAdjacency(config);
         ValidateAcyclicityAndReachability(config, adjacency, errors);
 
-        // 4. Expression type-checking
-        ValidateExpressions(config, typeCheckContext, errors);
-        if (errors.Count == 0)
-        {
+        // Resolve named references before checking the expression they denote.
+        // References are compile-time syntax, never permissive state paths.
+        foreach (var (name, expression) in config.Expressions ?? new())
+            if (!ExpressionCost.WithinBudget(expression, out var cost))
+                errors.Add(new CompileError { Code = ErrorCodes.ExpressionBudgetExceeded,
+                    Message = $"Expression '{name}' has static cost {cost}, exceeding {SlotMathConstants.Expression.MaxOps} operations." });
+        if (errors.Any(e => e.Code == ErrorCodes.ExpressionBudgetExceeded)) return errors;
         try { config = ExpressionResolver.Resolve(config); }
         catch (CompilationException ex)
         {
             errors.Add(new CompileError { NodeId = ex.NodeId, Code = ex.ErrorCode, Message = ex.Message });
             return errors;
         }
-
+        catch (System.Text.Json.JsonException)
+        {
+            errors.Add(new CompileError { Code = ErrorCodes.ExpressionTypeError,
+                Message = "An expression exceeds the supported serialization depth or contains invalid reference data." });
+            return errors;
         }
+        // 4. Expression type-checking
+        ValidateExpressions(config, typeCheckContext, errors);
 
         // 5. Plugin validation
         ValidatePlugins(config, pluginHost, errors);

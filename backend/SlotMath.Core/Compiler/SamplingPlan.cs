@@ -79,7 +79,8 @@ internal sealed class SamplingPlan
         foreach (var (key, value) in config.InitialState ?? new())
         {
             var cell = SamplingCell.FromRaw(InitialStateValues.Materialize(value));
-            defaults[SlotIndex(key)] = cell; _expressions.Remember(cell.Value);
+            defaults[SlotIndex(key)] = cell;
+            if (cell.TryCachedValue(out var valueToRemember)) _expressions.Remember(valueToRemember);
         }
         var sink = config.Nodes.OfType<MetricsSinkNode>().Single();
         _cap = new BigInteger(sink.WinCap!.Value) * scale;

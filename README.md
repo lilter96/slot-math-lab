@@ -18,7 +18,7 @@ Start with [the core](backend/SlotMath.Core), [cross-check tests](backend/SlotMa
 
 This is an experimental engineering showcase. It has no gambling certification, production-readiness claim, or proven plugin security boundary. The bundled database credentials and default JWT settings are development defaults; replace them before any hosted deployment. Plugin support must be treated as trusted-code experimentation.
 
-The latest existing GitHub CI run was unsuccessful; browser E2E and the complete deployment path need further verification. Local verification on 2026-10-07: **704 core tests passed** with .NET SDK 10.0.112 and Node 22.23.3; the frontend production build passed. API integration tests and browser E2E were not rerun during this publication review.
+Current local, remote CI and authenticated deployment evidence is recorded in the [verification ledger](docs/verification/METRICS_IMPLEMENTATION.md), including retry-assisted passes and remaining metric prerequisites. The [verification strategy](docs/TESTING.md) keeps all Core/API and frontend logic checks on every change, selects 14 critical browser workflows for ordinary CI, and retains the complete browser regression for nightly/manual runs and release verification.
 
 ## Development workflow
 

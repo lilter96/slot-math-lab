@@ -105,7 +105,7 @@ public static class ExactExpressionEvaluator
                 ParseRational(c.Value),
             ConstantKind.Boolean => ExprValue.Bool(bool.Parse(c.Value)),
             ConstantKind.String => ExprValue.String(c.Value),
-            _ => ExprValue.Number(0),
+            _ => throw new ExpressionEvaluationException("EVAL_INVALID_CONSTANT", "Unknown constant kind."),
         };
     }
 
@@ -128,138 +128,10 @@ public static class ExactExpressionEvaluator
     {
         if (f.Target == "measurement") return f.Path.Length == 1 && ctx.Measurement is { } settlement ? settlement.Read(f.Path[0])
             : throw new ExpressionEvaluationException("EVAL_MISSING_SETTLEMENT", "Settlement fields exist only at completed-round measurement points.");
-        // All field access reads from state (invariant 4: the engine has no
-        // Board type — a "board" is a user-defined array in state S, read via
-        // state["board"] + fold/map/filter/aggregate).
-        if (f.Path.Length > 0)
-        {
-            return EvalStateField(f.Path, ctx.State);
-        }
-
-        return ExprValue.Number(0);
+        if (f.Target is not (null or "state" or "board"))
+            throw new ExpressionEvaluationException("EVAL_INVALID_TARGET", "Unknown field namespace.", f.Target);
+        return StateValues.Read(ctx.State, f.Path);
     }
-
-    private static ExprValue EvalStateField(string[] path, object? state)
-    {
-        if (state == null) throw new ExpressionEvaluationException("EVAL_MISSING_STATE", "State is absent.", string.Join(".", path));
-
-        // Handle Dictionary<string, object?> state (used by GraphCompiler)
-        if (state is IDictionary<string, object?> dict)
-        {
-            var key = path[0];
-            if (!dict.TryGetValue(key, out var dictVal))
-                throw new ExpressionEvaluationException("EVAL_MISSING_STATE", $"State field '{key}' is absent.", string.Join(".", path));
-
-            // Nested record field access: state["cell"]["symbol"] via
-            // path = ["cell", "field", ...].  A "cell" element of a board array
-            // is a Dictionary (invariant 4: cells are records, not a BoardCell
-            // type), so descend through dictionary-valued entries by key.
-            if (path.Length >= 2 && dictVal is IDictionary<string, object?> nestedDict
-                && !int.TryParse(path[1], out _))
-            {
-                return EvalStateField(path[1..], nestedDict);
-            }
-
-            // Array index access: state["key"][idx] via path = ["key", "idx"].
-            // D1: an out-of-range index into an array is a located, deterministic
-            // error — never a silent value.
-            if (path.Length == 2 && int.TryParse(path[1], out var idx))
-            {
-                switch (dictVal)
-                {
-                    case string[] sarr:
-                        if (idx < 0 || idx >= sarr.Length)
-                            throw IndexError(key, idx, sarr.Length);
-                        return ExprValue.String(sarr[idx]);
-                    case object[] oarr:
-                        if (idx < 0 || idx >= oarr.Length)
-                            throw IndexError(key, idx, oarr.Length);
-                        return ToExprValue(oarr[idx]);
-                    case ExprValue { Kind: ExprType.Array } typed:
-                        if (idx < 0 || idx >= typed.ArrayValue!.Count) throw IndexError(key, idx, typed.ArrayValue!.Count);
-                        return typed.ArrayValue![idx];
-                    case System.Collections.IList list:
-                        if (idx < 0 || idx >= list.Count) throw IndexError(key, idx, list.Count);
-                        return ToExprValue(list[idx]);
-                    default:
-                        throw new ExpressionEvaluationException("EVAL_TYPE_ERROR", $"State field '{key}' must be an array for indexed access.", key);
-                }
-            }
-
-            return ToExprValue(dictVal);
-        }
-
-        var t = state.GetType();
-        var prop = t.GetProperty(string.Join("", path.Select(s =>
-            s.Length > 0 ? char.ToUpper(s[0]) + s[1..] : s)));
-
-        if (prop != null)
-        {
-            var val = prop.GetValue(state);
-            return val switch
-            {
-                BigInteger bi => ExprValue.Number(bi),
-                int i => ExprValue.Number(i),
-                long l => ExprValue.Number(l),
-                double d => NumericValues.FromDouble(d),
-                float n => NumericValues.FromDouble(n),
-                decimal n => NumericValues.FromDecimal(n),
-                bool b => ExprValue.Bool(b),
-                string s => ExprValue.String(s),
-                _ => ExprValue.Number(0),
-            };
-        }
-
-        // Try direct field name match (case-insensitive)
-        prop = t.GetProperties()
-            .FirstOrDefault(p => string.Equals(p.Name, path[0], StringComparison.OrdinalIgnoreCase));
-        if (prop != null)
-        {
-            var val = prop.GetValue(state);
-            return val switch
-            {
-                BigInteger bi => ExprValue.Number(bi),
-                int i => ExprValue.Number(i),
-                long l => ExprValue.Number(l),
-                double d => NumericValues.FromDouble(d),
-                float n => NumericValues.FromDouble(n),
-                decimal n => NumericValues.FromDecimal(n),
-                bool b => ExprValue.Bool(b),
-                string s => ExprValue.String(s),
-                _ => ExprValue.Number(0),
-            };
-        }
-
-        return ExprValue.Number(0);
-    }
-
-    private static ExpressionEvaluationException IndexError(string key, int idx, int length) =>
-        new(EvalErrorCodes.IndexOutOfRange,
-            $"Index {idx} is out of range [0, {length}) for state array '{key}' (D1).",
-            $"{key}[{idx}]");
-
-    /// <summary>
-    /// Convert a raw state value to an ExprValue.  Arrays (string[]/object?[]/
-    /// lists, e.g. a board) become <see cref="ExprValue.Array"/> so expressions
-    /// can use contains/length/append and index-aware map/fold/filter (invariant 4).
-    /// </summary>
-    private static ExprValue ToExprValue(object? value) => value switch
-    {
-        BigInteger bi => ExprValue.Number(bi),
-        int i => ExprValue.Number(i),
-        long l => ExprValue.Number(l),
-        double d => NumericValues.FromDouble(d),
-        float n => NumericValues.FromDouble(n),
-        decimal n => NumericValues.FromDecimal(n),
-        string s => ExprValue.String(s),
-        bool b => ExprValue.Bool(b),
-        ExprValue ev => ev,
-        null => ExprValue.Number(0),
-        string[] sarr => ExprValue.Array(Array.ConvertAll(sarr, x => ToExprValue(x))),
-        object?[] oarr => ExprValue.Array(Array.ConvertAll(oarr, ToExprValue)),
-        System.Collections.IEnumerable e => ExprValue.Array(e.Cast<object?>().Select(ToExprValue).ToList()),
-        _ => ExprValue.Number(0),
-    };
 
     private static ExprValue EvalBinary(BinaryExpr b, EvalContext ctx)
     {
@@ -312,6 +184,8 @@ public static class ExactExpressionEvaluator
     {
         var l = Eval(c.Left, ctx);
         var r = Eval(c.Right, ctx);
+        if (c.Op is CompareOp.Eq or CompareOp.Neq && l.Kind == r.Kind && l.Kind is ExprType.Record or ExprType.Array or ExprType.Null)
+            return ExprValue.Bool(c.Op == CompareOp.Eq ? l.Equals(r) : !l.Equals(r));
 
         if (l.Kind == ExprType.Number && r.Kind == ExprType.Number)
         {
@@ -511,6 +385,7 @@ public static class ExactExpressionEvaluator
         {
             return val switch
             {
+                null => throw new ExpressionEvaluationException("EVAL_NULL_VALUE", $"State field '{key}' is null; supply an explicit array.", key),
                 string[] sarr => sarr.Cast<object?>(),
                 object[] oarr => oarr,
                 ExprValue { Kind: ExprType.Array } typed => typed.ArrayValue!.Cast<object?>(),
@@ -588,20 +463,7 @@ public static class ExactExpressionEvaluator
         return ExprValue.Array(result);
     }
 
-    private static ExprValue ObjectToExprValue(object? item) => item switch
-    {
-        string s => ExprValue.String(s),
-        BigInteger bi => ExprValue.Number(bi),
-        int i => ExprValue.Number(i),
-        long l => ExprValue.Number(l),
-        double d => NumericValues.FromDouble(d),
-        float n => NumericValues.FromDouble(n),
-        decimal n => NumericValues.FromDecimal(n),
-        bool b => ExprValue.Bool(b),
-        ExprValue ev => ev,
-        null => ExprValue.Number(0),
-        _ => ExprValue.Number(0),
-    };
+    private static ExprValue ObjectToExprValue(object? item) => StateValues.Convert(item);
 
     // ── Built-in function calls ──────────────────────────────────────────
 
@@ -632,7 +494,7 @@ public static class SampledExpressionEvaluator
         {
             ExprType.Number => v.AsDouble(),
             ExprType.Boolean => v.BoolValue ? 1.0 : 0.0,
-            _ => 0.0,
+            _ => throw new ExpressionEvaluationException("EVAL_TYPE_ERROR", "Numeric or Boolean expression required."),
         };
     }
 
@@ -640,7 +502,7 @@ public static class SampledExpressionEvaluator
     public static bool EvaluateAsBool(Expression expr, EvalContext ctx)
     {
         var v = ExactExpressionEvaluator.Evaluate(expr, ctx);
-        return v.Kind == ExprType.Boolean && v.BoolValue;
+        return v.Kind == ExprType.Boolean ? v.BoolValue : throw new ExpressionEvaluationException("EVAL_TYPE_ERROR", "Boolean expression required.");
     }
 
     /// <summary>Evaluate and return as BigInteger (via the exact evaluator).</summary>

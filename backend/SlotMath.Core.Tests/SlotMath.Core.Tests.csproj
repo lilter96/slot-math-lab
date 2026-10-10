@@ -31,6 +31,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Content Include="../../frontend/e2e/fixtures/record-model.json" Link="TestData/record-model.json" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="TestData\**\*.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>

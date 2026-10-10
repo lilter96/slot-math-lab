@@ -1,7 +1,7 @@
 import { saveMeasurement, waitForRunLaunch, test, expect, getWithQuota } from './fixtures';
 import { readFile } from 'node:fs/promises';
 
-test('A failed feature keeps interrupted boundaries in live and saved UI without publishing partial values', async ({ page, request }) => {
+test('A failed feature keeps interrupted boundaries in live and saved UI without publishing partial values', { tag: '@critical' }, async ({ page, request }) => {
   test.setTimeout(240000);
   // Manual oracle: feature entry precedes a division by zero; no reveal, exit or paid settlement occurs.
   await page.goto('/build'); await page.getByLabel('Import project file').setInputFiles('e2e/fixtures/interrupted-feature-model.json');

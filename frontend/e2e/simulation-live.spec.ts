@@ -87,7 +87,7 @@ test('Fast completion renders chart and distribution and restores them after nav
   await expect(page.locator('.run-status')).toHaveText('completed');
 });
 
-test('Evidence export recovers a quota rejection and withholds files on errors, wrong identity and cancelled reads', async ({ page }) => {
+test('Evidence export recovers a quota rejection and withholds files on errors, wrong identity and cancelled reads', { tag: '@critical' }, async ({ page }) => {
   test.setTimeout(180000);
   await page.goto('/build'); await page.getByRole('button', { name: 'Load coin example' }).click();
   await page.getByRole('tab', { name: 'Simulate', exact: true }).click(); await page.getByLabel('Simulation spins').fill('100');
@@ -126,7 +126,7 @@ test('Evidence export recovers a quota rejection and withholds files on errors, 
   expect(downloads).toHaveLength(1); expect(calls).toBe(1);
 });
 
-test('Mobile simulation dashboard fits viewport and exposes controls and charts', async ({ page }) => {
+test('Mobile simulation dashboard fits viewport and exposes controls and charts', { tag: '@critical' }, async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto('/build?project=dog-house');
   await page.getByRole('tab', { name: 'Simulate', exact: true }).click();

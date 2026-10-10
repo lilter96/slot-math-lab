@@ -46,6 +46,14 @@ public sealed class GraphCompiler
     private readonly bool _allowPlugins;
     private readonly bool _optimizeSampling;
 
+    private static IEnumerable<MeasurementField> MeasurementFields(FieldDescriptor field, string[] path)
+    {
+        yield return new(string.Join('.', path), field.Type.ToString(), path);
+        // Offer record leaves without inventing indices into variable-length arrays.
+        foreach (var child in field.RecordFields)
+            foreach (var nested in MeasurementFields(child, [.. path, child.Name])) yield return nested;
+    }
+
     public GraphCompiler(PluginHost? pluginHost = null, bool allowPlugins = true, bool optimizeSampling = true)
     {
         _pluginHost = pluginHost;
@@ -107,7 +115,7 @@ public sealed class GraphCompiler
             config = ExpressionResolver.Resolve(config);
             var fields = StateSchemaDeriver.Derive(config);
             var schema = new MeasurementSchema(config.Nodes.Select(n => new MeasurementPoint(n.Id, n.Label ?? n.Id)).ToArray(),
-                fields.Select(f => new MeasurementField(f.Name, f.Type.ToString())).ToArray());
+                fields.SelectMany(field => MeasurementFields(field, [field.Name])).ToArray());
             var measurementErrors = ValidateMeasurements(config, fields, measurements ?? []);
             if (measurementErrors.Count > 0) return CompileResult.Failure(measurementErrors);
             var builder = new ProgramBuilder(config, _pluginHost, measurements ?? []);

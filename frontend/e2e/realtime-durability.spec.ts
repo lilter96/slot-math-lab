@@ -26,7 +26,7 @@ async function stopped(page: Page, request: APIRequestContext, id: string) {
   expect(JSON.parse(snapshot.resultJson).sampleCount).toBe(snapshot.progress.sampleCount);
   return snapshot;
 }
-test('app shell preserves one socket and live observations across constructor navigation', async ({ page, request }) => {
+test('app shell preserves one socket and live observations across constructor navigation', { tag: '@critical' }, async ({ page, request }) => {
   let sockets = 0; page.on('websocket', () => sockets++);
   const run = await launch(page), before = await count(page);
   for (let i = 0; i < 3; i++) {
@@ -38,7 +38,7 @@ test('app shell preserves one socket and live observations across constructor na
   await stopped(page, request, run.id);
 });
 
-test('established sockets recover repeatedly with stable run identity and cumulative metrics', async ({ page, request }) => {
+test('established sockets recover repeatedly with stable run identity and cumulative metrics', { tag: '@critical' }, async ({ page, request }) => {
   test.setTimeout(45000);
   const sockets: WebSocketRoute[] = [];
   await page.routeWebSocket('**/hubs/runs?*', socket => { sockets.push(socket); socket.connectToServer(); });
@@ -87,7 +87,7 @@ test('negotiation quota delays survive SignalR wrapping and manual wake without 
   expect(final.configHash).toBe(run.configHash); expect(final.seed).toBe(run.seed);
 });
 
-test('negotiation authentication failure pauses a healthy HTTP run until explicit authentication wake', async ({ page, request }) => {
+test('negotiation authentication failure pauses a healthy HTTP run until explicit authentication wake', { tag: '@critical' }, async ({ page, request }) => {
   let socket: WebSocketRoute;
   await page.routeWebSocket('**/hubs/runs?*', route => { socket = route; route.connectToServer(); });
   const run = await launch(page), before = await count(page);

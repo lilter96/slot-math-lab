@@ -16,7 +16,7 @@ async function declare(page: Page) {
   await page.getByRole('button', { name: 'Add required check', exact: true }).click(); await page.getByLabel('Required measurement 2').selectOption({ label: 'Mean Y' });
   await page.getByLabel('Required check 2', { exact: true }).selectOption('mean-equivalence'); await page.getByLabel('Required minimum 2').fill('1000');
 }
-test('Native predeclared mean family rejects underallocation, retains final criteria and replays the original profile in the reference engine', async ({ page }) => {
+test('Native predeclared mean family rejects underallocation, retains final criteria and replays the original profile in the reference engine', { tag: '@critical' }, async ({ page }) => {
   test.setTimeout(240000);
   await page.goto('/build'); await page.getByLabel('Import project file').setInputFiles('e2e/fixtures/component-accounting-model.json'); await page.getByRole('tab', { name: 'Simulate', exact: true }).click();
   await metric(page, 'x'); await metric(page, 'y'); await declare(page);

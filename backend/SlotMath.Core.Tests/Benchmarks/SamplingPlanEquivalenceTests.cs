@@ -105,8 +105,13 @@ public class SamplingPlanEquivalenceTests
     {
         var state = new Dict { ["record"] = new Dict { ["a"] = new Dict { ["b"] = new BigInteger(7) } }, ["values"] = new object?[] { 8L, ExprValue.Rational(1, 3), null, true, "2", new object[] { 1 } }, ["rawTypedArray"] = ExprValue.Array([ExprValue.Number(3)]), ["list"] = new List<object?> { 5L, "6" } };
         Equivalent(new FieldAccessExpr { Path = ["record", "a", "b"] }, state);
-        for (var i = 0; i < 6; i++) Equivalent(new FieldAccessExpr { Path = ["values", i.ToString()] }, state);
-        Equivalent(new MapExpr { StateKey = "values", ItemName = "item", Body = F("item") }, state);
+        for (var i = 0; i < 6; i++) if (i != 2) Equivalent(new FieldAccessExpr { Path = ["values", i.ToString()] }, state);
+        var nullRead = new FieldAccessExpr { Path = ["values", "2"] };
+        Assert.Equal("EVAL_NULL_VALUE", Assert.Throws<ExpressionEvaluationException>(() => ExactExpressionEvaluator.Evaluate(nullRead, new() { State = state })).Code);
+        Assert.Equal("EVAL_NULL_VALUE", Assert.Throws<ExpressionEvaluationException>(() => Native(nullRead, state, out _)).Code);
+        var map = new MapExpr { StateKey = "values", ItemName = "item", Body = F("item") };
+        Assert.Equal("EVAL_NULL_VALUE", Assert.Throws<ExpressionEvaluationException>(() => ExactExpressionEvaluator.Evaluate(map, new() { State = state })).Code);
+        Assert.Equal("EVAL_NULL_VALUE", Assert.Throws<ExpressionEvaluationException>(() => Native(map, state, out _)).Code);
         Equivalent(new FilterExpr { StateKey = "values", ItemName = "item", Predicate = new ConstantExpr { Kind = ConstantKind.Boolean, Value = "true" } }, state);
         Equivalent(F("record"), state);
         Equivalent(new FoldExpr { StateKey = "rawTypedArray", ItemName = "item", AccName = "acc", Init = N(9), Body = N(0) }, state);

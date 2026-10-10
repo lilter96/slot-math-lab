@@ -67,7 +67,8 @@ test('Native reference workbench proves equal-RTP moments and rejects a closed f
   await page.getByLabel('Reference model type').selectOption('stationary'); await page.getByRole('button', { name: 'Load independent example', exact: true }).click(); await calculateWithQuota(page, '/api/runs/measurements/reference/markov', 'Calculate exact reference'); await expect(result).toContainText('long-run'); await expect(result).toContainText('49/50');
   await page.locator('#sample-planning > summary').click(); await calculateWithQuota(page, '/api/runs/measurements/reference/planning', 'Calculate observation budget'); await expect(page.getByLabel('Observation planning result')).toContainText('29,957,322'); await expect(page.getByLabel('Observation planning result')).toContainText('detection budget: insufficient');
 });
-test('Catalogue recipe becomes a visual Boolean AST and fixed-horizon session evidence survives reload', async ({ page }) => {
+test('Catalogue recipe becomes a visual Boolean AST and fixed-horizon session evidence survives reload', { tag: '@critical' }, async ({ page }) => {
+  test.setTimeout(180000);
   await page.goto('/build'); await page.getByLabel('Import project file').setInputFiles('e2e/fixtures/measurement-model.json');
   await page.getByRole('tab', { name: 'Simulate', exact: true }).click();
   await page.locator('#metric-catalogue > summary').click(); await page.getByLabel('Search metric catalogue').fill('zero-payout');
@@ -92,7 +93,21 @@ test('Catalogue recipe becomes a visual Boolean AST and fixed-horizon session ev
   expect(evidence.run.runtimeProvenance.coreBinarySha256).toMatch(/^[a-f0-9]{64}$/);
   await expect(page.locator('.simulation-heading')).toContainText('independent sessions of 10 paid rounds');
   await page.locator('.loop-termination-evidence > summary').click(); await expect(page.getByRole('row', { name: /fs 1,000 0 1,000/ })).toBeVisible();
-  await page.reload(); await expect(page.getByLabel('Execution and session evidence')).toContainText('First feature wait');
+  let recoveryRejected = false; const recoveryAttempts: number[] = [];
+  // Keep socket recovery unavailable so the deliberately delayed HTTP read
+  // actually owns this restoration, rather than racing a successful hub replay.
+  await page.route('**/hubs/runs/negotiate**', route => route.fulfill({ status: 503, body: '' }));
+  await page.route(`**/api/runs/${created.id}`, async route => {
+    recoveryAttempts.push(Date.now());
+    if (!recoveryRejected) { recoveryRejected = true; await route.fulfill({ status: 429, headers: { 'Retry-After': '6' }, body: '' }); }
+    else await route.continue();
+  });
+  const restored = page.waitForResponse(r => new URL(r.url()).pathname === `/api/runs/${created.id}` && r.status() === 200, { timeout: 70000 });
+  await page.reload();
+  await expect(page.getByRole('status').filter({ hasText: 'Recovering final evidence' })).toBeVisible();
+  await restored; expect(recoveryAttempts[1] - recoveryAttempts[0]).toBeGreaterThanOrEqual(5900);
+  await expect(page.getByLabel('Execution and session evidence')).toContainText('First feature wait');
+  await expect(page.getByRole('status').filter({ hasText: 'Recovering final evidence' })).toHaveCount(0);
   await page.goto(`/results?run=${created.id}`); await expect(page.getByLabel('Execution and session evidence')).toContainText('Maximum drawdown', { timeout: 70000 });
 });
 test('An authored rule assertion retains exact failure counts and a replayable violation through saved results', async ({ page }) => {

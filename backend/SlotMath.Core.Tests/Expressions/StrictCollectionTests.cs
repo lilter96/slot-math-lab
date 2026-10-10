@@ -33,7 +33,7 @@ public class StrictCollectionTests
     {
         Dictionary<string, object?> state = kind == "missing" ? new() : new() { ["items"] = kind switch { "null" => null, "number" => 0, _ => "" } };
         var error = Assert.Throws<ExpressionEvaluationException>(() => Evaluate(Operation(name), compiled, state));
-        Assert.Equal(kind == "missing" ? "EVAL_MISSING_STATE" : "EVAL_TYPE_ERROR", error.Code);
+        Assert.Equal(kind == "missing" ? "EVAL_MISSING_STATE" : kind == "null" ? "EVAL_NULL_VALUE" : "EVAL_TYPE_ERROR", error.Code);
     }
     [Theory][InlineData(false)][InlineData(true)]
     public void ExplicitEmptyArraysKeepTheirDefinedIdentitiesAndUndefinedExtrema(bool compiled)

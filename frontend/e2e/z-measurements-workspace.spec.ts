@@ -21,7 +21,7 @@ async function sticky(page: Page, name = 'Sticky FS payout') {
   await page.getByLabel('Metric filter mode').selectOption('expression'); await page.getByLabel('Metric filter expression').fill('state.fsType == "sticky"');
   await saveMeasurement(page);
 }
-test('UI configures a scoped FS metric; real engine, durable export, display controls and pinned replay agree', async ({ page }) => {
+test('UI configures a scoped FS metric; real engine, durable export, display controls and pinned replay agree', { tag: '@critical' }, async ({ page }) => {
   await prepare(page); await sticky(page);
   await page.getByLabel('Simulation spins').fill('5000');
   const launch = waitForRunLaunch(page); await page.getByRole('button', { name: /^▶ Start run$/ }).click();

@@ -30,7 +30,7 @@ async function finish(api: APIRequestContext, id: string, expected = 'completed'
   await expect.poll(async () => { result = await (await permitted(() => api.get(`/api/runs/${id}`))).json(); return result.status; }, { timeout: 90000, intervals: [500, 1000, 2000] }).toBe(expected);
   return result;
 }
-test('reference and exports use saved version after latest config changes; graph opening preserves the draft', async ({ page }) => {
+test('reference and exports use saved version after latest config changes; graph opening preserves the draft', { tag: '@critical' }, async ({ page }) => {
   const config = coin(), configId = await save(page.request, config), original = await launch(page.request, configId);
   await finish(page.request, original.id);
   await page.request.put(`/api/configs/${configId}`, { data: { config: { ...config, name: 'Newer editor model' } } });

@@ -1,6 +1,14 @@
 import { test, expect } from '@playwright/test';
 import { parseExpression } from '../src/lib/expressionParser';
 
+test('Expression authoring creates typed ASTs and rejects invalid syntax', () => {
+  expect(parseExpression('state.total >= 3 && true')).toEqual({ exprType: 'binary', op: 'And',
+    left: { exprType: 'compare', op: 'Gte', left: { exprType: 'fieldAccess', target: 'state', path: ['total'] }, right: { exprType: 'constant', kind: 'Integer', value: '3' } },
+    right: { exprType: 'constant', kind: 'Boolean', value: 'true' } });
+  expect(parseExpression('0.25')).toEqual({ exprType: 'constant', kind: 'Rational', value: '25/100' });
+  expect(() => parseExpression('2 + @')).toThrow();
+});
+
 test('Numeric calls produce structured ASTs with nested arithmetic and indexed state', () => {
   expect(parseExpression('abs(state.fractions[0])')).toEqual({ exprType: 'call', function: 'abs', args: [{ exprType: 'fieldAccess', target: 'state', path: ['fractions', '0'] }] });
   const parsed = parseExpression('max(min(3/2, 7/4), floor(-1/2)) + ceil(0.25)');

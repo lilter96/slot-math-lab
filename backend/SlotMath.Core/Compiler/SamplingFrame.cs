@@ -12,26 +12,31 @@ internal struct SamplingCell
     public bool Present;
     public bool HasRaw;
     public object? Raw;
-    public ExprValue Value;
+    private ExprValue _value;
+    private bool _deferred;
+    public readonly ExprValue Value => _deferred ? StateValues.Convert(Raw) : _value;
 
-    public static SamplingCell Typed(ExprValue value) => new() { Present = true, Value = NormalizeStored(value) };
-    public static SamplingCell FromRaw(object? raw) => new() { Present = true, HasRaw = true, Raw = raw, Value = Convert(raw) };
-    public readonly object? Export() => HasRaw ? Raw : Value.ToStateObject();
-
-    private static ExprValue Convert(object? raw) => raw switch
+    public static SamplingCell Typed(ExprValue value) => new() { Present = true, _value = NormalizeStored(value) };
+    public static SamplingCell FromRaw(object? raw)
     {
-        BigInteger n => ExprValue.Number(n), int n => ExprValue.Number(n), long n => ExprValue.Number(n),
-        double n => NumericValues.FromDouble(n), float n => NumericValues.FromDouble(n), decimal n => NumericValues.FromDecimal(n),
-        bool b => ExprValue.Bool(b), string s => ExprValue.String(s), ExprValue v => v,
-        IEnumerable a => ExprValue.Array(a.Cast<object?>().Select(Convert).ToArray()),
-        _ => ExprValue.Number(0),
-    };
+        // Unused state and untaken conditional branches must not evaluate an
+        // unsupported value during frame construction or binding.
+        var cell = new SamplingCell { Present = true, HasRaw = true, Raw = raw };
+        try { cell._value = StateValues.Convert(raw); }
+        catch (ExpressionEvaluationException) { cell._deferred = true; }
+        return cell;
+    }
+    public readonly bool TryCachedValue(out ExprValue value) { value = _value; return !_deferred; }
+    public readonly ExprValue ReadValue(string location) => _deferred ? StateValues.Convert(Raw, location) : _value;
+    public readonly bool IsRecord => _value.Kind == ExprType.Record || HasRaw && Raw is IDictionary<string, object?> or IReadOnlyDictionary<string, object?>;
+    public readonly object? Export() => HasRaw ? Raw : Value.ToStateObject();
 
     // ToStateObject turns symbols into strings, including inside arrays.
     private static ExprValue NormalizeStored(ExprValue value)
     {
         if (!value.ContainsSymbols) return value;
         if (value.Kind == ExprType.Symbol) return ExprValue.String(value.StringValue!);
+        if (value.Kind == ExprType.Record) return ExprValue.Record(value.RecordValue!.ToDictionary(p => p.Key, p => NormalizeStored(p.Value), StringComparer.Ordinal));
         if (value.Kind != ExprType.Array) return value;
         ExprValue[]? copy = null;
         for (var i = 0; i < value.ArrayValue!.Count; i++)
@@ -45,16 +50,21 @@ internal struct SamplingCell
         return copy is null ? value : ExprValue.Array(copy);
     }
 
-    public readonly ExprValue FilterValue => HasRaw
-        ? Raw is string or BigInteger or int or long or double or float or decimal or bool or ExprValue ? Value : ExprValue.Number(0)
-        : Value.Kind == ExprType.Array ? ExprValue.Number(0) : Value;
+    public readonly ExprValue FilterValue => Value;
 
-    public readonly int RequireArrayCount(string key)
+    public readonly int RequireArrayCount(string key, string? location = null)
     {
+        location ??= key;
         if (!Present) throw new ExpressionEvaluationException("EVAL_MISSING_STATE", $"State array '{key}' is absent.", key);
-        if (Value.Kind != ExprType.Array || HasRaw && (Raw is string or IDictionary || Raw is not IEnumerable && Raw is not ExprValue { Kind: ExprType.Array }))
-            throw new ExpressionEvaluationException("EVAL_TYPE_ERROR", $"State field '{key}' must be an array.", key);
-        return Value.ArrayValue!.Count;
+        if (HasRaw && Raw is null or ExprValue { Kind: ExprType.Null }) StateValues.RequireReadable(ExprValue.Null, location);
+        if (HasRaw)
+        {
+            if (Raw is ExprValue { Kind: ExprType.Array } typed) return typed.ArrayValue!.Count;
+            if (Raw is IList list) return list.Count;
+            if (Raw is IEnumerable enumerable && Raw is not (string or IDictionary or IReadOnlyDictionary<string, object?>)) return enumerable.Cast<object?>().Count();
+        }
+        else if (_value.Kind == ExprType.Array) return _value.ArrayValue!.Count;
+        throw new ExpressionEvaluationException("EVAL_TYPE_ERROR", $"State field '{key}' must be an array.", location);
     }
     public readonly SamplingCell Item(int index)
     {
@@ -68,13 +78,12 @@ internal struct SamplingCell
         };
     }
 
-    public readonly ExprValue IndexedField(int index, string key)
+    public readonly ExprValue IndexedField(int index, string key, string? location = null)
     {
-        var length = RequireArrayCount(key);
-        if (index < 0 || index >= length)
-            throw new ExpressionEvaluationException(EvalErrorCodes.IndexOutOfRange,
-                $"Index {index} is out of range [0, {length}) for state array '{key}' (D1).", $"{key}[{index}]");
-        return Item(index).Value;
+        location ??= $"{key}.{index}";
+        var length = RequireArrayCount(key, location);
+        if (index < 0 || index >= length) throw StateValues.IndexError(index, length, location);
+        return StateValues.RequireReadable(Item(index).ReadValue(location), location);
     }
 }
 
@@ -122,7 +131,7 @@ internal sealed class SamplingFrame
     {
         if (!Cells[index].Present)
             throw new ExpressionEvaluationException("EVAL_MISSING_STATE", $"State field '{location}' is absent.", location);
-        return Cells[index].Value;
+        return StateValues.RequireReadable(Cells[index].ReadValue(location), location);
     }
 
     public Dictionary<string, object?> Export()

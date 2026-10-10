@@ -17,7 +17,7 @@ public sealed record MeasurementDefinition
     public MeasurementOptions? Options { get; init; }
 }
 public sealed record MeasurementPoint(string NodeId, string Label);
-public sealed record MeasurementField(string Name, string Type);
+public sealed record MeasurementField(string Name, string Type, string[]? Path = null);
 public sealed record MeasurementSchema(IReadOnlyList<MeasurementPoint> Points, IReadOnlyList<MeasurementField> Fields);
 public sealed record MeasurementSnapshot(string Id, long Observations, long Count, long Excluded, long Errors,
     double? Min, double? Max, double? Mean, double? Sum, double? StdDev, string? FirstError)

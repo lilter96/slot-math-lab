@@ -37,6 +37,12 @@ public enum ExprType
 
     /// <summary>Type error — used internally during inference.</summary>
     Error,
+
+    /// <summary>An immutable record with named, typed fields.</summary>
+    Record,
+
+    /// <summary>An explicitly absent value inside a collection; never a numeric zero.</summary>
+    Null,
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -62,19 +68,21 @@ public readonly struct ExprValue : IEquatable<ExprValue>
 
     /// <summary>Array items — non-null only when Kind == Array.</summary>
     public IReadOnlyList<ExprValue>? ArrayValue { get; }
+    public IReadOnlyDictionary<string, ExprValue>? RecordValue { get; }
 
     // ── Constructors ──────────────────────────────────────────────────────
 
     private ExprValue(ExprType kind, BigInteger num, BigInteger den, bool b, string? s,
-        IReadOnlyList<ExprValue>? arr = null)
+        IReadOnlyList<ExprValue>? arr = null, IReadOnlyDictionary<string, ExprValue>? record = null)
     {
         Kind = kind;
         NumberNumerator = num;
         NumberDenominator = den;
         BoolValue = b;
-        ContainsSymbols = kind == ExprType.Symbol || HasSymbols(arr);
+        ContainsSymbols = kind == ExprType.Symbol || HasSymbols(arr) || record?.Values.Any(v => v.ContainsSymbols) == true;
         StringValue = s;
         ArrayValue = arr;
+        RecordValue = record;
     }
 
     private static bool HasSymbols(IReadOnlyList<ExprValue>? items)
@@ -107,14 +115,21 @@ public readonly struct ExprValue : IEquatable<ExprValue>
     public static ExprValue Array(IReadOnlyList<ExprValue> items)
         => new(ExprType.Array, 0, 1, false, null, items);
 
+    public static ExprValue Record(IReadOnlyDictionary<string, ExprValue> fields)
+        => new(ExprType.Record, 0, 1, false, null, record: new System.Collections.ObjectModel.ReadOnlyDictionary<string, ExprValue>(
+            fields.ToDictionary(p => p.Key, p => p.Value, StringComparer.Ordinal)));
+
+    public static ExprValue Null => new(ExprType.Null, 0, 1, false, null);
+
     /// <summary>Convert the rational number to a single BigInteger (truncating division).</summary>
     public BigInteger AsInteger() =>
-        Kind == ExprType.Number ? NumberNumerator / NumberDenominator : 0;
+        Kind == ExprType.Number ? NumberNumerator / NumberDenominator
+            : throw new ExpressionEvaluationException("EVAL_TYPE_ERROR", "Numeric expression required.");
 
     /// <summary>Convert to double (for sampled/hybrid).</summary>
     public double AsDouble()
     {
-        if (Kind != ExprType.Number) return 0;
+        if (Kind != ExprType.Number) throw new ExpressionEvaluationException("EVAL_TYPE_ERROR", "Numeric expression required.");
         var numerator = (double)NumberNumerator;
         if (NumberDenominator.IsOne) return numerator;
         var denominator = (double)NumberDenominator;
@@ -178,7 +193,9 @@ public readonly struct ExprValue : IEquatable<ExprValue>
         ExprType.Boolean => BoolValue,
         ExprType.String or ExprType.Symbol => StringValue,
         ExprType.Array => ArrayValue?.Select(v => v.ToStateObject()).ToArray(),
-        _ => null,
+        ExprType.Record => RecordValue!.ToDictionary(p => p.Key, p => p.Value.ToStateObject(), StringComparer.Ordinal),
+        ExprType.Null => null,
+        _ => throw new ExpressionEvaluationException("EVAL_TYPE_ERROR", "Unsupported expression value cannot be stored."),
     };
 
     public bool Equals(ExprValue other) =>
@@ -187,7 +204,8 @@ public readonly struct ExprValue : IEquatable<ExprValue>
         && NumberDenominator == other.NumberDenominator
         && BoolValue == other.BoolValue
         && StringValue == other.StringValue
-        && ArrayEquality(ArrayValue, other.ArrayValue);
+        && ArrayEquality(ArrayValue, other.ArrayValue)
+        && RecordEquality(RecordValue, other.RecordValue);
 
     public override bool Equals(object? obj) => obj is ExprValue v && Equals(v);
 
@@ -197,6 +215,9 @@ public readonly struct ExprValue : IEquatable<ExprValue>
         if (ArrayValue != null)
             foreach (var item in ArrayValue)
                 h = HashCode.Combine(h, item.GetHashCode());
+        if (RecordValue != null)
+            foreach (var item in RecordValue.OrderBy(p => p.Key, StringComparer.Ordinal))
+                h = HashCode.Combine(h, item.Key, item.Value.GetHashCode());
         return h;
     }
 
@@ -207,6 +228,8 @@ public readonly struct ExprValue : IEquatable<ExprValue>
         ExprType.String => $"\"{StringValue}\"",
         ExprType.Symbol => $"symbol:{StringValue}",
         ExprType.Array => $"[{string.Join(", ", ArrayValue?.Select(x => x.ToString()) ?? [])}]",
+        ExprType.Record => $"{{{string.Join(", ", RecordValue!.OrderBy(p => p.Key, StringComparer.Ordinal).Select(p => $"{p.Key}: {p.Value}"))}}}",
+        ExprType.Null => "null",
         _ => "?"
     };
 
@@ -219,6 +242,10 @@ public readonly struct ExprValue : IEquatable<ExprValue>
             if (!a[i].Equals(b[i])) return false;
         return true;
     }
+
+    private static bool RecordEquality(IReadOnlyDictionary<string, ExprValue>? a, IReadOnlyDictionary<string, ExprValue>? b) =>
+        a is null ? b is null : b is not null && a.Count == b.Count
+            && a.All(p => b.TryGetValue(p.Key, out var value) && p.Value.Equals(value));
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -235,6 +262,8 @@ public sealed record FieldDescriptor
     public ExprType Type { get; init; }
     /// <summary>Homogeneous scalar element type, when it can be established from the authored graph.</summary>
     public ExprType? ArrayItemType { get; init; }
+    public FieldDescriptor? ArrayItem { get; init; }
+    public IReadOnlyList<FieldDescriptor> RecordFields { get; init; } = [];
     /// <summary>Proven empty array identity, used only during element inference.</summary>
     public bool ArrayIsEmpty { get; init; }
     public string? Description { get; init; }
@@ -284,6 +313,9 @@ public sealed class TypeCheckContext
 
     /// <summary>Resolve a field path to its type (or null if not found).</summary>
     public ExprType? ResolvePath(string[] path, string? target)
+        => ResolveField(path, target)?.Type;
+
+    internal FieldDescriptor? ResolveField(string[] path, string? target)
     {
         if (path.Length == 0) return null;
 
@@ -297,8 +329,8 @@ public sealed class TypeCheckContext
             return null;
 
         var first = path[0];
-        var fd = fields.FirstOrDefault(f =>
-            string.Equals(f.Name, first, StringComparison.OrdinalIgnoreCase));
+        var comparison = target is "state" or "measurement" ? StringComparison.Ordinal : StringComparison.OrdinalIgnoreCase;
+        var fd = fields.LastOrDefault(f => string.Equals(f.Name, first, comparison));
         if (fd == null && path.Length == 1 && target == "board")
         {
             // Try cell-level fields (used as shorthand inside aggregations)
@@ -306,10 +338,16 @@ public sealed class TypeCheckContext
                 string.Equals(f.Name, first, StringComparison.OrdinalIgnoreCase));
         }
 
-        if (fd is not null && path.Length > 1 && int.TryParse(path[1],
-                System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture, out var index))
-            return fd.Type == ExprType.Array && index >= 0 && path.Length == 2 ? fd.ArrayItemType : null;
-        return fd?.Type;
+        for (var i = 1; i < path.Length && fd is not null; i++)
+        {
+            if (fd.Type == ExprType.Record)
+                fd = fd.RecordFields.SingleOrDefault(f => f.Name == path[i]);
+            else if (fd.Type == ExprType.Array && BigInteger.TryParse(path[i],
+                System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture, out var index) && index >= 0)
+                fd = fd.ArrayItem ?? (fd.ArrayItemType is { } type ? new() { Name = "item", Type = type } : null);
+            else return null;
+        }
+        return fd;
     }
 }
 

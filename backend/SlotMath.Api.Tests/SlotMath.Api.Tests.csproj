@@ -29,6 +29,7 @@
     <Content Include="../../frontend/e2e/fixtures/component-accounting-model.json" Link="TestData/component-accounting-model.json" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="../../frontend/e2e/fixtures/numeric-input-model.json" Link="TestData/numeric-input-model.json" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="../../frontend/e2e/fixtures/interrupted-feature-model.json" Link="TestData/interrupted-feature-model.json" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="../../frontend/e2e/fixtures/record-model.json" Link="TestData/record-model.json" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
 </Project>

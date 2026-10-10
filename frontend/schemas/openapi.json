@@ -3644,6 +3644,15 @@
           },
           "type": {
             "type": "string"
+          },
+          "path": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "string"
+            }
           }
         }
       },

@@ -35,14 +35,18 @@ internal sealed class SamplingExpressions(Func<string, int> slot)
                 return _ => constant;
             case FieldAccessExpr f:
                 if (f.Target == "measurement") return s => f.Path.Length == 1 && s.Settlement is { } settlement ? settlement.Read(f.Path[0]) : throw new ExpressionEvaluationException("EVAL_MISSING_SETTLEMENT", "Settlement fields require completed-round measurement context.");
-                if (f.Path.Length == 0) return _ => ExprValue.Number(0);
+                if (f.Target is not (null or "state" or "board")) return _ => throw new ExpressionEvaluationException("EVAL_INVALID_TARGET", "Unknown field namespace.", f.Target);
+                if (f.Path.Length == 0 || f.Path.Any(string.IsNullOrEmpty)) return _ => throw new ExpressionEvaluationException("EVAL_INVALID_PATH", "A field path must contain nonempty segments.", string.Join('.', f.Path));
                 var key = f.Path[0]; var index = slot(key); var location = string.Join('.', f.Path);
                 if (f.Path.Length == 1) return s => s.Read(index, location);
                 if (f.Path.Length == 2 && int.TryParse(f.Path[1], out var itemIndex))
-                    return s => { s.Read(index, location); return s.Cells[index].IndexedField(itemIndex, key); };
+                    return s => s.Cells[index].IsRecord ? ReadNested(s) : s.Cells[index].IndexedField(itemIndex, key, location);
                 // Records have their original CLR representation. This uncommon
                 // path retains reference semantics, including located errors.
-                return s => ExactExpressionEvaluator.Evaluate(f, new EvalContext { State = new Dictionary<string, object?> { [key] = s.Cells[index].Present ? s.Cells[index].Export() : throw new ExpressionEvaluationException("EVAL_MISSING_STATE", $"State field '{key}' is absent.", location) } });
+                return ReadNested;
+                ExprValue ReadNested(SamplingFrame frame) => frame.Cells[index].Present
+                    ? StateValues.Read(frame.Cells[index].Export(), f.Path[1..], location)
+                    : throw new ExpressionEvaluationException("EVAL_MISSING_STATE", $"State field '{key}' is absent.", location);
             case IfExpr i:
                 var condition = Compile(i.Condition); var yes = Compile(i.ThenExpr); var no = Compile(i.ElseExpr);
                 return s => Truth(condition(s)) ? yes(s) : no(s);
@@ -159,6 +163,8 @@ internal sealed class SamplingExpressions(Func<string, int> slot)
 
     private static ExprValue Compare(CompareOp op, ExprValue l, ExprValue r)
     {
+        if (op is CompareOp.Eq or CompareOp.Neq && l.Kind == r.Kind && l.Kind is ExprType.Record or ExprType.Array or ExprType.Null)
+            return ExprValue.Bool(op == CompareOp.Eq ? l.Equals(r) : !l.Equals(r));
         if (l.Kind == ExprType.Boolean && r.Kind == ExprType.Boolean)
             return ExprValue.Bool(op switch { CompareOp.Eq => l.BoolValue == r.BoolValue, CompareOp.Neq => l.BoolValue != r.BoolValue, _ => false });
         var cmp = l.Kind == ExprType.Number && r.Kind == ExprType.Number

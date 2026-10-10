@@ -1,0 +1,64 @@
+name: Browser checks
+
+on:
+  workflow_call:
+    inputs:
+      full:
+        description: Run the entire browser regression instead of the critical contracts.
+        type: boolean
+        default: false
+        required: false
+
+permissions:
+  contents: read
+
+jobs:
+  browser:
+    name: ${{ inputs.full && 'Full browser regression' || 'Critical browser contracts' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_DB: slotmath
+          POSTGRES_USER: slotmath
+          POSTGRES_PASSWORD: slotmath
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U slotmath"
+          --health-interval 2s --health-timeout 2s --health-retries 10
+    env:
+      ConnectionStrings__DefaultConnection: Host=localhost;Port=5432;Database=slotmath;Username=slotmath;Password=slotmath
+      ASPNETCORE_ENVIRONMENT: CI
+      CI: 'true'
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci --legacy-peer-deps
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+      - run: npx playwright install --with-deps chromium
+      - run: npm run build
+      - name: Critical contracts
+        if: ${{ !inputs.full }}
+        run: npm run test:e2e:critical
+      - name: Complete regression
+        if: ${{ inputs.full }}
+        run: npm run test:e2e
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ${{ inputs.full && 'playwright-full-report' || 'playwright-critical-report' }}
+          retention-days: 14
+          path: |
+            frontend/playwright-report/
+            frontend/test-results/

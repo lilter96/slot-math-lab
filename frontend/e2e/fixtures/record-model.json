@@ -1,0 +1,225 @@
+{
+  "schemaVersion": "1.0.0",
+  "name": "Independent record selection oracle",
+  "initialState": {
+    "offers": [
+      {
+        "tag": "low",
+        "money": {
+          "award": 0.25,
+          "unused": null
+        },
+        "history": [
+          [
+            1,
+            2
+          ]
+        ]
+      },
+      {
+        "tag": "high",
+        "money": {
+          "award": 1.75,
+          "unused": null
+        },
+        "history": [
+          [
+            3,
+            4
+          ]
+        ]
+      }
+    ]
+  },
+  "paytables": [
+    {
+      "id": "precision",
+      "entries": [
+        {
+          "symbolId": "unused",
+          "counts": [
+            1
+          ],
+          "payouts": [
+            "0.25"
+          ]
+        }
+      ]
+    }
+  ],
+  "nodes": [
+    {
+      "nodeType": "draw",
+      "id": "draw",
+      "stateWriteKey": "pick",
+      "drawWeights": [
+        {
+          "outcomeId": "low",
+          "value": 0,
+          "weight": 1
+        },
+        {
+          "outcomeId": "high",
+          "value": 0,
+          "weight": 3
+        }
+      ],
+      "outputs": {
+        "out": {
+          "name": "out",
+          "type": "Wins"
+        }
+      }
+    },
+    {
+      "nodeType": "modifyState",
+      "id": "filter",
+      "expressionId": "filter",
+      "outputKey": "eligible",
+      "inputs": {
+        "in": {
+          "name": "in",
+          "type": "Wins"
+        }
+      },
+      "outputs": {
+        "out": {
+          "name": "out",
+          "type": "Wins"
+        }
+      }
+    },
+    {
+      "nodeType": "modifyState",
+      "id": "select",
+      "expressionId": "select",
+      "outputKey": "selected",
+      "inputs": {
+        "in": {
+          "name": "in",
+          "type": "Wins"
+        }
+      },
+      "outputs": {
+        "out": {
+          "name": "out",
+          "type": "Wins"
+        }
+      }
+    },
+    {
+      "nodeType": "modifyState",
+      "id": "payout",
+      "expressionId": "payout",
+      "outputKey": "payout",
+      "inputs": {
+        "in": {
+          "name": "in",
+          "type": "Wins"
+        }
+      },
+      "outputs": {
+        "out": {
+          "name": "out",
+          "type": "Wins"
+        }
+      }
+    },
+    {
+      "nodeType": "metricsSink",
+      "id": "sink",
+      "winCap": 10,
+      "winStateKey": "payout",
+      "inputs": {
+        "in": {
+          "name": "in",
+          "type": "Wins"
+        }
+      }
+    }
+  ],
+  "expressions": {
+    "filter": {
+      "exprType": "filter",
+      "stateKey": "offers",
+      "itemName": "offer",
+      "itemType": "Record",
+      "predicate": {
+        "exprType": "compare",
+        "op": "Eq",
+        "left": {
+          "exprType": "fieldAccess",
+          "target": "state",
+          "path": [
+            "offer",
+            "tag"
+          ]
+        },
+        "right": {
+          "exprType": "fieldAccess",
+          "target": "state",
+          "path": [
+            "pick"
+          ]
+        }
+      }
+    },
+    "select": {
+      "exprType": "call",
+      "function": "index",
+      "args": [
+        {
+          "exprType": "fieldAccess",
+          "target": "state",
+          "path": [
+            "eligible"
+          ]
+        },
+        {
+          "exprType": "constant",
+          "kind": "Integer",
+          "value": "0"
+        }
+      ]
+    },
+    "payout": {
+      "exprType": "fieldAccess",
+      "target": "state",
+      "path": [
+        "selected",
+        "money",
+        "award"
+      ]
+    }
+  },
+  "edges": [
+    {
+      "id": "e0",
+      "sourceNodeId": "draw",
+      "sourcePort": "out",
+      "targetNodeId": "filter",
+      "targetPort": "in"
+    },
+    {
+      "id": "e1",
+      "sourceNodeId": "filter",
+      "sourcePort": "out",
+      "targetNodeId": "select",
+      "targetPort": "in"
+    },
+    {
+      "id": "e2",
+      "sourceNodeId": "select",
+      "sourcePort": "out",
+      "targetNodeId": "payout",
+      "targetPort": "in"
+    },
+    {
+      "id": "e3",
+      "sourceNodeId": "payout",
+      "sourcePort": "out",
+      "targetNodeId": "sink",
+      "targetPort": "in"
+    }
+  ]
+}

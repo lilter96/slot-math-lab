@@ -93,11 +93,11 @@ public sealed class StateSchemaDeriverTests
     }
 
     [Fact]
-    public void ModifyState_UnknownExpression_DefaultsNumber()
+    public void ModifyState_UnknownExpression_CannotInventANumericType()
     {
         var schema = StateSchemaDeriver.Derive(Graph(
             [new ModifyStateNode { Id = "m", ExpressionId = "missing", OutputKey = "x", Inputs = new PortMap { ["state"] = StatePort }, Outputs = new PortMap { ["state"] = StatePort } }]));
-        Assert.Equal(ExprType.Number, TypeOf(schema, "x"));
+        Assert.Equal(ExprType.Error, TypeOf(schema, "x"));
     }
 
     [Fact]

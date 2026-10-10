@@ -99,12 +99,14 @@ public static class ExpressionTypeChecker
             return Fail(f, "Field access path is empty.", errors);
 
         var resolved = ctx.ResolvePath(f.Path, f.Target);
-        if (resolved == null)
+        if (resolved is null or ExprType.Error)
         {
             var where = f.Target ?? "board";
             return Fail(f,
                 $"Unknown field '{string.Join(".", f.Path)}' on {where}.", errors);
         }
+
+        if (resolved == ExprType.Null) return Fail(f, $"Field '{string.Join(".", f.Path)}' is null; supply an explicit value before reading it.", errors);
 
         return resolved.Value;
     }
@@ -221,7 +223,7 @@ public static class ExpressionTypeChecker
         // value selector the current element is bound under ItemName as a
         // virtual state field, exactly like fold/map/filter.
         var lambdaFields = ctx.StateFields.ToList();
-        lambdaFields.Add(new FieldDescriptor { Name = a.ItemName, Type = a.ItemType });
+        lambdaFields.Add(BindItem(a, ctx, a.StateKey, a.ItemName, a.ItemType, errors));
 
         var lambdaCtx = new TypeCheckContext
         {
@@ -362,8 +364,9 @@ public static class ExpressionTypeChecker
 
         // Lambda context: acc and item added as virtual state fields
         var lambdaFields = ctx.StateFields.ToList();
-        lambdaFields.Add(new FieldDescriptor { Name = f.AccName, Type = initType });
-        lambdaFields.Add(new FieldDescriptor { Name = f.ItemName, Type = f.ItemType });
+        lambdaFields.Add(ExpressionShapes.Infer(f.Init, ctx) is { } initialShape
+            ? initialShape with { Name = f.AccName } : new FieldDescriptor { Name = f.AccName, Type = initType });
+        lambdaFields.Add(BindItem(f, ctx, f.StateKey, f.ItemName, f.ItemType, errors));
         if (f.IndexName != null)
             lambdaFields.Add(new FieldDescriptor { Name = f.IndexName, Type = ExprType.Number });
 
@@ -398,7 +401,7 @@ public static class ExpressionTypeChecker
         }
 
         var lambdaFields = ctx.StateFields.ToList();
-        lambdaFields.Add(new FieldDescriptor { Name = m.ItemName, Type = m.ItemType });
+        lambdaFields.Add(BindItem(m, ctx, m.StateKey, m.ItemName, m.ItemType, errors));
         if (m.IndexName != null)
             lambdaFields.Add(new FieldDescriptor { Name = m.IndexName, Type = ExprType.Number });
 
@@ -429,7 +432,7 @@ public static class ExpressionTypeChecker
         }
 
         var lambdaFields = ctx.StateFields.ToList();
-        lambdaFields.Add(new FieldDescriptor { Name = fi.ItemName, Type = fi.ItemType });
+        lambdaFields.Add(BindItem(fi, ctx, fi.StateKey, fi.ItemName, fi.ItemType, errors));
         if (fi.IndexName != null)
             lambdaFields.Add(new FieldDescriptor { Name = fi.IndexName, Type = ExprType.Number });
 
@@ -451,6 +454,14 @@ public static class ExpressionTypeChecker
     }
 
     // ── Helpers ──────────────────────────────────────────────────────────
+
+    private static FieldDescriptor BindItem(Expression expression, TypeCheckContext context, string source, string name, ExprType declared, List<TypeCheckError> errors)
+    {
+        var known = ExpressionShapes.Item(context.ResolveField([source], "state"));
+        if (known is not null && known.Type != declared)
+            errors.Add(Error(expression, $"Iterator item type {declared} differs from the {known.Type} items in '{source}'."));
+        return ExpressionShapes.IteratorItem(context, source, name, declared);
+    }
 
     /// <summary>
     /// True if the expression tree contains a fold, map, or filter anywhere.

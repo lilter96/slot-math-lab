@@ -2257,6 +2257,7 @@ export type components = {
         };
         MeasurementField: {
             name: string;
+            path?: null | string[];
             type: string;
         };
         MeasurementInput: {

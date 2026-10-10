@@ -1,0 +1,19 @@
+name: Full browser regression
+
+on:
+  schedule:
+    - cron: '0 2 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  regression:
+    uses: ./.github/workflows/browser-checks.yml
+    with:
+      full: true

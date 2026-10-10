@@ -98,49 +98,13 @@ jobs:
       - run: npm run build
 
   e2e:
-    name: Playwright E2E
-    runs-on: ubuntu-latest
+    name: Critical browser contracts
     needs: [frontend, backend]
-    services:
-      postgres:
-        image: postgres:17-alpine
-        env:
-          POSTGRES_DB: slotmath
-          POSTGRES_USER: slotmath
-          POSTGRES_PASSWORD: slotmath
-        ports: ['5432:5432']
-        options: >-
-          --health-cmd "pg_isready -U slotmath"
-          --health-interval 2s --health-timeout 2s --health-retries 10
-    env:
-      ConnectionStrings__DefaultConnection: Host=localhost;Port=5432;Database=slotmath;Username=slotmath;Password=slotmath
-      ASPNETCORE_ENVIRONMENT: CI
-    defaults:
-      run:
-        working-directory: frontend
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-          cache: 'npm'
-          cache-dependency-path: frontend/package-lock.json
-      - run: npm ci --legacy-peer-deps
-      - uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: '10.0.x'
-      - run: npx playwright install --with-deps chromium
-      - run: npm run build
-      - run: npm run test:e2e
-        env:
-          CI: 'true'
-      - uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: playwright-report
-          path: |
-            frontend/playwright-report/
-            frontend/test-results/
+    permissions:
+      contents: read
+    uses: ./.github/workflows/browser-checks.yml
+    with:
+      full: false
 
   docker:
     name: Docker — Build Images

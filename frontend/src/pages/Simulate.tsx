@@ -30,6 +30,7 @@ export default function Simulate() {
   const [execution, setExecution] = useState(() => s.run?.execution ?? defaultExecution());
   const [seed, setSeed] = useState(s.run?.seed ?? 42), [samples, setSamples] = useState(s.progress?.totalSamples || 100000), [workers, setWorkers] = useState(s.run?.degreeOfParallelism ?? 2);
   const p = s.progress, hasData = !!p?.sampleCount, active = s.starting || (!!s.run && !terminal(s.run.status) && s.connection !== 'unavailable');
+  const recoveringEvidence = !!s.run && terminal(s.run.status) && !s.run.resultJson;
   const [now, setNow] = useState(Date.now);
   const selectedRunId = s.run?.id;
   const exportRequest = useRef<AbortController | null>(null);
@@ -48,10 +49,10 @@ export default function Simulate() {
     void openSimulation(linked.data.run, { model: linked.data.model.name, target: linked.data.model.targetRtp });
   }, [linked.data, requestedRun, selectedRunId, active]);
   useEffect(() => {
-    if (!active) return;
+    if (!active && !recoveringEvidence) return;
     const timer = window.setInterval(() => setNow(Date.now()), 1000);
     return () => window.clearInterval(timer);
-  }, [active]);
+  }, [active, recoveringEvidence]);
   const syncAge = s.health.lastConfirmedAt ? Math.max(0, now - s.health.lastConfirmedAt) : null;
   const hasSampleVariance = !!p && p.sampleCount > 1;
   const hasVariance = hasSampleVariance && p.stdErr > 0 && !p.execution?.carriesState;
@@ -95,6 +96,8 @@ export default function Simulate() {
     {exporting && <p role="status" className="measurement-next-note">{exportState?.message} <button className="btn" onClick={() => { exportRequest.current?.abort(); setExportState(null); }}>Cancel export</button></p>}
     {exportError && <p role="alert" className="simulation-error">{exportError} <button className="btn" onClick={() => void download()}>Retry export</button></p>}
     <ExecutionConfiguration value={execution} change={setExecution} disabled={active} workers={workers} setWorkers={setWorkers} rounds={samples} />
+    {recoveringEvidence && <p role="status" className="measurement-next-note">Recovering final evidence from the server. Cached counts are retained; session distributions and detailed measurements are pending.
+      {s.connection === 'auth-required' ? ' Sign in to resume recovery.' : s.connection === 'offline' ? ' Recovery resumes when the network returns.' : s.health.nextRetryAt ? ` Server retry in ${Math.max(0, Math.ceil((s.health.nextRetryAt - now) / 1000))}s.` : ' Waiting for an authoritative snapshot.'}</p>}
     <ExecutionReport value={p?.execution} />
     {requestedRun && requestedRun !== selectedRunId && active && <p className="measurement-next-note">Another simulation is active. Finish or cancel it before opening this linked run. <Link to={`/results?run=${encodeURIComponent(requestedRun)}`}>Inspect its saved results ↗</Link></p>}
     {loadingRun && <p role="status" className="measurement-next-note">Opening the pinned run and its measurement plan…</p>}
