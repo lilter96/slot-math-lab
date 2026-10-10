@@ -72,6 +72,9 @@ export interface GraphState {
   nodes: GraphNode[];
   edges: GraphEdge[];
   selectedNodeId: string | null;
+  /** Canvas interactivity lock — false freezes dragging/connecting/selection. */
+  canvasInteractive: boolean;
+  setCanvasInteractive: (value: boolean) => void;
   selectNode: (id: string | null) => void;
   onNodesChange: OnNodesChange<GraphNode>;
   onEdgesChange: OnEdgesChange<GraphEdge>;
@@ -233,13 +236,18 @@ export const useAppStore = create<AppState>((set, get) => ({
   nodes: [],
   edges: [],
   selectedNodeId: null,
-  // Keep React Flow's transient `selected` flags in sync with the
-  // application-level selection so Delete/Backspace and Shift-multi-select
-  // act on the node the UI actually reports as selected (e.g. "Find node…").
-  selectNode: (id) => set((s) => ({
-    selectedNodeId: id,
-    nodes: s.nodes.map((n) => (n.selected ?? false) === (n.id === id) ? n : { ...n, selected: n.id === id }),
-  })),
+  // Canvas interactivity lock. When false the graph is read-only: React Flow
+  // gets nodesDraggable/nodesConnectable/elementsSelectable = false, which
+  // lets the user pan and inspect without disturbing the layout.
+  canvasInteractive: true,
+  setCanvasInteractive: (value) => set({ canvasInteractive: value }),
+  // NOTE: `selectedNodeId` drives the inspector and is deliberately
+  // single-valued, while React Flow's `node.selected` flags are N-valued
+  // (Shift-multi-select, selection box, edges). Do NOT couple the two here:
+  // earlier code rewrote every node's flag on programmatic selection, which
+  // destroyed Shift multi-selection because onNodeClick fires after React
+  // Flow has already applied the additive selection changes.
+  selectNode: (id) => set({ selectedNodeId: id }),
   edgeValidationError: null,
   setEdgeValidationError: (err) => set({ edgeValidationError: err }),
   limitError: null,
@@ -257,14 +265,32 @@ export const useAppStore = create<AppState>((set, get) => ({
       const removedIds = changes
         .filter((ch): ch is Extract<NodeChange<GraphNode>, { type: 'remove' }> => ch.type === 'remove')
         .map((ch) => ch.id);
-      const edges = removedIds.length
+      let edges = removedIds.length
         ? s.edges.filter((e) => !removedIds.includes(e.source) && !removedIds.includes(e.target))
         : s.edges;
+
+      // A node selection must not leave a stale edge selection behind:
+      // Delete/Backspace acts on every selected element, so a leftover edge
+      // would be removed alongside the focused node.
+      const hasSelectChange = changes.some((ch) => ch.type === 'select');
+      let selectedNodeId = s.selectedNodeId;
+      if (hasSelectChange) {
+        if (s.edges.some((e) => e.selected)) {
+          edges = edges.map((e) => (e.selected ? { ...e, selected: false } : e));
+        }
+        // Reconcile single-node selection with the inspector. Skip the
+        // multi-node case (Shift-click / selection box): the inspector is
+        // single-valued, so it must not latch onto an arbitrary member of a
+        // multi-selection, and Delete must keep acting on the whole set.
+        const selectedIds = nodes.filter((n) => n.selected).map((n) => n.id);
+        selectedNodeId = selectedIds.length === 1 ? selectedIds[0] : null;
+      }
+
       // Keep the inspector in sync: a keyboard deletion of the inspected node
       // must clear the selection, mirroring removeNode().
-      const selectedNodeId = removedIds.length && s.selectedNodeId !== null && removedIds.includes(s.selectedNodeId)
-        ? null
-        : s.selectedNodeId;
+      if (removedIds.length && selectedNodeId !== null && removedIds.includes(selectedNodeId)) {
+        selectedNodeId = null;
+      }
       return { nodes, edges, selectedNodeId };
     }),
 
@@ -353,6 +379,20 @@ export const useAppStore = create<AppState>((set, get) => ({
 // which blocked the main thread and made dragging visibly janky. We now
 // debounce the write so dragging stays smooth; a `beforeunload` flush
 // keeps the last state from being lost on tab close.
+// React Flow's `selected` is transient interaction state, not model data.
+// It must never be persisted or restored: a restored flag produces a phantom
+// canvas selection while `selectedNodeId` stays null, so Delete removes a
+// node the inspector does not report as selected.
+export function withoutSelection<T extends { selected?: boolean }>(items: T[] | undefined): T[] | undefined {
+  if (!items?.some((item) => item.selected)) return items;
+  return items.map((item) => {
+    if (!item.selected) return item;
+    const rest = { ...item };
+    delete rest.selected;
+    return rest;
+  });
+}
+
 if (typeof window !== 'undefined') {
   const DRAFT_KEY = 'slotmath-draft-v1';
   const SAVE_DEBOUNCE_MS = 400;
@@ -362,21 +402,17 @@ if (typeof window !== 'undefined') {
     const s = useAppStore.getState();
     try {
       localStorage.setItem(DRAFT_KEY, JSON.stringify({
-        // `selected` is React Flow's transient interaction flag, not model
-        // data. Persisting it would restore a phantom canvas selection on
-        // reload while `selectedNodeId` stays null, so drop it here.
-        nodes: s.nodes.map((n) => {
-          if (!('selected' in n)) return n;
-          const rest = { ...n };
-          delete rest.selected;
-          return rest;
-        }),
+        nodes: withoutSelection(s.nodes),
         edges: s.edges,
         tables: s.tables,
         graphTrail: s.graphTrail,
         verificationSource: s.verificationSource,
         configName: s.configName,
-        resultsDraft: s.resultsDraft,
+        // `resultsDraft` embeds a second copy of the editor graph, so it needs
+        // the same sanitisation as the top-level nodes.
+        resultsDraft: s.resultsDraft
+          ? { ...s.resultsDraft, nodes: withoutSelection(s.resultsDraft.nodes) }
+          : s.resultsDraft,
       }));
     } catch { /* export remains available when browser storage is full */ }
   };
@@ -391,7 +427,7 @@ if (typeof window !== 'undefined') {
 
   try {
     const draft = JSON.parse(localStorage.getItem(DRAFT_KEY) ?? 'null');
-    if (draft && Array.isArray(draft.nodes) && Array.isArray(draft.edges)) useAppStore.setState({ nodes: draft.nodes.map((n: GraphNode) => (n.selected ? { ...n, selected: false } : n)), edges: draft.edges, tables: draft.tables ?? {}, graphTrail: draft.graphTrail ?? [], verificationSource: draft.verificationSource ?? null, configName: draft.configName ?? 'Untitled', resultsDraft: draft.resultsDraft ?? null });
+    if (draft && Array.isArray(draft.nodes) && Array.isArray(draft.edges)) useAppStore.setState({ nodes: withoutSelection(draft.nodes) ?? [], edges: draft.edges, tables: draft.tables ?? {}, graphTrail: draft.graphTrail ?? [], verificationSource: draft.verificationSource ?? null, configName: draft.configName ?? 'Untitled', resultsDraft: draft.resultsDraft ?? null });
   } catch { /* a corrupt draft never prevents opening the editor */ }
 
   useAppStore.subscribe(schedulePersist);
