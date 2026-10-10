@@ -40,7 +40,7 @@ internal static class ExpressionResolver
         return config with
         {
             Expressions = definitions.ToDictionary(p => p.Key, p => Resolve(p.Value)),
-            Nodes = config.Nodes.Select(node => node with
+            Nodes = config.Nodes.Select(node => (node is LoopNode loop && loop.ExitReason is not null ? loop with { ExitReason = Resolve(loop.ExitReason) } : node) with
             {
                 Inputs = node.Inputs.ToDictionary(p => p.Key, p => p.Value.DefaultValue is { } value
                     ? p.Value with { DefaultValue = Resolve(value) } : p.Value)

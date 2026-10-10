@@ -3,7 +3,7 @@ export interface MeasurementOptions {
   subject: 'observation' | 'round' | 'episode' | 'transition'; reduction: 'sum' | 'count' | 'any' | 'all' | 'first' | 'last' | 'min' | 'max' | 'average' | 'delta';
   source: 'value' | 'event' | 'count' | 'rawPayout' | 'capDeduction' | 'turnover' | 'net';
   entryNodeId?: string; exitNodeId?: string; group?: ExpressionAst; pair?: ExpressionAst; weight?: ExpressionAst; awardId?: ExpressionAst;
-  entryFilter?: ExpressionAst; exitFilter?: ExpressionAst;
+  entryFilter?: ExpressionAst; exitFilter?: ExpressionAst; exitReason?: ExpressionAst; ordinalLimit?: number;
   assertion?: 'none' | 'zero';
   pairRole: 'value' | 'wager'; referenceStatistic: 'mean' | 'ratio' | 'probability';
   binEdges: number[]; quantiles: number[]; thresholds: number[]; supportLimit: number; groupLimit: number; lags: number[];
@@ -17,8 +17,10 @@ export const defaultOptions = (): MeasurementOptions => ({ subject: 'observation
   groupLimit: 32, lags: [], stake: 1, confidence: 0.95, errorFamilySize: 1, independentSubjects: false, independentParents: false, referenceDistribution: [] });
 export interface NumericInterval { lower: number; upper: number; method: string; assumptions: string }
 export interface FeatureLifecycleCounts { interruptedRounds: number; entries: number; exits: number; openInstances: number; complete: boolean }
+export interface EpisodeProfile { includedEpisodes: number; overflowEpisodes: number; population: string; exitReasons: Record<string, number>; ordinals: { depth: number; ordinal: number; count: number; minimum: number; maximum: number; mean: number; sampleVariance: number | null }[]; crossOrdinals: { depth: number; first: number; second: number; pairedEpisodes: number; covariance: number | null; correlation: number | null }[] }
 export interface MeasurementAnalysis {
-  interruptedLifecycle?: { cancelled: FeatureLifecycleCounts; failed: FeatureLifecycleCounts } | null;
+  episodeProfile?: EpisodeProfile | null;
+  interruptedLifecycle?: { cancelled: FeatureLifecycleCounts; failed: FeatureLifecycleCounts; resourceExpiry?: FeatureLifecycleCounts | null } | null;
   parentExposure?: { paidRoundsWithMatchingChildren: number; episodesWithMatchingChildren: number | null } | null;
   normalization?: { paidRounds: number; externalTurnover: number | null; basis: string } | null;
   assertion?: { kind: 'zero'; checked: number; violations: number; status: 'invalid' | 'discrepancy' | 'insufficient' | 'noObservedViolations' } | null;

@@ -9,7 +9,7 @@ const results = new Set(['counts.attempted_rounds', 'counts.interrupted_rounds',
 const reviewed = coverage as Record<string, { status: MetricRecipe['availability']; scope: string }>;
 export const metricRecipes: MetricRecipe[] = catalogue.families.flatMap(f => f.metrics.map(m => ({ id: m[0], name: m[1], definition: m[2], unit: m[3], priority: m[5], availability: reviewed[m[0]].status, implementationScope: reviewed[m[0]].scope,
   family: f.id, familyName: f.name, population: f.subject, parameters: f.parameters,
-  action: m[0] === 'inference.sufficiency' ? 'profile' as const : m[0] === 'dependence.variance_decomposition' ? 'accounting' as const : m[0] === 'inference.sample_plan' ? 'planning' as const : references.has(m[0]) ? 'reference' as const : results.has(m[0]) ? 'results' as const : f.id === 'experience' || m[0] === 'states.long_run_return' ? 'execution' as const : 'measurement' as const,
+  action: m[0] === 'inference.sufficiency' ? 'profile' as const : m[0] === 'dependence.variance_decomposition' ? 'accounting' as const : m[0] === 'inference.sample_plan' ? 'planning' as const : references.has(m[0]) ? 'reference' as const : results.has(m[0]) ? 'results' as const : f.id === 'experience' || m[0] === 'rng.duplicates' || m[0] === 'states.long_run_return' ? 'execution' as const : 'measurement' as const,
   prerequisite: references.has(m[0]) ? 'Supply an independent finite payout law or transient transition/reward model. Exact input probabilities and mode cost are required.'
     : results.has(m[0]) ? 'Use pinned saved runs and independent comparison evidence. A sampled maximum, matching replay or green statistical check alone cannot prove model correctness.'
     : f.id === 'experience' ? 'Choose independent sessions, their horizon, initial bankroll, cost and retained state. First-passage and censored populations must remain distinct.'
@@ -44,6 +44,9 @@ export function recipeDraft(recipe: MetricRecipe, id?: string): MetricDraft {
     options.subject = 'episode'; draft.nodeId = '__choose_point__'; if (['played', 'feature_entries', 'feature_exits'].includes(metric)) { options.source = 'count'; draft.valueMode = 'payout'; }
     if (metric === 'any_retrigger') { options.source = 'event'; options.reduction = 'any'; options.referenceStatistic = 'probability'; }
   }
+  if (recipe.id === 'features.ordinal_profile') { options.subject = 'episode'; options.ordinalLimit = 16; draft.nodeId = '__choose_point__'; }
+  if (recipe.id === 'features.exit_reason') { options.subject = 'episode'; draft.nodeId = '__choose_point__'; }
+  if (recipe.id === 'return.rounding') draft.expression = 'state.__roundingDifference';
   if (recipe.id === 'counts.feature_entries') draft.reducers = ['featureEntries', 'interruptedFeatureEntries'];
   if (recipe.id === 'counts.feature_exits') draft.reducers = ['featureExits', 'interruptedFeatureExits', 'interruptedOpenEpisodes'];
   if (recipe.id === 'features.zero_episode') { options.source = 'event'; options.referenceStatistic = 'probability'; draft.nodeId = '__choose_point__'; }

@@ -120,3 +120,7 @@ Evaluate the pinned profile after completion in Simulate or Results. Interrupted
 Explicit quota rejections honor `Retry-After`. Cancel export to stop the request or quota wait; switching runs or leaving Simulate also aborts it. A network failure, rejected read, wrong run, inconsistent snapshot, changed producer or missing verified input shows a recoverable error without downloading a reduced file. Direct saved-run links use the same reader. Profile and accounting verdicts additionally compare their retained source's full producer identity with the original run; a newer calculator is identified separately from the original sample producer.
 
 After reload, Simulate displays its bounded scalar checkpoint while it recovers the authoritative final snapshot. A visible recovery notice marks pending session distributions and detailed measurements, including quota, offline and authentication waits. HTTP recovery and socket replay may independently supply the verified final evidence; successful restoration removes the notice.
+
+## Native feature and settlement evidence
+
+Episode options now include a bounded ordinal profile and typed exit reason; witnesses retain nested episode/parent identities. Settlement fields expose exact pre-rounding, rounded award and difference. See [native experiment contracts](VERIFICATION_EXPERIMENTS.md).

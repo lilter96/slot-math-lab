@@ -12,14 +12,29 @@ export function validAnalysis(value: unknown, expectedCount?: number, expectedMe
   if (!object(value) || depth > 1 || !count(value.count) || expectedCount != null && value.count !== expectedCount
     || expectedMean !== undefined && !near(value.mean, expectedMean) || expectedSum !== undefined && !near(value.sum, expectedSum)
     || !text(value.subject) || !text(value.reduction)) return false;
+  if (value.episodeProfile != null) {
+    const p = value.episodeProfile;
+    if (!object(p) || !count(p.includedEpisodes) || !count(p.overflowEpisodes) || p.overflowEpisodes > p.includedEpisodes || !text(p.population) || !object(p.exitReasons)
+      || Object.keys(p.exitReasons).some(k => !['condition', 'modelLimit', 'payoutCap', 'authoredStop', 'resourceExpiry', 'unclassified'].includes(k))
+      || !Object.values(p.exitReasons).every(count) || Object.values(p.exitReasons).reduce<number>((sum, n) => sum + Number(n), 0) !== p.includedEpisodes
+      || !Array.isArray(p.ordinals) || p.ordinals.length > 256 || !Array.isArray(p.crossOrdinals) || p.crossOrdinals.length > 1920) return false;
+    const episodes = p.includedEpisodes;
+    if (!p.ordinals.every(r => object(r) && count(r.depth) && r.depth >= 1 && r.depth <= 16 && count(r.ordinal) && r.ordinal >= 1 && r.ordinal <= 16 && count(r.count) && r.count > 0 && r.count <= episodes && finite(r.minimum) && finite(r.maximum) && finite(r.mean) && r.minimum <= r.mean && r.mean <= r.maximum && nullable(r.sampleVariance))) return false;
+    if (!p.crossOrdinals.every(r => object(r) && count(r.depth) && r.depth >= 1 && r.depth <= 16 && count(r.first) && count(r.second) && r.first >= 1 && r.first < r.second && r.second <= 16 && count(r.pairedEpisodes) && r.pairedEpisodes <= episodes && nullable(r.covariance) && nullable(r.correlation))) return false;
+  }
+
   for (const field of ['min', 'max', 'mean', 'sum', 'meanStandardError', 'requiredSampleSize']) if (!nullable(value[field])) return false;
   for (const field of ['distinctParents', 'entries', 'exits', 'unclosedEpisodes', 'uniqueAwards', 'duplicateAwards']) if (!count(value[field])) return false;
   if (value.interruptedLifecycle != null) {
     if (!['episode', 'transition'].includes(String(value.subject)) || !object(value.interruptedLifecycle)) return false;
-    const reasons = [value.interruptedLifecycle.cancelled, value.interruptedLifecycle.failed];
+    const reasons = [value.interruptedLifecycle.cancelled, value.interruptedLifecycle.failed, ...(value.interruptedLifecycle.resourceExpiry == null ? [] : [value.interruptedLifecycle.resourceExpiry])];
     if (!reasons.every(reason => object(reason) && count(reason.interruptedRounds) && count(reason.entries) && count(reason.exits) && count(reason.openInstances)
       && typeof reason.complete === 'boolean' && (!reason.complete || reason.entries === reason.exits + reason.openInstances)
       && (reason.interruptedRounds > 0 || reason.entries + reason.exits + reason.openInstances === 0))) return false;
+  }
+  if (object(value.interruptedLifecycle) && value.interruptedLifecycle.resourceExpiry != null) {
+    const expiry = value.interruptedLifecycle.resourceExpiry, cancelled = value.interruptedLifecycle.cancelled;
+    if (!object(expiry) || !object(cancelled) || ['interruptedRounds', 'entries', 'exits', 'openInstances'].some(k => Number(expiry[k]) > Number(cancelled[k]))) return false;
   }
   if (value.normalization != null && (!object(value.normalization) || !count(value.normalization.paidRounds) || value.normalization.paidRounds === 0
     || !nullable(value.normalization.externalTurnover) || value.normalization.externalTurnover != null && (value.normalization.externalTurnover as number) <= 0 || !text(value.normalization.basis))) return false;
@@ -70,9 +85,10 @@ export function validAnalysis(value: unknown, expectedCount?: number, expectedMe
     if (!validAnalysis(group, undefined, undefined, undefined, depth + 1)) return false;
     if (group.interruptedLifecycle) {
       if (!object(value.interruptedLifecycle)) return false;
-      for (const reason of ['cancelled', 'failed'] as const) {
+      for (const reason of ['cancelled', 'failed', 'resourceExpiry'] as const) {
+        const child = group.interruptedLifecycle[reason]; if (!child) continue;
         const global = value.interruptedLifecycle[reason];
-        if (!object(global) || (['interruptedRounds', 'entries', 'exits', 'openInstances'] as const).some(field => group.interruptedLifecycle![reason][field] > (global[field] as number))) return false;
+        if (!object(global) || (['interruptedRounds', 'entries', 'exits', 'openInstances'] as const).some(field => child[field] > (global[field] as number))) return false;
       }
     }
   }
@@ -82,6 +98,7 @@ export function validAnalysis(value: unknown, expectedCount?: number, expectedMe
 export function validWitnesses(value: unknown): boolean {
   return value === undefined || Array.isArray(value) && value.length <= 7 && new Set(value.map(w => w?.kind)).size === value.length
     && value.every(w => object(w) && count(w.roundIndex) && count(w.observationOrdinal) && (w.nodeId == null || text(w.nodeId))
+      && (w.episodeId == null || text(w.episodeId)) && (w.parentEpisodeId == null || text(w.parentEpisodeId)) && (w.episodeDepth == null || count(w.episodeDepth) && w.episodeDepth >= 1 && w.episodeDepth <= 16) && (w.episodeOrdinal == null || count(w.episodeOrdinal))
       && ['first', 'minimum', 'maximum', 'invalid', 'duplicateAward', 'unexpectedSupport', 'assertionViolation'].includes(String(w.kind))
       && nullable(w.value) && nullable(w.pair) && (w.group == null || text(w.group)) && (w.detail == null || text(w.detail)));
 }

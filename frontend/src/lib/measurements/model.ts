@@ -2,7 +2,7 @@ import { parseExpression, type ExpressionAst } from '../expressionParser';
 import { formatNumber, formatPercent } from '../numberFormat';
 import type { MeasurementAnalysis, MeasurementOptions } from './analysis';
 export interface MeasurementDefinition { id: string; name: string; nodeId: string | null; value: ExpressionAst | null; filter: ExpressionAst | null; unit: string; options?: MeasurementOptions }
-export interface MeasurementWitness { roundIndex: number; observationOrdinal: number; nodeId: string | null; kind: string; value: number | null; pair: number | null; group: string | null; detail: string | null }
+export interface MeasurementWitness { episodeId?: string | null; parentEpisodeId?: string | null; episodeDepth?: number | null; episodeOrdinal?: number | null; roundIndex: number; observationOrdinal: number; nodeId: string | null; kind: string; value: number | null; pair: number | null; group: string | null; detail: string | null }
 export interface MeasurementSnapshot { witnesses?: MeasurementWitness[]; id: string; observations: number; count: number; excluded: number; errors: number; min: number | null; max: number | null; mean: number | null; sum: number | null; stdDev: number | null; firstError: string | null; analysis?: MeasurementAnalysis | null }
 export interface MeasurementSchema { points: { nodeId: string; label: string }[]; fields: { name: string; type: string; path?: string[] | null }[] }
 export const stateFieldExpression = (field: MeasurementSchema['fields'][number]) =>

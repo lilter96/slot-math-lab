@@ -37,7 +37,7 @@ public static class MeasurementReplay
                     WinScale = (double)compiled.WinScale, MaxWinCap = config.Nodes.OfType<MetricsSinkNode>().Single().WinCap,
                     CancellationToken = deadline.Token, CancellationCheckInterval = 1
                 }), deadline.Token);
-                if (result.ReplayedRound is null) return Results.Json(new { error = "Replay was cancelled before its selected round." }, statusCode: 408);
+                if (result.ReplayedRound is null) return result.WasCancelled ? Results.Json(new { error = "Replay was cancelled before its selected round." }, statusCode: 408) : Results.BadRequest(new { error = "This round slot was not played under the pinned session stopping policy." });
                 var report = new MeasurementReplayReport(id, request.RoundIndex, run.ConfigHash!, run.MeasurementHash,
                     RuntimeProvenance.Current, result.ReplayedRound, "Reconstructed the selected logical stream prefix, including retained state; other worker streams are omitted. Instrumentation does not consume game RNG.");
                 return Results.Ok(report with { Retention = runs.RetainDiagnostic(id, "witness-replay", request, report) });

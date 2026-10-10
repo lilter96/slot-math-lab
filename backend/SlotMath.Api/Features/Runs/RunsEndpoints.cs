@@ -28,6 +28,8 @@ public static class RunsEndpoints
         MeasurementReplay.Map(group, configStore, runStore);
         MeasurementCalibration.Map(group, runStore);
         MeasurementAccounting.Map(group, runStore);
+        ExperimentEndpoints.Map(group);
+        VerificationDesignEndpoints.Map(group, runStore);
         RunVerification.Map(group, runStore);
         DiagnosticReferences.Map(group, runStore);
         group.MapPost("/measurements/reference/planning", (SlotMath.Core.Measurements.SamplePlanRequest request) =>
@@ -128,6 +130,8 @@ public static class RunsEndpoints
             {
                 if (request.VerificationProfile is { } profile) SlotMath.Core.Measurements.ProfileVerification.Validate(profile, measurements);
                 request.Execution?.Validate(request.SampleSize ?? 100_000, request.DegreeOfParallelism);
+                if (request.Execution is { SessionStop: not "fixedHorizon" } && measurements.Any(d => d.Options is { IndependentSubjects: true } or { IndependentParents: true }))
+                    return Results.BadRequest(new { error = "Early stopping creates a stopping-dependent paid-round population; use independent session metrics instead of asserting round independence." });
                 if (request.Execution?.FeatureMetricId is { } featureId)
                 {
                     var feature = measurements.FirstOrDefault(d => d.Id == featureId);
@@ -151,7 +155,7 @@ public static class RunsEndpoints
             if (!validation.IsValid) return Results.BadRequest(new { error = "Graph or measurement plan validation failed.", errors = validation.Errors });
             var run = configStore.UseVersion(request.ConfigId, configEntry.Version, pinned =>
                 runStore.Create(request.ConfigId, request.Seed, pinned.Version, request.SampleSize ?? 100_000,
-                    CanonicalHash.Compute(pinned.Config), request.DegreeOfParallelism, measurements, request.Execution, request.VerificationProfile));
+                    CanonicalHash.Compute(pinned.Config), request.DegreeOfParallelism, measurements, request.Execution, request.VerificationProfile, pinned.Config.EvidenceInputs));
             if (run is null) return Results.NotFound(new { error = "Config was removed before the run could be pinned." });
             var sampleSize = request.SampleSize ?? 100_000;
             var batchSize = request.ProgressBatchSize ?? Math.Max(100, sampleSize / 100);

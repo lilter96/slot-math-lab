@@ -126,3 +126,7 @@ launches a replay and records the real checks in
 `docs/verification/results-production.json`, with desktop/mobile screenshots.
 It does not restart or kill the server. Deployment persistence remains the
 documented encrypted, single-writer snapshot architecture.
+
+## Pinned verification workspace
+
+Selected saved runs expose parameter/policy experiments, finite verified sampling designs, resource-stop references and external input manifests. Early-stopped sessions can be complete with fewer paid rounds than planned slots; ordinary round confidence intervals remain withheld. See [scope and assumptions](VERIFICATION_EXPERIMENTS.md).

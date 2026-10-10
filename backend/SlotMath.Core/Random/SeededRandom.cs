@@ -29,6 +29,10 @@ public sealed class SeededRandom
 {
     private ulong _s0, _s1, _s2, _s3;
     private readonly ulong _expansionSeed;
+    private SlotMath.Core.Math.RandomStreamCapture? _capture;
+    internal void EnableAudit() => _capture ??= new();
+    internal SlotMath.Core.Math.RandomStreamIdentity? AuditSnapshot(long index) => _capture?.Snapshot(index, _expansionSeed);
+    internal void EndAudit() { _capture?.Dispose(); _capture = null; }
 
     /// <summary>Create a PRNG with the given seed. A seed of 0 is valid.</summary>
     public SeededRandom(long seed) : this((ulong)seed, seed) { }
@@ -82,6 +86,7 @@ public sealed class SeededRandom
         _s0 ^= _s3;
         _s2 ^= t;
         _s3 = Rotl(_s3, 45);
+        _capture?.Add(result);
         return result;
     }
 

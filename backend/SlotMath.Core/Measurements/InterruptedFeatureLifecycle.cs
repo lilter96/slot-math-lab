@@ -10,5 +10,5 @@ public sealed record FeatureLifecycleCounts(long InterruptedRounds, long Entries
         => a is null ? b : b is null ? a : new(a.InterruptedRounds + b.InterruptedRounds,
             a.Entries + b.Entries, a.Exits + b.Exits, a.OpenInstances + b.OpenInstances, a.Complete && b.Complete);
 }
-public sealed record InterruptedFeatureLifecycle(FeatureLifecycleCounts Cancelled, FeatureLifecycleCounts Failed);
-internal enum PaidRoundInterruption { Cancelled, Failed }
+public sealed record InterruptedFeatureLifecycle(FeatureLifecycleCounts Cancelled, FeatureLifecycleCounts Failed) { public FeatureLifecycleCounts? ResourceExpiry { get; init; } }
+internal enum PaidRoundInterruption { Cancelled, Failed, ResourceExpiry }

@@ -33,13 +33,14 @@ public static class MeasurementPlanValidator
         if (options.ReferenceDistribution.Length > 1024 || options.ReferenceDistribution.Any(p => p is null || !double.IsFinite(p.Value) || !double.IsFinite(p.Probability) || p.Probability < 0)
             || options.ReferenceDistribution.Select(p => p.Value).Distinct().Count() != options.ReferenceDistribution.Length
             || options.ReferenceDistribution.Length > 0 && System.Math.Abs(options.ReferenceDistribution.Sum(p => p.Probability) - 1) > 1e-10) yield return "Reference PMF must have unique finite outcomes and nonnegative probabilities summing to one (up to 1024 atoms).";
-        foreach (var (expression, type) in new[] { (options.Pair, (ExprType?)ExprType.Number), (options.Weight, ExprType.Number), (options.Group, null), (options.AwardId, null), (options.EntryFilter, ExprType.Boolean), (options.ExitFilter, ExprType.Boolean) })
+        foreach (var (expression, type) in new[] { (options.Pair, (ExprType?)ExprType.Number), (options.Weight, ExprType.Number), (options.Group, null), (options.AwardId, null), (options.EntryFilter, ExprType.Boolean), (options.ExitFilter, ExprType.Boolean), (options.ExitReason, ExprType.String) })
         {
             if (expression is null) continue;
             if (ExpressionCost.Compute(expression) > 1000) { yield return "Additional expression exceeds the 1000-operation budget."; continue; }
             foreach (var error in type is { } expected ? ExpressionTypeChecker.Check(expression, context, expected) : ExpressionTypeChecker.Check(expression, context)) yield return error.Message;
             if (type is null && ExpressionTypeChecker.InferType(expression, context) is not (ExprType.Number or ExprType.Boolean or ExprType.String or ExprType.Symbol)) yield return "Group and award keys must be scalar expressions.";
         }
+        if (options.OrdinalLimit is < 0 or > 16 || (options.OrdinalLimit > 0 || options.ExitReason is not null) && options.Subject != "episode") yield return "Ordinal profiles and exit reasons require episodes; retain at most 16 ordinals.";
         if (options.Weight is not null && options.Subject != "observation") yield return "Likelihood weights bind to complete independent observations; within-subject averaging of weights is prohibited.";
         if (options.Source == "event" && definition.Value is null) yield return "Event observations require a Boolean predicate.";
     }

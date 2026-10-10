@@ -74,7 +74,7 @@ internal sealed class SamplingPlan
             _measurementExpressions[i] = new(CompileMeasurement(measurements[i].Value), CompileMeasurement(measurements[i].Filter),
                 CompileMeasurement(measurements[i].Options?.Group), CompileMeasurement(measurements[i].Options?.Pair),
                 CompileMeasurement(measurements[i].Options?.Weight), CompileMeasurement(measurements[i].Options?.AwardId),
-                CompileMeasurement(measurements[i].Options?.EntryFilter), CompileMeasurement(measurements[i].Options?.ExitFilter));
+                CompileMeasurement(measurements[i].Options?.EntryFilter), CompileMeasurement(measurements[i].Options?.ExitFilter), CompileMeasurement(measurements[i].Options?.ExitReason));
         var defaults = new Dictionary<int, SamplingCell>();
         foreach (var (key, value) in config.InitialState ?? new())
         {
@@ -87,6 +87,7 @@ internal sealed class SamplingPlan
         var incoming = config.Edges.Select(e => e.TargetNodeId).ToHashSet();
         var entries = config.Nodes.Where(n => !incoming.Contains(n.Id)).Select(n => CompileChain(n.Id, sink.Id)).ToArray();
         var winSlot = sink.WinStateKey is { } keyName ? SlotIndex(keyName) : -1;
+        int[] settlementSlots = sink.Settlement is null ? [] : MonetarySettlement.EvidenceKeys.Select(SlotIndex).ToArray();
         _run = (frame, rng) =>
         {
             var win = BigInteger.Zero;
@@ -95,16 +96,28 @@ internal sealed class SamplingPlan
                 var result = entry(frame, rng, null);
                 if (winSlot < 0) win += Extract(result);
             }
+            var exactWin = ExprValue.Rational(win, scale);
             if (winSlot >= 0)
             {
                 var cell = frame.Cells[winSlot]; var key = sink.WinStateKey!;
                 if (!cell.Present) throw new ExpressionEvaluationException("EVAL_MISSING_STATE", $"Payout field '{key}' is absent.", key);
                 if (cell.Value.Kind != ExprType.Number || cell.HasRaw && cell.Raw is not (BigInteger or int or long or ExprValue))
                     throw new ExpressionEvaluationException("EVAL_TYPE_ERROR", $"Payout field '{key}' must be numeric.", key);
-                var scaled = cell.Value.NumberNumerator * scale;
-                if (scaled % cell.Value.NumberDenominator != 0)
-                    throw new ExpressionEvaluationException("EVAL_PAYOUT_PRECISION", "State payout exceeds the declared paytable precision.", key);
-                win = scaled / cell.Value.NumberDenominator;
+                exactWin = cell.Value;
+            }
+            if (sink.Settlement is { } policy)
+            {
+                var after = policy.Apply(exactWin);
+                frame.Cells[settlementSlots[0]] = SamplingCell.FromRaw(exactWin);
+                frame.Cells[settlementSlots[1]] = SamplingCell.FromRaw(after);
+                frame.Cells[settlementSlots[2]] = SamplingCell.FromRaw(ExprValue.Rational(after.NumberNumerator * exactWin.NumberDenominator - exactWin.NumberNumerator * after.NumberDenominator, after.NumberDenominator * exactWin.NumberDenominator));
+                exactWin = after;
+            }
+            {
+                var scaled = exactWin.NumberNumerator * scale;
+                if (scaled % exactWin.NumberDenominator != 0)
+                    throw new ExpressionEvaluationException("EVAL_PAYOUT_PRECISION", "State payout exceeds the declared settlement/paytable precision.", sink.WinStateKey);
+                win = scaled / exactWin.NumberDenominator;
             }
             frame.RawPayout = win;
             return win.Sign < 0 ? throw new InvalidOperationException("Round payouts must be non-negative.") : BigInteger.Min(win, _cap);
@@ -170,6 +183,8 @@ internal sealed class SamplingPlan
             var exitEdge = edges.FirstOrDefault(e => e.SourcePort is "exit" or "out");
             var exit = exitEdge is null ? null : CompileChain(exitEdge.TargetNodeId, sink);
             var stop = Expression(loop.StopConditionId);
+            var reasonExpression = loop.ExitReason is null ? null : _expressions.Compile(loop.ExitReason);
+            var reasonSlot = SlotIndex($"__exitReason_{loop.Id}__");
             var counter = SlotIndex($"__iter_{loop.Id}__"); var wins = SlotIndex($"__wins_{loop.Id}__");
             chain = (s, rng, _) =>
             {
@@ -190,7 +205,10 @@ internal sealed class SamplingPlan
                         s.Cells[wins] = SamplingCell.Typed(ExprValue.Number(previous + amount));
                     }
                 }
-                s.LoopEvidence?.Observe(loop.Id, (int)s.Cells[counter].Raw!, loop.MaxIterations);
+                var iterations = (int)s.Cells[counter].Raw!;
+                var reason = iterations >= loop.MaxIterations ? "modelLimit" : reasonExpression is null ? "condition" : SlotMath.Core.Measurements.ExitClassification.Read(reasonExpression(s));
+                s.Cells[reasonSlot] = SamplingCell.Typed(ExprValue.String(reason));
+                s.LoopEvidence?.Observe(loop.Id, iterations, loop.MaxIterations, reason);
                 var total = s.Cells[wins].Export();
                 return exit is null ? total : exit(s, rng, total);
             };

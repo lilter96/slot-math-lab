@@ -15,6 +15,9 @@ public sealed record ExecutionOptions
     public double InitialBankroll { get; init; } = 100;
     public double Wager { get; init; } = 1;
     public string? FeatureMetricId { get; init; }
+    public string SessionStop { get; init; } = "fixedHorizon";
+    public double StopThreshold { get; init; } = 10;
+    public bool AuditRandomStreams { get; init; }
     public string StreamScheme => Regime switch
     {
         "persistent" => "splitmix64-persistent-v1",
@@ -23,7 +26,14 @@ public sealed record ExecutionOptions
     };
     public void Validate(long rounds, int workers)
     {
+        if (AuditRandomStreams && (Regime == "sessions" ? rounds / System.Math.Max(1, SessionLength) : (rounds + 65535) / 65536) > 65536)
+            throw new ArgumentException("Complete raw RNG audits support at most 65536 logical streams; reduce the session count or disable the audit.");
         if (SamplingEngine is not ("auto" or "reference")) throw new ArgumentException("Choose automatic compiled sampling or the canonical reference interpreter.");
+        if (SessionStop is not ("fixedHorizon" or "ruin" or "profitTarget" or "lossLimit" or "featureFirst")
+            || SessionStop != "fixedHorizon" && Regime != "sessions"
+            || SessionStop == "featureFirst" && FeatureMetricId is null
+            || !double.IsFinite(StopThreshold) || StopThreshold <= 0 || StopThreshold > 1e15)
+            throw new ArgumentException("Choose a declared session stop policy, a positive finite threshold and a feature metric for feature-first stopping.");
         if (Regime is not ("independentRounds" or "persistent" or "sessions")) throw new ArgumentException("Unknown execution regime.");
         if (FeatureMetricId is not null && (Regime != "sessions" || FeatureMetricId.Length is < 1 or > 64)) throw new ArgumentException("Session feature-wait tracking requires a valid round-activation metric ID and session execution.");
         if (PersistentKeys is null || PersistentKeys.Length > 64 || PersistentKeys.Any(k => string.IsNullOrWhiteSpace(k) || k.Length > 128)
@@ -45,6 +55,9 @@ public sealed record ExecutionSummary(string Regime, long AttemptedRounds, long 
     public string SamplingEngine { get; init; } = "unspecified";
     public LoopTerminationSummary[] LoopTerminations { get; init; } = [];
     public bool LoopTerminationsComplete { get; init; } = true;
+    public string SessionStop { get; init; } = "fixedHorizon";
+    public long PlannedRoundSlots { get; init; }
+    public RandomStreamReport? RandomStreams { get; init; }
 }
 
 /// <summary>One logical independent session. Memory is constant in the horizon.</summary>
@@ -57,6 +70,13 @@ internal sealed class SessionTrajectory
     private long? _ruinAt;
     private long? _featureAt;
     private bool _invalidFeature;
+    public string? StopReason(ExecutionOptions options) => options.SessionStop switch {
+        "ruin" when !_money.CanFundNextWager => "ruin",
+        "profitTarget" when _money.Profit >= options.StopThreshold => "profitTarget",
+        "lossLimit" when _money.Profit <= -options.StopThreshold => "lossLimit",
+        "featureFirst" when _featureAt is not null && !_invalidFeature => "featureFirst",
+        _ => null
+    };
     public void Add(double payout, bool? feature = false)
     {
         _money.Add(payout); _rounds++;
@@ -66,19 +86,23 @@ internal sealed class SessionTrajectory
         if (!_money.CanFundNextWager && _ruinAt is null) _ruinAt = _rounds;
         if (feature is null) _invalidFeature = true; else if (feature.Value && _featureAt is null) _featureAt = _rounds;
     }
-    public void Commit(SessionEvidence evidence, bool trackFeature = false)
+    public void Commit(SessionEvidence evidence, bool trackFeature = false, string reason = "horizon")
     {
         var net = _money.Profit; var ending = _money.EndingBankroll; var drawdown = _money.Drawdown; var ratio = _money.Return;
         // Validate the complete evidence before mutating its first accumulator.
         if (!double.IsFinite(net) || !double.IsFinite(ending) || !double.IsFinite(drawdown) || !double.IsFinite(ratio))
             throw new ArithmeticException("Session accounting exceeds finite report range.");
         evidence.Add("return", ratio);
+        evidence.Add("payout", _money.TotalPayout); evidence.Add("turnover", _money.Turnover);
+        evidence.Add("payoutPerTurnover", _money.TotalPayout, _money.Turnover);
         evidence.Add("profit", net); evidence.Add("profitable", _money.Profitable ? 1 : 0);
         evidence.Add("endingBankroll", ending); evidence.Add("drawdown", drawdown);
         evidence.Add("ruin", _ruinAt is null && !_money.InitiallyUnderfunded ? 0 : 1);
         // Censored non-ruined sessions are excluded from the first-passage mean.
         if (_money.InitiallyUnderfunded) evidence.Add("ruinTime", 0); else if (_ruinAt is { } at) evidence.Add("ruinTime", at); else evidence.Exclude("ruinTime");
         evidence.Add("duration", _rounds); evidence.Add("drought", _longestDrought); evidence.Add("extreme", _maximum);
+        foreach (var stop in new[] { "horizon", "ruin", "profitTarget", "lossLimit", "featureFirst" })
+            evidence.Add($"stop.{stop}", reason == stop ? 1 : 0);
         if (trackFeature)
         {
             if (_invalidFeature) { evidence.Error("featureSeen"); evidence.Error("featureWait"); }
@@ -92,13 +116,13 @@ internal sealed class SessionEvidence
     private MeasurementAccumulator Get(string name)
     {
         if (!_metrics.TryGetValue(name, out var accumulator)) accumulator.Analysis = new(new() { Subject = "session", IndependentSubjects = true,
-            Source = name is "ruin" or "profitable" or "featureSeen" ? "event" : "value", BinEdges = [-100, -10, 0, 1, 5, 10, 50, 100, 500, 1000] });
+            Source = name is "ruin" or "profitable" or "featureSeen" || name.StartsWith("stop.", StringComparison.Ordinal) ? "event" : "value", BinEdges = [-100, -10, 0, 1, 5, 10, 50, 100, 500, 1000] });
         return accumulator;
     }
-    public void Add(string name, double value)
+    public void Add(string name, double value, double? pair = null)
     {
         var accumulator = Get(name);
-        accumulator.Observations++; accumulator.Add(value); accumulator.Analysis!.Add(value, null, null, null); _metrics[name] = accumulator;
+        accumulator.Observations++; accumulator.Add(value); accumulator.Analysis!.Add(value, pair, null, null); _metrics[name] = accumulator;
     }
     public void Exclude(string name) { var accumulator = Get(name); accumulator.Observations++; accumulator.Excluded++; _metrics[name] = accumulator; }
     public void Error(string name) { var accumulator = Get(name); accumulator.Observations++; accumulator.Errors++; accumulator.FirstError ??= "The configured feature-activation subject was invalid; this complete session cannot establish feature waiting evidence."; _metrics[name] = accumulator; }

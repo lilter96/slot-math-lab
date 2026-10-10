@@ -1366,6 +1366,118 @@ export type paths = {
         patch?: never;
         trace?: never;
     };
+    "/api/runs/experiments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["ExperimentRequest"];
+                };
+            };
+            responses: {
+                /** @description Accepted */
+                202: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ExperimentEntry"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/runs/experiments/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ExperimentReport"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/runs/measurements/reference/comparison": {
         parameters: {
             query?: never;
@@ -1512,6 +1624,88 @@ export type paths = {
                     };
                     content: {
                         "application/json": components["schemas"]["SamplePlanReport"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/runs/measurements/resource-impact": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: {
+                    runId?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["ResourceImpactRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["DesignEvidenceOfResourceImpactReport"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/runs/measurements/sampling-design": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: {
+                    runId?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["SamplingDesignRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["DesignEvidenceOfSamplingDesignReport"];
                     };
                 };
             };
@@ -1777,6 +1971,40 @@ export type components = {
             seed?: number;
             verificationProfile?: null | components["schemas"]["VerificationProfile"];
         };
+        CrossOrdinalMoment: {
+            /** Format: double */
+            correlation: null | number;
+            /** Format: double */
+            covariance: null | number;
+            /** Format: int32 */
+            depth: number;
+            /** Format: int32 */
+            first: number;
+            /** Format: int64 */
+            pairedEpisodes: number;
+            /** Format: int32 */
+            second: number;
+        };
+        DesignEstimate: {
+            exactReference: string;
+            interval: null | components["schemas"]["NumericInterval"];
+            /** Format: double */
+            mean: number;
+            /** Format: double */
+            standardError: null | number;
+        };
+        DesignEvidenceOfResourceImpactReport: {
+            authoredInputSha256: string;
+            report: null | components["schemas"]["ResourceImpactReport"];
+            retention: null | components["schemas"]["DiagnosticRetention"];
+            runtime: components["schemas"]["RuntimeProvenance"];
+        };
+        DesignEvidenceOfSamplingDesignReport: {
+            authoredInputSha256: string;
+            report: null | components["schemas"]["SamplingDesignReport"];
+            retention: null | components["schemas"]["DiagnosticRetention"];
+            runtime: components["schemas"]["RuntimeProvenance"];
+        };
         DiagnosticArtifact: {
             configHash: null | string;
             /** Format: date-time */
@@ -1898,6 +2126,18 @@ export type components = {
              */
             maximumPaths: number;
         };
+        EpisodeProfile: {
+            crossOrdinals: components["schemas"]["CrossOrdinalMoment"][];
+            exitReasons: {
+                [key: string]: number;
+            };
+            /** Format: int64 */
+            includedEpisodes: number;
+            ordinals: components["schemas"]["OrdinalMoment"][];
+            /** Format: int64 */
+            overflowEpisodes: number;
+            population: string;
+        };
         EvaluateLightRequest: {
             config: unknown;
             /** Format: int32 */
@@ -1933,6 +2173,14 @@ export type components = {
             /** Format: double */
             volatility?: null | number;
         };
+        EvidenceInput: {
+            contentBase64?: null | string;
+            id: string;
+            kind: string;
+            sha256: string;
+            uri?: null | string;
+            version: string;
+        };
         ExactLawComparisonReport: {
             algorithmVersion?: null | string;
             assumptions: string;
@@ -1954,6 +2202,7 @@ export type components = {
             unit: string;
         };
         ExecutionOptions: {
+            auditRandomStreams?: boolean;
             featureMetricId?: null | string;
             /** Format: double */
             initialBankroll?: number;
@@ -1962,6 +2211,9 @@ export type components = {
             samplingEngine?: string;
             /** Format: int32 */
             sessionLength?: number;
+            sessionStop?: string;
+            /** Format: double */
+            stopThreshold?: number;
             streamScheme?: null | string;
             /** Format: double */
             wager?: number;
@@ -1985,11 +2237,97 @@ export type components = {
             loopTerminations?: components["schemas"]["LoopTerminationSummary"][];
             loopTerminationsComplete?: boolean;
             monetaryAccounting?: null | string;
+            /** Format: int64 */
+            plannedRoundSlots?: number;
+            randomStreams?: null | components["schemas"]["RandomStreamReport"];
             regime: string;
             samplingEngine?: string;
             sessionMetrics: components["schemas"]["MeasurementSnapshot"][];
             sessionPolicy: string;
+            sessionStop?: string;
             stateResetPolicy: string;
+        };
+        ExperimentDelta: {
+            assumptions: string;
+            /** Format: double */
+            baseline: null | number;
+            /** Format: double */
+            derivative: null | number;
+            /** Format: double */
+            difference: null | number;
+            interval: null | components["schemas"]["NumericInterval"];
+            metric: string;
+            /** Format: double */
+            observed: null | number;
+            /** Format: double */
+            suggestedSamplesPerArm: null | number;
+            variant: string;
+        };
+        ExperimentEntry: {
+            /** Format: date-time */
+            createdAt: string;
+            error?: null | string;
+            id: string;
+            manifestSha256: string;
+            members: components["schemas"]["ExperimentMember"][];
+            request: components["schemas"]["ExperimentRequest"];
+            status: string;
+        };
+        ExperimentMember: {
+            configHash: string;
+            configId: string;
+            name: string;
+            /** Format: double */
+            parameterStep?: null | number;
+            perturbation: null | components["schemas"]["ExperimentVariant"];
+            runId: string;
+            /** Format: int64 */
+            seed: number;
+        };
+        ExperimentReport: {
+            deltas: components["schemas"]["ExperimentDelta"][];
+            experiment: components["schemas"]["ExperimentEntry"];
+            /** Format: int32 */
+            hypothesisFamilySize: number;
+            runs: components["schemas"]["RunResponse"][];
+        };
+        ExperimentRequest: {
+            /**
+             * Format: double
+             * @default 0.95
+             */
+            confidence: number;
+            configId: string;
+            /** Format: int32 */
+            configVersion: number;
+            execution?: null | components["schemas"]["ExecutionOptions"];
+            measurements: components["schemas"]["MeasurementInput"][];
+            metricIds?: null | string[];
+            /**
+             * Format: double
+             * @default 0.005
+             */
+            precision: number;
+            /**
+             * Format: int32
+             * @default 10000
+             */
+            samples: number;
+            /**
+             * Format: int64
+             * @default 42
+             */
+            seed: number;
+            tailThresholds?: null | number[];
+            variants: components["schemas"]["ExperimentVariant"][];
+        };
+        ExperimentVariant: {
+            key: string;
+            kind: string;
+            name: string;
+            nodeId?: null | string;
+            /** Format: double */
+            value: number;
         };
         ExplainRequest: {
             ci95?: null | string;
@@ -2097,6 +2435,7 @@ export type components = {
         InterruptedFeatureLifecycle: {
             cancelled: components["schemas"]["FeatureLifecycleCounts"];
             failed: components["schemas"]["FeatureLifecycleCounts"];
+            resourceExpiry?: null | components["schemas"]["FeatureLifecycleCounts"];
         };
         JointDiagnostics: {
             calibration: string;
@@ -2121,6 +2460,16 @@ export type components = {
             y: number;
         };
         JsonElement: unknown;
+        LikelihoodAtom: {
+            conditionalWeight?: null | string;
+            id: string;
+            /** Format: int64 */
+            observed: number;
+            proposal: string;
+            stratum?: null | string;
+            target: string;
+            weight: string;
+        };
         LintRequest: {
             config: unknown;
             /** Format: double */
@@ -2131,6 +2480,9 @@ export type components = {
             completedInvocations: number;
             /** Format: int64 */
             conditionCompletions: number;
+            exitReasons?: null | {
+                [key: string]: number;
+            };
             /** Format: int32 */
             maximumIterations: number;
             /** Format: int32 */
@@ -2190,6 +2542,7 @@ export type components = {
             duplicateAwards: number;
             /** Format: int64 */
             entries: number;
+            episodeProfile?: null | components["schemas"]["EpisodeProfile"];
             /** Format: int64 */
             exits: number;
             groups: {
@@ -2323,6 +2676,11 @@ export type components = {
         };
         MeasurementWitness: {
             detail: null | string;
+            /** Format: int32 */
+            episodeDepth?: null | number;
+            episodeId?: null | string;
+            /** Format: int64 */
+            episodeOrdinal?: null | number;
             group: null | string;
             kind: string;
             nodeId: null | string;
@@ -2330,6 +2688,7 @@ export type components = {
             observationOrdinal: number;
             /** Format: double */
             pair: null | number;
+            parentEpisodeId?: null | string;
             /** Format: int64 */
             roundIndex: number;
             /** Format: double */
@@ -2380,6 +2739,22 @@ export type components = {
             method: string;
             /** Format: double */
             upper: number;
+        };
+        OrdinalMoment: {
+            /** Format: int64 */
+            count: number;
+            /** Format: int32 */
+            depth: number;
+            /** Format: double */
+            maximum: number;
+            /** Format: double */
+            mean: number;
+            /** Format: double */
+            minimum: number;
+            /** Format: int32 */
+            ordinal: number;
+            /** Format: double */
+            sampleVariance: null | number;
         };
         PairSummary: {
             /** Format: double */
@@ -2450,6 +2825,33 @@ export type components = {
             /** Format: double */
             value: null | number;
         };
+        RandomStreamDuplicate: {
+            /** Format: int64 */
+            firstStream: number;
+            kind: string;
+            /** Format: int64 */
+            otherStream: number;
+        };
+        RandomStreamReport: {
+            calibration: string;
+            /** Format: int64 */
+            collisionCandidatePairs?: number;
+            /** Format: int64 */
+            comparablePrefixes: number;
+            complete: boolean;
+            detail: string;
+            duplicates: components["schemas"]["RandomStreamDuplicate"][];
+            /** Format: int64 */
+            expectedStreams?: number;
+            /** Format: double */
+            idealIndependentPrefixCollisionUpperBound: number;
+            /** Format: int64 */
+            nonemptyStreams: number;
+            /** Format: double */
+            scheduledInitialWordCollisionProbability?: number;
+            /** Format: int64 */
+            streams: number;
+        };
         RationalBounds: {
             lower: string;
             upper: null | string;
@@ -2468,6 +2870,22 @@ export type components = {
             contract: string;
             pluginId: string;
             version?: null | string;
+        };
+        ResourceImpactReport: {
+            assumptions: string;
+            /** Format: int32 */
+            horizon: number;
+            omittedReward: null | string;
+            referenceReward: null | string;
+            referenceStatus: string;
+            retainedDuration: string;
+            retainedReward: string;
+            stopProbability: string;
+        };
+        ResourceImpactRequest: {
+            /** Format: int32 */
+            horizon: number;
+            reference: components["schemas"]["MarkovModelRequest"];
         };
         RetainedReferenceOfExactLawComparisonReport: {
             report: null | components["schemas"]["ExactLawComparisonReport"];
@@ -2567,6 +2985,7 @@ export type components = {
             volatility?: number;
         };
         RunResponse: {
+            cancellationReason?: null | string;
             /** Format: date-time */
             completedAt?: null | string;
             configHash?: null | string;
@@ -2578,6 +2997,7 @@ export type components = {
             /** Format: int32 */
             degreeOfParallelism?: number;
             execution?: null | components["schemas"]["ExecutionOptions"];
+            externalEvidence?: null | components["schemas"]["EvidenceInput"][];
             id: string;
             measurementHash?: null | string;
             measurements?: components["schemas"]["MeasurementInput"][];
@@ -2688,6 +3108,58 @@ export type components = {
             /** Format: double */
             variance?: null | number;
         };
+        SamplingAtom: {
+            id: string;
+            proposalProbability: string;
+            /** @default all */
+            stratum: string;
+            targetProbability: string;
+            value: string;
+        };
+        SamplingDesignReport: {
+            assumptions: string;
+            /** Format: double */
+            effectiveSampleSize: null | number;
+            exactEstimatorVariance: string;
+            exactWeightSecondMoment: string;
+            likelihoods: components["schemas"]["LikelihoodAtom"][];
+            mode: string;
+            reward: components["schemas"]["DesignEstimate"];
+            /** Format: int32 */
+            samples: number;
+            /** Format: int64 */
+            seed: number;
+            tailProbability: components["schemas"]["DesignEstimate"];
+            targetSupportCovered: boolean;
+        };
+        SamplingDesignRequest: {
+            allocation?: null | components["schemas"]["StratumAllocation"][];
+            atoms: components["schemas"]["SamplingAtom"][];
+            /**
+             * Format: double
+             * @default 0.95
+             */
+            confidence: number;
+            /**
+             * Format: int32
+             * @default 1
+             */
+            errorFamilySize: number;
+            /** @default importance */
+            mode: string;
+            /**
+             * Format: int32
+             * @default 10000
+             */
+            samples: number;
+            /**
+             * Format: int64
+             * @default 42
+             */
+            seed: number;
+            /** @default 1 */
+            threshold: string;
+        };
         SequenceSummary: {
             /** Format: int64 */
             adjacentPairs: number;
@@ -2723,6 +3195,11 @@ export type components = {
             observations: number;
             /** Format: double */
             state: number;
+        };
+        StratumAllocation: {
+            id: string;
+            /** Format: int32 */
+            samples: number;
         };
         TailSummary: {
             /** Format: int64 */

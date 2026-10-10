@@ -161,6 +161,7 @@ public sealed class GraphCompiler
         { Error("Measurement collection arrays cannot be null."); return errors; }
         var storageCells = definitions.Where(d => d?.Options is not null).Sum(d =>
             (long)(1 + (d.Options!.Group is null ? 0 : d.Options.GroupLimit)) * (d.Options.SupportLimit + d.Options.BinEdges.Length * 3 + d.Options.Thresholds.Length * 3 + d.Options.Lags.Length * 3 + 32));
+        storageCells += definitions.Where(d => d?.Options is not null).Sum(d => (long)(1 + (d.Options!.Group is null ? 0 : d.Options.GroupLimit)) * d.Options.OrdinalLimit * (d.Options.OrdinalLimit + 1) / 2 * 16 * 6);
         if (storageCells > 32768) Error("Measurement plan exceeds the 32768-cell storage budget. Reduce groups, support, bins or tracked populations.");
         if (System.Text.Json.JsonSerializer.SerializeToUtf8Bytes(definitions, JsonOptions.Default).Length > 262144)
             Error("Measurement plan exceeds the 256 KiB serialized budget. Reduce expressions or reference support.");
@@ -228,7 +229,8 @@ public sealed class GraphCompiler
         /// </summary>
         private static BigInteger DetectWinScale(GraphConfig config)
         {
-            var maxDecimals = 0;
+            var quantum = config.Nodes.OfType<MetricsSinkNode>().Single().Settlement?.Validate();
+            var maxDecimals = quantum is { } q ? DecimalPlaces(q) : 0;
             foreach (var paytable in config.Paytables ?? Array.Empty<Paytable>())
             {
                 foreach (var entry in paytable.Entries)
@@ -314,16 +316,14 @@ public sealed class GraphCompiler
                 }
 
                 return program.SelectMany(_ =>
-                    Slot.GetState<Dictionary<string, object?>>().SelectMany(state =>
-                        Slot.Pure<Dictionary<string, object?>, BigInteger>(
-                            ReadStateWin(state, winKey))));
+                    Slot.GetState<Dictionary<string, object?>>().SelectMany(state => SettleStateWin(state, winKey, sinkNode.Settlement)));
             }
 
             if (entryNodeIds.Count == 1)
             {
                 var chain = GetChain(entryNodeIds[0], sinkId);
-                return chain(null).SelectMany(v =>
-                    Slot.Pure<Dictionary<string, object?>, BigInteger>(ExtractBigInteger(v)));
+                return ApplySettlement(chain(null).SelectMany(v =>
+                    Slot.Pure<Dictionary<string, object?>, BigInteger>(ExtractBigInteger(v))), sinkNode.Settlement);
             }
 
             // Multiple entry nodes: compose all programs sequentially and sum.
@@ -338,7 +338,35 @@ public sealed class GraphCompiler
                         Slot.Pure<Dictionary<string, object?>, BigInteger>(acc + ExtractBigInteger(v))));
             }
 
-            return composed;
+            return ApplySettlement(composed, sinkNode.Settlement);
+        }
+
+        private Slot<Dictionary<string, object?>, BigInteger> ApplySettlement(Slot<Dictionary<string, object?>, BigInteger> program, MonetarySettlement? policy)
+            => policy is null ? program : program.SelectMany(win =>
+                Slot.GetState<Dictionary<string, object?>>().SelectMany(state =>
+                    SettleAmount(state, ExprValue.Rational(win, _winScale), policy)));
+
+        private Slot<Dictionary<string, object?>, BigInteger> SettleStateWin(Dictionary<string, object?> state, string key, MonetarySettlement? policy)
+        {
+            if (policy is null) return Slot.Pure<Dictionary<string, object?>, BigInteger>(ReadStateWin(state, key));
+            if (!state.TryGetValue(key, out var raw)) throw new ExpressionEvaluationException("EVAL_MISSING_STATE", $"Payout field '{key}' is absent.", key);
+            var value = raw switch {
+                ExprValue e when e.Kind == ExprType.Number => e,
+                BigInteger b => ExprValue.Number(b), int i => ExprValue.Number(i), long l => ExprValue.Number(l),
+                _ => throw new ExpressionEvaluationException("EVAL_TYPE_ERROR", "Payout must be an exact number.", key)
+            };
+            return SettleAmount(state, value, policy);
+        }
+        private Slot<Dictionary<string, object?>, BigInteger> SettleAmount(Dictionary<string, object?> state, ExprValue before, MonetarySettlement policy)
+        {
+            var after = policy.Apply(before);
+            var scaled = after.NumberNumerator * _winScale;
+            if (scaled % after.NumberDenominator != 0) throw new InvalidOperationException("Settlement precision is incompatible with payout scale.");
+            var next = new Dictionary<string, object?>(state) {
+                [MonetarySettlement.EvidenceKeys[0]] = before, [MonetarySettlement.EvidenceKeys[1]] = after,
+                [MonetarySettlement.EvidenceKeys[2]] = ExprValue.Rational(after.NumberNumerator * before.NumberDenominator - before.NumberNumerator * after.NumberDenominator, after.NumberDenominator * before.NumberDenominator)
+            };
+            return Slot.PutState(next).Select(_ => scaled / after.NumberDenominator);
         }
 
         /// <summary>
@@ -626,6 +654,12 @@ public sealed class GraphCompiler
                     return next;
                 })
                 .SelectMany(_ => Slot.Loop(stopFn, body))
+                .SelectMany(_ => Slot.Modify<Dictionary<string, object?>>(state =>
+                {
+                    var iterations = (int)state[iterKey]!;
+                    var reason = iterations >= maxIter ? "modelLimit" : node.ExitReason is null ? "condition" : SlotMath.Core.Measurements.ExitClassification.Read(ExactExpressionEvaluator.Evaluate(node.ExitReason, new EvalContext { State = state }));
+                    return new Dictionary<string, object?>(state) { [$"__exitReason_{node.Id}__"] = reason };
+                }))
                 .SelectMany(_ => new LoopCompletionSlot<Dictionary<string, object?>, object?>(node.Id, iterKey, maxIter, readWins));
 
             if (exitEdge != null)

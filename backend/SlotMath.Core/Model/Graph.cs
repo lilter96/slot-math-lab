@@ -125,6 +125,7 @@ public sealed record ModifyStateNode : Node
 
 public sealed record LoopNode : Node
 {
+    public Expression? ExitReason { get; init; }
     public string? StopConditionId { get; init; }
     public int MaxIterations { get; init; } = 1000;
 }
@@ -144,6 +145,7 @@ public sealed record MapNode : Node
 
 public sealed record MetricsSinkNode : Node
 {
+    public MonetarySettlement? Settlement { get; init; }
     public string? MetricId { get; init; }
 
     /// <summary>

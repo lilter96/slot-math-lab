@@ -36,6 +36,17 @@ export interface SlotMathLabGraphSchema {
   id?: null | string;
   name?: null | string;
   description?: null | string;
+  evidenceInputs?:
+    | null
+    | {
+        kind?: string;
+        id?: string;
+        version?: string;
+        sha256?: string;
+        uri?: null | string;
+        contentBase64?: null | string;
+        [k: string]: unknown;
+      }[];
   symbols?: {
     id: string;
     name: string;

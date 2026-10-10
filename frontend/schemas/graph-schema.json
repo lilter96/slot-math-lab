@@ -25,6 +25,41 @@
         "string"
       ]
     },
+    "evidenceInputs": {
+      "type": [
+        "null",
+        "array"
+      ],
+      "items": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "version": {
+            "type": "string"
+          },
+          "sha256": {
+            "type": "string"
+          },
+          "uri": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "contentBase64": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      }
+    },
     "symbols": {
       "type": "array",
       "items": {

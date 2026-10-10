@@ -1,3 +1,4 @@
+import { VerificationWorkbench } from './VerificationWorkbench';
 import { MeasurementCalibration } from './MeasurementCalibration';
 import { MeasurementWitnesses } from './MeasurementWitnesses';
 import { MetricCatalogue } from './MetricCatalogue';
@@ -36,6 +37,7 @@ export function MeasurementWorkspace({ run, values, points, active }: { run: Run
     <div className="measurement-actions"><button type="button" className="btn" disabled={workspace.metrics.length > 27} onClick={() => setAccountingEditor(true)}>Create component accounting plan</button><button type="button" className="btn" disabled={!workspace.metrics.length} onClick={() => setProfileEditor(true)}>Configure verification profile</button></div>
     {workspace.verificationProfile && <div className="measurement-next-note">Next-run verification: {workspace.verificationProfile.name} · {workspace.verificationProfile.criteria.length} required checks{run && !sameProfile(workspace.verificationProfile, run.verificationProfile) ? ' · differs from this pinned run' : ''} <button type="button" className="btn" onClick={() => useMeasurementWorkspace.setState({ verificationProfile: null })}>Remove next-run profile</button></div>}
     <MetricCatalogue profile={() => setProfileEditor(true)} configure={setEditor} accounting={() => setAccountingEditor(true)} limitReached={workspace.metrics.length >= 32} runId={run?.id} />
+    {run && !active && <VerificationWorkbench key={`workbench-${run.id}`} run={run} />}
     {run && <ComponentAccounting key={`accounting-${run.id}`} run={run} />}
     {run && <VerificationProfile key={`verification-${run.id}`} run={run} />}
     {run && !active && <GraphMeasurementReference key={`enumeration-${run.id}`} run={run} />}

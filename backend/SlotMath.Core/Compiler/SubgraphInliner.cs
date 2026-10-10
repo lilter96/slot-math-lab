@@ -288,6 +288,7 @@ public static class SubgraphInliner
                 Inputs = inputs,
                 Outputs = outputs,
                 StopConditionId = NsRef(l.StopConditionId, prefix),
+                ExitReason = l.ExitReason is null ? null : RewriteExprRefs(l.ExitReason, prefix),
             },
             BranchNode b => b with
             {

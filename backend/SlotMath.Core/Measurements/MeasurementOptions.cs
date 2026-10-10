@@ -14,6 +14,9 @@ public sealed record MeasurementOptions
     public string? ExitNodeId { get; init; }
     public Expression? EntryFilter { get; init; }
     public Expression? ExitFilter { get; init; }
+    public Expression? ExitReason { get; init; }
+    [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingDefault)]
+    public int OrdinalLimit { get; init; }
     public Expression? Group { get; init; }
     public Expression? Pair { get; init; }
     public string PairRole { get; init; } = "value";
@@ -69,9 +72,9 @@ public sealed record MeasurementAnalysis(
     NumericInterval? SequentialMeanInterval, double? MeanStandardError, double? RequiredSampleSize,
     WeightedSummary? Weights, SequenceSummary? Sequence, TransitionFrequency[] Transitions, bool TransitionsComplete, DistributionComparison? Comparison,
     VerificationCheck[] Checks, IReadOnlyDictionary<string, MeasurementAnalysis> Groups)
-{ public bool GroupsComplete { get; init; } = true; public AssertionSummary? Assertion { get; init; } public ContributionNormalization? Normalization { get; init; } public ParentExposure? ParentExposure { get; init; } public InterruptedFeatureLifecycle? InterruptedLifecycle { get; init; } }
+{ public EpisodeProfile? EpisodeProfile { get; init; } public bool GroupsComplete { get; init; } = true; public AssertionSummary? Assertion { get; init; } public ContributionNormalization? Normalization { get; init; } public ParentExposure? ParentExposure { get; init; } public InterruptedFeatureLifecycle? InterruptedLifecycle { get; init; } }
 
 internal sealed record MeasurementBinding<T>(Func<T, Expressions.ExprValue>? Value,
     Func<T, Expressions.ExprValue>? Filter, Func<T, Expressions.ExprValue>? Group = null,
     Func<T, Expressions.ExprValue>? Pair = null, Func<T, Expressions.ExprValue>? Weight = null,
-    Func<T, Expressions.ExprValue>? AwardId = null, Func<T, Expressions.ExprValue>? EntryFilter = null, Func<T, Expressions.ExprValue>? ExitFilter = null);
+    Func<T, Expressions.ExprValue>? AwardId = null, Func<T, Expressions.ExprValue>? EntryFilter = null, Func<T, Expressions.ExprValue>? ExitFilter = null, Func<T, Expressions.ExprValue>? ExitReason = null);

@@ -104,6 +104,8 @@ builder.Services.AddSingleton<SimpleRateLimiter>();
 // In-memory stores (fast path, always available)
 builder.Services.AddSingleton<InMemoryConfigStore>();
 builder.Services.AddSingleton<InMemoryRunStore>();
+builder.Services.AddSingleton<SlotMath.Api.Features.Runs.ExperimentStore>();
+builder.Services.AddTransient<SlotMath.Api.Features.Runs.ExperimentJobService>();
 builder.Services.AddSingleton<PluginHost>();
 builder.Services.AddSingleton<CompiledGraphCache>();
 builder.Services.AddSingleton<IResultCache, InMemoryResultCache>();

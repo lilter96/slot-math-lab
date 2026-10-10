@@ -115,3 +115,7 @@ The subsequent 100,000-round run completed in 4,190 ms and retained the same
 seeded RTP (`0.9967189999999915`, seed 42, two workers); its complete terminal result
 arrived inline over WSS. This observed RTP is distinct from the authored 98% target
 and exact expectation. See [recorded evidence](verification/realtime-production.json).
+
+## Optional execution evidence
+
+Cumulative snapshots can include raw RNG audit evidence, session stopping policy, planned slots, loop exit classifications and a resourceExpiry subset of cancelled feature boundaries. Missing optional fields remain compatible with historical runs. Early-stop coverage uses completed sessions, while paid-round counts report actual settled rounds. Resource-expiry counts must not be added to cancellations a second time.

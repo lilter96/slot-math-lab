@@ -42,6 +42,8 @@ public static class StateSchemaDeriver
         var authored = new HashSet<string>(config.StateSchema.Select(s => s.Name), StringComparer.Ordinal);
         void Write(string key, ExprType type) => fields[key] = ExpressionShapes.Field(key, type);
         void WriteArray(string key) => fields[key] = ExpressionShapes.Array(ExpressionShapes.Field("item", ExprType.String)) with { Name = key };
+        if (config.Nodes.OfType<MetricsSinkNode>().Any(s => s.Settlement is not null))
+            foreach (var key in MonetarySettlement.EvidenceKeys) Write(key, ExprType.Number);
         foreach (var node in config.Nodes)
         {
             switch (node)
@@ -59,7 +61,7 @@ public static class StateSchemaDeriver
                 case PutStateNode p:
                     if (!fields.ContainsKey(p.StateKey)) Write(p.StateKey, ExprType.Number);
                     break;
-                case LoopNode l: Write($"__iter_{l.Id}__", ExprType.Number); Write($"__wins_{l.Id}__", ExprType.Number); break;
+                case LoopNode l: Write($"__exitReason_{l.Id}__", ExprType.String); Write($"__iter_{l.Id}__", ExprType.Number); Write($"__wins_{l.Id}__", ExprType.Number); break;
             }
         }
         foreach (var m in config.Nodes.OfType<ModifyStateNode>())

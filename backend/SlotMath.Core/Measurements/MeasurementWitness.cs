@@ -3,7 +3,8 @@ namespace SlotMath.Core.Measurements;
 /// <summary>Coordinates identify a deterministic paid round and the authored observation.
 /// No user state or random numbers are retained. Min/max are examples, never reachable bounds.</summary>
 public sealed record MeasurementWitness(long RoundIndex, long ObservationOrdinal, string? NodeId,
-    string Kind, double? Value, double? Pair, string? Group, string? Detail);
+    string Kind, double? Value, double? Pair, string? Group, string? Detail)
+{ public string? EpisodeId { get; init; } public string? ParentEpisodeId { get; init; } public int? EpisodeDepth { get; init; } public long? EpisodeOrdinal { get; init; } }
 
 internal sealed class WitnessAccumulator
 {

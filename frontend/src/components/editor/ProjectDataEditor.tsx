@@ -1,3 +1,4 @@
+import { EvidenceInputsEditor } from './EvidenceInputsEditor';
 import { useState } from 'react';
 import { useAppStore } from '../../store';
 import type { ExpressionAst } from '../../lib/expressionParser';
@@ -17,7 +18,7 @@ export default function ProjectDataEditor({ onClose, initialTable }: { onClose: 
   const update = (value: unknown) => useAppStore.setState({ tables: { ...tables, initialState: { ...state, [key]: value } } });
   const value = state[key];
   return <GameDialog title="Project data & expressions" onClose={onClose} wide>
-    <div className="data-editor-tabs"><button className="btn" onClick={() => setKind('data')}>State & tables</button><button className="btn" onClick={() => setKind('expressions')}>Expressions</button><button className="btn" onClick={() => setKind('execute')}>Execute & inspect</button></div>
+    <div className="data-editor-tabs"><button className="btn" onClick={() => setKind('data')}>State & tables</button><button className="btn" onClick={() => setKind('expressions')}>Expressions</button><button className="btn" onClick={() => setKind('evidence')}>Rule / spec / asset inputs</button><button className="btn" onClick={() => setKind('execute')}>Execute & inspect</button></div>
     {kind === 'data' ? <>
       <label>State field / data table<select className="inp" aria-label="Data table" value={key} onChange={e => setKey(e.target.value)}>{Object.keys(state).map(k => <option key={k}>{k}</option>)}</select></label>
       <p className="hint">These are the actual inputs serialized with the graph, including reel strips, paytable values and initial mechanic state.</p>
@@ -34,7 +35,7 @@ export default function ProjectDataEditor({ onClose, initialTable }: { onClose: 
       <div className="data-editor-tabs"><input className="inp" aria-label="New expression ID" value={newKey} onChange={e => setNewKey(e.target.value)} /><button className="btn" disabled={!newKey.trim()} onClick={() => {
         useAppStore.setState({ tables: { ...tables, expressions: { ...expressions, [newKey]: { exprType: 'constant', kind: 'Integer', value: '0' } } } }); setExpressionId(newKey); setNewKey('');
       }}>Add expression</button></div>
-    </> : <>
+    </> : kind === 'evidence' ? <EvidenceInputsEditor /> : <>
       <p>Execute the current complete graph with seed 42. The final state below comes from the shared compiler and interpreter.</p>
       <button className="btn primary" disabled={running} onClick={async () => { setRunning(true); setError(''); try { const config = exportProject(); if (!config) throw new Error('No graph'); setExecuted(await graphRequest<GraphRound>('play/round', { config, seed: 42, trace: true })); } catch(e) { setError(e instanceof Error ? e.message : 'Execution failed'); } finally { setRunning(false); } }}>{running ? 'Executing…' : 'Execute graph'}</button>
       {error && <p role="alert">{error}</p>}{executed && <><p>Graph {executed.configHash}</p><table className="dh-math-table" data-testid="executed-state"><thead><tr><th>State field</th><th>Exact value</th></tr></thead><tbody>{Object.entries(executed.state).map(([key, value]) => <tr key={key}><th>{key}</th><td><code style={{ overflowWrap: 'anywhere' }}>{typeof value === 'object' ? JSON.stringify(value) : String(value)}</code></td></tr>)}</tbody></table></>}

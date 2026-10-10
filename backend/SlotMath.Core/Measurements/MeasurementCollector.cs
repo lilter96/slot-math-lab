@@ -24,12 +24,13 @@ internal sealed class MeasurementCollector(IReadOnlyList<MeasurementDefinition> 
     private long _roundIndex;
     private bool _captureAll;
     private readonly WitnessAccumulator[] _witnessStaging = definitions.Select(_ => new WitnessAccumulator()).ToArray();
+    private readonly SubjectBuffer?[] _witnessSubjects = new SubjectBuffer?[definitions.Count];
     private readonly long[] _ordinals = new long[definitions.Count];
     private readonly string?[] _points = new string?[definitions.Count];
     public MeasurementSnapshot[] RoundSnapshot() => Snapshot(definitions, _round);
     public void Begin(long roundIndex = 0, bool captureAll = false)
     {
-        _prepared = _finished = false; Array.Fill(_lifecycleComplete, true); _roundIndex = roundIndex; _captureAll = captureAll; Array.Clear(_ordinals); Array.Clear(_points);
+        _prepared = _finished = false; Array.Fill(_lifecycleComplete, true); _roundIndex = roundIndex; _captureAll = captureAll; Array.Clear(_ordinals); Array.Clear(_points); Array.Clear(_witnessSubjects);
         Array.Clear(_round); Array.Clear(_subjects); Array.Clear(_entries); Array.Clear(_exits); Array.Clear(_duplicates); Array.Clear(_matchingChild);
         for (var i = 0; i < _witnessStaging.Length; i++) { _witnessStaging[i].Clear(); _round[i].Witnesses = _witnessStaging[i]; }
         for (var i = 0; i < _staging.Length; i++) if (_staging[i] is { } accumulator) { accumulator.Reset(); _round[i].Analysis = accumulator; }
@@ -48,10 +49,12 @@ internal sealed class MeasurementCollector(IReadOnlyList<MeasurementDefinition> 
                 if (stack.Count == 0) { _lifecycleComplete[index] = false; _round[index].Observations++; Error(index, "Episode exit has no matching entry."); }
                 else
                 {
-                    var episode = stack.Pop();
+                    var episode = stack.Pop(); _witnessSubjects[index] = episode;
                     try { if (!episode.Excluded && binding.ExitFilter is { } exit) episode.Excluded = !Predicate(exit(state)); }
                     catch (Exception ex) when (IsMeasurementError(ex)) { episode.Invalid = true; episode.ErrorMessage ??= ex.Message; }
-                    Emit(index, episode, options); _exits[index]++;
+                    try { episode.ExitReason = binding.ExitReason is { } reason ? ExitClassification.Read(reason(state)) : "unclassified"; }
+                    catch (Exception ex) when (IsMeasurementError(ex)) { episode.Invalid = true; episode.ErrorMessage ??= ex.Message; }
+                    Emit(index, episode, options); _witnessSubjects[index] = null; _exits[index]++;
                     _staging[index]!.Lifecycle(episode.Group, exits: 1);
                 }
             }
@@ -59,7 +62,8 @@ internal sealed class MeasurementCollector(IReadOnlyList<MeasurementDefinition> 
             {
                 _entries[index]++;
                 if (stack.Count >= 16) { _lifecycleComplete[index] = false; _round[index].Observations++; Error(index, "Episode nesting exceeds the 16-level limit."); return; }
-                var episode = new SubjectBuffer(); stack.Push(episode);
+                var parent = stack.Count == 0 ? null : stack.Peek();
+                var episode = new SubjectBuffer { Id = $"{_roundIndex}:{_entries[index]}", ParentId = parent?.Id, Depth = stack.Count + 1, EpisodeOrdinal = parent is null ? _entries[index] : ++parent.Children }; stack.Push(episode);
                 try { episode.Excluded = binding.EntryFilter is { } entry && !Predicate(entry(state)); if (!episode.Excluded) episode.Group = Key(binding.Group, state); }
                 catch (Exception ex) when (IsMeasurementError(ex)) { episode.Invalid = true; episode.ErrorMessage = ex.Message; }
                 _staging[index]!.Lifecycle(episode.Group, entries: 1);
@@ -109,7 +113,7 @@ internal sealed class MeasurementCollector(IReadOnlyList<MeasurementDefinition> 
                 if (ids.Count >= 4096 && !ids.Contains(id)) throw new InvalidOperationException("Award ID set exceeds the 4096-per-round budget.");
                 if (!ids.Add(id)) { _duplicates[index]++; Capture(index, "duplicateAward", number, pair, group, "Award ID " + id + " was observed again in this paid round."); }
             }
-            if (subject is not null) subject.Add(number, pair, weight, group, options!.Reduction);
+            if (subject is not null) { subject.Add(number, pair, weight, group, options!.Reduction); if (options.Subject == "episode" && subject.Values.Count < options.OrdinalLimit) subject.Values.Add(number); }
             else Add(index, number, pair, weight, group, options?.Assertion == "zero" && (expressionValue is { } exact
                 ? exact.Kind == ExprType.Boolean ? exact.BoolValue : !exact.NumberNumerator.IsZero : number != 0));
             _matchingChild[index] = true;
@@ -222,7 +226,8 @@ internal sealed class MeasurementCollector(IReadOnlyList<MeasurementDefinition> 
         if (subject.Count == 0 && options.Reduction is "first" or "last" or "min" or "max" or "average" or "delta")
         { _round[index].Excluded++; return; }
         try { Add(index, subject.Value(options.Reduction), subject.Cost ?? (subject.PairCount > 0 ? subject.PairValue(options.Reduction) : options.Pair is null ? null : 0),
-            subject.WeightCount > 0 ? subject.WeightSum / subject.WeightCount : null, subject.Group); }
+            subject.WeightCount > 0 ? subject.WeightSum / subject.WeightCount : null, subject.Group);
+            if (options.Subject == "episode") _staging[index]!.Episode(subject.Depth, subject.Values, subject.Count, subject.ExitReason, subject.Group); }
         catch (Exception ex) when (IsMeasurementError(ex)) { Error(index, ex.Message); }
     }
     private void Add(int index, double value, double? pair, double? weight, string? group, bool assertionViolation = false)
@@ -241,7 +246,7 @@ internal sealed class MeasurementCollector(IReadOnlyList<MeasurementDefinition> 
         if (!_captureAll && Total[index].Witnesses?.IsCandidate(kind, value, _roundIndex, _ordinals[index]) == false) return;
         var witnesses = _round[index].Witnesses ??= new();
         if (!witnesses.IsCandidate(kind, value, _roundIndex, _ordinals[index])) return;
-        witnesses.Add(new(_roundIndex, _ordinals[index], _points[index], kind, value, pair, group, detail is { Length: > 240 } ? detail[..240] : detail));
+        witnesses.Add(new(_roundIndex, _ordinals[index], _points[index], kind, value, pair, group, detail is { Length: > 240 } ? detail[..240] : detail) { EpisodeId = _witnessSubjects[index]?.Id, ParentEpisodeId = _witnessSubjects[index]?.ParentId, EpisodeDepth = _witnessSubjects[index]?.Depth, EpisodeOrdinal = _witnessSubjects[index]?.EpisodeOrdinal });
     }
     private static bool IsMeasurementError(Exception ex) => ex is ExpressionEvaluationException or InvalidOperationException or FormatException or ArithmeticException or ArgumentException;
     private static bool Predicate(ExprValue value) => value.Kind == ExprType.Boolean ? value.BoolValue : throw new InvalidOperationException("Lifecycle scope must return Boolean.");
@@ -272,6 +277,8 @@ internal sealed class MeasurementCollector(IReadOnlyList<MeasurementDefinition> 
     {
         public long Count, PairCount, WeightCount, NonZero, PairNonZero;
         public double Sum, Min, Max, First, Last, PairSum, PairFirst, PairLast, PairMin, PairMax, WeightSum;
+        public string? Id, ParentId; public int Depth; public long EpisodeOrdinal, Children;
+        public string ExitReason = "condition"; public List<double> Values = [];
         public string? Group;
         public bool Invalid;
         public bool Excluded;

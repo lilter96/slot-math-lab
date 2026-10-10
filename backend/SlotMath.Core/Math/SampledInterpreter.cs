@@ -31,6 +31,7 @@ namespace SlotMath.Core.Math;
 public sealed class SampledConfig
 {
     public ExecutionOptions? Execution { get; init; }
+    public Func<bool>? ResourceBudgetExpired { get; init; }
     /// <summary>Diagnostic replay of a single absolute round. Reconstructs its logical stream prefix; final aggregate is not a full run.</summary>
     public long? ReplayRoundIndex { get; init; }
     /// <summary>Fixed logical stream size. Record this with seed for reproduction; it never depends on worker count.</summary>
@@ -241,6 +242,7 @@ public static class SampledInterpreter
         var chunkMeasurements = new MeasurementAccumulator[]?[nChunks];
         var mergedMeasurements = new MeasurementAccumulator[config.Measurements.Count];
         var chunkStats = new StreamingStats?[nChunks];
+        if (execution.AuditRandomStreams && (execution.Regime == "sessions" ? totalSpins / execution.SessionLength : nChunks) > 65536) throw new ArgumentException("Complete RNG audits support at most 65536 logical streams.");
         var chunkDone = new long[nChunks];
         var chunkAttempts = new long[nChunks];
         var chunkCancelled = new long[nChunks];
@@ -248,6 +250,7 @@ public static class SampledInterpreter
         var chunkInterruptedSessions = new long[nChunks];
         var chunkSessionEvidence = new SessionEvidence?[nChunks];
         var chunkLoopEvidence = new LoopTerminationEvidence?[nChunks];
+        var auditedStreams = new System.Collections.Concurrent.ConcurrentDictionary<long, RandomStreamIdentity>();
         var cancelFlag = 0;
 
         // Display snapshots merge small deltas while logical PRNG chunks stay fixed.
@@ -262,7 +265,7 @@ public static class SampledInterpreter
         ExecutionSummary Summary(long attempts, long completed, long cancelledRounds, long failed, long sessions, long interruptedSessions, SessionEvidence evidence, LoopTerminationEvidence loops) =>
             new(execution.Regime, attempts, completed, cancelledRounds + failed, cancelledRounds, failed, sessions, interruptedSessions, execution.PersistentKeys.Length > 0,
                 execution.PersistentKeys.Length == 0 ? "Reset all state before each paid round" : $"Retain only declared keys between rounds; reset at {(execution.Regime == "sessions" ? "each session" : "trajectory start")}",
-                "Fixed horizon; ruin is first inability to fund the next wager. Play continues with hypothetical credit; no survivor-only RTP denominator. Session money uses exact shortest round-trip decimals without currency rounding; report values are binary64.", evidence.Snapshot()) { MonetaryAccounting = execution.Regime == "sessions" ? SessionMoney.Contract : null, SamplingEngine = execution.SamplingEngine != "reference" && program is ICompiledSampling<S, T> ? "compiled-sampling-plan" : "reference-interpreter", LoopTerminations = loops.Snapshot(), LoopTerminationsComplete = loops.Complete };
+                execution.SessionStop == "fixedHorizon" ? "Fixed horizon; hypothetical credit after ruin. All completed rounds remain in the denominator." : $"Predeclared {execution.SessionStop} session stopping, horizon {execution.SessionLength}. Paid-round outcomes are a stopping-dependent population; use independent-session evidence for inference. Unplayed slots are not zero payouts.", evidence.Snapshot()) { MonetaryAccounting = execution.Regime == "sessions" ? SessionMoney.Contract : null, SamplingEngine = execution.SamplingEngine != "reference" && program is ICompiledSampling<S, T> ? "compiled-sampling-plan" : "reference-interpreter", LoopTerminations = loops.Snapshot(), LoopTerminationsComplete = loops.Complete, SessionStop = execution.SessionStop, PlannedRoundSlots = totalSpins };
 
         void RunChunk(int c)
         {
@@ -277,6 +280,8 @@ public static class SampledInterpreter
             if (config.ReplayRoundIndex is { } requested && (requested < start || requested >= end)) return;
             if (config.ReplayRoundIndex is { } lastRound) end = lastRound + 1;
             var rng = new SeededRandom(DeriveStreamSeed(config.Seed, c));
+            long auditIndex = c;
+            if (execution.AuditRandomStreams && execution.Regime != "sessions") rng.EnableAudit();
             var stats = new StreamingStats(config.HistogramBins, maxWinCapDouble);
             StreamingStats? delta = config.ProgressCallback is null
                 ? null
@@ -304,7 +309,7 @@ public static class SampledInterpreter
                 new MeasurementBinding<EvalContext>(BindMeasurement(d.Value), BindMeasurement(d.Filter),
                     BindMeasurement(d.Options?.Group), BindMeasurement(d.Options?.Pair),
                     BindMeasurement(d.Options?.Weight), BindMeasurement(d.Options?.AwardId),
-                    BindMeasurement(d.Options?.EntryFilter), BindMeasurement(d.Options?.ExitFilter))).ToArray();
+                    BindMeasurement(d.Options?.EntryFilter), BindMeasurement(d.Options?.ExitFilter), BindMeasurement(d.Options?.ExitReason))).ToArray();
             Dictionary<string, int[]> nodeMeasurements = config.Measurements.SelectMany((d, i) =>
                     new[] { d.NodeId, d.Options?.EntryNodeId, d.Options?.ExitNodeId }.OfType<string>().Distinct()
                         .Select(node => (node, i)))
@@ -328,7 +333,8 @@ public static class SampledInterpreter
             {
                 if (state is not Dictionary<string, object?> fields || !fields.TryGetValue(node.IterationKey, out var raw) || raw is not int iterations)
                     throw new InvalidOperationException("Compiled loop counter is missing.");
-                loopEvidence.Observe(node.NodeId, iterations, node.MaximumIterations);
+                var reason = fields.TryGetValue($"__exitReason_{node.NodeId}__", out var classification) && classification is string or ExprValue ? SlotMath.Core.Measurements.ExitClassification.Read(classification is ExprValue typed ? typed : ExprValue.String((string)classification)) : iterations >= node.MaximumIterations ? "modelLimit" : "condition";
+                loopEvidence.Observe(node.NodeId, iterations, node.MaximumIterations, reason);
             }
             S finalState = initialState;
             Action<S>? exportState = measurements is null && execution.PersistentKeys.Length == 0 ? null : state => finalState = state;
@@ -339,7 +345,7 @@ public static class SampledInterpreter
 
             void Flush()
             {
-                if (delta is null || delta.Count == 0 && attempts == lastAttempts && interruptedSessions == lastInterruptedSessions)
+                if (delta is null || delta.Count == 0 && attempts == lastAttempts && sessions == lastSessions && interruptedSessions == lastInterruptedSessions)
                 {
                     return;
                 }
@@ -391,9 +397,20 @@ public static class SampledInterpreter
                 {
                     if (execution.Regime == "sessions" && i % execution.SessionLength == 0)
                     {
-                        rng = new SeededRandom(DeriveStreamSeed(config.Seed, checked((int)(i / execution.SessionLength))));
+                        if (rng.AuditSnapshot(auditIndex) is { } previousAudit) auditedStreams[auditIndex] = previousAudit;
+                        rng.EndAudit();
+                        auditIndex = i / execution.SessionLength;
+                        rng = new SeededRandom(DeriveStreamSeed(config.Seed, checked((int)auditIndex)));
+                        if (execution.AuditRandomStreams) rng.EnableAudit();
                         runner?.ResetTrajectory(); roundInitial = initialState;
                         session = new(execution.InitialBankroll, execution.Wager);
+                        if (session.StopReason(execution) is { } initialReason)
+                        {
+                            session.Commit(sessionEvidence, featureIndex >= 0, initialReason);
+                            session.Commit(sessionDelta, featureIndex >= 0, initialReason); sessions++; session = null;
+                            i += execution.SessionLength - 1;
+                            continue;
+                        }
                     }
                     attempts++;
                     loopEvidence.Begin();
@@ -439,11 +456,17 @@ public static class SampledInterpreter
                     {
                         var activation = featureIndex < 0 ? false : measurements?.CompletedRoundValue(featureIndex) is { } observed ? observed != 0 : (bool?)null;
                         session.Add(System.Math.Min(payoutSelector(value), maxWinCapDouble ?? double.PositiveInfinity), activation);
-                        if ((i + 1) % execution.SessionLength == 0) { session.Commit(sessionEvidence, featureIndex >= 0); session.Commit(sessionDelta, featureIndex >= 0); sessions++; session = null; }
+                        if (session.StopReason(execution) is not null || (i + 1) % execution.SessionLength == 0)
+                        {
+                            var stopReason = session.StopReason(execution) ?? "horizon";
+                            session.Commit(sessionEvidence, featureIndex >= 0, stopReason); session.Commit(sessionDelta, featureIndex >= 0, stopReason); sessions++; session = null;
+                        }
                     }
                     if (config.ReplayRoundIndex == i) replayedRound = measurements?.RoundSnapshot() ?? [];
                     measurements?.Commit();
                     loopEvidence.Commit();
+                    if (execution.Regime == "sessions" && session is null && (i + 1) % execution.SessionLength != 0)
+                        i += execution.SessionLength - 1 - i % execution.SessionLength;
                     add(stats, value);
                     if (delta is not null)
                     {
@@ -453,7 +476,7 @@ public static class SampledInterpreter
                 }
                 catch (OperationCanceledException) when (config.CancellationToken.IsCancellationRequested)
                 {
-                    measurements?.Interrupt(PaidRoundInterruption.Cancelled);
+                    measurements?.Interrupt(config.ResourceBudgetExpired?.Invoke() == true ? PaidRoundInterruption.ResourceExpiry : PaidRoundInterruption.Cancelled);
                     cancelledRounds++;
                     Interlocked.Exchange(ref cancelFlag, 1);
                     break;
@@ -462,7 +485,7 @@ public static class SampledInterpreter
                 {
                     measurements?.Interrupt(PaidRoundInterruption.Failed);
                     failedRounds++; if (session is not null) interruptedSessions++;
-                    Flush(); throw;
+                    rng.EndAudit(); Flush(); throw;
                 }
 
                 done++;
@@ -475,6 +498,8 @@ public static class SampledInterpreter
             }
 
             if (session is not null) interruptedSessions++;
+            if (rng.AuditSnapshot(auditIndex) is { } audit) auditedStreams[auditIndex] = audit;
+            rng.EndAudit();
             Flush();
             chunkMeasurements[c] = measurements?.Total;
             chunkStats[c] = stats;
@@ -540,7 +565,7 @@ public static class SampledInterpreter
         var cancelled = Volatile.Read(ref cancelFlag) != 0;
         TimeSpan elapsed = Stopwatch.GetElapsedTime(startedAt);
         var executionSummary = Summary(chunkAttempts.Sum(), spinsCompleted, chunkCancelled.Sum(), 0, chunkSessions.Sum(),
-            chunkInterruptedSessions.Sum(), finalSessionEvidence, finalLoopEvidence);
+            chunkInterruptedSessions.Sum(), finalSessionEvidence, finalLoopEvidence) with { RandomStreams = execution.AuditRandomStreams ? RandomStreamEvidence.Analyze(auditedStreams.Values, execution.Regime == "sessions" ? totalSpins / execution.SessionLength : nChunks, !cancelled) : null };
 
         if (!cancelled && config.ProgressCallback is not null)
         {

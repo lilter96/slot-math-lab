@@ -29,6 +29,16 @@ public static class GraphValidator
         TypeCheckContext? typeCheckContext = null)
     {
         var errors = new List<CompileError>();
+        try
+        {
+            EvidenceInput.Validate(config.EvidenceInputs ?? []);
+            foreach (var sink in config.Nodes.OfType<MetricsSinkNode>()) sink.Settlement?.Validate();
+            if (config.Nodes.OfType<MetricsSinkNode>().Any(s => s.Settlement is not null)
+                && (config.InitialState?.Keys.Any(MonetarySettlement.EvidenceKeys.Contains) == true
+                    || config.Nodes.OfType<ModifyStateNode>().Any(n => MonetarySettlement.EvidenceKeys.Contains(n.OutputKey))))
+                throw new ArgumentException("Settlement evidence fields are reserved and cannot be authored.");
+        }
+        catch (ArgumentException ex) { errors.Add(new CompileError { Code = ErrorCodes.InvalidGraph, Message = ex.Message }); }
 
         if (config.Nodes.Length == 0)
         {
@@ -71,6 +81,11 @@ public static class GraphValidator
         }
         // 4. Expression type-checking
         ValidateExpressions(config, typeCheckContext, errors);
+        foreach (var loop in config.Nodes.OfType<LoopNode>().Where(l => l.ExitReason is not null))
+        {
+            if (ExpressionCost.Compute(loop.ExitReason!) > 1000) errors.Add(new CompileError { NodeId = loop.Id, Code = ErrorCodes.ExpressionBudgetExceeded, Message = "Loop exit classification exceeds its expression budget." });
+            foreach (var error in ExpressionTypeChecker.Check(loop.ExitReason!, typeCheckContext ?? BuildExpressionTypeContext(config), ExprType.String)) errors.Add(new CompileError { NodeId = loop.Id, Code = ErrorCodes.ExpressionTypeError, Message = error.Message });
+        }
 
         // 5. Plugin validation
         ValidatePlugins(config, pluginHost, errors);

@@ -46,7 +46,7 @@ public static class GraphMeasurementEnumeration
         if (budget.MaximumPaths is < 1 or > 100000 || budget.MaximumOperations is < 1 or > 1000000 || budget.MaximumFrontier is < 1 or > 8192) throw new ArgumentException("Enumeration exceeds its bounded path, operation or frontier budget.");
         var plans = definitions.Select(d => d with { Options = (d.Options ?? new()) with { IndependentSubjects = false, IndependentParents = false, ReferenceMean = null, ReferenceDistribution = [] } }).ToArray();
         Func<EvalContext, ExprValue>? Bind(Expression? expression) => expression is null ? null : ctx => ExactExpressionEvaluator.Evaluate(expression, ctx);
-        var bindings = plans.Select(d => new MeasurementBinding<EvalContext>(Bind(d.Value), Bind(d.Filter), Bind(d.Options!.Group), Bind(d.Options.Pair), Bind(d.Options.Weight), Bind(d.Options.AwardId), Bind(d.Options.EntryFilter), Bind(d.Options.ExitFilter))).ToArray();
+        var bindings = plans.Select(d => new MeasurementBinding<EvalContext>(Bind(d.Value), Bind(d.Filter), Bind(d.Options!.Group), Bind(d.Options.Pair), Bind(d.Options.Weight), Bind(d.Options.AwardId), Bind(d.Options.EntryFilter), Bind(d.Options.ExitFilter), Bind(d.Options.ExitReason))).ToArray();
         var points = plans.SelectMany((d, i) => new[] { d.NodeId, d.Options!.EntryNodeId, d.Options.ExitNodeId }.OfType<string>().Distinct().Select(node => (node, i)))
             .GroupBy(p => p.node).ToDictionary(g => g.Key, g => g.Select(p => p.i).ToArray());
         var outputs = plans.Select(d => new Law(d.Id, d.Options!)).ToArray();

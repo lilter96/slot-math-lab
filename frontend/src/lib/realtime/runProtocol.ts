@@ -114,9 +114,8 @@ export function progressDecision(run: RunSnapshot | null, current: LiveProgress 
   if (current?.measurements?.some((m, i) => next.measurements && ['count', 'observations', 'excluded', 'errors'].some(field => next.measurements![i][field as 'count'] < m[field as 'count']))) return 'stale';
   if (current?.measurements?.some((m, i) => {
     const before = m.analysis?.interruptedLifecycle, after = next.measurements?.[i].analysis?.interruptedLifecycle;
-    return before && (!after || (['cancelled', 'failed'] as const).some(reason =>
-      (['interruptedRounds', 'entries', 'exits', 'openInstances'] as const).some(field => after[reason][field] < before[reason][field])
-      || !before[reason].complete && after[reason].complete));
+    return before && (!after || (['cancelled', 'failed', 'resourceExpiry'] as const).some(reason => {
+      const b = before[reason], a = after[reason]; return b && (!a || (['interruptedRounds', 'entries', 'exits', 'openInstances'] as const).some(field => a[field] < b[field]) || !b.complete && a.complete); }));
   })) return 'stale';
   const revision = current?.sequence ?? run.sequence ?? -1;
   if (next.sequence < revision || next.sampleCount < (current?.sampleCount ?? 0)) return 'stale';

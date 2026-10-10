@@ -8,9 +8,9 @@ From `frontend`, run:
 
 ```sh
 npm run build
-npm run test:e2e:critical   # Mandatory integration contracts: 14 scenarios
-npm run test:e2e            # Complete browser regression: 72 scenarios
-npm run test:unit           # Browser-free frontend logic: 85 tests
+npm run test:e2e:critical   # Mandatory integration contracts: 15 scenarios
+npm run test:e2e            # Complete browser regression: 73 scenarios
+npm run test:unit           # Browser-free frontend logic: 88 tests
 ```
 
 The ordinary CI browser job selects the explicit `@critical` Playwright tags. All browser scenarios remain available in the complete suite; selection does not mark the others skipped or remove their assertions. The `Full browser regression` workflow runs daily at 02:00 UTC and can be dispatched manually on the candidate branch before release. Check the complete regression against the actual release commit; a green nightly run on an older commit does not verify a new release. Both workflows use the same reusable browser job, real API/database, build, fixtures and Chromium configuration.
@@ -22,6 +22,7 @@ The mandatory contracts cover:
 | Constructor | A fresh project paints the full graph; nested mathematics can be edited and changes actual payouts; authored 98% expectation and all analysis modes execute through the UI. |
 | Real-time execution | One socket survives navigation; repeated disconnects recover the same run and cumulative counts; authentication rejection requires explicit authentication wake. |
 | Measurement workspace | A scoped free-spin metric can be authored, displayed, exported, restored and replayed against pinned input. |
+| Verification experiments | Constructor settlement and embedded rule inputs, native finite sampling/resource references, automatic named arms, retained results and reload. |
 | Results | Reference calculation, JSON/CSV/HTML exports and opening the graph preserve the original saved version and current draft. |
 | Export failures | Quota recovery, wrong run identity, server errors and cancelled reads withhold invalid downloads. |
 | Acceptance criteria | The native editor validates a predeclared confidence family and retains the original profile during replay. |

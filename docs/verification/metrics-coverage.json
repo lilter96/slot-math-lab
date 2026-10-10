@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "reviewedAt": "2026-10-10",
-  "baselineCommit": "111756a9003de3d70058848b3de173554ea7c8ab",
+  "baselineCommit": "c7294b67a7df21a373371a3e5f12af530a25087d",
   "meaning": {
     "ready": "Native algorithm/workflow and independent fixtures exist within stated assumptions; this is not game certification.",
     "authored": "Generic native collection/assertion supports the requirement after the game author supplies the typed boundary, value/rule and scope. Family fixtures validate the primitive, not every game-specific rule.",
@@ -352,14 +352,19 @@
     },
     {
       "id": "return.rounding",
-      "status": "partial",
-      "scope": "An authored pre-/post-rounding difference can be tracked. A native monetary settlement/rounding rule and its exact pre-rounding value are not yet provided.",
+      "status": "ready",
+      "scope": "Exact rational whole-award settlement with configurable quantum and floor/ceiling/nearest-even/nearest-away, before WinCap. Both engines retain exact before/after/difference fields; collector reports their scoped moments.",
       "implementation": [
         "backend/SlotMath.Core/Measurements/MeasurementCollector.cs",
-        "backend/SlotMath.Core/Measurements/MeasurementAnalysisAccumulator.cs"
+        "backend/SlotMath.Core/Measurements/MeasurementAnalysisAccumulator.cs",
+        "backend/SlotMath.Core/Model/MonetarySettlement.cs",
+        "frontend/src/components/editor/NativeInspector.tsx"
       ],
       "evidence": [
-        "backend/SlotMath.Core.Tests/Math/AdvancedMeasurementTests.cs"
+        "backend/SlotMath.Core.Tests/Math/AdvancedMeasurementTests.cs",
+        "backend/SlotMath.Core.Tests/Math/VerificationMilestoneTests.cs",
+        "backend/SlotMath.Api.Tests/VerificationExperimentApiTests.cs",
+        "frontend/e2e/z-verification-experiments.spec.ts"
       ]
     },
     {
@@ -882,29 +887,39 @@
     },
     {
       "id": "features.ordinal_profile",
-      "status": "partial",
-      "scope": "Scalar ordinal grouping works. Explicit nested episode-parent identity and cross-ordinal profiles remain required.",
+      "status": "ready",
+      "scope": "Nested closed included episodes retain parent/depth/ordinal identities and bounded first-16 child profiles, including covariance conditioned on reaching both ordinals. Entry cohorts and replay witnesses preserve scope; larger profiles require a separate authored design.",
       "implementation": [
-        "backend/SlotMath.Core/Measurements/MeasurementCollector.cs"
+        "backend/SlotMath.Core/Measurements/MeasurementCollector.cs",
+        "backend/SlotMath.Core/Measurements/EpisodeEvidence.cs",
+        "frontend/src/components/simulate/MeasurementDesigner.tsx"
       ],
       "evidence": [
         "backend/SlotMath.Core.Tests/Math/AdvancedMeasurementTests.cs",
-        "backend/SlotMath.Core.Tests/Math/MeasurementTests.cs"
+        "backend/SlotMath.Core.Tests/Math/MeasurementTests.cs",
+        "backend/SlotMath.Core.Tests/Math/VerificationMilestoneTests.cs",
+        "backend/SlotMath.Api.Tests/VerificationExperimentApiTests.cs",
+        "frontend/e2e/z-verification-experiments.spec.ts"
       ]
     },
     {
       "id": "features.exit_reason",
-      "status": "partial",
-      "scope": "Completed loop condition/model-limit reasons and per-feature boundary exposure in cancelled/failed paid rounds are retained separately, with entry-cohort and censoring/completeness evidence. Per-feature payout-cap/authored-stop/resource-expiry attribution remains unimplemented; resource deadlines currently classify as cancellation.",
+      "status": "ready",
+      "scope": "Typed authored loop/episode classification distinguishes condition, modelLimit, payoutCap and authoredStop. Resource-budget interruption is a separately retained subset of cancelled feature boundaries, without publishing partial numeric rewards. Missing authored classifications stay unclassified.",
       "implementation": [
-        "backend/SlotMath.Core/Measurements/MeasurementCollector.cs"
+        "backend/SlotMath.Core/Measurements/MeasurementCollector.cs",
+        "backend/SlotMath.Core/Measurements/ExitClassification.cs",
+        "frontend/src/components/simulate/MeasurementDesigner.tsx"
       ],
       "evidence": [
         "backend/SlotMath.Core.Tests/Math/AdvancedMeasurementTests.cs",
         "backend/SlotMath.Core.Tests/Math/MeasurementTests.cs",
         "backend/SlotMath.Core.Tests/Math/InterruptedLifecycleTests.cs",
         "backend/SlotMath.Api.Tests/InterruptedLifecycleApiTests.cs",
-        "frontend/e2e/z-interrupted-lifecycle.spec.ts"
+        "frontend/e2e/z-interrupted-lifecycle.spec.ts",
+        "backend/SlotMath.Core.Tests/Math/VerificationMilestoneTests.cs",
+        "backend/SlotMath.Api.Tests/VerificationExperimentApiTests.cs",
+        "frontend/e2e/z-verification-experiments.spec.ts"
       ]
     },
     {
@@ -1065,14 +1080,19 @@
     },
     {
       "id": "mechanics.strategy",
-      "status": "partial",
-      "scope": "Author a policy in graph/state and compare separate pinned runs. A native policy/parameter experiment runner is not yet implemented.",
+      "status": "ready",
+      "scope": "Native automatic named parameter/session-policy experiments preflight all arms, pin graph/measurement/execution manifests, execute separate seeded ordinary runs and retain comparisons. Game strategy rules remain authored; distinct seeds are not a common-random-number paired design.",
       "implementation": [
-        "backend/SlotMath.Core/Measurements/MeasurementCollector.cs"
+        "backend/SlotMath.Core/Measurements/MeasurementCollector.cs",
+        "backend/SlotMath.Api/Features/Runs/Experiments.cs",
+        "frontend/src/components/simulate/VerificationWorkbench.tsx"
       ],
       "evidence": [
         "backend/SlotMath.Core.Tests/Math/MeasurementTests.cs",
-        "backend/SlotMath.Core.Tests/Math/DiagnosticEvidenceTests.cs"
+        "backend/SlotMath.Core.Tests/Math/DiagnosticEvidenceTests.cs",
+        "backend/SlotMath.Core.Tests/Math/VerificationMilestoneTests.cs",
+        "backend/SlotMath.Api.Tests/VerificationExperimentApiTests.cs",
+        "frontend/e2e/z-verification-experiments.spec.ts"
       ]
     },
     {
@@ -1370,15 +1390,20 @@
     },
     {
       "id": "rng.duplicates",
-      "status": "partial",
-      "scope": "Adjacent repeated outcomes are descriptive with a pinned marginal law. A complete duplicate-stream detector and calibrated duplication probability are not yet implemented.",
+      "status": "ready",
+      "scope": "Opt-in bounded actual consumed RNG stream auditing preserves the sequence and detects duplicate initial states, four-word prefixes and equal-length transcript digest candidates. Scheduled first-word duplication is calibrated using seed/output bijections; an ideal independent prefix null is labeled separately, not a PRNG independence proof.",
       "implementation": [
         "backend/SlotMath.Core/Measurements/PairDiagnostics.cs",
-        "backend/SlotMath.Core/Measurements/SequenceAccumulator.cs"
+        "backend/SlotMath.Core/Measurements/SequenceAccumulator.cs",
+        "backend/SlotMath.Core/Math/RandomStreamEvidence.cs",
+        "frontend/src/components/simulate/ExecutionConfiguration.tsx"
       ],
       "evidence": [
         "backend/SlotMath.Core.Tests/Math/DiagnosticEvidenceTests.cs",
-        "backend/SlotMath.Core.Tests/Math/AdvancedMeasurementTests.cs"
+        "backend/SlotMath.Core.Tests/Math/AdvancedMeasurementTests.cs",
+        "backend/SlotMath.Core.Tests/Math/VerificationMilestoneTests.cs",
+        "backend/SlotMath.Api.Tests/VerificationExperimentApiTests.cs",
+        "frontend/e2e/z-verification-experiments.spec.ts"
       ]
     },
     {
@@ -1500,15 +1525,20 @@
     },
     {
       "id": "bounds.loop_termination",
-      "status": "partial",
-      "scope": "Completed condition/model-limit loop counts and iteration profiles are implemented. Probability/reward impact of a resource stop versus an uncapped model remains unresolved without a reference.",
+      "status": "ready",
+      "scope": "Native exact finite substochastic reference propagation compares bounded and uncapped feature duration/reward, reporting stop probability and omitted expected reward when the supplied reference is finite. The author must justify its relation to the game; elapsed runtime alone does not identify omitted reward.",
       "implementation": [
         "backend/SlotMath.Core/Measurements/FiniteModelAnalysis.cs",
-        "backend/SlotMath.Core/Measurements/GraphMeasurementEnumeration.cs"
+        "backend/SlotMath.Core/Measurements/GraphMeasurementEnumeration.cs",
+        "backend/SlotMath.Core/Measurements/VerificationDesign.cs",
+        "frontend/src/components/simulate/VerificationWorkbench.tsx"
       ],
       "evidence": [
         "backend/SlotMath.Core.Tests/Math/FiniteModelAnalysisTests.cs",
-        "backend/SlotMath.Core.Tests/Math/GraphMeasurementEnumerationTests.cs"
+        "backend/SlotMath.Core.Tests/Math/GraphMeasurementEnumerationTests.cs",
+        "backend/SlotMath.Core.Tests/Math/VerificationMilestoneTests.cs",
+        "backend/SlotMath.Api.Tests/VerificationExperimentApiTests.cs",
+        "frontend/e2e/z-verification-experiments.spec.ts"
       ]
     },
     {
@@ -1526,28 +1556,38 @@
     },
     {
       "id": "bounds.weight_diagnostics",
-      "status": "partial",
-      "scope": "Ordinary likelihood-weighted mean/event/ratio intervals and ESS/extremes exist. Proposal/stratified design, exact target/proposal support validation and a proven likelihood contract remain required.",
+      "status": "ready",
+      "scope": "Native finite importance/fixed-allocation stratified sampling validates exact target/proposal normalization and support, derives global/conditional likelihoods and reports exact design variance, weight second moments and observed ESS. This proves the supplied finite design, not arbitrary graph-authored weight expressions.",
       "implementation": [
         "backend/SlotMath.Core/Measurements/FiniteModelAnalysis.cs",
-        "backend/SlotMath.Core/Measurements/GraphMeasurementEnumeration.cs"
+        "backend/SlotMath.Core/Measurements/GraphMeasurementEnumeration.cs",
+        "backend/SlotMath.Core/Measurements/VerificationDesign.cs",
+        "frontend/src/components/simulate/VerificationWorkbench.tsx"
       ],
       "evidence": [
         "backend/SlotMath.Core.Tests/Math/FiniteModelAnalysisTests.cs",
-        "backend/SlotMath.Core.Tests/Math/GraphMeasurementEnumerationTests.cs"
+        "backend/SlotMath.Core.Tests/Math/GraphMeasurementEnumerationTests.cs",
+        "backend/SlotMath.Core.Tests/Math/VerificationMilestoneTests.cs",
+        "backend/SlotMath.Api.Tests/VerificationExperimentApiTests.cs",
+        "frontend/e2e/z-verification-experiments.spec.ts"
       ]
     },
     {
       "id": "bounds.weighted_estimate",
-      "status": "partial",
-      "scope": "Ordinary likelihood-weighted mean/event/ratio intervals and ESS/extremes exist. Proposal/stratified design, exact target/proposal support validation and a proven likelihood contract remain required.",
+      "status": "ready",
+      "scope": "Verified finite target/proposal designs actually execute native importance or fixed-stratum sampling, retaining reward/event estimates and exact references/variance. Empirical intervals are approximate and withheld at zero observed variance. Arbitrary graph proposal semantics still require an authored likelihood contract.",
       "implementation": [
         "backend/SlotMath.Core/Measurements/FiniteModelAnalysis.cs",
-        "backend/SlotMath.Core/Measurements/GraphMeasurementEnumeration.cs"
+        "backend/SlotMath.Core/Measurements/GraphMeasurementEnumeration.cs",
+        "backend/SlotMath.Core/Measurements/VerificationDesign.cs",
+        "frontend/src/components/simulate/VerificationWorkbench.tsx"
       ],
       "evidence": [
         "backend/SlotMath.Core.Tests/Math/FiniteModelAnalysisTests.cs",
-        "backend/SlotMath.Core.Tests/Math/GraphMeasurementEnumerationTests.cs"
+        "backend/SlotMath.Core.Tests/Math/GraphMeasurementEnumerationTests.cs",
+        "backend/SlotMath.Core.Tests/Math/VerificationMilestoneTests.cs",
+        "backend/SlotMath.Api.Tests/VerificationExperimentApiTests.cs",
+        "frontend/e2e/z-verification-experiments.spec.ts"
       ]
     },
     {
@@ -1687,17 +1727,22 @@
     },
     {
       "id": "comparison.sensitivity",
-      "status": "partial",
-      "scope": "Compatible pinned saved-run mean/ratio/variance/distribution effects are available with valid independent-run inference. Named perturbations, tail/event deltas and experiment planning are not yet fully native.",
+      "status": "ready",
+      "scope": "Named native numeric perturbations report local finite differences, mean/event/tail and actual session payout/turnover deltas, justified independent-arm intervals and variance-based sample planning. Stopped/dependent rounds remain descriptive; no global or analytic derivative claim.",
       "implementation": [
         "backend/SlotMath.Core/Measurements/MeasurementAnalysisAccumulator.cs",
         "backend/SlotMath.Core/Measurements/DiscreteNullCalibration.cs",
-        "frontend/src/lib/measurements/comparison.ts"
+        "frontend/src/lib/measurements/comparison.ts",
+        "backend/SlotMath.Api/Features/Runs/Experiments.cs",
+        "frontend/src/components/simulate/VerificationWorkbench.tsx"
       ],
       "evidence": [
         "backend/SlotMath.Core.Tests/Math/AdvancedMeasurementTests.cs",
         "backend/SlotMath.Core.Tests/Math/DiscreteCalibrationTests.cs",
-        "frontend/unit/measurement-comparison.spec.ts"
+        "frontend/unit/measurement-comparison.spec.ts",
+        "backend/SlotMath.Core.Tests/Math/VerificationMilestoneTests.cs",
+        "backend/SlotMath.Api.Tests/VerificationExperimentApiTests.cs",
+        "frontend/e2e/z-verification-experiments.spec.ts"
       ]
     },
     {
@@ -1910,16 +1955,21 @@
     },
     {
       "id": "provenance.identity",
-      "status": "partial",
-      "scope": "Graph/config, measurement and execution identities, seeds/streams and loaded Core/API SHA-256 are pinned. Fully versioned external rule/asset/specification identities are not yet first-class evidence inputs.",
+      "status": "ready",
+      "scope": "Pinned graph inputs now include versioned external rule/specification/asset identities, digests and optional embedded bytes, checked against SHA-256 and retained/exportable. URI-only digest identities remain authored assertions; producer/model/measurement/execution identities stay distinct.",
       "implementation": [
         "backend/SlotMath.Api/Infrastructure/RuntimeProvenance.cs",
-        "frontend/src/lib/realtime/runProtocol.ts"
+        "frontend/src/lib/realtime/runProtocol.ts",
+        "backend/SlotMath.Core/Model/EvidenceInput.cs",
+        "frontend/src/components/editor/EvidenceInputsEditor.tsx"
       ],
       "evidence": [
         "backend/SlotMath.Core.Tests/Math/DiagnosticEvidenceTests.cs",
         "frontend/e2e/realtime-durability.spec.ts",
-        "scripts/verification/measurements-advanced-production.mjs"
+        "scripts/verification/measurements-advanced-production.mjs",
+        "backend/SlotMath.Core.Tests/Math/VerificationMilestoneTests.cs",
+        "backend/SlotMath.Api.Tests/VerificationExperimentApiTests.cs",
+        "frontend/e2e/z-verification-experiments.spec.ts"
       ]
     },
     {
@@ -2003,15 +2053,20 @@
     },
     {
       "id": "experience.duration",
-      "status": "partial",
-      "scope": "Fixed-horizon duration and censored ruin/feature first-passage distributions exist. Actual early-stopped session policies are not yet executed.",
+      "status": "ready",
+      "scope": "Independent sessions actually execute fixed horizon, ruin, profit/loss threshold and first-feature stopping, preserving planned coordinates while measuring actual paid rounds/turnover/duration and stop classifications. Initial unfunded sessions can complete with zero duration; interrupted sessions remain censored.",
       "implementation": [
         "backend/SlotMath.Core/Math/ExecutionOptions.cs",
-        "backend/SlotMath.Core/Math/SessionMoney.cs"
+        "backend/SlotMath.Core/Math/SessionMoney.cs",
+        "backend/SlotMath.Core/Math/SampledInterpreter.cs",
+        "frontend/src/components/simulate/ExecutionConfiguration.tsx"
       ],
       "evidence": [
         "backend/SlotMath.Core.Tests/Math/ExecutionPopulationTests.cs",
-        "frontend/e2e/z-advanced-measurements.spec.ts"
+        "frontend/e2e/z-advanced-measurements.spec.ts",
+        "backend/SlotMath.Core.Tests/Math/VerificationMilestoneTests.cs",
+        "backend/SlotMath.Api.Tests/VerificationExperimentApiTests.cs",
+        "frontend/e2e/z-verification-experiments.spec.ts"
       ]
     },
     {

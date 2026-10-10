@@ -12,7 +12,8 @@ export function compareMeasurements(selected: RunSnapshot, baseline: RunSnapshot
     if (!other || !a || !b) return [];
     const compatible = semantics(d) === semantics(other);
     const clean = selected.status === 'completed' && baseline.status === 'completed' && !a.errors && !b.errors && !a.analysis?.unclosedEpisodes && !b.analysis?.unclosedEpisodes && !a.analysis?.duplicateAwards && !b.analysis?.duplicateAwards;
-    const independent = compatible && clean && selected.seed !== baseline.seed && !selected.execution?.persistentKeys.length && !baseline.execution?.persistentKeys.length && d.options?.independentSubjects && other.options?.independentSubjects && !a.analysis?.weights && !b.analysis?.weights;
+    const stopped = [selected, baseline].some(r => r.execution?.sessionStop && r.execution.sessionStop !== 'fixedHorizon');
+    const independent = !stopped && compatible && clean && selected.seed !== baseline.seed && !selected.execution?.persistentKeys.length && !baseline.execution?.persistentKeys.length && d.options?.independentSubjects && other.options?.independentSubjects && !a.analysis?.weights && !b.analysis?.weights;
     const delta = difference(a.mean, b.mean); let ci: readonly [number, number] | null = null;
     if (independent && delta != null && a.count > 1 && b.count > 1 && a.stdDev! > 0 && b.stdDev! > 0) {
       const half = 1.959963984540054 * Math.hypot(a.stdDev! / Math.sqrt(a.count), b.stdDev! / Math.sqrt(b.count));

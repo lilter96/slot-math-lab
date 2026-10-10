@@ -24,6 +24,8 @@ internal sealed class SessionMoney
     public bool InitiallyUnderfunded => _bankroll < _wager;
     public bool CanFundNextWager => _bankroll + _profit >= _wager;
     public bool Profitable => _profit.Sign > 0;
+    public double TotalPayout => AsDouble(_payout);
+    public double Turnover => AsDouble(_wager * _rounds);
     public double Profit => AsDouble(_profit);
     public double EndingBankroll => AsDouble(_bankroll + _profit);
     public double Drawdown => AsDouble(_drawdown);

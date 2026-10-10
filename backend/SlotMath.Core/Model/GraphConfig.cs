@@ -21,6 +21,7 @@ public sealed record GraphConfig
     public string? Id { get; init; }
     public string? Name { get; init; }
     public string? Description { get; init; }
+    public EvidenceInput[]? EvidenceInputs { get; init; }
 
     // Data tables — invariant #7: tables, not nodes, for data
     public Symbol[] Symbols { get; init; } = Array.Empty<Symbol>();

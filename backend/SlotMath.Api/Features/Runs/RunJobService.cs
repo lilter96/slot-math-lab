@@ -47,6 +47,7 @@ public class RunJobService(InMemoryConfigStore configStore, InMemoryRunStore run
                 throw new InvalidOperationException("Pinned measurement plan fingerprint mismatch.");
             if (run.VerificationProfileHash != (run.VerificationProfile is null ? null : SlotMath.Core.Measurements.ProfileVerification.Hash(run.VerificationProfile)))
                 throw new InvalidOperationException("Pinned verification profile fingerprint mismatch.");
+            if (run.ExternalEvidence is not null && !run.ExternalEvidence.SequenceEqual(entry.Config.EvidenceInputs ?? [])) throw new InvalidOperationException("External input manifest differs from the pinned graph.");
             var compiled = compiledGraphs.Compile(entry.Config, run.Measurements);
             if (!compiled.IsValid) throw new InvalidOperationException(string.Join("; ", compiled.Errors.Select(e => $"{e.Code}: {e.Message}")));
             operation.Token.ThrowIfCancellationRequested();
@@ -58,6 +59,7 @@ public class RunJobService(InMemoryConfigStore configStore, InMemoryRunStore run
                 WinScale = (double)compiled.WinScale,
                 MaxWinCap = entry.Config.Nodes.OfType<SlotMath.Core.Model.MetricsSinkNode>().Single().WinCap,
                 CancellationToken = operation.Token, CancellationCheckInterval = 1,
+                ResourceBudgetExpired = () => runStore.Get(runId)?.CancellationReason == "resourceExpiry" || operation.IsCancellationRequested && !cts.IsCancellationRequested && !lifetime.ApplicationStopping.IsCancellationRequested,
                 ProgressReportInterval = Math.Clamp(progressBatchSize, 16, 1000), ProgressCallback = Publish,
             });
             if (sampled.WasCancelled && sampled.SpinsCompleted == 0) throw new OperationCanceledException(operation.Token);
@@ -66,20 +68,20 @@ public class RunJobService(InMemoryConfigStore configStore, InMemoryRunStore run
             Publish(new SampledProgress { SpinsCompleted = sampled.SpinsCompleted, TotalSpins = sampleSize,
                 Stats = sampled.Stats.Snapshot(), Measurements = sampled.Measurements, Execution = sampled.Execution, Elapsed = sampled.Elapsed });
             var report = SampledMetrics.ComputeFromResult(sampled);
-            var status = sampled.WasCancelled || sampled.SpinsCompleted < sampleSize ? "cancelled" : "completed";
+            var status = sampled.WasCancelled || sampled.SpinsCompleted < sampleSize && run.Execution is not { Regime: "sessions", SessionStop: not "fixedHorizon" } ? "cancelled" : "completed";
             var result = JsonSerializer.Serialize(new
             {
                 seed = run.Seed, configHash = run.ConfigHash, configVersion = run.ConfigVersion,
                 degreeOfParallelism = run.DegreeOfParallelism, streamScheme = run.Execution?.StreamScheme ?? "splitmix64-chunk-65536",
                 execution = run.Execution, executionSummary = sampled.Execution,
-                runtimeProvenance = run.RuntimeProvenance,
+                runtimeProvenance = run.RuntimeProvenance, externalEvidence = run.ExternalEvidence,
                 verificationProfile = run.VerificationProfile, verificationProfileHash = run.VerificationProfileHash,
                 measurementHash = run.MeasurementHash, measurements = sampled.Measurements,
                 samplingEngine = sampled.Execution?.SamplingEngine ?? compiled.SamplingEngine,
                 rtp = report.Rtp.DisplayValue, runningRtp = report.Rtp.DisplayValue,
-                stdErr = sampled.Stats.StdErr, ci95 = sampled.SpinsCompleted > 1 && sampled.Stats.StdErr > 0 && run.Execution is not { PersistentKeys.Length: > 0 } ? new[] { sampled.Stats.Mean - sampled.Stats.Ci95Half, sampled.Stats.Mean + sampled.Stats.Ci95Half } : null,
+                stdErr = sampled.Stats.StdErr, ci95 = sampled.SpinsCompleted > 1 && sampled.Stats.StdErr > 0 && run.Execution is not { PersistentKeys.Length: > 0 } && run.Execution is not { SessionStop: not "fixedHorizon" } ? new[] { sampled.Stats.Mean - sampled.Stats.Ci95Half, sampled.Stats.Mean + sampled.Stats.Ci95Half } : null,
                 hitFrequency = report.HitFrequency.DisplayValue, volatility = sampled.SpinsCompleted > 1 ? report.Volatility.StdDev : (double?)null,
-                volatilityIndex = report.Volatility.VolatilityIndex, maxWin = report.MaxWin.MaxWin,
+                volatilityIndex = report.Volatility.VolatilityIndex, maxWin = sampled.SpinsCompleted > 0 ? report.MaxWin.MaxWin : 0,
                 sampleCount = sampled.SpinsCompleted, totalSamples = sampleSize, status,
                 provenance = "Sampled", elapsedMs = (long)sampled.Elapsed.TotalMilliseconds,
                 histogram = sampled.Stats.Histogram.Select(b => new { lo = b.LowerBound, hi = b.UpperBound, count = b.Count }),

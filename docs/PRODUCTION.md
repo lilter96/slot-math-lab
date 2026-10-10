@@ -124,3 +124,7 @@ Use a dedicated test database without unrelated tables. EF EnsureCreated is for
 fresh installations; schema migration/baselining of a pre-existing unrelated database
 is not automatic. CI provisions PostgreSQL for the browser suite and starts a real
 API, so UI workflow tests run without mocked calculation responses.
+
+## Experiment persistence
+
+Experiment manifests use the existing encrypted single-writer snapshots. Unfinished experiments become interrupted after restart; retained child results are kept and replay is explicit. Admission/cancellation and mathematical scope are documented in [native experiments](VERIFICATION_EXPERIMENTS.md).

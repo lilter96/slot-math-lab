@@ -149,6 +149,8 @@ public sealed class InMemoryConfigStore
 /// </summary>
 public sealed record RunEntry
 {
+    public EvidenceInput[]? ExternalEvidence { get; init; }
+    public string? CancellationReason { get; init; }
     public SlotMath.Core.Measurements.VerificationProfile? VerificationProfile { get; init; }
     public string? VerificationProfileHash { get; init; }
     public DiagnosticArtifact[] Diagnostics { get; init; } = [];
@@ -216,7 +218,7 @@ public sealed class InMemoryRunStore
         _lastCheckpoint = _clock.GetTimestamp();
     }
 
-    public RunEntry Create(string configId, long seed = 42, int configVersion = 1, long totalSamples = 0, string? configHash = null, int degreeOfParallelism = 2, SlotMath.Core.Measurements.MeasurementDefinition[]? measurements = null, SlotMath.Core.Math.ExecutionOptions? execution = null, SlotMath.Core.Measurements.VerificationProfile? verificationProfile = null)
+    public RunEntry Create(string configId, long seed = 42, int configVersion = 1, long totalSamples = 0, string? configHash = null, int degreeOfParallelism = 2, SlotMath.Core.Measurements.MeasurementDefinition[]? measurements = null, SlotMath.Core.Math.ExecutionOptions? execution = null, SlotMath.Core.Measurements.VerificationProfile? verificationProfile = null, EvidenceInput[]? externalEvidence = null)
     {
         if (verificationProfile is not null)
         {
@@ -228,6 +230,7 @@ public sealed class InMemoryRunStore
         var entry = new RunEntry
         {
             Id = id,
+            ExternalEvidence = externalEvidence?.ToArray(),
             VerificationProfile = verificationProfile,
             VerificationProfileHash = verificationProfile is null ? null : SlotMath.Core.Measurements.ProfileVerification.Hash(verificationProfile),
             RuntimeProvenance = RuntimeProvenance.Current,
@@ -375,7 +378,7 @@ public sealed class InMemoryRunStore
     /// Cancel a running job.  Returns true if a CTS was found and cancelled,
     /// false if the run was not found or had no active CTS.
     /// </summary>
-    public bool Cancel(string runId)
+    public bool Cancel(string runId, string reason = "userCancellation")
     {
         lock (_gate)
         {
@@ -384,7 +387,7 @@ public sealed class InMemoryRunStore
                 if (run.Status != "cancelling")
                 {
                     var sequence = NextSequence(run);
-                    _runs[runId] = run with { Status = "cancelling", Sequence = sequence,
+                    _runs[runId] = run with { Status = "cancelling", Sequence = sequence, CancellationReason = reason,
                         Progress = run.Progress is null ? null : run.Progress with { Status = "cancelling", Sequence = sequence } };
                 }
                 cts.Cancel(); // Worker owns disposal; retain early cancellation until it starts.

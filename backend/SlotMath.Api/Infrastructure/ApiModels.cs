@@ -98,6 +98,8 @@ public sealed record CreateRunRequest
 
 public sealed record RunResponse
 {
+    public SlotMath.Core.Model.EvidenceInput[]? ExternalEvidence { get; init; }
+    public string? CancellationReason { get; init; }
     public SlotMath.Core.Measurements.VerificationProfile? VerificationProfile { get; init; }
     public string? VerificationProfileHash { get; init; }
     public RuntimeProvenance? RuntimeProvenance { get; init; }
@@ -122,7 +124,7 @@ public sealed record RunResponse
 
     public static RunResponse From(RunEntry run) => new()
     {
-        VerificationProfile = run.VerificationProfile, VerificationProfileHash = run.VerificationProfileHash,
+        CancellationReason = run.CancellationReason, ExternalEvidence = run.ExternalEvidence, VerificationProfile = run.VerificationProfile, VerificationProfileHash = run.VerificationProfileHash,
         RuntimeProvenance = run.RuntimeProvenance, Execution = run.Execution, StreamScheme = run.Execution?.StreamScheme ?? "splitmix64-chunk-65536",
         Measurements = run.Measurements.Select(MeasurementInput.FromCore).ToArray(), MeasurementHash = run.MeasurementHash,
         Id = run.Id, ConfigId = run.ConfigId, Seed = run.Seed, ConfigVersion = run.ConfigVersion,
