@@ -1,6 +1,16 @@
 import { create } from 'zustand';
 import { LIMITS } from '../lib/limits';
-import type { Node, Edge, Connection, OnNodesChange, OnEdgesChange, NodeChange, EdgeChange } from '@xyflow/react';
+import {
+  applyNodeChanges,
+  applyEdgeChanges,
+  type Node,
+  type Edge,
+  type Connection,
+  type OnNodesChange,
+  type OnEdgesChange,
+  type NodeChange,
+  type EdgeChange,
+} from '@xyflow/react';
 
 export type TabId = 'build' | 'simulate' | 'results' | 'export' | 'play';
 export type Mood = 'slate' | 'ocean' | 'violet' | 'steel';
@@ -62,6 +72,9 @@ export interface GraphState {
   nodes: GraphNode[];
   edges: GraphEdge[];
   selectedNodeId: string | null;
+  /** Canvas interactivity lock — false freezes dragging/connecting/selection. */
+  canvasInteractive: boolean;
+  setCanvasInteractive: (value: boolean) => void;
   selectNode: (id: string | null) => void;
   onNodesChange: OnNodesChange<GraphNode>;
   onEdgesChange: OnEdgesChange<GraphEdge>;
@@ -223,6 +236,17 @@ export const useAppStore = create<AppState>((set, get) => ({
   nodes: [],
   edges: [],
   selectedNodeId: null,
+  // Canvas interactivity lock. When false the graph is read-only: React Flow
+  // gets nodesDraggable/nodesConnectable/elementsSelectable = false, which
+  // lets the user pan and inspect without disturbing the layout.
+  canvasInteractive: true,
+  setCanvasInteractive: (value) => set({ canvasInteractive: value }),
+  // NOTE: `selectedNodeId` drives the inspector and is deliberately
+  // single-valued, while React Flow's `node.selected` flags are N-valued
+  // (Shift-multi-select, selection box, edges). Do NOT couple the two here:
+  // earlier code rewrote every node's flag on programmatic selection, which
+  // destroyed Shift multi-selection because onNodeClick fires after React
+  // Flow has already applied the additive selection changes.
   selectNode: (id) => set({ selectedNodeId: id }),
   edgeValidationError: null,
   setEdgeValidationError: (err) => set({ edgeValidationError: err }),
@@ -233,7 +257,42 @@ export const useAppStore = create<AppState>((set, get) => ({
   setAuth: (authenticated, name) => set({ isAuthenticated: authenticated, userDisplayName: name ?? null }),
 
   onNodesChange: (changes: NodeChange<GraphNode>[]) =>
-    set((s) => ({ nodes: applyNodeChanges(changes, s.nodes) })),
+    set((s) => {
+      const nodes = applyNodeChanges(changes, s.nodes);
+      // Defensive cleanup: if any nodes were removed, drop their connected
+      // edges too. React Flow normally emits matching edge-removal changes,
+      // but this keeps the invariant regardless of RF version/behaviour.
+      const removedIds = changes
+        .filter((ch): ch is Extract<NodeChange<GraphNode>, { type: 'remove' }> => ch.type === 'remove')
+        .map((ch) => ch.id);
+      let edges = removedIds.length
+        ? s.edges.filter((e) => !removedIds.includes(e.source) && !removedIds.includes(e.target))
+        : s.edges;
+
+      // A node selection must not leave a stale edge selection behind:
+      // Delete/Backspace acts on every selected element, so a leftover edge
+      // would be removed alongside the focused node.
+      const hasSelectChange = changes.some((ch) => ch.type === 'select');
+      let selectedNodeId = s.selectedNodeId;
+      if (hasSelectChange) {
+        if (s.edges.some((e) => e.selected)) {
+          edges = edges.map((e) => (e.selected ? { ...e, selected: false } : e));
+        }
+        // Reconcile single-node selection with the inspector. Skip the
+        // multi-node case (Shift-click / selection box): the inspector is
+        // single-valued, so it must not latch onto an arbitrary member of a
+        // multi-selection, and Delete must keep acting on the whole set.
+        const selectedIds = nodes.filter((n) => n.selected).map((n) => n.id);
+        selectedNodeId = selectedIds.length === 1 ? selectedIds[0] : null;
+      }
+
+      // Keep the inspector in sync: a keyboard deletion of the inspected node
+      // must clear the selection, mirroring removeNode().
+      if (removedIds.length && selectedNodeId !== null && removedIds.includes(selectedNodeId)) {
+        selectedNodeId = null;
+      }
+      return { nodes, edges, selectedNodeId };
+    }),
 
   onEdgesChange: (changes: EdgeChange<GraphEdge>[]) =>
     set((s) => ({ edges: applyEdgeChanges(changes, s.edges) })),
@@ -314,45 +373,71 @@ export const useAppStore = create<AppState>((set, get) => ({
   // ── Table data (used by live metrics) ───────────────────────────
 }));
 
-// ── Minimal Node/Edge change handlers (avoid heavy immer dependency) ─
-
-function applyNodeChanges(
-  changes: NodeChange<GraphNode>[],
-  nodes: GraphNode[],
-): GraphNode[] {
-  let next = [...nodes];
-  for (const ch of changes) {
-    if (ch.type === 'position' && ch.position) {
-      const idx = next.findIndex((n) => n.id === ch.id);
-      if (idx >= 0) {
-        next[idx] = { ...next[idx], position: ch.position };
-      }
-    } else if (ch.type === 'remove') {
-      next = next.filter((n) => n.id !== ch.id);
-    }
-  }
-  return next;
-}
-
-function applyEdgeChanges(
-  changes: EdgeChange<GraphEdge>[],
-  edges: GraphEdge[],
-): GraphEdge[] {
-  let next = [...edges];
-  for (const ch of changes) {
-    if (ch.type === 'remove') {
-      next = next.filter((e) => e.id !== ch.id);
-    }
-  }
-  return next;
+// ── Draft persistence (debounced) ───────────────────────────────────
+// NOTE: previously we stringified the whole graph into localStorage on
+// every store change (including every mousemove during a node drag),
+// which blocked the main thread and made dragging visibly janky. We now
+// debounce the write so dragging stays smooth; a `beforeunload` flush
+// keeps the last state from being lost on tab close.
+// React Flow's `selected` is transient interaction state, not model data.
+// It must never be persisted or restored: a restored flag produces a phantom
+// canvas selection while `selectedNodeId` stays null, so Delete removes a
+// node the inspector does not report as selected.
+export function withoutSelection<T extends { selected?: boolean }>(items: T[] | undefined): T[] | undefined {
+  if (!items?.some((item) => item.selected)) return items;
+  return items.map((item) => {
+    if (!item.selected) return item;
+    const rest = { ...item };
+    delete rest.selected;
+    return rest;
+  });
 }
 
 if (typeof window !== 'undefined') {
+  const DRAFT_KEY = 'slotmath-draft-v1';
+  const SAVE_DEBOUNCE_MS = 400;
+  let saveTimer: number | undefined;
+
+  const persistNow = () => {
+    const s = useAppStore.getState();
+    try {
+      localStorage.setItem(DRAFT_KEY, JSON.stringify({
+        nodes: withoutSelection(s.nodes),
+        edges: s.edges,
+        tables: s.tables,
+        graphTrail: s.graphTrail,
+        verificationSource: s.verificationSource,
+        configName: s.configName,
+        // `resultsDraft` embeds a second copy of the editor graph, so it needs
+        // the same sanitisation as the top-level nodes.
+        resultsDraft: s.resultsDraft
+          ? { ...s.resultsDraft, nodes: withoutSelection(s.resultsDraft.nodes) }
+          : s.resultsDraft,
+      }));
+    } catch { /* export remains available when browser storage is full */ }
+  };
+
+  const schedulePersist = () => {
+    if (saveTimer !== undefined) clearTimeout(saveTimer);
+    saveTimer = window.setTimeout(() => {
+      saveTimer = undefined;
+      persistNow();
+    }, SAVE_DEBOUNCE_MS);
+  };
+
   try {
-    const draft = JSON.parse(localStorage.getItem('slotmath-draft-v1') ?? 'null');
-    if (draft && Array.isArray(draft.nodes) && Array.isArray(draft.edges)) useAppStore.setState({ nodes: draft.nodes, edges: draft.edges, tables: draft.tables ?? {}, graphTrail: draft.graphTrail ?? [], verificationSource: draft.verificationSource ?? null, configName: draft.configName ?? 'Untitled', resultsDraft: draft.resultsDraft ?? null });
+    const draft = JSON.parse(localStorage.getItem(DRAFT_KEY) ?? 'null');
+    if (draft && Array.isArray(draft.nodes) && Array.isArray(draft.edges)) useAppStore.setState({ nodes: withoutSelection(draft.nodes) ?? [], edges: draft.edges, tables: draft.tables ?? {}, graphTrail: draft.graphTrail ?? [], verificationSource: draft.verificationSource ?? null, configName: draft.configName ?? 'Untitled', resultsDraft: draft.resultsDraft ?? null });
   } catch { /* a corrupt draft never prevents opening the editor */ }
-  useAppStore.subscribe(s => {
-    try { localStorage.setItem('slotmath-draft-v1', JSON.stringify({ nodes: s.nodes, edges: s.edges, tables: s.tables, graphTrail: s.graphTrail, verificationSource: s.verificationSource, configName: s.configName, resultsDraft: s.resultsDraft })); } catch { /* export remains available when browser storage is full */ }
+
+  useAppStore.subscribe(schedulePersist);
+  window.addEventListener('beforeunload', () => {
+    // Only flush when this tab actually has a pending write. Unconditionally
+    // flushing on unload would let an untouched tab overwrite a newer draft
+    // persisted by another tab with its stale in-memory state.
+    if (saveTimer === undefined) return;
+    clearTimeout(saveTimer);
+    saveTimer = undefined;
+    persistNow();
   });
 }

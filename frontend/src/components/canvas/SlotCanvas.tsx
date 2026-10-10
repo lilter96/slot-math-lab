@@ -3,7 +3,6 @@ import {
   ReactFlow,
   ReactFlowProvider,
   Background,
-  Controls,
   useNodesInitialized,
   useReactFlow,
   type Connection,
@@ -139,14 +138,6 @@ export default function SlotCanvas() {
           gap={26}
           size={1}
           color="oklch(0.32 0.014 255)"
-        />
-        <Controls
-          style={{
-            background: 'var(--bg-1)',
-            border: '1px solid var(--line)',
-            borderRadius: '9px',
-            boxShadow: 'var(--shadow)',
-          }}
         />
       </ReactFlow>
       <CanvasToolbar />
