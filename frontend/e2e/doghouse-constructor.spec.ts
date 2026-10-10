@@ -5,7 +5,7 @@ async function focus(page: import('@playwright/test').Page, id: string) { await 
 
 test('A fresh Build opens the complete model and all math graphs without loading a preset manually', async ({ page }) => {
   await page.goto('/build');
-  await expect(page.locator('.react-flow__node')).toHaveCount(11);
+  await expect(page.locator('.react-flow__node')).toHaveCount(12);
   await expect(page.getByTestId('model-navigation')).toContainText('target 98%');
   await expect(page.locator('.react-flow__node[data-id="base-spin"]')).toBeVisible();
   await page.locator('.react-flow__node[data-id="base-spin"]').getByRole('button', { name: /Open .* subgraph/ }).click();
@@ -22,20 +22,20 @@ test('A fresh Build opens the complete model and all math graphs without loading
   await expect(page.getByLabel('Focus graph node')).toContainText('Solve P(×3)');
   await expect(page.getByLabel('Expression operator', { exact: true })).toHaveValue('Add');
   await page.getByRole('button', { name: 'Open full game graph', exact: true }).click();
-  await expect(page.locator('.react-flow__node')).toHaveCount(11);
+  await expect(page.locator('.react-flow__node')).toHaveCount(12);
   await page.getByRole('button', { name: 'Play this model', exact: true }).click();
   await expect(page.getByRole('button', { name: 'Spin', exact: true })).toBeVisible();
 });
 
 test('A direct model link opens the full canvas and retains edits saved inside a subgraph', async ({ page }) => {
   await page.goto('/build?project=dog-house');
-  await expect(page.locator('.react-flow__node')).toHaveCount(11);
+  await expect(page.locator('.react-flow__node')).toHaveCount(12);
   await page.getByRole('button', { name: 'Open reel and payout tables', exact: true }).click();
   await page.getByLabel('Data row 11', { exact: true }).fill('200');
   await page.getByRole('button', { name: 'Close dialog', exact: true }).click();
   await page.getByRole('button', { name: 'Open base game graph', exact: true }).click();
   await page.goto('/build?project=dog-house');
-  await expect(page.locator('.react-flow__node')).toHaveCount(11);
+  await expect(page.locator('.react-flow__node')).toHaveCount(12);
   await page.getByRole('button', { name: 'Open reel and payout tables', exact: true }).click();
   await expect(page.getByLabel('Data row 11', { exact: true })).toHaveValue('200');
 });

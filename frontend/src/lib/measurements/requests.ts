@@ -26,8 +26,11 @@ export async function calculationRequest<T>(path: string, input: unknown, signal
     const header = response.headers.get('Retry-After');
     const parsed = header ? /^\d+$/.test(header) ? Number(header) * 1000 : Date.parse(header) - Date.now() : 1000;
     const delay = Number.isFinite(parsed) ? Math.max(1000, parsed) : 1000;
-    if (response.status !== 429 || attempt >= 2 || delay > 60000)
-      throw new HttpFailure(data.error ?? data.title ?? (response.status === 429 ? 'Calculation quota is busy. Try again shortly.' : `HTTP ${response.status}`), response.status, delay);
+    if (response.status !== 429 || attempt >= 2 || delay > 60000) {
+      const validation = Array.isArray(data.errors) ? data.errors.filter((e: unknown): e is { message: string } => !!e && typeof e === 'object' && 'message' in e && typeof e.message === 'string') : [];
+      const detail = validation.slice(0, 8).map((e: { message: string }) => e.message.slice(0, 512)).join('; ');
+      throw new HttpFailure(detail ? detail + (validation.length > 8 ? `; ${validation.length - 8} more validation errors.` : '') : data.error ?? data.title ?? (response.status === 429 ? 'Calculation quota is busy. Try again shortly.' : `HTTP ${response.status}`), response.status, delay);
+    }
     status(`Server quota · retrying the rejected calculation in ${Math.ceil(delay / 1000)}s. Cancel to stop waiting.`);
     await wait(delay, signal);
   }

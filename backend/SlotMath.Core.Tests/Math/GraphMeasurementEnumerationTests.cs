@@ -24,6 +24,8 @@ public class GraphMeasurementEnumerationTests
         Assert.Equal("1/4", pair.VarianceX); Assert.Equal("1/1", pair.VarianceY); Assert.Equal("1/2", pair.Covariance);
         Assert.Equal("9/4", pair.VarianceSum); Assert.Equal("1/4", pair.VarianceDifference);
         Assert.All(law.Groups, g => Assert.Equal("0/1", g.Pair!.Covariance));
+        Assert.Equal(new EnumeratedParentExposure("1/1", null, true), law.ParentExposure);
+        Assert.All(law.Groups, g => Assert.Equal(new EnumeratedParentExposure("1/2", null, true), g.ParentExposure));
     }
     [Fact]
     public void IncompletePathsAndSupportBudgetsWithholdConditionalJointAndCohortGuarantees()
@@ -32,6 +34,8 @@ public class GraphMeasurementEnumerationTests
         var cut = GraphMeasurementEnumeration.Evaluate(new GraphCompiler().Compile(Coin, plans), plans, 1, new(MaximumPaths: 1)).Measurements[0];
         Assert.False(cut.GroupsComplete); Assert.False(cut.Pair!.Complete); Assert.Null(cut.Pair.Covariance);
         Assert.Null(Assert.Single(cut.Groups).ConditionalMean);
+        Assert.Equal(new EnumeratedParentExposure("1/2", null, false), cut.ParentExposure);
+        Assert.Equal(new EnumeratedParentExposure("1/2", null, false), Assert.Single(cut.Groups).ParentExposure);
         plans = [PairedCoin(supportLimit: 1, groupLimit: 1)];
         var bounded = GraphMeasurementEnumeration.Evaluate(new GraphCompiler().Compile(Coin, plans), plans, 1).Measurements[0];
         Assert.False(bounded.GroupsComplete); Assert.Empty(bounded.Groups); Assert.False(bounded.Pair!.Complete);

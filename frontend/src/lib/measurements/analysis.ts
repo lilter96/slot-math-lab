@@ -17,6 +17,7 @@ export const defaultOptions = (): MeasurementOptions => ({ subject: 'observation
   groupLimit: 32, lags: [], stake: 1, confidence: 0.95, errorFamilySize: 1, independentSubjects: false, independentParents: false, referenceDistribution: [] });
 export interface NumericInterval { lower: number; upper: number; method: string; assumptions: string }
 export interface MeasurementAnalysis {
+  parentExposure?: { paidRoundsWithMatchingChildren: number; episodesWithMatchingChildren: number | null } | null;
   normalization?: { paidRounds: number; externalTurnover: number | null; basis: string } | null;
   assertion?: { kind: 'zero'; checked: number; violations: number; status: 'invalid' | 'discrepancy' | 'insufficient' | 'noObservedViolations' } | null;
   count: number; min: number | null; max: number | null; mean: number | null; sum: number | null;

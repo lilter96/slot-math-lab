@@ -14,7 +14,9 @@ public sealed record EnumeratedJointValue(double X, double Y, string MassPerPaid
 public sealed record EnumeratedJointLaw(string PairedPerRound, EnumeratedJointValue[] Support, bool Complete,
     string? MeanX, string? MeanY, string? VarianceX, string? VarianceY, string? Covariance, string? VarianceSum, string? VarianceDifference);
 public sealed record EnumeratedCohort(string Key, string ValidPerRound, string KnownSumPerRound, string? ConditionalMean,
-    EnumeratedValue[] Support, bool SupportComplete, EnumeratedJointLaw? Pair);
+    EnumeratedValue[] Support, bool SupportComplete, EnumeratedJointLaw? Pair)
+{ public EnumeratedParentExposure? ParentExposure { get; init; } }
+public sealed record EnumeratedParentExposure(string KnownMatchingPaidRoundsPerRound, string? KnownMatchingEpisodesPerRound, bool Complete);
 public sealed record EnumeratedMeasurement(string Id, string EligiblePerRound, string ValidPerRound, string ExcludedPerRound, string InvalidPerRound,
     string KnownSumPerRound, string? ConditionalMean, EnumeratedValue[] Support, bool SupportComplete, string? FirstError)
 {
@@ -24,6 +26,7 @@ public sealed record EnumeratedMeasurement(string Id, string EligiblePerRound, s
     public string Weighting { get; init; } = "Unweighted occurrence law under the authored graph";
     public string? KnownAssertionViolationsPerRound { get; init; }
     public string? AssertionStatus { get; init; }
+    public EnumeratedParentExposure? ParentExposure { get; init; }
 }
 public sealed record GraphEnumerationReport(string Status, int CompletedPaths, int Operations, string RetainedRoundMass, string UnresolvedRoundMass,
     RationalBounds RoundMean, EnumeratedMeasurement[] Measurements, string NumericalSemantics)
@@ -126,6 +129,8 @@ public static class GraphMeasurementEnumeration
     {
         public Rational Valid { get; private set; } = Rational.Zero;
         public Rational Sum { get; private set; } = Rational.Zero;
+        private Rational _matchingPaidParents = Rational.Zero, _matchingEpisodes = Rational.Zero;
+        private bool _hasEpisodes;
         private readonly SortedDictionary<double, Rational> _support = new();
         private readonly SortedDictionary<(double X, double Y), Rational> _joint = new();
         private Rational _paired = Rational.Zero;
@@ -133,6 +138,12 @@ public static class GraphMeasurementEnumeration
         public void Add(MeasurementAnalysis analysis, Rational mass)
         {
             Valid = Checked(Valid + mass * new Rational(analysis.Count, BigInteger.One));
+            if (analysis.ParentExposure is { } exposure)
+            {
+                _matchingPaidParents = Checked(_matchingPaidParents + mass * new Rational(exposure.PaidRoundsWithMatchingChildren, BigInteger.One));
+                if (exposure.EpisodesWithMatchingChildren is { } episodes)
+                { _hasEpisodes = true; _matchingEpisodes = Checked(_matchingEpisodes + mass * new Rational(episodes, BigInteger.One)); }
+            }
             if (analysis.Sum is { } sum) Sum = Checked(Sum + mass * Binary(sum));
             if (!analysis.SupportComplete) { _complete = false; _support.Clear(); }
             if (_complete) foreach (var atom in analysis.Support)
@@ -151,6 +162,8 @@ public static class GraphMeasurementEnumeration
             }
         }
         public bool Complete(bool validPaths) => validPaths && _complete;
+        public EnumeratedParentExposure Parents(bool allPaths, bool episodePopulation) => new(_matchingPaidParents.ToString(),
+            episodePopulation || _hasEpisodes ? _matchingEpisodes.ToString() : null, allPaths);
         public string? Mean(bool validPaths) => Complete(validPaths) && Valid > Rational.Zero ? (Sum / Valid).ToString() : null;
         public EnumeratedValue[] Support() => _support.Select(p => new EnumeratedValue(p.Key, p.Value.ToString())).ToArray();
         public EnumeratedJointLaw? Pair(bool validPaths)
@@ -204,7 +217,9 @@ public static class GraphMeasurementEnumeration
                 _overall.Mean(valid), _overall.Support(), _overall.Complete(allPaths), _error)
             {
                 GroupsComplete = allPaths && _groupsComplete,
-                Groups = _groups.Select(p => new EnumeratedCohort(p.Key, p.Value.Valid.ToString(), p.Value.Sum.ToString(), p.Value.Mean(valid), p.Value.Support(), p.Value.Complete(allPaths), p.Value.Pair(valid))).ToArray(),
+                Groups = _groups.Select(p => new EnumeratedCohort(p.Key, p.Value.Valid.ToString(), p.Value.Sum.ToString(), p.Value.Mean(valid), p.Value.Support(), p.Value.Complete(allPaths), p.Value.Pair(valid))
+                    { ParentExposure = p.Value.Parents(allPaths && _groupsComplete, options.Subject == "episode") }).ToArray(),
+                ParentExposure = _overall.Parents(allPaths, options.Subject == "episode"),
                 Pair = _overall.Pair(valid),
                 Weighting = options.Weight is null ? "Unweighted occurrence law under the authored graph" : "Authored graph/proposal occurrence law; target likelihood-weighted law is not enumerated",
                 KnownAssertionViolationsPerRound = options.Assertion == "zero" ? _violations.ToString() : null,

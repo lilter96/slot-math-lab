@@ -514,6 +514,7 @@
       "13",
       "12"
     ],
+    "bonusCompleted": false,
     "isFree": false,
     "expectedSpinCoins": 0,
     "cumulativeBonus": 0,

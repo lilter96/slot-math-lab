@@ -106,14 +106,20 @@
     },
     {
       "id": "counts.distinct_parents",
-      "status": "partial",
-      "scope": "Unique paid parents are implemented. Unique episode-parent identity for nested child populations is not yet exposed.",
+      "status": "ready",
+      "scope": "Accepted child exposure counts each settled paid round and innermost owning episode once, independent of repeated visits, zero-valued children, exit filtering or empty reduction identities. Entry-selected cohorts, sparse worker merges, native scalar selection and known rational enumeration exposure share the explicit contract; unfinished paid rounds are discarded.",
       "implementation": [
-        "backend/SlotMath.Core/Measurements/MeasurementCollector.cs"
+        "backend/SlotMath.Core/Measurements/MeasurementCollector.cs",
+        "backend/SlotMath.Core/Measurements/MeasurementAnalysisAccumulator.cs",
+        "backend/SlotMath.Core/Measurements/GraphMeasurementEnumeration.cs",
+        "frontend/src/lib/measurements/model.ts"
       ],
       "evidence": [
-        "backend/SlotMath.Core.Tests/Math/MeasurementTests.cs",
-        "backend/SlotMath.Core.Tests/Math/DiagnosticEvidenceTests.cs"
+        "backend/SlotMath.Core.Tests/Math/ParentExposureTests.cs",
+        "backend/SlotMath.Core.Tests/Math/DogHouseUiGraphTests.cs",
+        "backend/SlotMath.Api.Tests/ParentExposureApiTests.cs",
+        "frontend/unit/parent-exposure.spec.ts",
+        "frontend/e2e/z-parent-exposure.spec.ts"
       ]
     },
     {

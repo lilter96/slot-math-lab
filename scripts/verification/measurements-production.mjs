@@ -38,7 +38,7 @@ try {
   await Promise.all([page.waitForNavigation({ waitUntil: 'networkidle' }), page.getByRole('button', { name: 'Sign in', exact: true }).click()]);
   const source = await request('/api/runs/' + sourceId + '/evidence'); if (!source.inputVerified) throw new Error('Pinned source graph cannot be verified.');
   await page.goto(base + `/results?run=${sourceId}&view=reproducibility`); await page.getByRole('button', { name: 'Open pinned graph ↗', exact: true }).click();
-  await expect(page.locator('.react-flow__node')).toHaveCount(11); await page.getByRole('tab', { name: 'Simulate', exact: true }).click();
+  await expect(page.locator('.react-flow__node')).toHaveCount(12); await page.getByRole('tab', { name: 'Simulate', exact: true }).click();
   await metric('Sticky FS payout', 'free-spin/snapshot-winHistory', 'state.spinCoins / 20', '× stake');
   await metric('Long-bonus FS payout', 'free-spin/snapshot-winHistory', 'state.spinCoins / 20', '× stake', 'state.fsCount >= 18');
   await metric('Awarded spins per bonus', 'free-spins', 'state.fsCount', 'spins');

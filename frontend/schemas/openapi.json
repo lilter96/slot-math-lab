@@ -1655,6 +1655,16 @@
                 "$ref": "#/components/schemas/EnumeratedJointLaw"
               }
             ]
+          },
+          "parentExposure": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/EnumeratedParentExposure"
+              }
+            ]
           }
         }
       },
@@ -1837,6 +1847,38 @@
               "null",
               "string"
             ]
+          },
+          "parentExposure": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/EnumeratedParentExposure"
+              }
+            ]
+          }
+        }
+      },
+      "EnumeratedParentExposure": {
+        "required": [
+          "knownMatchingPaidRoundsPerRound",
+          "knownMatchingEpisodesPerRound",
+          "complete"
+        ],
+        "type": "object",
+        "properties": {
+          "knownMatchingPaidRoundsPerRound": {
+            "type": "string"
+          },
+          "knownMatchingEpisodesPerRound": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "complete": {
+            "type": "boolean"
           }
         }
       },
@@ -3071,6 +3113,16 @@
                 "$ref": "#/components/schemas/ContributionNormalization"
               }
             ]
+          },
+          "parentExposure": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/ParentExposure"
+              }
+            ]
           }
         }
       },
@@ -3753,6 +3805,26 @@
                 "$ref": "#/components/schemas/JointDiagnostics"
               }
             ]
+          }
+        }
+      },
+      "ParentExposure": {
+        "required": [
+          "paidRoundsWithMatchingChildren",
+          "episodesWithMatchingChildren"
+        ],
+        "type": "object",
+        "properties": {
+          "paidRoundsWithMatchingChildren": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "episodesWithMatchingChildren": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int64"
           }
         }
       },

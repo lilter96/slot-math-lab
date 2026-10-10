@@ -21,6 +21,19 @@ def moments(law):
 
 
 def references():
+    # Independent identity-set oracle: repeated children activate an owner
+    # once, accepted zeros still match, and nested ancestors receive no child.
+    # The B episode is exit-excluded; that does not remove accepted exposure.
+    children = [(0, 'A', 'sticky', 0, True, True), (0, 'A', 'sticky', 1, True, True),
+                (0, 'B', 'sticky', 2, True, True), (1, 'inner', 'other', 0, True, True),
+                (2, 'C', 'sticky', 5, False, True), (3, 'discarded', 'other', 6, True, False)]
+    accepted = [c for c in children if c[4] and c[5]]
+    matching_rounds = {c[0] for c in accepted}
+    matching_episodes = {(c[0], c[1]) for c in accepted}
+    assert len(accepted) == 4 and len(matching_rounds) == 2 and len(matching_episodes) == 3
+    assert len({c[0] for c in accepted if c[2] == 'sticky'}) == 1
+    assert len({(c[0], c[1]) for c in accepted if c[2] == 'sticky'}) == 2
+    assert not any(c[1] == 'outer' for c in accepted)
     # Constructor AST fixture checked independently with Python's rational
     # arithmetic, including negative floor and a fractional indexed value.
     fractions = [F(-6, 12), F(8, 12), F(15, 12)]
@@ -117,6 +130,8 @@ def references():
     assert one_event_trials == 29957322
 
     return {
+        "matchingParents": {"acceptedChildren": len(accepted), "paidRounds": len(matching_rounds),
+                            "owningEpisodes": len(matching_episodes), "stickyPaidRounds": 1, "stickyEpisodes": 2},
         "fractionalConstructor": {"payout": str(fractional_payout), "trackedMagnitude": str(abs(fractions[0]))},
         "sameRtpDifferentDistributions": {
             "rtp": str(mean_a),

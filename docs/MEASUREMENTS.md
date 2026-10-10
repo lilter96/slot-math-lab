@@ -47,6 +47,16 @@ Global entry/exit/open counts describe all authored lifecycle points before entr
 
 For settled paid rounds, reconcile `entries = exits + unclosed`. An unmatched exit or exhausted nesting/group budget remains an explicit error or incomplete cohort report. Entry-excluded features contribute only to global lifecycle exposure. Cancellation discards the unfinished paid round; these counts do not claim to classify its interruption cause. The shared Simulate/Results accounting view explains these scopes and shows the reconciliation residual.
 
+## Distinct matching parents
+
+`analysis.parentExposure` distinguishes `paidRoundsWithMatchingChildren` from nullable `episodesWithMatchingChildren`. Each accepted child counts its paid round once and, for an episode population, its innermost owning episode once. Repeated visits do not multiply either parent; nested ancestors do not inherit an inner episode's children. A zero or false value is an accepted child unless filtered out. Counts are recorded before exit filtering and subject reduction, so an excluded exit or an empty sum's numeric identity cannot change exposure. Open instances in a completed paid round remain visible; unfinished paid rounds are discarded.
+
+Saving a metric validates the complete proposed next-run plan, including the individual support and shared 32,768-cell collection limits. Quota rejection can be retried explicitly; closing validation aborts the request and prevents a late save. Choose cohort/support budgets for the intended populations.
+
+The live statistic picker exposes both counters. Episode exposure requires declared episode boundaries and remains unavailable in legacy saved evidence. The old `distinctParents` field is retained for compatibility; current views use the explicit exposure contract. Rational graph enumeration publishes known matching parents per paid round, marks incomplete traversal, and never renormalizes a cut population.
+
+The Dog House template has a bonus-only `bonus-completed` point after its FS loop. Choose `free-spins` as entry, that completion point as exit, and `free-spin/snapshot-winHistory` as the child point to track a complete bonus. This authored Boolean marker changes no payouts or random draws; earlier standard graphs still pass their own expectation-proof structure check.
+
 ## Independent verification
 
 The [verification record](verification/measurements-checks.json) contains the executed check totals and populated preview links. All 750 Core, 75 API, 27 frontend unit and 49 browser checks passed, along with the frontend build and lint. The [production report](verification/measurements-production.json) records a real authenticated 100,000-round run, scoped WebSocket observations, unchanged game statistics, and bit-identical measurement replay with two workers versus one. These are locally executed checks, not a claim that remote CI has run.

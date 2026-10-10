@@ -24,3 +24,12 @@ test('Cancelling a quota wait never sends the deferred calculation', async () =>
     expect(calls).toBe(1);
   } finally { globalThis.fetch = original; }
 });
+
+test('Validation rejection retains actionable compiler details and is never retried', async () => {
+  const original = globalThis.fetch; let calls = 0;
+  try {
+    globalThis.fetch = async () => { calls++; return Response.json({ error: 'Graph validation failed.', errors: [{ code: 'INVALID_MEASUREMENT', message: 'Measurement plan exceeds the 32768-cell storage budget.' }] }, { status: 400 }); };
+    await expect(calculationRequest('/validation', {}, new AbortController().signal, () => {})).rejects.toThrow('32768-cell storage budget');
+    expect(calls).toBe(1);
+  } finally { globalThis.fetch = original; }
+});

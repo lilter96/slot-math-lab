@@ -55,6 +55,10 @@ public sealed record SequenceSummary(long Count, long Events, long LongestEventS
 public sealed record VerificationCheck(string Id, string Status, double? Observed, double? Reference, double? Difference, string Detail);
 public sealed record AssertionSummary(string Kind, long Checked, long Violations, string Status);
 public sealed record ContributionNormalization(long PaidRounds, double? ExternalTurnover, string Basis);
+/// <summary>Accepted child exposure before exit filters and subject reduction.
+/// Each paid round and each owning episode is counted once, including open
+/// episodes in a settled round. Unfinished paid rounds publish no exposure.</summary>
+public sealed record ParentExposure(long PaidRoundsWithMatchingChildren, long? EpisodesWithMatchingChildren);
 public sealed record DistributionComparison(double TotalVariation, double CdfDistance, double? ChiSquare, int DegreesOfFreedom, bool ExpectedCountsAdequate, long UnexpectedObservations, double? PValue, string Calibration);
 public sealed record WeightedSummary(double WeightSum, double WeightSquares, double? EffectiveSampleSize, double? OrdinaryEstimate, double? SelfNormalizedEstimate, double MinWeight, double MaxWeight, NumericInterval? OrdinaryInterval, double? EventEstimate, NumericInterval? EventInterval, double? PairedRatio, NumericInterval? PairedRatioInterval);
 public sealed record MeasurementAnalysis(
@@ -65,7 +69,7 @@ public sealed record MeasurementAnalysis(
     NumericInterval? SequentialMeanInterval, double? MeanStandardError, double? RequiredSampleSize,
     WeightedSummary? Weights, SequenceSummary? Sequence, TransitionFrequency[] Transitions, bool TransitionsComplete, DistributionComparison? Comparison,
     VerificationCheck[] Checks, IReadOnlyDictionary<string, MeasurementAnalysis> Groups)
-{ public bool GroupsComplete { get; init; } = true; public AssertionSummary? Assertion { get; init; } public ContributionNormalization? Normalization { get; init; } }
+{ public bool GroupsComplete { get; init; } = true; public AssertionSummary? Assertion { get; init; } public ContributionNormalization? Normalization { get; init; } public ParentExposure? ParentExposure { get; init; } }
 
 internal sealed record MeasurementBinding<T>(Func<T, Expressions.ExprValue>? Value,
     Func<T, Expressions.ExprValue>? Filter, Func<T, Expressions.ExprValue>? Group = null,

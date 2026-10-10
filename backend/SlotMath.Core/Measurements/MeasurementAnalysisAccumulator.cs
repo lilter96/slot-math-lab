@@ -21,6 +21,8 @@ internal sealed class MeasurementAnalysisAccumulator(MeasurementOptions options)
     private double _clusterCoMoment;
     private double _coMoment, _weightSum, _weightSquares, _weightedSum, _minWeight = double.PositiveInfinity, _maxWeight;
     private long _events, _distinctParents, _entries, _exits, _unclosed, _uniqueAwards, _duplicateAwards, _assertionViolations;
+    private long _matchingPaidParents, _matchingEpisodes;
+    private bool _parentHasMatchingChild;
     private bool _supportComplete = true;
     private readonly SortedDictionary<double, long> _support = new();
     private readonly SortedDictionary<double, double> _weightSupport = new();
@@ -41,6 +43,7 @@ internal sealed class MeasurementAnalysisAccumulator(MeasurementOptions options)
         _weightedMoments = _weightedPairMoments = _weightedEventMoments = default; _weightedEvents = _weightedCoMoment = 0;
         _transitions.Clear(); _transitionsComplete = true;
         _events = _distinctParents = _entries = _exits = _unclosed = _uniqueAwards = _duplicateAwards = _assertionViolations = 0;
+        _matchingPaidParents = _matchingEpisodes = 0; _parentHasMatchingChild = false;
         _supportComplete = true; _support.Clear(); _weightSupport.Clear(); Array.Clear(_binCount); Array.Clear(_binSum); Array.Clear(_binSquares);
         Array.Clear(_tailCount); Array.Clear(_tailSum); Array.Clear(_tailSquares); _sequence?.Reset();
         foreach (var group in _groups.Values) group.Reset();
@@ -48,6 +51,7 @@ internal sealed class MeasurementAnalysisAccumulator(MeasurementOptions options)
 
     public void Parent(bool matching, long entries, long exits, long unclosed, long uniqueAwards, long duplicateAwards, long? observations = null, double sum = 0)
     { if (matching) _distinctParents++; _entries += entries; _exits += exits; _unclosed += unclosed; _uniqueAwards += uniqueAwards; _duplicateAwards += duplicateAwards;
+        if (_parentHasMatchingChild) _matchingPaidParents++;
         if (observations is { } count)
         { var dx = sum - _clusterSums.Mean; var dy = count - _clusterCounts.Mean; _clusterCoMoment += dx * dy * _clusterSums.Count / (_clusterSums.Count + 1d); _clusterSums.Add(sum); _clusterCounts.Add(count); }
         foreach (var group in _groups.Values) group.Parent(group._moments.Count > 0, 0, 0, 0, 0, 0, group._moments.Count, group._moments.Sum); }
@@ -123,6 +127,15 @@ internal sealed class MeasurementAnalysisAccumulator(MeasurementOptions options)
         if (Cohort(group) is not { } child) return;
         child._entries += entries; child._exits += exits; child._unclosed += unclosed;
     }
+    /// <summary>Called only after accepting a child, once per owning episode
+    /// for the episode counter. The round staging buffer deduplicates paid
+    /// parents; no unbounded global identity set is retained.</summary>
+    public void MatchingChild(string? group, bool firstInEpisode = false)
+    {
+        _parentHasMatchingChild = true;
+        if (firstInEpisode) _matchingEpisodes++;
+        Cohort(group)?.MatchingChild(null, firstInEpisode);
+    }
     private MeasurementAnalysisAccumulator? Cohort(string? group)
     {
         if (group is null || !_groupsComplete) return null;
@@ -131,7 +144,7 @@ internal sealed class MeasurementAnalysisAccumulator(MeasurementOptions options)
         _groups.Add(group, child = GroupAccumulator()); child.ZeroParents(_clusterSums.Count);
         return child;
     }
-    private bool HasEvidence => _moments.Count > 0 || _entries > 0 || _exits > 0 || _unclosed > 0;
+    private bool HasEvidence => _moments.Count > 0 || _entries > 0 || _exits > 0 || _unclosed > 0 || _matchingPaidParents > 0 || _matchingEpisodes > 0 || _parentHasMatchingChild;
 
     public void Merge(MeasurementAnalysisAccumulator other)
     {
@@ -155,6 +168,7 @@ internal sealed class MeasurementAnalysisAccumulator(MeasurementOptions options)
             _transitions[key] = _transitions.GetValueOrDefault(key) + count;
         }
         _events += other._events; _distinctParents += other._distinctParents; _entries += other._entries; _exits += other._exits;
+        _matchingPaidParents += other._matchingPaidParents; _matchingEpisodes += other._matchingEpisodes;
         _unclosed += other._unclosed; _uniqueAwards += other._uniqueAwards; _duplicateAwards += other._duplicateAwards;
         _assertionViolations += other._assertionViolations;
         _weightSum += other._weightSum; _weightSquares += other._weightSquares; _weightedSum += other._weightedSum;
@@ -286,6 +300,7 @@ internal sealed class MeasurementAnalysisAccumulator(MeasurementOptions options)
             _sequence?.Snapshot(ordered), TransitionSnapshot(), _transitionsComplete, comparison, checks.ToArray(), _groups.Where(p => p.Value.HasEvidence).ToDictionary(p => p.Key, p => p.Value.Snapshot(errors, ordered), StringComparer.Ordinal))
         {
             GroupsComplete = _groupsComplete, Assertion = assertion,
+            ParentExposure = new(_matchingPaidParents, options.Subject == "episode" ? _matchingEpisodes : null),
             Normalization = _clusterSums.Count == 0 ? null : new(_clusterSums.Count,
                 options.PairRole == "wager" ? _paired.Sum > 0 ? Finite(_paired.Sum) : null : Finite(_clusterSums.Count * options.Stake),
                 options.PairRole == "wager" ? "Sum of included complete paid-round wager pairs; scope defines conditional mode turnover. Unweighted proposal observations when likelihood weights are present."

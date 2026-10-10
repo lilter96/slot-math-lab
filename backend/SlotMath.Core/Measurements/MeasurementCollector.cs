@@ -111,6 +111,12 @@ internal sealed class MeasurementCollector(IReadOnlyList<MeasurementDefinition> 
             else Add(index, number, pair, weight, group, options?.Assertion == "zero" && (expressionValue is { } exact
                 ? exact.Kind == ExprType.Boolean ? exact.BoolValue : !exact.NumberNumerator.IsZero : number != 0));
             _matchingChild[index] = true;
+            if (_staging[index] is { } analysis && (subject is null || !subject.HasMatchingChild))
+            {
+                var firstInEpisode = options?.Subject == "episode" && !subject!.HasMatchingChild;
+                analysis.MatchingChild(group, firstInEpisode);
+                if (subject is not null) subject.HasMatchingChild = true;
+            }
         }
         catch (Exception ex) when (IsMeasurementError(ex))
         { if (subject is not null) { subject.Invalid = true; subject.ErrorMessage ??= ex.Message; } else Error(index, ex.Message); }
@@ -149,6 +155,7 @@ internal sealed class MeasurementCollector(IReadOnlyList<MeasurementDefinition> 
             if (binding.ExitFilter is { } exit && !Predicate(exit(state))) { _round[index].Excluded++; return; }
             Add(index, completed.First, StateCode(binding.Value!(state)), null, completed.Group);
             _matchingChild[index] = true;
+            _staging[index]!.MatchingChild(completed.Group);
         }
         catch (Exception ex) when (IsMeasurementError(ex)) { Error(index, ex.Message); }
     }
@@ -248,6 +255,7 @@ internal sealed class MeasurementCollector(IReadOnlyList<MeasurementDefinition> 
         public string? Group;
         public bool Invalid;
         public bool Excluded;
+        public bool HasMatchingChild;
         public string? ErrorMessage;
         public double? Cost;
         public void Add(double x, double? pair, double? weight, string? group, string reduction)

@@ -25,7 +25,10 @@ function normalize(value: unknown): unknown {
 
 /** Authors a second ordinary graph. No expectation is calculated in TypeScript; AST/loops do all arithmetic. */
 export function createExpectationGraph(source: Record<string, unknown>): Record<string, unknown> {
-  const template = createDogHouseGraph();
+  // Earlier saved graphs predate the explicit bonus-only completion marker.
+  // Validate either complete standard structure, including the marker's AST;
+  // arbitrary logic is never stripped from the proof's scope check.
+  const template = createDogHouseGraph((source.nodes as N[]).some(node => node.id === 'bonus-completed'));
   for (const key of ['nodes', 'edges', 'expressions', 'mechanics']) {
     if (JSON.stringify(normalize(source[key])) !== JSON.stringify(normalize(template[key]))) throw new Error('The expectation proof applies to the standard payout/loop expressions. This graph has modified logic; review its proof first.');
   }

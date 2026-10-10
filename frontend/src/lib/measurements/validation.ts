@@ -16,6 +16,12 @@ export function validAnalysis(value: unknown, expectedCount?: number, expectedMe
   for (const field of ['distinctParents', 'entries', 'exits', 'unclosedEpisodes', 'uniqueAwards', 'duplicateAwards']) if (!count(value[field])) return false;
   if (value.normalization != null && (!object(value.normalization) || !count(value.normalization.paidRounds) || value.normalization.paidRounds === 0
     || !nullable(value.normalization.externalTurnover) || value.normalization.externalTurnover != null && (value.normalization.externalTurnover as number) <= 0 || !text(value.normalization.basis))) return false;
+  if (value.parentExposure != null) {
+    const exposure = value.parentExposure;
+    if (!object(exposure) || !count(exposure.paidRoundsWithMatchingChildren)
+      || object(value.normalization) && exposure.paidRoundsWithMatchingChildren > (value.normalization.paidRounds as number)
+      || (value.subject === 'episode' ? !count(exposure.episodesWithMatchingChildren) || exposure.episodesWithMatchingChildren > (value.entries as number) : exposure.episodesWithMatchingChildren != null)) return false;
+  }
   if (value.assertion != null && (!object(value.assertion) || value.assertion.kind !== 'zero' || value.assertion.checked !== value.count
     || !count(value.assertion.violations) || value.assertion.violations > (value.count as number) || !['invalid', 'discrepancy', 'insufficient', 'noObservedViolations'].includes(String(value.assertion.status)))) return false;
   if (!object(value.moments) || !Object.values(value.moments).every(nullable) || !interval(value.meanInterval) || !interval(value.probabilityInterval) || !interval(value.sequentialMeanInterval) || !interval(value.clusteredMeanInterval)) return false;

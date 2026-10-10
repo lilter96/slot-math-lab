@@ -3,6 +3,9 @@ using System.Text.Json;
 using SlotMath.Core.Compiler;
 using SlotMath.Core.Expressions;
 using SlotMath.Core.Math;
+using SlotMath.Core.Measurements;
+using SlotMath.Core.Monad;
+using SlotMath.Core.Random;
 using SlotMath.Core.Model;
 using Dict = System.Collections.Generic.Dictionary<string, object?>;
 
@@ -113,6 +116,7 @@ public class DogHouseUiGraphTests
             bonus = round.State; bonusIndex = i; value = round.Value; break;
         }
         Assert.NotNull(bonus); Console.WriteLine($"Bonus replay: seed 42 / round {bonusIndex}");
+        Assert.Equal(true, bonus["bonusCompleted"]);
         var boards = (object?[])bonus["boards"]!; var multipliers = (object?[])bonus["multiplierHistory"]!;
         var grid = ((object?[])bonus["bonusGrid"]!).Select(x => int.Parse((string)x!)).ToArray();
         Assert.Equal(9, grid.Length); Assert.All(grid, x => Assert.InRange(x, 1, 3)); Assert.Equal(grid.Sum() + 1, boards.Length);
@@ -142,6 +146,51 @@ public class DogHouseUiGraphTests
         Assert.Equal(serial.SpinsCompleted, parallel.SpinsCompleted);
         Assert.Equal(serial.Stats.Mean, parallel.Stats.Mean); Assert.Equal(serial.Stats.Variance, parallel.Stats.Variance);
         Assert.Equal(serial.Stats.HitFrequency, parallel.Stats.HitFrequency);
+    }
+
+    [Theory][InlineData(false)][InlineData(true)]
+    public void WholeBonusEpisodeMatchesManualRevealLedgerAndPreservesLegacyPayouts(bool optimize)
+    {
+        var config = Fixture("dog-house-ui.json");
+        MeasurementDefinition[] plan = [new() { Id = "fs", Name = "Whole bonus payout", NodeId = "free-spin/snapshot-winHistory",
+            Value = new BinaryExpr { Op = BinaryOp.Div, Left = new FieldAccessExpr { Target = "state", Path = ["spinCoins"] }, Right = new ConstantExpr { Kind = ConstantKind.Integer, Value = "20" } },
+            Options = new() { Subject = "episode", EntryNodeId = "free-spins", ExitNodeId = "bonus-completed", Group = new FieldAccessExpr { Target = "state", Path = ["fsCount"] } } }];
+        var compiled = new GraphCompiler(optimizeSampling: optimize).Compile(config, plan); Assert.True(compiled.IsValid);
+        const int rounds = 2000;
+        var result = SampledInterpreter.Evaluate(compiled.Program!, new Dict(), new() { Seed = 42, MaxSpins = rounds, WinScale = (double)compiled.WinScale, Measurements = plan });
+        var payouts = config.InitialState!["linePaytable"].EnumerateArray().Select(x => int.Parse(x.GetString()!)).ToArray();
+        var lines = config.PaylineSets[0].Paylines.Select(x => x.Positions).ToArray();
+        var bonuses = 0; long freeCoins = 0;
+        // Reconstruct the sampler's first logical stream, advancing it through
+        // each round. RunSingle(seed, round) instead selects a fresh play stream.
+        var random = new SeededRandom(SampledInterpreter.DeriveStreamSeed(42, 0));
+        var traced = compiled.ReferenceProgram!.SelectMany(_ => Slot.GetState<Dict>());
+        for (var round = 0; round < rounds; round++)
+        {
+            var trace = SampledInterpreter.RunOneSpin(traced, new Dict { ["traceEnabled"] = true }, random);
+            var boards = (object?[])trace["boards"]!; var multipliers = (object?[])trace["multiplierHistory"]!;
+            var hasBonus = boards.Length > 1; Assert.Equal(hasBonus, trace["bonusCompleted"]);
+            if (!hasBonus) continue; bonuses++;
+            for (var spin = 1; spin < boards.Length; spin++)
+                freeCoins += ManualPay(((object?[])boards[spin]!).Select(x => int.Parse((string)x!)).ToArray(),
+                    ((object?[])multipliers[spin]!).Select(x => int.Parse((string)x!)).ToArray(), payouts, lines);
+        }
+        Assert.True(bonuses > 0); var metric = Assert.Single(result.Measurements); Assert.Equal(0, metric.Errors);
+        Assert.Equal(bonuses, metric.Count); Assert.Equal(freeCoins / 20d, metric.Sum!.Value, 8);
+        Assert.Equal(new ParentExposure(bonuses, bonuses), metric.Analysis!.ParentExposure);
+        Assert.Equal(bonuses, metric.Analysis.Entries); Assert.Equal(bonuses, metric.Analysis.Exits); Assert.Equal(0, metric.Analysis.UnclosedEpisodes);
+        Assert.Equal(bonuses, metric.Analysis.Groups.Values.Sum(g => g.ParentExposure!.EpisodesWithMatchingChildren!.Value));
+        var legacy = config with {
+            InitialState = config.InitialState.Where(p => p.Key != "bonusCompleted").ToDictionary(),
+            Expressions = config.Expressions!.Where(p => p.Key != "bonus-completed").ToDictionary(),
+            Nodes = config.Nodes.Where(n => n.Id != "bonus-completed").ToArray(),
+            Edges = [.. config.Edges.Where(e => e.SourceNodeId != "bonus-completed" && e.TargetNodeId != "bonus-completed"),
+                new() { Id = "legacy-exit", SourceNodeId = "free-spins", SourcePort = "exit", TargetNodeId = "credits", TargetPort = "state" }] };
+        var old = new GraphCompiler(optimizeSampling: optimize).Compile(legacy); Assert.True(old.IsValid);
+        var unmeasured = SampledInterpreter.Evaluate(old.Program!, new Dict(), new() { Seed = 42, MaxSpins = rounds, WinScale = (double)old.WinScale });
+        Assert.Equal(unmeasured.Stats.Mean, result.Stats.Mean); Assert.Equal(unmeasured.Stats.Variance, result.Stats.Variance);
+        Assert.Equal(unmeasured.Stats.Histogram.Select(b => (b.LowerBound, b.UpperBound, b.Count)),
+            result.Stats.Histogram.Select(b => (b.LowerBound, b.UpperBound, b.Count)));
     }
 
     [Fact]

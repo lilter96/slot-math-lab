@@ -32,8 +32,8 @@
     "scope": "Complete/attempted/interrupted round and scoped observation counters are distinct; cancelled round measurements are discarded transactionally."
   },
   "counts.distinct_parents": {
-    "status": "partial",
-    "scope": "Unique paid parents are implemented. Unique episode-parent identity for nested child populations is not yet exposed."
+    "status": "ready",
+    "scope": "Accepted child exposure counts each settled paid round and innermost owning episode once, independent of repeated visits, zero-valued children, exit filtering or empty reduction identities. Entry-selected cohorts, sparse worker merges, native scalar selection and known rational enumeration exposure share the explicit contract; unfinished paid rounds are discarded."
   },
   "counts.feature_entries": {
     "status": "partial",

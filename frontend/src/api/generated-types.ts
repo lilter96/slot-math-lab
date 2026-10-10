@@ -1679,6 +1679,7 @@ export type components = {
             key: string;
             knownSumPerRound: string;
             pair: null | components["schemas"]["EnumeratedJointLaw"];
+            parentExposure?: null | components["schemas"]["EnumeratedParentExposure"];
             support: components["schemas"]["EnumeratedValue"][];
             supportComplete: boolean;
             validPerRound: string;
@@ -1715,10 +1716,16 @@ export type components = {
             knownAssertionViolationsPerRound?: null | string;
             knownSumPerRound: string;
             pair?: null | components["schemas"]["EnumeratedJointLaw"];
+            parentExposure?: null | components["schemas"]["EnumeratedParentExposure"];
             support: components["schemas"]["EnumeratedValue"][];
             supportComplete: boolean;
             validPerRound: string;
             weighting?: string;
+        };
+        EnumeratedParentExposure: {
+            complete: boolean;
+            knownMatchingEpisodesPerRound: null | string;
+            knownMatchingPaidRoundsPerRound: string;
         };
         EnumeratedValue: {
             massPerPaidRound: string;
@@ -2033,6 +2040,7 @@ export type components = {
             moments: components["schemas"]["MomentSummary"];
             normalization?: null | components["schemas"]["ContributionNormalization"];
             pair: null | components["schemas"]["PairSummary"];
+            parentExposure?: null | components["schemas"]["ParentExposure"];
             probabilityInterval: null | components["schemas"]["NumericInterval"];
             quantiles: components["schemas"]["QuantileEstimate"][];
             reduction: string;
@@ -2225,6 +2233,12 @@ export type components = {
             sampleVarianceY?: null | number;
             /** Format: double */
             sumY: number;
+        };
+        ParentExposure: {
+            /** Format: int64 */
+            episodesWithMatchingChildren: null | number;
+            /** Format: int64 */
+            paidRoundsWithMatchingChildren: number;
         };
         PlayRequest: {
             config: components["schemas"]["JsonElement"];

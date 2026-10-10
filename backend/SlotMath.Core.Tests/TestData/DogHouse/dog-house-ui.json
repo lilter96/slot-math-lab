@@ -514,7 +514,8 @@
       "12",
       "13",
       "12"
-    ]
+    ],
+    "bonusCompleted": false
   },
   "expressions": {
     "trigger": {
@@ -642,6 +643,11 @@
         "kind": "Integer",
         "value": "20"
       }
+    },
+    "bonus-completed": {
+      "exprType": "constant",
+      "kind": "Boolean",
+      "value": "true"
     }
   },
   "nodes": [
@@ -844,6 +850,25 @@
     },
     {
       "nodeType": "modifyState",
+      "id": "bonus-completed",
+      "label": "Bonus completed · episode exit",
+      "outputKey": "bonusCompleted",
+      "expressionId": "bonus-completed",
+      "inputs": {
+        "state": {
+          "name": "state",
+          "type": "State"
+        }
+      },
+      "outputs": {
+        "state": {
+          "name": "state",
+          "type": "State"
+        }
+      }
+    },
+    {
+      "nodeType": "modifyState",
       "id": "credits",
       "label": "Convert line coins to total-stake credits",
       "outputKey": "winCredits",
@@ -941,9 +966,16 @@
       "targetPort": "state"
     },
     {
-      "id": "free-spins-exit-credits",
+      "id": "free-spins-exit-bonus-completed",
       "sourceNodeId": "free-spins",
       "sourcePort": "exit",
+      "targetNodeId": "bonus-completed",
+      "targetPort": "state"
+    },
+    {
+      "id": "bonus-completed-state-credits",
+      "sourceNodeId": "bonus-completed",
+      "sourcePort": "state",
       "targetNodeId": "credits",
       "targetPort": "state"
     },

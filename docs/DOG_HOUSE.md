@@ -6,7 +6,7 @@ The default constructor profile is calibrated to the requested **98% paid-round 
 
 ## Build and edit
 
-1. Open [the assembled model](http://localhost:4173/build?project=dog-house). A fresh Build also loads the 98% model automatically. The canvas immediately shows the eleven-node round graph; the full project has 107 nodes across the round graph and three editable subgraphs.
+1. Open [the assembled model](http://localhost:4173/build?project=dog-house). A fresh Build also loads the 98% model automatically. The canvas immediately shows the twelve-node round graph, including an explicit bonus-only completion point for episode metrics; the full project has 108 nodes across the round graph and three editable subgraphs.
 2. Use **Find node** to focus a node. Select a library node and **Open subgraph** to inspect the base spin, free spin or reusable line calculation. Nested edits propagate when you select **Save & return**.
 3. The inspector edits draw weights, library parameters, loop caps, output state keys and typed AST trees. **Data / AST** edits the actual reel strips, payout table and initial state. Reel tables include two wrapped cells after the circular strip.
 4. Save the graph or reload the page to verify draft persistence. **Play** executes the current complete constructor graph; **Simulate** saves that graph to the API and creates a seeded run. Results and Export use measured metrics with their provenance.

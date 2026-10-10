@@ -1,4 +1,4 @@
-import model from './model.json';
+import model from './model.json' with { type: 'json' };
 import type { ExpressionAst as Expr } from '../../lib/expressionParser';
 
 // Authoring helpers only: the result is ordinary, editable graph JSON. No spin or payout is calculated here.
@@ -85,7 +85,7 @@ function spinMechanic(free: boolean): Mechanic {
   return { name: `dog-${prefix}-spin`, description: 'Reel stops, Wild draws, board construction, twenty reusable line subgraphs and trace snapshots. All payout logic is editable graph/AST.', nodes, edges: chain(nodes), expressions };
 }
 
-export function createDogHouseGraph(): Record<string, unknown> {
+export function createDogHouseGraph(includeFeatureBoundary = true): Record<string, unknown> {
   const base = spinMechanic(false), free = spinMechanic(true), line = lineMechanic();
   const initialState: Record<string, unknown> = { targetRtpPercent: model.targetRtpPercent, calibrationWeightTotal: model.calibrationWeightTotal,
     traceEnabled: false, emptyArray: [], board: [], multipliers: [], stickyMultipliers: Array(15).fill('0'),
@@ -94,6 +94,7 @@ export function createDogHouseGraph(): Record<string, unknown> {
     linePaytable: model.paytable.flatMap(row => [row[2], row[1], row[0]]).map(String) };
   for (const [prefix, reels] of [['base', model.baseReels], ['free', model.freeReels]] as const)
     reels.forEach((reel, col) => { initialState[`${prefix}Reel${col}`] = [...reel, ...reel.slice(0, 2)].map(String); });
+  if (includeFeatureBoundary) initialState.bonusCompleted = false;
   const expressions: Record<string, Expr> = {
     trigger: cmp('Gte', { exprType: 'aggregate', func: 'Count', stateKey: 'board', itemName: 'cell', itemType: 'String', predicate: cmp('Eq', field('cell'), str('1')) }, num(3)),
     scatter: bin('Add', field('totalCoins'), num(100)),
@@ -101,6 +102,7 @@ export function createDogHouseGraph(): Record<string, unknown> {
     'bonus-grid': call('append', field('bonusGrid'), field('bonusCell')),
     'fs-stop': cmp('Gte', field('__iter_free-spins__'), field('fsCount')),
     credits: bin('Div', field('totalCoins'), num(20)),
+    ...(includeFeatureBoundary ? { 'bonus-completed': { exprType: 'constant', kind: 'Boolean', value: 'true' } as Expr } : {}),
   };
   const nodes: Node[] = [library('base-spin', base.name, 'Base game · 5 reels / 20 lines'),
     { nodeType: 'branch', id: 'bonus-trigger', label: '3 paws trigger Free Spins', conditionId: 'trigger', inputs: ports,
@@ -114,6 +116,7 @@ export function createDogHouseGraph(): Record<string, unknown> {
     { nodeType: 'loop', id: 'free-spins', label: '9–27 Free Spins · Sticky Wilds', maxIterations: 27, stopConditionId: 'fs-stop', inputs: ports,
       outputs: { body: { name: 'body', type: 'State' }, exit: { name: 'exit', type: 'State' } } },
     library('free-spin', free.name, 'Free game · separate reels / locked multipliers'),
+    ...(includeFeatureBoundary ? [modify('bonus-completed', 'Bonus completed · episode exit', 'bonusCompleted')] : []),
     modify('credits', 'Convert line coins to total-stake credits', 'winCredits'),
     { nodeType: 'metricsSink', id: 'round-metrics', label: 'Round payout & RTP', winStateKey: 'winCredits', winCap: model.roundWinCap, inputs: ports, outputs: {} }];
   const edge = (sourceNodeId: string, sourcePort: string, targetNodeId: string): Edge => ({ id: `${sourceNodeId}-${sourcePort}-${targetNodeId}`, sourceNodeId, sourcePort, targetNodeId, targetPort: 'state' });
@@ -121,7 +124,8 @@ export function createDogHouseGraph(): Record<string, unknown> {
     initialState, expressions, nodes, edges: [edge('base-spin', 'state', 'bonus-trigger'), edge('bonus-trigger', 'false', 'credits'), edge('bonus-trigger', 'true', 'scatter'),
       edge('scatter', 'state', 'bonus-grid-loop'), edge('bonus-grid-loop', 'body', 'bonus-cell'), edge('bonus-cell', 'state', 'bonus-count'),
       edge('bonus-count', 'state', 'bonus-grid'), edge('bonus-grid-loop', 'exit', 'free-spins'), edge('free-spins', 'body', 'free-spin'),
-      edge('free-spins', 'exit', 'credits'), edge('credits', 'state', 'round-metrics')],
+      ...(includeFeatureBoundary ? [edge('free-spins', 'exit', 'bonus-completed'), edge('bonus-completed', 'state', 'credits')] : [edge('free-spins', 'exit', 'credits')]),
+      edge('credits', 'state', 'round-metrics')],
     symbols: model.paytable.map((_, i) => ({ id: String(i + 1), name: ['Bonus', 'Wild', 'Rottweiler', 'Shih Tzu', 'Pug', 'Dachshund', 'Collar', 'Bone', 'A', 'K', 'Q', 'J', '10'][i], kind: i === 0 ? 'Bonus' : i === 1 ? 'Wild' : 'Standard' })),
     paytables: [{ id: 'dog-paytable', entries: model.paytable.slice(2).map((row, i) => ({ symbolId: String(i + 3), counts: [3, 4, 5], payouts: [row[2], row[1], row[0]].map(coins => String(coins / 20)) })) }],
     paylineSets: [{ id: 'dog-lines', paylines: model.paylines.map(positions => ({ positions })) }],
