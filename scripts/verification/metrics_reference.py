@@ -147,7 +147,12 @@ def references():
     assert 0 < zero_upper < .00003
     assert one_event_trials == 29957322
 
+    family_alpha = F(1, 40) + F(1, 40)
+    assert family_alpha == F(1, 20)
+    assert F(1, 20) + F(1, 20) > F(1, 20)  # two unadjusted 95% intervals exceed a 95% family budget
+
     return {
+        "predeclaredFamily": {"marginalErrors": ["1/40", "1/40"], "familyErrorUpper": str(family_alpha), "familyCoverageLower": str(1 - family_alpha)},
         "matchingParents": {"acceptedChildren": len(accepted), "paidRounds": len(matching_rounds),
                             "owningEpisodes": len(matching_episodes), "stickyPaidRounds": 1, "stickyEpisodes": 2},
         "fractionalConstructor": {"payout": str(fractional_payout), "trackedMagnitude": str(abs(fractions[0]))},

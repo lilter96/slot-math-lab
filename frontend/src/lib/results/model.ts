@@ -41,6 +41,8 @@ export function inspectRun(run: RunSnapshot) {
     }
   }
   if (result && p) {
+    if (run.status === 'completed' && (result.verificationProfileHash ?? null) !== (run.verificationProfileHash ?? null))
+      issues.push('Persisted verification profile identity differs from its predeclared run.');
     if (run.measurements?.length && (run.status === 'completed' || result.measurements !== undefined)) {
       if (result.measurementHash !== run.measurementHash || !Array.isArray(result.measurements)
         || result.measurements.length !== (p.measurements?.length ?? 0) || result.measurements.some((m, i) => !m ||

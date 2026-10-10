@@ -1798,15 +1798,23 @@
     },
     {
       "id": "inference.sufficiency",
-      "status": "partial",
-      "scope": "Typed invalid/insufficient/discrepancy/precision checks and sample planning exist. A predeclared acceptance profile combining all critical measurements still needs a native workflow.",
+      "status": "ready",
+      "scope": "Predeclared bounded profiles combine 1\u201332 required global filtered-measurement integrity, exact residual, reference-support and unweighted reference-precision checks. Shared marginal error allocation is validated before launch; complete final evidence, minimum matching counts, pinned hashes, durable replay and native authoring are required. Approximate intervals retain their assumptions; logical checks cover observed cases. Arbitrary weighted proposal certification and post hoc cohort selection are excluded.",
       "implementation": [
-        "backend/SlotMath.Core/Measurements/StatisticalInference.cs",
-        "backend/SlotMath.Core/Measurements/SamplePlanning.cs"
+        "backend/SlotMath.Core/Measurements/VerificationProfile.cs",
+        "backend/SlotMath.Api/Features/Runs/RunVerification.cs",
+        "frontend/src/components/simulate/VerificationProfileEditor.tsx",
+        "frontend/src/components/simulate/VerificationProfile.tsx",
+        "backend/SlotMath.Core/Measurements/ReferenceSemantics.cs",
+        "frontend/src/lib/results/evidence.ts"
       ],
       "evidence": [
-        "backend/SlotMath.Core.Tests/Math/AdvancedMeasurementTests.cs",
-        "backend/SlotMath.Core.Tests/Math/FiniteModelAnalysisTests.cs"
+        "backend/SlotMath.Core.Tests/Math/VerificationProfileTests.cs",
+        "backend/SlotMath.Api.Tests/VerificationProfileApiTests.cs",
+        "frontend/e2e/z-verification-profile.spec.ts",
+        "scripts/verification/verification-profile-production.mjs",
+        "frontend/e2e/z-verification-provenance.spec.ts",
+        "frontend/unit/simulation-evidence.spec.ts"
       ]
     },
     {

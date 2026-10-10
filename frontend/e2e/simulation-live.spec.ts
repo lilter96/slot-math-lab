@@ -83,6 +83,45 @@ test('Fast completion renders chart and distribution and restores them after nav
   await expect(page.locator('.run-status')).toHaveText('completed');
 });
 
+test('Evidence export recovers a quota rejection and withholds files on errors, wrong identity and cancelled reads', async ({ page }) => {
+  test.setTimeout(180000);
+  await page.goto('/build'); await page.getByRole('button', { name: 'Load coin example' }).click();
+  await page.getByRole('tab', { name: 'Simulate', exact: true }).click(); await page.getByLabel('Simulation spins').fill('100');
+  const created = page.waitForResponse(r => r.url().endsWith('/api/runs') && r.request().method() === 'POST' && r.ok(), { timeout: 70000 });
+  await page.getByRole('button', { name: /start run/i }).click(); const run = await (await created).json();
+  await expect(page.locator('.run-status')).toHaveText('completed', { timeout: 70000 });
+  const stored = await (await getWithQuota(page.request, `/api/runs/${run.id}/evidence`)).json();
+  const downloads: string[] = []; page.on('download', file => downloads.push(file.suggestedFilename()));
+  let mode = '503', calls = 0;
+  await page.route(`**/api/runs/${run.id}/evidence`, async route => {
+    calls++;
+    if (mode === '503') return route.fulfill({ status: 503, contentType: 'application/json', body: '{"error":"Archive temporarily unavailable."}' });
+    if (mode === 'wait' || mode === 'quota' && calls === 1) return route.fulfill({ status: 429, headers: { 'Retry-After': mode === 'wait' ? '60' : '1' }, body: '{}' });
+    const value = structuredClone(stored);
+    if (mode === 'wrong') value.run.id = value.run.progress.runId = 'a-different-run';
+    return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(value) });
+  });
+  await page.getByRole('button', { name: 'Export evidence' }).click();
+  await expect(page.getByRole('alert')).toContainText('Archive temporarily unavailable'); expect(downloads).toHaveLength(0); expect(calls).toBe(1);
+  mode = 'wrong'; calls = 0; await page.getByRole('button', { name: 'Retry export', exact: true }).click();
+  await expect(page.getByRole('alert')).toContainText('different run'); expect(downloads).toHaveLength(0);
+  mode = 'wait'; calls = 0; await page.getByRole('button', { name: 'Retry export', exact: true }).click();
+  await expect(page.getByRole('status')).toContainText('retrying evidence in 60s');
+  await expect(page.getByRole('button', { name: 'Preparing evidence…', exact: true })).toBeDisabled();
+  await page.getByRole('button', { name: 'Cancel export', exact: true }).click(); expect(downloads).toHaveLength(0); expect(calls).toBe(1);
+  mode = 'quota'; calls = 0; const download = page.waitForEvent('download');
+  await page.getByRole('button', { name: 'Export evidence' }).click();
+  const exported = JSON.parse(await readFile((await (await download).path())!, 'utf8'));
+  expect(calls).toBe(2); expect(downloads).toHaveLength(1); expect(exported.schemaVersion).toBe('slotmath.simulation.v2');
+  expect(exported.pinnedGraph.inputVerified).toBe(true); expect(exported.run.id).toBe(run.id);
+  expect(exported.run.progress).toEqual(exported.progress); expect(exported.progress).toEqual(stored.run.progress);
+  expect(exported.pinnedGraph.computedConfigHash).toBe(run.configHash);
+  mode = 'wait'; calls = 0; await page.getByRole('button', { name: 'Export evidence' }).click();
+  await expect(page.getByRole('status')).toContainText('retrying evidence in 60s');
+  await page.getByRole('tab', { name: 'Build', exact: true }).click();
+  expect(downloads).toHaveLength(1); expect(calls).toBe(1);
+});
+
 test('Mobile simulation dashboard fits viewport and exposes controls and charts', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto('/build?project=dog-house');

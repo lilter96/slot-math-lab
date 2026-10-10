@@ -45,6 +45,8 @@ public class RunJobService(InMemoryConfigStore configStore, InMemoryRunStore run
                 ?? throw new InvalidOperationException("Pinned config version not found.");
             if (run.MeasurementHash != (run.Measurements.Length > 0 ? MeasurementHash.Compute(run.Measurements) : null))
                 throw new InvalidOperationException("Pinned measurement plan fingerprint mismatch.");
+            if (run.VerificationProfileHash != (run.VerificationProfile is null ? null : SlotMath.Core.Measurements.ProfileVerification.Hash(run.VerificationProfile)))
+                throw new InvalidOperationException("Pinned verification profile fingerprint mismatch.");
             var compiled = compiledGraphs.Compile(entry.Config, run.Measurements);
             if (!compiled.IsValid) throw new InvalidOperationException(string.Join("; ", compiled.Errors.Select(e => $"{e.Code}: {e.Message}")));
             operation.Token.ThrowIfCancellationRequested();
@@ -71,6 +73,7 @@ public class RunJobService(InMemoryConfigStore configStore, InMemoryRunStore run
                 degreeOfParallelism = run.DegreeOfParallelism, streamScheme = run.Execution?.StreamScheme ?? "splitmix64-chunk-65536",
                 execution = run.Execution, executionSummary = sampled.Execution,
                 runtimeProvenance = run.RuntimeProvenance,
+                verificationProfile = run.VerificationProfile, verificationProfileHash = run.VerificationProfileHash,
                 measurementHash = run.MeasurementHash, measurements = sampled.Measurements,
                 samplingEngine = sampled.Execution?.SamplingEngine ?? compiled.SamplingEngine,
                 rtp = report.Rtp.DisplayValue, runningRtp = report.Rtp.DisplayValue,

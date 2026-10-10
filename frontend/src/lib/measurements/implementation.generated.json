@@ -572,8 +572,8 @@
     "scope": "Explicit independence/bounds/cost assumptions and valid subjects; family allocation and repeated-look semantics are pinned."
   },
   "inference.sufficiency": {
-    "status": "partial",
-    "scope": "Typed invalid/insufficient/discrepancy/precision checks and sample planning exist. A predeclared acceptance profile combining all critical measurements still needs a native workflow."
+    "status": "ready",
+    "scope": "Predeclared bounded profiles combine 1\u201332 required global filtered-measurement integrity, exact residual, reference-support and unweighted reference-precision checks. Shared marginal error allocation is validated before launch; complete final evidence, minimum matching counts, pinned hashes, durable replay and native authoring are required. Approximate intervals retain their assumptions; logical checks cover observed cases. Arbitrary weighted proposal certification and post hoc cohort selection are excluded."
   },
   "provenance.seed_replay": {
     "status": "ready",

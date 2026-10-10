@@ -73,6 +73,8 @@ test('Catalogue recipe becomes a visual Boolean AST and fixed-horizon session ev
   expect(summary.completedSessions).toBe(100); expect(summary.attemptedRounds).toBe(1000); expect(summary.interruptedRounds).toBe(0);
   expect(summary.monetaryAccounting).toBe('decimal-roundtrip-v1');
   expect(metrics['session.ruin'].mean).toBe(1); expect(metrics['session.ruinTime'].mean).toBe(3); expect(metrics['session.featureWait'].mean).toBe(1);
+  expect(metrics['session.ruin'].analysis.sequentialMeanInterval).not.toBeNull();
+  expect(metrics['session.featureSeen'].analysis.sequentialMeanInterval).not.toBeNull();
   expect(evidence.run.runtimeProvenance.coreBinarySha256).toMatch(/^[a-f0-9]{64}$/);
   await expect(page.locator('.simulation-heading')).toContainText('independent sessions of 10 paid rounds');
   await page.locator('.loop-termination-evidence > summary').click(); await expect(page.getByRole('row', { name: /fs 1,000 0 1,000/ })).toBeVisible();

@@ -14,7 +14,7 @@ namespace SlotMath.Api.Features.Runs;
 /// POST /runs + GET /runs/{id} + DELETE /runs/{id} — heavy evaluation runs
 /// backed by Hangfire with progress streamed via SignalR (G17).
 /// </summary>
-public sealed record MeasurementSchemaRequest(JsonElement Config, MeasurementInput[]? Measurements = null);
+public sealed record MeasurementSchemaRequest(JsonElement Config, MeasurementInput[]? Measurements = null, SlotMath.Core.Measurements.VerificationProfile? VerificationProfile = null);
 
 public static class RunsEndpoints
 {
@@ -28,6 +28,7 @@ public static class RunsEndpoints
         MeasurementReplay.Map(group, configStore, runStore);
         MeasurementCalibration.Map(group, runStore);
         MeasurementAccounting.Map(group, runStore);
+        RunVerification.Map(group, runStore);
         DiagnosticReferences.Map(group, runStore);
         group.MapPost("/measurements/reference/planning", (SlotMath.Core.Measurements.SamplePlanRequest request) =>
         {
@@ -91,7 +92,9 @@ public static class RunsEndpoints
             try
             {
                 if (request.Measurements?.Any(m => m is null) == true) return Results.BadRequest(new { error = "Measurement entries cannot be null." });
-                var compiled = compiledGraphs.Compile(SlotMath.Api.Features.Configs.ConfigsEndpoints.DeserializeConfig(request.Config), request.Measurements?.Select(m => m.ToCore()).ToArray());
+                var plan = request.Measurements?.Select(m => m.ToCore()).ToArray() ?? [];
+                if (request.VerificationProfile is { } profile) SlotMath.Core.Measurements.ProfileVerification.Validate(profile, plan);
+                var compiled = compiledGraphs.Compile(SlotMath.Api.Features.Configs.ConfigsEndpoints.DeserializeConfig(request.Config), plan);
                 return compiled.IsValid ? Results.Ok(compiled.MeasurementSchema) : Results.BadRequest(new { error = "Graph validation failed.", errors = compiled.Errors });
             }
             catch (Exception ex) when (ex is JsonException or ArgumentException or FormatException or InvalidOperationException)
@@ -123,6 +126,7 @@ public static class RunsEndpoints
             { return Results.BadRequest(new { error = "Invalid measurement AST: " + ex.Message }); }
             try
             {
+                if (request.VerificationProfile is { } profile) SlotMath.Core.Measurements.ProfileVerification.Validate(profile, measurements);
                 request.Execution?.Validate(request.SampleSize ?? 100_000, request.DegreeOfParallelism);
                 if (request.Execution?.FeatureMetricId is { } featureId)
                 {
@@ -147,7 +151,7 @@ public static class RunsEndpoints
             }
             var run = configStore.UseVersion(request.ConfigId, configEntry.Version, pinned =>
                 runStore.Create(request.ConfigId, request.Seed, pinned.Version, request.SampleSize ?? 100_000,
-                    CanonicalHash.Compute(pinned.Config), request.DegreeOfParallelism, measurements, request.Execution));
+                    CanonicalHash.Compute(pinned.Config), request.DegreeOfParallelism, measurements, request.Execution, request.VerificationProfile));
             if (run is null) return Results.NotFound(new { error = "Config was removed before the run could be pinned." });
             var sampleSize = request.SampleSize ?? 100_000;
             var batchSize = request.ProgressBatchSize ?? Math.Max(100, sampleSize / 100);

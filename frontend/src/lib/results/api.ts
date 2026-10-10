@@ -4,6 +4,8 @@ import { snapshotDecision, validSnapshot, terminal, type RunSnapshot } from '../
 import { createExpectationGraph } from '../../games/doghouse/expectationGraph';
 import type { GraphAnalysis, GraphRound } from '../../games/doghouse/api';
 import type { Reference, RunEvidence, RunPage } from './model';
+import { validateRunEvidence } from './evidence';
+import { waitForRetry } from '../measurements/requests';
 
 export async function resultsRequest<T>(path: string, init?: RequestInit, signal?: AbortSignal, timeout = 10000): Promise<T> {
   const response = await fetch('/api/' + path, { ...init, signal: AbortSignal.any([...(signal ? [signal] : []), AbortSignal.timeout(timeout)]) });
@@ -30,10 +32,22 @@ export function useRunEvidence(id: string | undefined) {
   return useQuery({ queryKey: ['run-evidence', id], enabled: !!id, staleTime: Infinity, retry, retryDelay,
     queryFn: async ({ signal }) => {
       const data = await resultsRequest<RunEvidence>(`runs/${encodeURIComponent(id!)}/evidence`, undefined, signal);
-      if (!validSnapshot(data.run) || !data.model || typeof data.model.name !== 'string') throw new Error('The server returned an invalid evidence record.');
-      if (data.inputVerified && (!data.pinnedConfig || data.computedConfigHash !== data.run.configHash || !data.model.modelHash)) throw new Error('Pinned input verification is inconsistent.');
-      return data;
+      return validateRunEvidence(data, id!);
     } });
+}
+export async function readSimulationEvidence(id: string, signal: AbortSignal, status: (message: string) => void): Promise<RunEvidence> {
+  for (let attempt = 0; ; attempt++) {
+    signal.throwIfAborted();
+    status(attempt ? 'Retrying the rejected evidence request…' : 'Fetching the authoritative run and pinned model…');
+    try {
+      return validateRunEvidence(await resultsRequest<unknown>(`runs/${encodeURIComponent(id)}/evidence`, undefined, signal), id);
+    } catch (error) {
+      if (!(error instanceof HttpFailure) || error.status !== 429 || attempt >= 2 || error.retryAfterMs > 60000) throw error;
+      const delay = Math.max(1000, error.retryAfterMs);
+      status(`Server quota · retrying evidence in ${Math.ceil(delay / 1000)}s. Cancel to stop waiting.`);
+      await waitForRetry(delay, signal);
+    }
+  }
 }
 export function useResultSnapshot(id: string | undefined, monitored: RunSnapshot | null) {
   return useQuery({ queryKey: ['result-snapshot', id], enabled: !!id && monitored?.id !== id, staleTime: 1000, retry, retryDelay,

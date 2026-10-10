@@ -6,6 +6,7 @@ import { useRunEvidence } from '../../lib/results/api';
 import { calculationRequest } from '../../lib/measurements/requests';
 import { downloadReport } from '../../lib/results/export';
 import type { MeasurementDefinition } from '../../lib/measurements/model';
+import { matchesEvidenceSource } from '../../lib/results/evidence';
 
 const labels: Record<string, string> = { noObservedViolations: 'No observed violations', discrepancy: 'Reconciliation discrepancy', invalid: 'Evidence invalid', insufficient: 'Insufficient observations', numericalResolution: 'Numeric resolution insufficient' };
 const numeric = (value: number | null | undefined) => value == null ? '—' : value.toLocaleString(undefined, { maximumSignificantDigits: 8 });
@@ -30,7 +31,7 @@ export function ComponentAccounting({ run }: { run: RunSnapshot }) {
   const saved = retained?.output as AccountingEvidence | undefined;
   const calculated = result?.report;
   const output = calculated ?? saved;
-  const verified = output?.runId === run.id && output.source?.configHash === run.configHash && output.source?.measurementHash === run.measurementHash && output.source?.sequence === run.sequence && output.source?.paidRounds === run.progress?.sampleCount;
+  const verified = output?.runId === run.id && matchesEvidenceSource(output.source, run);
   const change = (fn: () => void) => { controller.current?.abort(); fn(); setResult(null); setError(''); };
   if (!plan.length) return null;
   return <details className="simulation-card component-accounting" id="component-accounting"><summary>Component accounting · reconcile means, all covariances and exact payout identities</summary>
@@ -48,7 +49,8 @@ export function ComponentAccounting({ run }: { run: RunSnapshot }) {
       try {
         const body = await calculationRequest<RetainedAccounting>(`/api/runs/${encodeURIComponent(run.id)}/measurements/accounting`, input, attempt.signal, setStatus);
         attempt.signal.throwIfAborted();
-        if (body.runId !== run.id || body.report?.runId !== run.id || body.report.source?.configHash !== run.configHash || body.report.source?.measurementHash !== run.measurementHash || body.report.source?.sequence !== run.sequence || body.report.source?.paidRounds !== run.progress?.sampleCount || !labels[body.report.report?.status]) throw new Error('Accounting evidence does not match this pinned completed run.');
+        if (body.runId !== run.id || body.report?.runId !== run.id || !matchesEvidenceSource(body.report.source, run)
+          || !labels[body.report.report?.status]) throw new Error('Accounting evidence does not match this pinned completed run and its producer.');
         setResult(body); void client.invalidateQueries({ queryKey: ['run-evidence', run.id] });
       } catch (err) { if (!attempt.signal.aborted) setError(err instanceof Error ? err.message : 'Accounting calculation failed.'); }
       finally { if (controller.current === attempt) setBusy(false); }

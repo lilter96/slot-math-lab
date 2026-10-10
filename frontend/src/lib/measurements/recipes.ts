@@ -2,14 +2,14 @@ import catalogue from './catalog.generated.json' with { type: 'json' };
 import coverage from './implementation.generated.json' with { type: 'json' };
 import { defaultOptions, type MeasurementOptions } from './analysis';
 import { newMetric, type MetricDraft, type Reducer } from './model';
-export type RecipeAction = 'measurement' | 'accounting' | 'reference' | 'execution' | 'results' | 'planning';
+export type RecipeAction = 'measurement' | 'accounting' | 'profile' | 'reference' | 'execution' | 'results' | 'planning';
 export interface MetricRecipe { id: string; name: string; definition: string; unit: string; priority: string; family: string; familyName: string; population: string; parameters: string[]; action: RecipeAction; prerequisite: string; availability: 'ready' | 'authored' | 'partial'; implementationScope: string }
 const references = new Set(['comparison.exact_support', 'return.theoretical', 'return.house_edge', 'bounds.pruned_mass', 'bounds.mean', 'bounds.event', 'bounds.second_variance', 'states.absorption', 'states.expected_duration', 'states.expected_reward', 'states.nontermination', 'states.long_run_return']);
 const results = new Set(['counts.attempted_rounds', 'counts.interrupted_rounds', 'comparison.rtp_delta', 'comparison.probability_delta', 'comparison.component_delta', 'comparison.sensitivity', 'bounds.reachable_max', 'bounds.loop_termination', 'provenance.seed_replay', 'provenance.parallel', 'provenance.engine', 'provenance.serialization', 'provenance.recovery', 'provenance.identity', 'provenance.witness']);
 const reviewed = coverage as Record<string, { status: MetricRecipe['availability']; scope: string }>;
 export const metricRecipes: MetricRecipe[] = catalogue.families.flatMap(f => f.metrics.map(m => ({ id: m[0], name: m[1], definition: m[2], unit: m[3], priority: m[5], availability: reviewed[m[0]].status, implementationScope: reviewed[m[0]].scope,
   family: f.id, familyName: f.name, population: f.subject, parameters: f.parameters,
-  action: m[0] === 'dependence.variance_decomposition' ? 'accounting' as const : m[0] === 'inference.sample_plan' ? 'planning' as const : references.has(m[0]) ? 'reference' as const : results.has(m[0]) ? 'results' as const : f.id === 'experience' || m[0] === 'states.long_run_return' ? 'execution' as const : 'measurement' as const,
+  action: m[0] === 'inference.sufficiency' ? 'profile' as const : m[0] === 'dependence.variance_decomposition' ? 'accounting' as const : m[0] === 'inference.sample_plan' ? 'planning' as const : references.has(m[0]) ? 'reference' as const : results.has(m[0]) ? 'results' as const : f.id === 'experience' || m[0] === 'states.long_run_return' ? 'execution' as const : 'measurement' as const,
   prerequisite: references.has(m[0]) ? 'Supply an independent finite payout law or transient transition/reward model. Exact input probabilities and mode cost are required.'
     : results.has(m[0]) ? 'Use pinned saved runs and independent comparison evidence. A sampled maximum, matching replay or green statistical check alone cannot prove model correctness.'
     : f.id === 'experience' ? 'Choose independent sessions, their horizon, initial bankroll, cost and retained state. First-passage and censored populations must remain distinct.'

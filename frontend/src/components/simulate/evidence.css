@@ -76,3 +76,13 @@
 .component-accounting [data-accounting-status=numericalResolution] h3, .component-accounting [data-accounting-status=insufficient] h3 { color: var(--epsilon); }
 @media (max-width: 700px) { .component-accounting { padding: 12px; } .component-accounting .tracked-statistics { grid-template-columns: 1fr 1fr; } }
 .component-accounting .results-table th:first-child { min-width: 100px; overflow-wrap: normal; }
+
+.verification-criterion { display: grid; gap: 12px; min-width: 0; margin-bottom: 16px; padding: 16px; border: 1px solid var(--color-border, #2c3440); border-radius: 8px; }
+.verification-profile { margin-top: 16px; min-width: 0; }
+.verification-profile > summary { cursor: pointer; font-weight: 600; overflow-wrap: anywhere; }
+.verification-decisions { list-style: none; padding: 0; display: grid; gap: 12px; }
+.verification-decisions li { border-left: 3px solid var(--color-border, #2c3440); padding: 8px 12px; overflow-wrap: anywhere; }
+.verification-decisions strong, .verification-decisions span { display: block; }
+[data-profile-status="criteriaMet"] h3 { color: #40d6a0; }
+[data-profile-status="discrepancy"] h3, [data-profile-status="invalid"] h3 { color: #ff8593; }
+[data-profile-status="insufficient"] h3 { color: #eebc63; }

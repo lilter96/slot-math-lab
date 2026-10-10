@@ -15,6 +15,7 @@ import { graphRequest, type GraphRound } from '../games/doghouse/api';
 
 import { samePlan, definition, type MeasurementDefinition } from '../lib/measurements/model';
 import { useMeasurementWorkspace } from '../lib/measurements/store';
+import { sameProfile, validateProfile, type VerificationProfile } from '../lib/measurements/profile';
 
 export type LivePoint = MeasurementTrendPoint;
 interface Session {
@@ -163,19 +164,21 @@ export async function startSimulation(seed: number, samples: number, workers: nu
     const config = rootProject();
     if (!config) throw new Error('Build a valid model before running.');
     const measurements = useMeasurementWorkspace.getState().metrics.map(definition);
+    const verificationProfile = useMeasurementWorkspace.getState().verificationProfile;
+    if (verificationProfile) validateProfile(verificationProfile, measurements);
     if (execution) validateExecution(execution, samples, workers);
     const target = Number((config.initialState as Record<string, unknown>)?.targetRtpPercent) / 100;
     const history = useSession.getState().history;
     useSession.setState({ starting: true, error: '', launchNote: '' });
     log('Saving and pinning the full constructor graph');
     const saved = await launchRequest<{ id: string }>('/api/configs', { config }, controller.signal);
-    const run = await launchRequest<RunSnapshot>('/api/runs', { configId: saved.id, seed, sampleSize: samples, degreeOfParallelism: workers, progressBatchSize: 1000, measurements, execution }, controller.signal);
+    const run = await launchRequest<RunSnapshot>('/api/runs', { configId: saved.id, seed, sampleSize: samples, degreeOfParallelism: workers, progressBatchSize: 1000, measurements, execution, verificationProfile }, controller.signal);
     if (controller.signal.aborted) {
       if (validSnapshot(run)) await request(`/api/runs/${encodeURIComponent(run.id)}`, { method: 'DELETE' }).catch(() => {});
       controller.signal.throwIfAborted();
     }
     if (!validSnapshot(run) || run.configId !== saved.id || run.seed !== seed || run.degreeOfParallelism !== workers || run.progress?.totalSamples !== samples
-      || !samePlan(measurements, run.measurements ?? []) || !sameExecution(execution, run.execution)) {
+      || !samePlan(measurements, run.measurements ?? []) || !sameExecution(execution, run.execution) || !sameProfile(verificationProfile, run.verificationProfile)) {
       if (validSnapshot(run)) await request(`/api/runs/${encodeURIComponent(run.id)}`, { method: 'DELETE' }).catch(() => {});
       throw new Error('The server did not pin the requested measurement plan and run inputs.');
     }
@@ -256,7 +259,7 @@ export function useSimulationConnection() {
 
 /** Replay/extend an immutable saved version, without saving the editor or repinning latest. */
 export async function startPinnedSimulation(input: { configId: string; configVersion: number; configHash: string; model: string;
-  target: number | null; seed: number; samples: number; workers: number; reference?: number | null; referenceNote?: string; measurements?: MeasurementDefinition[]; measurementHash?: string | null; execution?: import('../lib/measurements/execution').ExecutionOptions | null }) {
+  target: number | null; seed: number; samples: number; workers: number; reference?: number | null; referenceNote?: string; measurements?: MeasurementDefinition[]; measurementHash?: string | null; verificationProfile?: VerificationProfile | null; verificationProfileHash?: string | null; execution?: import('../lib/measurements/execution').ExecutionOptions | null }) {
   const state = useSession.getState();
   if (state.starting || state.run && !terminal(state.run.status) && state.connection !== 'unavailable') throw new Error('Another run is active. Finish or cancel it in Simulate before launching a new run.');
   if (!Number.isSafeInteger(input.seed) || !Number.isInteger(input.samples) || input.samples < 1 || input.samples > 10_000_000
@@ -266,13 +269,13 @@ export async function startPinnedSimulation(input: { configId: string; configVer
   useSession.setState({ starting: true, error: '', launchNote: '' });
   try {
     const run = await launchRequest<RunSnapshot>('/api/runs', { configId: input.configId, configVersion: input.configVersion, seed: input.seed, sampleSize: input.samples,
-        degreeOfParallelism: input.workers, progressBatchSize: 1000, measurements: input.measurements ?? [], execution: input.execution }, controller.signal);
+        degreeOfParallelism: input.workers, progressBatchSize: 1000, measurements: input.measurements ?? [], execution: input.execution, verificationProfile: input.verificationProfile }, controller.signal);
     if (controller.signal.aborted) {
       if (validSnapshot(run)) await request(`/api/runs/${encodeURIComponent(run.id)}`, { method: 'DELETE' }).catch(() => {});
       controller.signal.throwIfAborted();
     }
     if (!validSnapshot(run) || run.configId !== input.configId || run.configHash !== input.configHash || run.configVersion !== input.configVersion
-      || !sameExecution(input.execution, run.execution) || (run.measurementHash ?? null) !== (input.measurementHash ?? null) || run.seed !== input.seed || run.degreeOfParallelism !== input.workers || run.progress?.totalSamples !== input.samples) {
+      || !sameExecution(input.execution, run.execution) || !sameProfile(input.verificationProfile, run.verificationProfile) || (run.verificationProfileHash ?? null) !== (input.verificationProfileHash ?? null) || (run.measurementHash ?? null) !== (input.measurementHash ?? null) || run.seed !== input.seed || run.degreeOfParallelism !== input.workers || run.progress?.totalSamples !== input.samples) {
       if (validSnapshot(run)) await request(`/api/runs/${encodeURIComponent(run.id)}`, { method: 'DELETE' }).catch(() => {});
       throw new Error('The server did not pin the requested model, seed and round budget. The earlier run is retained.');
     }

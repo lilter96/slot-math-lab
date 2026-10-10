@@ -1,6 +1,6 @@
 import { HttpFailure } from '../realtime/RunConnection';
 
-function wait(delay: number, signal: AbortSignal): Promise<void> {
+export function waitForRetry(delay: number, signal: AbortSignal): Promise<void> {
   signal.throwIfAborted();
   return new Promise((resolve, reject) => {
     const abort = () => { clearTimeout(timer); reject(signal.reason); };
@@ -32,6 +32,6 @@ export async function calculationRequest<T>(path: string, input: unknown, signal
       throw new HttpFailure(detail ? detail + (validation.length > 8 ? `; ${validation.length - 8} more validation errors.` : '') : data.error ?? data.title ?? (response.status === 429 ? 'Calculation quota is busy. Try again shortly.' : `HTTP ${response.status}`), response.status, delay);
     }
     status(`Server quota · retrying the rejected calculation in ${Math.ceil(delay / 1000)}s. Cancel to stop waiting.`);
-    await wait(delay, signal);
+    await waitForRetry(delay, signal);
   }
 }

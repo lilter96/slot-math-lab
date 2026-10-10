@@ -1,11 +1,14 @@
-import { test, expect, type Page, type WebSocketRoute, type APIRequestContext } from './fixtures';
+import { test, expect, getWithQuota, cancelOwnedRun, type Page, type WebSocketRoute, type APIRequestContext } from './fixtures';
 
 type Frame = { type?: number; target?: string; arguments?: Record<string, unknown>[] };
 async function launch(page: Page) {
+  // Launch can wait through an explicit 60s production quota rejection. Socket
+  // recovery/heartbeat deadlines below remain independent and unchanged.
+  test.setTimeout(Math.max(test.info().timeout, 180000));
   await page.goto('/build?project=dog-house');
   await page.getByRole('tab', { name: 'Simulate', exact: true }).click();
   await page.getByLabel('Simulation spins').fill('10000000');
-  const created = page.waitForResponse(r => r.url().endsWith('/api/runs') && r.request().method() === 'POST');
+  const created = page.waitForResponse(r => r.url().endsWith('/api/runs') && r.request().method() === 'POST' && r.ok(), { timeout: 70000 });
   await page.getByRole('button', { name: /start run/i }).click();
   const run = await (await created).json();
   await expect(page.getByTestId('stream-status')).toContainText('WebSocket live');
@@ -14,9 +17,9 @@ async function launch(page: Page) {
 }
 const count = async (page: Page) => Number((await page.getByTestId('sample-count').innerText()).replaceAll(',', ''));
 async function stopped(page: Page, request: APIRequestContext, id: string) {
-  await request.delete(`/api/runs/${id}`);
+  await cancelOwnedRun(request, id);
   await expect(page.locator('.run-status')).toHaveText('cancelled', { timeout: 15000 });
-  const snapshot = await (await request.get(`/api/runs/${id}`)).json();
+  const snapshot = await (await getWithQuota(request, `/api/runs/${id}`)).json();
   await expect(page.getByTestId('sample-count')).toHaveText(snapshot.progress.sampleCount.toLocaleString());
   expect(snapshot.sequence).toBe(snapshot.progress.sequence);
   expect(snapshot.streamEpoch).toBe(snapshot.progress.streamEpoch);
@@ -74,8 +77,8 @@ test('network return reconciles terminal results missed offline and stops reconn
   await context.setOffline(true);
   await expect(page.getByTestId('stream-status')).toContainText('offline');
   const observed = await count(page), priorSockets = sockets;
-  await request.delete(`/api/runs/${run.id}`);
-  await expect.poll(async () => (await (await request.get(`/api/runs/${run.id}`)).json()).status).toBe('cancelled');
+  await cancelOwnedRun(request, run.id);
+  await expect.poll(async () => (await (await getWithQuota(request, `/api/runs/${run.id}`)).json()).status, { timeout: 70000 }).toBe('cancelled');
   expect(await count(page)).toBe(observed); expect(sockets).toBe(priorSockets);
   await context.setOffline(false);
   await expect(page.locator('.run-status')).toHaveText('cancelled');
@@ -143,7 +146,7 @@ test('an authoritative crash checkpoint resets the epoch and charts to the durab
   let socket: WebSocketRoute;
   await page.routeWebSocket('**/hubs/runs?*', route => { socket = route; route.connectToServer(); });
   const run = await launch(page);
-  const checkpoint = await (await request.get(`/api/runs/${run.id}`)).json();
+  const checkpoint = await (await getWithQuota(request, `/api/runs/${run.id}`)).json();
   await expect.poll(() => count(page)).toBeGreaterThan(checkpoint.progress.sampleCount);
   const epoch = 'b'.repeat(32), resultJson = JSON.stringify({ code: 'RUN_INTERRUPTED', error: 'Server restarted; last checkpoint retained.' });
   const recovered = { ...checkpoint, streamEpoch: epoch, status: 'failed', resultJson,

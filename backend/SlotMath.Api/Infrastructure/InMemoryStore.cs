@@ -149,6 +149,8 @@ public sealed class InMemoryConfigStore
 /// </summary>
 public sealed record RunEntry
 {
+    public SlotMath.Core.Measurements.VerificationProfile? VerificationProfile { get; init; }
+    public string? VerificationProfileHash { get; init; }
     public DiagnosticArtifact[] Diagnostics { get; init; } = [];
     public RuntimeProvenance? RuntimeProvenance { get; init; }
     public SlotMath.Core.Math.ExecutionOptions? Execution { get; init; }
@@ -214,13 +216,20 @@ public sealed class InMemoryRunStore
         _lastCheckpoint = _clock.GetTimestamp();
     }
 
-    public RunEntry Create(string configId, long seed = 42, int configVersion = 1, long totalSamples = 0, string? configHash = null, int degreeOfParallelism = 2, SlotMath.Core.Measurements.MeasurementDefinition[]? measurements = null, SlotMath.Core.Math.ExecutionOptions? execution = null)
+    public RunEntry Create(string configId, long seed = 42, int configVersion = 1, long totalSamples = 0, string? configHash = null, int degreeOfParallelism = 2, SlotMath.Core.Measurements.MeasurementDefinition[]? measurements = null, SlotMath.Core.Math.ExecutionOptions? execution = null, SlotMath.Core.Measurements.VerificationProfile? verificationProfile = null)
     {
+        if (verificationProfile is not null)
+        {
+            SlotMath.Core.Measurements.ProfileVerification.Validate(verificationProfile, measurements ?? []);
+            verificationProfile = verificationProfile with { Criteria = verificationProfile.Criteria.ToArray() };
+        }
         // Never reuse an identity after restart, including non-persisted dev runs.
         var id = Guid.NewGuid().ToString("N");
         var entry = new RunEntry
         {
             Id = id,
+            VerificationProfile = verificationProfile,
+            VerificationProfileHash = verificationProfile is null ? null : SlotMath.Core.Measurements.ProfileVerification.Hash(verificationProfile),
             RuntimeProvenance = RuntimeProvenance.Current,
             Execution = execution,
             StreamEpoch = _streamEpoch,

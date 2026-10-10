@@ -482,6 +482,35 @@
         }
       }
     },
+    "/api/runs/{id}/verification": {
+      "post": {
+        "tags": [
+          "SlotMath.Api"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RetainedReferenceOfRunVerificationEvidence"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/runs/{id}/measurements/reference/comparison": {
       "post": {
         "tags": [
@@ -1726,6 +1755,16 @@
         ],
         "type": "object",
         "properties": {
+          "verificationProfile": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/VerificationProfile"
+              }
+            ]
+          },
           "execution": {
             "oneOf": [
               {
@@ -3723,6 +3762,16 @@
             "items": {
               "$ref": "#/components/schemas/MeasurementInput"
             }
+          },
+          "verificationProfile": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/VerificationProfile"
+              }
+            ]
           }
         }
       },
@@ -4460,6 +4509,32 @@
           }
         }
       },
+      "RetainedReferenceOfRunVerificationEvidence": {
+        "required": [
+          "runId",
+          "report",
+          "retention"
+        ],
+        "type": "object",
+        "properties": {
+          "runId": {
+            "type": "string"
+          },
+          "report": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/RunVerificationEvidence"
+              }
+            ]
+          },
+          "retention": {
+            "$ref": "#/components/schemas/DiagnosticRetention"
+          }
+        }
+      },
       "RunEvidence": {
         "required": [
           "run",
@@ -4724,6 +4799,22 @@
         ],
         "type": "object",
         "properties": {
+          "verificationProfile": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/VerificationProfile"
+              }
+            ]
+          },
+          "verificationProfileHash": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
           "runtimeProvenance": {
             "oneOf": [
               {
@@ -4945,6 +5036,25 @@
               "null",
               "string"
             ]
+          }
+        }
+      },
+      "RunVerificationEvidence": {
+        "required": [
+          "runId",
+          "source",
+          "report"
+        ],
+        "type": "object",
+        "properties": {
+          "runId": {
+            "type": "string"
+          },
+          "source": {
+            "$ref": "#/components/schemas/AccountingEvidenceSource"
+          },
+          "report": {
+            "$ref": "#/components/schemas/VerificationProfileReport"
           }
         }
       },
@@ -5476,6 +5586,161 @@
             "format": "double"
           },
           "detail": {
+            "type": "string"
+          }
+        }
+      },
+      "VerificationCriterion": {
+        "required": [
+          "measurementId",
+          "check"
+        ],
+        "type": "object",
+        "properties": {
+          "measurementId": {
+            "type": "string"
+          },
+          "check": {
+            "type": "string"
+          },
+          "minimumCount": {
+            "type": "integer",
+            "format": "int64",
+            "default": 1
+          }
+        },
+        "additionalProperties": false
+      },
+      "VerificationCriterionResult": {
+        "required": [
+          "measurementId",
+          "name",
+          "check",
+          "status",
+          "count",
+          "minimumCount",
+          "allocatedAlpha",
+          "interval",
+          "evidence",
+          "detail"
+        ],
+        "type": "object",
+        "properties": {
+          "measurementId": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "check": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "count": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "minimumCount": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "allocatedAlpha": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
+          },
+          "interval": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/NumericInterval"
+              }
+            ]
+          },
+          "evidence": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/VerificationCheck"
+              }
+            ]
+          },
+          "detail": {
+            "type": "string"
+          }
+        }
+      },
+      "VerificationProfile": {
+        "required": [
+          "name",
+          "familyConfidence",
+          "criteria"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "familyConfidence": {
+            "type": "number",
+            "format": "double"
+          },
+          "criteria": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/VerificationCriterion"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "VerificationProfileReport": {
+        "required": [
+          "name",
+          "profileHash",
+          "status",
+          "familyConfidence",
+          "allocatedAlpha",
+          "criteria",
+          "detail"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "profileHash": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "familyConfidence": {
+            "type": "number",
+            "format": "double"
+          },
+          "allocatedAlpha": {
+            "type": "number",
+            "format": "double"
+          },
+          "criteria": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/VerificationCriterionResult"
+            }
+          },
+          "detail": {
+            "type": "string"
+          },
+          "algorithmVersion": {
             "type": "string"
           }
         }

@@ -2,7 +2,7 @@ import { SamplePlanning } from '../components/simulate/SamplePlanning';
 import { defaultExecution } from '../lib/measurements/execution';
 import { ExecutionConfiguration, ExecutionReport } from '../components/simulate/ExecutionConfiguration';
 import { ReferenceWorkbench } from '../components/simulate/ReferenceWorkbench';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useAppStore } from '../store';
@@ -12,8 +12,9 @@ import { count } from '../components/simulate/format';
 import { LiveHistogram } from '../components/simulate/LiveHistogram';
 import { downloadJson } from '../games/doghouse/api';
 import { MeasurementWorkspace } from '../components/simulate/MeasurementWorkspace';
-import { validSnapshot } from '../lib/realtime/runProtocol';
 import { useMeasurementWorkspace, type Widget } from '../lib/measurements/store';
+import { readSimulationEvidence } from '../lib/results/api';
+import { simulationEvidence } from '../lib/results/evidence';
 import './simulate.css';
 const pct = (v: number) => `${(v * 100).toFixed(3)}%`;
 const duration = (ms: number) => ms < 60000 ? `${(ms / 1000).toFixed(1)}s` : `${Math.floor(ms / 60000)}m ${Math.floor(ms / 1000) % 60}s`;
@@ -30,15 +31,14 @@ export default function Simulate() {
   const p = s.progress, hasData = !!p?.sampleCount, active = s.starting || (!!s.run && !terminal(s.run.status) && s.connection !== 'unavailable');
   const [now, setNow] = useState(Date.now);
   const selectedRunId = s.run?.id;
+  const exportRequest = useRef<AbortController | null>(null);
+  const [exportState, setExportState] = useState<{ runId: string; busy: boolean; message: string; error: string } | null>(null);
+  const exporting = !!exportState && exportState.runId === selectedRunId && exportState.busy;
+  const exportError = exportState && exportState.runId === selectedRunId ? exportState.error : '';
+  useEffect(() => () => { exportRequest.current?.abort(); }, [selectedRunId]);
   const linked = useQuery<{ run: import('../lib/realtime/runProtocol').RunSnapshot; model: { name: string; targetRtp: number | null } }>({
     queryKey: ['simulate-linked-run', requestedRun], enabled: !!requestedRun && requestedRun !== selectedRunId && !active, retry: false,
-    queryFn: async ({ signal }) => {
-      const response = await fetch(`/api/runs/${encodeURIComponent(requestedRun!)}/evidence`, { signal: AbortSignal.any([signal, AbortSignal.timeout(10000)]) });
-      const evidence = await response.json();
-      if (!response.ok) throw new Error(evidence.error ?? `HTTP ${response.status}`);
-      if (!validSnapshot(evidence.run)) throw new Error('The saved run has an invalid snapshot.');
-      return evidence;
-    },
+    queryFn: ({ signal }) => readSimulationEvidence(requestedRun!, signal, () => {}),
   });
   const loadingRun = linked.isFetching;
   const queryError = linked.error?.message;
@@ -64,14 +64,22 @@ export default function Simulate() {
   const reference = s.reference;
   const inBand = hasVariance && reference != null ? Math.abs(p.runningRtp - reference) <= 1.96 * p.stdErr : null;
   const download = async () => {
+    if (!s.run || exportRequest.current && !exportRequest.current.signal.aborted) return;
+    const run = s.run, controller = new AbortController();
+    exportRequest.current = controller;
+    setExportState({ runId: run.id, busy: true, message: 'Fetching the authoritative run and pinned model…', error: '' });
     try {
-      const response = await fetch(`/api/runs/${s.run!.id}/evidence`);
-      const evidence = response.ok ? await response.json() : null;
-      const pinnedGraph = evidence ? { config: evidence.pinnedConfig, inputVerified: evidence.inputVerified, computedConfigHash: evidence.computedConfigHash,
-        configId: s.run!.configId, version: s.run!.configVersion } : { configId: s.run!.configId, version: s.run!.configVersion, error: 'Pinned input unavailable in this export.' };
-      downloadJson(`simulation-${s.run!.id}-seed-${s.run!.seed}.json`, { run: s.run, progress: p, convergence: s.points,
-        targetRtp: target, exactReference: reference, referenceNote: s.referenceNote, pinnedGraph, dashboard: measurementWorkspace, exportedAt: new Date().toISOString() });
-    } catch { downloadJson(`simulation-${s.run!.id}.json`, { run: s.run, progress: p, convergence: s.points }); }
+      const evidence = await readSimulationEvidence(run.id, controller.signal, message => {
+        if (!controller.signal.aborted) setExportState({ runId: run.id, busy: true, message, error: '' });
+      });
+      controller.signal.throwIfAborted();
+      const bundle = simulationEvidence(evidence, run, { points: s.points, reference, referenceNote: s.referenceNote, dashboard: measurementWorkspace });
+      downloadJson(`simulation-${run.id}-seed-${run.seed}.json`, bundle);
+      setExportState(null);
+    } catch (error) {
+      if (!controller.signal.aborted) setExportState({ runId: run.id, busy: false, message: '',
+        error: `Evidence export failed. ${error instanceof Error ? error.message : 'Try again when the connection recovers.'} No file was downloaded.` });
+    } finally { if (exportRequest.current === controller) exportRequest.current = null; }
   };
   return <div className="workspace simulation-workspace"><div className="simulation-dashboard">
     <header className="simulation-heading"><div><div className="sim-eyebrow">MATHEMATICAL VERIFICATION / MONTE CARLO</div><h1>Simulation lab <span className={`run-status ${status}`}>{status}</span></h1><p>{s.model || currentName || 'Full constructor model'} <span>· {population}</span></p></div>
@@ -81,8 +89,10 @@ export default function Simulate() {
       <label>Replay seed<input id="run-seed" type="number" value={seed} disabled={active} onChange={e => setSeed(Number(e.target.value))} /></label>
       <label>Workers<select aria-label="Simulation workers" value={workers} disabled={active} onChange={e => setWorkers(Number(e.target.value))}>{[1, 2, 3, 4].map(n => <option key={n} value={n}>{n} {n === 1 ? 'worker' : 'workers'}</option>)}</select></label>
       <div className="run-budget"><strong>Sampled</strong><span>5-minute execution budget<br />Deterministic chunk reduction</span></div>
-      <div className="run-actions">{active ? <button className="btn cancel-run" disabled={status === 'cancelling'} onClick={() => void cancelSimulation()}>{status === 'cancelling' ? 'Cancelling…' : s.starting ? 'Cancel launch' : '■ Cancel run'}</button> : <button className="btn primary start-run" disabled={loadingRun} onClick={() => { setQuery({}, { replace: true }); void startSimulation(seed, samples, workers, execution); }}>▶ {s.run ? 'Start new run' : 'Start run'}</button>}<button className="btn" disabled={!hasData} onClick={() => void download()}>↓ Export evidence</button></div>
+      <div className="run-actions">{active ? <button className="btn cancel-run" disabled={status === 'cancelling'} onClick={() => void cancelSimulation()}>{status === 'cancelling' ? 'Cancelling…' : s.starting ? 'Cancel launch' : '■ Cancel run'}</button> : <button className="btn primary start-run" disabled={loadingRun} onClick={() => { setQuery({}, { replace: true }); void startSimulation(seed, samples, workers, execution); }}>▶ {s.run ? 'Start new run' : 'Start run'}</button>}<button className="btn" disabled={!hasData || exporting} onClick={() => void download()}>{exporting ? 'Preparing evidence…' : '↓ Export evidence'}</button></div>
     </section>
+    {exporting && <p role="status" className="measurement-next-note">{exportState?.message} <button className="btn" onClick={() => { exportRequest.current?.abort(); setExportState(null); }}>Cancel export</button></p>}
+    {exportError && <p role="alert" className="simulation-error">{exportError} <button className="btn" onClick={() => void download()}>Retry export</button></p>}
     <ExecutionConfiguration value={execution} change={setExecution} disabled={active} workers={workers} setWorkers={setWorkers} rounds={samples} />
     <ExecutionReport value={p?.execution} />
     {requestedRun && requestedRun !== selectedRunId && active && <p className="measurement-next-note">Another simulation is active. Finish or cancel it before opening this linked run. <Link to={`/results?run=${encodeURIComponent(requestedRun)}`}>Inspect its saved results ↗</Link></p>}

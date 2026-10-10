@@ -250,7 +250,7 @@ internal sealed class MeasurementAnalysisAccumulator(MeasurementOptions options)
             var width = z * M.Sqrt(residualVariance / parents) / _clusterCounts.Mean;
             if (residualVariance > 0) clusterCi = new(ratio - width, ratio + width, "Paid-round cluster ratio, fixed count", "Independent paid rounds; all within-round observations clustered together; asymptotic delta-method approximation.");
         }
-        var booleanValue = options.Source == "event" && options.Subject is "observation" or "session" || options.Reduction is "any" or "all" && options.Subject != "observation";
+        var booleanValue = ReferenceSemantics.BooleanValue(options);
         var lowBound = options.LowerBound ?? (booleanValue ? 0 : (double?)null); var highBound = options.UpperBound ?? (booleanValue ? 1 : (double?)null);
         var sequential = independent && n > 0 && lowBound is { } lower && highBound is { } upper
             ? StatisticalInference.SequentialMean(mean, n, lower, upper, alpha) : null;
@@ -287,9 +287,12 @@ internal sealed class MeasurementAnalysisAccumulator(MeasurementOptions options)
         if (errors > 0 || _unclosed > 0 || _duplicateAwards > 0) checks.Add(new("observation-integrity", "invalid", errors + _unclosed + _duplicateAwards, 0, null, "Expression errors, unmatched lifecycle boundaries or duplicate award IDs invalidate this measurement."));
         if (options.ReferenceMean is { } reference)
         {
-            var ratioReference = options.ReferenceStatistic == "ratio" || options.PairRole == "wager";
-            var probabilityReference = options.ReferenceStatistic == "probability" || options.Source == "event" && options.Subject is "observation" or "session" || options.Reduction is "any" or "all" && options.Subject != "observation";
-            var interval = options.Weight is not null ? ratioReference ? weightedRatioCi : probabilityReference ? weightedEventCi : weightedCi : ratioReference ? pair?.RatioInterval : probabilityReference ? sequential ?? probabilityCi : sequential ?? meanCi ?? clusterCi; var tolerance = options.Tolerance ?? 0;
+            var ratioReference = ReferenceSemantics.Ratio(options);
+            var probabilityReference = ReferenceSemantics.Probability(options);
+            // A nonzero-event probability is not the mean of an arbitrary numeric
+            // value (e.g. 0/2). Its count interval is valid; a bounded value-mean
+            // interval applies only when the source/reduction guarantees 0/1.
+            var interval = options.Weight is not null ? ratioReference ? weightedRatioCi : probabilityReference ? weightedEventCi : weightedCi : ratioReference ? pair?.RatioInterval : probabilityReference ? (booleanValue ? sequential : null) ?? probabilityCi : sequential ?? meanCi ?? clusterCi; var tolerance = options.Tolerance ?? 0;
             var estimate = options.Weight is not null ? ratioReference ? weightedRatio : probabilityReference && options.ReferenceStatistic == "probability" ? n == 0 ? null : (double?)_weightedEvents / n : _weightedMoments.Mean : ratioReference ? pair?.Ratio : probabilityReference ? n == 0 ? null : (double?)_events / n : mean;
             var status = errors > 0 || _unclosed > 0 || _duplicateAwards > 0 ? "invalid" : n == 0 || interval is null ? "insufficient" : interval.Lower >= reference - tolerance && interval.Upper <= reference + tolerance ? "withinPrecision" : interval.Upper < reference - tolerance || interval.Lower > reference + tolerance ? "discrepancy" : "insufficient";
             checks.Add(new("mean-equivalence", status, n == 0 ? null : estimate, reference, n == 0 ? null : estimate - reference, "Acceptance requires the entire uncertainty interval inside the reference tolerance. A compatible wide interval is insufficient."));

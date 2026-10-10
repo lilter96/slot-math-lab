@@ -11,11 +11,15 @@ import { MeasurementEditor } from './MeasurementEditor';
 import { MeasurementChart } from './MeasurementChart';
 import { AccountingEditor } from './AccountingEditor';
 import { ComponentAccounting } from './ComponentAccounting';
+import { VerificationProfile } from './VerificationProfile';
+import { VerificationProfileEditor } from './VerificationProfileEditor';
+import { sameProfile } from '../../lib/measurements/profile';
 
 const emptyPlan: MeasurementDefinition[] = [];
 
 export function MeasurementWorkspace({ run, values, points, active }: { run: RunSnapshot | null; values?: MeasurementSnapshot[]; points: LivePoint[]; active: boolean }) {
   const workspace = useMeasurementWorkspace(), [editor, setEditor] = useState<MetricDraft | 'new' | null>(null), [display, setDisplay] = useState(false), [accountingEditor, setAccountingEditor] = useState(false);
+  const [profileEditor, setProfileEditor] = useState(false);
   const pinned = run?.measurements ?? emptyPlan;
   const hasRun = !!run;
   const pending = useMemo(() => !samePlan(workspace.metrics.map(definition), pinned), [workspace.metrics, pinned]);
@@ -29,10 +33,12 @@ export function MeasurementWorkspace({ run, values, points, active }: { run: Run
     const saved = workspace.metrics.find(m => m.id === metric.id); if (saved) saveMetric({ ...saved, ...patch });
   }
   return <section className="measurement-workspace" aria-label="Measurement workspace"><div className="measurement-workspace-head"><div><span className="sim-eyebrow">YOUR MEASUREMENT WORKSPACE</span><h2>Track what matters</h2><p>Observe a numeric value anywhere in the graph. Scope it to the feature or FS type you need.</p></div><div className="measurement-actions"><button className="btn" onClick={() => setDisplay(v => !v)} aria-expanded={display}>Customize dashboard</button><button className="btn primary" disabled={workspace.metrics.length >= 32} onClick={() => setEditor('new')}>＋ Track metric</button></div></div>
-    <div className="measurement-actions"><button type="button" className="btn" disabled={workspace.metrics.length > 27} onClick={() => setAccountingEditor(true)}>Create component accounting plan</button></div>
-    <MetricCatalogue configure={setEditor} accounting={() => setAccountingEditor(true)} limitReached={workspace.metrics.length >= 32} runId={run?.id} />
-    {run && <ComponentAccounting key={run.id} run={run} />}
-    {run && !active && <GraphMeasurementReference key={run.id} run={run} />}
+    <div className="measurement-actions"><button type="button" className="btn" disabled={workspace.metrics.length > 27} onClick={() => setAccountingEditor(true)}>Create component accounting plan</button><button type="button" className="btn" disabled={!workspace.metrics.length} onClick={() => setProfileEditor(true)}>Configure verification profile</button></div>
+    {workspace.verificationProfile && <div className="measurement-next-note">Next-run verification: {workspace.verificationProfile.name} · {workspace.verificationProfile.criteria.length} required checks{run && !sameProfile(workspace.verificationProfile, run.verificationProfile) ? ' · differs from this pinned run' : ''} <button type="button" className="btn" onClick={() => useMeasurementWorkspace.setState({ verificationProfile: null })}>Remove next-run profile</button></div>}
+    <MetricCatalogue profile={() => setProfileEditor(true)} configure={setEditor} accounting={() => setAccountingEditor(true)} limitReached={workspace.metrics.length >= 32} runId={run?.id} />
+    {run && <ComponentAccounting key={`accounting-${run.id}`} run={run} />}
+    {run && <VerificationProfile key={`verification-${run.id}`} run={run} />}
+    {run && !active && <GraphMeasurementReference key={`enumeration-${run.id}`} run={run} />}
     {display && <div className="measurement-display"><strong>Display now</strong><p>Change the dashboard without restarting collection. Connection health and run controls stay visible.</p><div className="measurement-reducers">{widgets.map(w => <label key={w.id}><input type="checkbox" checked={!workspace.hiddenWidgets.includes(w.id)} onChange={e => useMeasurementWorkspace.setState(s => ({ hiddenWidgets: e.target.checked ? s.hiddenWidgets.filter(id => id !== w.id) : [...s.hiddenWidgets, w.id] }))} />{w.name}</label>)}</div>{source.map(metric => <label className="measurement-checkbox" key={metric.id}><input type="checkbox" checked={!metric.hidden} onChange={e => present(metric, { hidden: !e.target.checked })} />{metric.name}</label>)}<button className="btn" onClick={() => { useMeasurementWorkspace.setState({ hiddenWidgets: [] }); source.forEach(m => present(m, { hidden: false })); }}>Show all widgets</button></div>}
     {!!run && pending && <div className="measurement-next-note">The saved run keeps its original collection plan. Your edited plan applies to the next run.</div>}
     {!source.length && <div className="measurement-empty"><div><strong>Need min, max and average for just one free-spin type?</strong><p>Choose a node in the FS sequence, a payout expression, and a filter such as <code>state.fsType == "sticky"</code>. The fields come from your constructor model.</p></div><button className="btn" onClick={() => setEditor('new')}>Configure first metric →</button></div>}
@@ -40,10 +46,11 @@ export function MeasurementWorkspace({ run, values, points, active }: { run: Run
       customize={patch => present(metric, patch)} edit={() => setEditor(workspace.metrics.find(m => m.id === metric.id) ?? metric)} />)}</div>
     {source.length > 0 && source.every(m => m.hidden) && <p className="measurement-next-note">All tracked metric widgets are hidden. Collection continues; restore them in Customize dashboard.</p>}
     <details className="measurement-plan"><summary>Next-run collection plan · {workspace.metrics.length} / 32 metrics{active ? ' · editable while running' : ''}</summary><p>Collection definitions are pinned at launch. Display settings can change immediately. Node visits and paid rounds have different denominators.</p>{workspace.metrics.length ? <ul>{workspace.metrics.map(m => <li key={m.id}><div><strong>{m.name}</strong><span>{m.nodeId || 'Completed paid round'} · {m.filterMode === 'all' ? 'all observations' : 'filtered'} · {m.reducers.map(r => reducerNames[r]).join(', ')}</span></div><button className="btn" onClick={() => setEditor(m)}>Edit</button><button className="btn" onClick={() => removeMetric(m.id)} aria-label={`Remove ${m.name} from next run`}>Remove</button></li>)}</ul> : <p>No additional measurements configured. The standard round metrics are always collected.</p>}
-    {run && pinned.length > 0 && <button className="btn" onClick={() => useMeasurementWorkspace.setState({ metrics: pinned.map(d => workspace.metrics.find(m => m.id === d.id) && samePlan([definition(workspace.metrics.find(m => m.id === d.id)!)], [d]) ? workspace.metrics.find(m => m.id === d.id)! : draftFromDefinition(d)) })}>Use this run’s collection plan</button>}</details>
+    {run && pinned.length > 0 && <button className="btn" onClick={() => useMeasurementWorkspace.setState({ verificationProfile: run.verificationProfile ?? null, metrics: pinned.map(d => workspace.metrics.find(m => m.id === d.id) && samePlan([definition(workspace.metrics.find(m => m.id === d.id)!)], [d]) ? workspace.metrics.find(m => m.id === d.id)! : draftFromDefinition(d)) })}>Use this run’s collection plan</button>}</details>
     {run?.measurementHash && <p className="measurement-fingerprint">Pinned measurement SHA-256 <code>{run.measurementHash}</code></p>}
     {editor && <MeasurementEditor initial={editor === 'new' ? undefined : editor} close={() => setEditor(null)} />}
     {accountingEditor && <AccountingEditor close={() => setAccountingEditor(false)} />}
+    {profileEditor && <VerificationProfileEditor close={() => setProfileEditor(false)} />}
   </section>;
 }
 function TrackedMetric({ run, runId, metric, definition: pinned, value, points, customize, edit }: { run?: RunSnapshot; runId?: string; metric: MetricDraft; definition?: MeasurementDefinition; value?: MeasurementSnapshot; points: LivePoint[]; customize(patch: Partial<MetricDraft>): void; edit(): void }) {

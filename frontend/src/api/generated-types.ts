@@ -1329,6 +1329,43 @@ export type paths = {
         patch?: never;
         trace?: never;
     };
+    "/api/runs/{id}/verification": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["RetainedReferenceOfRunVerificationEvidence"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/runs/measurements/reference/comparison": {
         parameters: {
             query?: never;
@@ -1738,6 +1775,7 @@ export type components = {
             sampleSize?: null | number;
             /** Format: int64 */
             seed?: number;
+            verificationProfile?: null | components["schemas"]["VerificationProfile"];
         };
         DiagnosticArtifact: {
             configHash: null | string;
@@ -2240,6 +2278,7 @@ export type components = {
         MeasurementSchemaRequest: {
             config: components["schemas"]["JsonElement"];
             measurements?: null | components["schemas"]["MeasurementInput"][];
+            verificationProfile?: null | components["schemas"]["VerificationProfile"];
         };
         MeasurementSnapshot: {
             analysis?: null | components["schemas"]["MeasurementAnalysis"];
@@ -2433,6 +2472,11 @@ export type components = {
             retention: components["schemas"]["DiagnosticRetention"];
             runId: string;
         };
+        RetainedReferenceOfRunVerificationEvidence: {
+            report: null | components["schemas"]["RunVerificationEvidence"];
+            retention: components["schemas"]["DiagnosticRetention"];
+            runId: string;
+        };
         RunEvidence: {
             computedConfigHash: null | string;
             diagnostics?: components["schemas"]["DiagnosticArtifact"][];
@@ -2530,6 +2574,8 @@ export type components = {
             status: string;
             streamEpoch?: string;
             streamScheme?: string;
+            verificationProfile?: null | components["schemas"]["VerificationProfile"];
+            verificationProfileHash?: null | string;
         };
         RunSummary: {
             /** Format: date-time */
@@ -2565,6 +2611,11 @@ export type components = {
             framework: string;
             measurementContract: string;
             numericalMethods: string;
+        };
+        RunVerificationEvidence: {
+            report: components["schemas"]["VerificationProfileReport"];
+            runId: string;
+            source: components["schemas"]["AccountingEvidenceSource"];
         };
         SamplePlanReport: {
             /** Format: double */
@@ -2737,6 +2788,48 @@ export type components = {
             observed: null | number;
             /** Format: double */
             reference: null | number;
+            status: string;
+        };
+        VerificationCriterion: {
+            check: string;
+            measurementId: string;
+            /**
+             * Format: int64
+             * @default 1
+             */
+            minimumCount: number;
+        };
+        VerificationCriterionResult: {
+            /** Format: double */
+            allocatedAlpha: null | number;
+            check: string;
+            /** Format: int64 */
+            count: number;
+            detail: string;
+            evidence: null | components["schemas"]["VerificationCheck"];
+            interval: null | components["schemas"]["NumericInterval"];
+            measurementId: string;
+            /** Format: int64 */
+            minimumCount: number;
+            name: string;
+            status: string;
+        };
+        VerificationProfile: {
+            criteria: components["schemas"]["VerificationCriterion"][];
+            /** Format: double */
+            familyConfidence: number;
+            name: string;
+        };
+        VerificationProfileReport: {
+            algorithmVersion?: string;
+            /** Format: double */
+            allocatedAlpha: number;
+            criteria: components["schemas"]["VerificationCriterionResult"][];
+            detail: string;
+            /** Format: double */
+            familyConfidence: number;
+            name: string;
+            profileHash: string;
             status: string;
         };
         WeightedSummary: {

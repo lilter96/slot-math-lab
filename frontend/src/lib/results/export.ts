@@ -38,6 +38,7 @@ export function reportCsv(evidence: RunEvidence, reference?: Reference) {
     ...(p?.execution ? ['attemptedRounds', 'completedRounds', 'interruptedRounds', 'cancelledRounds', 'failedRounds', 'completedSessions', 'interruptedSessions'].map(key => [key, p.execution![key as 'completedRounds'], 'subjects', 'Runtime exposure ledger']) : []),
     ...(p?.execution?.loopTerminations ?? []).flatMap(l => Object.entries(l).map(([key, value]) => [`Loop ${l.nodeId} / ${key}`, value, key.endsWith('Iterations') ? 'iterations' : 'invocations', 'Completed rounds only; authored bounded model'])),
     ['Measurement hash', run.measurementHash, '', 'SHA-256 of pinned collection plan'],
+    ['Verification profile hash', run.verificationProfileHash, '', 'SHA-256 of the declaration pinned before launch'],
     ...(run.measurements ?? []).flatMap(d => { const m = p?.measurements?.find(v => v.id === d.id); return [
       ...reducers.map(r => [`Measurement: ${d.name} / ${reducerNames[r]}`, statistic(m, r), r === 'count' ? 'observations' : r === 'matchRate' ? 'ratio' : d.unit, `Sampled; ${d.nodeId ?? 'completed paid round'}; average denominator = matching valid observations`]),
       [`Measurement: ${d.name} / Eligible`, m?.observations, 'observations', 'Sampled'], [`Measurement: ${d.name} / Excluded`, m?.excluded, 'observations', 'Filtered out'],

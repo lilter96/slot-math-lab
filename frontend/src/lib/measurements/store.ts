@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { definition, type MetricDraft } from './model';
+import { validProfile, type VerificationProfile } from './profile';
 const key = 'slotmath-measurements-v1';
 export type Widget = 'rtp' | 'precision' | 'hit' | 'max' | 'speed' | 'volatility' | 'convergence' | 'distribution' | 'reference' | 'throughput' | 'uncertainty';
 export const widgets: { id: Widget; name: string }[] = [
@@ -7,13 +8,13 @@ export const widgets: { id: Widget; name: string }[] = [
   { id: 'max', name: 'Maximum observed' }, { id: 'speed', name: 'Throughput' }, { id: 'volatility', name: 'Payout volatility' },
   { id: 'convergence', name: 'RTP convergence chart' }, { id: 'distribution', name: 'Payout histogram' }, { id: 'reference', name: 'Reference check' },
   { id: 'throughput', name: 'Throughput chart' }, { id: 'uncertainty', name: 'Precision chart' }];
-interface Workspace { metrics: MetricDraft[]; hiddenWidgets: Widget[] }
+interface Workspace { metrics: MetricDraft[]; hiddenWidgets: Widget[]; verificationProfile?: VerificationProfile | null }
 function restore(): Workspace {
   try {
     const data = JSON.parse(localStorage.getItem(key) ?? 'null');
     if (!Array.isArray(data?.metrics) || data.metrics.length > 32) throw new Error();
     data.metrics.forEach((metric: MetricDraft) => definition(metric));
-    return { metrics: data.metrics, hiddenWidgets: (data.hiddenWidgets ?? []).filter((id: Widget) => widgets.some(w => w.id === id)) };
+    return { metrics: data.metrics, hiddenWidgets: (data.hiddenWidgets ?? []).filter((id: Widget) => widgets.some(w => w.id === id)), verificationProfile: validProfile(data.verificationProfile) ? data.verificationProfile : null };
   } catch { return { metrics: [], hiddenWidgets: [] }; }
 }
 export const useMeasurementWorkspace = create<Workspace>(() => restore());

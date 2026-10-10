@@ -2,6 +2,19 @@ import { test, expect } from '@playwright/test';
 import { progressDecision, snapshotDecision, validProgress, validSnapshot } from '../src/lib/realtime/runProtocol';
 import { completed, epoch, progress, snapshot } from './realtime-fixtures';
 
+test('Authoritative recovery cannot change predeclared criteria or accept a terminal profile hash mismatch', () => {
+  const base = snapshot();
+  const profile = { name: 'Required', familyConfidence: .95, criteria: [{ measurementId: 'x', check: 'observation-integrity' as const, minimumCount: 1 }] };
+  const run = { ...base, verificationProfile: profile, verificationProfileHash: 'b'.repeat(64) };
+  expect(validSnapshot(run)).toBe(true);
+  expect(validSnapshot({ ...run, verificationProfileHash: null })).toBe(false);
+  expect(validSnapshot({ ...base, verificationProfileHash: 'b'.repeat(64) })).toBe(false);
+  expect(snapshotDecision(run, run.progress!, { ...run, verificationProfile: { ...profile, name: 'Post hoc' } })).toBe('invalid');
+  expect(snapshotDecision(run, run.progress!, { ...run, verificationProfileHash: 'c'.repeat(64) })).toBe('invalid');
+  const done = completed();
+  expect(progressDecision(run, run.progress!, { ...done.progress!, resultJson: JSON.stringify({ ...JSON.parse(done.resultJson!), verificationProfileHash: 'c'.repeat(64) }) })).toBe('invalid');
+});
+
 test('cumulative revisions reject reordered packets, regressed counts, wrong runs and terminal resurrection', () => {
   const current = progress(10, 100), run = snapshot(current);
   expect(progressDecision(run, current, progress(9, 90))).toBe('stale');

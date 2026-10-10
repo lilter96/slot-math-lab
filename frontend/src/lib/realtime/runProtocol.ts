@@ -1,4 +1,5 @@
 import type { MeasurementDefinition, MeasurementSnapshot } from '../measurements/model';
+import { validProfile, sameProfile, type VerificationProfile } from '../measurements/profile';
 import { validAnalysis, validWitnesses } from '../measurements/validation';
 import { validExecutionSummary, validateExecution, sameExecution, type ExecutionOptions, type ExecutionSummary } from '../measurements/execution';
 export type RunStatus = 'pending' | 'running' | 'cancelling' | 'completed' | 'cancelled' | 'failed';
@@ -12,6 +13,7 @@ export interface LiveProgress {
   resultJson?: string | null; completedAt?: string | null;
 }
 export interface RunSnapshot {
+  verificationProfile?: VerificationProfile | null; verificationProfileHash?: string | null;
   runtimeProvenance?: { measurementContract: string; numericalMethods: string; framework: string; coreBinarySha256: string | null; apiBinarySha256: string | null } | null;
   execution?: ExecutionOptions | null;
   measurements?: MeasurementDefinition[]; measurementHash?: string | null;
@@ -80,6 +82,7 @@ export function validSnapshot(value: unknown): value is RunSnapshot {
     || typeof value.streamScheme !== 'string' || typeof value.createdAt !== 'string' || !statuses.has(String(value.status))) return false;
   if (value.runtimeProvenance != null && (!object(value.runtimeProvenance) || ['measurementContract', 'numericalMethods', 'framework'].some(key => typeof (value.runtimeProvenance as Record<string, unknown>)[key] !== 'string')
     || ['coreBinarySha256', 'apiBinarySha256'].some(key => { const hash = (value.runtimeProvenance as Record<string, unknown>)[key]; return hash != null && (typeof hash !== 'string' || !/^[a-f0-9]{64}$/.test(hash)); }))) return false;
+  if (value.verificationProfile != null ? !validProfile(value.verificationProfile) || typeof value.verificationProfileHash !== 'string' || !/^[a-f0-9]{64}$/.test(value.verificationProfileHash) : value.verificationProfileHash != null) return false;
   if (value.sequence !== undefined && !uint(value.sequence)) return false;
   if (value.measurements !== undefined && (!Array.isArray(value.measurements) || value.measurements.length > 32
     || value.measurements.some(d => !object(d) || typeof d.id !== 'string' || typeof d.name !== 'string'))) return false;
@@ -100,6 +103,7 @@ export type Decision = 'accept' | 'duplicate' | 'stale' | 'wrong-run' | 'invalid
 export function progressDecision(run: RunSnapshot | null, current: LiveProgress | null, next: unknown): Decision {
   if (!validProgress(next)) return 'invalid';
   if (!run || next.runId !== run.id) return 'wrong-run';
+  if (next.status === 'completed' && next.resultJson && (JSON.parse(next.resultJson).verificationProfileHash ?? null) !== (run.verificationProfileHash ?? null)) return 'invalid';
   if ((next.measurementHash ?? null) !== (run.measurementHash ?? null) || (run.measurements?.length ?? 0) !== (next.measurements?.length ?? 0)
     || run.measurements?.some((d, i) => d.id !== next.measurements?.[i].id)) return 'invalid';
   if (run.streamEpoch && next.streamEpoch !== run.streamEpoch) return terminal(run.status) ? 'stale' : 'epoch-change';
@@ -120,6 +124,7 @@ export function snapshotDecision(run: RunSnapshot | null, current: LiveProgress 
   for (const field of ['configId', 'configHash', 'configVersion', 'seed', 'degreeOfParallelism', 'streamScheme', 'createdAt'] as const)
     if (next[field] !== run[field]) return 'invalid';
   if ((next.measurementHash ?? null) !== (run.measurementHash ?? null)) return 'invalid';
+  if ((next.verificationProfileHash ?? null) !== (run.verificationProfileHash ?? null) || !sameProfile(run.verificationProfile, next.verificationProfile)) return 'invalid';
   if (!sameExecution(run.execution, next.execution) || ['measurementContract', 'numericalMethods', 'framework', 'coreBinarySha256', 'apiBinarySha256'].some(key => run.runtimeProvenance?.[key as 'framework'] !== next.runtimeProvenance?.[key as 'framework'])) return 'invalid';
   if (run.streamEpoch && next.streamEpoch !== run.streamEpoch) {
     if (terminal(run.status)) return 'stale';

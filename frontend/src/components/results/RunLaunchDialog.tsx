@@ -18,6 +18,7 @@ export function RunLaunchDialog({ evidence, reference, replay, plannedSamples, c
       await startPinnedSimulation({ configId: evidence.run.configId, configVersion: evidence.run.configVersion, configHash: evidence.run.configHash,
         model: evidence.model.name, target: evidence.model.targetRtp, seed, samples, workers,
         execution: { ...(evidence.run.execution ?? defaultExecution()), samplingEngine: engine }, measurements: evidence.run.measurements, measurementHash: evidence.run.measurementHash,
+        verificationProfile: evidence.run.verificationProfile, verificationProfileHash: evidence.run.verificationProfileHash,
         reference: reference?.rtp, referenceNote: reference?.note }); close(); navigate('/simulate');
     } catch (err) { setError(err instanceof Error ? err.message : 'Unable to launch the run.'); setBusy(false); }
   }}><header><h2 id="results-launch-title">{replay ? 'Replay pinned run' : 'Run the pinned model'}</h2><button type="button" className="btn" aria-label="Close run dialog" disabled={busy} onClick={close}>✕</button></header><p>Uses saved config version {evidence.run.configVersion}. Editor changes and newer versions do not affect this launch.</p>
