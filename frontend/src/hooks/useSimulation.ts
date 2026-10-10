@@ -1,4 +1,5 @@
 import { validateExecution, sameExecution } from '../lib/measurements/execution';
+import { LIMITS, progressBatchSize } from '../lib/limits';
 import { chartMeasurements, serializeCheckpoint } from '../lib/measurements/checkpoints';
 import { restoreTrendPoints, type MeasurementTrendPoint } from '../lib/measurements/trends';
 import { useEffect } from 'react';
@@ -150,8 +151,8 @@ function acceptSnapshot(value: unknown): Decision {
 }
 export async function startSimulation(seed: number, samples: number, workers: number, execution?: import('../lib/measurements/execution').ExecutionOptions) {
   if (useSession.getState().starting || (useSession.getState().run && !terminal(useSession.getState().run?.status) && useSession.getState().connection !== 'unavailable')) return;
-  if (!Number.isSafeInteger(seed) || !Number.isInteger(samples) || samples < 1 || samples > 10_000_000 || !Number.isInteger(workers) || workers < 1 || workers > 4) {
-    useSession.setState({ error: 'Use a safe integer seed, 1–10,000,000 complete rounds and 1–4 workers.' }); return;
+  if (!Number.isSafeInteger(seed) || !Number.isInteger(samples) || samples < 1 || samples > LIMITS.maxRunRounds || !Number.isInteger(workers) || workers < 1 || workers > LIMITS.maxRunWorkers) {
+    useSession.setState({ error: `Use a safe integer seed, 1–${LIMITS.maxRunRounds.toLocaleString('en-US')} complete rounds and 1–${LIMITS.maxRunWorkers} workers.` }); return;
   }
   const controller = new AbortController();
   launchController = controller;
@@ -172,7 +173,7 @@ export async function startSimulation(seed: number, samples: number, workers: nu
     useSession.setState({ starting: true, error: '', launchNote: '' });
     log('Saving and pinning the full constructor graph');
     const saved = await launchRequest<{ id: string }>('/api/configs', { config }, controller.signal);
-    const run = await launchRequest<RunSnapshot>('/api/runs', { configId: saved.id, seed, sampleSize: samples, degreeOfParallelism: workers, progressBatchSize: 1000, measurements, execution, verificationProfile }, controller.signal);
+    const run = await launchRequest<RunSnapshot>('/api/runs', { configId: saved.id, seed, sampleSize: samples, degreeOfParallelism: workers, progressBatchSize: progressBatchSize(samples), measurements, execution, verificationProfile }, controller.signal);
     if (controller.signal.aborted) {
       if (validSnapshot(run)) await request(`/api/runs/${encodeURIComponent(run.id)}`, { method: 'DELETE' }).catch(() => {});
       controller.signal.throwIfAborted();
@@ -262,14 +263,14 @@ export async function startPinnedSimulation(input: { configId: string; configVer
   target: number | null; seed: number; samples: number; workers: number; reference?: number | null; referenceNote?: string; measurements?: MeasurementDefinition[]; measurementHash?: string | null; verificationProfile?: VerificationProfile | null; verificationProfileHash?: string | null; execution?: import('../lib/measurements/execution').ExecutionOptions | null }) {
   const state = useSession.getState();
   if (state.starting || state.run && !terminal(state.run.status) && state.connection !== 'unavailable') throw new Error('Another run is active. Finish or cancel it in Simulate before launching a new run.');
-  if (!Number.isSafeInteger(input.seed) || !Number.isInteger(input.samples) || input.samples < 1 || input.samples > 10_000_000
-    || !Number.isInteger(input.workers) || input.workers < 1 || input.workers > 4) throw new Error('Use a safe integer seed, 1–10,000,000 rounds and 1–4 workers.');
+  if (!Number.isSafeInteger(input.seed) || !Number.isInteger(input.samples) || input.samples < 1 || input.samples > LIMITS.maxRunRounds
+    || !Number.isInteger(input.workers) || input.workers < 1 || input.workers > LIMITS.maxRunWorkers) throw new Error(`Use a safe integer seed, 1–${LIMITS.maxRunRounds.toLocaleString('en-US')} rounds and 1–${LIMITS.maxRunWorkers} workers.`);
   if (input.execution) validateExecution(input.execution, input.samples, input.workers);
   const controller = new AbortController(); launchController = controller;
   useSession.setState({ starting: true, error: '', launchNote: '' });
   try {
     const run = await launchRequest<RunSnapshot>('/api/runs', { configId: input.configId, configVersion: input.configVersion, seed: input.seed, sampleSize: input.samples,
-        degreeOfParallelism: input.workers, progressBatchSize: 1000, measurements: input.measurements ?? [], execution: input.execution, verificationProfile: input.verificationProfile }, controller.signal);
+        degreeOfParallelism: input.workers, progressBatchSize: progressBatchSize(input.samples), measurements: input.measurements ?? [], execution: input.execution, verificationProfile: input.verificationProfile }, controller.signal);
     if (controller.signal.aborted) {
       if (validSnapshot(run)) await request(`/api/runs/${encodeURIComponent(run.id)}`, { method: 'DELETE' }).catch(() => {});
       controller.signal.throwIfAborted();

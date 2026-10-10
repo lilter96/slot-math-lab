@@ -1,4 +1,5 @@
 import { defaultExecution } from '../../lib/measurements/execution';
+import { LIMITS, RUN_WORKERS } from '../../lib/limits';
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { startPinnedSimulation } from '../../hooks/useSimulation';
@@ -8,7 +9,7 @@ export function RunLaunchDialog({ evidence, reference, replay, plannedSamples, c
 }) {
   const ref = useRef<HTMLDialogElement>(null), navigate = useNavigate();
   const [seed, setSeed] = useState(replay ? evidence.run.seed : crypto.getRandomValues(new Uint32Array(1))[0]);
-  const [samples, setSamples] = useState(replay ? evidence.run.progress?.totalSamples ?? 100000 : Math.min(10_000_000, plannedSamples ?? 100000));
+  const [samples, setSamples] = useState(replay ? evidence.run.progress?.totalSamples ?? 100000 : Math.min(LIMITS.maxRunRounds, plannedSamples ?? 100000));
   const [engine, setEngine] = useState(evidence.run.execution?.samplingEngine ?? 'auto');
   const [workers, setWorkers] = useState(evidence.run.degreeOfParallelism), [busy, setBusy] = useState(false), [error, setError] = useState('');
   useEffect(() => { const dialog = ref.current!; dialog.showModal(); return () => dialog.close(); }, []);
@@ -22,9 +23,9 @@ export function RunLaunchDialog({ evidence, reference, replay, plannedSamples, c
         reference: reference?.rtp, referenceNote: reference?.note }); close(); navigate('/simulate');
     } catch (err) { setError(err instanceof Error ? err.message : 'Unable to launch the run.'); setBusy(false); }
   }}><header><h2 id="results-launch-title">{replay ? 'Replay pinned run' : 'Run the pinned model'}</h2><button type="button" className="btn" aria-label="Close run dialog" disabled={busy} onClick={close}>✕</button></header><p>Uses saved config version {evidence.run.configVersion}. Editor changes and newer versions do not affect this launch.</p>
-    <label>Complete rounds<input aria-label="Pinned run rounds" type="number" min="1" max="10000000" step="1" value={samples} onChange={e => setSamples(Number(e.target.value))} disabled={busy} required /></label>
+    <label>Complete rounds<input aria-label="Pinned run rounds" type="number" min="1" max={LIMITS.maxRunRounds} step="1" value={samples} onChange={e => setSamples(Number(e.target.value))} disabled={busy} required /></label>
     <label>Seed<input aria-label="Pinned run seed" type="number" step="1" value={seed} onChange={e => setSeed(Number(e.target.value))} disabled={busy} required /></label>
-    <label>Workers<select aria-label="Pinned run workers" value={workers} onChange={e => setWorkers(Number(e.target.value))} disabled={busy}>{[1, 2, 3, 4].map(n => <option key={n} value={n}>{n}</option>)}</select></label>
+    <label>Workers<select aria-label="Pinned run workers" value={workers} onChange={e => setWorkers(Number(e.target.value))} disabled={busy}>{RUN_WORKERS.map(n => <option key={n} value={n}>{n}</option>)}</select></label>
     <label>Sampling engine<select aria-label="Pinned run engine" disabled={busy} value={engine} onChange={e => setEngine(e.target.value as 'auto' | 'reference')}><option value="auto">Automatic compiled sampling</option><option value="reference">Canonical reference interpreter</option></select></label>
     <p>The same seed and budget can compare engines or worker counts. Their streams remain compatible; a matching replay verifies reproducibility rather than the model specification.</p>
     {!replay && seed === evidence.run.seed && <p className="results-notice">This seed overlaps the selected run. Choose a different seed for an independent sample.</p>}

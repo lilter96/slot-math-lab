@@ -66,17 +66,26 @@ internal static class StateValues
     public static ExprValue Convert(object? value, string? location = null, int depth = 0)
     {
         if (depth > 64) throw new ExpressionEvaluationException("EVAL_VALUE_BUDGET", "State values exceed 64 nested collections.", location);
-        ExprValue Child(object? child) => Convert(child, location, depth + 1);
+        // Scalars are converted before the closure for nested values exists.
         return value switch
         {
             null => ExprValue.Null,
             ExprValue typed => typed,
             BigInteger n => ExprValue.Number(n),
             int n => ExprValue.Number(n), long n => ExprValue.Number(n),
+            string text => ExprValue.String(text), bool boolean => ExprValue.Bool(boolean),
+            _ => ConvertOther(value, location, depth),
+        };
+    }
+
+    private static ExprValue ConvertOther(object value, string? location, int depth)
+    {
+        ExprValue Child(object? child) => Convert(child, location, depth + 1);
+        return value switch
+        {
             byte n => ExprValue.Number(n), sbyte n => ExprValue.Number(n), short n => ExprValue.Number(n), ushort n => ExprValue.Number(n),
             uint n => ExprValue.Number(n), ulong n => ExprValue.Number(n),
             double n => NumericValues.FromDouble(n), float n => NumericValues.FromDouble(n), decimal n => NumericValues.FromDecimal(n),
-            string text => ExprValue.String(text), bool boolean => ExprValue.Bool(boolean),
             IDictionary<string, object?> record => ExprValue.Record(record.ToDictionary(p => p.Key, p => Child(p.Value), StringComparer.Ordinal)),
             IReadOnlyDictionary<string, object?> record => ExprValue.Record(record.ToDictionary(p => p.Key, p => Child(p.Value), StringComparer.Ordinal)),
             IDictionary => throw Unsupported(location),

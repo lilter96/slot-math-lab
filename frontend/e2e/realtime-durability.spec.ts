@@ -7,7 +7,7 @@ async function launch(page: Page) {
   test.setTimeout(Math.max(test.info().timeout, 180000));
   await page.goto('/build?project=dog-house');
   await page.getByRole('tab', { name: 'Simulate', exact: true }).click();
-  await page.getByLabel('Simulation spins').fill('10000000');
+  await page.getByLabel('Simulation spins').fill('1000000000');
   const created = waitForRunLaunch(page);
   await page.getByRole('button', { name: /start run/i }).click();
   const run = await (await created).json();

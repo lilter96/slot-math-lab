@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Globalization;
 using System.Numerics;
+using System.Runtime.CompilerServices;
 using SlotMath.Core.Expressions;
 
 namespace SlotMath.Core.Compiler;
@@ -14,15 +15,24 @@ internal struct SamplingCell
     public object? Raw;
     private ExprValue _value;
     private bool _deferred;
+    // Present, converted and non-null: a read needs no further checks.
+    private bool _readable;
     public readonly ExprValue Value => _deferred ? StateValues.Convert(Raw) : _value;
+    internal readonly bool Readable => _readable;
+    internal readonly ExprValue StoredValue => _value;
 
-    public static SamplingCell Typed(ExprValue value) => new() { Present = true, _value = NormalizeStored(value) };
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static SamplingCell Typed(ExprValue value)
+    {
+        if (value.ContainsSymbols) value = NormalizeStored(value);
+        return new() { Present = true, _value = value, _readable = value.Kind != ExprType.Null };
+    }
     public static SamplingCell FromRaw(object? raw)
     {
         // Unused state and untaken conditional branches must not evaluate an
         // unsupported value during frame construction or binding.
         var cell = new SamplingCell { Present = true, HasRaw = true, Raw = raw };
-        try { cell._value = StateValues.Convert(raw); }
+        try { cell._value = StateValues.Convert(raw); cell._readable = cell._value.Kind != ExprType.Null; }
         catch (ExpressionEvaluationException) { cell._deferred = true; }
         return cell;
     }
@@ -115,19 +125,36 @@ internal sealed class SamplingFrame
     public void Reset(CancellationToken token, bool[]? retained = null)
     {
         token.ThrowIfCancellationRequested();
-        if (retained is null) Array.Copy(_initial, Cells, Cells.Length);
-        else for (var i = 0; i < Cells.Length; i++) if (!retained[i]) Cells[i] = _initial[i];
+        if (retained is null) Array.Copy(_initial, Cells, _initial.Length);
+        else for (var i = 0; i < _initial.Length; i++) if (!retained[i]) Cells[i] = _initial[i];
         CancellationToken = token;
         Settlement = null;
         _operations = 0;
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void CheckCancellation()
     {
         if ((++_operations & 255) == 0) CancellationToken.ThrowIfCancellationRequested();
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public ExprValue Read(int index, string location)
+    {
+        ref readonly var cell = ref Cells[index];
+        return cell.Readable ? cell.StoredValue : ReadChecked(index, location);
+    }
+
+    /// <summary>Assigns a field to itself. A cell that already holds a typed
+    /// value is left as it is; any other cell is read and stored as usual.</summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public void Touch(int index, string location)
+    {
+        ref var cell = ref Cells[index];
+        if (!cell.Readable || cell.HasRaw) cell = SamplingCell.Typed(Read(index, location));
+    }
+
+    private ExprValue ReadChecked(int index, string location)
     {
         if (!Cells[index].Present)
             throw new ExpressionEvaluationException("EVAL_MISSING_STATE", $"State field '{location}' is absent.", location);

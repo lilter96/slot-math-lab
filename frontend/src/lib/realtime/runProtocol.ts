@@ -1,4 +1,5 @@
 import type { MeasurementDefinition, MeasurementSnapshot } from '../measurements/model';
+import { LIMITS } from '../limits';
 import { validProfile, sameProfile, type VerificationProfile } from '../measurements/profile';
 import { validAnalysis, validWitnesses } from '../measurements/validation';
 import { validExecutionSummary, validateExecution, sameExecution, type ExecutionOptions, type ExecutionSummary } from '../measurements/execution';
@@ -81,7 +82,7 @@ export function validSnapshot(value: unknown): value is RunSnapshot {
   if (!object(value) || typeof value.id !== 'string' || typeof value.configId !== 'string'
     || typeof value.configHash !== 'string' || !/^[a-f0-9]{64}$/.test(value.configHash)
     || !uint(value.configVersion) || value.configVersion === 0 || typeof value.seed !== 'number' || !Number.isSafeInteger(value.seed)
-    || !uint(value.degreeOfParallelism) || value.degreeOfParallelism < 1 || value.degreeOfParallelism > 4
+    || !uint(value.degreeOfParallelism) || value.degreeOfParallelism < 1 || value.degreeOfParallelism > LIMITS.maxRunWorkers
     || typeof value.streamScheme !== 'string' || typeof value.createdAt !== 'string' || !statuses.has(String(value.status))) return false;
   if (value.runtimeProvenance != null && (!object(value.runtimeProvenance) || ['measurementContract', 'numericalMethods', 'framework'].some(key => typeof (value.runtimeProvenance as Record<string, unknown>)[key] !== 'string')
     || ['coreBinarySha256', 'apiBinarySha256'].some(key => { const hash = (value.runtimeProvenance as Record<string, unknown>)[key]; return hash != null && (typeof hash !== 'string' || !/^[a-f0-9]{64}$/.test(hash)); }))) return false;

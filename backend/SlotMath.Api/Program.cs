@@ -111,8 +111,10 @@ builder.Services.AddSingleton<CompiledGraphCache>();
 builder.Services.AddSingleton<IResultCache, InMemoryResultCache>();
 
 // Hangfire (job runner)
+// A job that is still running after FetchNextJobTimeout is handed to a second
+// worker. The default is 30 minutes; the largest run takes hours.
 builder.Services.AddHangfire(config =>
-    config.UseMemoryStorage());
+    config.UseMemoryStorage(new MemoryStorageOptions { FetchNextJobTimeout = TimeSpan.FromDays(7) }));
 builder.Services.AddHangfireServer(options =>
 {
     options.WorkerCount = Math.Min(2, Environment.ProcessorCount);

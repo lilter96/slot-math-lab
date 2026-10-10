@@ -1,153 +1,264 @@
+using System.Buffers;
+using System.Numerics;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
+
 namespace SlotMath.Core.Random;
 
 /// <summary>
-/// Walker–Vose alias method for O(1) weighted random sampling.
-/// Precomputes two tables — probability thresholds and alias indices —
-/// so each sample requires one uniform integer, one uniform double, and at most one comparison.
+///     Walker–Vose alias method for O(1) weighted random sampling.
+///     High-performance, zero-allocation construction with branchless, bounds-check-free sampling.
 /// </summary>
-/// <remarks>
-/// Build accepts integer or rational weights via <see cref="WeightSet"/>.
-/// Sampling is deterministic given a <see cref="SeededRandom"/>.
-/// Degenerate inputs (single outcome, zero weights, non-normalised weights) are handled.
-/// </remarks>
 public sealed class AliasMethod
 {
-    private readonly double[]? _prob;  // threshold for each bucket (null for uniform sets)
-    private readonly int[]? _alias;    // alias index for each bucket (null for uniform sets)
-    private readonly int _n;           // number of outcomes
-
-    private AliasMethod(double[]? prob, int[]? alias, int n)
+    /// <summary>
+    ///     Contiguous 16-byte aligned entry (power-of-two size: lea rax, [rcx + rdx*16]).
+    ///     Both threshold and alias reside in the exact same 64-byte L1 cache line.
+    /// </summary>
+    [StructLayout(LayoutKind.Sequential, Pack = 8)]
+    public readonly struct SlotEntry(double threshold, int alias)
     {
-        _prob = prob;
-        _alias = alias;
-        _n = n;
+        public readonly double Threshold = threshold;
+        public readonly int Alias = alias;
     }
 
-    /// <summary>Number of outcomes.</summary>
-    public int Count => _n;
+    private readonly SlotEntry[]? _table;
+
+    private AliasMethod(SlotEntry[]? table, int n)
+    {
+        _table = table;
+        Count = n;
+    }
+
+    public int Count { get; }
 
     /// <summary>
-    /// Build an alias table from the given weight set.
+    ///     Builds the alias table with zero heap allocations for N &lt;= 256
+    ///     and normalized BigInteger precision arithmetic.
     /// </summary>
     public static AliasMethod Build(WeightSet weights)
     {
-        // ── Degenerate cases ──────────────────────────────────────────
-        if (weights.Count == 0)
-            throw new ArgumentException("Must have at least one outcome.", nameof(weights));
-
-        if (weights.Count == 1)
-        {
-            // Single outcome always selected.
-            return new AliasMethod([1.0], [0], 1);
-        }
-
-        // Uniform sets need no table: every bucket would be prob=1.0,
-        // alias=self, so sampling reduces to a single bounded uniform draw.
-        // The RNG consumption (one Next + one NextDouble) is kept identical
-        // to the table path so seeded sequences do not change.
-        if (weights.IsUniform)
-            return new AliasMethod(null, null, weights.Count);
-
-        var totalNum = weights.NumeratorSum;
-        if (totalNum == 0)
-            throw new ArgumentException("At least one weight must be positive.", nameof(weights));
+        ArgumentNullException.ThrowIfNull(weights);
 
         var n = weights.Count;
-
-        // Probability of outcome i = Numerators[i] / NumeratorSum.
-        // The Denominator cancels — it is already reflected in the numerators
-        // (for integer weights Denominator=1; for rational weights numerators
-        // are scaled to the common denominator).
-        // Scaled probability for alias table: p_i * n = Numer[i] * n / totalNum.
-        var scaled = new double[n];
-        for (var i = 0; i < n; i++)
+        if (n == 0)
         {
-            var numer = weights.Numerators[i] * new System.Numerics.BigInteger(n);
-            scaled[i] = (double)numer / (double)totalNum;
+            throw new ArgumentException("Must have at least one outcome.", nameof(weights));
         }
 
-        // ── Walker-Vose construction ──────────────────────────────────
-        var prob = new double[n];
-        var alias = new int[n];
-
-        // Partition into small (< 1.0) and large (>= 1.0)
-        var small = new Queue<int>();
-        var large = new Queue<int>();
-
-        for (var i = 0; i < n; i++)
+        if (n == 1)
         {
-            if (scaled[i] < 1.0)
-                small.Enqueue(i);
-            else
-                large.Enqueue(i);
+            return new AliasMethod(null, 1);
         }
 
-        while (small.Count > 0 && large.Count > 0)
+        if (weights.IsUniform)
         {
-            var s = small.Dequeue();
-            var l = large.Dequeue();
-
-            prob[s] = scaled[s];
-            alias[s] = l;
-
-            scaled[l] = scaled[l] - (1.0 - scaled[s]);
-
-            if (scaled[l] < 1.0)
-                small.Enqueue(l);
-            else
-                large.Enqueue(l);
+            return new AliasMethod(null, n);
         }
 
-        // Handle remaining entries (floating-point rounding may leave some in either queue).
-        // They should all be ~1.0.
-        while (large.Count > 0)
+        BigInteger totalNum = weights.NumeratorSum;
+        if (totalNum <= BigInteger.Zero)
         {
-            var l = large.Dequeue();
-            prob[l] = 1.0;
-            alias[l] = l;
+            throw new ArgumentException("At least one weight must be positive.", nameof(weights));
         }
 
-        while (small.Count > 0)
-        {
-            var s = small.Dequeue();
-            prob[s] = 1.0;
-            alias[s] = s;
-        }
+        // ── 1. Scaling ───────────────────────────────────────────────────────────
+        // scaled[i] = weight · n / total. See Ratio for totals beyond the double range.
+        var divisor = (double)totalNum;
+        var bigN = new BigInteger(n);
 
-        return new AliasMethod(prob, alias, n);
+        // ── 2. Memory Workspace (Zero GC for N <= 256) ───────────────────────────
+        Span<double> stackScaled = stackalloc double[n <= 256 ? n : 0];
+        Span<int> stackWork = stackalloc int[n <= 256 ? 2 * n : 0];
+
+        double[]? rentedScaled = null;
+        int[]? rentedWork = null;
+
+        Span<double> scaled = n <= 256
+            ? stackScaled
+            : (rentedScaled = ArrayPool<double>.Shared.Rent(n)).AsSpan(0, n);
+
+        Span<int> work = n <= 256
+            ? stackWork
+            : (rentedWork = ArrayPool<int>.Shared.Rent(2 * n)).AsSpan(0, 2 * n);
+
+        try
+        {
+            for (var i = 0; i < n; i++)
+            {
+                BigInteger numer = weights[i];
+                if (numer < BigInteger.Zero)
+                {
+                    throw new ArgumentException($"Weight at index {i} cannot be negative.", nameof(weights));
+                }
+
+                if (numer.IsZero)
+                {
+                    scaled[i] = 0.0;
+                }
+                else
+                {
+                    scaled[i] = Ratio(numer * bigN, totalNum, divisor);
+                }
+            }
+
+            // ── 3. Two FIFO Worklists (replace two Queue<int>) ──────────────────
+            // The pairing order decides which outcome a (bucket, fraction) pair
+            // maps to, so it is part of the seeded-replay contract (D24): first
+            // in, first out, exactly as the Queue-based build paired them.
+            // Each ring holds at most n indices.
+            Span<int> small = work[..n];
+            Span<int> large = work[n..];
+            int smallHead = 0, smallCount = 0, largeHead = 0, largeCount = 0;
+
+            for (var i = 0; i < n; i++)
+            {
+                if (scaled[i] < 1.0)
+                {
+                    small[smallCount++] = i;
+                }
+                else
+                {
+                    large[largeCount++] = i;
+                }
+            }
+
+            // Allocate table without zeroing memory overhead since all slots are written.
+            SlotEntry[] table = GC.AllocateUninitializedArray<SlotEntry>(n);
+
+            // ── 4. Walker–Vose Partitioning ─────────────────────────────────────
+            while (smallCount > 0 && largeCount > 0)
+            {
+                var s = small[smallHead];
+                smallHead = smallHead + 1 == n ? 0 : smallHead + 1;
+                smallCount--;
+
+                var l = large[largeHead];
+                largeHead = largeHead + 1 == n ? 0 : largeHead + 1;
+                largeCount--;
+
+                // Rounding can leave a remainder a few ulps below zero. The stored
+                // threshold is clamped (a negative one never accepts, like 0.0);
+                // the running remainder is not, so later thresholds keep the same
+                // bits as before.
+                table[s] = new SlotEntry(scaled[s] > 0.0 ? scaled[s] : 0.0, l);
+                scaled[l] -= 1.0 - scaled[s];
+
+                if (scaled[l] < 1.0)
+                {
+                    var tail = smallHead + smallCount;
+                    small[tail >= n ? tail - n : tail] = l;
+                    smallCount++;
+                }
+                else
+                {
+                    var tail = largeHead + largeCount;
+                    large[tail >= n ? tail - n : tail] = l;
+                    largeCount++;
+                }
+            }
+
+            // Remaining elements are mathematically ~1.0; force threshold = 1.0.
+            for (; largeCount > 0; largeCount--)
+            {
+                var l = large[largeHead];
+                largeHead = largeHead + 1 == n ? 0 : largeHead + 1;
+                table[l] = new SlotEntry(1.0, l);
+            }
+
+            for (; smallCount > 0; smallCount--)
+            {
+                var s = small[smallHead];
+                smallHead = smallHead + 1 == n ? 0 : smallHead + 1;
+                table[s] = new SlotEntry(1.0, s);
+            }
+
+            return new AliasMethod(table, n);
+        }
+        finally
+        {
+            if (rentedScaled is not null)
+            {
+                ArrayPool<double>.Shared.Return(rentedScaled);
+            }
+
+            if (rentedWork is not null)
+            {
+                ArrayPool<int>.Shared.Return(rentedWork);
+            }
+        }
     }
 
     /// <summary>
-    /// Sample an outcome index in [0, n).
-    /// O(1): one uniform integer, one uniform double, one comparison.
+    ///     <paramref name="numerator" /> / <paramref name="denominator" /> as a double.
+    ///     While both operands convert to a finite double this is the plain quotient,
+    ///     so thresholds keep the bits seeded replay depends on (D24). Beyond that
+    ///     range the quotient of the leading 64 bits is rescaled by the difference in
+    ///     magnitude: a positive weight keeps a positive share as long as a double
+    ///     can represent it, and nothing overflows.
     /// </summary>
+    private static double Ratio(BigInteger numerator, BigInteger denominator, double denominatorAsDouble)
+    {
+        var top = (double)numerator;
+        if (double.IsFinite(top) && double.IsFinite(denominatorAsDouble))
+        {
+            return top / denominatorAsDouble;
+        }
+
+        var numeratorShift = (int)System.Math.Max(0, numerator.GetBitLength() - 64);
+        var denominatorShift = (int)System.Math.Max(0, denominator.GetBitLength() - 64);
+        return System.Math.ScaleB((double)(numerator >> numeratorShift) / (double)(denominator >> denominatorShift),
+            numeratorShift - denominatorShift);
+    }
+
+    /// <summary>
+    ///     Samples an outcome index in [0, n).
+    ///     Bound-check-free, branchless selection, exact RNG sequence preservation.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public int Sample(SeededRandom rng)
     {
-        var i = rng.Next(_n);
-        if (_prob is null)
+        var i = rng.Next(Count);
+        if (_table is null)
         {
-            // Uniform set — NextDouble() is always < 1.0, so the bucket is
-            // always accepted.  Consumed anyway to keep sequences identical.
+            // Preserves strict RNG sequence parity with table path.
             rng.NextDouble();
             return i;
         }
-        return rng.NextDouble() < _prob[i] ? i : _alias![i];
+
+        // Direct memory reference via base pointer: eliminates both bounds checks.
+        ref readonly SlotEntry entry = ref Unsafe.Add(
+            ref MemoryMarshal.GetArrayDataReference(_table), i);
+
+        // Compiles down to ucomisd + cmov (branchless conditional move).
+        return rng.NextDouble() < entry.Threshold ? i : entry.Alias;
     }
 
     /// <summary>
-    /// Return the alias table for inspection/testing.
-    /// prob[i] is the acceptance threshold, alias[i] is the fallback index.
+    ///     Returns independent arrays for testing and inspection.
     /// </summary>
     public (double[] prob, int[] alias) GetTables()
     {
-        if (_prob is null)
+        var prob = new double[Count];
+        var alias = new int[Count];
+
+        if (_table is null)
         {
-            var prob = new double[_n];
             Array.Fill(prob, 1.0);
-            var alias = new int[_n];
-            for (var i = 0; i < _n; i++) alias[i] = i;
+            for (var i = 0; i < Count; i++)
+            {
+                alias[i] = i;
+            }
+
             return (prob, alias);
         }
-        return (_prob.ToArray(), _alias!.ToArray());
+
+        for (var i = 0; i < Count; i++)
+        {
+            prob[i] = _table[i].Threshold;
+            alias[i] = _table[i].Alias;
+        }
+
+        return (prob, alias);
     }
 }

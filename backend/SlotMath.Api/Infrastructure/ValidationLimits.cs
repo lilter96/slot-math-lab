@@ -14,6 +14,10 @@ public static class ValidationLimits
 
     // ── Simulation limits ───────────────────────────────────────────
     public const int MaxSpinBudget = 10_000_000;
+    /// <summary>Largest sampled run (<c>POST /api/runs</c>), in complete rounds.</summary>
+    public const long MaxRunRounds = 10_000_000_000;
+    /// <summary>Most sampling workers one run may use.</summary>
+    public const int MaxRunWorkers = 8;
     public const int LightSampleMax = 50_000;
     public const int LightBranchMax = 100_000;
 
