@@ -727,7 +727,10 @@ public class G17IntegrationTests : IClassFixture<WebApplicationFactory<Program>>
         var configId = await CreateConfigAsync();
         var response = await _client.PostAsJsonAsync("/api/runs", new
         {
-            configId, sampleSize = ValidationLimits.MaxRunRounds, degreeOfParallelism = ValidationLimits.MaxRunWorkers, progressBatchSize = 65_536,
+            configId,
+            sampleSize = ValidationLimits.MaxRunRounds,
+            degreeOfParallelism = ValidationLimits.MaxRunWorkers,
+            progressBatchSize = 65_536,
         });
         Assert.Equal(System.Net.HttpStatusCode.Accepted, response.StatusCode);
         var run = await response.Content.ReadFromJsonAsync<JsonElement>();
