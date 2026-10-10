@@ -1,4 +1,4 @@
-import { saveMeasurement, waitForRunLaunch, test, expect, getWithQuota } from './fixtures';
+import { calculateWithQuota, saveMeasurement, waitForRunLaunch, test, expect, getWithQuota } from './fixtures';
 
 test.beforeEach(async ({ request }) => {
   test.setTimeout(120000);
@@ -43,15 +43,29 @@ test('Authored episode, grouped distribution, reference verdict, WebSocket evide
   await page.goto(`/results?run=${created.id}`); await expect(page.getByRole('heading', { name: 'Sticky episode total · saved analysis', exact: true })).toBeVisible({ timeout: 70000 });
 });
 test('Native reference workbench proves equal-RTP moments and rejects a closed feature state', async ({ page }) => {
+  test.setTimeout(360000);
   await page.goto('/simulate'); await page.getByText('Independent reference workbench', { exact: true }).click();
-  await page.getByRole('button', { name: 'Calculate exact reference', exact: true }).click(); const result = page.getByLabel('Reference calculation result');
+  await calculateWithQuota(page, '/api/runs/measurements/reference/distribution', 'Calculate exact reference'); const result = page.getByLabel('Reference calculation result');
   await expect(result).toContainText('49/50'); await expect(result).toContainText('2401/2500');
-  await page.getByLabel('Reference model type').selectOption('markov'); await page.getByRole('button', { name: 'Calculate exact reference', exact: true }).click();
+  await page.getByLabel('Reference model type').selectOption('markov');
+  const attempts: number[] = [];
+  await page.route('**/api/runs/measurements/reference/markov', route => {
+    attempts.push(Date.now());
+    return attempts.length === 1
+      ? route.fulfill({ status: 429, headers: { 'Retry-After': '6' }, body: '' }) : route.continue();
+  });
+  const calculation = calculateWithQuota(page, '/api/runs/measurements/reference/markov', 'Calculate exact reference');
+  await expect(page.locator('#reference-workbench').getByRole('status')).toContainText('retrying the rejected calculation in 6s');
+  await expect(page.getByLabel('Reference model type')).toBeDisabled();
+  await expect(result).not.toBeVisible();
+  await calculation;
+  expect(attempts.length).toBeGreaterThanOrEqual(2); expect(attempts[1] - attempts[0]).toBeGreaterThanOrEqual(5900);
+  await page.unroute('**/api/runs/measurements/reference/markov');
   await expect(result).toContainText('Expected duration 3/1'); await expect(result).toContainText('expected reward 6/1');
-  await page.getByLabel('Transition 1 to 1').fill('1'); await page.getByRole('button', { name: 'Calculate exact reference', exact: true }).click();
+  await page.getByLabel('Transition 1 to 1').fill('1'); await calculateWithQuota(page, '/api/runs/measurements/reference/markov', 'Calculate exact reference');
   await expect(result).toContainText('nonterminating'); await expect(result).toContainText('expected reward undefined');
-  await page.getByLabel('Reference model type').selectOption('stationary'); await page.getByRole('button', { name: 'Load independent example', exact: true }).click(); await page.getByRole('button', { name: 'Calculate exact reference', exact: true }).click(); await expect(result).toContainText('long-run'); await expect(result).toContainText('49/50');
-  await page.locator('#sample-planning > summary').click(); await page.getByRole('button', { name: 'Calculate observation budget', exact: true }).click(); await expect(page.getByLabel('Observation planning result')).toContainText('29,957,322'); await expect(page.getByLabel('Observation planning result')).toContainText('detection budget: insufficient');
+  await page.getByLabel('Reference model type').selectOption('stationary'); await page.getByRole('button', { name: 'Load independent example', exact: true }).click(); await calculateWithQuota(page, '/api/runs/measurements/reference/markov', 'Calculate exact reference'); await expect(result).toContainText('long-run'); await expect(result).toContainText('49/50');
+  await page.locator('#sample-planning > summary').click(); await calculateWithQuota(page, '/api/runs/measurements/reference/planning', 'Calculate observation budget'); await expect(page.getByLabel('Observation planning result')).toContainText('29,957,322'); await expect(page.getByLabel('Observation planning result')).toContainText('detection budget: insufficient');
 });
 test('Catalogue recipe becomes a visual Boolean AST and fixed-horizon session evidence survives reload', async ({ page }) => {
   await page.goto('/build'); await page.getByLabel('Import project file').setInputFiles('e2e/fixtures/measurement-model.json');

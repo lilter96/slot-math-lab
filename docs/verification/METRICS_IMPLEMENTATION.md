@@ -194,6 +194,12 @@ The complete authenticated Dog House profile workflow also passed on this produc
 
 Catalogue scope remains **95 ready / 51 authored-contract prerequisites / 13 partial workflows**. This phase does not close unsupported record/nullable-state expression corners, early-stop session policies or the remaining feature interruption and experimental-design workflows.
 
+## Accepted calculation and saved-evidence readiness
+
+Strict-contract commit `cfd847ae09635d78dc495d6d936bcee8c462a5e2` passed [remote CI 38033232363](https://github.com/lilter96/slot-math-lab/actions/runs/38033232363), including backend/frontend checks, Docker images and smoke verification. Its browser job records **69 first-pass successes / 2 retry-assisted passes**. Retained first-failure contexts show the reference workbench honoring a 60-second server quota pause and Results still loading its pinned evidence when their five-second assertions expired.
+
+The reference fixture now awaits an accepted calculation response before applying the unchanged mathematical paint assertions. A deliberately empty six-second quota rejection checks the disabled model selector, withheld old result and absence of early resubmission before the real Markov calculation. The saved decimal fixture independently rejects its first evidence read for six seconds, waits for authoritative saved measurement readiness, verifies the retry deadline, then checks the same exact rendered value and pinned-engine replay. Production limits and transport behavior are unchanged. Both affected native workflows passed **2/2 without retries in 22.3 seconds**, with frontend TypeScript and lint checks passing.
+
 ## Required remaining work
 
 1. Close the explicitly recorded partial workflows in the definition-by-definition review, with independent scenario fixtures and correct game-author prerequisites.

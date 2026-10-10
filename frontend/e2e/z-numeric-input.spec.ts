@@ -47,7 +47,18 @@ test('Native decimal state retains nonzero metrics, exact assertions, charts, ex
   }
   expect(records[1].run.progress.measurements).toEqual(records[0].run.progress.measurements);
   expect(records[1].run.verificationProfileHash).toBe(records[0].run.verificationProfileHash);
-  await page.goto(`/results?run=${records[0].run.id}`);
+  const id = records[0].run.id, evidenceAttempts: number[] = [];
+  await page.route(`**/api/runs/${id}/evidence`, route => {
+    evidenceAttempts.push(Date.now());
+    return evidenceAttempts.length === 1
+      ? route.fulfill({ status: 429, headers: { 'Retry-After': '6' }, body: '' }) : route.continue();
+  });
+  const rejected = page.waitForResponse(response => new URL(response.url()).pathname === `/api/runs/${id}/evidence` && response.status() === 429);
+  await page.goto(`/results?run=${id}`); await rejected;
+  const saved = page.getByRole('region', { name: 'Saved measurement Tiny signal', exact: true });
+  await expect(saved).toBeVisible({ timeout: 70000 });
+  expect(evidenceAttempts.length).toBeGreaterThanOrEqual(2); expect(evidenceAttempts[1] - evidenceAttempts[0]).toBeGreaterThanOrEqual(5900);
+  await page.unroute(`**/api/runs/${id}/evidence`);
   const row = page.getByRole('table').filter({ has: page.getByRole('columnheader', { name: 'Measurement / scope', exact: true }) }).getByRole('row').filter({ hasText: 'Tiny signal' }); await expect(row).toContainText('1e-9 signal');
   await page.getByRole('button', { name: 'Replay pinned run', exact: true }).click(); await page.getByLabel('Pinned run engine').selectOption('reference');
   const replay = waitForRunLaunch(page);

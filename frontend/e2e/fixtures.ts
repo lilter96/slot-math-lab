@@ -11,6 +11,17 @@ export function waitForRunLaunch(page: Page): Promise<BrowserResponse> {
     .then(response => { expect(response.status(), 'Run launch was accepted').toBe(202); return response; });
 }
 
+/** Await the accepted calculation before asserting its rendered mathematics.
+ * Empty quota rejections are transport state, never a successful JSON result. */
+export async function calculateWithQuota(page: Page, path: string, buttonName: string): Promise<void> {
+  test.setTimeout(Math.max(test.info().timeout, 180000));
+  const accepted = page.waitForResponse(response => new URL(response.url()).pathname === path
+    && response.request().method() === 'POST' && response.status() !== 429, { timeout: 70000 });
+  await page.getByRole('button', { name: buttonName, exact: true }).click();
+  const response = await accepted;
+  expect(response.status(), `Calculation ${path} was accepted`).toBe(200);
+}
+
 /** A successful save follows asynchronous whole-plan validation. Preserve the
  * production quota window, but surface a rejected plan immediately. */
 export async function saveMeasurement(page: Page): Promise<void> {
