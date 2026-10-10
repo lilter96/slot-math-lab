@@ -66,5 +66,6 @@ internal struct MeasurementAccumulator
     }
     public readonly MeasurementSnapshot Snapshot(string id, bool ordered = true) => new(id, Observations, Count, Excluded, Errors,
         Count == 0 ? null : Min, Count == 0 ? null : Max, Count == 0 ? null : Mean, Count == 0 ? null : Sum,
-        Count < 2 ? null : System.Math.Sqrt(System.Math.Max(0, M2 / (Count - 1))), FirstError) { Analysis = Analysis?.Snapshot(Errors, ordered), Witnesses = Witnesses?.Snapshot() ?? [] };
+        Count < 2 ? null : System.Math.Sqrt(System.Math.Max(0, M2 / (Count - 1))), FirstError)
+    { Analysis = Analysis?.Snapshot(Errors, ordered), Witnesses = Witnesses?.Snapshot() ?? [] };
 }

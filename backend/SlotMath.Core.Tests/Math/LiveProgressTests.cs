@@ -17,8 +17,14 @@ public class LiveProgressTests
     {
         var snapshots = new List<SampledProgress>();
         var live = SampledInterpreter.Evaluate(Program, 0, new SampledConfig
-        { Seed = 42, MaxSpins = 150000, MaxWinCap = 100, DegreeOfParallelism = workers,
-            ProgressReportInterval = interval, ProgressCallback = snapshots.Add });
+        {
+            Seed = 42,
+            MaxSpins = 150000,
+            MaxWinCap = 100,
+            DegreeOfParallelism = workers,
+            ProgressReportInterval = interval,
+            ProgressCallback = snapshots.Add
+        });
         var baseline = SampledInterpreter.Evaluate(Program, 0, new SampledConfig
         { Seed = 42, MaxSpins = 150000, MaxWinCap = 100, DegreeOfParallelism = 1 });
         Assert.Contains(snapshots, p => p.SpinsCompleted > 0 && p.SpinsCompleted < 65536);
@@ -42,8 +48,14 @@ public class LiveProgressTests
     {
         using var cancellation = new CancellationTokenSource();
         var result = SampledInterpreter.Evaluate(Program, 0, new SampledConfig
-        { Seed = 42, MaxSpins = 100000, CancellationToken = cancellation.Token, CancellationCheckInterval = 1,
-            ProgressReportInterval = 1000, ProgressCallback = _ => cancellation.Cancel() });
+        {
+            Seed = 42,
+            MaxSpins = 100000,
+            CancellationToken = cancellation.Token,
+            CancellationCheckInterval = 1,
+            ProgressReportInterval = 1000,
+            ProgressCallback = _ => cancellation.Cancel()
+        });
         Assert.True(result.WasCancelled);
         Assert.Equal(1000, result.SpinsCompleted);
         Assert.Equal(1000, result.Stats.BuildAdaptiveHistogram().Sum(bin => bin.Count));

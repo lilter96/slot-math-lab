@@ -8,6 +8,7 @@ using SlotMath.Core.Random;
 using Dict = System.Collections.Generic.Dictionary<string, object?>;
 
 namespace SlotMath.Core.Measurements;
+
 public sealed record EnumerationBudget(int MaximumPaths = 10000, int MaximumOperations = 250000, int MaximumFrontier = 2048);
 public sealed record EnumeratedValue(double Value, string MassPerPaidRound);
 public sealed record EnumeratedJointValue(double X, double Y, string MassPerPaidRound);
@@ -56,7 +57,7 @@ public static class GraphMeasurementEnumeration
         while (frontier.TryPop(out var path))
         {
             var current = path.Current; var state = path.State; var stack = path.Stack; var trace = path.Trace; var raw = path.Raw;
-            for (;;)
+            for (; ; )
             {
                 cancellationToken.ThrowIfCancellationRequested();
                 if (completed >= budget.MaximumPaths || ++operations > budget.MaximumOperations) { unresolved += path.Mass; break; }
@@ -111,7 +112,8 @@ public static class GraphMeasurementEnumeration
         var capValue = new Rational(maximumPayout, BigInteger.One);
         return new(unresolved == Rational.Zero ? "Enumerated" : "BoundedEnumeration", completed, operations, retained.ToString(), unresolved.ToString(),
             new(payoutSum.ToString(), (payoutSum + unresolved * capValue).ToString()), outputs.Select(o => o.Snapshot(unresolved == Rational.Zero)).ToArray(),
-            "Exact branch probabilities and canonical integer/sub-credit round payouts. Measurement values use the production collector's IEEE-754 conversion and reductions; their probability masses are rational. Repeated observations retain expected exposure per paid round. Cohort and paired laws retain the same exposure convention. Joint moments use exact rational identities of the observed binary64 values. Conditional means are withheld for cut paths, invalid subjects or incomplete value support. Likelihood weights do not transform these graph/proposal occurrence laws into a target law. This checks compiled-IR behavior; use an independently authored specification as another oracle.") { MaximumKnownPayout = completed > 0 ? maximumKnown.ToString() : null, ReachableMaximum = unresolved == Rational.Zero ? maximumKnown.ToString() : null };
+            "Exact branch probabilities and canonical integer/sub-credit round payouts. Measurement values use the production collector's IEEE-754 conversion and reductions; their probability masses are rational. Repeated observations retain expected exposure per paid round. Cohort and paired laws retain the same exposure convention. Joint moments use exact rational identities of the observed binary64 values. Conditional means are withheld for cut paths, invalid subjects or incomplete value support. Likelihood weights do not transform these graph/proposal occurrence laws into a target law. This checks compiled-IR behavior; use an independently authored specification as another oracle.")
+        { MaximumKnownPayout = completed > 0 ? maximumKnown.ToString() : null, ReachableMaximum = unresolved == Rational.Zero ? maximumKnown.ToString() : null };
     }
     private sealed record Continuation(IFlatMapNode? Map, ISettlementNode? Settlement);
     private sealed record Trace(string Node, Dict State, Trace? Previous);
@@ -218,7 +220,7 @@ public static class GraphMeasurementEnumeration
             {
                 GroupsComplete = allPaths && _groupsComplete,
                 Groups = _groups.Select(p => new EnumeratedCohort(p.Key, p.Value.Valid.ToString(), p.Value.Sum.ToString(), p.Value.Mean(valid), p.Value.Support(), p.Value.Complete(allPaths), p.Value.Pair(valid))
-                    { ParentExposure = p.Value.Parents(allPaths && _groupsComplete, options.Subject == "episode") }).ToArray(),
+                { ParentExposure = p.Value.Parents(allPaths && _groupsComplete, options.Subject == "episode") }).ToArray(),
                 ParentExposure = _overall.Parents(allPaths, options.Subject == "episode"),
                 Pair = _overall.Pair(valid),
                 Weighting = options.Weight is null ? "Unweighted occurrence law under the authored graph" : "Authored graph/proposal occurrence law; target likelihood-weighted law is not enumerated",

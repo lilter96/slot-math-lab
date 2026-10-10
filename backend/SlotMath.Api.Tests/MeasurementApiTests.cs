@@ -5,9 +5,10 @@ using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.DependencyInjection;
 using SlotMath.Api.Features.Runs;
 using SlotMath.Api.Infrastructure;
-using SlotMath.Core.Model;
 using SlotMath.Core.Measurements;
+using SlotMath.Core.Model;
 namespace SlotMath.Api.Tests;
+
 [Collection("SerialTests")]
 public class MeasurementApiTests : IClassFixture<WebApplicationFactory<Program>>
 {
@@ -172,11 +173,16 @@ public class MeasurementApiTests : IClassFixture<WebApplicationFactory<Program>>
         Assert.Equal(HttpStatusCode.BadRequest, (await client.PostAsJsonAsync("/api/runs", new { configId = id, measurements = new[] { invalid } })).StatusCode);
         Assert.Equal(HttpStatusCode.BadRequest, (await client.PostAsJsonAsync("/api/runs", new { configId = id, measurements = (object?)null })).StatusCode);
     }
-    [Theory][InlineData("auto")][InlineData("reference")]
+    [Theory]
+    [InlineData("auto")]
+    [InlineData("reference")]
     public async Task StrictConversionsRetainExactAssertionsAndInvalidObservationEvidence(string engine)
     {
-        var config = Coin() with { InitialState = new()
-            { ["values"] = JsonSerializer.Deserialize<JsonElement>("[0.5,0.25]"), ["text"] = JsonSerializer.Deserialize<JsonElement>("\"H\"") } };
+        var config = Coin() with
+        {
+            InitialState = new()
+            { ["values"] = JsonSerializer.Deserialize<JsonElement>("[0.5,0.25]"), ["text"] = JsonSerializer.Deserialize<JsonElement>("\"H\"") }
+        };
         var configs = factory.Services.GetRequiredService<InMemoryConfigStore>(); var store = factory.Services.GetRequiredService<InMemoryRunStore>();
         var id = configs.Create(config);
         FieldAccessExpr Values() => new() { Target = "state", Path = ["values"] };

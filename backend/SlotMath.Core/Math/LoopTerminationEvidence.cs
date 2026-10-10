@@ -47,7 +47,9 @@ internal sealed class LoopTerminationEvidence
         if (!target.TryGetValue(nodeId, out var previous)) { target.Add(nodeId, value); return; }
         var reasons = new Dictionary<string, long>(previous.Reasons ?? new Dictionary<string, long>());
         foreach (var (key, count) in value.Reasons ?? new Dictionary<string, long>()) reasons[key] = checked(reasons.GetValueOrDefault(key) + count);
-        target[nodeId] = previous with { Reasons = reasons,
+        target[nodeId] = previous with
+        {
+            Reasons = reasons,
             CompletedInvocations = checked(previous.CompletedInvocations + value.CompletedInvocations),
             ModelLimitCompletions = checked(previous.ModelLimitCompletions + value.ModelLimitCompletions),
             ConditionCompletions = checked(previous.ConditionCompletions + value.ConditionCompletions),

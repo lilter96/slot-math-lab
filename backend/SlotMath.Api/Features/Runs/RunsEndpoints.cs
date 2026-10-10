@@ -65,7 +65,8 @@ public static class RunsEndpoints
             var hash = pinned is null ? null : CanonicalHash.Compute(pinned.Config);
             return Results.Ok(new RunEvidence(RunResponse.From(run), RunArchive.Describe(pinned, run.ConfigId),
                 pinned is null ? null : JsonSerializer.SerializeToElement(pinned.Config, SlotMath.Core.JsonOptions.Default),
-                hash, hash is not null && hash == run.ConfigHash) { Diagnostics = run.Diagnostics });
+                hash, hash is not null && hash == run.ConfigHash)
+            { Diagnostics = run.Diagnostics });
         }).Produces<RunEvidence>();
 
         group.MapPost("/{id}/measurements/reference", (string id, SlotMath.Core.Measurements.EnumerationBudget budget, CompiledGraphCache compiledGraphs, IWebHostEnvironment environment, CancellationToken cancellationToken) =>

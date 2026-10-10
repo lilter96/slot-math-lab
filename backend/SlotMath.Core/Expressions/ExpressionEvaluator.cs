@@ -370,7 +370,7 @@ public static class ExactExpressionEvaluator
             {
                 State = iterState,
                 DecorationParser = ctx.DecorationParser,
-                    Measurement = ctx.Measurement,
+                Measurement = ctx.Measurement,
                 SymbolToNumericValue = ctx.SymbolToNumericValue,
             });
             index++;
@@ -420,7 +420,7 @@ public static class ExactExpressionEvaluator
             {
                 State = iterState,
                 DecorationParser = ctx.DecorationParser,
-                    Measurement = ctx.Measurement,
+                Measurement = ctx.Measurement,
                 SymbolToNumericValue = ctx.SymbolToNumericValue,
             }));
             index++;
@@ -451,7 +451,7 @@ public static class ExactExpressionEvaluator
             {
                 State = iterState,
                 DecorationParser = ctx.DecorationParser,
-                    Measurement = ctx.Measurement,
+                Measurement = ctx.Measurement,
                 SymbolToNumericValue = ctx.SymbolToNumericValue,
             });
             if (pred.Kind != ExprType.Boolean) throw new ExpressionEvaluationException("EVAL_TYPE_ERROR", "Filter predicate requires Boolean.");

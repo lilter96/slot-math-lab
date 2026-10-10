@@ -58,14 +58,16 @@ internal sealed class MeasurementAnalysisAccumulator(MeasurementOptions options)
     }
 
     public void Parent(bool matching, long entries, long exits, long unclosed, long uniqueAwards, long duplicateAwards, long? observations = null, double sum = 0)
-    { if (matching) _distinctParents++; _entries += entries; _exits += exits; _unclosed += unclosed; _uniqueAwards += uniqueAwards; _duplicateAwards += duplicateAwards;
+    {
+        if (matching) _distinctParents++; _entries += entries; _exits += exits; _unclosed += unclosed; _uniqueAwards += uniqueAwards; _duplicateAwards += duplicateAwards;
         if (_parentHasMatchingChild) _matchingPaidParents++;
         if (observations is { } count)
         { var dx = sum - _clusterSums.Mean; var dy = count - _clusterCounts.Mean; _clusterCoMoment += dx * dy * _clusterSums.Count / (_clusterSums.Count + 1d); _clusterSums.Add(sum); _clusterCounts.Add(count); }
         // Absent cohorts are zero-filled by Merge using the overall parent
         // count. Touching them here only creates work for the next Reset.
         foreach (var group in _groups.Values)
-            if (group.HasEvidence) group.Parent(group._moments.Count > 0, 0, 0, 0, 0, 0, group._moments.Count, group._moments.Sum); }
+            if (group.HasEvidence) group.Parent(group._moments.Count > 0, 0, 0, 0, 0, 0, group._moments.Count, group._moments.Sum);
+    }
     public void Add(double value, double? pair, double? weight, string? group, bool assertionViolation = false)
     {
         if (_groupsComplete && group is not null && !_groups.ContainsKey(group) && _groups.Count >= options.GroupLimit)
@@ -339,7 +341,9 @@ internal sealed class MeasurementAnalysisAccumulator(MeasurementOptions options)
                 n == 0 ? null : _weightedSum / n, _weightSum > 0 ? _weightedSum / _weightSum : null, double.IsFinite(_minWeight) ? _minWeight : 0, _maxWeight, weightedCi, n == 0 ? null : _weightedEvents / n, weightedEventCi, weightedRatio, weightedRatioCi),
             _sequence?.Snapshot(ordered), TransitionSnapshot(), _transitionsComplete, comparison, checks.ToArray(), _groups.Where(p => p.Value.HasEvidence).ToDictionary(p => p.Key, p => p.Value.Snapshot(errors, ordered), StringComparer.Ordinal))
         {
-            EpisodeProfile = _episodeEvidence?.Snapshot(), GroupsComplete = _groupsComplete, Assertion = assertion,
+            EpisodeProfile = _episodeEvidence?.Snapshot(),
+            GroupsComplete = _groupsComplete,
+            Assertion = assertion,
             InterruptedLifecycle = options.Subject is "episode" or "transition"
                 ? new(_cancelledLifecycle ?? FeatureLifecycleCounts.Empty, _failedLifecycle ?? FeatureLifecycleCounts.Empty) { ResourceExpiry = _resourceLifecycle } : null,
             ParentExposure = new(_matchingPaidParents, options.Subject == "episode" ? _matchingEpisodes : null),

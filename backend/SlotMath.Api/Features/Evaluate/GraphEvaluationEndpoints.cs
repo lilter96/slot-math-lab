@@ -44,19 +44,30 @@ public static class GraphEvaluationEndpoints
                 {
                     var epsilon = new Rational((long)Math.Round(request.Epsilon * 1_000_000_000_000), 1_000_000_000_000);
                     var result = await Task.Run(() => ExactInterpreter.Evaluate(compiled.Program!, new Dictionary<string, object?>(),
-                        StateHasher.CanonicalHash, new ExactConfig { Budget = budget,
+                        StateHasher.CanonicalHash, new ExactConfig
+                        {
+                            Budget = budget,
                             EpsilonNumerator = request.Mode == "Pruned" ? epsilon.Numerator : 0,
-                            EpsilonDenominator = epsilon.Denominator }), context.RequestAborted);
+                            EpsilonDenominator = epsilon.Denominator
+                        }), context.RequestAborted);
                     report = ExactMetrics.Compute(result.ValueDistribution(), cap, winScale: compiled.WinScale);
                     actual = report.Rtp.Provenance.Provenance.ToString();
                 }
                 else if (request.Mode == "Hybrid")
                 {
                     var result = await Task.Run(() => HybridEvaluator.Evaluate(compiled.Program!, new Dictionary<string, object?>(), StateHasher.CanonicalHash,
-                        new RegimeConfig { Budget = budget, SampledSeed = request.Seed, SampledSpins = request.Samples,
+                        new RegimeConfig
+                        {
+                            Budget = budget,
+                            SampledSeed = request.Seed,
+                            SampledSpins = request.Samples,
                             ChunkSize = 4096,
-                            DegreeOfParallelism = request.DegreeOfParallelism, MaxWinCap = cap, WinScale = compiled.WinScale,
-                            CancellationToken = deadline.Token, ProgressCallback = _ => { } }), context.RequestAborted);
+                            DegreeOfParallelism = request.DegreeOfParallelism,
+                            MaxWinCap = cap,
+                            WinScale = compiled.WinScale,
+                            CancellationToken = deadline.Token,
+                            ProgressCallback = _ => { }
+                        }), context.RequestAborted);
                     report = result.Report;
                     actual = result.OverallStrategy.ToString();
                     samples = report.Rtp.SampleCount ?? 0;
@@ -65,9 +76,17 @@ public static class GraphEvaluationEndpoints
                 else
                 {
                     var result = await Task.Run(() => SampledInterpreter.Evaluate(compiled.Program!, new Dictionary<string, object?>(),
-                        new SampledConfig { Seed = request.Seed, MaxSpins = request.Samples, DegreeOfParallelism = request.DegreeOfParallelism,
+                        new SampledConfig
+                        {
+                            Seed = request.Seed,
+                            MaxSpins = request.Samples,
+                            DegreeOfParallelism = request.DegreeOfParallelism,
                             ChunkSize = 4096,
-                            MaxWinCap = cap, WinScale = (double)compiled.WinScale, CancellationToken = deadline.Token, CancellationCheckInterval = 1 }), context.RequestAborted);
+                            MaxWinCap = cap,
+                            WinScale = (double)compiled.WinScale,
+                            CancellationToken = deadline.Token,
+                            CancellationCheckInterval = 1
+                        }), context.RequestAborted);
                     report = SampledMetrics.ComputeFromResult(result);
                     samples = result.SpinsCompleted;
                     incomplete = result.WasCancelled;
@@ -75,22 +94,44 @@ public static class GraphEvaluationEndpoints
                 var rtp = report.Rtp;
                 if (actual == "Sampled" && samples == 0) return Results.Json(new { error = "No samples completed before cancellation." }, statusCode: 408);
                 var half = rtp.Ci95Half ?? 0;
-                return Results.Ok(new { requestedMode = request.Mode, actualStrategy = actual, provenance = rtp.Provenance.Provenance.ToString(),
-                    status = incomplete ? "Partial" : "Complete", rtp = rtp.DisplayValue,
-                    lower = rtp.LoDisplay ?? rtp.DisplayValue - half, upper = rtp.HiDisplay ?? rtp.DisplayValue + half,
+                return Results.Ok(new
+                {
+                    requestedMode = request.Mode,
+                    actualStrategy = actual,
+                    provenance = rtp.Provenance.Provenance.ToString(),
+                    status = incomplete ? "Partial" : "Complete",
+                    rtp = rtp.DisplayValue,
+                    lower = rtp.LoDisplay ?? rtp.DisplayValue - half,
+                    upper = rtp.HiDisplay ?? rtp.DisplayValue + half,
                     rationalRtp = rtp.RationalNumerator.HasValue ? $"{rtp.RationalNumerator}/{rtp.RationalDenominator}" : null,
-                    prunedMass = rtp.PrunedMass ?? 0, samples, requestedSamples = request.Samples, seed = request.Seed,
-                    degreeOfParallelism = request.DegreeOfParallelism, hitFrequency = report.HitFrequency.DisplayValue,
-                    streamScheme = "splitmix64-chunks-4096-v1", chunkSize = 4096,
+                    prunedMass = rtp.PrunedMass ?? 0,
+                    samples,
+                    requestedSamples = request.Samples,
+                    seed = request.Seed,
+                    degreeOfParallelism = request.DegreeOfParallelism,
+                    hitFrequency = report.HitFrequency.DisplayValue,
+                    streamScheme = "splitmix64-chunks-4096-v1",
+                    chunkSize = 4096,
                     samplingEngine = compiled.SamplingEngine,
-                    variance = report.Volatility.Variance, maxObserved = report.MaxWin.MaxWin, elapsedMs = timer.Elapsed.TotalMilliseconds,
-                    configHash = hash, note = request.Mode == "Hybrid" ? "Automatic Exact/Sampled selection; no mixed exact/sample estimator is claimed." : null });
+                    variance = report.Volatility.Variance,
+                    maxObserved = report.MaxWin.MaxWin,
+                    elapsedMs = timer.Elapsed.TotalMilliseconds,
+                    configHash = hash,
+                    note = request.Mode == "Hybrid" ? "Automatic Exact/Sampled selection; no mixed exact/sample estimator is claimed." : null
+                });
             }
             catch (BudgetExceededException)
             {
-                return Results.Ok(new { requestedMode = request.Mode, actualStrategy = "Unavailable", provenance = "BudgetExceeded",
-                    status = "BudgetExceeded", configHash = hash, elapsedMs = timer.Elapsed.TotalMilliseconds,
-                    note = "Full distribution exceeds the branch/time budget. No exact RTP has been calculated." });
+                return Results.Ok(new
+                {
+                    requestedMode = request.Mode,
+                    actualStrategy = "Unavailable",
+                    provenance = "BudgetExceeded",
+                    status = "BudgetExceeded",
+                    configHash = hash,
+                    elapsedMs = timer.Elapsed.TotalMilliseconds,
+                    note = "Full distribution exceeds the branch/time budget. No exact RTP has been calculated."
+                });
             }
             catch (OperationCanceledException)
             {

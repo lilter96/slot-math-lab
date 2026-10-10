@@ -4,6 +4,7 @@ import { Ic } from '../Icons';
 import { exportProject, loadProject, loadCoinExample, catalogExamples } from '../../lib/projectFiles';
 import AiGenerateModal from '../AiGenerateModal';
 import { useAppStore } from '../../store';
+import { DEFAULT_FEATURES, useFeaturesQuery } from '../../api/hooks';
 import { closeMechanic } from '../../lib/projectFiles';
 import { createDogHouseGraph } from '../../games/doghouse/graph';
 import ProjectDataEditor from '../editor/ProjectDataEditor';
@@ -17,6 +18,7 @@ export default function CanvasToolbar() {
   const trail = useAppStore(s => s.graphTrail);
   const nodes = useAppStore(s => s.nodes);
   const verificationSource = useAppStore(s => s.verificationSource);
+  const features = useFeaturesQuery().data ?? DEFAULT_FEATURES;
 
   return (
     <>
@@ -49,18 +51,22 @@ export default function CanvasToolbar() {
         <span className="zoom-label" />
         <button onClick={() => zoomIn()} title="Zoom in" aria-label="Zoom in"><Ic.plus /></button>
         <button onClick={() => fitView({ padding: 0.2 })} title="Reset view" aria-label="Reset view"><Ic.fit /></button>
-        <div style={{ width: 1, height: 20, background: 'var(--line)', margin: '0 2px' }} />
-        <button
-          onClick={() => setShowAi(true)}
-          title="AI Generate — describe your game in plain English"
-          aria-label="AI Generate graph"
-          style={{ color: 'var(--exact)' }}
-        >
-          <Ic.ai />
-        </button>
+        {features.ai && (
+          <>
+            <div style={{ width: 1, height: 20, background: 'var(--line)', margin: '0 2px' }} />
+            <button
+              onClick={() => setShowAi(true)}
+              title="AI Generate — describe your game in plain English"
+              aria-label="AI Generate graph"
+              style={{ color: 'var(--exact)' }}
+            >
+              <Ic.ai />
+            </button>
+          </>
+        )}
       </div>
 
-      {showAi && <AiGenerateModal onClose={() => setShowAi(false)} />}
+      {showAi && features.ai && <AiGenerateModal onClose={() => setShowAi(false)} />}
       {showData && <ProjectDataEditor onClose={() => setShowData(false)} />}
     </>
   );

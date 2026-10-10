@@ -24,9 +24,15 @@ internal static class GraphPerformance
         var live = args.Contains("--live");
         int updates = 0;
         SampledResult<Dictionary<string, object?>> Execute(int n) => SampledInterpreter.Evaluate(compiled.Program!, new Dictionary<string, object?>(),
-            new SampledConfig { Seed = 42, MaxSpins = n, DegreeOfParallelism = workers, WinScale = (double)compiled.WinScale,
+            new SampledConfig
+            {
+                Seed = 42,
+                MaxSpins = n,
+                DegreeOfParallelism = workers,
+                WinScale = (double)compiled.WinScale,
                 MaxWinCap = graph.Nodes.OfType<MetricsSinkNode>().Single().WinCap,
-                ProgressCallback = live ? _ => Interlocked.Increment(ref updates) : null });
+                ProgressCallback = live ? _ => Interlocked.Increment(ref updates) : null
+            });
         var warmup = int.Parse(Option("--warmup", "20000"));
         Execute(warmup); // warmed code and alias tables, outside measurements
         if (args.Contains("--allocations"))
@@ -52,17 +58,41 @@ internal static class GraphPerformance
             var cpuMs = (Process.GetCurrentProcess().TotalProcessorTime - cpu).TotalMilliseconds; var pauseMs = (GC.GetTotalPauseDuration() - pause).TotalMilliseconds;
             var gcCounts = Enumerable.Range(0, 3).Select(g => GC.CollectionCount(g) - collections[g]).ToArray();
             var snapshot = result.Stats.Snapshot();
-            measurements.Add(new { elapsedMs = timer.Elapsed.TotalMilliseconds, roundsPerSecond = rounds / timer.Elapsed.TotalSeconds,
-                cpuMs, gcPauseMs = pauseMs, allocatedBytes = allocated, bytesPerRound = allocated / (double)rounds,
-                gc = gcCounts, updates,
-                count = result.SpinsCompleted, rtp = snapshot.Mean, variance = snapshot.Variance, hitFrequency = snapshot.HitFrequency,
-                maxWin = snapshot.MaxObserved, histogram = snapshot.AdaptiveHistogram });
+            measurements.Add(new
+            {
+                elapsedMs = timer.Elapsed.TotalMilliseconds,
+                roundsPerSecond = rounds / timer.Elapsed.TotalSeconds,
+                cpuMs,
+                gcPauseMs = pauseMs,
+                allocatedBytes = allocated,
+                bytesPerRound = allocated / (double)rounds,
+                gc = gcCounts,
+                updates,
+                count = result.SpinsCompleted,
+                rtp = snapshot.Mean,
+                variance = snapshot.Variance,
+                hitFrequency = snapshot.HitFrequency,
+                maxWin = snapshot.MaxObserved,
+                histogram = snapshot.AdaptiveHistogram
+            });
             Console.WriteLine($"{i + 1}: {rounds / timer.Elapsed.TotalSeconds:N0} rounds/s; {allocated / (double)rounds:N0} B/round; RTP {snapshot.Mean:R}; cpu {cpuMs / timer.Elapsed.TotalMilliseconds:N2} cores; gc {string.Join('/', gcCounts)}, pause {pauseMs:N0} ms of {timer.Elapsed.TotalMilliseconds:N0} ms");
         }
-        var report = new { configHash = ConfigHash.Compute(graph), engine = compiled.SamplingEngine, seed = 42, rounds, warmup, workers, live,
-            streamScheme = "splitmix64-chunk-65536", compileMs = compileTimer.Elapsed.TotalMilliseconds,
+        var report = new
+        {
+            configHash = ConfigHash.Compute(graph),
+            engine = compiled.SamplingEngine,
+            seed = 42,
+            rounds,
+            warmup,
+            workers,
+            live,
+            streamScheme = "splitmix64-chunk-65536",
+            compileMs = compileTimer.Elapsed.TotalMilliseconds,
             runtime = System.Runtime.InteropServices.RuntimeInformation.FrameworkDescription,
-            cpuCount = Environment.ProcessorCount, allocationCounter = workers == 1 ? "current-thread" : "process-total", measurements };
+            cpuCount = Environment.ProcessorCount,
+            allocationCounter = workers == 1 ? "current-thread" : "process-total",
+            measurements
+        };
         var json = JsonSerializer.Serialize(report, new JsonSerializerOptions { WriteIndented = true });
         var output = Option("--report", "");
         if (output.Length > 0) File.WriteAllText(output, json + "\n");

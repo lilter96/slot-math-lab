@@ -14,9 +14,18 @@ public sealed record FiniteModelReport(string Provenance, string RetainedMass, s
 public sealed record MarkovModelRequest(string[][] TransientMatrix, string[] Rewards, int InitialState = 0, bool Stationary = false, string[]? Costs = null);
 public sealed record MarkovModelReport(string Status, string[] ExpectedVisits, string? ExpectedDuration,
     string? ExpectedReward, int[] ReachableStates, string Detail)
-{ public string? AuthoredInputSha256 { get; init; } public string? AlgorithmVersion { get; init; } public string? CoreBinarySha256 { get; init; }
-  public string? AbsorptionProbability { get; init; } public string? DurationSecondMoment { get; init; } public string? DurationVariance { get; init; }
-  public string[]? StationaryOccupancy { get; init; } public string? LongRunRewardPerStep { get; init; } public string? LongRunCostPerStep { get; init; } public string? LongRunReturn { get; init; } }
+{
+    public string? AuthoredInputSha256 { get; init; }
+    public string? AlgorithmVersion { get; init; }
+    public string? CoreBinarySha256 { get; init; }
+    public string? AbsorptionProbability { get; init; }
+    public string? DurationSecondMoment { get; init; }
+    public string? DurationVariance { get; init; }
+    public string[]? StationaryOccupancy { get; init; }
+    public string? LongRunRewardPerStep { get; init; }
+    public string? LongRunCostPerStep { get; init; }
+    public string? LongRunReturn { get; init; }
+}
 
 /// <summary>Independent finite references, using rational arithmetic throughout. These tools
 /// analyze the supplied model; their assumptions never certify an unrelated compiled graph.</summary>
@@ -106,7 +115,8 @@ public static partial class FiniteModelAnalysis
         var meanDurations = Enumerable.Range(0, k).Select(i => Enumerable.Range(0, k).Aggregate(Rational.Zero, (sum, j) => Budget(sum + augmented[i, k + j]))).ToArray();
         var secondDuration = new Rational(2, 1) * Enumerable.Range(0, k).Aggregate(Rational.Zero, (sum, j) => Budget(sum + augmented[initial, k + j] * meanDurations[j])) - duration;
         return new("absorbing", visits.Select(v => v.ToString()).ToArray(), duration.ToString(), totalReward.ToString(), states,
-            "Exact fundamental-matrix calculation for the supplied finite state model. Rewards accrue once per transient visit; missing row mass absorbs. Unreachable states have zero visits.") { AbsorptionProbability = "1/1", DurationSecondMoment = secondDuration.ToString(), DurationVariance = (secondDuration - duration * duration).ToString() };
+            "Exact fundamental-matrix calculation for the supplied finite state model. Rewards accrue once per transient visit; missing row mass absorbs. Unreachable states have zero visits.")
+        { AbsorptionProbability = "1/1", DurationSecondMoment = secondDuration.ToString(), DurationVariance = (secondDuration - duration * duration).ToString() };
     }
     private static RationalBounds Bounds(Rational lower, Rational? upper) => new(lower.ToString(), upper?.ToString());
     private static Rational Min(Rational a, Rational b) => a < b ? a : b;

@@ -54,4 +54,60 @@ public class ProductionBoundaryTests
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", json.GetProperty("token").GetString());
         Assert.Equal(HttpStatusCode.OK, (await client.GetAsync("/api/configs")).StatusCode);
     }
+
+    [Theory]
+    [InlineData("JWT:Secret")]
+    [InlineData("Auth:User")]
+    [InlineData("Auth:PasswordHash")]
+    [InlineData("Storage:Key")]
+    public void Production_StartupFails_NamingEachMissingSecret(string missingKey)
+    {
+        var directory = Path.Combine(Path.GetTempPath(), "slotmath-" + Guid.NewGuid());
+        using var factory = new WebApplicationFactory<Program>().WithWebHostBuilder(builder =>
+        {
+            builder.UseEnvironment("Production");
+            if (missingKey != "JWT:Secret")
+                builder.UseSetting("JWT:Secret", Convert.ToBase64String(RandomNumberGenerator.GetBytes(48)));
+            if (missingKey != "Auth:User")
+                builder.UseSetting("Auth:User", "operator");
+            if (missingKey != "Auth:PasswordHash")
+                builder.UseSetting("Auth:PasswordHash", "pbkdf2:210000:c2FsdA==:aGFzaA==");
+            if (missingKey != "Storage:Key")
+                builder.UseSetting("Storage:Key", Convert.ToBase64String(RandomNumberGenerator.GetBytes(32)));
+            builder.UseSetting("Storage:Directory", directory);
+        });
+
+        var exception = Assert.ThrowsAny<Exception>(() => factory.CreateClient());
+        Assert.Contains(missingKey, FlattenMessages(exception));
+    }
+
+    [Fact]
+    public void Production_EnabledPluginsWithoutStorageKey_StillFail_NamingTheKey()
+    {
+        var directory = Path.Combine(Path.GetTempPath(), "slotmath-" + Guid.NewGuid());
+        using var factory = new WebApplicationFactory<Program>().WithWebHostBuilder(builder =>
+        {
+            builder.UseEnvironment("Production");
+            builder.UseSetting("Features:Plugins", "true");
+            builder.UseSetting("JWT:Secret", Convert.ToBase64String(RandomNumberGenerator.GetBytes(48)));
+            builder.UseSetting("Auth:User", "operator");
+            builder.UseSetting("Auth:PasswordHash", "pbkdf2:210000:c2FsdA==:aGFzaA==");
+            builder.UseSetting("Storage:Directory", directory);
+            // Storage:Key deliberately missing: feature flags never bypass the secret checks.
+        });
+
+        var exception = Assert.ThrowsAny<Exception>(() => factory.CreateClient());
+        Assert.Contains("Storage:Key", FlattenMessages(exception));
+    }
+
+    private static string FlattenMessages(Exception exception)
+    {
+        var messages = new StringBuilder();
+        for (var current = exception; current is not null; current = current.InnerException!)
+            messages.AppendLine(current.Message);
+        if (exception is AggregateException aggregate)
+            foreach (var inner in aggregate.InnerExceptions)
+                messages.AppendLine(inner.Message);
+        return messages.ToString();
+    }
 }

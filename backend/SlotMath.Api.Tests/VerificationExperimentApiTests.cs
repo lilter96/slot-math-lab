@@ -79,7 +79,10 @@ public sealed class VerificationExperimentApiTests(WebApplicationFactory<Program
         var response = await client.PostAsJsonAsync("/api/runs/experiments", new ExperimentRequest(id, 1, [new("Invalid cap", "winCap", "winCap", 0, "sink")], [], Samples: 10));
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode); Assert.Equal(before, experiments.List().Length);
     }
-    [Theory][InlineData("ruin", .5, 0)][InlineData("ruin", 2, 4)][InlineData("profitTarget", 10, 2)]
+    [Theory]
+    [InlineData("ruin", .5, 0)]
+    [InlineData("ruin", 2, 4)]
+    [InlineData("profitTarget", 10, 2)]
     public async Task SessionPolicyCompletionIsRetainedAsCompletedWithActualTurnover(string policy, double bank, long expectedRounds)
     {
         var configs = factory.Services.GetRequiredService<InMemoryConfigStore>(); var runs = factory.Services.GetRequiredService<InMemoryRunStore>();

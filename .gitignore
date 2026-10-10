@@ -30,6 +30,8 @@ TestResults/
 appsettings.*.json
 !appsettings.json
 !appsettings.Development.json
+# Contains feature flags only — no secrets, committed on purpose.
+!appsettings.Production.json
 .playwright-mcp/
 *.png
 

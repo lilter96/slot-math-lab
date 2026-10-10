@@ -16,7 +16,10 @@ public sealed class VerificationProfileApiTests(WebApplicationFactory<Program> f
 {
     private static MeasurementDefinition[] Plan(int family = 2) => new[] { "x", "y" }.Select(id => new MeasurementDefinition
     {
-        Id = id, Name = id, NodeId = "sink", Value = new FieldAccessExpr { Target = "state", Path = [id] },
+        Id = id,
+        Name = id,
+        NodeId = "sink",
+        Value = new FieldAccessExpr { Target = "state", Path = [id] },
         Options = new() { IndependentSubjects = true, ReferenceMean = 1, Tolerance = .5, Confidence = .95, ErrorFamilySize = family }
     }).ToArray();
     private static VerificationProfile Profile() => new("Pinned precision", .95, [new("x", "mean-equivalence", 100), new("y", "mean-equivalence", 100), new("x", "observation-integrity")]);

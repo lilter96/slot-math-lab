@@ -23,7 +23,9 @@ public class VerificationMilestoneTests
         var value = new MonetarySettlement { Quantum = "0.01", Mode = mode }.Apply(ExprValue.Rational(numerator, denominator));
         Assert.Equal(new Rational(expectedN, expectedD), new(value.NumberNumerator, value.NumberDenominator));
     }
-    [Theory][InlineData(true)][InlineData(false)]
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
     public void CompilerPreservesPreRoundingRationalAndCapsAfterRounding(bool optimized)
     {
         var graph = JsonSerializer.Deserialize<GraphConfig>("""
@@ -39,11 +41,17 @@ public class VerificationMilestoneTests
         var result = SampledInterpreter.Evaluate(compiled.Program!, new Dict(), new() { Measurements = [metric], MaxSpins = 5, WinScale = (double)compiled.WinScale });
         Assert.Equal(1, result.Stats.Mean); Assert.Equal(1.005, Assert.Single(result.Measurements).Mean);
     }
-    [Theory][InlineData(1)][InlineData(4)]
+    [Theory]
+    [InlineData(1)]
+    [InlineData(4)]
     public void RuinPolicyStopsWithoutZeroFillingUnplayedSlots(int workers)
     {
-        var result = SampledInterpreter.Evaluate(Slot.Pure<Dict, BigInteger>(0), new Dict(), new() { MaxSpins = 20, DegreeOfParallelism = workers,
-            Execution = new() { Regime = "sessions", SessionLength = 10, SessionStop = "ruin", InitialBankroll = 2, Wager = 1 } });
+        var result = SampledInterpreter.Evaluate(Slot.Pure<Dict, BigInteger>(0), new Dict(), new()
+        {
+            MaxSpins = 20,
+            DegreeOfParallelism = workers,
+            Execution = new() { Regime = "sessions", SessionLength = 10, SessionStop = "ruin", InitialBankroll = 2, Wager = 1 }
+        });
         Assert.Equal(4, result.SpinsCompleted); Assert.False(result.WasCancelled); Assert.Equal(2, result.Execution!.CompletedSessions);
         var metrics = result.Execution.SessionMetrics.ToDictionary(m => m.Id);
         Assert.Equal(2, metrics["session.duration"].Mean); Assert.Equal(2, metrics["session.turnover"].Mean);
@@ -61,8 +69,12 @@ public class VerificationMilestoneTests
     [Fact]
     public void StoppedSessionsRemainDeterministicAcrossRealParallelChunkBoundaries()
     {
-        SampledResult<Dict> Run(int workers) => SampledInterpreter.Evaluate(Slot.Pure<Dict, BigInteger>(0), new Dict(), new() { MaxSpins = 131100, DegreeOfParallelism = workers,
-            Execution = new() { Regime = "sessions", SessionLength = 10, SessionStop = "ruin", InitialBankroll = 2, Wager = 1, AuditRandomStreams = true } });
+        SampledResult<Dict> Run(int workers) => SampledInterpreter.Evaluate(Slot.Pure<Dict, BigInteger>(0), new Dict(), new()
+        {
+            MaxSpins = 131100,
+            DegreeOfParallelism = workers,
+            Execution = new() { Regime = "sessions", SessionLength = 10, SessionStop = "ruin", InitialBankroll = 2, Wager = 1, AuditRandomStreams = true }
+        });
         var serial = Run(1); var parallel = Run(4);
         Assert.Equal(26220, serial.SpinsCompleted); Assert.Equal(13110, parallel.Execution!.CompletedSessions);
         Assert.Equal(JsonSerializer.Serialize(serial.Execution.SessionMetrics), JsonSerializer.Serialize(parallel.Execution.SessionMetrics));
@@ -71,8 +83,11 @@ public class VerificationMilestoneTests
     [Fact]
     public void InitiallyUnfundedStoppedSessionCompletesAtZeroWithoutConsumingPaidRounds()
     {
-        var result = SampledInterpreter.Evaluate(Slot.Pure<Dict, BigInteger>(7), new Dict(), new() { MaxSpins = 20,
-            Execution = new() { Regime = "sessions", SessionLength = 10, SessionStop = "ruin", InitialBankroll = .5, Wager = 1 } });
+        var result = SampledInterpreter.Evaluate(Slot.Pure<Dict, BigInteger>(7), new Dict(), new()
+        {
+            MaxSpins = 20,
+            Execution = new() { Regime = "sessions", SessionLength = 10, SessionStop = "ruin", InitialBankroll = .5, Wager = 1 }
+        });
         Assert.Equal(0, result.SpinsCompleted); Assert.Equal(2, result.Execution!.CompletedSessions); Assert.Equal(0, result.Execution.AttemptedRounds);
         Assert.Equal(0, result.Execution.SessionMetrics.Single(m => m.Id == "session.duration").Mean);
     }
@@ -108,8 +123,14 @@ public class VerificationMilestoneTests
     [Fact]
     public void OrdinalProfilesAndNestedWitnessesUseOwningEpisodeAndConditionalPairs()
     {
-        var options = new MeasurementOptions { Subject = "episode", EntryNodeId = "enter", ExitNodeId = "exit", OrdinalLimit = 2,
-            ExitReason = new ConstantExpr { Kind = ConstantKind.String, Value = "authoredStop" } };
+        var options = new MeasurementOptions
+        {
+            Subject = "episode",
+            EntryNodeId = "enter",
+            ExitNodeId = "exit",
+            OrdinalLimit = 2,
+            ExitReason = new ConstantExpr { Kind = ConstantKind.String, Value = "authoredStop" }
+        };
         var metric = new MeasurementDefinition { Id = "fs", Name = "FS", NodeId = "reveal", Options = options };
         var collector = new MeasurementCollector([metric]);
         var binding = new MeasurementBinding<int>(x => ExprValue.Number(x), null, ExitReason: _ => ExprValue.String("authoredStop"));
@@ -124,8 +145,10 @@ public class VerificationMilestoneTests
         var witness = snapshot.Witnesses.Single(w => w.Kind == "maximum"); Assert.Equal("7:2", witness.EpisodeId); Assert.Equal("7:1", witness.ParentEpisodeId); Assert.Equal(2, witness.EpisodeDepth);
     }
     [Theory]
-    [InlineData(true, "payoutCap")][InlineData(false, "payoutCap")]
-    [InlineData(true, "authoredStop")][InlineData(false, "resourceExpiry")]
+    [InlineData(true, "payoutCap")]
+    [InlineData(false, "payoutCap")]
+    [InlineData(true, "authoredStop")]
+    [InlineData(false, "resourceExpiry")]
     public void ConditionalLoopExitsPublishAuthoredClassificationInBothEngines(bool optimized, string reason)
     {
         var graph = JsonSerializer.Deserialize<GraphConfig>("""
@@ -144,12 +167,20 @@ public class VerificationMilestoneTests
     [Fact]
     public void OrdinalCovarianceMergesByEntryCohortWithoutAliasingResetBuffers()
     {
-        var options = new MeasurementOptions { Subject = "episode", EntryNodeId = "enter", ExitNodeId = "exit", OrdinalLimit = 2, GroupLimit = 1,
-            Group = new ConstantExpr { Kind = ConstantKind.String, Value = "A" }, ExitReason = new ConstantExpr { Kind = ConstantKind.String, Value = "condition" } };
+        var options = new MeasurementOptions
+        {
+            Subject = "episode",
+            EntryNodeId = "enter",
+            ExitNodeId = "exit",
+            OrdinalLimit = 2,
+            GroupLimit = 1,
+            Group = new ConstantExpr { Kind = ConstantKind.String, Value = "A" },
+            ExitReason = new ConstantExpr { Kind = ConstantKind.String, Value = "condition" }
+        };
         var metric = new MeasurementDefinition { Id = "fs", Name = "FS", NodeId = "reveal", Options = options };
         var collector = new MeasurementCollector([metric]);
         var binding = new MeasurementBinding<int>(x => ExprValue.Number(x), null, Group: _ => ExprValue.String("A"), ExitReason: _ => ExprValue.String("condition"));
-        for (var i = 1; i <= 2; i++) { collector.Begin(i); collector.Point(0, "enter", 0, binding); collector.Point(0, "reveal", i, binding); collector.Point(0, "reveal", 3*i, binding); collector.Point(0, "exit", 0, binding); collector.Prepare(); collector.Commit(); }
+        for (var i = 1; i <= 2; i++) { collector.Begin(i); collector.Point(0, "enter", 0, binding); collector.Point(0, "reveal", i, binding); collector.Point(0, "reveal", 3 * i, binding); collector.Point(0, "exit", 0, binding); collector.Prepare(); collector.Commit(); }
         var profile = Assert.Single(MeasurementCollector.Snapshot([metric], collector.Total)).Analysis!.Groups["A"].EpisodeProfile!;
         Assert.Equal(2, profile.IncludedEpisodes); var pair = Assert.Single(profile.CrossOrdinals); Assert.Equal(1.5, pair.Covariance); Assert.Equal(1, pair.Correlation);
         collector.Begin(3); Assert.Equal(2, profile.IncludedEpisodes); Assert.Equal(2, profile.Ordinals[0].Count);

@@ -11,7 +11,7 @@ internal static class ExpressionShapes
         ? array.ArrayItem ?? (array.ArrayItemType is { } type ? Field("item", type) : null) : null;
     internal static FieldDescriptor Field(string name, ExprType type) => new() { Name = name, Type = type };
     internal static FieldDescriptor Array(FieldDescriptor? item, bool empty = false) => new()
-        { Name = "array", Type = ExprType.Array, ArrayItem = item, ArrayItemType = item?.Type, ArrayIsEmpty = empty };
+    { Name = "array", Type = ExprType.Array, ArrayItem = item, ArrayItemType = item?.Type, ArrayIsEmpty = empty };
 
     internal static FieldDescriptor FromJson(string name, JsonElement value) => value.ValueKind switch
     {
@@ -19,8 +19,12 @@ internal static class ExpressionShapes
         JsonValueKind.String => Field(name, ExprType.String),
         JsonValueKind.True or JsonValueKind.False => Field(name, ExprType.Boolean),
         JsonValueKind.Null => Field(name, ExprType.Null),
-        JsonValueKind.Object => new() { Name = name, Type = ExprType.Record,
-            RecordFields = value.EnumerateObject().Select(p => FromJson(p.Name, p.Value)).ToArray() },
+        JsonValueKind.Object => new()
+        {
+            Name = name,
+            Type = ExprType.Record,
+            RecordFields = value.EnumerateObject().Select(p => FromJson(p.Name, p.Value)).ToArray()
+        },
         JsonValueKind.Array => JsonArray(name, value),
         _ => Field(name, ExprType.Error),
     };

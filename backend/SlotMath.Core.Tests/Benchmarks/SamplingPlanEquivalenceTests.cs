@@ -79,8 +79,15 @@ public class SamplingPlanEquivalenceTests
         foreach (var workers in new[] { 1, 2, 4 })
         {
             long count = 0;
-            var actual = SampledInterpreter.Evaluate(result.Program!, new Dict(), new SampledConfig { Seed = 42, MaxSpins = 10000, ChunkSize = 4096, DegreeOfParallelism = workers, WinScale = (double)result.WinScale,
-                ProgressCallback = p => { Assert.True(p.SpinsCompleted >= count); count = p.SpinsCompleted; } }).Stats.Snapshot();
+            var actual = SampledInterpreter.Evaluate(result.Program!, new Dict(), new SampledConfig
+            {
+                Seed = 42,
+                MaxSpins = 10000,
+                ChunkSize = 4096,
+                DegreeOfParallelism = workers,
+                WinScale = (double)result.WinScale,
+                ProgressCallback = p => { Assert.True(p.SpinsCompleted >= count); count = p.SpinsCompleted; }
+            }).Stats.Snapshot();
             Assert.Equal(JsonSerializer.Serialize(expected), JsonSerializer.Serialize(actual));
             Assert.Equal(10000, count);
         }
@@ -161,7 +168,8 @@ public class SamplingPlanEquivalenceTests
         Edge E(string source, string port, string target) => new() { Id = source + port + target, SourceNodeId = source, SourcePort = port, TargetNodeId = target, TargetPort = "in" };
         var config = new GraphConfig
         {
-            SchemaVersion = "1.0", Expressions = new() { ["pass"] = new CompareExpr { Op = CompareOp.Gt, Left = Call("tonumber", F("choice")), Right = N(1) }, ["legacy"] = new BinaryExpr { Op = BinaryOp.Div, Left = N(7), Right = N(2) } },
+            SchemaVersion = "1.0",
+            Expressions = new() { ["pass"] = new CompareExpr { Op = CompareOp.Gt, Left = Call("tonumber", F("choice")), Right = N(1) }, ["legacy"] = new BinaryExpr { Op = BinaryOp.Div, Left = N(7), Right = N(2) } },
             Nodes = [
                 new DrawNode { Id = "draw", StateWriteKey = "choice", Outputs = Ports("out"), DrawWeights = [new() { OutcomeId = "1", Weight = 1, Value = 1 }, new() { OutcomeId = "2", Weight = 2, Value = 2 }] },
                 new ModifyStateNode { Id = "modify", ExpressionId = "legacy", Inputs = Ports("in"), Outputs = Ports("out") },

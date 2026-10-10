@@ -23,7 +23,8 @@ public class RunArchiveTests : IClassFixture<WebApplicationFactory<Program>>
         runs = factory.Services.GetRequiredService<InMemoryRunStore>();
     }
     private static GraphConfig Fixture(string name) => JsonSerializer.Deserialize<GraphConfig>(File.ReadAllText(
-        Path.Combine(AppContext.BaseDirectory, "TestData", "DogHouse", "dog-house-mini-ui.json")), SlotMath.Core.JsonOptions.Default)! with { Id = null, Name = name };
+        Path.Combine(AppContext.BaseDirectory, "TestData", "DogHouse", "dog-house-mini-ui.json")), SlotMath.Core.JsonOptions.Default)! with
+    { Id = null, Name = name };
     private RunEntry Seed(string configId, int version = 1, long seed = 42) => configs.UseVersion(configId, version, entry =>
         runs.Create(configId, seed, entry.Version, 1000, CanonicalHash.Compute(entry.Config)))!;
     [Fact]
@@ -48,7 +49,10 @@ public class RunArchiveTests : IClassFixture<WebApplicationFactory<Program>>
         Assert.DoesNotContain("resultJson", json); Assert.DoesNotContain("histogram", json); Assert.DoesNotContain("pinnedConfig", json);
     }
     [Theory]
-    [InlineData("limit=0")][InlineData("limit=101")][InlineData("cursor=not-valid")][InlineData("status=unknown")]
+    [InlineData("limit=0")]
+    [InlineData("limit=101")]
+    [InlineData("cursor=not-valid")]
+    [InlineData("status=unknown")]
     public async Task ArchiveRejectsMalformedQueries(string query) =>
         Assert.Equal(HttpStatusCode.BadRequest, (await client.GetAsync("/api/runs?" + query)).StatusCode);
     [Fact]

@@ -15,7 +15,11 @@ public sealed class ComponentAccountingTests
     private static Expression Sub(Expression x, Expression y) => new BinaryExpr { Op = BinaryOp.Sub, Left = x, Right = y };
     private static MeasurementDefinition Definition(string id, Expression value, Expression? pair = null, bool assertion = false, bool grouped = false) => new()
     {
-        Id = id, Name = id, NodeId = "point", Value = value, Unit = "coins",
+        Id = id,
+        Name = id,
+        NodeId = "point",
+        Value = value,
+        Unit = "coins",
         Options = new() { Pair = pair, Assertion = assertion ? "zero" : "none", Group = grouped ? Field("group") : null, Stake = 2 }
     };
     private static MeasurementDefinition[] Plan(bool grouped = false) => [
@@ -30,8 +34,14 @@ public sealed class ComponentAccountingTests
         for (var round = 0; round < rows; round++)
         {
             collector.Begin(round);
-            Dictionary<string, object?> state = new() { ["x"] = round % 2 * 2, ["y"] = round % 2 * 2, ["z"] = 2 - round % 2 * 2,
-                ["total"] = totalValues?[round] ?? (2 + round % 2 * 2 + (wrongTotal && round == 0 ? 1 : 0)), ["group"] = "feature" };
+            Dictionary<string, object?> state = new()
+            {
+                ["x"] = round % 2 * 2,
+                ["y"] = round % 2 * 2,
+                ["z"] = 2 - round % 2 * 2,
+                ["total"] = totalValues?[round] ?? (2 + round % 2 * 2 + (wrongTotal && round == 0 ? 1 : 0)),
+                ["group"] = "feature"
+            };
             for (var i = 0; i < plan.Length; i++)
             {
                 var d = plan[i];
@@ -64,7 +74,9 @@ public sealed class ComponentAccountingTests
         Assert.Equal("discrepancy", report.Status); Assert.Equal(1, report.ExactViolations); Assert.Equal(.5, report.MeanResidual);
     }
 
-    [Theory][InlineData(0)][InlineData(1)]
+    [Theory]
+    [InlineData(0)]
+    [InlineData(1)]
     public void EmptyAndSingleObservationPopulationsCannotInventSampleVariances(int rows)
     {
         var plan = Plan(); var report = ComponentAccounting.Calculate(Request, plan, Collect(plan, rows));
@@ -116,8 +128,14 @@ public sealed class ComponentAccountingTests
         foreach (var id in new[] { "x", "y", "z", "xy", "xz", "yz" })
         {
             var i = Array.FindIndex(values, s => s.Id == id); var a = values[i].Analysis!;
-            values[i] = values[i] with { Analysis = a with { Moments = a.Moments with { SampleVariance = 1e20 },
-                Pair = a.Pair is { } pair ? pair with { SampleVarianceY = 1e20, Covariance = -5e19 } : null } };
+            values[i] = values[i] with
+            {
+                Analysis = a with
+                {
+                    Moments = a.Moments with { SampleVariance = 1e20 },
+                    Pair = a.Pair is { } pair ? pair with { SampleVarianceY = 1e20, Covariance = -5e19 } : null
+                }
+            };
         }
         var report = ComponentAccounting.Calculate(Request, plan, values);
         Assert.Equal("numericalResolution", report.Status); Assert.Equal(0, report.ExactViolations);

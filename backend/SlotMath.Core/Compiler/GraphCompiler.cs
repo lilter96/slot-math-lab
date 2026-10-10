@@ -1,10 +1,10 @@
 using System.Numerics;
 using SlotMath.Core.Catalog;
 using SlotMath.Core.Expressions;
+using SlotMath.Core.Measurements;
 using SlotMath.Core.Mechanics;
 using SlotMath.Core.Mechanics.Evaluators;
 using SlotMath.Core.Model;
-using SlotMath.Core.Measurements;
 using SlotMath.Core.Monad;
 using SlotMath.Core.Plugins;
 using SlotMath.Core.Random;
@@ -134,8 +134,13 @@ public sealed class GraphCompiler
                 program = Slot.Annotate(program, "compiled-graph", containsPlugin: true);
 
             var optimized = _optimizeSampling ? SamplingPlan.Wrap(config, builder.WinScale, program, measurements ?? []) : program;
-            return CompileResult.Success(optimized) with { WinScale = builder.WinScale, ReferenceProgram = program,
-                MeasurementSchema = schema, SamplingEngine = optimized is SamplingPlanSlot ? "compiled-state-plan-v1" : "reference-interpreter" };
+            return CompileResult.Success(optimized) with
+            {
+                WinScale = builder.WinScale,
+                ReferenceProgram = program,
+                MeasurementSchema = schema,
+                SamplingEngine = optimized is SamplingPlanSlot ? "compiled-state-plan-v1" : "reference-interpreter"
+            };
         }
         catch (CompilationException ex)
         {
@@ -170,8 +175,13 @@ public sealed class GraphCompiler
         foreach (var d in definitions)
         {
             if (d is null) { Error("Measurement entries cannot be null."); continue; }
-            var pointContext = new TypeCheckContext { StateFields = ctx.StateFields, BoardFields = ctx.BoardFields, CellFields = ctx.CellFields,
-                MeasurementFields = d.NodeId is null && d.Options?.Subject is not ("episode" or "transition") ? SettlementContext.Fields : [] };
+            var pointContext = new TypeCheckContext
+            {
+                StateFields = ctx.StateFields,
+                BoardFields = ctx.BoardFields,
+                CellFields = ctx.CellFields,
+                MeasurementFields = d.NodeId is null && d.Options?.Subject is not ("episode" or "transition") ? SettlementContext.Fields : []
+            };
             if (string.IsNullOrWhiteSpace(d.Id) || d.Id.Length > 64 || !ids.Add(d.Id)) Error("Measurement IDs must be unique and 1–64 characters.");
             if (string.IsNullOrWhiteSpace(d.Name) || d.Name.Length > 80 || (d.Unit is null || d.Unit.Length > 24)) Error("Measurement names must be 1–80 characters; units at most 24 characters.");
             if (d.NodeId is not null && !config.Nodes.Any(n => n.Id == d.NodeId)) Error($"Measurement '{d.Name}' references unknown node '{d.NodeId}'.");
@@ -350,9 +360,12 @@ public sealed class GraphCompiler
         {
             if (policy is null) return Slot.Pure<Dictionary<string, object?>, BigInteger>(ReadStateWin(state, key));
             if (!state.TryGetValue(key, out var raw)) throw new ExpressionEvaluationException("EVAL_MISSING_STATE", $"Payout field '{key}' is absent.", key);
-            var value = raw switch {
+            var value = raw switch
+            {
                 ExprValue e when e.Kind == ExprType.Number => e,
-                BigInteger b => ExprValue.Number(b), int i => ExprValue.Number(i), long l => ExprValue.Number(l),
+                BigInteger b => ExprValue.Number(b),
+                int i => ExprValue.Number(i),
+                long l => ExprValue.Number(l),
                 _ => throw new ExpressionEvaluationException("EVAL_TYPE_ERROR", "Payout must be an exact number.", key)
             };
             return SettleAmount(state, value, policy);
@@ -362,8 +375,10 @@ public sealed class GraphCompiler
             var after = policy.Apply(before);
             var scaled = after.NumberNumerator * _winScale;
             if (scaled % after.NumberDenominator != 0) throw new InvalidOperationException("Settlement precision is incompatible with payout scale.");
-            var next = new Dictionary<string, object?>(state) {
-                [MonetarySettlement.EvidenceKeys[0]] = before, [MonetarySettlement.EvidenceKeys[1]] = after,
+            var next = new Dictionary<string, object?>(state)
+            {
+                [MonetarySettlement.EvidenceKeys[0]] = before,
+                [MonetarySettlement.EvidenceKeys[1]] = after,
                 [MonetarySettlement.EvidenceKeys[2]] = ExprValue.Rational(after.NumberNumerator * before.NumberDenominator - before.NumberNumerator * after.NumberDenominator, after.NumberDenominator * before.NumberDenominator)
             };
             return Slot.PutState(next).Select(_ => scaled / after.NumberDenominator);
