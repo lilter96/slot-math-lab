@@ -7,10 +7,21 @@ export const LIMITS = {
   maxNodes: 100,
   maxEdges: 200,
   maxSpinBudget: 10_000_000,
+  /** Largest sampled run, in complete rounds (backend MaxRunRounds). */
+  maxRunRounds: 10_000_000_000,
+  /** Most sampling workers one run may use (backend MaxRunWorkers). */
+  maxRunWorkers: 8,
   lightEvalMaxSamples: 50_000,
   lightEvalMaxBranches: 100_000,
   maxExpressionLength: 1024,
 } as const;
+
+/** The worker counts a run may be launched with. */
+export const RUN_WORKERS = Array.from({ length: LIMITS.maxRunWorkers }, (_, i) => i + 1);
+
+/** Rounds between progress snapshots. A worker also reports after 250 ms
+ * without one, so a long run asks for one snapshot per PRNG stream. */
+export const progressBatchSize = (rounds: number) => rounds > 10_000_000 ? 65_536 : 1000;
 
 export interface LimitError {
   field: string;

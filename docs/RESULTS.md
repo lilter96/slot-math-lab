@@ -74,7 +74,7 @@ independent fixed-count sampling; it is withheld for partial runs.
 Precision planning uses the observed variance:
 `ceil((1.96 × sample SD / requested half-width)²)`. It estimates interval width,
 not the probability of passing an acceptance check. Launches respect the existing
-10,000,000-round limit. Separate same-seed runs must not be pooled. Independent
+10,000,000,000-round limit. Separate same-seed runs must not be pooled. Independent
 seed comparisons use `delta ± 1.96 × hypot(SE₁, SE₂)`, with the independence and
 normal-approximation assumptions stated. Results never pools runs automatically.
 

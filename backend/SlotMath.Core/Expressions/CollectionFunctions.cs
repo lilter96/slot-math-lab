@@ -19,39 +19,74 @@ internal static class CollectionFunctions
             _ => throw new ExpressionEvaluationException("EVAL_UNKNOWN_FUNCTION", $"Unknown function '{function}'.", function),
         };
         if (count != expected) throw new ExpressionEvaluationException("EVAL_ARITY_ERROR", $"{function} requires {expected} arguments.", function);
-        switch (function)
+        return function switch
         {
-            case "tonumber":
-                RequireText(first, function); return ParseNumber(first.StringValue!);
-            case "tostring":
-                NumericFunctions.RequireNumber(first);
-                return ExprValue.String(first.NumberDenominator.IsOne
-                    ? first.NumberNumerator.ToString(CultureInfo.InvariantCulture)
-                    : string.Create(CultureInfo.InvariantCulture, $"{first.NumberNumerator}/{first.NumberDenominator}"));
-            case "length":
-                if (first.Kind == ExprType.Array) return ExprValue.Number(first.ArrayValue!.Count);
-                RequireText(first, function); return ExprValue.Number(first.StringValue!.Length);
-            case "contains":
-                if (first.Kind == ExprType.Array)
-                {
-                    foreach (var item in first.ArrayValue!) if (item.Equals(second)) return ExprValue.Bool(true);
-                    return ExprValue.Bool(false);
-                }
-                RequireText(first, function); RequireText(second, function);
-                return ExprValue.Bool(first.StringValue!.Contains(second.StringValue!, StringComparison.Ordinal));
-            case "append":
-                RequireArray(first, function); return ExprValue.Array([.. first.ArrayValue!, second]);
-            default:
-                RequireArray(first, function); NumericFunctions.RequireNumber(second);
-                if (second.NumberNumerator % second.NumberDenominator != 0)
-                    throw new ExpressionEvaluationException("EVAL_INVALID_INDEX", "index requires an integer position; fractional positions are not truncated.", function);
-                var index = second.NumberNumerator / second.NumberDenominator;
-                var array = first.ArrayValue!;
-                if (index < 0 || index >= array.Count)
-                    throw new ExpressionEvaluationException(EvalErrorCodes.IndexOutOfRange,
-                        $"index({index}) is out of range [0, {array.Count}) (D1).", $"index[{index}]");
-                return array[(int)index];
+            "tonumber" => ToNumber(first),
+            "tostring" => ToText(first),
+            "length" => Length(first),
+            "contains" => Contains(first, second),
+            "append" => Append(first, second),
+            _ => Index(first, second),
+        };
+    }
+
+    // The compiled sampling plan binds these directly once arity is known.
+    public static ExprValue ToNumber(ExprValue first)
+    {
+        if (first.TryGetNumericText(out var cached)) return ExprValue.Number(cached);
+        RequireText(first, "tonumber"); return ParseNumber(first.StringValue!);
+    }
+
+    public static ExprValue ToText(ExprValue first)
+    {
+        NumericFunctions.RequireNumber(first);
+        return ExprValue.String(first.NumberDenominator.IsOne
+            ? first.NumberNumerator.ToString(CultureInfo.InvariantCulture)
+            : string.Create(CultureInfo.InvariantCulture, $"{first.NumberNumerator}/{first.NumberDenominator}"));
+    }
+
+    public static ExprValue Length(ExprValue first)
+    {
+        if (first.Kind == ExprType.Array) return ExprValue.Number(first.ArrayValue!.Count);
+        RequireText(first, "length"); return ExprValue.Number(first.StringValue!.Length);
+    }
+
+    public static ExprValue Contains(ExprValue first, ExprValue second)
+    {
+        if (first.Kind == ExprType.Array)
+        {
+            foreach (var item in first.ArrayValue!) if (item.Equals(second)) return ExprValue.Bool(true);
+            return ExprValue.Bool(false);
         }
+        RequireText(first, "contains"); RequireText(second, "contains");
+        return ExprValue.Bool(first.StringValue!.Contains(second.StringValue!, StringComparison.Ordinal));
+    }
+
+    public static ExprValue Append(ExprValue first, ExprValue second)
+    {
+        RequireArray(first, "append");
+        if (first.ItemsArray is { } items)
+        {
+            var copy = new ExprValue[items.Length + 1];
+            items.CopyTo(copy, 0); copy[items.Length] = second;
+            return ExprValue.ArrayOwned(copy, first.ContainsSymbols || second.ContainsSymbols);
+        }
+        return ExprValue.Array([.. first.ArrayValue!, second]);
+    }
+
+    public static ExprValue Index(ExprValue first, ExprValue second)
+    {
+        if (second.IsInlineInteger && first.ItemsArray is { } items && (ulong)second.InlineInteger < (ulong)items.Length)
+            return items[second.InlineInteger];
+        RequireArray(first, "index"); NumericFunctions.RequireNumber(second);
+        if (second.NumberNumerator % second.NumberDenominator != 0)
+            throw new ExpressionEvaluationException("EVAL_INVALID_INDEX", "index requires an integer position; fractional positions are not truncated.", "index");
+        var index = second.NumberNumerator / second.NumberDenominator;
+        var array = first.ArrayValue!;
+        if (index < 0 || index >= array.Count)
+            throw new ExpressionEvaluationException(EvalErrorCodes.IndexOutOfRange,
+                $"index({index}) is out of range [0, {array.Count}) (D1).", $"index[{index}]");
+        return array[(int)index];
     }
 
     public static ExprValue ParseNumber(string text)

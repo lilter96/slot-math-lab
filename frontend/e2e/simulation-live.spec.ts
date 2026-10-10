@@ -22,7 +22,7 @@ test('Real WebSocket updates during execution, reload restores run, cancellation
   await page.locator('#execution-configuration').evaluate((element: HTMLDetailsElement) => { element.open = true; });
   await page.getByLabel('Sampling engine', { exact: true }).selectOption('reference');
   await page.getByLabel('Simulation workers', { exact: true }).selectOption('1');
-  await page.getByLabel('Simulation spins').fill('10000000');
+  await page.getByLabel('Simulation spins').fill('1000000000');
   const creation = waitForRunLaunch(page);
   await page.getByRole('button', { name: /start run/i }).click();
   const run = await (await creation).json();
@@ -31,7 +31,7 @@ test('Real WebSocket updates during execution, reload restores run, cancellation
   expect(pinned.config.nodes).toHaveLength(12);
   expect(pinned.config.nodes.find((node: { id: string }) => node.id === 'bonus-completed')).toMatchObject({ nodeType: 'modifyState', expressionId: 'bonus-completed', outputKey: 'bonusCompleted' });
   await expect(page.getByTestId('stream-status')).toContainText('WebSocket live', { timeout: 70000 });
-  await expect.poll(() => messages.some(m => m.status === 'running' && m.sampleCount > 0 && m.sampleCount < 10000000), { timeout: 15000 }).toBe(true);
+  await expect.poll(() => messages.some(m => m.status === 'running' && m.sampleCount > 0 && m.sampleCount < 1000000000), { timeout: 15000 }).toBe(true);
   await expect(page.getByTestId('live-rtp')).not.toHaveText('—');
   await expect(page.getByTestId('live-hit-frequency')).not.toHaveText('—');
   await expect(page.getByRole('img', { name: /RTP convergence chart/ })).toHaveAttribute('aria-label', /[1-9]\d* observations/);
@@ -46,7 +46,7 @@ test('Real WebSocket updates during execution, reload restores run, cancellation
   const stored = await (await getWithQuota(page.request, `/api/runs/${run.id}`)).json();
   const result = JSON.parse(stored.resultJson);
   expect(result.sampleCount).toBeGreaterThan(0);
-  expect(result.sampleCount).toBeLessThan(10000000);
+  expect(result.sampleCount).toBeLessThan(1000000000);
   expect(result.sampleCount).toBe(stored.progress.sampleCount);
   expect(stored.progress.histogram.reduce((sum: number, b: { count: number }) => sum + b.count, 0)).toBe(result.sampleCount);
   const download = page.waitForEvent('download');
@@ -148,7 +148,7 @@ test('Blocked socket falls back to authoritative snapshots and reconnects withou
   await page.route('**/hubs/runs/negotiate**', route => route.abort());
   await page.goto('/build?project=dog-house');
   await page.getByRole('tab', { name: 'Simulate', exact: true }).click();
-  await page.getByLabel('Simulation spins').fill('10000000');
+  await page.getByLabel('Simulation spins').fill('1000000000');
   await page.getByRole('button', { name: /start run/i }).click();
   await expect(page.getByTestId('stream-status')).toContainText('recovering', { timeout: 70000 });
   await expect(page.getByTestId('sample-count')).not.toHaveText('0', { timeout: 70000 });

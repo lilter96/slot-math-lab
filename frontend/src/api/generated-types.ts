@@ -1965,7 +1965,7 @@ export type components = {
             measurements?: components["schemas"]["MeasurementInput"][];
             /** Format: int32 */
             progressBatchSize?: null | number;
-            /** Format: int32 */
+            /** Format: int64 */
             sampleSize?: null | number;
             /** Format: int64 */
             seed?: number;

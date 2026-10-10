@@ -1,4 +1,5 @@
 import { sameExecution, allowsRoundInference } from '../measurements/execution';
+import { LIMITS } from '../limits';
 import { formatNumber, formatPercent } from '../numberFormat';
 import { snapshotDecision, validSnapshot, terminal, type RunSnapshot, type LiveProgress } from '../realtime/runProtocol';
 export interface RunModel { name: string; modelHash: string | null; targetRtp: number | null; winCap: number | null }
@@ -92,7 +93,7 @@ export function planSamples(p: LiveProgress | undefined, tolerancePp: number) {
   if (!p || !allowsRoundInference(p.execution) || p.sampleCount < 2 || !finite(tolerancePp) || tolerancePp <= 0 || !finite(p.volatility) || p.volatility <= 0) return null;
   const estimated = Math.ceil((1.96 * p.volatility / (tolerancePp / 100)) ** 2);
   if (!Number.isSafeInteger(estimated)) return null;
-  return { total: Math.max(2, estimated), additional: Math.max(0, estimated - p.sampleCount), exceedsRunLimit: estimated > 10_000_000 };
+  return { total: Math.max(2, estimated), additional: Math.max(0, estimated - p.sampleCount), exceedsRunLimit: estimated > LIMITS.maxRunRounds };
 }
 export function assess(run: RunSnapshot, target: number | null, tolerancePp: number, inputVerified = true) {
   const check = inspectRun(run), p = run.progress, ci = interval(p);

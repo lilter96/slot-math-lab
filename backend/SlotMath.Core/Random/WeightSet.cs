@@ -1,215 +1,342 @@
 using System.Numerics;
+using System.Runtime.CompilerServices;
 
 namespace SlotMath.Core.Random;
 
 /// <summary>
-/// Represents a set of outcome weights — accepted as integers or rationals.
-/// The exact path reads weights directly; the sampled path normalises them
-/// into probabilities for alias construction.
-///
-/// The probability of outcome i is always <c>Numerators[i] / NumeratorSum</c>:
-/// a shared per-weight denominator cancels out of the normalisation and is
-/// kept only so the originally-authored rational weights can be recovered.
-///
-/// Instances are immutable; the numerator sum and the alias table are
-/// computed once and cached, so repeated sampling from the same WeightSet
-/// is O(1) per sample with no rebuild cost.
+///     Immutable outcome weight set supporting integers, rationals, and uniform distributions.
+///     Fully immutable: all participating state in equality and hash code is strictly readonly.
 /// </summary>
 public sealed record WeightSet
 {
-    private BigInteger[]? _numerators;
-    private readonly int _uniformCount;
-    private BigInteger _numeratorSum;
-    private readonly object _cacheLock = new();
-    private AliasMethod? _alias;
+    private readonly BigInteger[]? _numerators;
+    private readonly Lock _gate = new();
 
-    private WeightSet(BigInteger[] numerators, BigInteger denominator)
+    private WeightSet(BigInteger[] numerators, BigInteger numeratorSum, BigInteger denominator)
     {
-        foreach (var n in numerators)
-        {
-            if (n < 0)
-                throw new ArgumentException("Weights must be non-negative.", nameof(numerators));
-        }
-
-        _numerators = (BigInteger[])numerators.Clone();
-        _numeratorSum = numerators.Aggregate(BigInteger.Zero, (sum, value) => sum + value);
-        _uniformCount = numerators.Length;
+        _numerators = numerators;
+        NumeratorSum = numeratorSum;
+        Count = numerators.Length;
         Denominator = denominator;
+        IsUniform = false;
     }
 
     private WeightSet(int uniformCount)
     {
-        _uniformCount = uniformCount;
-        _numeratorSum = uniformCount;
-
-        IsUniform = true;
+        _numerators = null;
+        Count = uniformCount;
+        NumeratorSum = new BigInteger(uniformCount);
         Denominator = BigInteger.One;
+        IsUniform = true;
     }
 
-    /// <summary>Numerators for each outcome (materialised lazily for uniform sets).</summary>
+    /// <summary>Number of outcomes.</summary>
+    public int Count { get; }
+
+    /// <summary>Common denominator. Equal to 1 for pure integer weights.</summary>
+    public BigInteger Denominator { get; }
+
+    /// <summary>True when every outcome has equal weight 1 (created via <see cref="Uniform" />).</summary>
+    public bool IsUniform { get; }
+
+    /// <summary>Sum of all numerators (always positive).</summary>
+    public BigInteger NumeratorSum { get; }
+
+    /// <summary>
+    ///     Originally-authored total denominator calculation: NumeratorSum * Denominator.
+    ///     Used for recovering the exact unscaled rational mass.
+    /// </summary>
+    public BigInteger TotalDenominator => NumeratorSum * Denominator;
+
+    /// <summary>Total authored weight mass: NumeratorSum / Denominator.</summary>
+    public double TotalWeight => (double)NumeratorSum / (double)Denominator;
+
+    /// <summary>Exact rational representation of the total weight mass: (NumeratorSum, Denominator).</summary>
+    public (BigInteger Numerator, BigInteger Denominator) TotalWeightRational => (NumeratorSum, Denominator);
+
+    /// <summary>
+    ///     O(1) indexed outcome lookup. Zero allocations even for massive uniform sets.
+    /// </summary>
+    public BigInteger this[int index]
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get
+        {
+            ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual((uint)index, (uint)Count);
+            return IsUniform ? BigInteger.One : _numerators![index];
+        }
+    }
+
+    /// <summary>
+    ///     Numerators for each outcome. Materialized once, on demand, for uniform sets:
+    ///     the exact interpreters read this property for every outcome of a draw.
+    ///     For single lookups, prefer indexer this[i], which never materializes.
+    /// </summary>
     public BigInteger[] Numerators
     {
         get
         {
-            lock (_cacheLock)
+            if (_numerators is not null)
             {
-                var nums = _numerators;
-                if (nums is null)
-                {
-                    nums = new BigInteger[_uniformCount];
-                    Array.Fill(nums, BigInteger.One);
-                    _numerators = nums;
-                }
-                return nums;
+                return _numerators;
+            }
+
+            BigInteger[]? cached = Volatile.Read(ref field);
+            if (cached is not null)
+            {
+                return cached;
+            }
+
+            var materialized = new BigInteger[Count];
+            Array.Fill(materialized, BigInteger.One);
+            return Interlocked.CompareExchange(ref field, materialized, null) ?? materialized;
+        }
+    }
+
+    /// <summary>
+    ///     Cached Walker–Vose alias table.
+    ///     Lock-free volatile read on the hot path after first build.
+    /// </summary>
+    public AliasMethod AliasTable
+    {
+        get
+        {
+            AliasMethod? alias = Volatile.Read(ref field);
+            if (alias is not null)
+            {
+                return alias;
+            }
+
+            lock (_gate)
+            {
+                return field ??= AliasMethod.Build(this);
             }
         }
     }
 
-    /// <summary>Common denominator. 1 for pure integer weights.</summary>
-    public BigInteger Denominator { get; }
+    // ── Structural Equality (Pure & Allocation-Free) ──────────────────────
 
-    /// <summary>True when every outcome has weight 1 (created via <see cref="Uniform"/>).</summary>
-    public bool IsUniform { get; }
-
-    /// <summary>Number of outcomes.</summary>
-    public int Count => _uniformCount;
-
-    /// <summary>Sum of all numerators (computed once, then cached).</summary>
-    public BigInteger NumeratorSum => _numeratorSum;
-
-    /// <summary>
-    /// The originally-authored weight mass = NumeratorSum / Denominator,
-    /// expressed over the common denominator.  Note that probabilities do
-    /// NOT use this: p(i) = Numerators[i] / NumeratorSum (the denominator
-    /// cancels out of the normalisation).
-    /// </summary>
-    public BigInteger TotalDenominator => NumeratorSum * Denominator;
-
-    /// <summary>
-    /// The Walker–Vose alias table for this weight set, built on first use
-    /// and cached.  Sampling through the cached table is deterministic and
-    /// identical to sampling through a freshly-built one.
-    /// </summary>
-    public AliasMethod AliasTable
+    public bool Equals(WeightSet? other)
     {
-        get { lock (_cacheLock) return _alias ??= AliasMethod.Build(this); }
+        if (ReferenceEquals(this, other))
+        {
+            return true;
+        }
+
+        if (other is null || Count != other.Count || Denominator != other.Denominator)
+        {
+            return false;
+        }
+
+        if (IsUniform && other.IsUniform)
+        {
+            return true;
+        }
+
+        if (NumeratorSum != other.NumeratorSum)
+        {
+            return false;
+        }
+
+        // If one is uniform and the other is not:
+        if (IsUniform != other.IsUniform)
+        {
+            BigInteger[] nonUniform = _numerators ?? other._numerators!;
+            foreach (BigInteger n in nonUniform)
+            {
+                if (n != BigInteger.One)
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        return _numerators.AsSpan().SequenceEqual(other._numerators);
     }
-
-    // ── Structural equality (BigInteger[] defaults to reference equality) ──
-
-    public bool Equals(WeightSet? other) =>
-        other is not null
-        && Denominator == other.Denominator
-        && Count == other.Count
-        && Numerators.AsSpan().SequenceEqual(other.Numerators);
 
     public override int GetHashCode()
     {
         var hash = new HashCode();
+        hash.Add(Count);
         hash.Add(Denominator);
-        foreach (var n in Numerators)
-            hash.Add(n);
+        hash.Add(NumeratorSum);
+
+        // Uniform(n) equals an explicit set of n ones, so the two must hash alike:
+        // neither contributes its elements.
+        if (_numerators is not null && NumeratorSum != Count)
+        {
+            foreach (BigInteger n in _numerators)
+            {
+                hash.Add(n);
+            }
+        }
+
         return hash.ToHashCode();
     }
 
-    // ── Factory methods ──────────────────────────────────────────────────
+    // ── Factory Methods ──────────────────────────────────────────────────
 
-    /// <summary>
-    /// Create a uniform weight set of <paramref name="count"/> outcomes, each
-    /// with weight 1.  Avoids materialising large arrays and alias tables —
-    /// sampling is a single bounded uniform draw.
-    /// </summary>
     public static WeightSet Uniform(int count)
     {
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(count);
         return new WeightSet(count);
     }
 
-    /// <summary>Create from integer weights.</summary>
-    public static WeightSet FromIntegers(int[] weights) =>
-        new(Array.ConvertAll(weights, w => new BigInteger(w)), BigInteger.One);
-
-    /// <summary>Create from long weights.</summary>
-    public static WeightSet FromIntegers(long[] weights) =>
-        new(Array.ConvertAll(weights, w => new BigInteger(w)), BigInteger.One);
-
-    /// <summary>
-    /// Create from BigInteger numerators with denominator = 1.
-    /// Each weight = numerator / 1.
-    /// </summary>
-    public static WeightSet FromNumerators(BigInteger[] numerators) =>
-        new(numerators, BigInteger.One);
-
-    /// <summary>
-    /// Create from explicit rational weights.
-    /// Each weight = numerators[i] / denominator.
-    /// </summary>
-    public static WeightSet FromRationals(BigInteger[] numerators, BigInteger denominator) =>
-        new(numerators, denominator);
-
-    /// <summary>
-    /// Create from weights specified as rational strings (e.g. "3/2", "5", "1/4").
-    /// Mixed denominators are normalised to their least common multiple.
-    /// </summary>
-    public static WeightSet FromRationalStrings(string[] weights)
+    public static WeightSet FromIntegers(ReadOnlySpan<int> weights)
     {
-        // First pass: parse all entries, collecting per-outcome numerators and denominators
-        var rawNums = new BigInteger[weights.Length];
-        var rawDenoms = new BigInteger[weights.Length]; // 1 for integer entries
+        if (weights.IsEmpty)
+        {
+            throw new ArgumentException("Weights collection cannot be empty.", nameof(weights));
+        }
+
+        BigInteger[] numerators = GC.AllocateUninitializedArray<BigInteger>(weights.Length);
+        BigInteger sum = BigInteger.Zero;
 
         for (var i = 0; i < weights.Length; i++)
         {
-            var parts = weights[i].Split('/');
-            if (parts.Length == 1)
+            var w = weights[i];
+            if (w < 0)
             {
-                rawNums[i] = BigInteger.Parse(parts[0].Trim());
-                rawDenoms[i] = BigInteger.One;
+                throw new ArgumentException($"Weight at index {i} cannot be negative.", nameof(weights));
             }
-            else if (parts.Length == 2)
+
+            var bigW = new BigInteger(w);
+            numerators[i] = bigW;
+            sum += bigW;
+        }
+
+        return new WeightSet(numerators, sum, BigInteger.One);
+    }
+
+    public static WeightSet FromIntegers(ReadOnlySpan<long> weights)
+    {
+        if (weights.IsEmpty)
+        {
+            throw new ArgumentException("Weights collection cannot be empty.", nameof(weights));
+        }
+
+        BigInteger[] numerators = GC.AllocateUninitializedArray<BigInteger>(weights.Length);
+        BigInteger sum = BigInteger.Zero;
+
+        for (var i = 0; i < weights.Length; i++)
+        {
+            var w = weights[i];
+            if (w < 0)
             {
-                rawNums[i] = BigInteger.Parse(parts[0].Trim());
-                var denom = BigInteger.Parse(parts[1].Trim());
-                if (denom <= 0)
-                    throw new ArgumentException($"Denominator must be positive: {weights[i]}");
-                rawDenoms[i] = denom;
+                throw new ArgumentException($"Weight at index {i} cannot be negative.", nameof(weights));
+            }
+
+            var bigW = new BigInteger(w);
+            numerators[i] = bigW;
+            sum += bigW;
+        }
+
+        return new WeightSet(numerators, sum, BigInteger.One);
+    }
+
+    public static WeightSet FromNumerators(ReadOnlySpan<BigInteger> numerators) =>
+        FromRationals(numerators, BigInteger.One);
+
+    public static WeightSet FromRationals(ReadOnlySpan<BigInteger> numerators, BigInteger denominator)
+    {
+        if (numerators.IsEmpty)
+        {
+            throw new ArgumentException("Numerators collection cannot be empty.", nameof(numerators));
+        }
+
+        if (denominator <= BigInteger.Zero)
+        {
+            throw new ArgumentException("Denominator must be strictly positive.", nameof(denominator));
+        }
+
+        BigInteger[] copy = GC.AllocateUninitializedArray<BigInteger>(numerators.Length);
+        BigInteger sum = BigInteger.Zero;
+
+        for (var i = 0; i < numerators.Length; i++)
+        {
+            BigInteger n = numerators[i];
+            if (n < BigInteger.Zero)
+            {
+                throw new ArgumentException($"Weight at index {i} cannot be negative.", nameof(numerators));
+            }
+
+            copy[i] = n;
+            sum += n;
+        }
+
+        return new WeightSet(copy, sum, denominator);
+    }
+
+    public static WeightSet FromRationalStrings(string[] weights)
+    {
+        ArgumentNullException.ThrowIfNull(weights);
+        if (weights.Length == 0)
+        {
+            throw new ArgumentException("Weights collection cannot be empty.", nameof(weights));
+        }
+
+        var rawNums = new BigInteger[weights.Length];
+        var rawDenoms = new BigInteger[weights.Length];
+        BigInteger commonDenom = BigInteger.One;
+
+        for (var i = 0; i < weights.Length; i++)
+        {
+            ReadOnlySpan<char> span = weights[i].AsSpan().Trim();
+            var slashIndex = span.IndexOf('/');
+
+            if (slashIndex < 0)
+            {
+                rawNums[i] = BigInteger.Parse(span);
+                rawDenoms[i] = BigInteger.One;
             }
             else
             {
-                throw new ArgumentException($"Invalid rational format: {weights[i]}");
+                if (span[(slashIndex + 1)..].Contains('/'))
+                {
+                    throw new ArgumentException($"Invalid rational format at index {i}: '{weights[i]}'");
+                }
+
+                rawNums[i] = BigInteger.Parse(span[..slashIndex].Trim());
+                BigInteger denom = BigInteger.Parse(span[(slashIndex + 1)..].Trim());
+                if (denom <= BigInteger.Zero)
+                {
+                    throw new ArgumentException($"Denominator must be positive at index {i}: '{weights[i]}'");
+                }
+
+                rawDenoms[i] = denom;
+                commonDenom = Lcm(commonDenom, denom);
+            }
+
+            if (rawNums[i] < BigInteger.Zero)
+            {
+                throw new ArgumentException($"Numerator cannot be negative at index {i}: '{weights[i]}'");
             }
         }
 
-        // Compute LCM of all denominators
-        var commonDenom = BigInteger.One;
+        BigInteger[] scaledNums = GC.AllocateUninitializedArray<BigInteger>(weights.Length);
+        BigInteger sum = BigInteger.Zero;
+
         for (var i = 0; i < weights.Length; i++)
         {
-            commonDenom = Lcm(commonDenom, rawDenoms[i]);
+            BigInteger scale = commonDenom / rawDenoms[i];
+            BigInteger val = rawNums[i] * scale;
+            scaledNums[i] = val;
+            sum += val;
         }
 
-        // Scale numerators to the common denominator
-        var numerators = new BigInteger[weights.Length];
-        for (var i = 0; i < weights.Length; i++)
-        {
-            var scale = commonDenom / rawDenoms[i];
-            numerators[i] = rawNums[i] * scale;
-        }
-
-        return new WeightSet(numerators, commonDenom);
+        return new WeightSet(scaledNums, sum, commonDenom);
     }
 
-    private static BigInteger Gcd(BigInteger a, BigInteger b)
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static BigInteger Lcm(BigInteger a, BigInteger b)
     {
-        a = BigInteger.Abs(a);
-        b = BigInteger.Abs(b);
-        while (b != 0)
+        if (a.IsZero || b.IsZero)
         {
-            var t = b;
-            b = a % b;
-            a = t;
+            return BigInteger.Zero;
         }
-        return a;
-    }
 
-    private static BigInteger Lcm(BigInteger a, BigInteger b) =>
-        a / Gcd(a, b) * b;
+        return a / BigInteger.GreatestCommonDivisor(a, b) * b;
+    }
 }

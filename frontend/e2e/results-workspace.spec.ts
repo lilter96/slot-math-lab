@@ -145,7 +145,7 @@ test('failed and zero-variance runs never gain a green acceptance verdict', asyn
 test('live monitoring survives Results navigation with one socket; cancellation is diagnostic evidence', async ({ page }) => {
   let socketCount = 0; page.on('websocket', s => { if (s.url().includes('/hubs/runs')) socketCount++; });
   await page.goto('/build?project=dog-house'); await page.getByRole('tab', { name: 'Simulate', exact: true }).click();
-  await page.getByLabel('Simulation spins').fill('10000000');
+  await page.getByLabel('Simulation spins').fill('1000000000');
   const creation = waitForRunLaunch(page);
   await page.getByRole('button', { name: /start run/i }).click(); const run = await (await creation).json();
   try {

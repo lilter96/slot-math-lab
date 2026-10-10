@@ -91,7 +91,7 @@ public sealed record CreateRunRequest
     public int? ConfigVersion { get; init; }
     public long Seed { get; init; } = 42;
     public required string ConfigId { get; init; }
-    public int? SampleSize { get; init; }
+    public long? SampleSize { get; init; }
     public int? ProgressBatchSize { get; init; }
     public int DegreeOfParallelism { get; init; } = 2;
 }

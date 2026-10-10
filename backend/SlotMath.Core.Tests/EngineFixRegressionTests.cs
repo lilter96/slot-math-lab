@@ -665,6 +665,56 @@ public class SampledInterpreter_Parallel
 
         Assert.Equal(20_000, result.Stats.Histogram.Sum(b => b.Count));
     }
+
+    [Theory]
+    [InlineData(2)]
+    [InlineData(3)]
+    [InlineData(8)]
+    public void ManySmallStreams_FoldInStreamOrder_AtAnyWorkerCount(int workers)
+    {
+        var program = BuildGame();
+
+        // 1,563 streams of 64 rounds finish out of order and are folded as soon
+        // as every earlier stream has been. Wins are divided by 7, so the
+        // floating-point totals depend on the order of the fold.
+        SampledResult<PState> Run(int dop) => SampledInterpreter.Evaluate(
+            program, new PState(0),
+            new SampledConfig { Seed = 91, MaxSpins = 100_000, ChunkSize = 64, WinScale = 7, DegreeOfParallelism = dop });
+
+        var serial = Run(1);
+        var parallel = Run(workers);
+
+        Assert.Equal(100_000, parallel.SpinsCompleted);
+        Assert.Equal(serial.Stats.Mean, parallel.Stats.Mean);
+        Assert.Equal(serial.Stats.Variance, parallel.Stats.Variance);
+        Assert.Equal(serial.Stats.StdErr, parallel.Stats.StdErr);
+        Assert.Equal(serial.Stats.NonZeroCount, parallel.Stats.NonZeroCount);
+        Assert.Equal(serial.Stats.Histogram.Select(b => b.Count), parallel.Stats.Histogram.Select(b => b.Count));
+    }
+
+    [Fact]
+    public void ParallelCancellation_ReportsOnlyTheRoundsItCounted()
+    {
+        var program = BuildGame();
+        using var cancellation = new CancellationTokenSource();
+        var result = SampledInterpreter.Evaluate(
+            program, new PState(0),
+            new SampledConfig
+            {
+                Seed = 91,
+                MaxSpins = 50_000_000,
+                ChunkSize = 4096,
+                DegreeOfParallelism = 8,
+                CancellationToken = cancellation.Token,
+                CancellationCheckInterval = 1,
+                ProgressReportInterval = 1000,
+                ProgressCallback = p => { if (p.SpinsCompleted >= 200_000) cancellation.Cancel(); },
+            });
+
+        Assert.True(result.WasCancelled);
+        Assert.InRange(result.SpinsCompleted, 1, 50_000_000 - 1);
+        Assert.Equal(result.SpinsCompleted, result.Stats.Histogram.Sum(b => b.Count));
+    }
 }
 
 public class ExactInterpreter_AccumulatorConvolution
