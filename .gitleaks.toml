@@ -1,0 +1,15 @@
+# Gitleaks configuration for Slot Math Lab.
+# Extends the built-in rules and allowlists files whose "api key" matches are
+# content hashes / test fixtures, not secrets (verified: sha256 fingerprints in
+# generated verification reports and DogHouse expectation fixtures).
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Verification report fingerprints and DogHouse test fixtures"
+paths = [
+  '''^docs/verification/''',
+  '''^backend/SlotMath\.Core\.Tests/TestData/DogHouse/''',
+  '''^\.playwright-mcp/''',
+]
