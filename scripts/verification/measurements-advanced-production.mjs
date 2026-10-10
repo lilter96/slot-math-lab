@@ -85,7 +85,21 @@ try {
     || Object.values(episode.analysis.groups).reduce((count, g) => count + g.parentExposure.episodesWithMatchingChildren, 0) !== episode.count
     || Object.entries(episode.analysis.groups).some(([key, g]) => g.normalization.paidRounds !== 100000 || Math.abs(g.sum - values[1].analysis.groups[key].sum) > 1e-6)) throw new Error('Whole-bonus episode payout or distinct parent exposure disagrees with its reveal ledger.');
   if (!frames.some(f => f.sampleCount > 0 && f.measurements?.some(m => m.analysis))) throw new Error('No rich production WebSocket frame.');
+  const fsChart = page.getByRole('article', { name: 'Tracked metric Sticky FS payout by bonus length', exact: true });
+  await fsChart.getByLabel('Chart statistic for Sticky FS payout by bonus length', { exact: true }).selectOption('sampleVariance');
+  await expect(fsChart.locator('.plot-readout strong')).toContainText('Sample variance');
+  const bonusChart = page.getByRole('article', { name: 'Tracked metric Sticky bonus episode payout', exact: true });
+  await bonusChart.getByLabel('Chart statistic for Sticky bonus episode payout', { exact: true }).selectOption('matchingEpisodes');
+  await expect(bonusChart.locator('.plot-readout strong')).toHaveText(`Feature episodes with matching children ${episode.count.toLocaleString('en-US')}`);
   await page.reload(); await expect(page.getByTestId('sample-count')).toHaveText('100,000');
+  await expect(fsChart.getByLabel('Chart statistic for Sticky FS payout by bonus length', { exact: true })).toHaveValue('sampleVariance');
+  await expect(bonusChart.getByLabel('Chart statistic for Sticky bonus episode payout', { exact: true })).toHaveValue('matchingEpisodes');
+  await expect(bonusChart.locator('.plot-readout strong')).toHaveText(`Feature episodes with matching children ${episode.count.toLocaleString('en-US')}`);
+  const checkpoint = JSON.parse(await page.evaluate(() => localStorage.getItem('slotmath-simulation-v2')));
+  if (checkpoint.points.at(-1).measurements[1].statistics.sampleVariance !== values[1].analysis.moments.sampleVariance
+    || checkpoint.points.at(-1).measurements[6].statistics.matchingEpisodes !== episode.count
+    || checkpoint.points.some(p => p.measurements?.some(m => m.analysis))) throw new Error('Reload lost compact statistic trends or retained rich distributions per point.');
+  report.scalarChartHistoryRetained = true;
   const law = page.getByRole('article', { name: 'Tracked metric Complete round payout law', exact: true });
   await law.locator('.measurement-witnesses > summary').click(); await law.getByRole('button', { name: /Replay first witness/ }).click();
   await expect(law.getByLabel('Reconstructed witness')).toContainText('logical stream prefix', { timeout: 90000 });
@@ -146,7 +160,7 @@ try {
     configHash: run.configHash, measurementHash: run.measurementHash, runtimeProvenance: run.runtimeProvenance, measurements: values,
     execution: run.progress.execution, elapsedMs: run.progress.elapsedMs, roundsPerSecond: 100000000 / run.progress.elapsedMs,
     liveFrames: frames.length, primaryRunLiveFrames: frames.filter(f => f.runId === run.id).length,
-    paidTurnoverReconciled: true, independentLawComparisonRetained: true, cohortLifecycleReconciled: true, wholeBonusPayoutReconciled: true,
+    paidTurnoverReconciled: true, independentLawComparisonRetained: true, cohortLifecycleReconciled: true, wholeBonusPayoutReconciled: true, wholeBonusCohortsReconciled: true,
     workerReplayBitIdentical: true, mobileFits: true, browserErrors: errors,
     simulateUrl: base + `/simulate?run=${run.id}`, resultsUrl: base + `/results?run=${run.id}` });
   await writeFile(root + '/docs/verification/advanced-measurements-production.json', JSON.stringify(report, null, 2) + '\n');

@@ -46,7 +46,11 @@ internal sealed class MeasurementAnalysisAccumulator(MeasurementOptions options)
         _matchingPaidParents = _matchingEpisodes = 0; _parentHasMatchingChild = false;
         _supportComplete = true; _support.Clear(); _weightSupport.Clear(); Array.Clear(_binCount); Array.Clear(_binSum); Array.Clear(_binSquares);
         Array.Clear(_tailCount); Array.Clear(_tailSum); Array.Clear(_tailSquares); _sequence?.Reset();
-        foreach (var group in _groups.Values) group.Reset();
+        // Reuse cohort containers without clearing every historical cohort on
+        // every paid round. Merge buffers can still carry zero-parent padding
+        // without numeric/lifecycle evidence, so that padding must reset too.
+        foreach (var group in _groups.Values)
+            if (group.HasEvidence || group._clusterSums.Count > 0) group.Reset();
     }
 
     public void Parent(bool matching, long entries, long exits, long unclosed, long uniqueAwards, long duplicateAwards, long? observations = null, double sum = 0)
@@ -54,7 +58,10 @@ internal sealed class MeasurementAnalysisAccumulator(MeasurementOptions options)
         if (_parentHasMatchingChild) _matchingPaidParents++;
         if (observations is { } count)
         { var dx = sum - _clusterSums.Mean; var dy = count - _clusterCounts.Mean; _clusterCoMoment += dx * dy * _clusterSums.Count / (_clusterSums.Count + 1d); _clusterSums.Add(sum); _clusterCounts.Add(count); }
-        foreach (var group in _groups.Values) group.Parent(group._moments.Count > 0, 0, 0, 0, 0, 0, group._moments.Count, group._moments.Sum); }
+        // Absent cohorts are zero-filled by Merge using the overall parent
+        // count. Touching them here only creates work for the next Reset.
+        foreach (var group in _groups.Values)
+            if (group.HasEvidence) group.Parent(group._moments.Count > 0, 0, 0, 0, 0, 0, group._moments.Count, group._moments.Sum); }
     public void Add(double value, double? pair, double? weight, string? group, bool assertionViolation = false)
     {
         if (_groupsComplete && group is not null && !_groups.ContainsKey(group) && _groups.Count >= options.GroupLimit)

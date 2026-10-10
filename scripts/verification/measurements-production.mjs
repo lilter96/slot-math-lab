@@ -63,8 +63,11 @@ try {
   const firstCard = page.getByRole('article', { name: 'Tracked metric Sticky FS payout', exact: true });
   await firstCard.getByRole('button', { name: 'Observed range', exact: true }).click();
   await expect(firstCard.getByRole('button', { name: 'Observed range', exact: true })).toHaveAttribute('aria-pressed', 'true');
-  await firstCard.getByRole('button', { name: 'Average trend', exact: true }).click();
-  await expect(firstCard.getByRole('button', { name: 'Average trend', exact: true })).toHaveAttribute('aria-pressed', 'true');
+  await firstCard.getByRole('button', { name: 'Observed range', exact: true }).click();
+  await expect(firstCard.getByRole('button', { name: 'Observed range', exact: true })).toHaveAttribute('aria-pressed', 'false');
+  await firstCard.getByLabel('Chart statistic for Sticky FS payout', { exact: true }).selectOption('max');
+  await expect(firstCard.locator('.plot-readout strong')).toContainText('Maximum');
+  await firstCard.getByLabel('Chart statistic for Sticky FS payout', { exact: true }).selectOption('mean');
   report.independentChartScalesVerified = true;
   await capture('measurements-production-dashboard.png');
   const pending = page.waitForEvent('download'); await page.getByRole('button', { name: '↓ Export evidence', exact: true }).click();

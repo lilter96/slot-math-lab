@@ -1,8 +1,8 @@
-import { chartMeasurements } from '../src/lib/measurements/checkpoints';
+import { scalarMeasurements } from '../src/lib/measurements/trends';
 import { test, expect, type Page, cancelOwnedRun, getWithQuota } from './fixtures';
 import { readFile } from 'node:fs/promises';
 test.beforeEach(async ({ request }) => {
-  test.setTimeout(120000);
+  test.setTimeout(180000);
   const response = await request.get('/api/auth/status');
   if (response.status() === 429) {
     const delay = Math.min(60000, Math.max(1000, Number(response.headers()['retry-after'] ?? '1') * 1000));
@@ -27,7 +27,7 @@ test('UI configures a scoped FS metric; real engine, durable export, display con
   await page.getByLabel('Simulation spins').fill('5000');
   const launch = page.waitForResponse(r => r.url().endsWith('/api/runs') && r.request().method() === 'POST'); await page.getByRole('button', { name: /^▶ Start run$/ }).click();
   const response = await launch; expect(response.status()).toBe(202); const run = await response.json();
-  await expect(page.locator('.run-status')).toHaveText('completed', { timeout: 20000 });
+  await expect(page.locator('.run-status')).toHaveText('completed', { timeout: 70000 });
   const metric = page.getByRole('article', { name: 'Tracked metric Sticky FS payout', exact: true });
   await expect(metric.locator('[data-statistic=min]')).toHaveText('2 coins'); await expect(metric.locator('[data-statistic=max]')).toHaveText('4 coins');
   await expect(metric.locator('[data-statistic=mean]')).toHaveText('3 coins'); await expect(metric).toContainText('10,000 matching'); await expect(metric).toContainText('15,000 eligible node visits');
@@ -47,7 +47,7 @@ test('UI configures a scoped FS metric; real engine, durable export, display con
   await page.getByRole('button', { name: 'Replay pinned run', exact: true }).click(); await page.getByLabel('Pinned run workers').selectOption('1');
   const replay = page.waitForResponse(r => r.url().endsWith('/api/runs') && r.request().method() === 'POST'); await page.getByRole('button', { name: 'Start pinned run', exact: true }).click();
   const replayRun = await (await replay).json(); expect(replayRun.measurementHash).toBe(run.measurementHash);
-  await expect(page.locator('.run-status')).toHaveText('completed', { timeout: 20000 });
+  await expect(page.locator('.run-status')).toHaveText('completed', { timeout: 70000 });
   const final = await (await getWithQuota(page.request, `/api/runs/${replayRun.id}`)).json(); expect(final.progress.measurements[0]).toMatchObject(bundle.progress.measurements[0]);
   await page.screenshot({ path: '../docs/verification/measurements-scoped.png', fullPage: true });
 });
@@ -59,7 +59,7 @@ test('Editor rejects unknown fields through compiler, and valid empty scopes rem
   await page.getByLabel('Metric name').fill('No matching rounds'); await page.getByLabel('Metric filter expression').fill('false');
   await page.getByRole('button', { name: 'Save measurement', exact: true }).click(); await expect(page.getByRole('dialog')).not.toBeVisible();
   await page.getByLabel('Simulation spins').fill('16'); await page.getByRole('button', { name: /^▶ Start run$/ }).click();
-  await expect(page.locator('.run-status')).toHaveText('completed', { timeout: 20000 });
+  await expect(page.locator('.run-status')).toHaveText('completed', { timeout: 70000 });
   const metric = page.getByRole('article', { name: 'Tracked metric No matching rounds', exact: true }); await expect(metric.locator('[data-statistic=mean]')).toHaveText('—');
   await expect(metric).toContainText('0 matching'); await expect(metric).toContainText('16 excluded'); await expect(metric).toContainText('0 invalid');
 });
@@ -99,7 +99,7 @@ test('Scoped measurements use real sockets, survive HTTP recovery and reload, an
     await page.getByRole('button', { name: /Cancel run/ }).click(); await expect(page.locator('.run-status')).toHaveText('cancelled', { timeout: 15000 });
     const final = await (await getWithQuota(request, `/api/runs/${run.id}`)).json(), m = final.progress.measurements[0];
     expect(m.count).toBeGreaterThan(0); expect(m.errors).toBe(0); expect(m.observations).toBe(m.count); expect(final.measurementHash).toBe(run.measurementHash);
-    const stored = JSON.parse(await page.evaluate(() => localStorage.getItem('slotmath-simulation-v2')!)); expect(stored.progress.measurements).toEqual(chartMeasurements(final.progress.measurements));
+    const stored = JSON.parse(await page.evaluate(() => localStorage.getItem('slotmath-simulation-v2')!)); expect(stored.progress.measurements).toEqual(scalarMeasurements(final.progress.measurements));
     expect(JSON.parse(final.resultJson).measurements).toEqual(final.progress.measurements);
   } finally { await cancelOwnedRun(request, run.id); }
 });

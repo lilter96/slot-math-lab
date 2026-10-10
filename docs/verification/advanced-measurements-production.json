@@ -1,27 +1,28 @@
 {
-  "checkedAt": "2026-10-10T01:09:07.614Z",
+  "checkedAt": "2026-10-10T01:38:14.651Z",
   "endpoint": "https://localhost:8543",
   "anonymousBlocked": true,
-  "runId": "fef9bcc4fa894c76a9d9612ae00b8a97",
-  "replayRunId": "97aa46017a38444fb3e5529e7a582048",
-  "referenceRunId": "7f9d62b8a5754621a825b14dcaf85a90",
+  "scalarChartHistoryRetained": true,
+  "runId": "eb030c828daf48fe83d62d60cd803b2b",
+  "replayRunId": "a8ae2269930b46d09ab87ff12017e42d",
+  "referenceRunId": "9fb24bdc5d324985a48ac424d4866772",
   "crossEngineBitIdentical": true,
-  "referenceElapsedMs": 26843,
+  "referenceElapsedMs": 28063,
   "rounds": 100000,
   "observedRtp": 0.9967189999999915,
   "authoredReferenceRtp": 0.98,
   "configHash": "2748e5232e4ca76474c15abb96cf7d9944d65d3e55423fa04b813f218e00e48b",
-  "measurementHash": "4fe557cf1868e106e1c6d028f2a1ece2d63078d71f632dc32af80475160bcd49",
+  "measurementHash": "62bbb8e8dc5dc0e85ad75592c3e6f1227d962823e5ebe8f4d608b6de6fe0bce6",
   "runtimeProvenance": {
     "measurementContract": "measurements-v1",
     "numericalMethods": "central-moments-pebay-v1;bins-v1;clopper-pearson-v1;hoeffding-spending-v1;pearson-gamma-v1;session-accounting-v2-decimal-roundtrip;categorical-joint-v1;discrete-null-v1;finite-stationary-v1;witness-prefix-v1;loop-completion-v1;paid-parent-cohorts-v1;paid-turnover-v1;exact-assertion-v1;enumerated-joint-v2;finite-law-comparison-rational-v1;typed-operators-v1;rational-functions-v1;strict-collections-v1;typed-array-index-v1;cohort-lifecycle-v1;empty-tail-population-v1;matching-parent-exposure-v1",
     "framework": ".NET 10.0.12",
-    "coreBinarySha256": "9fdfa10f9c968b73f8ab9954caf305a926529771881468503c262a4d8bd4b14d",
+    "coreBinarySha256": "fa4598fb808eaebe1e78c648b4c965772dc12f1be40c087f2086950b27d14475",
     "apiBinarySha256": "caef4d56da4611c140ff2ce875dcee9a087e787e190568aeb96881909adc8ce3"
   },
   "measurements": [
     {
-      "id": "d51a9dfa-5ebb-4d2b-b809-ddec21a35efb",
+      "id": "716f5ec5-b899-47d8-8ec9-6154ea8478bf",
       "observations": 100000,
       "count": 100000,
       "excluded": 0,
@@ -310,7 +311,7 @@
       ]
     },
     {
-      "id": "8a9c287a-a52b-42f1-a7b8-44a54faa2c6b",
+      "id": "d84142b6-ded3-46f1-b47f-1c1eda5814f8",
       "observations": 11275,
       "count": 11275,
       "excluded": 0,
@@ -11750,7 +11751,7 @@
       ]
     },
     {
-      "id": "0649441a-f288-40cb-86ea-94a48c6babad",
+      "id": "90af0f2c-4264-484d-9d60-cea4869ef39e",
       "observations": 11275,
       "count": 6977,
       "excluded": 4298,
@@ -12029,7 +12030,7 @@
       ]
     },
     {
-      "id": "df8a99a2-3cc7-4d80-9095-4972dad8a331",
+      "id": "2e0a2e51-9ccf-4ef1-a4b6-4189efc2b081",
       "observations": 100000,
       "count": 100000,
       "excluded": 0,
@@ -12394,7 +12395,7 @@
       ]
     },
     {
-      "id": "24b9dd66-285a-40a6-98cb-c566f827d9c8",
+      "id": "1c5fa888-abe3-45b8-80e0-1819cdf1929a",
       "observations": 630,
       "count": 630,
       "excluded": 0,
@@ -12754,7 +12755,7 @@
       ]
     },
     {
-      "id": "104f6c5e-64a7-4798-b945-3b6aecbee227",
+      "id": "0ac19f40-6ce4-4888-ba21-f5524a8a1601",
       "observations": 630,
       "count": 0,
       "excluded": 630,
@@ -13227,7 +13228,7 @@
       "witnesses": []
     },
     {
-      "id": "9763bfcf-6014-47c6-9ffd-d4e704e72a4c",
+      "id": "122e9a37-d50c-41ce-8356-d30e63f73ee2",
       "observations": 630,
       "count": 630,
       "excluded": 0,
@@ -19804,20 +19805,22 @@
     ],
     "loopTerminationsComplete": true
   },
-  "elapsedMs": 3352,
-  "roundsPerSecond": 29832.935560859187,
-  "liveFrames": 206,
-  "primaryRunLiveFrames": 12,
+  "elapsedMs": 3955,
+  "roundsPerSecond": 25284.450063211127,
+  "liveFrames": 215,
+  "primaryRunLiveFrames": 15,
   "paidTurnoverReconciled": true,
   "independentLawComparisonRetained": true,
   "cohortLifecycleReconciled": true,
+  "wholeBonusPayoutReconciled": true,
+  "wholeBonusCohortsReconciled": true,
   "workerReplayBitIdentical": true,
   "mobileFits": true,
   "browserErrors": [],
-  "simulateUrl": "https://localhost:8543/simulate?run=fef9bcc4fa894c76a9d9612ae00b8a97",
-  "resultsUrl": "https://localhost:8543/results?run=fef9bcc4fa894c76a9d9612ae00b8a97",
-  "wholeBonusPayoutReconciled": true,
-  "wholeBonusCohortsReconciled": true,
-  "wholeBonusUiRecheckedAt": "2026-10-10T01:12:44.615Z",
-  "wholeBonusMobileAccountingFits": true
+  "simulateUrl": "https://localhost:8543/simulate?run=eb030c828daf48fe83d62d60cd803b2b",
+  "resultsUrl": "https://localhost:8543/results?run=eb030c828daf48fe83d62d60cd803b2b",
+  "responsiveChartRecheckedAt": "2026-10-10T01:53:19.590Z",
+  "mobileStatisticChartFontPixels": 10,
+  "mobileRtpChartFontPixels": 10,
+  "responsiveChartsVerified": true
 }

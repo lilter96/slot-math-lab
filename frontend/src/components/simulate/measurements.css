@@ -46,3 +46,5 @@
 @media (max-width: 700px) { .metric-catalogue-layout { grid-template-columns: minmax(0, 1fr); } .metric-catalogue-list { max-height: 200px; } }
 .measurement-coverage{border:1px solid var(--border);border-radius:8px;padding:12px;margin:12px 0;overflow-wrap:anywhere}
 .measurement-coverage.partial{border-color:var(--warning,#e6bc66)}
+
+.measurement-chart-controls label{display:flex;flex-wrap:wrap;align-items:center;gap:8px;color:var(--muted);font-size:11px;min-width:0;flex:1}.measurement-chart-controls select{background:var(--bg-2);color:var(--text);border:1px solid var(--line);border-radius:5px;padding:7px;min-width:0;max-width:100%;font:11px var(--mono)}.measurement-chart-controls select:focus-visible{outline:2px solid var(--sampled);outline-offset:2px}.measurement-plot svg{touch-action:pan-y}

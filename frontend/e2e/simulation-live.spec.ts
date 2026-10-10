@@ -1,8 +1,8 @@
-import { test, expect } from './fixtures';
+import { test, expect, getWithQuota } from './fixtures';
 import { readFile } from 'node:fs/promises';
 
 test('Real WebSocket updates inside first chunk, reload restores run, cancellation retains actual payouts', async ({ page }) => {
-  test.setTimeout(60000);
+  test.setTimeout(180000);
   const messages: { sampleCount: number; status: string; sequence: number; histogram: { count: number }[] }[] = [];
   const sockets: string[] = [];
   page.on('websocket', socket => {
@@ -19,12 +19,13 @@ test('Real WebSocket updates inside first chunk, reload restores run, cancellati
   // Keep the job alive through reload/cancellation even with the optimized
   // graph engine. This test intentionally stops after a small partial prefix.
   await page.getByLabel('Simulation spins').fill('10000000');
-  const creation = page.waitForResponse(r => r.url().endsWith('/api/runs') && r.request().method() === 'POST');
+  const creation = page.waitForResponse(r => r.url().endsWith('/api/runs') && r.request().method() === 'POST' && r.ok(), { timeout: 70000 });
   await page.getByRole('button', { name: /start run/i }).click();
   const run = await (await creation).json();
   expect(run.configHash).toMatch(/^[a-f0-9]{64}$/);
-  const pinned = await (await page.request.get(`/api/configs/${run.configId}`)).json();
-  expect(pinned.config.nodes).toHaveLength(11);
+  const pinned = await (await getWithQuota(page.request, `/api/configs/${run.configId}`)).json();
+  expect(pinned.config.nodes).toHaveLength(12);
+  expect(pinned.config.nodes.find((node: { id: string }) => node.id === 'bonus-completed')).toMatchObject({ nodeType: 'modifyState', expressionId: 'bonus-completed', outputKey: 'bonusCompleted' });
   await expect(page.getByTestId('stream-status')).toContainText('WebSocket live');
   await expect.poll(() => messages.some(m => m.status === 'running' && m.sampleCount > 0 && m.sampleCount < 65536), { timeout: 15000 }).toBe(true);
   await expect(page.getByTestId('live-rtp')).not.toHaveText('—');
@@ -38,7 +39,7 @@ test('Real WebSocket updates inside first chunk, reload restores run, cancellati
   expect(sockets.filter(url => url.includes('/hubs/runs')).length).toBeGreaterThanOrEqual(2);
   await page.getByRole('button', { name: /cancel run/i }).click();
   await expect(page.locator('.run-status')).toHaveText('cancelled', { timeout: 15000 });
-  const stored = await (await page.request.get(`/api/runs/${run.id}`)).json();
+  const stored = await (await getWithQuota(page.request, `/api/runs/${run.id}`)).json();
   const result = JSON.parse(stored.resultJson);
   expect(result.sampleCount).toBeGreaterThan(0);
   expect(result.sampleCount).toBeLessThan(10000000);
@@ -48,17 +49,29 @@ test('Real WebSocket updates inside first chunk, reload restores run, cancellati
   await page.getByRole('button', { name: 'Export evidence' }).click();
   const evidence = JSON.parse(await readFile((await (await download).path())!, 'utf8'));
   expect(evidence.run.configHash).toBe(run.configHash);
-  expect(evidence.pinnedGraph.config.nodes).toHaveLength(11);
+  // The archive retains authored enum names and omits null defaults; the
+  // config endpoint materializes some enum codes/defaults. Verify canonical
+  // input identity and the complete root structure across those representations.
+  expect(evidence.pinnedGraph.inputVerified).toBe(true);
+  expect(evidence.pinnedGraph.computedConfigHash).toBe(run.configHash);
+  const omitNullDefaults = (value: unknown): unknown => Array.isArray(value) ? value.map(omitNullDefaults) : value && typeof value === 'object'
+    ? Object.fromEntries(Object.entries(value).filter(([, v]) => v != null).map(([k, v]) => [k, omitNullDefaults(v)])) : value;
+  expect(evidence.pinnedGraph.config.nodes).toEqual(omitNullDefaults(pinned.config.nodes));
+  expect(evidence.pinnedGraph.config.edges).toEqual(pinned.config.edges);
+  expect(evidence.pinnedGraph.config.expressions['bonus-completed']).toMatchObject({ exprType: 'constant', kind: 'Boolean', value: 'true' });
   expect(evidence.progress.sampleCount).toBe(result.sampleCount);
 });
 
 test('Fast completion renders chart and distribution and restores them after navigation', async ({ page }) => {
+  test.setTimeout(180000);
   await page.goto('/build');
   await page.getByRole('button', { name: 'Load coin example' }).click();
   await page.getByRole('tab', { name: 'Simulate', exact: true }).click();
   await page.getByLabel('Simulation spins').fill('10000');
+  const accepted = page.waitForResponse(r => r.url().endsWith('/api/runs') && r.request().method() === 'POST' && r.ok(), { timeout: 70000 });
   await page.getByRole('button', { name: /start run/i }).click();
-  await expect(page.locator('.run-status')).toHaveText('completed', { timeout: 20000 });
+  await accepted;
+  await expect(page.locator('.run-status')).toHaveText('completed', { timeout: 70000 });
   await expect(page.getByTestId('sample-count')).toHaveText('10,000');
   await expect(page.getByRole('img', { name: /RTP convergence chart/ })).toHaveAttribute('aria-label', /[1-9]\d* observations/);
   await expect(page.getByText('Exact expectation', { exact: true }).locator('..')).toContainText('75.000%');
@@ -81,6 +94,7 @@ test('Mobile simulation dashboard fits viewport and exposes controls and charts'
   await page.screenshot({ path: '../docs/verification/simulation-mobile.png', fullPage: true });
   await page.getByRole('heading', { name: 'Payout distribution' }).scrollIntoViewIfNeeded();
   await expect(page.getByRole('heading', { name: 'Payout distribution' })).toBeInViewport();
+  await expect.poll(() => page.getByRole('img', { name: /RTP convergence chart/ }).evaluate((svg: SVGSVGElement) => svg.getScreenCTM()!.a * parseFloat(getComputedStyle(svg.querySelector('.plot-label')!).fontSize))).toBeGreaterThanOrEqual(9.5);
   await page.getByRole('heading', { name: 'Reproducibility' }).scrollIntoViewIfNeeded();
   await expect(page.getByRole('heading', { name: 'Reproducibility' })).toBeInViewport();
 });

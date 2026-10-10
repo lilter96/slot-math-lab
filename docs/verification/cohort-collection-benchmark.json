@@ -1,0 +1,363 @@
+{
+  "baselineSourceCommit": "b0d6b92286d84c176fa453c51b2f87ebe2886ac2",
+  "candidate": "active-cohort reset and parent padding guard",
+  "scope": "Worker-private collector only; seven warm repeats, same single-thread workload, no API workers or game execution measured. Timing differences include local machine variation.",
+  "before": {
+    "runtime": ".NET 10.0.12",
+    "cpuCount": 4,
+    "warmup": 20000,
+    "repeats": 7,
+    "coreBinarySha256": "6435247c69af425039eef247604dda83af0ff66f67046a53bd89c9314c03c233",
+    "report": [
+      {
+        "name": "frequent-19-cohorts",
+        "rounds": 200000,
+        "frequency": 1,
+        "cohortCount": 19,
+        "timing": [
+          {
+            "elapsedMs": 694.4961,
+            "allocatedBytes": 85091600
+          },
+          {
+            "elapsedMs": 708.8067,
+            "allocatedBytes": 85091600
+          },
+          {
+            "elapsedMs": 660.8959,
+            "allocatedBytes": 85091600
+          },
+          {
+            "elapsedMs": 657.7447,
+            "allocatedBytes": 85091600
+          },
+          {
+            "elapsedMs": 664.203,
+            "allocatedBytes": 85090320
+          },
+          {
+            "elapsedMs": 667.111,
+            "allocatedBytes": 85090320
+          },
+          {
+            "elapsedMs": 666.0812,
+            "allocatedBytes": 85090320
+          }
+        ],
+        "evidenceSha256": "b0bd284d84a432c229b85bc12eab6150048dbcd57861aa9c6d2a53b67b10f2bb",
+        "medianElapsedMs": 666.0812,
+        "medianAllocatedBytes": 85091600
+      },
+      {
+        "name": "sparse-19-cohorts",
+        "rounds": 200000,
+        "frequency": 101,
+        "cohortCount": 19,
+        "timing": [
+          {
+            "elapsedMs": 504.6547,
+            "allocatedBytes": 23308392
+          },
+          {
+            "elapsedMs": 512.1723,
+            "allocatedBytes": 23308392
+          },
+          {
+            "elapsedMs": 479.7522,
+            "allocatedBytes": 23308392
+          },
+          {
+            "elapsedMs": 478.2169,
+            "allocatedBytes": 23308392
+          },
+          {
+            "elapsedMs": 480.0951,
+            "allocatedBytes": 23308392
+          },
+          {
+            "elapsedMs": 478.3009,
+            "allocatedBytes": 23308392
+          },
+          {
+            "elapsedMs": 476.5284,
+            "allocatedBytes": 23308392
+          }
+        ],
+        "evidenceSha256": "ff2bed4717cb79cc445e0a12849e5d0d1e6344bc8987e8262990a1e4890d2df7",
+        "medianElapsedMs": 479.7522,
+        "medianAllocatedBytes": 23308392
+      },
+      {
+        "name": "dense-one-cohort",
+        "rounds": 200000,
+        "frequency": 1,
+        "cohortCount": 1,
+        "timing": [
+          {
+            "elapsedMs": 197.0283,
+            "allocatedBytes": 84831008
+          },
+          {
+            "elapsedMs": 196.4492,
+            "allocatedBytes": 84831008
+          },
+          {
+            "elapsedMs": 197.1109,
+            "allocatedBytes": 84831008
+          },
+          {
+            "elapsedMs": 204.541,
+            "allocatedBytes": 84831008
+          },
+          {
+            "elapsedMs": 200.5928,
+            "allocatedBytes": 84831008
+          },
+          {
+            "elapsedMs": 199.8712,
+            "allocatedBytes": 84831008
+          },
+          {
+            "elapsedMs": 199.1975,
+            "allocatedBytes": 84831008
+          }
+        ],
+        "evidenceSha256": "5bab3a0257e5aa858a150e33dd6c5a97994a78970126738d6b5e46d3c79117ec",
+        "medianElapsedMs": 199.1975,
+        "medianAllocatedBytes": 84831008
+      },
+      {
+        "name": "ungrouped",
+        "rounds": 200000,
+        "frequency": 1,
+        "cohortCount": 0,
+        "timing": [
+          {
+            "elapsedMs": 111.8555,
+            "allocatedBytes": 44816416
+          },
+          {
+            "elapsedMs": 111.919,
+            "allocatedBytes": 44816416
+          },
+          {
+            "elapsedMs": 112.0382,
+            "allocatedBytes": 44816416
+          },
+          {
+            "elapsedMs": 112.1382,
+            "allocatedBytes": 44816416
+          },
+          {
+            "elapsedMs": 111.8364,
+            "allocatedBytes": 44816416
+          },
+          {
+            "elapsedMs": 111.5483,
+            "allocatedBytes": 44816416
+          },
+          {
+            "elapsedMs": 116.0027,
+            "allocatedBytes": 44816416
+          }
+        ],
+        "evidenceSha256": "8178da5499a56c4b904f939d924c31498e5248de3c945662af549b08259d77e7",
+        "medianElapsedMs": 111.919,
+        "medianAllocatedBytes": 44816416
+      }
+    ],
+    "harnessSha256": "5bceddf8ff877d184c8738afa8caa9a086ae1dab18cc85447b85a947af0135b3"
+  },
+  "after": {
+    "runtime": ".NET 10.0.12",
+    "cpuCount": 4,
+    "warmup": 20000,
+    "repeats": 7,
+    "coreBinarySha256": "b7ebdf4559b539d39caa6954276c683d623093d3c044cc246ab011b81ffe2b33",
+    "report": [
+      {
+        "name": "frequent-19-cohorts",
+        "rounds": 200000,
+        "frequency": 1,
+        "cohortCount": 19,
+        "timing": [
+          {
+            "elapsedMs": 531.5327,
+            "allocatedBytes": 85091600
+          },
+          {
+            "elapsedMs": 473.2354,
+            "allocatedBytes": 85091600
+          },
+          {
+            "elapsedMs": 464.2994,
+            "allocatedBytes": 85091600
+          },
+          {
+            "elapsedMs": 463.652,
+            "allocatedBytes": 85091600
+          },
+          {
+            "elapsedMs": 462.9986,
+            "allocatedBytes": 85090320
+          },
+          {
+            "elapsedMs": 464.2592,
+            "allocatedBytes": 85090320
+          },
+          {
+            "elapsedMs": 463.7983,
+            "allocatedBytes": 85090320
+          }
+        ],
+        "evidenceSha256": "b0bd284d84a432c229b85bc12eab6150048dbcd57861aa9c6d2a53b67b10f2bb",
+        "medianElapsedMs": 464.2592,
+        "medianAllocatedBytes": 85091600
+      },
+      {
+        "name": "sparse-19-cohorts",
+        "rounds": 200000,
+        "frequency": 101,
+        "cohortCount": 19,
+        "timing": [
+          {
+            "elapsedMs": 275.6601,
+            "allocatedBytes": 23308392
+          },
+          {
+            "elapsedMs": 274.5892,
+            "allocatedBytes": 23308392
+          },
+          {
+            "elapsedMs": 276.9466,
+            "allocatedBytes": 23308392
+          },
+          {
+            "elapsedMs": 274.0771,
+            "allocatedBytes": 23308392
+          },
+          {
+            "elapsedMs": 274.8165,
+            "allocatedBytes": 23308392
+          },
+          {
+            "elapsedMs": 274.6747,
+            "allocatedBytes": 23308392
+          },
+          {
+            "elapsedMs": 274.2356,
+            "allocatedBytes": 23308392
+          }
+        ],
+        "evidenceSha256": "ff2bed4717cb79cc445e0a12849e5d0d1e6344bc8987e8262990a1e4890d2df7",
+        "medianElapsedMs": 274.6747,
+        "medianAllocatedBytes": 23308392
+      },
+      {
+        "name": "dense-one-cohort",
+        "rounds": 200000,
+        "frequency": 1,
+        "cohortCount": 1,
+        "timing": [
+          {
+            "elapsedMs": 198.0956,
+            "allocatedBytes": 84831008
+          },
+          {
+            "elapsedMs": 197.8498,
+            "allocatedBytes": 84831008
+          },
+          {
+            "elapsedMs": 207.5576,
+            "allocatedBytes": 84831008
+          },
+          {
+            "elapsedMs": 204.8834,
+            "allocatedBytes": 84831008
+          },
+          {
+            "elapsedMs": 204.079,
+            "allocatedBytes": 84831008
+          },
+          {
+            "elapsedMs": 203.7161,
+            "allocatedBytes": 84831008
+          },
+          {
+            "elapsedMs": 203.126,
+            "allocatedBytes": 84831008
+          }
+        ],
+        "evidenceSha256": "5bab3a0257e5aa858a150e33dd6c5a97994a78970126738d6b5e46d3c79117ec",
+        "medianElapsedMs": 203.7161,
+        "medianAllocatedBytes": 84831008
+      },
+      {
+        "name": "ungrouped",
+        "rounds": 200000,
+        "frequency": 1,
+        "cohortCount": 0,
+        "timing": [
+          {
+            "elapsedMs": 116.154,
+            "allocatedBytes": 44816416
+          },
+          {
+            "elapsedMs": 115.2519,
+            "allocatedBytes": 44816416
+          },
+          {
+            "elapsedMs": 115.4015,
+            "allocatedBytes": 44816416
+          },
+          {
+            "elapsedMs": 115.3882,
+            "allocatedBytes": 44816416
+          },
+          {
+            "elapsedMs": 115.4984,
+            "allocatedBytes": 44816416
+          },
+          {
+            "elapsedMs": 115.7976,
+            "allocatedBytes": 44816416
+          },
+          {
+            "elapsedMs": 119.0462,
+            "allocatedBytes": 44816416
+          }
+        ],
+        "evidenceSha256": "8178da5499a56c4b904f939d924c31498e5248de3c945662af549b08259d77e7",
+        "medianElapsedMs": 115.4984,
+        "medianAllocatedBytes": 44816416
+      }
+    ],
+    "harnessSha256": "5bceddf8ff877d184c8738afa8caa9a086ae1dab18cc85447b85a947af0135b3"
+  },
+  "comparisons": [
+    {
+      "scenario": "frequent-19-cohorts",
+      "speedup": 1.434718364224123,
+      "bitIdenticalSnapshot": true,
+      "allocatedBytesDifference": 0
+    },
+    {
+      "scenario": "sparse-19-cohorts",
+      "speedup": 1.7466195466855887,
+      "bitIdenticalSnapshot": true,
+      "allocatedBytesDifference": 0
+    },
+    {
+      "scenario": "dense-one-cohort",
+      "speedup": 0.9778191316248445,
+      "bitIdenticalSnapshot": true,
+      "allocatedBytesDifference": 0
+    },
+    {
+      "scenario": "ungrouped",
+      "speedup": 0.9690090944982787,
+      "bitIdenticalSnapshot": true,
+      "allocatedBytesDifference": 0
+    }
+  ]
+}

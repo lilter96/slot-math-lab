@@ -6,7 +6,7 @@ import { MeasurementAnalysis } from './MeasurementAnalysis';
 import { useMemo, useState } from 'react';
 import type { LivePoint, RunSnapshot } from '../../hooks/useSimulation';
 import { useMeasurementWorkspace, widgets, saveMetric, removeMetric } from '../../lib/measurements/store';
-import { samePlan, definition, draftFromDefinition, reducers, reducerNames, statistic, formatStatistic, measurementPopulation, type MetricDraft, type MeasurementDefinition, type MeasurementSnapshot } from '../../lib/measurements/model';
+import { samePlan, definition, draftFromDefinition, availableReducers, reducers, reducerNames, statistic, formatStatistic, measurementPopulation, type MetricDraft, type MeasurementDefinition, type MeasurementSnapshot } from '../../lib/measurements/model';
 import { MeasurementEditor } from './MeasurementEditor';
 import { MeasurementChart } from './MeasurementChart';
 
@@ -20,7 +20,7 @@ export function MeasurementWorkspace({ run, values, points, active }: { run: Run
   const [presentations, setPresentations] = useState<Record<string, Partial<MetricDraft>>>({});
   const source = useMemo(() => hasRun ? pinned.map(d => {
     const saved = workspace.metrics.find(m => m.id === d.id);
-    return { ...draftFromDefinition(d), ...(saved ? { reducers: saved.reducers, chart: saved.chart, hidden: saved.hidden } : {}), ...presentations[d.id] };
+    return { ...draftFromDefinition(d), ...(saved ? { reducers: saved.reducers, chart: saved.chart, chartStatistic: saved.chartStatistic, hidden: saved.hidden } : {}), ...presentations[d.id] };
   }) : workspace.metrics, [hasRun, pinned, workspace.metrics, presentations]);
   function present(metric: MetricDraft, patch: Partial<MetricDraft>) {
     setPresentations(p => ({ ...p, [metric.id]: { ...p[metric.id], ...patch } }));
@@ -44,7 +44,7 @@ export function MeasurementWorkspace({ run, values, points, active }: { run: Run
 function TrackedMetric({ run, runId, metric, definition: pinned, value, points, customize, edit }: { run?: RunSnapshot; runId?: string; metric: MetricDraft; definition?: MeasurementDefinition; value?: MeasurementSnapshot; points: LivePoint[]; customize(patch: Partial<MetricDraft>): void; edit(): void }) {
   const [settings, setSettings] = useState(false);
   return <article className="simulation-card tracked-metric" data-testid={`tracked-metric-${metric.id}`} aria-label={`Tracked metric ${metric.name}`}><div className="simulation-card-head"><div><h3>{metric.name}</h3><p>{metric.options?.subject === 'episode' ? 'Complete feature episodes' : metric.options?.subject === 'round' ? 'Complete paid rounds · absent features included' : metric.nodeId ? `Node visits · ${metric.nodeId}` : 'Completed paid rounds'}{pinned?.filter || metric.filterMode !== 'all' ? ' · filtered scope' : ' · all observations'}</p></div><button className="btn" onClick={() => setSettings(v => !v)} aria-label={`Display settings for ${metric.name}`} aria-expanded={settings}>Display</button></div>
-    {settings && <div className="measurement-display"><div className="measurement-reducers">{reducers.map(r => <label key={r}><input type="checkbox" checked={metric.reducers.includes(r)} disabled={metric.reducers.length === 1 && metric.reducers.includes(r) || !metric.options && reducers.indexOf(r) >= 7 || ['covariance', 'correlation', 'ratio', 'meanDifference', 'varianceSum', 'varianceDifference'].includes(r) && !metric.options?.pair && metric.options?.pairRole !== 'wager' && metric.options?.subject !== 'transition' || r === 'eventReciprocal' && metric.options?.source !== 'event'} onChange={e => customize({ reducers: e.target.checked ? [...metric.reducers, r] : metric.reducers.filter(v => v !== r) })} />{reducerNames[r]}</label>)}</div><label className="measurement-checkbox"><input type="checkbox" checked={metric.chart} onChange={e => customize({ chart: e.target.checked })} />Show average / range chart</label><button className="btn" onClick={edit}>Edit collection for next run</button></div>}
+    {settings && <div className="measurement-display"><div className="measurement-reducers">{reducers.map(r => <label key={r}><input type="checkbox" checked={metric.reducers.includes(r)} disabled={metric.reducers.length === 1 && metric.reducers.includes(r) || !availableReducers(metric).includes(r) && !metric.reducers.includes(r)} onChange={e => customize({ reducers: e.target.checked ? [...metric.reducers, r] : metric.reducers.filter(v => v !== r) })} />{reducerNames[r]}</label>)}</div><label className="measurement-checkbox"><input type="checkbox" checked={metric.chart} onChange={e => customize({ chart: e.target.checked })} />Show statistic trend</label><button className="btn" onClick={edit}>Edit collection for next run</button></div>}
     <dl className="tracked-statistics">{metric.reducers.map(r => <div key={r}><dt>{reducerNames[r]}</dt><dd data-statistic={r}>{formatStatistic(statistic(value, r), r, metric.unit)}</dd></div>)}</dl>
     <div className="measurement-counts"><span><b>{(value?.count ?? 0).toLocaleString()}</b> matching</span><span>{(value?.excluded ?? 0).toLocaleString()} excluded</span><span className={value?.errors ? 'measurement-error' : ''}>{(value?.errors ?? 0).toLocaleString()} invalid</span><span>{(value?.observations ?? 0).toLocaleString()} eligible {measurementPopulation(metric)}</span></div>
     {value && !value.count && <p className="measurement-next-note">{value.observations ? 'No matching valid observations. Min, max and average are undefined.' : 'This observation point has not been reached in the completed rounds.'}</p>}
@@ -52,7 +52,7 @@ function TrackedMetric({ run, runId, metric, definition: pinned, value, points, 
     <MeasurementAnalysis analysis={value?.analysis} unit={metric.unit} />
     {run && pinned && <MeasurementCalibration run={run} definition={pinned} />}
     {runId && <MeasurementWitnesses runId={runId} value={value} />}
-    {metric.chart && <MeasurementChart id={metric.id} name={metric.name} unit={metric.unit} points={points} />}
+    {metric.chart && <MeasurementChart metric={metric} points={points} customize={customize} />}
     <details className="measurement-definition"><summary>What this measures</summary><p>Observation population: {measurementPopulation(metric)}. {metric.nodeId ? 'Child values are read before this graph node executes.' : 'Values are read at completed paid-round settlement.'} Unfinished paid rounds are discarded. Advanced reductions and lifecycle boundaries belong to the pinned plan.</p><strong>Value</strong><pre>{pinned ? pinned.value ? JSON.stringify(pinned.value, null, 2) : 'Settled round payout (× stake)' : metric.valueMode === 'payout' ? 'Settled round payout (× stake)' : metric.expression}</pre><strong>Include when</strong><pre>{pinned ? pinned.filter ? JSON.stringify(pinned.filter, null, 2) : 'All observations' : metric.filterMode === 'all' ? 'All observations' : metric.filter}</pre><p>Average = sum / matching count. Invalid observations are visible but do not enter the average. Matching share = matching count / eligible observations.</p></details>
   </article>;
 }

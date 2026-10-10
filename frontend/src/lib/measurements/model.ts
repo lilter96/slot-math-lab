@@ -13,8 +13,22 @@ export function measurementPopulation(value: { nodeId?: string | null; options?:
 export const reducers = ['min', 'max', 'mean', 'sum', 'count', 'stdDev', 'matchRate', 'secondMoment', 'populationVariance', 'sampleVariance', 'coefficientOfVariation', 'skewness', 'excessKurtosis', 'meanAbsoluteDeviation', 'covariance', 'correlation', 'ratio', 'distinctParents', 'matchingEpisodes', 'uniqueAwards', 'duplicateAwards', 'eligible', 'excluded', 'invalid', 'featureEntries', 'featureExits', 'unclosedEpisodes', 'eventReciprocal', 'accountingResidual', 'meanDifference', 'varianceSum', 'varianceDifference', 'assertionViolations'] as const;
 export type Reducer = typeof reducers[number];
 export const reducerNames: Record<Reducer, string> = { min: 'Minimum', max: 'Maximum', mean: 'Average', sum: 'Sum', count: 'Matching count', stdDev: 'Standard deviation', matchRate: 'Matching share', secondMoment: 'Second moment', populationVariance: 'Population variance', sampleVariance: 'Sample variance', coefficientOfVariation: 'Coefficient of variation', skewness: 'Moment skewness', excessKurtosis: 'Excess moment kurtosis', meanAbsoluteDeviation: 'Mean absolute deviation', covariance: 'Paired covariance', correlation: 'Paired correlation', ratio: 'Payout / denominator', distinctParents: 'Paid rounds with matching children', matchingEpisodes: 'Feature episodes with matching children', uniqueAwards: 'Unique award IDs', duplicateAwards: 'Duplicate award IDs', eligible: 'Eligible observations', excluded: 'Excluded observations', invalid: 'Invalid observations', featureEntries: 'Feature entries', featureExits: 'Feature exits', unclosedEpisodes: 'Unclosed feature episodes', eventReciprocal: 'Trials per event · empirical reciprocal', accountingResidual: 'Exposure accounting residual', meanDifference: 'Paired mean difference', varianceSum: 'Variance of the pair sum', varianceDifference: 'Variance of the pair difference', assertionViolations: 'Exact assertion violations' };
-export interface MetricDraft { id: string; name: string; nodeId: string; valueMode: 'payout' | 'expression' | 'ast' | 'visual'; expression: string; filterMode: 'all' | 'expression' | 'ast' | 'visual'; filter: string; unit: string; reducers: Reducer[]; chart: boolean; hidden: boolean; options?: MeasurementOptions }
-export const newMetric = (id: string = crypto.randomUUID()): MetricDraft => ({ id, name: '', nodeId: '', valueMode: 'payout', expression: '', filterMode: 'all', filter: '', unit: '× stake', reducers: ['min', 'max', 'mean'], chart: true, hidden: false });
+export interface MetricDraft { id: string; name: string; nodeId: string; valueMode: 'payout' | 'expression' | 'ast' | 'visual'; expression: string; filterMode: 'all' | 'expression' | 'ast' | 'visual'; filter: string; unit: string; reducers: Reducer[]; chart: boolean; chartStatistic?: Reducer; hidden: boolean; options?: MeasurementOptions }
+export const newMetric = (id: string = crypto.randomUUID()): MetricDraft => ({ id, name: '', nodeId: '', valueMode: 'payout', expression: '', filterMode: 'all', filter: '', unit: '× stake', reducers: ['min', 'max', 'mean'], chart: true, chartStatistic: 'mean', hidden: false });
+export function availableReducers(metric: Pick<MetricDraft, 'options'>): Reducer[] {
+  return reducers.filter((r, i) => {
+    if (i >= 7 && !metric.options) return false;
+    if (r === 'matchingEpisodes') return metric.options?.subject === 'episode';
+    if (r === 'assertionViolations') return metric.options?.assertion === 'zero';
+    if (r === 'eventReciprocal') return metric.options?.source === 'event';
+    if (['covariance', 'correlation', 'ratio', 'meanDifference', 'varianceSum', 'varianceDifference'].includes(r))
+      return !!metric.options?.pair || metric.options?.pairRole === 'wager' || metric.options?.subject === 'transition';
+    return true;
+  });
+}
+export function chartReducer(metric: Pick<MetricDraft, 'options' | 'chartStatistic'>): Reducer {
+  return metric.chartStatistic && availableReducers(metric).includes(metric.chartStatistic) ? metric.chartStatistic : 'mean';
+}
 export function metricExpression(source: string, mode: 'expression' | 'ast' | 'visual'): ExpressionAst {
   if (mode === 'expression') return parseExpression(source);
   const value = JSON.parse(source);
@@ -60,7 +74,7 @@ export function statistic(snapshot: MeasurementSnapshot | undefined, reducer: Re
   if (['min', 'max', 'mean', 'sum', 'stdDev'].includes(reducer)) return snapshot[reducer as 'mean'];
   if (['covariance', 'correlation', 'ratio'].includes(reducer)) return snapshot.analysis?.pair?.[reducer as 'ratio'] ?? null;
   if (['distinctParents', 'uniqueAwards', 'duplicateAwards', 'eligible', 'excluded', 'invalid', 'featureEntries', 'featureExits', 'unclosedEpisodes'].includes(reducer)) return snapshot.analysis?.[reducer as 'distinctParents'] ?? null;
-  return snapshot.analysis?.moments[reducer as 'secondMoment'] ?? null;
+  return snapshot.analysis?.moments?.[reducer as 'secondMoment'] ?? null;
 }
 export function formatStatistic(value: number | null, reducer: Reducer, unit: string): string {
   if (value == null) return '—';

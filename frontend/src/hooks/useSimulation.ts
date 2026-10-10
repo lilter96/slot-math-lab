@@ -1,5 +1,6 @@
 import { validateExecution, sameExecution } from '../lib/measurements/execution';
 import { chartMeasurements, serializeCheckpoint } from '../lib/measurements/checkpoints';
+import { restoreTrendPoints, type MeasurementTrendPoint } from '../lib/measurements/trends';
 import { useEffect } from 'react';
 import { create } from 'zustand';
 import { RunConnection, HttpFailure, type ConnectionHealth, type ConnectionPhase } from '../lib/realtime/RunConnection';
@@ -12,10 +13,10 @@ import { createDogHouseGraph } from '../games/doghouse/graph';
 import { createExpectationGraph } from '../games/doghouse/expectationGraph';
 import { graphRequest, type GraphRound } from '../games/doghouse/api';
 
-import { samePlan, definition, type MeasurementDefinition, type MeasurementSnapshot } from '../lib/measurements/model';
+import { samePlan, definition, type MeasurementDefinition } from '../lib/measurements/model';
 import { useMeasurementWorkspace } from '../lib/measurements/store';
 
-export interface LivePoint { measurements?: MeasurementSnapshot[]; n: number; rtp: number; stdErr: number; elapsedMs: number; rate: number }
+export type LivePoint = MeasurementTrendPoint;
 interface Session {
   run: RunSnapshot | null; progress: LiveProgress | null; points: LivePoint[]; reference: number | null;
   target: number | null; referenceNote: string; model: string; error: string; starting: boolean;
@@ -29,9 +30,11 @@ const defaults: Session = { run: null, progress: null, points: [], reference: nu
   launchNote: '', connection: 'idle', health: initialHealth, receivedAt: 0, events: [], history: [] };
 function restore(): Session {
   try {
-    const saved = JSON.parse(localStorage.getItem(key) ?? 'null');
+    const raw = localStorage.getItem(key) ?? 'null';
+    if (raw.length > 1_500_000) return defaults;
+    const saved = JSON.parse(raw);
     if (!saved || !Array.isArray(saved.points) || !Array.isArray(saved.history)) return defaults;
-    return { ...defaults, ...saved, starting: false, connection: 'idle', health: initialHealth, receivedAt: 0 };
+    return { ...defaults, ...saved, points: restoreTrendPoints(saved.points), starting: false, connection: 'idle', health: initialHealth, receivedAt: 0 };
   } catch { return defaults; }
 }
 const useSession = create<Session>(() => restore());
@@ -100,7 +103,10 @@ function accept(value: unknown): Decision {
     progress: msg, resultJson: msg.resultJson ?? state.run?.resultJson, completedAt: msg.completedAt ?? state.run?.completedAt };
   if (decision === 'duplicate') {
     // A complete HTTP snapshot may enrich the final frame at the same revision.
-    if (msg.resultJson && !state.run?.resultJson) { useSession.setState({ run, progress: msg }); recordTerminal(run); }
+    if (msg.resultJson && !state.run?.resultJson || msg.measurements?.some((m, i) => m.analysis && !state.progress?.measurements?.[i]?.analysis)) {
+      const points = state.points.map(point => point.n === msg.sampleCount ? { ...point, measurements: chartMeasurements(msg.measurements) } : point);
+      useSession.setState({ run, progress: msg, points }); recordTerminal(run);
+    }
     return decision;
   }
   const last = state.points.at(-1);

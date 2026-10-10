@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import type { LivePoint } from '../../hooks/useSimulation';
+import { usePlotWidth } from '../../hooks/usePlotWidth';
 
 import { count } from './format';
 
@@ -7,7 +8,9 @@ export function LiveChart({ points, reference, target, kind = 'rtp', inference =
   points: LivePoint[]; reference?: number | null; target?: number | null; kind?: 'rtp' | 'rate' | 'precision'; inference?: boolean;
 }) {
   const [hover, setHover] = useState<number | null>(null);
-  const width = 800, height = 290, left = 62, right = 18, top = 22, bottom = 38;
+  const { ref, width } = usePlotWidth(800);
+  const height = 290, left = 62, right = 28, top = 22, bottom = 38;
+  const ticks = width < 450 ? [0, .5, 1] : [0, .25, .5, .75, 1];
   const value = (p: LivePoint) => kind === 'rate' ? p.rate : kind === 'precision' ? 1.96 * p.stdErr * 100 : p.rtp * 100;
   const values = points.flatMap(p => kind === 'rtp' && inference && p.n > 1 && p.stdErr > 0 ? [(p.rtp - 1.96 * p.stdErr) * 100, (p.rtp + 1.96 * p.stdErr) * 100] : [value(p)]);
   if (kind === 'rtp') { if (reference != null) values.push(reference * 100); if (target != null) values.push(target * 100); }
@@ -23,7 +26,7 @@ export function LiveChart({ points, reference, target, kind = 'rtp', inference =
   const line = points.map((p, i) => `${i ? 'L' : 'M'} ${x(p.n)} ${y(value(p))}`).join(' ');
   const ciPoints = points.filter(p => inference && p.n > 1 && p.stdErr > 0);
   const band = ciPoints.map((p, i) => `${i ? 'L' : 'M'} ${x(p.n)} ${y((p.rtp + 1.96 * p.stdErr) * 100)}`).join(' ') + ' ' + ciPoints.toReversed().map(p => `L ${x(p.n)} ${y((p.rtp - 1.96 * p.stdErr) * 100)}`).join(' ') + ' Z';
-  return <div className="live-plot">
+  return <div ref={ref} className="live-plot">
     <svg role="img" aria-label={`${kind === 'rtp' ? 'RTP convergence' : kind === 'rate' ? 'Simulation throughput' : 'Confidence interval precision'} chart, ${points.length} observations`}
       viewBox={`0 0 ${width} ${height}`} tabIndex={points.length ? 0 : undefined}
       onKeyDown={e => { if (['ArrowLeft', 'ArrowRight'].includes(e.key)) { e.preventDefault(); setHover(Math.max(0, Math.min(points.length - 1, index + (e.key === 'ArrowLeft' ? -1 : 1)))); } }}
@@ -32,8 +35,8 @@ export function LiveChart({ points, reference, target, kind = 'rtp', inference =
         const rect = e.currentTarget.getBoundingClientRect(), n = ((e.clientX - rect.left) / rect.width * width - left) / (width - left - right) * maxN;
         let nearest = 0; points.forEach((p, i) => { if (Math.abs(p.n - n) < Math.abs(points[nearest].n - n)) nearest = i; }); setHover(nearest);
       }}>
-      {[0, 1, 2, 3, 4].map(i => { const v = min + (max - min) * i / 4; return <g key={i}><line className="plot-grid" x1={left} x2={width - right} y1={y(v)} y2={y(v)} /><text className="plot-label" x={left - 10} y={y(v) + 4} textAnchor="end">{fmt(v)}</text></g>; })}
-      {[0, 1, 2, 3, 4].map(i => <text className="plot-label" key={i} x={x(maxN * i / 4)} y={height - 12} textAnchor="middle">{points.length ? count(maxN * i / 4) : '—'}</text>)}
+      {ticks.map(t => { const v = min + (max - min) * t; return <g key={t}><line className="plot-grid" x1={left} x2={width - right} y1={y(v)} y2={y(v)} /><text className="plot-label" x={left - 10} y={y(v) + 4} textAnchor="end">{fmt(v)}</text></g>; })}
+      {ticks.map(t => <text className="plot-label" key={t} x={x(maxN * t)} y={height - 12} textAnchor="middle">{points.length ? width < 450 ? Math.round(maxN * t).toLocaleString(undefined, { notation: 'compact', maximumFractionDigits: 1 }) : count(maxN * t) : '—'}</text>)}
       {kind === 'rtp' && target != null && <line className="plot-target" x1={left} x2={width - right} y1={y(target * 100)} y2={y(target * 100)} />}
       {kind === 'rtp' && reference != null && <line className="plot-reference" x1={left} x2={width - right} y1={y(reference * 100)} y2={y(reference * 100)} />}
       {ciPoints.length > 1 && kind === 'rtp' && <path className="plot-band" d={band} />}
