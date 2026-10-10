@@ -2527,9 +2527,9 @@ export type components = {
             /** Format: double */
             mean: null | number;
             /** Format: double */
-            probability: number;
+            probability: null | number;
             /** Format: double */
-            secondMoment: number;
+            secondMoment: null | number;
             /** Format: double */
             sum: number;
             /** Format: double */

@@ -28,7 +28,7 @@ export interface MeasurementAnalysis {
   support: { value: number; count: number; sum: number }[]; supportComplete: boolean;
   bins: { lower: number | null; upper: number | null; count: number; sum: number; sumSquares: number }[];
   quantiles: { probability: number; value: number | null; lower: number | null; upper: number | null; method: string }[];
-  tails: { threshold: number; count: number; probability: number; sum: number; mean: number | null; secondMoment: number }[];
+  tails: { threshold: number; count: number; probability: number | null; sum: number; mean: number | null; secondMoment: number | null }[];
   upperTails: { quantile: number; tailMass: number; mean: number | null; lowerMean: number | null; upperMean: number | null; lowerReturnShare: number | null; upperReturnShare: number | null; method: string }[];
   meanAbsoluteDeviationBounds?: NumericInterval | null;
   meanInterval: NumericInterval | null; probabilityInterval: NumericInterval | null; sequentialMeanInterval: NumericInterval | null; clusteredMeanInterval?: NumericInterval | null;

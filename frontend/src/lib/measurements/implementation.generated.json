@@ -37,11 +37,11 @@
   },
   "counts.feature_entries": {
     "status": "partial",
-    "scope": "Matched lifecycle entries/exits and unclosed episodes are implemented for settled rounds. Cohort lifecycle counts and typed interrupted feature outcomes remain required."
+    "scope": "Global authored lifecycle counts and entry-selected cohort entries/exits/open instances are implemented for settled paid rounds, including cohorts with no matching values. Typed interruption causes for unfinished paid rounds remain required."
   },
   "counts.feature_exits": {
     "status": "partial",
-    "scope": "Matched lifecycle entries/exits and unclosed episodes are implemented for settled rounds. Cohort lifecycle counts and typed interrupted feature outcomes remain required."
+    "scope": "Global authored lifecycle counts and entry-selected cohort entries/exits/open instances are implemented for settled paid rounds, including cohorts with no matching values. Typed interruption causes for unfinished paid rounds remain required."
   },
   "counts.reveals": {
     "status": "authored",

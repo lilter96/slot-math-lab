@@ -36,10 +36,16 @@ Results shows saved scoped measurements and their original value/filter AST. Pin
 ## API
 
 * `POST /api/runs/measurements/schema` accepts `{ config, measurements? }`, returns flattened points and derived state fields, and optionally validates a proposed plan without starting a run.
-* `POST /api/runs` accepts `measurements: [{ id, name, nodeId?, value?, filter?, unit }]`. Null `nodeId` means completed round; null `value` means settled payout and is allowed only at that point. Expressions are structured ASTs, not text.
+* `POST /api/runs` accepts `measurements: [{ id, name, nodeId?, value?, filter?, unit, options? }]`. Null `nodeId` means completed round; null `value` means settled payout for the legacy plan, or a declared advanced source such as event count. Expressions are structured ASTs, not text.
 * Run snapshots, WebSocket progress and `/api/runs/{id}/evidence` carry `measurements` and `measurementHash`. Progress entries contain `id`, `observations`, `count`, `excluded`, `errors`, nullable `min/max/mean/sum/stdDev`, and `firstError`.
 
-This is bounded numeric measurement, not raw event logging, arbitrary code execution, automatic categorical grouping or quantile/distribution collection for every custom value. Separate filtered definitions describe different cohorts. The standard settled-round payout histogram remains available.
+Optional advanced plans add explicit observation/round/episode/transition populations, entry-selected cohorts, paired values, bounded distributions, quantile enclosures, tail summaries, calibrated uncertainty and independent reference checks. Users select storage and inference assumptions before a run. These statistics are sufficient summaries; custom instrumentation runs through the validated AST. The [implementation ledger](verification/METRICS_IMPLEMENTATION.md) records current scope and evidence for the 159-definition catalogue.
+
+## Feature lifecycle exposure
+
+Global entry/exit/open counts describe all authored lifecycle points before entry filtering. Cohort counts belong to the selected entry-time key. A later group change, excluded exit or absence of included numeric children cannot move or hide that instance. An empty cohort retains its lifecycle counts and complete paid-parent normalization, while its mean, sum, conditional tail probabilities and per-subject second moments remain undefined. Counted tail amounts can still contribute zero to known paid turnover.
+
+For settled paid rounds, reconcile `entries = exits + unclosed`. An unmatched exit or exhausted nesting/group budget remains an explicit error or incomplete cohort report. Entry-excluded features contribute only to global lifecycle exposure. Cancellation discards the unfinished paid round; these counts do not claim to classify its interruption cause. The shared Simulate/Results accounting view explains these scopes and shows the reconciliation residual.
 
 ## Independent verification
 

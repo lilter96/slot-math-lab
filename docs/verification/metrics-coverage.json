@@ -119,25 +119,31 @@
     {
       "id": "counts.feature_entries",
       "status": "partial",
-      "scope": "Matched lifecycle entries/exits and unclosed episodes are implemented for settled rounds. Cohort lifecycle counts and typed interrupted feature outcomes remain required.",
+      "scope": "Global authored lifecycle counts and entry-selected cohort entries/exits/open instances are implemented for settled paid rounds, including cohorts with no matching values. Typed interruption causes for unfinished paid rounds remain required.",
       "implementation": [
         "backend/SlotMath.Core/Measurements/MeasurementCollector.cs"
       ],
       "evidence": [
         "backend/SlotMath.Core.Tests/Math/MeasurementTests.cs",
-        "backend/SlotMath.Core.Tests/Math/DiagnosticEvidenceTests.cs"
+        "backend/SlotMath.Core.Tests/Math/DiagnosticEvidenceTests.cs",
+        "backend/SlotMath.Core.Tests/Math/CohortLifecycleTests.cs",
+        "backend/SlotMath.Api.Tests/CohortLifecycleApiTests.cs",
+        "frontend/e2e/z-cohort-lifecycle.spec.ts"
       ]
     },
     {
       "id": "counts.feature_exits",
       "status": "partial",
-      "scope": "Matched lifecycle entries/exits and unclosed episodes are implemented for settled rounds. Cohort lifecycle counts and typed interrupted feature outcomes remain required.",
+      "scope": "Global authored lifecycle counts and entry-selected cohort entries/exits/open instances are implemented for settled paid rounds, including cohorts with no matching values. Typed interruption causes for unfinished paid rounds remain required.",
       "implementation": [
         "backend/SlotMath.Core/Measurements/MeasurementCollector.cs"
       ],
       "evidence": [
         "backend/SlotMath.Core.Tests/Math/MeasurementTests.cs",
-        "backend/SlotMath.Core.Tests/Math/DiagnosticEvidenceTests.cs"
+        "backend/SlotMath.Core.Tests/Math/DiagnosticEvidenceTests.cs",
+        "backend/SlotMath.Core.Tests/Math/CohortLifecycleTests.cs",
+        "backend/SlotMath.Api.Tests/CohortLifecycleApiTests.cs",
+        "frontend/e2e/z-cohort-lifecycle.spec.ts"
       ]
     },
     {

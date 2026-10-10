@@ -112,12 +112,26 @@ internal sealed class MeasurementAnalysisAccumulator(MeasurementOptions options)
             if (value != 0) _weightedEvents += likelihood;
         }
         _sequence?.Add(value);
-        if (_groupsComplete && group is not null)
-        {
-            if (!_groups.TryGetValue(group, out var child)) _groups.Add(group, child = GroupAccumulator());
-            child.Add(value, pair, weight, null, assertionViolation);
-        }
+        Cohort(group)?.Add(value, pair, weight, null, assertionViolation);
     }
+
+    /// <summary>Entry-selected lifecycle exposure is retained even when an
+    /// episode has no included numeric children. Counts belong to the entry
+    /// cohort, so changing exit state cannot move or hide an instance.</summary>
+    public void Lifecycle(string? group, long entries = 0, long exits = 0, long unclosed = 0)
+    {
+        if (Cohort(group) is not { } child) return;
+        child._entries += entries; child._exits += exits; child._unclosed += unclosed;
+    }
+    private MeasurementAnalysisAccumulator? Cohort(string? group)
+    {
+        if (group is null || !_groupsComplete) return null;
+        if (_groups.TryGetValue(group, out var child)) return child;
+        if (_groups.Count >= options.GroupLimit) { _groupsComplete = false; _groups.Clear(); return null; }
+        _groups.Add(group, child = GroupAccumulator()); child.ZeroParents(_clusterSums.Count);
+        return child;
+    }
+    private bool HasEvidence => _moments.Count > 0 || _entries > 0 || _exits > 0 || _unclosed > 0;
 
     public void Merge(MeasurementAnalysisAccumulator other)
     {
@@ -161,11 +175,11 @@ internal sealed class MeasurementAnalysisAccumulator(MeasurementOptions options)
             // seen late in a chunk, or absent from another worker's chunk, still
             // has zero numerator and denominator on those other paid rounds.
             foreach (var (key, target) in _groups)
-                if (!other._groups.TryGetValue(key, out var source) || source._moments.Count == 0)
+                if (!other._groups.TryGetValue(key, out var source) || !source.HasEvidence)
                     target.ZeroParents(other._clusterSums.Count);
             foreach (var (key, value) in other._groups)
             {
-                if (value._moments.Count == 0) continue;
+                if (!value.HasEvidence) continue;
                 if (!_groups.TryGetValue(key, out var target))
                 {
                     if (_groups.Count >= options.GroupLimit) { _groupsComplete = false; _groups.Clear(); break; }
@@ -233,7 +247,7 @@ internal sealed class MeasurementAnalysisAccumulator(MeasurementOptions options)
         }
         var support = _support.Select(p => new ValueFrequency(p.Key, p.Value, p.Key * p.Value)).ToArray();
         var bins = Enumerable.Range(0, _binCount.Length).Select(i => new DistributionBin(i == 0 ? null : options.BinEdges[i - 1], i == options.BinEdges.Length ? null : options.BinEdges[i], _binCount[i], _binSum[i], _binSquares[i])).ToArray();
-        var tails = options.Thresholds.Select((t, i) => new TailSummary(t, _tailCount[i], n == 0 ? 0 : (double)_tailCount[i] / n, _tailSum[i], _tailCount[i] == 0 ? null : _tailSum[i] / _tailCount[i], n == 0 ? 0 : _tailSquares[i] / n)).ToArray();
+        var tails = options.Thresholds.Select((t, i) => new TailSummary(t, _tailCount[i], n == 0 ? null : (double)_tailCount[i] / n, _tailSum[i], _tailCount[i] == 0 ? null : _tailSum[i] / _tailCount[i], n == 0 ? null : _tailSquares[i] / n)).ToArray();
         double? mad = _supportComplete && n > 0 ? _support.Sum(p => M.Abs(p.Key - mean) * p.Value) / n : null;
         var moments = new MomentSummary(n == 0 ? null : _moments.M2 / n + mean * mean, n == 0 ? null : _moments.M2 / n, variance,
             variance is { } varX && mean > 0 ? M.Sqrt(M.Max(0, varX)) / mean : null,
@@ -269,7 +283,7 @@ internal sealed class MeasurementAnalysisAccumulator(MeasurementOptions options)
             probabilityCi, clusterCi, sequential, se, variance is > 0 && options.Tolerance is > 0 ? Finite(M.Ceiling(z * z * variance.Value / M.Pow(options.Tolerance.Value, 2))) : null,
             options.Weight is null ? null : new(_weightSum, _weightSquares, _weightSquares > 0 ? Finite((_weightSum / _weightSquares) * _weightSum) : null,
                 n == 0 ? null : _weightedSum / n, _weightSum > 0 ? _weightedSum / _weightSum : null, double.IsFinite(_minWeight) ? _minWeight : 0, _maxWeight, weightedCi, n == 0 ? null : _weightedEvents / n, weightedEventCi, weightedRatio, weightedRatioCi),
-            _sequence?.Snapshot(ordered), TransitionSnapshot(), _transitionsComplete, comparison, checks.ToArray(), _groups.Where(p => p.Value._moments.Count > 0).ToDictionary(p => p.Key, p => p.Value.Snapshot(errors, ordered), StringComparer.Ordinal))
+            _sequence?.Snapshot(ordered), TransitionSnapshot(), _transitionsComplete, comparison, checks.ToArray(), _groups.Where(p => p.Value.HasEvidence).ToDictionary(p => p.Key, p => p.Value.Snapshot(errors, ordered), StringComparer.Ordinal))
         {
             GroupsComplete = _groupsComplete, Assertion = assertion,
             Normalization = _clusterSums.Count == 0 ? null : new(_clusterSums.Count,

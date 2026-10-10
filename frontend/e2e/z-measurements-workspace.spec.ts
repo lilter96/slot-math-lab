@@ -30,7 +30,7 @@ test('UI configures a scoped FS metric; real engine, durable export, display con
   await expect(page.locator('.run-status')).toHaveText('completed', { timeout: 20000 });
   const metric = page.getByRole('article', { name: 'Tracked metric Sticky FS payout', exact: true });
   await expect(metric.locator('[data-statistic=min]')).toHaveText('2 coins'); await expect(metric.locator('[data-statistic=max]')).toHaveText('4 coins');
-  await expect(metric.locator('[data-statistic=mean]')).toHaveText('3 coins'); await expect(metric).toContainText('10,000 matching'); await expect(metric).toContainText('15,000 eligible visits');
+  await expect(metric.locator('[data-statistic=mean]')).toHaveText('3 coins'); await expect(metric).toContainText('10,000 matching'); await expect(metric).toContainText('15,000 eligible node visits');
   await page.getByRole('button', { name: 'Display settings for Sticky FS payout' }).click();
   await metric.getByRole('checkbox', { name: 'Minimum', exact: true }).uncheck(); await metric.getByRole('checkbox', { name: 'Maximum', exact: true }).uncheck();
   await expect(metric.locator('[data-statistic=min]')).toHaveCount(0); await expect(metric.locator('[data-statistic=mean]')).toHaveText('3 coins');

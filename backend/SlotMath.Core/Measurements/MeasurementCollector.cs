@@ -50,6 +50,7 @@ internal sealed class MeasurementCollector(IReadOnlyList<MeasurementDefinition> 
                     try { if (!episode.Excluded && binding.ExitFilter is { } exit) episode.Excluded = !Predicate(exit(state)); }
                     catch (Exception ex) when (IsMeasurementError(ex)) { episode.Invalid = true; episode.ErrorMessage ??= ex.Message; }
                     Emit(index, episode, options); _exits[index]++;
+                    _staging[index]!.Lifecycle(episode.Group, exits: 1);
                 }
             }
             if (nodeId == options.EntryNodeId)
@@ -59,6 +60,7 @@ internal sealed class MeasurementCollector(IReadOnlyList<MeasurementDefinition> 
                 var episode = new SubjectBuffer(); stack.Push(episode);
                 try { episode.Excluded = binding.EntryFilter is { } entry && !Predicate(entry(state)); if (!episode.Excluded) episode.Group = Key(binding.Group, state); }
                 catch (Exception ex) when (IsMeasurementError(ex)) { episode.Invalid = true; episode.ErrorMessage = ex.Message; }
+                _staging[index]!.Lifecycle(episode.Group, entries: 1);
             }
         }
         if (definition.NodeId == nodeId) Observe(index, state, binding);
@@ -126,14 +128,20 @@ internal sealed class MeasurementCollector(IReadOnlyList<MeasurementDefinition> 
             {
                 if (binding.EntryFilter is { } entry) subject.Excluded = !Predicate(entry(state));
                 if (!subject.Excluded && binding.Filter is { } filter) subject.Excluded = !Predicate(filter(state));
-                if (!subject.Excluded) subject.Add(StateCode(binding.Value!(state)), null, null, Key(binding.Group, state), "first");
+                if (!subject.Excluded)
+                {
+                    subject.Group = Key(binding.Group, state);
+                    subject.Add(StateCode(binding.Value!(state)), null, null, subject.Group, "first");
+                }
             }
             catch (Exception ex) when (IsMeasurementError(ex)) { subject.Invalid = true; subject.ErrorMessage = ex.Message; }
+            _staging[index]!.Lifecycle(subject.Group, entries: 1);
         }
         if (nodeId != options.ExitNodeId) return;
         _round[index].Observations++;
         if (stack.Count == 0) { Error(index, "Transition exit has no matching entry."); return; }
         var completed = stack.Pop(); _exits[index]++;
+        _staging[index]!.Lifecycle(completed.Group, exits: 1);
         if (completed.Invalid) { Error(index, completed.ErrorMessage!); return; }
         if (completed.Excluded) { _round[index].Excluded++; return; }
         try
@@ -168,6 +176,8 @@ internal sealed class MeasurementCollector(IReadOnlyList<MeasurementDefinition> 
         {
             if (options.Subject == "round") Emit(i, _subjects[i] ?? new(), options);
             var unclosed = _episodes[i]?.Count ?? 0;
+            if (_episodes[i] is { } open)
+                foreach (var subject in open) _staging[i]!.Lifecycle(subject.Group, unclosed: 1);
             if (unclosed > 0) { _round[i].Observations += unclosed; _round[i].Errors += unclosed; _round[i].FirstError ??= "Episode remains open at paid-round settlement."; }
             (_round[i].Analysis ??= new(options)).Parent(_matchingChild[i], _entries[i], _exits[i], unclosed, _awardIds[i]?.Count ?? 0, _duplicates[i], _round[i].Count, _round[i].Sum);
         }

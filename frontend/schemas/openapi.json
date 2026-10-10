@@ -4762,7 +4762,10 @@
             "format": "int64"
           },
           "probability": {
-            "type": "number",
+            "type": [
+              "null",
+              "number"
+            ],
             "format": "double"
           },
           "sum": {
@@ -4777,7 +4780,10 @@
             "format": "double"
           },
           "secondMoment": {
-            "type": "number",
+            "type": [
+              "null",
+              "number"
+            ],
             "format": "double"
           }
         }

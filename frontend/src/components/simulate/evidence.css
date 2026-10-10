@@ -1,0 +1,66 @@
+/* Shared evidence primitives; independent of the route that renders them. */
+.simulation-card { border:1px solid var(--line); background:var(--bg-1); border-radius:12px; overflow:hidden; min-width:0; }
+.simulation-card-head { display:flex; justify-content:space-between; gap:14px; align-items:center; padding:18px 20px 14px; }
+.simulation-card h2 { font-size:13px; font-weight:600; margin:0; letter-spacing:.1px; }
+.simulation-card-head p { font-size:11px; color:var(--faint); margin:6px 0 0; line-height:1.6; }
+.simulation-card-head>span { font:10px var(--mono); color:var(--faint); }
+.simulation-card dl>div { display:flex; justify-content:space-between; align-items:center; gap:12px; padding:12px 0; border-top:1px solid var(--line); }
+.simulation-card dt { color:var(--faint); }
+.simulation-card dd { margin:0; font:11px var(--mono); text-align:right; }
+.simulation-card-head { flex-wrap: wrap; }
+@media (max-width: 700px) {
+  .simulation-card-head { padding: 15px; }
+  .simulation-card dd { font-size: 10px; }
+}
+.measurement-calibration, .measurement-witnesses, .graph-measurement-reference, .execution-report {
+  padding: 16px;
+  overflow-wrap: anywhere;
+}
+.measurement-calibration summary, .measurement-witnesses summary, .graph-measurement-reference summary {
+  cursor: pointer;
+  line-height: 1.7;
+}
+:is(.measurement-calibration, .graph-measurement-reference, .execution-configuration) label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+  font-size: 12px;
+  color: var(--muted);
+}
+:is(.measurement-calibration, .graph-measurement-reference, .execution-configuration) :is(input:not([type=checkbox]), select) {
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  padding: 8px;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  background: var(--bg-2);
+  color: var(--text);
+  font: 12px var(--mono);
+}
+.measurement-calibration .measurement-form-grid { margin: 12px 0; }
+.measurement-analysis :is(button, select):focus-visible { outline: 2px solid var(--sampled); outline-offset: 2px; }
+.results-card > section[aria-label^="Saved measurement"] { padding: 16px 20px; border-top: 1px solid var(--line); min-width: 0; }
+.results-card > section[aria-label^="Saved measurement"] > h4 { margin: 0; font-size: 14px; }
+.measurement-analysis-toolbar > label { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+@media (max-width: 700px) {
+  .results-card > section[aria-label^="Saved measurement"] { padding: 14px; }
+  .measurement-analysis-toolbar > label { width: 100%; }
+  .measurement-analysis-toolbar select { width: 100%; }
+}
+
+/* Tables appear in both live and retained evidence, including direct routes. */
+.results-table-scroll { max-width: 100%; overflow-x: auto; }
+.results-table { width: 100%; border-collapse: collapse; font-size: 11px; }
+.results-table th { text-align: left; font-size: 10px; color: var(--faint); font-weight: 500; padding: 12px 10px; border-bottom: 1px solid var(--line); }
+.results-table td { padding: 12px 10px; color: var(--muted); border-bottom: 1px solid var(--line); white-space: nowrap; }
+.results-table td:not(:first-child) { font-family: var(--mono); color: var(--text); }
+.results-table tr:last-child td { border: 0; }
+@media (max-width: 768px) { .results-table { min-width: 440px; } }
+.results-table.measurement-summary-table { table-layout: fixed; min-width: 0; }
+.measurement-summary-table th:first-child { width: 62%; }
+.measurement-summary-table td { white-space: normal; overflow-wrap: anywhere; }
+.results-table-scroll:focus-visible { outline: 2px solid var(--sampled); outline-offset: 2px; }
+.measurement-scroll-note { display: none; color: var(--faint); font-size: 10px; margin-top: 8px; }
+@media (max-width: 768px) { .measurement-scroll-note { display: block; } }

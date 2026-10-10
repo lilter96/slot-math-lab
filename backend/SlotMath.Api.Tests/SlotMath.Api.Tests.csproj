@@ -25,6 +25,7 @@
     <Using Include="Xunit" />
     <Content Include="../SlotMath.Core.Tests/TestData/DogHouse/*.json" Link="TestData/DogHouse/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="../../frontend/e2e/fixtures/fractional-model.json" Link="TestData/fractional-model.json" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="../../frontend/e2e/fixtures/measurement-model.json" Link="TestData/measurement-model.json" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
 </Project>

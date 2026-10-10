@@ -14,7 +14,6 @@ import { downloadJson } from '../games/doghouse/api';
 import { MeasurementWorkspace } from '../components/simulate/MeasurementWorkspace';
 import { validSnapshot } from '../lib/realtime/runProtocol';
 import { useMeasurementWorkspace, type Widget } from '../lib/measurements/store';
-import '../components/simulate/measurements.css';
 import './simulate.css';
 const pct = (v: number) => `${(v * 100).toFixed(3)}%`;
 const duration = (ms: number) => ms < 60000 ? `${(ms / 1000).toFixed(1)}s` : `${Math.floor(ms / 60000)}m ${Math.floor(ms / 1000) % 60}s`;

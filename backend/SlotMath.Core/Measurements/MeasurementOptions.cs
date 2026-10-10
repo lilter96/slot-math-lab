@@ -43,7 +43,7 @@ public sealed record NumericInterval(double Lower, double Upper, string Method, 
 public sealed record QuantileEstimate(double Probability, double? Value, double? Lower, double? Upper, string Method);
 public sealed record DistributionBin(double? Lower, double? Upper, long Count, double Sum, double SumSquares);
 public sealed record ValueFrequency(double Value, long Count, double Sum);
-public sealed record TailSummary(double Threshold, long Count, double Probability, double Sum, double? Mean, double SecondMoment);
+public sealed record TailSummary(double Threshold, long Count, double? Probability, double Sum, double? Mean, double? SecondMoment);
 public sealed record UpperTailEstimate(double Quantile, double TailMass, double? Mean, double? LowerMean, double? UpperMean, double? LowerReturnShare, double? UpperReturnShare, string Method);
 public sealed record PairSummary(long Count, double SumY, double? MeanY, double? Covariance, double? Correlation, double? Ratio, NumericInterval? RatioInterval, double? MeanDifference)
 { public double? SampleVarianceY { get; init; } public double? SampleVarianceSum { get; init; } public double? SampleVarianceDifference { get; init; } public NumericInterval? DifferenceInterval { get; init; } public JointDiagnostics? Joint { get; init; } }

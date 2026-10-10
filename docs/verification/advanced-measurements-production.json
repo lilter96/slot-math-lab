@@ -1,27 +1,27 @@
 {
-  "checkedAt": "2026-10-10T00:08:30.754Z",
+  "checkedAt": "2026-10-10T00:38:03.661Z",
   "endpoint": "https://localhost:8543",
   "anonymousBlocked": true,
-  "runId": "8a38d2b44ab7428fb340f17df17ab5f3",
-  "replayRunId": "38661f9438414c2eb2d203ba0ea61f1c",
-  "referenceRunId": "fa501d4a82834a1b9f67939020466194",
+  "runId": "fbdde0c0cb6748328c387fe854fedcb5",
+  "replayRunId": "927cd649f33345a4bf0fa6464b5ade2a",
+  "referenceRunId": "000872cb1f594d82b2f821767923ca89",
   "crossEngineBitIdentical": true,
-  "referenceElapsedMs": 24753,
+  "referenceElapsedMs": 23881,
   "rounds": 100000,
   "observedRtp": 0.9967189999999915,
   "authoredReferenceRtp": 0.98,
   "configHash": "6ab31814ceb52133e3332855ab8e80aac5af9f9443a886b9361bf5345f0964b4",
-  "measurementHash": "50408fdeac076798faf50f617c3d9879d38327f9041d7a2dbe911e20410c9343",
+  "measurementHash": "aa3507646866b66e74fb4451b537fd28b64f684dbbe110d7dd46c6389a548d33",
   "runtimeProvenance": {
     "measurementContract": "measurements-v1",
-    "numericalMethods": "central-moments-pebay-v1;bins-v1;clopper-pearson-v1;hoeffding-spending-v1;pearson-gamma-v1;session-accounting-v2-decimal-roundtrip;categorical-joint-v1;discrete-null-v1;finite-stationary-v1;witness-prefix-v1;loop-completion-v1;paid-parent-cohorts-v1;paid-turnover-v1;exact-assertion-v1;enumerated-joint-v2;finite-law-comparison-rational-v1;typed-operators-v1;rational-functions-v1;strict-collections-v1;typed-array-index-v1",
+    "numericalMethods": "central-moments-pebay-v1;bins-v1;clopper-pearson-v1;hoeffding-spending-v1;pearson-gamma-v1;session-accounting-v2-decimal-roundtrip;categorical-joint-v1;discrete-null-v1;finite-stationary-v1;witness-prefix-v1;loop-completion-v1;paid-parent-cohorts-v1;paid-turnover-v1;exact-assertion-v1;enumerated-joint-v2;finite-law-comparison-rational-v1;typed-operators-v1;rational-functions-v1;strict-collections-v1;typed-array-index-v1;cohort-lifecycle-v1;empty-tail-population-v1",
     "framework": ".NET 10.0.12",
-    "coreBinarySha256": "980e113952cee121b6608fe35e5aebcb195f584e1548d10c07b946d81549a623",
-    "apiBinarySha256": "724d6c2eb5eaab0bc7776a1e6f5694ad5a378f36de00fc15b3cea111028384f1"
+    "coreBinarySha256": "d430dcf419b4cfee7f4db490b0e693fadddc941d9cabae8e97c8aa500029abb1",
+    "apiBinarySha256": "6c32ff10a90c8bff512dd9015e8ace1ff3c76338c2d7e9ba82df51590dbed8ae"
   },
   "measurements": [
     {
-      "id": "e53877c6-2b72-427c-b5b6-cd7ac29dbac9",
+      "id": "91e71de4-20bb-491e-9f78-36fd536128e2",
       "observations": 100000,
       "count": 100000,
       "excluded": 0,
@@ -306,7 +306,7 @@
       ]
     },
     {
-      "id": "9d250035-2758-4378-82e9-882733f27a22",
+      "id": "ce885d99-028e-460a-b894-0b5e22e290d8",
       "observations": 11275,
       "count": 11275,
       "excluded": 0,
@@ -11686,7 +11686,7 @@
       ]
     },
     {
-      "id": "00f7a06f-6821-429a-9fb9-625096524943",
+      "id": "d83b44f0-7394-417a-a271-627521229b7e",
       "observations": 11275,
       "count": 6977,
       "excluded": 4298,
@@ -11961,7 +11961,7 @@
       ]
     },
     {
-      "id": "00f752d2-e449-469e-83d1-42947f8d603c",
+      "id": "fac5f3f7-7f90-46bc-b047-14c37f2cc134",
       "observations": 100000,
       "count": 100000,
       "excluded": 0,
@@ -12322,7 +12322,7 @@
       ]
     },
     {
-      "id": "8683b056-de02-42c5-9e8c-ab160cc2d08f",
+      "id": "2763061b-187d-4679-8b94-bf081f071a08",
       "observations": 630,
       "count": 630,
       "excluded": 0,
@@ -12676,6 +12676,471 @@
           "detail": null
         }
       ]
+    },
+    {
+      "id": "364d5ec3-4349-49ff-ae2a-0fd3d95be9e3",
+      "observations": 630,
+      "count": 0,
+      "excluded": 630,
+      "errors": 0,
+      "min": null,
+      "max": null,
+      "mean": null,
+      "sum": null,
+      "stdDev": null,
+      "firstError": null,
+      "analysis": {
+        "count": 0,
+        "min": null,
+        "max": null,
+        "mean": null,
+        "sum": null,
+        "subject": "episode",
+        "reduction": "average",
+        "distinctParents": 0,
+        "entries": 630,
+        "exits": 630,
+        "unclosedEpisodes": 0,
+        "uniqueAwards": 0,
+        "duplicateAwards": 0,
+        "moments": {
+          "secondMoment": null,
+          "populationVariance": null,
+          "sampleVariance": null,
+          "coefficientOfVariation": null,
+          "skewness": null,
+          "excessKurtosis": null,
+          "meanAbsoluteDeviation": null
+        },
+        "pair": null,
+        "support": [],
+        "supportComplete": true,
+        "bins": [
+          {
+            "lower": null,
+            "upper": 0,
+            "count": 0,
+            "sum": 0,
+            "sumSquares": 0
+          },
+          {
+            "lower": 0,
+            "upper": 1,
+            "count": 0,
+            "sum": 0,
+            "sumSquares": 0
+          },
+          {
+            "lower": 1,
+            "upper": 2,
+            "count": 0,
+            "sum": 0,
+            "sumSquares": 0
+          },
+          {
+            "lower": 2,
+            "upper": 5,
+            "count": 0,
+            "sum": 0,
+            "sumSquares": 0
+          },
+          {
+            "lower": 5,
+            "upper": 10,
+            "count": 0,
+            "sum": 0,
+            "sumSquares": 0
+          },
+          {
+            "lower": 10,
+            "upper": 20,
+            "count": 0,
+            "sum": 0,
+            "sumSquares": 0
+          },
+          {
+            "lower": 20,
+            "upper": 50,
+            "count": 0,
+            "sum": 0,
+            "sumSquares": 0
+          },
+          {
+            "lower": 50,
+            "upper": 100,
+            "count": 0,
+            "sum": 0,
+            "sumSquares": 0
+          },
+          {
+            "lower": 100,
+            "upper": 500,
+            "count": 0,
+            "sum": 0,
+            "sumSquares": 0
+          },
+          {
+            "lower": 500,
+            "upper": 1000,
+            "count": 0,
+            "sum": 0,
+            "sumSquares": 0
+          },
+          {
+            "lower": 1000,
+            "upper": null,
+            "count": 0,
+            "sum": 0,
+            "sumSquares": 0
+          }
+        ],
+        "quantiles": [
+          {
+            "probability": 0.5,
+            "value": null,
+            "lower": null,
+            "upper": null,
+            "method": "No observations"
+          },
+          {
+            "probability": 0.9,
+            "value": null,
+            "lower": null,
+            "upper": null,
+            "method": "No observations"
+          },
+          {
+            "probability": 0.95,
+            "value": null,
+            "lower": null,
+            "upper": null,
+            "method": "No observations"
+          },
+          {
+            "probability": 0.99,
+            "value": null,
+            "lower": null,
+            "upper": null,
+            "method": "No observations"
+          }
+        ],
+        "tails": [
+          {
+            "threshold": 1,
+            "count": 0,
+            "probability": null,
+            "sum": 0,
+            "mean": null,
+            "secondMoment": null
+          },
+          {
+            "threshold": 10,
+            "count": 0,
+            "probability": null,
+            "sum": 0,
+            "mean": null,
+            "secondMoment": null
+          },
+          {
+            "threshold": 100,
+            "count": 0,
+            "probability": null,
+            "sum": 0,
+            "mean": null,
+            "secondMoment": null
+          }
+        ],
+        "upperTails": [
+          {
+            "quantile": 0.5,
+            "tailMass": 0.5,
+            "mean": null,
+            "lowerMean": null,
+            "upperMean": null,
+            "lowerReturnShare": null,
+            "upperReturnShare": null,
+            "method": "No observations"
+          },
+          {
+            "quantile": 0.9,
+            "tailMass": 0.09999999999999998,
+            "mean": null,
+            "lowerMean": null,
+            "upperMean": null,
+            "lowerReturnShare": null,
+            "upperReturnShare": null,
+            "method": "No observations"
+          },
+          {
+            "quantile": 0.95,
+            "tailMass": 0.050000000000000044,
+            "mean": null,
+            "lowerMean": null,
+            "upperMean": null,
+            "lowerReturnShare": null,
+            "upperReturnShare": null,
+            "method": "No observations"
+          },
+          {
+            "quantile": 0.99,
+            "tailMass": 0.010000000000000009,
+            "mean": null,
+            "lowerMean": null,
+            "upperMean": null,
+            "lowerReturnShare": null,
+            "upperReturnShare": null,
+            "method": "No observations"
+          }
+        ],
+        "meanAbsoluteDeviationBounds": null,
+        "meanInterval": null,
+        "probabilityInterval": null,
+        "clusteredMeanInterval": null,
+        "sequentialMeanInterval": null,
+        "meanStandardError": null,
+        "requiredSampleSize": null,
+        "weights": null,
+        "sequence": null,
+        "transitions": [],
+        "transitionsComplete": true,
+        "comparison": null,
+        "checks": [],
+        "groups": {
+          "bonus selection": {
+            "count": 0,
+            "min": null,
+            "max": null,
+            "mean": null,
+            "sum": null,
+            "subject": "episode",
+            "reduction": "average",
+            "distinctParents": 0,
+            "entries": 630,
+            "exits": 630,
+            "unclosedEpisodes": 0,
+            "uniqueAwards": 0,
+            "duplicateAwards": 0,
+            "moments": {
+              "secondMoment": null,
+              "populationVariance": null,
+              "sampleVariance": null,
+              "coefficientOfVariation": null,
+              "skewness": null,
+              "excessKurtosis": null,
+              "meanAbsoluteDeviation": null
+            },
+            "pair": null,
+            "support": [],
+            "supportComplete": true,
+            "bins": [
+              {
+                "lower": null,
+                "upper": 0,
+                "count": 0,
+                "sum": 0,
+                "sumSquares": 0
+              },
+              {
+                "lower": 0,
+                "upper": 1,
+                "count": 0,
+                "sum": 0,
+                "sumSquares": 0
+              },
+              {
+                "lower": 1,
+                "upper": 2,
+                "count": 0,
+                "sum": 0,
+                "sumSquares": 0
+              },
+              {
+                "lower": 2,
+                "upper": 5,
+                "count": 0,
+                "sum": 0,
+                "sumSquares": 0
+              },
+              {
+                "lower": 5,
+                "upper": 10,
+                "count": 0,
+                "sum": 0,
+                "sumSquares": 0
+              },
+              {
+                "lower": 10,
+                "upper": 20,
+                "count": 0,
+                "sum": 0,
+                "sumSquares": 0
+              },
+              {
+                "lower": 20,
+                "upper": 50,
+                "count": 0,
+                "sum": 0,
+                "sumSquares": 0
+              },
+              {
+                "lower": 50,
+                "upper": 100,
+                "count": 0,
+                "sum": 0,
+                "sumSquares": 0
+              },
+              {
+                "lower": 100,
+                "upper": 500,
+                "count": 0,
+                "sum": 0,
+                "sumSquares": 0
+              },
+              {
+                "lower": 500,
+                "upper": 1000,
+                "count": 0,
+                "sum": 0,
+                "sumSquares": 0
+              },
+              {
+                "lower": 1000,
+                "upper": null,
+                "count": 0,
+                "sum": 0,
+                "sumSquares": 0
+              }
+            ],
+            "quantiles": [
+              {
+                "probability": 0.5,
+                "value": null,
+                "lower": null,
+                "upper": null,
+                "method": "No observations"
+              },
+              {
+                "probability": 0.9,
+                "value": null,
+                "lower": null,
+                "upper": null,
+                "method": "No observations"
+              },
+              {
+                "probability": 0.95,
+                "value": null,
+                "lower": null,
+                "upper": null,
+                "method": "No observations"
+              },
+              {
+                "probability": 0.99,
+                "value": null,
+                "lower": null,
+                "upper": null,
+                "method": "No observations"
+              }
+            ],
+            "tails": [
+              {
+                "threshold": 1,
+                "count": 0,
+                "probability": null,
+                "sum": 0,
+                "mean": null,
+                "secondMoment": null
+              },
+              {
+                "threshold": 10,
+                "count": 0,
+                "probability": null,
+                "sum": 0,
+                "mean": null,
+                "secondMoment": null
+              },
+              {
+                "threshold": 100,
+                "count": 0,
+                "probability": null,
+                "sum": 0,
+                "mean": null,
+                "secondMoment": null
+              }
+            ],
+            "upperTails": [
+              {
+                "quantile": 0.5,
+                "tailMass": 0.5,
+                "mean": null,
+                "lowerMean": null,
+                "upperMean": null,
+                "lowerReturnShare": null,
+                "upperReturnShare": null,
+                "method": "No observations"
+              },
+              {
+                "quantile": 0.9,
+                "tailMass": 0.09999999999999998,
+                "mean": null,
+                "lowerMean": null,
+                "upperMean": null,
+                "lowerReturnShare": null,
+                "upperReturnShare": null,
+                "method": "No observations"
+              },
+              {
+                "quantile": 0.95,
+                "tailMass": 0.050000000000000044,
+                "mean": null,
+                "lowerMean": null,
+                "upperMean": null,
+                "lowerReturnShare": null,
+                "upperReturnShare": null,
+                "method": "No observations"
+              },
+              {
+                "quantile": 0.99,
+                "tailMass": 0.010000000000000009,
+                "mean": null,
+                "lowerMean": null,
+                "upperMean": null,
+                "lowerReturnShare": null,
+                "upperReturnShare": null,
+                "method": "No observations"
+              }
+            ],
+            "meanAbsoluteDeviationBounds": null,
+            "meanInterval": null,
+            "probabilityInterval": null,
+            "clusteredMeanInterval": null,
+            "sequentialMeanInterval": null,
+            "meanStandardError": null,
+            "requiredSampleSize": null,
+            "weights": null,
+            "sequence": null,
+            "transitions": [],
+            "transitionsComplete": true,
+            "comparison": null,
+            "checks": [],
+            "groups": {},
+            "groupsComplete": true,
+            "assertion": null,
+            "normalization": {
+              "paidRounds": 100000,
+              "externalTurnover": 100000,
+              "basis": "All settled paid parents multiplied by the pinned fixed external cost; absent cohort/component parents remain in the denominator. Values and cost must use compatible monetary units. Unweighted proposal observations when likelihood weights are present."
+            }
+          }
+        },
+        "groupsComplete": true,
+        "assertion": null,
+        "normalization": {
+          "paidRounds": 100000,
+          "externalTurnover": 100000,
+          "basis": "All settled paid parents multiplied by the pinned fixed external cost; absent cohort/component parents remain in the denominator. Values and cost must use compatible monetary units. Unweighted proposal observations when likelihood weights are present."
+        }
+      },
+      "witnesses": []
     }
   ],
   "execution": {
@@ -12715,15 +13180,19 @@
     ],
     "loopTerminationsComplete": true
   },
-  "elapsedMs": 2830,
-  "roundsPerSecond": 35335.68904593639,
+  "elapsedMs": 2743,
+  "roundsPerSecond": 36456.43456069996,
   "liveFrames": 188,
-  "primaryRunLiveFrames": 20,
+  "primaryRunLiveFrames": 36,
   "paidTurnoverReconciled": true,
   "independentLawComparisonRetained": true,
+  "cohortLifecycleReconciled": true,
   "workerReplayBitIdentical": true,
   "mobileFits": true,
   "browserErrors": [],
-  "simulateUrl": "https://localhost:8543/simulate?run=8a38d2b44ab7428fb340f17df17ab5f3",
-  "resultsUrl": "https://localhost:8543/results?run=8a38d2b44ab7428fb340f17df17ab5f3"
+  "simulateUrl": "https://localhost:8543/simulate?run=fbdde0c0cb6748328c387fe854fedcb5",
+  "resultsUrl": "https://localhost:8543/results?run=fbdde0c0cb6748328c387fe854fedcb5",
+  "retainedUiRecheckedAt": "2026-10-10T00:40:24.913Z",
+  "directResultsStylesVerified": true,
+  "retainedMobileAccountingFits": true
 }

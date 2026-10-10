@@ -395,19 +395,20 @@ public class SampledInterpreter_Cancellation
             Seed = 1,
             MaxSpins = 10_000_000,
             CancellationToken = cts.Token,
-            CancellationCheckInterval = 1000
+            CancellationCheckInterval = 1000,
+            ProgressReportInterval = 1000,
+            ProgressCallback = _ => cts.Cancel(),
         };
-
-        // Cancel after a generous delay so many spins complete.
-        cts.CancelAfter(TimeSpan.FromMilliseconds(200));
+        // Cancel at a known completed prefix. A wall-clock timer can be delayed
+        // by unrelated thread-pool work or arrive after a very fast run finishes.
 
         var result = SampledInterpreter.Evaluate(program, new SpinState(0, 0), config);
 
         Assert.True(result.WasCancelled);
         Assert.Equal(result.SpinsCompleted, result.Stats.Count);
 
-        // With a trivial program we should get a meaningful number of spins.
-        Assert.True(result.SpinsCompleted >= 0); // always true; the real test is count == stats.Count
+        Assert.Equal(1000, result.SpinsCompleted);
+        Assert.Equal(1, result.Stats.Mean);
     }
 
     [Fact]

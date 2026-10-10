@@ -22,11 +22,14 @@ async function get(path) {
   }
   throw new Error('Read quota did not recover.');
 }
-async function metric(name, { node, expression, source, subject, group, filter, independent = false } = {}) {
+async function metric(name, { node, expression, source, subject, group, filter, entry, exit, reduction, independent = false } = {}) {
   await page.getByRole('button', { name: '＋ Track metric', exact: true }).click(); await page.getByLabel('Metric name').fill(name);
   if (node) { await page.getByLabel('Metric observation level').selectOption('node'); await page.getByLabel('Metric graph node').selectOption(node); }
   await page.getByLabel('Enable advanced measurement').check();
   if (subject) await page.getByLabel('Measurement subject', { exact: true }).selectOption(subject);
+  if (entry) await page.getByLabel('Episode entry', { exact: true }).selectOption(entry);
+  if (exit) await page.getByLabel('Episode exit', { exact: true }).selectOption(exit);
+  if (reduction) await page.getByLabel('Subject reduction', { exact: true }).selectOption(reduction);
   if (source) await page.getByLabel('Measurement source', { exact: true }).selectOption(source);
   if (expression) { await page.getByLabel('Metric value source').selectOption('expression'); await page.getByLabel('Metric numeric expression').fill(expression); }
   if (filter) { await page.getByLabel('Metric filter mode').selectOption('expression'); await page.getByLabel('Metric filter expression').fill(filter); }
@@ -52,15 +55,21 @@ try {
   await metric('Long bonus FS payout', { node: 'free-spin/snapshot-winHistory', expression: 'state.spinCoins / 20', filter: 'state.fsCount >= 18' });
   await metric('FS reveals per paid round', { node: 'free-spin/snapshot-winHistory', subject: 'round', source: 'count', independent: true });
   await metric('Bonus awarded reveals', { node: 'free-spins', expression: 'state.fsCount', independent: true });
+  await metric('Bonus selection lifecycle', { node: 'bonus-count', subject: 'episode', source: 'count',
+    entry: 'bonus-grid-loop', exit: 'free-spins', reduction: 'average', group: '"bonus selection"', filter: 'false' });
   await page.getByLabel('Simulation spins').fill('100000'); await page.getByLabel('Simulation workers').selectOption('2');
   const launch = page.waitForResponse(r => r.url().endsWith('/api/runs') && r.request().method() === 'POST' && r.status() === 202);
   await page.getByRole('button', { name: /^▶ Start run$/ }).click(); const created = await (await launch).json(); owned.push(created.id);
   await expect(page.locator('.run-status')).toHaveText('completed', { timeout: 120000 }); const run = await finished(created.id), values = run.progress.measurements;
-  if (values.length !== 5 || values.some(m => m.errors || m.observations !== m.count + m.excluded + m.errors)) throw new Error('Invalid advanced observation accounting.');
+  if (values.length !== 6 || values.some(m => m.errors || m.observations !== m.count + m.excluded + m.errors)) throw new Error('Invalid advanced observation accounting.');
   if (values[0].count !== 100000 || values[3].count !== 100000 || values[1].count !== values[3].sum || values[1].count !== values[4].sum) throw new Error('Paid-round / reveal denominators disagree.');
   if (values.some(m => m.analysis.normalization?.paidRounds !== 100000 || m.analysis.normalization.externalTurnover !== 100000)
     || Object.values(values[1].analysis.groups).some(g => g.normalization?.paidRounds !== 100000 || g.normalization.externalTurnover !== 100000)) throw new Error('FS/cohort contributions lost their complete external-turnover denominator.');
   if (!values[1].analysis.groupsComplete || Object.keys(values[1].analysis.groups).length < 2 || values[1].analysis.meanInterval !== null) throw new Error('Grouped FS evidence is incomplete or claims independent reveals.');
+  const lifecycle = values[5].analysis.groups['bonus selection'];
+  if (values[5].count !== 0 || values[5].mean !== null || !lifecycle || lifecycle.entries !== values[4].count
+    || lifecycle.exits !== lifecycle.entries || lifecycle.unclosedEpisodes !== 0 || lifecycle.count !== 0
+    || lifecycle.normalization?.paidRounds !== 100000 || lifecycle.tails.some(t => t.probability !== null || t.secondMoment !== null)) throw new Error('Empty bonus cohort lost lifecycle exposure or invented a numeric value.');
   if (!frames.some(f => f.sampleCount > 0 && f.measurements?.some(m => m.analysis))) throw new Error('No rich production WebSocket frame.');
   await page.reload(); await expect(page.getByTestId('sample-count')).toHaveText('100,000');
   const law = page.getByRole('article', { name: 'Tracked metric Complete round payout law', exact: true });
@@ -78,8 +87,20 @@ try {
   const retained = await get(`/api/runs/${run.id}/evidence`);
   if (!retained.diagnostics.some(d => d.kind === 'independent-law-comparison' && /^[a-f0-9]{64}$/.test(d.inputSha256) && /^[a-f0-9]{64}$/.test(d.outputSha256))) throw new Error('Authenticated rational law comparison was not retained with its evidence identity.');
   await page.goto(base + `/results?run=${run.id}`);
+  await page.reload();
   await expect(page.getByLabel('Retained diagnostic evidence')).toContainText('independent-law-comparison');
   await screenshot('advanced-measurements-production-desktop.png');
+  const lifecycleCard = page.getByRole('region', { name: 'Saved measurement Bonus selection lifecycle', exact: true });
+  await expect(lifecycleCard.locator('.measurement-quantiles')).toHaveCSS('display', 'grid');
+  await lifecycleCard.getByRole('tab', { name: 'accounting', exact: true }).click();
+  await lifecycleCard.getByLabel('Analysis population').selectOption('bonus selection');
+  await expect(lifecycleCard.getByRole('row').filter({ hasText: 'Feature entries / exits / unclosed' })).toContainText(`${lifecycle.entries} / ${lifecycle.entries} / 0`);
+  await lifecycleCard.scrollIntoViewIfNeeded(); await screenshot('advanced-cohort-lifecycle-production.png');
+  await page.setViewportSize({ width: 390, height: 844 });
+  await lifecycleCard.scrollIntoViewIfNeeded();
+  if (!await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)) throw new Error('Retained cohort evidence overflows mobile viewport.');
+  await screenshot('advanced-cohort-lifecycle-production-mobile.png');
+  await page.setViewportSize({ width: 1560, height: 1100 });
   await page.getByRole('button', { name: 'Replay pinned run', exact: true }).click(); await page.getByLabel('Pinned run workers').selectOption('1');
   const replayLaunch = page.waitForResponse(r => r.url().endsWith('/api/runs') && r.request().method() === 'POST' && r.status() === 202);
   await page.getByRole('button', { name: 'Start pinned run', exact: true }).click(); const replay = await (await replayLaunch).json(); owned.push(replay.id); const replayed = await finished(replay.id);
@@ -107,7 +128,7 @@ try {
     configHash: run.configHash, measurementHash: run.measurementHash, runtimeProvenance: run.runtimeProvenance, measurements: values,
     execution: run.progress.execution, elapsedMs: run.progress.elapsedMs, roundsPerSecond: 100000000 / run.progress.elapsedMs,
     liveFrames: frames.length, primaryRunLiveFrames: frames.filter(f => f.runId === run.id).length,
-    paidTurnoverReconciled: true, independentLawComparisonRetained: true,
+    paidTurnoverReconciled: true, independentLawComparisonRetained: true, cohortLifecycleReconciled: true,
     workerReplayBitIdentical: true, mobileFits: true, browserErrors: errors,
     simulateUrl: base + `/simulate?run=${run.id}`, resultsUrl: base + `/results?run=${run.id}` });
   await writeFile(root + '/docs/verification/advanced-measurements-production.json', JSON.stringify(report, null, 2) + '\n');
