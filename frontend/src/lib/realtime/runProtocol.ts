@@ -54,6 +54,9 @@ export function validProgress(value: unknown): value is LiveProgress {
       ids.add(m.id);
       if (!validWitnesses(m.witnesses)) return false;
       if (m.analysis != null && !validAnalysis(m.analysis, m.count, m.mean as number | null, m.sum as number | null)) return false;
+      const interrupted = (m.analysis as MeasurementSnapshot['analysis'])?.interruptedLifecycle;
+      if (interrupted && (interrupted.cancelled.interruptedRounds > ((value.execution as ExecutionSummary | undefined)?.cancelledRounds ?? 0)
+        || interrupted.failed.interruptedRounds > ((value.execution as ExecutionSummary | undefined)?.failedRounds ?? 0))) return false;
       for (const field of ['min', 'max', 'mean', 'sum', 'stdDev']) {
         const v = m[field];
         if (v !== null && (typeof v !== 'number' || !Number.isFinite(v))) return false;
@@ -109,6 +112,12 @@ export function progressDecision(run: RunSnapshot | null, current: LiveProgress 
   if (run.streamEpoch && next.streamEpoch !== run.streamEpoch) return terminal(run.status) ? 'stale' : 'epoch-change';
   if (run.measurements?.some((d, i) => (d.options?.subject === 'round' || !d.nodeId && !['episode', 'transition'].includes(d.options?.subject ?? '')) && next.measurements?.[i].observations !== next.sampleCount)) return 'invalid';
   if (current?.measurements?.some((m, i) => next.measurements && ['count', 'observations', 'excluded', 'errors'].some(field => next.measurements![i][field as 'count'] < m[field as 'count']))) return 'stale';
+  if (current?.measurements?.some((m, i) => {
+    const before = m.analysis?.interruptedLifecycle, after = next.measurements?.[i].analysis?.interruptedLifecycle;
+    return before && (!after || (['cancelled', 'failed'] as const).some(reason =>
+      (['interruptedRounds', 'entries', 'exits', 'openInstances'] as const).some(field => after[reason][field] < before[reason][field])
+      || !before[reason].complete && after[reason].complete));
+  })) return 'stale';
   const revision = current?.sequence ?? run.sequence ?? -1;
   if (next.sequence < revision || next.sampleCount < (current?.sampleCount ?? 0)) return 'stale';
   if (terminal(run.status) && next.status !== run.status) return 'stale';

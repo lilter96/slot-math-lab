@@ -23,6 +23,7 @@ internal sealed class MeasurementAnalysisAccumulator(MeasurementOptions options)
     private long _events, _distinctParents, _entries, _exits, _unclosed, _uniqueAwards, _duplicateAwards, _assertionViolations;
     private long _matchingPaidParents, _matchingEpisodes;
     private bool _parentHasMatchingChild;
+    private FeatureLifecycleCounts? _cancelledLifecycle, _failedLifecycle;
     private bool _supportComplete = true;
     private readonly SortedDictionary<double, long> _support = new();
     private readonly SortedDictionary<double, double> _weightSupport = new();
@@ -44,6 +45,7 @@ internal sealed class MeasurementAnalysisAccumulator(MeasurementOptions options)
         _transitions.Clear(); _transitionsComplete = true;
         _events = _distinctParents = _entries = _exits = _unclosed = _uniqueAwards = _duplicateAwards = _assertionViolations = 0;
         _matchingPaidParents = _matchingEpisodes = 0; _parentHasMatchingChild = false;
+        _cancelledLifecycle = _failedLifecycle = null;
         _supportComplete = true; _support.Clear(); _weightSupport.Clear(); Array.Clear(_binCount); Array.Clear(_binSum); Array.Clear(_binSquares);
         Array.Clear(_tailCount); Array.Clear(_tailSum); Array.Clear(_tailSquares); _sequence?.Reset();
         // Reuse cohort containers without clearing every historical cohort on
@@ -151,11 +153,34 @@ internal sealed class MeasurementAnalysisAccumulator(MeasurementOptions options)
         _groups.Add(group, child = GroupAccumulator()); child.ZeroParents(_clusterSums.Count);
         return child;
     }
-    private bool HasEvidence => _moments.Count > 0 || _entries > 0 || _exits > 0 || _unclosed > 0 || _matchingPaidParents > 0 || _matchingEpisodes > 0 || _parentHasMatchingChild;
+    /// <summary>Copy only boundary exposure from a discarded round. Numeric values,
+    /// accepted children, awards, witnesses and settled parent denominators never merge.</summary>
+    public void InterruptFrom(PaidRoundInterruption reason, MeasurementAnalysisAccumulator source,
+        long entries, long exits, long open, bool complete, IReadOnlyDictionary<string, long> openGroups)
+    {
+        RecordInterruption(reason, entries, exits, open, complete);
+        if (!source._groupsComplete) { _groupsComplete = false; _groups.Clear(); return; }
+        foreach (var (key, cohort) in source._groups)
+        {
+            var unclosed = openGroups.GetValueOrDefault(key);
+            if (cohort._entries == 0 && cohort._exits == 0 && unclosed == 0) continue;
+            Cohort(key)?.RecordInterruption(reason, cohort._entries, cohort._exits, unclosed, complete);
+        }
+    }
+    private void RecordInterruption(PaidRoundInterruption reason, long entries, long exits, long open, bool complete)
+    {
+        var counts = new FeatureLifecycleCounts(1, entries, exits, open, complete && entries == exits + open);
+        if (reason == PaidRoundInterruption.Cancelled) _cancelledLifecycle = FeatureLifecycleCounts.Merge(_cancelledLifecycle, counts);
+        else _failedLifecycle = FeatureLifecycleCounts.Merge(_failedLifecycle, counts);
+    }
+    private bool HasEvidence => _moments.Count > 0 || _entries > 0 || _exits > 0 || _unclosed > 0 || _matchingPaidParents > 0 || _matchingEpisodes > 0 || _parentHasMatchingChild
+        || _cancelledLifecycle is not null || _failedLifecycle is not null;
 
     public void Merge(MeasurementAnalysisAccumulator other)
     {
         _joint.Merge(other._joint);
+        _cancelledLifecycle = FeatureLifecycleCounts.Merge(_cancelledLifecycle, other._cancelledLifecycle);
+        _failedLifecycle = FeatureLifecycleCounts.Merge(_failedLifecycle, other._failedLifecycle);
         var previousParents = _clusterSums.Count;
         var parents = _clusterSums.Count + other._clusterSums.Count;
         _clusterCoMoment += other._clusterCoMoment + (parents == 0 ? 0 : (other._clusterSums.Mean - _clusterSums.Mean) * (other._clusterCounts.Mean - _clusterCounts.Mean) * ((double)_clusterSums.Count * other._clusterSums.Count / parents));
@@ -310,6 +335,8 @@ internal sealed class MeasurementAnalysisAccumulator(MeasurementOptions options)
             _sequence?.Snapshot(ordered), TransitionSnapshot(), _transitionsComplete, comparison, checks.ToArray(), _groups.Where(p => p.Value.HasEvidence).ToDictionary(p => p.Key, p => p.Value.Snapshot(errors, ordered), StringComparer.Ordinal))
         {
             GroupsComplete = _groupsComplete, Assertion = assertion,
+            InterruptedLifecycle = options.Subject is "episode" or "transition"
+                ? new(_cancelledLifecycle ?? FeatureLifecycleCounts.Empty, _failedLifecycle ?? FeatureLifecycleCounts.Empty) : null,
             ParentExposure = new(_matchingPaidParents, options.Subject == "episode" ? _matchingEpisodes : null),
             Normalization = _clusterSums.Count == 0 ? null : new(_clusterSums.Count,
                 options.PairRole == "wager" ? _paired.Sum > 0 ? Finite(_paired.Sum) : null : Finite(_clusterSums.Count * options.Stake),

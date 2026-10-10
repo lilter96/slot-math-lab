@@ -69,7 +69,7 @@ public sealed record MeasurementAnalysis(
     NumericInterval? SequentialMeanInterval, double? MeanStandardError, double? RequiredSampleSize,
     WeightedSummary? Weights, SequenceSummary? Sequence, TransitionFrequency[] Transitions, bool TransitionsComplete, DistributionComparison? Comparison,
     VerificationCheck[] Checks, IReadOnlyDictionary<string, MeasurementAnalysis> Groups)
-{ public bool GroupsComplete { get; init; } = true; public AssertionSummary? Assertion { get; init; } public ContributionNormalization? Normalization { get; init; } public ParentExposure? ParentExposure { get; init; } }
+{ public bool GroupsComplete { get; init; } = true; public AssertionSummary? Assertion { get; init; } public ContributionNormalization? Normalization { get; init; } public ParentExposure? ParentExposure { get; init; } public InterruptedFeatureLifecycle? InterruptedLifecycle { get; init; } }
 
 internal sealed record MeasurementBinding<T>(Func<T, Expressions.ExprValue>? Value,
     Func<T, Expressions.ExprValue>? Filter, Func<T, Expressions.ExprValue>? Group = null,

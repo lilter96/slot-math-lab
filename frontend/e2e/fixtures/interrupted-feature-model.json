@@ -1,0 +1,165 @@
+{
+  "schemaVersion": "1.0.0",
+  "name": "Interrupted feature boundary oracle",
+  "nodes": [
+    {
+      "nodeType": "loop",
+      "id": "fs",
+      "maxIterations": 3,
+      "outputs": {
+        "body": {
+          "name": "body",
+          "type": "State"
+        },
+        "exit": {
+          "name": "exit",
+          "type": "Wins"
+        }
+      }
+    },
+    {
+      "nodeType": "modifyState",
+      "id": "type",
+      "expressionId": "type",
+      "outputKey": "fsType",
+      "inputs": {
+        "in": {
+          "name": "in",
+          "type": "State"
+        }
+      },
+      "outputs": {
+        "out": {
+          "name": "out",
+          "type": "State"
+        }
+      }
+    },
+    {
+      "nodeType": "modifyState",
+      "id": "win",
+      "expressionId": "win",
+      "outputKey": "spinWin",
+      "inputs": {
+        "in": {
+          "name": "in",
+          "type": "State"
+        }
+      },
+      "outputs": {
+        "out": {
+          "name": "out",
+          "type": "State"
+        }
+      }
+    },
+    {
+      "nodeType": "modifyState",
+      "id": "end",
+      "expressionId": "zero",
+      "outputKey": "end",
+      "inputs": {
+        "in": {
+          "name": "in",
+          "type": "State"
+        }
+      }
+    },
+    {
+      "nodeType": "metricsSink",
+      "id": "sink",
+      "winCap": 10,
+      "inputs": {
+        "in": {
+          "name": "in",
+          "type": "Wins"
+        }
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "a",
+      "sourceNodeId": "fs",
+      "sourcePort": "body",
+      "targetNodeId": "type",
+      "targetPort": "in"
+    },
+    {
+      "id": "b",
+      "sourceNodeId": "type",
+      "sourcePort": "out",
+      "targetNodeId": "win",
+      "targetPort": "in"
+    },
+    {
+      "id": "c",
+      "sourceNodeId": "win",
+      "sourcePort": "out",
+      "targetNodeId": "end",
+      "targetPort": "in"
+    },
+    {
+      "id": "d",
+      "sourceNodeId": "fs",
+      "sourcePort": "exit",
+      "targetNodeId": "sink",
+      "targetPort": "in"
+    }
+  ],
+  "expressions": {
+    "zero": {
+      "exprType": "constant",
+      "kind": "Integer",
+      "value": "0"
+    },
+    "type": {
+      "exprType": "if",
+      "condition": {
+        "exprType": "compare",
+        "op": "Eq",
+        "left": {
+          "exprType": "fieldAccess",
+          "target": "state",
+          "path": [
+            "__iter_fs__"
+          ]
+        },
+        "right": {
+          "exprType": "constant",
+          "kind": "Integer",
+          "value": "1"
+        }
+      },
+      "thenExpr": {
+        "exprType": "constant",
+        "kind": "String",
+        "value": "other"
+      },
+      "elseExpr": {
+        "exprType": "constant",
+        "kind": "String",
+        "value": "sticky"
+      }
+    },
+    "win": {
+      "exprType": "binary",
+      "op": "Div",
+      "left": {
+        "exprType": "constant",
+        "kind": "Integer",
+        "value": "1"
+      },
+      "right": {
+        "exprType": "fieldAccess",
+        "target": "state",
+        "path": [
+          "denominator"
+        ]
+      }
+    }
+  },
+  "initialState": {
+    "denominator": 0
+  }
+}

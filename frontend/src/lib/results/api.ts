@@ -18,8 +18,14 @@ export async function resultsRequest<T>(path: string, init?: RequestInit, signal
   }
   return data;
 }
-const retry = (attempt: number, error: Error) => !(error instanceof HttpFailure && [400, 401, 403, 404].includes(error.status)) && attempt < 1;
-const retryDelay = (attempt: number, error: Error) => error instanceof HttpFailure && error.status === 429 ? Math.max(1000, error.retryAfterMs) : 1000 * 2 ** attempt;
+/** Reads and explicitly rejected calculations tolerate two bounded quota windows.
+ * Other read failures keep one retry; accepted calculations never auto-repeat. */
+export const resultsCalculationRetry = (attempt: number, error: Error) => error instanceof HttpFailure
+  && error.status === 429 && error.retryAfterMs <= 60000 && attempt < 2;
+export const resultsReadRetry = (attempt: number, error: Error) => error instanceof HttpFailure && error.status === 429
+  ? resultsCalculationRetry(attempt, error) : !(error instanceof HttpFailure && [400, 401, 403, 404].includes(error.status)) && attempt < 1;
+export const resultsRetryDelay = (attempt: number, error: Error) => error instanceof HttpFailure && error.status === 429 ? Math.max(1000, error.retryAfterMs) : 1000 * 2 ** attempt;
+const retry = resultsReadRetry, retryDelay = resultsRetryDelay;
 export function useRunArchive(search: string, status: string) {
   return useInfiniteQuery({ queryKey: ['run-archive', search, status], initialPageParam: null as string | null,
     queryFn: ({ pageParam, signal }) => {
@@ -63,7 +69,7 @@ export function usePinnedReference(evidence: RunEvidence | undefined) {
   return useQuery({ queryKey: ['pinned-reference', evidence?.run.configHash], enabled: false, staleTime: Infinity,
     // A 429 was rejected before evaluation. Only that rejection is retried;
     // failed or timed-out accepted calculations are not repeated automatically.
-    retry: (attempt, error) => error instanceof HttpFailure && error.status === 429 && attempt < 1,
+    retry: resultsCalculationRetry,
     retryDelay, queryFn: async ({ signal }): Promise<Reference> => {
       if (!evidence?.inputVerified || !evidence.pinnedConfig) throw new Error('Verify the pinned input before calculating a reference.');
       const sourceHash = evidence.run.configHash, calculatedAt = new Date().toISOString();

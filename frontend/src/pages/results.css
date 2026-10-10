@@ -98,6 +98,7 @@
 .results-two-column > section { display: flex; flex-direction: column; }
 .results-reference-value { font: 28px var(--mono); letter-spacing: -.7px; margin: 5px 0 13px; color: var(--exact); }
 .results-body-note { font-size: 11px; color: var(--muted); line-height: 1.7; }
+.results-body-note code { overflow-wrap: anywhere; }
 .results-reference-verdict { font-size: 10px; line-height: 1.6; margin-top: 12px !important; color: var(--epsilon); }
 .results-reference-verdict.inside { color: var(--exact); }
 .results-rational { margin-top: 12px; }

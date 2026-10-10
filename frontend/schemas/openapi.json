@@ -2649,6 +2649,37 @@
           }
         }
       },
+      "FeatureLifecycleCounts": {
+        "required": [
+          "interruptedRounds",
+          "entries",
+          "exits",
+          "openInstances",
+          "complete"
+        ],
+        "type": "object",
+        "properties": {
+          "interruptedRounds": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "entries": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "exits": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "openInstances": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "complete": {
+            "type": "boolean"
+          }
+        }
+      },
       "FiniteModelReport": {
         "required": [
           "provenance",
@@ -2914,6 +2945,21 @@
                 "$ref": "#/components/schemas/DiagnosticRetention"
               }
             ]
+          }
+        }
+      },
+      "InterruptedFeatureLifecycle": {
+        "required": [
+          "cancelled",
+          "failed"
+        ],
+        "type": "object",
+        "properties": {
+          "cancelled": {
+            "$ref": "#/components/schemas/FeatureLifecycleCounts"
+          },
+          "failed": {
+            "$ref": "#/components/schemas/FeatureLifecycleCounts"
           }
         }
       },
@@ -3510,6 +3556,16 @@
               },
               {
                 "$ref": "#/components/schemas/ParentExposure"
+              }
+            ]
+          },
+          "interruptedLifecycle": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/InterruptedFeatureLifecycle"
               }
             ]
           }

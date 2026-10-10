@@ -124,32 +124,50 @@
     },
     {
       "id": "counts.feature_entries",
-      "status": "partial",
-      "scope": "Global authored lifecycle counts and entry-selected cohort entries/exits/open instances are implemented for settled paid rounds, including cohorts with no matching values. Typed interruption causes for unfinished paid rounds remain required.",
+      "status": "ready",
+      "scope": "Settled feature/transition entries and reached exits remain separate from cancelled/failed paid-round boundary exposure. Interrupted counts include closed instances and censored open instances, retain entry-selected cohorts without numeric children, and never alter payout statistics or settled-parent turnover. Nesting/boundary faults withhold completeness; cohort overflow withholds the breakdown. The native dashboard can select interruption counters, and live/reloaded/saved evidence agrees in both engines. Resource deadlines currently classify as cancellation; detailed stop attribution remains a separate feature-exit workflow.",
       "implementation": [
-        "backend/SlotMath.Core/Measurements/MeasurementCollector.cs"
+        "backend/SlotMath.Core/Measurements/MeasurementCollector.cs",
+        "backend/SlotMath.Core/Measurements/InterruptedFeatureLifecycle.cs",
+        "backend/SlotMath.Core/Measurements/MeasurementAnalysisAccumulator.cs",
+        "frontend/src/components/simulate/MeasurementAnalysis.tsx",
+        "frontend/src/lib/measurements/model.ts",
+        "frontend/src/lib/realtime/runProtocol.ts"
       ],
       "evidence": [
         "backend/SlotMath.Core.Tests/Math/MeasurementTests.cs",
         "backend/SlotMath.Core.Tests/Math/DiagnosticEvidenceTests.cs",
         "backend/SlotMath.Core.Tests/Math/CohortLifecycleTests.cs",
         "backend/SlotMath.Api.Tests/CohortLifecycleApiTests.cs",
-        "frontend/e2e/z-cohort-lifecycle.spec.ts"
+        "frontend/e2e/z-cohort-lifecycle.spec.ts",
+        "backend/SlotMath.Core.Tests/Math/InterruptedLifecycleTests.cs",
+        "backend/SlotMath.Api.Tests/InterruptedLifecycleApiTests.cs",
+        "frontend/unit/interrupted-lifecycle.spec.ts",
+        "frontend/e2e/z-interrupted-lifecycle.spec.ts"
       ]
     },
     {
       "id": "counts.feature_exits",
-      "status": "partial",
-      "scope": "Global authored lifecycle counts and entry-selected cohort entries/exits/open instances are implemented for settled paid rounds, including cohorts with no matching values. Typed interruption causes for unfinished paid rounds remain required.",
+      "status": "ready",
+      "scope": "Settled feature/transition entries and reached exits remain separate from cancelled/failed paid-round boundary exposure. Interrupted counts include closed instances and censored open instances, retain entry-selected cohorts without numeric children, and never alter payout statistics or settled-parent turnover. Nesting/boundary faults withhold completeness; cohort overflow withholds the breakdown. The native dashboard can select interruption counters, and live/reloaded/saved evidence agrees in both engines. Resource deadlines currently classify as cancellation; detailed stop attribution remains a separate feature-exit workflow.",
       "implementation": [
-        "backend/SlotMath.Core/Measurements/MeasurementCollector.cs"
+        "backend/SlotMath.Core/Measurements/MeasurementCollector.cs",
+        "backend/SlotMath.Core/Measurements/InterruptedFeatureLifecycle.cs",
+        "backend/SlotMath.Core/Measurements/MeasurementAnalysisAccumulator.cs",
+        "frontend/src/components/simulate/MeasurementAnalysis.tsx",
+        "frontend/src/lib/measurements/model.ts",
+        "frontend/src/lib/realtime/runProtocol.ts"
       ],
       "evidence": [
         "backend/SlotMath.Core.Tests/Math/MeasurementTests.cs",
         "backend/SlotMath.Core.Tests/Math/DiagnosticEvidenceTests.cs",
         "backend/SlotMath.Core.Tests/Math/CohortLifecycleTests.cs",
         "backend/SlotMath.Api.Tests/CohortLifecycleApiTests.cs",
-        "frontend/e2e/z-cohort-lifecycle.spec.ts"
+        "frontend/e2e/z-cohort-lifecycle.spec.ts",
+        "backend/SlotMath.Core.Tests/Math/InterruptedLifecycleTests.cs",
+        "backend/SlotMath.Api.Tests/InterruptedLifecycleApiTests.cs",
+        "frontend/unit/interrupted-lifecycle.spec.ts",
+        "frontend/e2e/z-interrupted-lifecycle.spec.ts"
       ]
     },
     {
@@ -877,13 +895,16 @@
     {
       "id": "features.exit_reason",
       "status": "partial",
-      "scope": "Completed loop condition/model-limit reasons and global cancelled/failed rounds exist. Typed per-feature payout-cap/authored-stop/budget/cancel/error causes are not yet reconciled.",
+      "scope": "Completed loop condition/model-limit reasons and per-feature boundary exposure in cancelled/failed paid rounds are retained separately, with entry-cohort and censoring/completeness evidence. Per-feature payout-cap/authored-stop/resource-expiry attribution remains unimplemented; resource deadlines currently classify as cancellation.",
       "implementation": [
         "backend/SlotMath.Core/Measurements/MeasurementCollector.cs"
       ],
       "evidence": [
         "backend/SlotMath.Core.Tests/Math/AdvancedMeasurementTests.cs",
-        "backend/SlotMath.Core.Tests/Math/MeasurementTests.cs"
+        "backend/SlotMath.Core.Tests/Math/MeasurementTests.cs",
+        "backend/SlotMath.Core.Tests/Math/InterruptedLifecycleTests.cs",
+        "backend/SlotMath.Api.Tests/InterruptedLifecycleApiTests.cs",
+        "frontend/e2e/z-interrupted-lifecycle.spec.ts"
       ]
     },
     {

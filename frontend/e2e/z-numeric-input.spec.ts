@@ -55,6 +55,7 @@ test('Native decimal state retains nonzero metrics, exact assertions, charts, ex
   });
   const rejected = page.waitForResponse(response => new URL(response.url()).pathname === `/api/runs/${id}/evidence` && response.status() === 429);
   await page.goto(`/results?run=${id}`); await rejected;
+  await expect(page.getByRole('region', { name: 'Selected run evidence', exact: true }).getByRole('status')).toContainText('The server requested a 6s pause. Saved evidence will retry automatically.');
   const saved = page.getByRole('region', { name: 'Saved measurement Tiny signal', exact: true });
   await expect(saved).toBeVisible({ timeout: 70000 });
   expect(evidenceAttempts.length).toBeGreaterThanOrEqual(2); expect(evidenceAttempts[1] - evidenceAttempts[0]).toBeGreaterThanOrEqual(5900);

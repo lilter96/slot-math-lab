@@ -16,7 +16,9 @@ export const defaultOptions = (): MeasurementOptions => ({ subject: 'observation
   binEdges: [0, 1, 2, 5, 10, 20, 50, 100, 500, 1000], quantiles: [0.5, 0.9, 0.95, 0.99], thresholds: [1, 10, 100], supportLimit: 256,
   groupLimit: 32, lags: [], stake: 1, confidence: 0.95, errorFamilySize: 1, independentSubjects: false, independentParents: false, referenceDistribution: [] });
 export interface NumericInterval { lower: number; upper: number; method: string; assumptions: string }
+export interface FeatureLifecycleCounts { interruptedRounds: number; entries: number; exits: number; openInstances: number; complete: boolean }
 export interface MeasurementAnalysis {
+  interruptedLifecycle?: { cancelled: FeatureLifecycleCounts; failed: FeatureLifecycleCounts } | null;
   parentExposure?: { paidRoundsWithMatchingChildren: number; episodesWithMatchingChildren: number | null } | null;
   normalization?: { paidRounds: number; externalTurnover: number | null; basis: string } | null;
   assertion?: { kind: 'zero'; checked: number; violations: number; status: 'invalid' | 'discrepancy' | 'insufficient' | 'noObservedViolations' } | null;

@@ -2001,6 +2001,17 @@ export type components = {
             /** Format: double */
             volatility?: number;
         };
+        FeatureLifecycleCounts: {
+            complete: boolean;
+            /** Format: int64 */
+            entries: number;
+            /** Format: int64 */
+            exits: number;
+            /** Format: int64 */
+            interruptedRounds: number;
+            /** Format: int64 */
+            openInstances: number;
+        };
         FiniteModelReport: {
             algorithmVersion?: null | string;
             assumptions: string;
@@ -2082,6 +2093,10 @@ export type components = {
             report: components["schemas"]["GraphEnumerationReport"];
             retention?: null | components["schemas"]["DiagnosticRetention"];
             runtimeProvenance: components["schemas"]["RuntimeProvenance"];
+        };
+        InterruptedFeatureLifecycle: {
+            cancelled: components["schemas"]["FeatureLifecycleCounts"];
+            failed: components["schemas"]["FeatureLifecycleCounts"];
         };
         JointDiagnostics: {
             calibration: string;
@@ -2181,6 +2196,7 @@ export type components = {
                 [key: string]: components["schemas"]["MeasurementAnalysis"];
             };
             groupsComplete?: boolean;
+            interruptedLifecycle?: null | components["schemas"]["InterruptedFeatureLifecycle"];
             /** Format: double */
             max: null | number;
             /** Format: double */

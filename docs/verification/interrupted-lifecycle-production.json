@@ -1,0 +1,1038 @@
+{
+  "checkedAt": "2026-10-10T08:12:52.839Z",
+  "endpoint": "https://localhost:8543",
+  "specification": "One feature entry precedes division by zero, with no reveal, exit or settled paid round. One failed paid round and one open feature instance are retained only as lifecycle evidence; all numeric statistics remain undefined.",
+  "frontendAsset": "/assets/index-DX7MfVB5.js",
+  "frontendSha256": "77d873bebd150c48cfdfdf9eeaf06d10a41669bb01e8f48ac7770de6a983b5e4",
+  "runs": [
+    {
+      "engine": "auto",
+      "runId": "c6d97b97c34648c4889cb3ca3ee42d60",
+      "inputVerified": true,
+      "configHash": "c6473f21fdf006a2b795a3f1ae5956b1d4df34278cff571fa7c1c8ba263da7c2",
+      "measurementHash": "d6dd37ab7b7b73eea6b7abeaee9f396438b07b9242b53b23569dbbdf252b1086",
+      "producer": {
+        "measurementContract": "measurements-v1",
+        "numericalMethods": "central-moments-pebay-v1;bins-v1;clopper-pearson-v1;hoeffding-spending-v1;pearson-gamma-v1;session-accounting-v2-decimal-roundtrip;categorical-joint-v1;discrete-null-v1;finite-stationary-v1;witness-prefix-v1;loop-completion-v1;paid-parent-cohorts-v1;paid-turnover-v1;exact-assertion-v1;enumerated-joint-v2;finite-law-comparison-rational-v1;typed-operators-v1;rational-functions-v1;strict-collections-v1;typed-array-index-v1;cohort-lifecycle-v1;empty-tail-population-v1;matching-parent-exposure-v1;numeric-state-input-v1;interrupted-feature-lifecycle-v1",
+        "framework": ".NET 10.0.12",
+        "coreBinarySha256": "e848f27df9746680766c6f31ddb2d8e6f0262aaf4dd94df521539f1940c9440b",
+        "apiBinarySha256": "b09182f3ffd1e49a01b3b7c293d047de83941513957a9449a4c2006744eb203e"
+      },
+      "measurement": {
+        "id": "f4e51ebf-8198-411f-9470-30fd984b77a2",
+        "observations": 0,
+        "count": 0,
+        "excluded": 0,
+        "errors": 0,
+        "min": null,
+        "max": null,
+        "mean": null,
+        "sum": null,
+        "stdDev": null,
+        "firstError": null,
+        "analysis": {
+          "count": 0,
+          "min": null,
+          "max": null,
+          "mean": null,
+          "sum": null,
+          "subject": "episode",
+          "reduction": "sum",
+          "distinctParents": 0,
+          "entries": 0,
+          "exits": 0,
+          "unclosedEpisodes": 0,
+          "uniqueAwards": 0,
+          "duplicateAwards": 0,
+          "moments": {
+            "secondMoment": null,
+            "populationVariance": null,
+            "sampleVariance": null,
+            "coefficientOfVariation": null,
+            "skewness": null,
+            "excessKurtosis": null,
+            "meanAbsoluteDeviation": null
+          },
+          "pair": null,
+          "support": [],
+          "supportComplete": true,
+          "bins": [
+            {
+              "lower": null,
+              "upper": 0,
+              "count": 0,
+              "sum": 0,
+              "sumSquares": 0
+            },
+            {
+              "lower": 0,
+              "upper": 1,
+              "count": 0,
+              "sum": 0,
+              "sumSquares": 0
+            },
+            {
+              "lower": 1,
+              "upper": 2,
+              "count": 0,
+              "sum": 0,
+              "sumSquares": 0
+            },
+            {
+              "lower": 2,
+              "upper": 5,
+              "count": 0,
+              "sum": 0,
+              "sumSquares": 0
+            },
+            {
+              "lower": 5,
+              "upper": 10,
+              "count": 0,
+              "sum": 0,
+              "sumSquares": 0
+            },
+            {
+              "lower": 10,
+              "upper": 20,
+              "count": 0,
+              "sum": 0,
+              "sumSquares": 0
+            },
+            {
+              "lower": 20,
+              "upper": 50,
+              "count": 0,
+              "sum": 0,
+              "sumSquares": 0
+            },
+            {
+              "lower": 50,
+              "upper": 100,
+              "count": 0,
+              "sum": 0,
+              "sumSquares": 0
+            },
+            {
+              "lower": 100,
+              "upper": 500,
+              "count": 0,
+              "sum": 0,
+              "sumSquares": 0
+            },
+            {
+              "lower": 500,
+              "upper": 1000,
+              "count": 0,
+              "sum": 0,
+              "sumSquares": 0
+            },
+            {
+              "lower": 1000,
+              "upper": null,
+              "count": 0,
+              "sum": 0,
+              "sumSquares": 0
+            }
+          ],
+          "quantiles": [
+            {
+              "probability": 0.5,
+              "value": null,
+              "lower": null,
+              "upper": null,
+              "method": "No observations"
+            },
+            {
+              "probability": 0.9,
+              "value": null,
+              "lower": null,
+              "upper": null,
+              "method": "No observations"
+            },
+            {
+              "probability": 0.95,
+              "value": null,
+              "lower": null,
+              "upper": null,
+              "method": "No observations"
+            },
+            {
+              "probability": 0.99,
+              "value": null,
+              "lower": null,
+              "upper": null,
+              "method": "No observations"
+            }
+          ],
+          "tails": [
+            {
+              "threshold": 1,
+              "count": 0,
+              "probability": null,
+              "sum": 0,
+              "mean": null,
+              "secondMoment": null
+            },
+            {
+              "threshold": 10,
+              "count": 0,
+              "probability": null,
+              "sum": 0,
+              "mean": null,
+              "secondMoment": null
+            },
+            {
+              "threshold": 100,
+              "count": 0,
+              "probability": null,
+              "sum": 0,
+              "mean": null,
+              "secondMoment": null
+            }
+          ],
+          "upperTails": [
+            {
+              "quantile": 0.5,
+              "tailMass": 0.5,
+              "mean": null,
+              "lowerMean": null,
+              "upperMean": null,
+              "lowerReturnShare": null,
+              "upperReturnShare": null,
+              "method": "No observations"
+            },
+            {
+              "quantile": 0.9,
+              "tailMass": 0.09999999999999998,
+              "mean": null,
+              "lowerMean": null,
+              "upperMean": null,
+              "lowerReturnShare": null,
+              "upperReturnShare": null,
+              "method": "No observations"
+            },
+            {
+              "quantile": 0.95,
+              "tailMass": 0.050000000000000044,
+              "mean": null,
+              "lowerMean": null,
+              "upperMean": null,
+              "lowerReturnShare": null,
+              "upperReturnShare": null,
+              "method": "No observations"
+            },
+            {
+              "quantile": 0.99,
+              "tailMass": 0.010000000000000009,
+              "mean": null,
+              "lowerMean": null,
+              "upperMean": null,
+              "lowerReturnShare": null,
+              "upperReturnShare": null,
+              "method": "No observations"
+            }
+          ],
+          "meanAbsoluteDeviationBounds": null,
+          "meanInterval": null,
+          "probabilityInterval": null,
+          "clusteredMeanInterval": null,
+          "sequentialMeanInterval": null,
+          "meanStandardError": null,
+          "requiredSampleSize": null,
+          "weights": null,
+          "sequence": null,
+          "transitions": [],
+          "transitionsComplete": true,
+          "comparison": null,
+          "checks": [],
+          "groups": {
+            "sticky": {
+              "count": 0,
+              "min": null,
+              "max": null,
+              "mean": null,
+              "sum": null,
+              "subject": "episode",
+              "reduction": "sum",
+              "distinctParents": 0,
+              "entries": 0,
+              "exits": 0,
+              "unclosedEpisodes": 0,
+              "uniqueAwards": 0,
+              "duplicateAwards": 0,
+              "moments": {
+                "secondMoment": null,
+                "populationVariance": null,
+                "sampleVariance": null,
+                "coefficientOfVariation": null,
+                "skewness": null,
+                "excessKurtosis": null,
+                "meanAbsoluteDeviation": null
+              },
+              "pair": null,
+              "support": [],
+              "supportComplete": true,
+              "bins": [
+                {
+                  "lower": null,
+                  "upper": 0,
+                  "count": 0,
+                  "sum": 0,
+                  "sumSquares": 0
+                },
+                {
+                  "lower": 0,
+                  "upper": 1,
+                  "count": 0,
+                  "sum": 0,
+                  "sumSquares": 0
+                },
+                {
+                  "lower": 1,
+                  "upper": 2,
+                  "count": 0,
+                  "sum": 0,
+                  "sumSquares": 0
+                },
+                {
+                  "lower": 2,
+                  "upper": 5,
+                  "count": 0,
+                  "sum": 0,
+                  "sumSquares": 0
+                },
+                {
+                  "lower": 5,
+                  "upper": 10,
+                  "count": 0,
+                  "sum": 0,
+                  "sumSquares": 0
+                },
+                {
+                  "lower": 10,
+                  "upper": 20,
+                  "count": 0,
+                  "sum": 0,
+                  "sumSquares": 0
+                },
+                {
+                  "lower": 20,
+                  "upper": 50,
+                  "count": 0,
+                  "sum": 0,
+                  "sumSquares": 0
+                },
+                {
+                  "lower": 50,
+                  "upper": 100,
+                  "count": 0,
+                  "sum": 0,
+                  "sumSquares": 0
+                },
+                {
+                  "lower": 100,
+                  "upper": 500,
+                  "count": 0,
+                  "sum": 0,
+                  "sumSquares": 0
+                },
+                {
+                  "lower": 500,
+                  "upper": 1000,
+                  "count": 0,
+                  "sum": 0,
+                  "sumSquares": 0
+                },
+                {
+                  "lower": 1000,
+                  "upper": null,
+                  "count": 0,
+                  "sum": 0,
+                  "sumSquares": 0
+                }
+              ],
+              "quantiles": [
+                {
+                  "probability": 0.5,
+                  "value": null,
+                  "lower": null,
+                  "upper": null,
+                  "method": "No observations"
+                },
+                {
+                  "probability": 0.9,
+                  "value": null,
+                  "lower": null,
+                  "upper": null,
+                  "method": "No observations"
+                },
+                {
+                  "probability": 0.95,
+                  "value": null,
+                  "lower": null,
+                  "upper": null,
+                  "method": "No observations"
+                },
+                {
+                  "probability": 0.99,
+                  "value": null,
+                  "lower": null,
+                  "upper": null,
+                  "method": "No observations"
+                }
+              ],
+              "tails": [
+                {
+                  "threshold": 1,
+                  "count": 0,
+                  "probability": null,
+                  "sum": 0,
+                  "mean": null,
+                  "secondMoment": null
+                },
+                {
+                  "threshold": 10,
+                  "count": 0,
+                  "probability": null,
+                  "sum": 0,
+                  "mean": null,
+                  "secondMoment": null
+                },
+                {
+                  "threshold": 100,
+                  "count": 0,
+                  "probability": null,
+                  "sum": 0,
+                  "mean": null,
+                  "secondMoment": null
+                }
+              ],
+              "upperTails": [
+                {
+                  "quantile": 0.5,
+                  "tailMass": 0.5,
+                  "mean": null,
+                  "lowerMean": null,
+                  "upperMean": null,
+                  "lowerReturnShare": null,
+                  "upperReturnShare": null,
+                  "method": "No observations"
+                },
+                {
+                  "quantile": 0.9,
+                  "tailMass": 0.09999999999999998,
+                  "mean": null,
+                  "lowerMean": null,
+                  "upperMean": null,
+                  "lowerReturnShare": null,
+                  "upperReturnShare": null,
+                  "method": "No observations"
+                },
+                {
+                  "quantile": 0.95,
+                  "tailMass": 0.050000000000000044,
+                  "mean": null,
+                  "lowerMean": null,
+                  "upperMean": null,
+                  "lowerReturnShare": null,
+                  "upperReturnShare": null,
+                  "method": "No observations"
+                },
+                {
+                  "quantile": 0.99,
+                  "tailMass": 0.010000000000000009,
+                  "mean": null,
+                  "lowerMean": null,
+                  "upperMean": null,
+                  "lowerReturnShare": null,
+                  "upperReturnShare": null,
+                  "method": "No observations"
+                }
+              ],
+              "meanAbsoluteDeviationBounds": null,
+              "meanInterval": null,
+              "probabilityInterval": null,
+              "clusteredMeanInterval": null,
+              "sequentialMeanInterval": null,
+              "meanStandardError": null,
+              "requiredSampleSize": null,
+              "weights": null,
+              "sequence": null,
+              "transitions": [],
+              "transitionsComplete": true,
+              "comparison": null,
+              "checks": [],
+              "groups": {},
+              "groupsComplete": true,
+              "assertion": null,
+              "normalization": null,
+              "parentExposure": {
+                "paidRoundsWithMatchingChildren": 0,
+                "episodesWithMatchingChildren": 0
+              },
+              "interruptedLifecycle": {
+                "cancelled": {
+                  "interruptedRounds": 0,
+                  "entries": 0,
+                  "exits": 0,
+                  "openInstances": 0,
+                  "complete": true
+                },
+                "failed": {
+                  "interruptedRounds": 1,
+                  "entries": 1,
+                  "exits": 0,
+                  "openInstances": 1,
+                  "complete": true
+                }
+              }
+            }
+          },
+          "groupsComplete": true,
+          "assertion": null,
+          "normalization": null,
+          "parentExposure": {
+            "paidRoundsWithMatchingChildren": 0,
+            "episodesWithMatchingChildren": 0
+          },
+          "interruptedLifecycle": {
+            "cancelled": {
+              "interruptedRounds": 0,
+              "entries": 0,
+              "exits": 0,
+              "openInstances": 0,
+              "complete": true
+            },
+            "failed": {
+              "interruptedRounds": 1,
+              "entries": 1,
+              "exits": 0,
+              "openInstances": 1,
+              "complete": true
+            }
+          }
+        },
+        "witnesses": []
+      },
+      "exportVerified": true,
+      "liveReloadSavedCohortAgree": true,
+      "mobileTableScrollable": true
+    },
+    {
+      "engine": "reference",
+      "runId": "9ec1eafe31d64610be6cea19fcb5056b",
+      "inputVerified": true,
+      "configHash": "6d7207374eaaf45ea80c2cfa9016be29559e9d7deb2078efc939e6db4a580ce4",
+      "measurementHash": "d6dd37ab7b7b73eea6b7abeaee9f396438b07b9242b53b23569dbbdf252b1086",
+      "producer": {
+        "measurementContract": "measurements-v1",
+        "numericalMethods": "central-moments-pebay-v1;bins-v1;clopper-pearson-v1;hoeffding-spending-v1;pearson-gamma-v1;session-accounting-v2-decimal-roundtrip;categorical-joint-v1;discrete-null-v1;finite-stationary-v1;witness-prefix-v1;loop-completion-v1;paid-parent-cohorts-v1;paid-turnover-v1;exact-assertion-v1;enumerated-joint-v2;finite-law-comparison-rational-v1;typed-operators-v1;rational-functions-v1;strict-collections-v1;typed-array-index-v1;cohort-lifecycle-v1;empty-tail-population-v1;matching-parent-exposure-v1;numeric-state-input-v1;interrupted-feature-lifecycle-v1",
+        "framework": ".NET 10.0.12",
+        "coreBinarySha256": "e848f27df9746680766c6f31ddb2d8e6f0262aaf4dd94df521539f1940c9440b",
+        "apiBinarySha256": "b09182f3ffd1e49a01b3b7c293d047de83941513957a9449a4c2006744eb203e"
+      },
+      "measurement": {
+        "id": "f4e51ebf-8198-411f-9470-30fd984b77a2",
+        "observations": 0,
+        "count": 0,
+        "excluded": 0,
+        "errors": 0,
+        "min": null,
+        "max": null,
+        "mean": null,
+        "sum": null,
+        "stdDev": null,
+        "firstError": null,
+        "analysis": {
+          "count": 0,
+          "min": null,
+          "max": null,
+          "mean": null,
+          "sum": null,
+          "subject": "episode",
+          "reduction": "sum",
+          "distinctParents": 0,
+          "entries": 0,
+          "exits": 0,
+          "unclosedEpisodes": 0,
+          "uniqueAwards": 0,
+          "duplicateAwards": 0,
+          "moments": {
+            "secondMoment": null,
+            "populationVariance": null,
+            "sampleVariance": null,
+            "coefficientOfVariation": null,
+            "skewness": null,
+            "excessKurtosis": null,
+            "meanAbsoluteDeviation": null
+          },
+          "pair": null,
+          "support": [],
+          "supportComplete": true,
+          "bins": [
+            {
+              "lower": null,
+              "upper": 0,
+              "count": 0,
+              "sum": 0,
+              "sumSquares": 0
+            },
+            {
+              "lower": 0,
+              "upper": 1,
+              "count": 0,
+              "sum": 0,
+              "sumSquares": 0
+            },
+            {
+              "lower": 1,
+              "upper": 2,
+              "count": 0,
+              "sum": 0,
+              "sumSquares": 0
+            },
+            {
+              "lower": 2,
+              "upper": 5,
+              "count": 0,
+              "sum": 0,
+              "sumSquares": 0
+            },
+            {
+              "lower": 5,
+              "upper": 10,
+              "count": 0,
+              "sum": 0,
+              "sumSquares": 0
+            },
+            {
+              "lower": 10,
+              "upper": 20,
+              "count": 0,
+              "sum": 0,
+              "sumSquares": 0
+            },
+            {
+              "lower": 20,
+              "upper": 50,
+              "count": 0,
+              "sum": 0,
+              "sumSquares": 0
+            },
+            {
+              "lower": 50,
+              "upper": 100,
+              "count": 0,
+              "sum": 0,
+              "sumSquares": 0
+            },
+            {
+              "lower": 100,
+              "upper": 500,
+              "count": 0,
+              "sum": 0,
+              "sumSquares": 0
+            },
+            {
+              "lower": 500,
+              "upper": 1000,
+              "count": 0,
+              "sum": 0,
+              "sumSquares": 0
+            },
+            {
+              "lower": 1000,
+              "upper": null,
+              "count": 0,
+              "sum": 0,
+              "sumSquares": 0
+            }
+          ],
+          "quantiles": [
+            {
+              "probability": 0.5,
+              "value": null,
+              "lower": null,
+              "upper": null,
+              "method": "No observations"
+            },
+            {
+              "probability": 0.9,
+              "value": null,
+              "lower": null,
+              "upper": null,
+              "method": "No observations"
+            },
+            {
+              "probability": 0.95,
+              "value": null,
+              "lower": null,
+              "upper": null,
+              "method": "No observations"
+            },
+            {
+              "probability": 0.99,
+              "value": null,
+              "lower": null,
+              "upper": null,
+              "method": "No observations"
+            }
+          ],
+          "tails": [
+            {
+              "threshold": 1,
+              "count": 0,
+              "probability": null,
+              "sum": 0,
+              "mean": null,
+              "secondMoment": null
+            },
+            {
+              "threshold": 10,
+              "count": 0,
+              "probability": null,
+              "sum": 0,
+              "mean": null,
+              "secondMoment": null
+            },
+            {
+              "threshold": 100,
+              "count": 0,
+              "probability": null,
+              "sum": 0,
+              "mean": null,
+              "secondMoment": null
+            }
+          ],
+          "upperTails": [
+            {
+              "quantile": 0.5,
+              "tailMass": 0.5,
+              "mean": null,
+              "lowerMean": null,
+              "upperMean": null,
+              "lowerReturnShare": null,
+              "upperReturnShare": null,
+              "method": "No observations"
+            },
+            {
+              "quantile": 0.9,
+              "tailMass": 0.09999999999999998,
+              "mean": null,
+              "lowerMean": null,
+              "upperMean": null,
+              "lowerReturnShare": null,
+              "upperReturnShare": null,
+              "method": "No observations"
+            },
+            {
+              "quantile": 0.95,
+              "tailMass": 0.050000000000000044,
+              "mean": null,
+              "lowerMean": null,
+              "upperMean": null,
+              "lowerReturnShare": null,
+              "upperReturnShare": null,
+              "method": "No observations"
+            },
+            {
+              "quantile": 0.99,
+              "tailMass": 0.010000000000000009,
+              "mean": null,
+              "lowerMean": null,
+              "upperMean": null,
+              "lowerReturnShare": null,
+              "upperReturnShare": null,
+              "method": "No observations"
+            }
+          ],
+          "meanAbsoluteDeviationBounds": null,
+          "meanInterval": null,
+          "probabilityInterval": null,
+          "clusteredMeanInterval": null,
+          "sequentialMeanInterval": null,
+          "meanStandardError": null,
+          "requiredSampleSize": null,
+          "weights": null,
+          "sequence": null,
+          "transitions": [],
+          "transitionsComplete": true,
+          "comparison": null,
+          "checks": [],
+          "groups": {
+            "sticky": {
+              "count": 0,
+              "min": null,
+              "max": null,
+              "mean": null,
+              "sum": null,
+              "subject": "episode",
+              "reduction": "sum",
+              "distinctParents": 0,
+              "entries": 0,
+              "exits": 0,
+              "unclosedEpisodes": 0,
+              "uniqueAwards": 0,
+              "duplicateAwards": 0,
+              "moments": {
+                "secondMoment": null,
+                "populationVariance": null,
+                "sampleVariance": null,
+                "coefficientOfVariation": null,
+                "skewness": null,
+                "excessKurtosis": null,
+                "meanAbsoluteDeviation": null
+              },
+              "pair": null,
+              "support": [],
+              "supportComplete": true,
+              "bins": [
+                {
+                  "lower": null,
+                  "upper": 0,
+                  "count": 0,
+                  "sum": 0,
+                  "sumSquares": 0
+                },
+                {
+                  "lower": 0,
+                  "upper": 1,
+                  "count": 0,
+                  "sum": 0,
+                  "sumSquares": 0
+                },
+                {
+                  "lower": 1,
+                  "upper": 2,
+                  "count": 0,
+                  "sum": 0,
+                  "sumSquares": 0
+                },
+                {
+                  "lower": 2,
+                  "upper": 5,
+                  "count": 0,
+                  "sum": 0,
+                  "sumSquares": 0
+                },
+                {
+                  "lower": 5,
+                  "upper": 10,
+                  "count": 0,
+                  "sum": 0,
+                  "sumSquares": 0
+                },
+                {
+                  "lower": 10,
+                  "upper": 20,
+                  "count": 0,
+                  "sum": 0,
+                  "sumSquares": 0
+                },
+                {
+                  "lower": 20,
+                  "upper": 50,
+                  "count": 0,
+                  "sum": 0,
+                  "sumSquares": 0
+                },
+                {
+                  "lower": 50,
+                  "upper": 100,
+                  "count": 0,
+                  "sum": 0,
+                  "sumSquares": 0
+                },
+                {
+                  "lower": 100,
+                  "upper": 500,
+                  "count": 0,
+                  "sum": 0,
+                  "sumSquares": 0
+                },
+                {
+                  "lower": 500,
+                  "upper": 1000,
+                  "count": 0,
+                  "sum": 0,
+                  "sumSquares": 0
+                },
+                {
+                  "lower": 1000,
+                  "upper": null,
+                  "count": 0,
+                  "sum": 0,
+                  "sumSquares": 0
+                }
+              ],
+              "quantiles": [
+                {
+                  "probability": 0.5,
+                  "value": null,
+                  "lower": null,
+                  "upper": null,
+                  "method": "No observations"
+                },
+                {
+                  "probability": 0.9,
+                  "value": null,
+                  "lower": null,
+                  "upper": null,
+                  "method": "No observations"
+                },
+                {
+                  "probability": 0.95,
+                  "value": null,
+                  "lower": null,
+                  "upper": null,
+                  "method": "No observations"
+                },
+                {
+                  "probability": 0.99,
+                  "value": null,
+                  "lower": null,
+                  "upper": null,
+                  "method": "No observations"
+                }
+              ],
+              "tails": [
+                {
+                  "threshold": 1,
+                  "count": 0,
+                  "probability": null,
+                  "sum": 0,
+                  "mean": null,
+                  "secondMoment": null
+                },
+                {
+                  "threshold": 10,
+                  "count": 0,
+                  "probability": null,
+                  "sum": 0,
+                  "mean": null,
+                  "secondMoment": null
+                },
+                {
+                  "threshold": 100,
+                  "count": 0,
+                  "probability": null,
+                  "sum": 0,
+                  "mean": null,
+                  "secondMoment": null
+                }
+              ],
+              "upperTails": [
+                {
+                  "quantile": 0.5,
+                  "tailMass": 0.5,
+                  "mean": null,
+                  "lowerMean": null,
+                  "upperMean": null,
+                  "lowerReturnShare": null,
+                  "upperReturnShare": null,
+                  "method": "No observations"
+                },
+                {
+                  "quantile": 0.9,
+                  "tailMass": 0.09999999999999998,
+                  "mean": null,
+                  "lowerMean": null,
+                  "upperMean": null,
+                  "lowerReturnShare": null,
+                  "upperReturnShare": null,
+                  "method": "No observations"
+                },
+                {
+                  "quantile": 0.95,
+                  "tailMass": 0.050000000000000044,
+                  "mean": null,
+                  "lowerMean": null,
+                  "upperMean": null,
+                  "lowerReturnShare": null,
+                  "upperReturnShare": null,
+                  "method": "No observations"
+                },
+                {
+                  "quantile": 0.99,
+                  "tailMass": 0.010000000000000009,
+                  "mean": null,
+                  "lowerMean": null,
+                  "upperMean": null,
+                  "lowerReturnShare": null,
+                  "upperReturnShare": null,
+                  "method": "No observations"
+                }
+              ],
+              "meanAbsoluteDeviationBounds": null,
+              "meanInterval": null,
+              "probabilityInterval": null,
+              "clusteredMeanInterval": null,
+              "sequentialMeanInterval": null,
+              "meanStandardError": null,
+              "requiredSampleSize": null,
+              "weights": null,
+              "sequence": null,
+              "transitions": [],
+              "transitionsComplete": true,
+              "comparison": null,
+              "checks": [],
+              "groups": {},
+              "groupsComplete": true,
+              "assertion": null,
+              "normalization": null,
+              "parentExposure": {
+                "paidRoundsWithMatchingChildren": 0,
+                "episodesWithMatchingChildren": 0
+              },
+              "interruptedLifecycle": {
+                "cancelled": {
+                  "interruptedRounds": 0,
+                  "entries": 0,
+                  "exits": 0,
+                  "openInstances": 0,
+                  "complete": true
+                },
+                "failed": {
+                  "interruptedRounds": 1,
+                  "entries": 1,
+                  "exits": 0,
+                  "openInstances": 1,
+                  "complete": true
+                }
+              }
+            }
+          },
+          "groupsComplete": true,
+          "assertion": null,
+          "normalization": null,
+          "parentExposure": {
+            "paidRoundsWithMatchingChildren": 0,
+            "episodesWithMatchingChildren": 0
+          },
+          "interruptedLifecycle": {
+            "cancelled": {
+              "interruptedRounds": 0,
+              "entries": 0,
+              "exits": 0,
+              "openInstances": 0,
+              "complete": true
+            },
+            "failed": {
+              "interruptedRounds": 1,
+              "entries": 1,
+              "exits": 0,
+              "openInstances": 1,
+              "complete": true
+            }
+          }
+        },
+        "witnesses": []
+      },
+      "exportVerified": true,
+      "liveReloadSavedCohortAgree": true,
+      "mobileTableScrollable": true
+    }
+  ],
+  "browserErrors": []
+}

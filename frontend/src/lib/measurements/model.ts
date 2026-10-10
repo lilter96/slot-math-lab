@@ -11,15 +11,16 @@ export function measurementPopulation(value: { nodeId?: string | null; options?:
   if (value.options?.subject === 'round' || !value.nodeId) return 'paid rounds';
   return 'node visits';
 }
-export const reducers = ['min', 'max', 'mean', 'sum', 'count', 'stdDev', 'matchRate', 'secondMoment', 'populationVariance', 'sampleVariance', 'coefficientOfVariation', 'skewness', 'excessKurtosis', 'meanAbsoluteDeviation', 'covariance', 'correlation', 'ratio', 'distinctParents', 'matchingEpisodes', 'uniqueAwards', 'duplicateAwards', 'eligible', 'excluded', 'invalid', 'featureEntries', 'featureExits', 'unclosedEpisodes', 'eventReciprocal', 'accountingResidual', 'meanDifference', 'varianceSum', 'varianceDifference', 'assertionViolations'] as const;
+export const reducers = ['min', 'max', 'mean', 'sum', 'count', 'stdDev', 'matchRate', 'secondMoment', 'populationVariance', 'sampleVariance', 'coefficientOfVariation', 'skewness', 'excessKurtosis', 'meanAbsoluteDeviation', 'covariance', 'correlation', 'ratio', 'distinctParents', 'matchingEpisodes', 'uniqueAwards', 'duplicateAwards', 'eligible', 'excluded', 'invalid', 'featureEntries', 'featureExits', 'unclosedEpisodes', 'eventReciprocal', 'accountingResidual', 'meanDifference', 'varianceSum', 'varianceDifference', 'assertionViolations', 'interruptedFeatureEntries', 'interruptedFeatureExits', 'interruptedOpenEpisodes'] as const;
 export type Reducer = typeof reducers[number];
-export const reducerNames: Record<Reducer, string> = { min: 'Minimum', max: 'Maximum', mean: 'Average', sum: 'Sum', count: 'Matching count', stdDev: 'Standard deviation', matchRate: 'Matching share', secondMoment: 'Second moment', populationVariance: 'Population variance', sampleVariance: 'Sample variance', coefficientOfVariation: 'Coefficient of variation', skewness: 'Moment skewness', excessKurtosis: 'Excess moment kurtosis', meanAbsoluteDeviation: 'Mean absolute deviation', covariance: 'Paired covariance', correlation: 'Paired correlation', ratio: 'Payout / denominator', distinctParents: 'Paid rounds with matching children', matchingEpisodes: 'Feature episodes with matching children', uniqueAwards: 'Unique award IDs', duplicateAwards: 'Duplicate award IDs', eligible: 'Eligible observations', excluded: 'Excluded observations', invalid: 'Invalid observations', featureEntries: 'Feature entries', featureExits: 'Feature exits', unclosedEpisodes: 'Unclosed feature episodes', eventReciprocal: 'Trials per event · empirical reciprocal', accountingResidual: 'Exposure accounting residual', meanDifference: 'Paired mean difference', varianceSum: 'Variance of the pair sum', varianceDifference: 'Variance of the pair difference', assertionViolations: 'Exact assertion violations' };
+export const reducerNames: Record<Reducer, string> = { min: 'Minimum', max: 'Maximum', mean: 'Average', sum: 'Sum', count: 'Matching count', stdDev: 'Standard deviation', matchRate: 'Matching share', secondMoment: 'Second moment', populationVariance: 'Population variance', sampleVariance: 'Sample variance', coefficientOfVariation: 'Coefficient of variation', skewness: 'Moment skewness', excessKurtosis: 'Excess moment kurtosis', meanAbsoluteDeviation: 'Mean absolute deviation', covariance: 'Paired covariance', correlation: 'Paired correlation', ratio: 'Payout / denominator', distinctParents: 'Paid rounds with matching children', matchingEpisodes: 'Feature episodes with matching children', uniqueAwards: 'Unique award IDs', duplicateAwards: 'Duplicate award IDs', eligible: 'Eligible observations', excluded: 'Excluded observations', invalid: 'Invalid observations', featureEntries: 'Feature entries', featureExits: 'Feature exits', unclosedEpisodes: 'Unclosed feature episodes', eventReciprocal: 'Trials per event · empirical reciprocal', accountingResidual: 'Exposure accounting residual', meanDifference: 'Paired mean difference', varianceSum: 'Variance of the pair sum', varianceDifference: 'Variance of the pair difference', assertionViolations: 'Exact assertion violations', interruptedFeatureEntries: 'Feature entries · unfinished rounds', interruptedFeatureExits: 'Feature exits · unfinished rounds', interruptedOpenEpisodes: 'Open features at interruption' };
 export interface MetricDraft { id: string; name: string; nodeId: string; valueMode: 'payout' | 'expression' | 'ast' | 'visual'; expression: string; filterMode: 'all' | 'expression' | 'ast' | 'visual'; filter: string; unit: string; reducers: Reducer[]; chart: boolean; chartStatistic?: Reducer; hidden: boolean; options?: MeasurementOptions }
 export const newMetric = (id: string = crypto.randomUUID()): MetricDraft => ({ id, name: '', nodeId: '', valueMode: 'payout', expression: '', filterMode: 'all', filter: '', unit: '× stake', reducers: ['min', 'max', 'mean'], chart: true, chartStatistic: 'mean', hidden: false });
 export function availableReducers(metric: Pick<MetricDraft, 'options'>): Reducer[] {
   return reducers.filter((r, i) => {
     if (i >= 7 && !metric.options) return false;
     if (r === 'matchingEpisodes') return metric.options?.subject === 'episode';
+    if (r.startsWith('interrupted')) return ['episode', 'transition'].includes(metric.options?.subject ?? '');
     if (r === 'assertionViolations') return metric.options?.assertion === 'zero';
     if (r === 'eventReciprocal') return metric.options?.source === 'event';
     if (['covariance', 'correlation', 'ratio', 'meanDifference', 'varianceSum', 'varianceDifference'].includes(r))
@@ -41,6 +42,7 @@ export function definition(d: MetricDraft): MeasurementDefinition {
   if (d.unit.length > 24) throw new Error('Unit must be at most 24 characters.');
   if (d.options?.assertion === 'zero' && d.options.subject !== 'observation') throw new Error('An exact assertion checks each observation. Author a completed-subject residual at its boundary instead of aggregating away failures.');
   if (d.reducers.includes('matchingEpisodes') && d.options?.subject !== 'episode') throw new Error('Choose an episode population and its boundaries before displaying matching episode parents.');
+  if (d.reducers.some(r => r.startsWith('interrupted')) && !['episode', 'transition'].includes(d.options?.subject ?? '')) throw new Error('Choose feature or transition boundaries before displaying interrupted lifecycle evidence.');
   if (d.reducers.includes('assertionViolations') && d.options?.assertion !== 'zero') throw new Error('Configure an exact zero / false assertion before displaying its failure count.');
   if (d.reducers.includes('eventReciprocal') && d.options?.source !== 'event') throw new Error('Trials per event requires an authored Boolean event population.');
   if (!d.reducers.length) throw new Error('Choose at least one statistic to display.');
@@ -58,6 +60,12 @@ export function draftFromDefinition(d: MeasurementDefinition): MetricDraft {
 }
 export function statistic(snapshot: MeasurementSnapshot | undefined, reducer: Reducer): number | null {
   if (!snapshot) return null;
+  if (reducer.startsWith('interrupted')) {
+    const lifecycle = snapshot.analysis?.interruptedLifecycle;
+    if (!lifecycle || !lifecycle.cancelled.complete || !lifecycle.failed.complete) return null;
+    const key = reducer === 'interruptedFeatureEntries' ? 'entries' : reducer === 'interruptedFeatureExits' ? 'exits' : 'openInstances';
+    return lifecycle.cancelled[key] + lifecycle.failed[key];
+  }
   if (reducer === 'assertionViolations') return snapshot.analysis?.assertion?.violations ?? null;
   if (reducer === 'distinctParents') return snapshot.analysis?.parentExposure?.paidRoundsWithMatchingChildren ?? snapshot.analysis?.distinctParents ?? null;
   if (reducer === 'matchingEpisodes') return snapshot.analysis?.parentExposure?.episodesWithMatchingChildren ?? null;
@@ -80,7 +88,7 @@ export function statistic(snapshot: MeasurementSnapshot | undefined, reducer: Re
 export function formatStatistic(value: number | null, reducer: Reducer, unit: string): string {
   if (value == null) return '—';
   if (reducer === 'matchRate') return formatPercent(value, 2);
-  if (['assertionViolations', 'count', 'matchingEpisodes', 'distinctParents', 'uniqueAwards', 'duplicateAwards', 'eligible', 'excluded', 'invalid', 'featureEntries', 'featureExits', 'unclosedEpisodes'].includes(reducer)) return value.toLocaleString();
+  if (reducer.startsWith('interrupted') || ['assertionViolations', 'count', 'matchingEpisodes', 'distinctParents', 'uniqueAwards', 'duplicateAwards', 'eligible', 'excluded', 'invalid', 'featureEntries', 'featureExits', 'unclosedEpisodes'].includes(reducer)) return value.toLocaleString();
   if (['coefficientOfVariation', 'skewness', 'excessKurtosis', 'correlation', 'ratio', 'eventReciprocal', 'accountingResidual'].includes(reducer)) unit = '';
   if (['secondMoment', 'populationVariance', 'sampleVariance', 'covariance', 'varianceSum', 'varianceDifference'].includes(reducer) && unit) unit = `(${unit})²`;
   return `${formatNumber(value)}${unit ? ` ${unit}` : ''}`;

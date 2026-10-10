@@ -36,12 +36,12 @@
     "scope": "Accepted child exposure counts each settled paid round and innermost owning episode once, independent of repeated visits, zero-valued children, exit filtering or empty reduction identities. Entry-selected cohorts, sparse worker merges, native scalar selection and known rational enumeration exposure share the explicit contract; unfinished paid rounds are discarded."
   },
   "counts.feature_entries": {
-    "status": "partial",
-    "scope": "Global authored lifecycle counts and entry-selected cohort entries/exits/open instances are implemented for settled paid rounds, including cohorts with no matching values. Typed interruption causes for unfinished paid rounds remain required."
+    "status": "ready",
+    "scope": "Settled feature/transition entries and reached exits remain separate from cancelled/failed paid-round boundary exposure. Interrupted counts include closed instances and censored open instances, retain entry-selected cohorts without numeric children, and never alter payout statistics or settled-parent turnover. Nesting/boundary faults withhold completeness; cohort overflow withholds the breakdown. The native dashboard can select interruption counters, and live/reloaded/saved evidence agrees in both engines. Resource deadlines currently classify as cancellation; detailed stop attribution remains a separate feature-exit workflow."
   },
   "counts.feature_exits": {
-    "status": "partial",
-    "scope": "Global authored lifecycle counts and entry-selected cohort entries/exits/open instances are implemented for settled paid rounds, including cohorts with no matching values. Typed interruption causes for unfinished paid rounds remain required."
+    "status": "ready",
+    "scope": "Settled feature/transition entries and reached exits remain separate from cancelled/failed paid-round boundary exposure. Interrupted counts include closed instances and censored open instances, retain entry-selected cohorts without numeric children, and never alter payout statistics or settled-parent turnover. Nesting/boundary faults withhold completeness; cohort overflow withholds the breakdown. The native dashboard can select interruption counters, and live/reloaded/saved evidence agrees in both engines. Resource deadlines currently classify as cancellation; detailed stop attribution remains a separate feature-exit workflow."
   },
   "counts.reveals": {
     "status": "authored",
@@ -293,7 +293,7 @@
   },
   "features.exit_reason": {
     "status": "partial",
-    "scope": "Completed loop condition/model-limit reasons and global cancelled/failed rounds exist. Typed per-feature payout-cap/authored-stop/budget/cancel/error causes are not yet reconciled."
+    "scope": "Completed loop condition/model-limit reasons and per-feature boundary exposure in cancelled/failed paid rounds are retained separately, with entry-cohort and censoring/completeness evidence. Per-feature payout-cap/authored-stop/resource-expiry attribution remains unimplemented; resource deadlines currently classify as cancellation."
   },
   "mechanics.reel_stop": {
     "status": "authored",

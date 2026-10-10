@@ -453,12 +453,14 @@ public static class SampledInterpreter
                 }
                 catch (OperationCanceledException) when (config.CancellationToken.IsCancellationRequested)
                 {
+                    measurements?.Interrupt(PaidRoundInterruption.Cancelled);
                     cancelledRounds++;
                     Interlocked.Exchange(ref cancelFlag, 1);
                     break;
                 }
                 catch
                 {
+                    measurements?.Interrupt(PaidRoundInterruption.Failed);
                     failedRounds++; if (session is not null) interruptedSessions++;
                     Flush(); throw;
                 }

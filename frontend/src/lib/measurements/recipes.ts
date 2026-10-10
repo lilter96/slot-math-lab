@@ -44,6 +44,8 @@ export function recipeDraft(recipe: MetricRecipe, id?: string): MetricDraft {
     options.subject = 'episode'; draft.nodeId = '__choose_point__'; if (['played', 'feature_entries', 'feature_exits'].includes(metric)) { options.source = 'count'; draft.valueMode = 'payout'; }
     if (metric === 'any_retrigger') { options.source = 'event'; options.reduction = 'any'; options.referenceStatistic = 'probability'; }
   }
+  if (recipe.id === 'counts.feature_entries') draft.reducers = ['featureEntries', 'interruptedFeatureEntries'];
+  if (recipe.id === 'counts.feature_exits') draft.reducers = ['featureExits', 'interruptedFeatureExits', 'interruptedOpenEpisodes'];
   if (recipe.id === 'features.zero_episode') { options.source = 'event'; options.referenceStatistic = 'probability'; draft.nodeId = '__choose_point__'; }
   if (['states.transition_count', 'states.transition_probability'].includes(recipe.id)) { options.subject = 'transition'; draft.nodeId = ''; }
   if (family === 'mechanics' || family === 'rng' || ['reveal_payout', 'ordinal_profile', 'type_mix', 'exit_reason'].includes(metric)) draft.nodeId = '__choose_point__';

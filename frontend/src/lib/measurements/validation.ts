@@ -14,6 +14,13 @@ export function validAnalysis(value: unknown, expectedCount?: number, expectedMe
     || !text(value.subject) || !text(value.reduction)) return false;
   for (const field of ['min', 'max', 'mean', 'sum', 'meanStandardError', 'requiredSampleSize']) if (!nullable(value[field])) return false;
   for (const field of ['distinctParents', 'entries', 'exits', 'unclosedEpisodes', 'uniqueAwards', 'duplicateAwards']) if (!count(value[field])) return false;
+  if (value.interruptedLifecycle != null) {
+    if (!['episode', 'transition'].includes(String(value.subject)) || !object(value.interruptedLifecycle)) return false;
+    const reasons = [value.interruptedLifecycle.cancelled, value.interruptedLifecycle.failed];
+    if (!reasons.every(reason => object(reason) && count(reason.interruptedRounds) && count(reason.entries) && count(reason.exits) && count(reason.openInstances)
+      && typeof reason.complete === 'boolean' && (!reason.complete || reason.entries === reason.exits + reason.openInstances)
+      && (reason.interruptedRounds > 0 || reason.entries + reason.exits + reason.openInstances === 0))) return false;
+  }
   if (value.normalization != null && (!object(value.normalization) || !count(value.normalization.paidRounds) || value.normalization.paidRounds === 0
     || !nullable(value.normalization.externalTurnover) || value.normalization.externalTurnover != null && (value.normalization.externalTurnover as number) <= 0 || !text(value.normalization.basis))) return false;
   if (value.parentExposure != null) {
@@ -58,7 +65,18 @@ export function validAnalysis(value: unknown, expectedCount?: number, expectedMe
   if (value.comparison != null && (!object(value.comparison) || !finite(value.comparison.totalVariation) || !finite(value.comparison.cdfDistance) || !nullable(value.comparison.chiSquare) || !nullable(value.comparison.pValue) || value.comparison.pValue != null && ((value.comparison.pValue as number) < 0 || (value.comparison.pValue as number) > 1) || !text(value.comparison.calibration) || !count(value.comparison.degreesOfFreedom) || !count(value.comparison.unexpectedObservations) || typeof value.comparison.expectedCountsAdequate !== 'boolean')) return false;
   if (typeof value.transitionsComplete !== 'boolean' || !Array.isArray(value.transitions) || value.transitions.length > 1024 || !value.transitions.every(t => object(t) && finite(t.from) && finite(t.to) && count(t.count) && count(t.fromExposure) && t.fromExposure >= t.count && finite(t.probability) && t.probability >= 0 && t.probability <= 1)) return false;
   if (!Array.isArray(value.checks) || value.checks.length > 8 || !value.checks.every(c => object(c) && text(c.id) && text(c.status) && nullable(c.observed) && nullable(c.reference) && nullable(c.difference) && text(c.detail))) return false;
-  return object(value.groups) && Object.keys(value.groups).length <= 64 && Object.values(value.groups).every(g => validAnalysis(g, undefined, undefined, undefined, depth + 1));
+  if (!object(value.groups) || Object.keys(value.groups).length > 64) return false;
+  for (const group of Object.values(value.groups)) {
+    if (!validAnalysis(group, undefined, undefined, undefined, depth + 1)) return false;
+    if (group.interruptedLifecycle) {
+      if (!object(value.interruptedLifecycle)) return false;
+      for (const reason of ['cancelled', 'failed'] as const) {
+        const global = value.interruptedLifecycle[reason];
+        if (!object(global) || (['interruptedRounds', 'entries', 'exits', 'openInstances'] as const).some(field => group.interruptedLifecycle![reason][field] > (global[field] as number))) return false;
+      }
+    }
+  }
+  return true;
 }
 
 export function validWitnesses(value: unknown): boolean {

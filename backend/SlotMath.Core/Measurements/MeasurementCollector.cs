@@ -2,7 +2,7 @@ using System.Globalization;
 using SlotMath.Core.Expressions;
 namespace SlotMath.Core.Measurements;
 
-/// <summary>Transactional observation collector. A cancelled round publishes no observations.
+/// <summary>Transactional observation collector. An interrupted round publishes only separate lifecycle exposure.
 /// Subjects are explicit; absent round components are zero-filled, episodes close only at
 /// their declared exit. No game state or game RNG is mutated by instrumentation.</summary>
 internal sealed class MeasurementCollector(IReadOnlyList<MeasurementDefinition> definitions)
@@ -14,11 +14,13 @@ internal sealed class MeasurementCollector(IReadOnlyList<MeasurementDefinition> 
     private readonly HashSet<string>?[] _awardIds = new HashSet<string>?[definitions.Count];
     private readonly long[] _entries = new long[definitions.Count], _exits = new long[definitions.Count], _duplicates = new long[definitions.Count];
     private readonly bool[] _matchingChild = new bool[definitions.Count];
+    private readonly bool[] _lifecycleComplete = new bool[definitions.Count];
     public MeasurementAccumulator[] Total { get; } = new MeasurementAccumulator[definitions.Count];
     public MeasurementAccumulator[] Delta { get; } = new MeasurementAccumulator[definitions.Count];
     public IReadOnlyList<MeasurementDefinition> Definitions => definitions;
     public double? CompletedRoundValue(int index) => _round[index].Count == 1 && _round[index].Errors == 0 && _round[index].Excluded == 0 ? _round[index].Sum : null;
     private bool _prepared;
+    private bool _finished;
     private long _roundIndex;
     private bool _captureAll;
     private readonly WitnessAccumulator[] _witnessStaging = definitions.Select(_ => new WitnessAccumulator()).ToArray();
@@ -27,7 +29,7 @@ internal sealed class MeasurementCollector(IReadOnlyList<MeasurementDefinition> 
     public MeasurementSnapshot[] RoundSnapshot() => Snapshot(definitions, _round);
     public void Begin(long roundIndex = 0, bool captureAll = false)
     {
-        _prepared = false; _roundIndex = roundIndex; _captureAll = captureAll; Array.Clear(_ordinals); Array.Clear(_points);
+        _prepared = _finished = false; Array.Fill(_lifecycleComplete, true); _roundIndex = roundIndex; _captureAll = captureAll; Array.Clear(_ordinals); Array.Clear(_points);
         Array.Clear(_round); Array.Clear(_subjects); Array.Clear(_entries); Array.Clear(_exits); Array.Clear(_duplicates); Array.Clear(_matchingChild);
         for (var i = 0; i < _witnessStaging.Length; i++) { _witnessStaging[i].Clear(); _round[i].Witnesses = _witnessStaging[i]; }
         for (var i = 0; i < _staging.Length; i++) if (_staging[i] is { } accumulator) { accumulator.Reset(); _round[i].Analysis = accumulator; }
@@ -43,7 +45,7 @@ internal sealed class MeasurementCollector(IReadOnlyList<MeasurementDefinition> 
             var stack = _episodes[index] ??= new();
             if (nodeId == options.ExitNodeId)
             {
-                if (stack.Count == 0) { _round[index].Observations++; Error(index, "Episode exit has no matching entry."); }
+                if (stack.Count == 0) { _lifecycleComplete[index] = false; _round[index].Observations++; Error(index, "Episode exit has no matching entry."); }
                 else
                 {
                     var episode = stack.Pop();
@@ -56,7 +58,7 @@ internal sealed class MeasurementCollector(IReadOnlyList<MeasurementDefinition> 
             if (nodeId == options.EntryNodeId)
             {
                 _entries[index]++;
-                if (stack.Count >= 16) { _round[index].Observations++; Error(index, "Episode nesting exceeds the 16-level limit."); return; }
+                if (stack.Count >= 16) { _lifecycleComplete[index] = false; _round[index].Observations++; Error(index, "Episode nesting exceeds the 16-level limit."); return; }
                 var episode = new SubjectBuffer(); stack.Push(episode);
                 try { episode.Excluded = binding.EntryFilter is { } entry && !Predicate(entry(state)); if (!episode.Excluded) episode.Group = Key(binding.Group, state); }
                 catch (Exception ex) when (IsMeasurementError(ex)) { episode.Invalid = true; episode.ErrorMessage = ex.Message; }
@@ -128,7 +130,7 @@ internal sealed class MeasurementCollector(IReadOnlyList<MeasurementDefinition> 
         if (nodeId == options.EntryNodeId)
         {
             _entries[index]++;
-            if (stack.Count >= 16) { _round[index].Observations++; Error(index, "Transition nesting exceeds the 16-level limit."); return; }
+            if (stack.Count >= 16) { _lifecycleComplete[index] = false; _round[index].Observations++; Error(index, "Transition nesting exceeds the 16-level limit."); return; }
             var subject = new SubjectBuffer(); stack.Push(subject);
             try
             {
@@ -145,7 +147,7 @@ internal sealed class MeasurementCollector(IReadOnlyList<MeasurementDefinition> 
         }
         if (nodeId != options.ExitNodeId) return;
         _round[index].Observations++;
-        if (stack.Count == 0) { Error(index, "Transition exit has no matching entry."); return; }
+        if (stack.Count == 0) { _lifecycleComplete[index] = false; Error(index, "Transition exit has no matching entry."); return; }
         var completed = stack.Pop(); _exits[index]++;
         _staging[index]!.Lifecycle(completed.Group, exits: 1);
         if (completed.Invalid) { Error(index, completed.ErrorMessage!); return; }
@@ -191,8 +193,26 @@ internal sealed class MeasurementCollector(IReadOnlyList<MeasurementDefinition> 
     }
     public void Commit()
     {
+        if (_finished) throw new InvalidOperationException("The paid-round observation transaction has already finished.");
         Prepare();
         Merge(Total, _round); Merge(Delta, _round);
+        _finished = true;
+    }
+    public void Interrupt(PaidRoundInterruption reason)
+    {
+        if (_finished) return;
+        _finished = true;
+        for (var i = 0; i < definitions.Count; i++)
+        {
+            if (definitions[i].Options is not { Subject: "episode" or "transition" } options) continue;
+            var openGroups = new Dictionary<string, long>(StringComparer.Ordinal);
+            if (_episodes[i] is { } episodes)
+                foreach (var subject in episodes)
+                    if (subject.Group is { } group) openGroups[group] = openGroups.GetValueOrDefault(group) + 1;
+            var audit = new MeasurementAccumulator { Analysis = new(options) };
+            audit.Analysis.InterruptFrom(reason, _staging[i]!, _entries[i], _exits[i], _episodes[i]?.Count ?? 0, _lifecycleComplete[i], openGroups);
+            Total[i].Merge(audit); Delta[i].Merge(audit);
+        }
     }
     private void Emit(int index, SubjectBuffer subject, MeasurementOptions options)
     {

@@ -35,6 +35,17 @@ test('Simulation export uses one authoritative population and labels browser his
   expect(bundle.schemaVersion).toBe('slotmath.simulation.v2');
 });
 
+test('A failure before the first settlement still exports verified input and an incomplete empty population', () => {
+  const current = evidence();
+  current.run = snapshot({ ...progress(1, 0), runningRtp: 0, stdErr: 0, volatility: 0, maxWin: 0,
+    status: 'failed', resultJson: '{"error":"Division by zero"}' });
+  const bundle = simulationEvidence(current, current.run, context);
+  expect(bundle.progress!.sampleCount).toBe(0); expect(bundle.run.status).toBe('failed');
+  expect(bundle.pinnedGraph.inputVerified).toBe(true); expect(bundle.integrity.complete).toBe(false);
+  expect(bundle.integrity.error).toBe('Division by zero'); expect(bundle.integrity.issues).toEqual([]);
+  expect(bundle.exactReference).toBeNull(); expect(bundle.convergence).toEqual([]);
+});
+
 test('Evidence export rejects missing models, changed producers, inconsistent results and wrong or stale populations', () => {
   const expected = evidence().run;
   const mutations: ((v: RunEvidence) => void)[] = [
