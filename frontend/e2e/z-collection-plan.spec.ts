@@ -1,4 +1,4 @@
-import { test, expect, getWithQuota } from './fixtures';
+import { waitForRunLaunch, test, expect, getWithQuota } from './fixtures';
 
 test('Saving validates shared collection storage and an adjusted complete plan runs', async ({ page }) => {
   test.setTimeout(180000);
@@ -24,7 +24,7 @@ test('Saving validates shared collection storage and an adjusted complete plan r
     await page.getByRole('button', { name: 'Save measurement', exact: true }).click(); await expect(page.getByRole('dialog')).not.toBeVisible();
   }
   await expect(page.locator('.measurement-plan > summary')).toContainText('4 / 32 metrics');
-  await page.getByLabel('Simulation spins').fill('100'); const launch = page.waitForResponse(r => r.url().endsWith('/api/runs') && r.request().method() === 'POST' && r.ok());
+  await page.getByLabel('Simulation spins').fill('100'); const launch = waitForRunLaunch(page);
   await page.getByRole('button', { name: /^▶ Start run$/ }).click(); const { id } = await (await launch).json();
   await expect(page.locator('.run-status')).toHaveText('completed', { timeout: 70000 });
   const evidence = await (await getWithQuota(page.request, `/api/runs/${id}/evidence`)).json();

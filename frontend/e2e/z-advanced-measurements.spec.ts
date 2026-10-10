@@ -1,4 +1,4 @@
-import { test, expect, getWithQuota } from './fixtures';
+import { waitForRunLaunch, test, expect, getWithQuota } from './fixtures';
 
 test.beforeEach(async ({ request }) => {
   test.setTimeout(120000);
@@ -19,7 +19,7 @@ test('Authored episode, grouped distribution, reference verdict, WebSocket evide
   await page.getByRole('button', { name: 'Add reference outcome', exact: true }).click(); await page.getByLabel('Reference outcome 1', { exact: true }).fill('6'); await page.getByLabel('Reference probability 1', { exact: true }).fill('1');
   await page.getByLabel('Reference mean', { exact: true }).fill('6'); await page.getByLabel('Acceptance tolerance', { exact: true }).fill('0.01'); await page.getByLabel('Proven minimum', { exact: true }).fill('6'); await page.getByLabel('Proven maximum', { exact: true }).fill('6');
   await page.getByRole('button', { name: 'Save measurement', exact: true }).click(); await expect(page.getByRole('dialog')).not.toBeVisible();
-  await page.getByLabel('Simulation spins').fill('5000'); const launch = page.waitForResponse(r => r.url().endsWith('/api/runs') && r.request().method() === 'POST'); await page.getByRole('button', { name: /^▶ Start run$/ }).click(); const created = await (await launch).json();
+  await page.getByLabel('Simulation spins').fill('5000'); const launch = waitForRunLaunch(page); await page.getByRole('button', { name: /^▶ Start run$/ }).click(); const created = await (await launch).json();
   await expect(page.locator('.run-status')).toHaveText('completed', { timeout: 70000 }); const card = page.getByRole('article', { name: 'Tracked metric Sticky episode total', exact: true });
   await expect(card.locator('[data-statistic=mean]')).toHaveText('6 coins'); await expect(card).toContainText('Complete feature episodes'); await expect(card.getByRole('img', { name: 'frequency by payout band' })).toBeVisible();
   await card.getByRole('tab', { name: 'uncertainty', exact: true }).click(); await expect(card).toContainText('within Precision'); await expect(card).toContainText('[6, 6]');
@@ -65,7 +65,7 @@ test('Catalogue recipe becomes a visual Boolean AST and fixed-horizon session ev
   await page.locator('#execution-configuration > summary').click(); await page.getByLabel('Execution regime').selectOption('sessions');
   await page.getByLabel('Session horizon').fill('10'); await page.getByLabel('Session bankroll').fill('3'); await page.getByLabel('Session feature activation').selectOption({ label: 'Zero payout' });
   await page.getByLabel('Simulation spins').fill('1000');
-  const launch = page.waitForResponse(r => r.url().endsWith('/api/runs') && r.request().method() === 'POST'); await page.getByRole('button', { name: /^▶ Start run$/ }).click(); const created = await (await launch).json();
+  const launch = waitForRunLaunch(page); await page.getByRole('button', { name: /^▶ Start run$/ }).click(); const created = await (await launch).json();
   await expect(page.locator('.run-status')).toHaveText('completed', { timeout: 70000 });
   const evidence = await (await getWithQuota(page.request, `/api/runs/${created.id}/evidence`)).json();
   expect(evidence.run.execution.regime).toBe('sessions'); expect(evidence.run.streamScheme).toBe('splitmix64-session-v1-10');
@@ -89,7 +89,7 @@ test('An authored rule assertion retains exact failure counts and a replayable v
   await page.getByLabel('Measurement source', { exact: true }).selectOption('event'); await page.getByLabel('Metric numeric expression').fill('state.spinWin != 3');
   await page.getByLabel('Assert exactly zero or false').check(); await page.getByRole('button', { name: 'Save measurement', exact: true }).click();
   await expect(page.getByRole('dialog')).not.toBeVisible(); await page.getByLabel('Simulation spins').fill('100');
-  const launch = page.waitForResponse(r => r.url().endsWith('/api/runs') && r.request().method() === 'POST' && r.ok(), { timeout: 70000 });
+  const launch = waitForRunLaunch(page);
   await page.getByRole('button', { name: /^▶ Start run$/ }).click(); const created = await (await launch).json();
   await expect(page.locator('.run-status')).toHaveText('completed', { timeout: 70000 });
   const card = page.getByRole('article', { name: 'Tracked metric Reveal rule residual', exact: true });

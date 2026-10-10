@@ -1,6 +1,15 @@
-import { test as base, expect, type APIRequestContext, type APIResponse, type Response as BrowserResponse } from '@playwright/test';
+import { test as base, expect, type APIRequestContext, type APIResponse, type Page, type Response as BrowserResponse } from '@playwright/test';
 export { expect };
 export type { APIRequestContext, APIResponse, Page, WebSocketRoute } from '@playwright/test';
+
+/** Wait through explicit quota rejection, then require an accepted launch.
+ * Other errors fail immediately, before attempting to parse them as run JSON. */
+export function waitForRunLaunch(page: Page): Promise<BrowserResponse> {
+  test.setTimeout(Math.max(test.info().timeout, 180000));
+  return page.waitForResponse(response => new URL(response.url()).pathname === '/api/runs'
+    && response.request().method() === 'POST' && response.status() !== 429, { timeout: 70000 })
+    .then(response => { expect(response.status(), 'Run launch was accepted').toBe(202); return response; });
+}
 
 /** Test-side authoritative reads follow the same explicit-rejection contract as
  * the UI. An empty 429 body is never mistaken for malformed run JSON. */

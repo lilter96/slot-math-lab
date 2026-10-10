@@ -1,7 +1,7 @@
-import { test, expect, getWithQuota } from './fixtures';
+import { waitForRunLaunch, test, expect, getWithQuota } from './fixtures';
 import { readFile } from 'node:fs/promises';
 
-test('Real WebSocket updates inside first chunk, reload restores run, cancellation retains actual payouts', async ({ page }) => {
+test('Real WebSocket updates during execution, reload restores run, cancellation retains actual payouts', async ({ page }) => {
   test.setTimeout(180000);
   const messages: { sampleCount: number; status: string; sequence: number; histogram: { count: number }[] }[] = [];
   const sockets: string[] = [];
@@ -16,25 +16,29 @@ test('Real WebSocket updates inside first chunk, reload restores run, cancellati
   await page.goto('/build?project=dog-house');
   await page.getByRole('button', { name: 'Open base game graph', exact: true }).click();
   await page.getByRole('tab', { name: 'Simulate', exact: true }).click();
-  // Keep the job alive through reload/cancellation even with the optimized
-  // graph engine. This test intentionally stops after a small partial prefix.
+  // Keep the job alive through quota recovery/reload/cancellation. The Core
+  // LiveProgressTests separately verify publication inside the first chunk;
+  // a browser can subscribe after that chunk has already completed.
+  await page.locator('#execution-configuration').evaluate((element: HTMLDetailsElement) => { element.open = true; });
+  await page.getByLabel('Sampling engine', { exact: true }).selectOption('reference');
+  await page.getByLabel('Simulation workers', { exact: true }).selectOption('1');
   await page.getByLabel('Simulation spins').fill('10000000');
-  const creation = page.waitForResponse(r => r.url().endsWith('/api/runs') && r.request().method() === 'POST' && r.ok(), { timeout: 70000 });
+  const creation = waitForRunLaunch(page);
   await page.getByRole('button', { name: /start run/i }).click();
   const run = await (await creation).json();
   expect(run.configHash).toMatch(/^[a-f0-9]{64}$/);
   const pinned = await (await getWithQuota(page.request, `/api/configs/${run.configId}`)).json();
   expect(pinned.config.nodes).toHaveLength(12);
   expect(pinned.config.nodes.find((node: { id: string }) => node.id === 'bonus-completed')).toMatchObject({ nodeType: 'modifyState', expressionId: 'bonus-completed', outputKey: 'bonusCompleted' });
-  await expect(page.getByTestId('stream-status')).toContainText('WebSocket live');
-  await expect.poll(() => messages.some(m => m.status === 'running' && m.sampleCount > 0 && m.sampleCount < 65536), { timeout: 15000 }).toBe(true);
+  await expect(page.getByTestId('stream-status')).toContainText('WebSocket live', { timeout: 70000 });
+  await expect.poll(() => messages.some(m => m.status === 'running' && m.sampleCount > 0 && m.sampleCount < 10000000), { timeout: 15000 }).toBe(true);
   await expect(page.getByTestId('live-rtp')).not.toHaveText('—');
   await expect(page.getByTestId('live-hit-frequency')).not.toHaveText('—');
   await expect(page.getByRole('img', { name: /RTP convergence chart/ })).toHaveAttribute('aria-label', /[1-9]\d* observations/);
   for (const m of messages.filter(m => m.sampleCount > 0)) expect(m.histogram.reduce((sum, b) => sum + b.count, 0)).toBe(m.sampleCount);
   await page.screenshot({ path: '../docs/verification/simulation-live.png', fullPage: true });
   await page.reload();
-  await expect(page.getByTestId('stream-status')).toContainText('WebSocket live');
+  await expect(page.getByTestId('stream-status')).toContainText('WebSocket live', { timeout: 70000 });
   await expect(page.getByTestId('sample-count')).not.toHaveText('0');
   expect(sockets.filter(url => url.includes('/hubs/runs')).length).toBeGreaterThanOrEqual(2);
   await page.getByRole('button', { name: /cancel run/i }).click();
@@ -68,7 +72,7 @@ test('Fast completion renders chart and distribution and restores them after nav
   await page.getByRole('button', { name: 'Load coin example' }).click();
   await page.getByRole('tab', { name: 'Simulate', exact: true }).click();
   await page.getByLabel('Simulation spins').fill('10000');
-  const accepted = page.waitForResponse(r => r.url().endsWith('/api/runs') && r.request().method() === 'POST' && r.ok(), { timeout: 70000 });
+  const accepted = waitForRunLaunch(page);
   await page.getByRole('button', { name: /start run/i }).click();
   await accepted;
   await expect(page.locator('.run-status')).toHaveText('completed', { timeout: 70000 });
@@ -87,7 +91,7 @@ test('Evidence export recovers a quota rejection and withholds files on errors, 
   test.setTimeout(180000);
   await page.goto('/build'); await page.getByRole('button', { name: 'Load coin example' }).click();
   await page.getByRole('tab', { name: 'Simulate', exact: true }).click(); await page.getByLabel('Simulation spins').fill('100');
-  const created = page.waitForResponse(r => r.url().endsWith('/api/runs') && r.request().method() === 'POST' && r.ok(), { timeout: 70000 });
+  const created = waitForRunLaunch(page);
   await page.getByRole('button', { name: /start run/i }).click(); const run = await (await created).json();
   await expect(page.locator('.run-status')).toHaveText('completed', { timeout: 70000 });
   const stored = await (await getWithQuota(page.request, `/api/runs/${run.id}/evidence`)).json();

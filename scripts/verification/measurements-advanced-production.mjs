@@ -1,3 +1,4 @@
+import { waitForRunLaunch } from './requests.mjs';
 import { chromium } from '../../frontend/node_modules/playwright/index.mjs';
 import { expect } from '../../frontend/node_modules/@playwright/test/index.mjs';
 import { readFile, writeFile } from 'node:fs/promises';
@@ -64,7 +65,7 @@ try {
   await metric('Sticky bonus episode payout', { node: 'free-spin/snapshot-winHistory', expression: 'state.spinCoins / 20',
     subject: 'episode', entry: 'free-spins', exit: 'bonus-completed', reduction: 'sum', group: 'state.fsCount', groupLimit: 19 });
   await page.getByLabel('Simulation spins').fill('100000'); await page.getByLabel('Simulation workers').selectOption('2');
-  const launch = page.waitForResponse(r => r.url().endsWith('/api/runs') && r.request().method() === 'POST' && r.status() !== 429, { timeout: 90000 });
+  const launch = waitForRunLaunch(page);
   await page.getByRole('button', { name: /^▶ Start run$/ }).click(); const accepted = await launch;
   if (accepted.status() !== 202) throw new Error(`Run was not accepted: HTTP ${accepted.status()} ${await accepted.text()}`);
   const created = await accepted.json(); owned.push(created.id);
@@ -134,13 +135,13 @@ try {
   await expect(episodeCard.getByRole('row').filter({ hasText: 'Owning feature episodes with matching children' })).toContainText(String(episode.count));
   await episodeCard.scrollIntoViewIfNeeded(); await screenshot('advanced-whole-bonus-production.png');
   await page.getByRole('button', { name: 'Replay pinned run', exact: true }).click(); await page.getByLabel('Pinned run workers').selectOption('1');
-  const replayLaunch = page.waitForResponse(r => r.url().endsWith('/api/runs') && r.request().method() === 'POST' && r.status() === 202);
+  const replayLaunch = waitForRunLaunch(page);
   await page.getByRole('button', { name: 'Start pinned run', exact: true }).click(); const replay = await (await replayLaunch).json(); owned.push(replay.id); const replayed = await finished(replay.id);
   if (JSON.stringify(replayed.progress.measurements) !== JSON.stringify(values) || JSON.stringify(replayed.progress.execution.loopTerminations) !== JSON.stringify(run.progress.execution.loopTerminations)) throw new Error('Rich measurements or loop evidence changed with worker count.');
   await page.goto(base + `/results?run=${replay.id}&view=compare&compare=${run.id}`); await expect(page.getByTestId('results-comparison-verdict')).toHaveText('Replay matches');
   await page.goto(base + `/results?run=${run.id}`); await page.getByRole('button', { name: 'Replay pinned run', exact: true }).click();
   await page.getByLabel('Pinned run workers').selectOption('1'); await page.getByLabel('Pinned run engine').selectOption('reference');
-  const referenceLaunch = page.waitForResponse(r => r.url().endsWith('/api/runs') && r.request().method() === 'POST' && r.status() === 202);
+  const referenceLaunch = waitForRunLaunch(page);
   await page.getByRole('button', { name: 'Start pinned run', exact: true }).click(); const reference = await (await referenceLaunch).json(); owned.push(reference.id);
   const interpreted = await finished(reference.id);
   if (interpreted.progress.runningRtp !== run.progress.runningRtp || JSON.stringify(interpreted.progress.measurements) !== JSON.stringify(values)

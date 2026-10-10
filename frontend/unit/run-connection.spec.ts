@@ -65,6 +65,33 @@ test('rate limiting honors Retry-After for both polling and reconnect attempts',
   h.configure = () => {}; h.http = async () => snapshot();
   await h.clock.advance(1000); expect(h.health.at(-1)?.phase).toBe('live'); h.owner.stop();
 });
+test('a missing negotiation endpoint recovers without declaring the retained run unavailable', async () => {
+  const h = harness();
+  h.configure = hub => { hub.startError = new HttpFailure('Proxy endpoint unavailable', 404, 0, 'connection'); };
+  h.owner.start(); await flush();
+  expect(h.health.at(-1)?.phase).toBe('recovering');
+  h.configure = () => {}; await h.clock.advance(1000);
+  expect(h.health.at(-1)?.phase).toBe('live'); h.owner.stop();
+});
+test('out-of-order negotiation and HTTP rejections cannot shorten a quota pause', async () => {
+  const h = harness();
+  h.http = async () => { throw new HttpFailure('HTTP quota', 429, 60000); };
+  h.configure = hub => { hub.startError = new HttpFailure('Negotiation quota', 429, 5000, 'connection'); };
+  h.owner.start(); await flush();
+  h.configure = () => {}; h.http = async () => snapshot();
+  await h.clock.advance(59000); expect(h.hubs).toHaveLength(1); expect(h.reads).toBe(1);
+  await h.clock.advance(1000); expect(h.health.at(-1)?.phase).toBe('live'); h.owner.stop();
+});
+test('long HTTP-date pauses use bounded timers without releasing the quota early', async () => {
+  const h = harness(), pause = 60 * 86400000;
+  h.http = async () => { throw new HttpFailure('Long pause', 429, pause); };
+  h.configure = hub => { hub.startError = new HttpFailure('Shorter pause', 429, 5000, 'connection'); };
+  h.owner.start(); await flush();
+  expect(h.health.at(-1)?.nextRetryAt).toBe(h.clock.time + pause);
+  expect([...h.clock.timers.values()].every(timer => timer.due - h.clock.time <= 2147483647)).toBe(true);
+  await h.clock.advance(2147483647); expect(h.hubs).toHaveLength(1); expect(h.reads).toBe(1);
+  expect(h.health.at(-1)?.nextRetryAt).toBe(100000 + pause); h.owner.stop();
+});
 test('HTTP timeout releases single flight even if an adapter ignores abort', async () => {
   const h = harness(); h.configure = hub => { hub.startError = new Error('no socket'); };
   h.http = async () => new Promise(() => {}); h.owner.start(); await flush();

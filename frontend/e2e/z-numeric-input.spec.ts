@@ -1,4 +1,4 @@
-import { test, expect, getWithQuota, type Page } from './fixtures';
+import { waitForRunLaunch, test, expect, getWithQuota, type Page } from './fixtures';
 import { readFile } from 'node:fs/promises';
 
 async function metric(page: Page, name: string, expression: string, assertion = false) {
@@ -28,7 +28,7 @@ test('Native decimal state retains nonzero metrics, exact assertions, charts, ex
   for (const engine of ['auto', 'reference']) {
     await page.getByLabel('Simulation spins').fill('1000'); await page.locator('#execution-configuration').evaluate((el: HTMLDetailsElement) => { el.open = true; });
     await page.getByLabel('Sampling engine', { exact: true }).selectOption(engine);
-    const launch = page.waitForResponse(r => r.url().endsWith('/api/runs') && r.request().method() === 'POST' && r.ok(), { timeout: 70000 });
+    const launch = waitForRunLaunch(page);
     await page.getByRole('button', { name: /^▶ Start (new )?run$/ }).click(); const run = await (await launch).json();
     await expect(page.locator('.run-status')).toHaveText('completed', { timeout: 70000 });
     const signal = page.getByRole('article', { name: 'Tracked metric Tiny signal', exact: true });
@@ -51,7 +51,7 @@ test('Native decimal state retains nonzero metrics, exact assertions, charts, ex
   await page.goto(`/results?run=${records[0].run.id}`);
   const row = page.getByRole('table').filter({ has: page.getByRole('columnheader', { name: 'Measurement / scope', exact: true }) }).getByRole('row').filter({ hasText: 'Tiny signal' }); await expect(row).toContainText('1e-9 signal');
   await page.getByRole('button', { name: 'Replay pinned run', exact: true }).click(); await page.getByLabel('Pinned run engine').selectOption('reference');
-  const replay = page.waitForResponse(r => r.url().endsWith('/api/runs') && r.request().method() === 'POST' && r.ok(), { timeout: 70000 });
+  const replay = waitForRunLaunch(page);
   await page.getByRole('button', { name: 'Start pinned run', exact: true }).click(); const replayed = await (await replay).json();
   expect(replayed.verificationProfileHash).toBe(records[0].run.verificationProfileHash);
   await expect(page.locator('.run-status')).toHaveText('completed', { timeout: 70000 });

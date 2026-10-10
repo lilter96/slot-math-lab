@@ -1,4 +1,4 @@
-import { test, expect, getWithQuota } from './fixtures';
+import { waitForRunLaunch, test, expect, getWithQuota } from './fixtures';
 
 test('Native scoped feature counters distinguish matching children, paid parents and owning episodes', async ({ page }) => {
   test.setTimeout(180000);
@@ -19,7 +19,7 @@ test('Native scoped feature counters distinguish matching children, paid parents
   let prior: unknown;
   for (const engine of ['auto', 'reference']) {
     await page.locator('#execution-configuration').evaluate((element: HTMLDetailsElement) => { element.open = true; }); await page.getByLabel('Sampling engine', { exact: true }).selectOption(engine);
-    const launch = page.waitForResponse(r => r.url().endsWith('/api/runs') && r.request().method() === 'POST' && r.ok(), { timeout: 70000 });
+    const launch = waitForRunLaunch(page);
     await page.getByRole('button', { name: /^▶ Start (new )?run$/ }).click(); const { id } = await (await launch).json();
     await expect(page.locator('.run-status')).toHaveText('completed', { timeout: 70000 });
     const card = page.getByRole('article', { name: 'Tracked metric Sticky parent exposure', exact: true });

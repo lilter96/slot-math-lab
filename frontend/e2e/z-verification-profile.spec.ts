@@ -1,4 +1,4 @@
-import { test, expect, getWithQuota } from './fixtures';
+import { waitForRunLaunch, test, expect, getWithQuota } from './fixtures';
 import type { Page } from '@playwright/test';
 
 async function metric(page: Page, id: string) {
@@ -23,7 +23,7 @@ test('Native predeclared mean family rejects underallocation, retains final crit
   await page.getByLabel('Allocate verification family budget').uncheck(); await page.getByRole('button', { name: 'Save verification profile', exact: true }).click();
   await expect(page.getByRole('dialog').getByRole('alert')).toContainText('shared family error budget');
   await page.getByLabel('Allocate verification family budget').check(); await page.getByRole('button', { name: 'Save verification profile', exact: true }).click(); await expect(page.getByRole('dialog')).not.toBeVisible();
-  await page.getByLabel('Simulation spins').fill('2000'); const launch = page.waitForResponse(r => r.url().endsWith('/api/runs') && r.request().method() === 'POST' && r.ok(), { timeout: 70000 });
+  await page.getByLabel('Simulation spins').fill('2000'); const launch = waitForRunLaunch(page);
   await page.getByRole('button', { name: /^▶ Start run$/ }).click(); const run = await (await launch).json();
   expect(run.verificationProfile.criteria).toHaveLength(2); expect(run.measurements.every((m: { options: { errorFamilySize: number } }) => m.options.errorFamilySize === 2)).toBe(true);
   await expect(page.locator('.run-status')).toHaveText('completed', { timeout: 70000 });
@@ -31,7 +31,7 @@ test('Native predeclared mean family rejects underallocation, retains final crit
   // Launch again in the mounted route. Report components need distinct keys;
   // a route reload would hide stale/duplicated children after reconciliation.
   await page.locator('#execution-configuration').evaluate((el: HTMLDetailsElement) => { el.open = true; }); await page.getByLabel('Sampling engine', { exact: true }).selectOption('reference');
-  const next = page.waitForResponse(r => r.url().endsWith('/api/runs') && r.request().method() === 'POST' && r.ok(), { timeout: 70000 });
+  const next = waitForRunLaunch(page);
   await page.getByRole('button', { name: /^▶ Start new run$/ }).click(); const consecutive = await (await next).json();
   await expect(page.locator('.run-status')).toHaveText('completed', { timeout: 70000 }); await expect(page.locator('#verification-profile')).toHaveCount(1); await expect(page.locator('#component-accounting')).toHaveCount(1);
   await expect(page.getByRole('button', { name: 'Evaluate pinned verification profile', exact: true })).toHaveCount(1);
@@ -43,7 +43,7 @@ test('Native predeclared mean family rejects underallocation, retains final crit
   await expect(page.getByLabel('Verification profile result')).toHaveAttribute('data-profile-status', 'criteriaMet'); await expect(page.locator('#verification-profile')).toContainText('Retained server profile restored');
   await page.setViewportSize({ width: 390, height: 844 }); expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);
   await page.setViewportSize({ width: 1280, height: 720 }); await page.getByRole('button', { name: 'Replay pinned run', exact: true }).click(); await page.getByLabel('Pinned run engine').selectOption('reference');
-  const replay = page.waitForResponse(r => r.url().endsWith('/api/runs') && r.request().method() === 'POST' && r.ok(), { timeout: 70000 });
+  const replay = waitForRunLaunch(page);
   await page.getByRole('button', { name: 'Start pinned run', exact: true }).click(); const repeated = await (await replay).json();
   expect(repeated.verificationProfileHash).toBe(run.verificationProfileHash); expect(repeated.verificationProfile).toEqual(run.verificationProfile);
   await expect(page.locator('.run-status')).toHaveText('completed', { timeout: 70000 }); await page.getByRole('button', { name: 'Evaluate pinned verification profile', exact: true }).click();
@@ -73,7 +73,7 @@ test('Numeric nonzero-event probability cannot pass a bounded numeric-mean refer
   await page.getByRole('button', { name: 'Save measurement', exact: true }).click(); await expect(page.getByRole('dialog')).not.toBeVisible();
   await page.getByRole('button', { name: 'Configure verification profile', exact: true }).click(); await page.getByLabel('Required check 1', { exact: true }).selectOption('mean-equivalence');
   await page.getByRole('button', { name: 'Save verification profile', exact: true }).click(); await expect(page.getByRole('dialog')).not.toBeVisible();
-  await page.getByLabel('Simulation spins').fill('2000'); const launch = page.waitForResponse(r => r.url().endsWith('/api/runs') && r.request().method() === 'POST' && r.ok(), { timeout: 70000 });
+  await page.getByLabel('Simulation spins').fill('2000'); const launch = waitForRunLaunch(page);
   await page.getByRole('button', { name: /^▶ Start run$/ }).click(); const { id } = await (await launch).json(); await expect(page.locator('.run-status')).toHaveText('completed', { timeout: 70000 });
   await page.getByRole('button', { name: 'Evaluate pinned verification profile', exact: true }).click(); const result = page.getByLabel('Verification profile result');
   await expect(result).toHaveAttribute('data-profile-status', 'discrepancy', { timeout: 70000 }); await expect(result).toContainText('Clopper–Pearson');

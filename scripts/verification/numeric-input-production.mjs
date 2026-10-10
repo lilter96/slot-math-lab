@@ -1,3 +1,4 @@
+import { waitForRunLaunch } from './requests.mjs';
 import { chromium } from '../../frontend/node_modules/playwright/index.mjs';
 import { expect } from '../../frontend/node_modules/@playwright/test/index.mjs';
 import { readFile, writeFile } from 'node:fs/promises';
@@ -58,7 +59,7 @@ try {
   for (const engine of ['auto', 'reference']) {
     await page.getByLabel('Simulation spins').fill('100000'); await page.locator('#execution-configuration').evaluate(el => { el.open = true; });
     await page.getByLabel('Sampling engine', { exact: true }).selectOption(engine);
-    const launch = page.waitForResponse(r => r.url().endsWith('/api/runs') && r.request().method() === 'POST' && r.status() !== 429, { timeout: 90000 });
+    const launch = waitForRunLaunch(page);
     await page.getByRole('button', { name: /^▶ Start (new )?run$/ }).click(); const response = await launch;
     if (response.status() !== 202) throw new Error(`Launch HTTP ${response.status()}`); const run = await response.json(); owned.push(run.id);
     await expect(page.locator('.run-status')).toHaveText('completed', { timeout: 120000 }); await checkSignal();
@@ -80,7 +81,7 @@ try {
   const row = page.getByRole('table').filter({ has: page.getByRole('columnheader', { name: 'Measurement / scope', exact: true }) }).getByRole('row').filter({ hasText: 'Tiny signal' });
   await expect(row).toContainText('1e-9 signal');
   await page.getByRole('button', { name: 'Replay pinned run', exact: true }).click(); await page.getByLabel('Pinned run engine').selectOption('reference');
-  const launched = page.waitForResponse(r => r.url().endsWith('/api/runs') && r.request().method() === 'POST' && r.status() !== 429, { timeout: 90000 });
+  const launched = waitForRunLaunch(page);
   await page.getByRole('button', { name: 'Start pinned run', exact: true }).click(); const replay = await (await launched).json(); owned.push(replay.id);
   await expect(page.locator('.run-status')).toHaveText('completed', { timeout: 120000 }); await checkSignal();
   expect((await get(`/api/runs/${replay.id}`)).progress.measurements).toEqual(evidence[0].run.progress.measurements);

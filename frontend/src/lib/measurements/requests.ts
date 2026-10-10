@@ -1,4 +1,5 @@
 import { HttpFailure } from '../realtime/RunConnection';
+import { retryAfterMilliseconds } from '../realtime/httpFailure';
 
 export function waitForRetry(delay: number, signal: AbortSignal): Promise<void> {
   signal.throwIfAborted();
@@ -23,9 +24,7 @@ export async function calculationRequest<T>(path: string, input: unknown, signal
     const data = await response.json().catch(() => ({}));
     if (response.ok) return data;
     if (response.status === 401) window.dispatchEvent(new Event('slotmath:auth-required'));
-    const header = response.headers.get('Retry-After');
-    const parsed = header ? /^\d+$/.test(header) ? Number(header) * 1000 : Date.parse(header) - Date.now() : 1000;
-    const delay = Number.isFinite(parsed) ? Math.max(1000, parsed) : 1000;
+    const delay = Math.max(1000, retryAfterMilliseconds(response.headers.get('Retry-After')));
     if (response.status !== 429 || attempt >= 2 || delay > 60000) {
       const validation = Array.isArray(data.errors) ? data.errors.filter((e: unknown): e is { message: string } => !!e && typeof e === 'object' && 'message' in e && typeof e.message === 'string') : [];
       const detail = validation.slice(0, 8).map((e: { message: string }) => e.message.slice(0, 512)).join('; ');

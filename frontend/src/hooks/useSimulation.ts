@@ -4,6 +4,7 @@ import { restoreTrendPoints, type MeasurementTrendPoint } from '../lib/measureme
 import { useEffect } from 'react';
 import { create } from 'zustand';
 import { RunConnection, HttpFailure, type ConnectionHealth, type ConnectionPhase } from '../lib/realtime/RunConnection';
+import { retryAfterMilliseconds } from '../lib/realtime/httpFailure';
 import { progressDecision, snapshotDecision, terminal, validSnapshot, type Decision, type LiveProgress, type RunSnapshot } from '../lib/realtime/runProtocol';
 export { terminal };
 export type { LiveProgress, RunSnapshot };
@@ -59,8 +60,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(path, { ...init, signal: init?.signal ?? AbortSignal.timeout(15000) });
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {
-    const retry = res.headers.get('Retry-After');
-    const retryAfterMs = retry ? /^\d+$/.test(retry) ? Number(retry) * 1000 : Math.max(0, Date.parse(retry) - Date.now()) : 0;
+    const retryAfterMs = retryAfterMilliseconds(res.headers.get('Retry-After'));
     throw new HttpFailure(res.status === 429 ? `Server rate limit. Retry in ${Math.ceil((retryAfterMs || 5000) / 1000)} seconds.` : data.error ?? data.title ?? `HTTP ${res.status}`, res.status, retryAfterMs);
   }
   return data;

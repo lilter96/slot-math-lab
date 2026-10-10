@@ -1,3 +1,4 @@
+import { waitForRunLaunch } from './requests.mjs';
 import { chromium } from '../../frontend/node_modules/playwright/index.mjs';
 import { expect } from '../../frontend/node_modules/@playwright/test/index.mjs';
 import { readFile, writeFile } from 'node:fs/promises';
@@ -48,7 +49,7 @@ try {
   page.on('websocket', socket => socket.on('framereceived', ({ payload }) => { for (const raw of String(payload).split('\x1e')) {
     try { const frame = JSON.parse(raw); if (frame.target === 'ProgressUpdate') frames.push(frame.arguments[0]); } catch { /* Handshake. */ }
   } }));
-  const creation = page.waitForResponse(r => r.url().endsWith('/api/runs') && r.request().method() === 'POST');
+  const creation = waitForRunLaunch(page);
   await page.getByRole('button', { name: /^▶ Start run$/ }).click(); const run = await (await creation).json(); owned.push(run.id);
   await expect(page.locator('.run-status')).toHaveText('completed', { timeout: 45000 });
   const final = await completed(run.id), values = final.progress.measurements;
@@ -76,7 +77,7 @@ try {
   report.evidenceExportVerified = true; report.exactReference = bundle.exactReference;
   await page.goto(base + `/results?run=${run.id}`); await expect(page.getByRole('heading', { name: 'Tracked measurements', exact: true })).toBeVisible();
   await page.getByRole('button', { name: 'Replay pinned run', exact: true }).click(); await page.getByLabel('Pinned run workers').selectOption('1');
-  const replayCreation = page.waitForResponse(r => r.url().endsWith('/api/runs') && r.request().method() === 'POST');
+  const replayCreation = waitForRunLaunch(page);
   await page.getByRole('button', { name: 'Start pinned run', exact: true }).click(); const replay = await (await replayCreation).json(); owned.push(replay.id);
   await expect(page.locator('.run-status')).toHaveText('completed', { timeout: 45000 }); const replayFinal = await completed(replay.id);
   if (replay.measurementHash !== run.measurementHash || JSON.stringify(replayFinal.progress.measurements) !== JSON.stringify(values) || replayFinal.progress.runningRtp !== final.progress.runningRtp) throw new Error('Measurement replay changed with worker count.');

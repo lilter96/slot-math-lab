@@ -1,4 +1,4 @@
-import { test, expect as assertion, type APIRequestContext, type APIResponse } from './fixtures';
+import { waitForRunLaunch, getWithQuota, cancelOwnedRun, test, expect as assertion, type APIRequestContext, type APIResponse } from './fixtures';
 import { readFile } from 'node:fs/promises';
 const expect = assertion.configure({ timeout: 70000 }); // Includes the server's 60s Retry-After window.
 test.beforeEach(async ({ request }) => { test.setTimeout(120000); await permitted(() => request.get('/api/auth/status')); });
@@ -61,7 +61,7 @@ test('pinned replay changes worker count while preserving version and every seed
   await page.goto(`/results?run=${first.id}&view=reproducibility`);
   await page.getByRole('button', { name: 'Replay pinned run', exact: true }).click();
   await page.getByLabel('Pinned run workers').selectOption('3');
-  const creation = page.waitForResponse(r => r.request().method() === 'POST' && r.url().endsWith('/api/runs'));
+  const creation = waitForRunLaunch(page);
   await page.getByRole('button', { name: 'Start pinned run', exact: true }).click(); const second = await (await creation).json();
   expect(second.configVersion).toBe(1); expect(second.configHash).toBe(first.configHash); expect(second.degreeOfParallelism).toBe(3);
   await finish(page.request, second.id);
@@ -146,20 +146,20 @@ test('live monitoring survives Results navigation with one socket; cancellation 
   let socketCount = 0; page.on('websocket', s => { if (s.url().includes('/hubs/runs')) socketCount++; });
   await page.goto('/build?project=dog-house'); await page.getByRole('tab', { name: 'Simulate', exact: true }).click();
   await page.getByLabel('Simulation spins').fill('10000000');
-  const creation = page.waitForResponse(r => r.request().method() === 'POST' && r.url().endsWith('/api/runs'));
+  const creation = waitForRunLaunch(page);
   await page.getByRole('button', { name: /start run/i }).click(); const run = await (await creation).json();
   try {
     await expect(page.getByTestId('stream-status')).toContainText('WebSocket live');
     await expect(page.getByTestId('sample-count')).not.toHaveText('0');
-    const first = (await (await page.request.get(`/api/runs/${run.id}`)).json()).progress.sampleCount;
+    const first = (await (await getWithQuota(page.request, `/api/runs/${run.id}`)).json()).progress.sampleCount;
     await page.getByRole('tab', { name: 'Results', exact: true }).click();
     await expect(page.getByTestId('results-assessment')).toHaveText('Run in progress');
-    await expect.poll(async () => (await (await page.request.get(`/api/runs/${run.id}`)).json()).progress.sampleCount).toBeGreaterThan(first);
+    await expect.poll(async () => (await (await getWithQuota(page.request, `/api/runs/${run.id}`)).json()).progress.sampleCount).toBeGreaterThan(first);
     expect(socketCount).toBe(1);
-    await page.request.delete(`/api/runs/${run.id}`); await finish(page.request, run.id, 'cancelled');
+    await cancelOwnedRun(page.request, run.id); await finish(page.request, run.id, 'cancelled');
     await expect(page.getByTestId('results-assessment')).toHaveText('Incomplete evidence');
     await expect(page.getByTestId('results-rtp')).not.toHaveText('—');
-  } finally { await page.request.delete(`/api/runs/${run.id}`); }
+  } finally { await cancelOwnedRun(page.request, run.id); }
 });
 test('unknown run and archive outages provide recoverable error states', async ({ page }) => {
   await page.goto('/results?run=missing-run'); await expect(page.getByRole('heading', { name: 'Run could not be retrieved' })).toBeVisible();

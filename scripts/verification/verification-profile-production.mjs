@@ -1,3 +1,4 @@
+import { waitForRunLaunch } from './requests.mjs';
 import { chromium } from '../../frontend/node_modules/playwright/index.mjs';
 import { expect } from '../../frontend/node_modules/@playwright/test/index.mjs';
 import { readFile, writeFile } from 'node:fs/promises';
@@ -37,7 +38,7 @@ async function profile(name, names, minimum) {
 async function launch(engine = 'auto', workers = '2') {
   await page.getByLabel('Simulation spins').fill('100000'); await page.getByLabel('Simulation workers').selectOption(workers);
   await page.locator('#execution-configuration').evaluate(el => { el.open = true; }); await page.getByLabel('Sampling engine', { exact: true }).selectOption(engine);
-  const accepted = page.waitForResponse(r => r.url().endsWith('/api/runs') && r.request().method() === 'POST' && r.status() !== 429, { timeout: 90000 });
+  const accepted = waitForRunLaunch(page);
   await page.getByRole('button', { name: /^▶ Start (new )?run$/ }).click(); const response = await accepted;
   if (response.status() !== 202) throw new Error(`Launch rejected HTTP ${response.status()}`); const { id } = await response.json(); owned.push(id);
   await expect(page.locator('.run-status')).toHaveText('completed', { timeout: 120000 }); return get('/api/runs/' + id);
@@ -87,7 +88,7 @@ try {
   if (row.status !== expected) throw new Error('The precision decision does not follow its pinned interval and tolerance.');
   await page.goto(base + `/results?run=${dog.id}`); await page.getByRole('button', { name: 'Calculate reference', exact: true }).click(); await expect(page.locator('.results-reference-value')).toHaveText('98.000%', { timeout: 90000 });
   await page.getByRole('button', { name: 'Replay pinned run', exact: true }).click(); await page.getByLabel('Pinned run engine').selectOption('reference'); await page.getByLabel('Pinned run workers').selectOption('1');
-  const accepted = page.waitForResponse(r => r.url().endsWith('/api/runs') && r.request().method() === 'POST' && r.status() !== 429, { timeout: 90000 });
+  const accepted = waitForRunLaunch(page);
   await page.getByRole('button', { name: 'Start pinned run', exact: true }).click(); const replayResponse = await accepted;
   if (replayResponse.status() !== 202) throw new Error('Pinned replay was rejected.'); const replay = await replayResponse.json(); owned.push(replay.id);
   await expect(page.locator('.run-status')).toHaveText('completed', { timeout: 120000 }); const other = await get('/api/runs/' + replay.id);

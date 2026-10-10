@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, waitForRunLaunch } from './fixtures';
 import fs from 'node:fs/promises';
 async function build(page: import('@playwright/test').Page) { await page.goto('/build'); await page.getByRole('button', { name: 'Build Dog House graph', exact: true }).click(); }
 async function focus(page: import('@playwright/test').Page, id: string) { await page.getByLabel('Focus graph node').selectOption(id); }
@@ -169,9 +169,9 @@ test('The same Dog House constructor graph saves and runs through Simulate, Resu
   test.setTimeout(45000);
   await build(page); await page.getByRole('tab', { name: 'Simulate', exact: true }).click();
   await page.getByLabel('Simulation spins').fill('1000'); await page.getByLabel('Replay seed').fill('42');
-  const save = page.waitForResponse(r => r.url().endsWith('/api/configs') && r.request().method() === 'POST');
-  const creation = page.waitForResponse(r => r.url().endsWith('/api/runs') && r.request().method() === 'POST');
-  await page.getByRole('button', { name: /start run/i }).click(); expect((await save).ok()).toBeTruthy();
+  const save = page.waitForResponse(r => r.url().endsWith('/api/configs') && r.request().method() === 'POST' && r.status() !== 429, { timeout: 70000 });
+  const creation = waitForRunLaunch(page);
+  await page.getByRole('button', { name: /start run/i }).click(); expect((await save).status()).toBe(201);
   const run = await (await creation).json();
   await expect.poll(async () => (await (await page.request.get(`/api/runs/${run.id}`)).json()).status, { timeout: 20000 }).toBe('completed');
   const measured = JSON.parse((await (await page.request.get(`/api/runs/${run.id}`)).json()).resultJson);

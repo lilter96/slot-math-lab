@@ -1,4 +1,4 @@
-import { test, expect, getWithQuota } from './fixtures';
+import { waitForRunLaunch, test, expect, getWithQuota } from './fixtures';
 
 test('Retained profile and accounting verdicts require the original sample producer, even when every input and count matches', async ({ page }) => {
   test.setTimeout(240000);
@@ -14,7 +14,7 @@ test('Retained profile and accounting verdicts require the original sample produ
   await page.getByRole('button', { name: 'Configure verification profile', exact: true }).click();
   await page.getByRole('button', { name: 'Save verification profile', exact: true }).click(); await expect(page.getByRole('dialog')).not.toBeVisible();
   await page.getByLabel('Simulation spins').fill('100');
-  const created = page.waitForResponse(r => r.url().endsWith('/api/runs') && r.request().method() === 'POST' && r.ok(), { timeout: 70000 });
+  const created = waitForRunLaunch(page);
   await page.getByRole('button', { name: /^▶ Start run$/ }).click(); const { id } = await (await created).json();
   await expect(page.locator('.run-status')).toHaveText('completed', { timeout: 70000 });
   await page.getByRole('button', { name: 'Evaluate pinned verification profile', exact: true }).click();

@@ -1,0 +1,100 @@
+{
+  "checkedAt": "2026-10-10T05:34:06.317Z",
+  "endpoint": "https://localhost:8543",
+  "faultScope": "Browser-injected negotiation responses; established WebSockets and authoritative run endpoints use the authenticated production API.",
+  "frontend": {
+    "asset": "/assets/index-cjEJuZ21.js",
+    "sha256": "45357199c737d0721c0b375c25c22acd8f5bba6a24d756aa385980c848025180"
+  },
+  "run": {
+    "id": "097111b060584d9795ada0c73eb1ca0c",
+    "seed": 42,
+    "configHash": "2748e5232e4ca76474c15abb96cf7d9944d65d3e55423fa04b813f218e00e48b",
+    "measurementHash": "4004ae6fcf9bca682f68d8f02cf1ba98bdc19925e4e38a216122fb5076253397",
+    "runtimeProvenance": {
+      "measurementContract": "measurements-v1",
+      "numericalMethods": "central-moments-pebay-v1;bins-v1;clopper-pearson-v1;hoeffding-spending-v1;pearson-gamma-v1;session-accounting-v2-decimal-roundtrip;categorical-joint-v1;discrete-null-v1;finite-stationary-v1;witness-prefix-v1;loop-completion-v1;paid-parent-cohorts-v1;paid-turnover-v1;exact-assertion-v1;enumerated-joint-v2;finite-law-comparison-rational-v1;typed-operators-v1;rational-functions-v1;strict-collections-v1;typed-array-index-v1;cohort-lifecycle-v1;empty-tail-population-v1;matching-parent-exposure-v1;numeric-state-input-v1",
+      "framework": ".NET 10.0.12",
+      "coreBinarySha256": "d28a14f818ad2b4c84101107990231097a50445e17ccd594fe75c18c5cfea400",
+      "apiBinarySha256": "06686b618e17ac03d98fc5c5b5f5fb74580a3dc872419a251d6054ffffad2e3d"
+    }
+  },
+  "quotas": [
+    {
+      "format": "seconds",
+      "retryDelayMs": 6008,
+      "noEarlyAttempt": true,
+      "manualWakePreservedDeadline": true,
+      "realFramesResumed": true
+    },
+    {
+      "format": "http-date",
+      "retryDelayMs": 7008,
+      "noEarlyAttempt": true,
+      "manualWakePreservedDeadline": true,
+      "realFramesResumed": true
+    }
+  ],
+  "authentication": {
+    "negotiationOnlyRejection": true,
+    "retriesPaused": true,
+    "signInRestoredSameRun": true
+  },
+  "final": {
+    "paidRounds": 1052073,
+    "sequence": 1065,
+    "streamEpoch": "e72ecc4a809d49508613e9ac08f47e55",
+    "measurement": {
+      "id": "fc924ea8-df84-4659-aed6-9891b29edbb8",
+      "observations": 115774,
+      "count": 115774,
+      "excluded": 0,
+      "errors": 0,
+      "min": 0,
+      "max": 1328.5,
+      "mean": 3.7168794375248333,
+      "sum": 430317.9999999997,
+      "stdDev": 20.715176996353005,
+      "firstError": null,
+      "analysis": null,
+      "witnesses": [
+        {
+          "roundIndex": 79,
+          "observationOrdinal": 1,
+          "nodeId": "free-spin/snapshot-winHistory",
+          "kind": "first",
+          "value": 0,
+          "pair": null,
+          "group": null,
+          "detail": null
+        },
+        {
+          "roundIndex": 5408181,
+          "observationOrdinal": 12,
+          "nodeId": "free-spin/snapshot-winHistory",
+          "kind": "maximum",
+          "value": 1328.5,
+          "pair": null,
+          "group": null,
+          "detail": null
+        },
+        {
+          "roundIndex": 79,
+          "observationOrdinal": 1,
+          "nodeId": "free-spin/snapshot-winHistory",
+          "kind": "minimum",
+          "value": 0,
+          "pair": null,
+          "group": null,
+          "detail": null
+        }
+      ]
+    },
+    "archiveVerified": true,
+    "exportVerified": true,
+    "reloadVerified": true
+  },
+  "realMeasurementFrames": 31,
+  "browserErrors": [],
+  "success": true
+}

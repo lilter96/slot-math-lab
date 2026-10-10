@@ -1,3 +1,4 @@
+import { waitForRunLaunch } from './requests.mjs';
 import { chromium } from '../../frontend/node_modules/playwright/index.mjs';
 import { expect } from '../../frontend/node_modules/@playwright/test/index.mjs';
 import { readFile, writeFile } from 'node:fs/promises';
@@ -51,7 +52,7 @@ try {
   await page.getByRole('button', { name: 'Replay pinned run', exact: true }).click();
   const workers = source.run.degreeOfParallelism === 1 ? 2 : 1;
   await page.getByLabel('Pinned run workers').selectOption(String(workers));
-  const creation = page.waitForResponse(r => r.request().method() === 'POST' && r.url().endsWith('/api/runs'));
+  const creation = waitForRunLaunch(page);
   await page.getByRole('button', { name: 'Start pinned run', exact: true }).click(); const replay = await (await creation).json(); owned.push(replay.id);
   await expect(page.locator('.run-status')).toHaveText('completed', { timeout: 30000 });
   await page.goto(base + `/results?run=${replay.id}&view=compare&compare=${id}`);

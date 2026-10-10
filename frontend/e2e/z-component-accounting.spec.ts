@@ -1,4 +1,4 @@
-import { test, expect, getWithQuota } from './fixtures';
+import { waitForRunLaunch, test, expect, getWithQuota } from './fixtures';
 
 test('A native three-component plan collects all covariances and retains accounting across both engines and an empty browser', async ({ page }) => {
   test.setTimeout(240000);
@@ -18,7 +18,7 @@ test('A native three-component plan collects all covariances and retains account
   for (const engine of ['auto', 'reference']) {
     await page.getByLabel('Simulation spins').fill('100');
     await page.locator('#execution-configuration').evaluate((el: HTMLDetailsElement) => { el.open = true; }); await page.getByLabel('Sampling engine', { exact: true }).selectOption(engine);
-    const launch = page.waitForResponse(r => r.url().endsWith('/api/runs') && r.request().method() === 'POST' && r.ok(), { timeout: 70000 });
+    const launch = waitForRunLaunch(page);
     await page.getByRole('button', { name: /^▶ Start (new )?run$/ }).click(); const { id } = await (await launch).json();
     await expect(page.locator('.run-status')).toHaveText('completed', { timeout: 70000 });
     const evidence = await (await getWithQuota(page.request, `/api/runs/${id}/evidence`)).json(); const metrics = evidence.run.progress.measurements;
@@ -60,7 +60,7 @@ test('Compiler errors reject the entire accounting plan and a corrected residual
   await page.getByRole('button', { name: 'Save accounting plan', exact: true }).click(); await expect(page.getByRole('dialog').getByRole('alert')).toContainText('missing');
   await page.getByLabel('Component 2 state path').fill('y'); await page.getByRole('button', { name: 'Save accounting plan', exact: true }).click(); await expect(page.getByRole('dialog')).not.toBeVisible();
   await expect(page.locator('.measurement-plan > summary')).toContainText('5 / 32 metrics');
-  await page.getByLabel('Simulation spins').fill('100'); const launch = page.waitForResponse(r => r.url().endsWith('/api/runs') && r.request().method() === 'POST' && r.ok(), { timeout: 70000 });
+  await page.getByLabel('Simulation spins').fill('100'); const launch = waitForRunLaunch(page);
   await page.getByRole('button', { name: /^▶ Start run$/ }).click(); await launch; await expect(page.locator('.run-status')).toHaveText('completed', { timeout: 70000 });
   const check = page.locator('#component-accounting'); await check.locator('summary').first().click(); await check.getByRole('button', { name: 'Reconcile pinned components', exact: true }).click();
   const result = check.getByLabel('Component reconciliation result'); await expect(result).toHaveAttribute('data-accounting-status', 'discrepancy', { timeout: 70000 });

@@ -1,3 +1,4 @@
+import { waitForRunLaunch } from './requests.mjs';
 import { chromium } from '../../frontend/node_modules/playwright/index.mjs';
 import { expect } from '../../frontend/node_modules/@playwright/test/index.mjs';
 import { readFile, writeFile } from 'node:fs/promises';
@@ -22,7 +23,7 @@ async function get(path) {
 async function launch(engine = 'auto', workers = '2') {
   await page.getByLabel('Simulation spins').fill('100000'); await page.getByLabel('Simulation workers').selectOption(workers);
   await page.locator('#execution-configuration').evaluate(el => { el.open = true; }); await page.getByLabel('Sampling engine', { exact: true }).selectOption(engine);
-  const accepted = page.waitForResponse(r => r.url().endsWith('/api/runs') && r.request().method() === 'POST' && r.status() !== 429, { timeout: 90000 });
+  const accepted = waitForRunLaunch(page);
   await page.getByRole('button', { name: /^▶ Start (new )?run$/ }).click(); const response = await accepted;
   if (response.status() !== 202) throw new Error(`Launch rejected HTTP ${response.status()}`); const { id } = await response.json(); owned.push(id);
   await expect(page.locator('.run-status')).toHaveText('completed', { timeout: 120000 }); return get('/api/runs/' + id);

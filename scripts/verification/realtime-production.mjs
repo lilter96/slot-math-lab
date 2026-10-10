@@ -1,3 +1,4 @@
+import { waitForRunLaunch } from './requests.mjs';
 import { chromium } from '../../frontend/node_modules/playwright/index.mjs';
 import { expect } from '../../frontend/node_modules/@playwright/test/index.mjs';
 import { readFile, writeFile } from 'node:fs/promises';
@@ -29,7 +30,7 @@ async function signIn() {
 }
 async function create(spins) {
   await page.getByLabel('Simulation spins').fill(String(spins));
-  const response = page.waitForResponse(r => r.url().endsWith('/api/runs') && r.request().method() === 'POST');
+  const response = waitForRunLaunch(page);
   await page.getByRole('button', { name: /start.*run/i }).click();
   const run = await (await response).json(); ownedRuns.push(run.id);
   await expect(page.getByTestId('stream-status')).toContainText('WebSocket live', { timeout: 30000 });

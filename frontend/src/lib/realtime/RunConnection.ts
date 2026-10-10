@@ -1,15 +1,11 @@
-import * as signalR from '@microsoft/signalr';
+import { createRunHub } from './signalRHub';
 import { terminal, validProgress, validSnapshot, type Decision, type RunSnapshot } from './runProtocol';
+export { HttpFailure } from './httpFailure';
 
 export type ConnectionPhase = 'idle' | 'connecting' | 'live' | 'recovering' | 'offline' | 'auth-required' | 'unavailable';
 export interface ConnectionHealth {
   phase: ConnectionPhase; reconnects: number; attempts: number; lastConfirmedAt: number;
   lastSocketAt: number; roundTripMs: number | null; nextRetryAt: number | null;
-}
-export class HttpFailure extends Error {
-  readonly status: number;
-  readonly retryAfterMs: number;
-  constructor(message: string, status: number, retryAfterMs = 0) { super(message); this.status = status; this.retryAfterMs = retryAfterMs; }
 }
 export interface HubPort {
   start(): Promise<void>; stop(): Promise<void>;
@@ -29,6 +25,7 @@ interface ConnectionOptions {
   health(value: ConnectionHealth): void; event(message: string): void; warning(message: string): void;
   hub?: () => HubPort; environment?: ConnectionEnvironment;
 }
+const maximumTimerDelay = 2147483647;
 const browserEnvironment: ConnectionEnvironment = {
   now: () => Date.now(), random: () => Math.random(), online: () => navigator.onLine,
   timer: (callback, delay) => window.setTimeout(callback, delay), clear: timer => window.clearTimeout(timer),
@@ -46,10 +43,6 @@ const browserEnvironment: ConnectionEnvironment = {
     };
   },
 };
-const makeHub = (): HubPort => new signalR.HubConnectionBuilder()
-  .withUrl('/hubs/runs', { transport: signalR.HttpTransportType.WebSockets, timeout: 8000 })
-  .withServerTimeout(20000).withKeepAliveInterval(5000)
-  .configureLogging(signalR.LogLevel.Warning).build();
 
 /** One retry supervisor owns the socket, HTTP fallback, heartbeat, and all timers.
  * Connected means subscription acknowledged. Live means the server still answers.
@@ -78,7 +71,7 @@ export class RunConnection {
   constructor(options: ConnectionOptions) {
     this.options = options;
     this.env = options.environment ?? browserEnvironment;
-    this.factory = options.hub ?? makeHub;
+    this.factory = options.hub ?? createRunHub;
   }
 
   start(): void {
@@ -186,18 +179,20 @@ export class RunConnection {
   private failure(error: unknown): void {
     if (this.closed) return;
     if (this.state.phase === 'auth-required' || this.state.phase === 'unavailable') return;
-    const record = typeof error === 'object' && error ? error as { status?: number; statusCode?: number; retryAfterMs?: number } : {};
+    const record = typeof error === 'object' && error ? error as { status?: number; statusCode?: number; retryAfterMs?: number; resource?: string } : {};
     const status = record.status ?? record.statusCode;
     if (status === 401 || status === 403) {
       this.detach(); this.cancelTimers(); this.phase('auth-required');
       this.options.warning('Session expired. Sign in to reconnect to the existing run.'); return;
     }
-    if (status === 404 || String(error).includes('RUN_NOT_FOUND')) {
+    if (status === 404 && record.resource !== 'connection' || String(error).includes('RUN_NOT_FOUND')) {
       this.detach(); this.cancelTimers(); this.phase('unavailable');
       this.options.warning('This run is unavailable on the server. Its last observations and replay seed are retained.'); return;
     }
     if (status === 429) {
-      this.throttledUntil = this.env.now() + Math.max(5000, record.retryAfterMs ?? 0);
+      // HTTP recovery and negotiation can finish out of order. A shorter
+      // rejection must not release an already acknowledged longer quota pause.
+      this.throttledUntil = Math.max(this.throttledUntil, this.env.now() + Math.max(5000, record.retryAfterMs ?? 0));
       this.clear('retryTimer'); this.scheduleRetry();
     }
     if (!this.env.online()) this.phase('offline');
@@ -210,7 +205,9 @@ export class RunConnection {
     const backoff = Math.min(30000, 1000 * 2 ** Math.min(5, this.state.attempts - 1));
     const delay = Math.max(backoff * (0.5 + this.env.random() * 0.5), this.throttledUntil - this.env.now());
     this.state.nextRetryAt = this.env.now() + delay; this.emit();
-    this.retryTimer = this.env.timer(() => { this.retryTimer = null; void this.connect(); }, delay);
+    // Browser timers overflow above signed int32 milliseconds. Wake in bounded
+    // segments; connect checks the original quota deadline before sending.
+    this.retryTimer = this.env.timer(() => { this.retryTimer = null; void this.connect(); }, Math.min(delay, maximumTimerDelay));
   }
 
   private scheduleAudit(): void {
@@ -219,7 +216,7 @@ export class RunConnection {
     const cadence = this.subscribed ? 15000 : 2500;
     const backoff = this.httpFailures ? Math.min(30000, cadence * 2 ** Math.min(4, this.httpFailures)) * (0.5 + this.env.random() * 0.5) : cadence;
     const delay = Math.max(backoff, this.throttledUntil - this.env.now());
-    this.auditTimer = this.env.timer(() => { this.auditTimer = null; void this.sync(); }, delay);
+    this.auditTimer = this.env.timer(() => { this.auditTimer = null; void this.sync(); }, Math.min(delay, maximumTimerDelay));
   }
 
   private async sync(): Promise<void> {

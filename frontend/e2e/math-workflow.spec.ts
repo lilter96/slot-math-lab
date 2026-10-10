@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, waitForRunLaunch } from './fixtures';
 import { parseExpression } from '../src/lib/expressionParser';
 
 test('Expression authoring creates typed ASTs and rejects invalid syntax', () => {
@@ -22,7 +22,7 @@ test('Real UI → API → compiler → exact → sampled workflow', async ({ pag
   await page.reload();
   await expect(page.getByText('Coin draw', { exact: true }).first()).toBeVisible();
   await page.getByRole('tab', { name: 'Simulate', exact: true }).click();
-  const creation = page.waitForResponse(r => r.url().endsWith('/api/runs') && r.request().method() === 'POST');
+  const creation = waitForRunLaunch(page);
   await page.getByRole('button', { name: /start run/i }).click();
   const runResponse = await creation;
   expect(runResponse.status()).toBe(202);

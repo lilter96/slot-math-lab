@@ -1,5 +1,5 @@
 import { scalarMeasurements } from '../src/lib/measurements/trends';
-import { test, expect, type Page, cancelOwnedRun, getWithQuota } from './fixtures';
+import { waitForRunLaunch, test, expect, type Page, cancelOwnedRun, getWithQuota } from './fixtures';
 import { readFile } from 'node:fs/promises';
 test.beforeEach(async ({ request }) => {
   test.setTimeout(180000);
@@ -25,7 +25,7 @@ async function sticky(page: Page, name = 'Sticky FS payout') {
 test('UI configures a scoped FS metric; real engine, durable export, display controls and pinned replay agree', async ({ page }) => {
   await prepare(page); await sticky(page);
   await page.getByLabel('Simulation spins').fill('5000');
-  const launch = page.waitForResponse(r => r.url().endsWith('/api/runs') && r.request().method() === 'POST'); await page.getByRole('button', { name: /^▶ Start run$/ }).click();
+  const launch = waitForRunLaunch(page); await page.getByRole('button', { name: /^▶ Start run$/ }).click();
   const response = await launch; expect(response.status()).toBe(202); const run = await response.json();
   await expect(page.locator('.run-status')).toHaveText('completed', { timeout: 70000 });
   const metric = page.getByRole('article', { name: 'Tracked metric Sticky FS payout', exact: true });
@@ -45,8 +45,16 @@ test('UI configures a scoped FS metric; real engine, durable export, display con
   await expect(metric.locator('[data-statistic=mean]')).toHaveText('3 coins'); await expect(page.getByRole('button', { name: /^▶ Start new run$/ })).toBeEnabled();
   await page.goto(`/results?run=${run.id}`); await expect(page.getByRole('heading', { name: 'Tracked measurements', exact: true })).toBeVisible({ timeout: 70000 });
   await page.getByRole('button', { name: 'Replay pinned run', exact: true }).click(); await page.getByLabel('Pinned run workers').selectOption('1');
-  const replay = page.waitForResponse(r => r.url().endsWith('/api/runs') && r.request().method() === 'POST'); await page.getByRole('button', { name: 'Start pinned run', exact: true }).click();
-  const replayRun = await (await replay).json(); expect(replayRun.measurementHash).toBe(run.measurementHash);
+  let replayAttempts = 0;
+  await page.route('**/api/runs', route => {
+    if (route.request().method() !== 'POST') return route.continue();
+    return ++replayAttempts === 1
+      ? route.fulfill({ status: 429, headers: { 'Retry-After': '1' }, body: '' }) : route.continue();
+  });
+  const replay = waitForRunLaunch(page); await page.getByRole('button', { name: 'Start pinned run', exact: true }).click();
+  const replayResponse = await replay; expect(replayResponse.status()).toBe(202);
+  const replayRun = await replayResponse.json(); expect(replayRun.measurementHash).toBe(run.measurementHash);
+  expect(replayAttempts).toBeGreaterThanOrEqual(2);
   await expect(page.locator('.run-status')).toHaveText('completed', { timeout: 70000 });
   const final = await (await getWithQuota(page.request, `/api/runs/${replayRun.id}`)).json(); expect(final.progress.measurements[0]).toMatchObject(bundle.progress.measurements[0]);
   await page.screenshot({ path: '../docs/verification/measurements-scoped.png', fullPage: true });
@@ -88,7 +96,7 @@ test('Scoped measurements use real sockets, survive HTTP recovery and reload, an
   await page.getByLabel('Metric observation level').selectOption('node'); await page.getByLabel('Metric graph node').selectOption('free-spin/snapshot-winHistory');
   await page.getByLabel('Metric numeric expression').fill('state.spinCoins / 20'); await page.getByRole('button', { name: 'Save measurement', exact: true }).click();
   await expect(page.getByRole('dialog')).not.toBeVisible(); await page.route('**/hubs/runs/negotiate**', route => route.abort());
-  await page.getByLabel('Simulation spins').fill('10000000'); const launched = page.waitForResponse(r => r.url().endsWith('/api/runs') && r.request().method() === 'POST' && r.ok(), { timeout: 70000 });
+  await page.getByLabel('Simulation spins').fill('10000000'); const launched = waitForRunLaunch(page);
   await page.getByRole('button', { name: /^▶ Start run$/ }).click(); const run = await (await launched).json();
   try {
     const metric = page.getByRole('article', { name: 'Tracked metric Sticky FS live', exact: true });

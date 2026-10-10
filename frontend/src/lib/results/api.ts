@@ -1,5 +1,6 @@
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
 import { HttpFailure } from '../realtime/RunConnection';
+import { retryAfterMilliseconds } from '../realtime/httpFailure';
 import { snapshotDecision, validSnapshot, terminal, type RunSnapshot } from '../realtime/runProtocol';
 import { createExpectationGraph } from '../../games/doghouse/expectationGraph';
 import type { GraphAnalysis, GraphRound } from '../../games/doghouse/api';
@@ -12,9 +13,8 @@ export async function resultsRequest<T>(path: string, init?: RequestInit, signal
   const data = await response.json().catch(() => ({}));
   if (!response.ok) {
     if (response.status === 401) window.dispatchEvent(new Event('slotmath:auth-required'));
-    const header = response.headers.get('Retry-After');
-    const retry = header ? /^\d+$/.test(header) ? Number(header) * 1000 : Date.parse(header) - Date.now() : 0;
-    throw new HttpFailure(data.error ?? data.title ?? `Request failed (${response.status})`, response.status, Number.isFinite(retry) ? retry : 0);
+    throw new HttpFailure(data.error ?? data.title ?? `Request failed (${response.status})`, response.status,
+      retryAfterMilliseconds(response.headers.get('Retry-After')));
   }
   return data;
 }

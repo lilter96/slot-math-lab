@@ -1,4 +1,4 @@
-import { test, expect, getWithQuota, cancelOwnedRun, type Page, type WebSocketRoute, type APIRequestContext } from './fixtures';
+import { waitForRunLaunch, test, expect, getWithQuota, cancelOwnedRun, type Page, type WebSocketRoute, type APIRequestContext } from './fixtures';
 
 type Frame = { type?: number; target?: string; arguments?: Record<string, unknown>[] };
 async function launch(page: Page) {
@@ -8,10 +8,10 @@ async function launch(page: Page) {
   await page.goto('/build?project=dog-house');
   await page.getByRole('tab', { name: 'Simulate', exact: true }).click();
   await page.getByLabel('Simulation spins').fill('10000000');
-  const created = page.waitForResponse(r => r.url().endsWith('/api/runs') && r.request().method() === 'POST' && r.ok(), { timeout: 70000 });
+  const created = waitForRunLaunch(page);
   await page.getByRole('button', { name: /start run/i }).click();
   const run = await (await created).json();
-  await expect(page.getByTestId('stream-status')).toContainText('WebSocket live');
+  await expect(page.getByTestId('stream-status')).toContainText('WebSocket live', { timeout: 70000 });
   await expect(page.getByTestId('sample-count')).not.toHaveText('0');
   return run;
 }
@@ -53,6 +53,61 @@ test('established sockets recover repeatedly with stable run identity and cumula
   const final = await stopped(page, request, run.id);
   expect(final.configHash).toBe(run.configHash); expect(final.seed).toBe(run.seed);
   await page.screenshot({ path: '../docs/verification/realtime-recovered.png', fullPage: true });
+});
+
+test('negotiation quota delays survive SignalR wrapping and manual wake without retrying early', async ({ page, request }) => {
+  let socket: WebSocketRoute;
+  let frames = 0;
+  await page.routeWebSocket('**/hubs/runs?*', route => {
+    socket = route; const server = route.connectToServer();
+    server.onMessage(message => {
+      if (String(message).includes('ProgressUpdate')) frames++;
+      route.send(message);
+    });
+  });
+  const run = await launch(page), before = await count(page);
+  const attempts: number[] = [];
+  await page.route('**/hubs/runs/negotiate**', route => {
+    attempts.push(Date.now());
+    return attempts.length === 1
+      ? route.fulfill({ status: 429, headers: { 'Retry-After': '6' }, body: '' }) : route.continue();
+  });
+  await socket!.close({ code: 1012, reason: 'negotiate quota verification' });
+  await expect(page.getByTestId('stream-status')).toContainText('HTTP recovery active');
+  await expect.poll(() => attempts.length).toBe(1);
+  await expect(page.getByTestId('stream-status')).toContainText(/Retry in [5-6]s/);
+  await page.getByRole('button', { name: 'Reconnect now', exact: true }).click();
+  const previousFrames = frames;
+  await expect.poll(() => attempts.length, { timeout: 70000 }).toBeGreaterThanOrEqual(2);
+  expect(attempts[1] - attempts[0]).toBeGreaterThanOrEqual(5900);
+  await expect(page.getByTestId('stream-status')).toContainText('WebSocket live');
+  await expect.poll(() => frames).toBeGreaterThan(previousFrames);
+  await expect.poll(() => count(page)).toBeGreaterThan(before);
+  const final = await stopped(page, request, run.id);
+  expect(final.configHash).toBe(run.configHash); expect(final.seed).toBe(run.seed);
+});
+
+test('negotiation authentication failure pauses a healthy HTTP run until explicit authentication wake', async ({ page, request }) => {
+  let socket: WebSocketRoute;
+  await page.routeWebSocket('**/hubs/runs?*', route => { socket = route; route.connectToServer(); });
+  const run = await launch(page), before = await count(page);
+  let attempts = 0;
+  await page.route('**/hubs/runs/negotiate**', route => { attempts++; return route.fulfill({ status: 401, body: '' }); });
+  await socket!.close({ code: 1012, reason: 'negotiate authentication verification' });
+  await expect(page.getByTestId('stream-status')).toContainText('Sign in required');
+  await expect(page.getByRole('button', { name: 'Sign in', exact: true })).toBeVisible();
+  const state = JSON.parse(await page.evaluate(() => localStorage.getItem('slotmath-simulation-v2')!));
+  expect(state.run.id).toBe(run.id); expect(state.progress.sampleCount).toBeGreaterThanOrEqual(before);
+  await page.evaluate(() => window.dispatchEvent(new Event('pageshow')));
+  // Observe past the ordinary first retry deadline: a visibility wake must
+  // not silently resume negotiation while authentication remains rejected.
+  await page.waitForTimeout(2200);
+  expect(attempts).toBe(1);
+  await page.unroute('**/hubs/runs/negotiate**');
+  await page.evaluate(() => window.dispatchEvent(new Event('slotmath:authenticated')));
+  await expect(page.getByTestId('stream-status')).toContainText('WebSocket live', { timeout: 70000 });
+  const final = await stopped(page, request, run.id);
+  expect(final.configHash).toBe(run.configHash); expect(final.seed).toBe(run.seed);
 });
 
 test('a silent established socket is replaced by the heartbeat while HTTP metrics continue', async ({ page, request }) => {
