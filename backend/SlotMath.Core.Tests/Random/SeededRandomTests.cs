@@ -1,154 +1,202 @@
+using System.Collections.Concurrent;
 using SlotMath.Core.Random;
 
 namespace SlotMath.Core.Tests.Random;
 
-public class SeededRandomTests
+public sealed class SeededRandomTests
 {
-    // ── Determinism: fixed seed → identical sequence ────────────────
+    // ════════════════════════════════════════════════════════════════
+    //  1. GLI-19 Golden Test Vectors (Regression & Spec Pinning)
+    // ════════════════════════════════════════════════════════════════
 
     [Fact]
-    public void FixedSeed_ProducesIdenticalInt64Sequence()
+    public void GoldenVectors_FixedSeed_MatchesCanonicalSequence()
     {
-        const long seed = 12345;
-        var rng1 = new SeededRandom(seed);
-        var rng2 = new SeededRandom(seed);
+        // Pinned Golden Vector: Validates exact xoshiro256** + SplitMix64 math constants.
+        // Any unintentional modification to bit shifts, rotations or constants will fail this gate.
+        var rng = new SeededRandom(42);
 
-        for (var i = 0; i < 1000; i++)
+        ulong[] expectedFirst5 =
+        [
+            0x15780B2E0C2EC716UL,
+            0x6104D9866D113A7EUL,
+            0xAE17533239E499A1UL,
+            0xECB8AD4703B360A1UL,
+            0xFDE6DC7FE2EC5E64UL
+        ];
+
+        for (var i = 0; i < expectedFirst5.Length; i++)
         {
-            Assert.Equal(rng1.NextInt64(), rng2.NextInt64());
+            Assert.Equal(expectedFirst5[i], rng.NextUInt64());
         }
     }
 
     [Fact]
-    public void FixedSeed_ProducesIdenticalDoubleSequence()
+    public void DegenerateZeroSeed_PerturbsAndProducesNonZeroSequence()
     {
-        const long seed = 12345;
-        var rng1 = new SeededRandom(seed);
-        var rng2 = new SeededRandom(seed);
+        // GLI-19 §2.4.1: PRNG must never lock into a degenerate zero-attractor state.
+        var rng = new SeededRandom(0);
 
-        for (var i = 0; i < 1000; i++)
+        Assert.Equal(0, rng.Seed);
+        var values = new ulong[100];
+        for (var i = 0; i < values.Length; i++)
         {
-            Assert.Equal(rng1.NextDouble(), rng2.NextDouble());
+            values[i] = rng.NextUInt64();
+            Assert.NotEqual(0UL, values[i]); // Must not emit continuous zeros
         }
+
+        Assert.Equal(values.Length, values.Distinct().Count());
     }
 
-    [Fact]
-    public void FixedSeed_ProducesIdenticalIntSequence()
+    // ════════════════════════════════════════════════════════════════
+    //  2. Determinism & Stream Identity
+    // ════════════════════════════════════════════════════════════════
+
+    [Theory]
+    [InlineData(0L)]
+    [InlineData(1L)]
+    [InlineData(42L)]
+    [InlineData(-1L)]
+    [InlineData(long.MaxValue)]
+    [InlineData(long.MinValue)]
+    public void FixedSeed_ProducesIdenticalSequences(long seed)
     {
-        const long seed = 42;
         var rng1 = new SeededRandom(seed);
         var rng2 = new SeededRandom(seed);
+
+        Assert.Equal(seed, rng1.Seed);
+        Assert.Equal(seed, rng2.Seed);
 
         for (var i = 0; i < 500; i++)
         {
-            Assert.Equal(rng1.Next(10), rng2.Next(10));
+            Assert.Equal(rng1.NextUInt64(), rng2.NextUInt64());
+            Assert.Equal(rng1.NextInt64(), rng2.NextInt64());
+            Assert.Equal(rng1.NextDouble(), rng2.NextDouble());
+            Assert.Equal(rng1.Next(37), rng2.Next(37));
         }
     }
 
     [Fact]
-    public void DifferentSeeds_ProduceDifferentSequences()
+    public void DifferentSeeds_ProduceStatisticallyDivergentSequences()
     {
-        var rng1 = new SeededRandom(1);
-        var rng2 = new SeededRandom(2);
+        var rng1 = new SeededRandom(100);
+        var rng2 = new SeededRandom(101);
 
-        var first1 = Enumerable.Range(0, 20).Select(_ => rng1.NextInt64()).ToArray();
-        var first2 = Enumerable.Range(0, 20).Select(_ => rng2.NextInt64()).ToArray();
+        var seq1 = new ulong[50];
+        var seq2 = new ulong[50];
 
-        // At least one value should differ (probabilistically guaranteed).
-        Assert.NotEqual(first1, first2);
-    }
-
-    // ── Clone ───────────────────────────────────────────────────────
-
-    [Fact]
-    public void Clone_ProducesIdenticalSequence()
-    {
-        var original = new SeededRandom(99999);
-        // Consume some values so the instance is mid-stream
-        for (var i = 0; i < 100; i++)
-            original.NextInt64();
-
-        // Clone resets to the seed start — produces the same sequence the original produced from t=0
-        var clone = original.Clone();
-
-        // So compare clone vs a fresh instance from the same seed
-        var reference = new SeededRandom(99999);
-        for (var i = 0; i < 1000; i++)
+        for (var i = 0; i < 50; i++)
         {
-            Assert.Equal(reference.NextInt64(), clone.NextInt64());
+            seq1[i] = rng1.NextUInt64();
+            seq2[i] = rng2.NextUInt64();
+        }
+
+        Assert.NotEqual(seq1, seq2);
+    }
+
+    // ════════════════════════════════════════════════════════════════
+    //  3. Clone Invariants
+    // ════════════════════════════════════════════════════════════════
+
+    [Fact]
+    public void Clone_ResetsToSeedStart_RegardlessOfConsumption()
+    {
+        var original = new SeededRandom(777);
+
+        // Record the first 100 values from t=0
+        var initialBatch = new ulong[100];
+        for (var i = 0; i < initialBatch.Length; i++)
+        {
+            initialBatch[i] = original.NextUInt64();
+        }
+
+        // Consume further 500 draws so the original stream moves deep into sequence
+        for (var i = 0; i < 500; i++)
+        {
+            original.NextUInt64();
+        }
+
+        // Clone should reset back to initial expansion seed (t=0)
+        SeededRandom clone = original.Clone();
+        Assert.Equal(original.Seed, clone.Seed);
+
+        for (var i = 0; i < initialBatch.Length; i++)
+        {
+            Assert.Equal(initialBatch[i], clone.NextUInt64());
         }
     }
 
-    [Fact]
-    public void Clone_ResetsToSeedStart()
-    {
-        var original = new SeededRandom(555);
-        var clone = original.Clone();
-
-        // Clone should start from the same point — but since original has consumed nothing,
-        // they should produce the same first value.
-        // Actually, we already consumed 0 values; let's make it explicit.
-        var rng = new SeededRandom(555);
-        var firstBatch = Enumerable.Range(0, 100).Select(_ => rng.NextInt64()).ToArray();
-
-        var clone2 = new SeededRandom(555);
-        var secondBatch = Enumerable.Range(0, 100).Select(_ => clone2.NextInt64()).ToArray();
-
-        Assert.Equal(firstBatch, secondBatch);
-    }
-
-    // ── NextDouble range ────────────────────────────────────────────
+    // ════════════════════════════════════════════════════════════════
+    //  4. Statistical Range & Precision (IEEE 754 & Modulo Bounds)
+    // ════════════════════════════════════════════════════════════════
 
     [Fact]
-    public void NextDouble_IsInProperRange()
+    public void NextDouble_AdheresStrictlyTo53BitPrecisionMantissa()
     {
         var rng = new SeededRandom(42);
-        for (var i = 0; i < 10000; i++)
+        const double twoTo53 = 9007199254740992.0; // 2^53
+
+        for (var i = 0; i < 20_000; i++)
         {
             var d = rng.NextDouble();
-            Assert.True(d >= 0.0);
-            Assert.True(d < 1.0);
+
+            // Interval requirement: [0.0, 1.0)
+            Assert.InRange(d, 0.0, 0.9999999999999999);
+            Assert.True(d < 1.0, "NextDouble must never produce 1.0");
+
+            // Precision requirement: Must strictly be an integer multiple of 2^-53
+            var mantissa = d * twoTo53;
+            Assert.Equal(mantissa, System.Math.Floor(mantissa));
         }
     }
 
-    // ── Next range ──────────────────────────────────────────────────
-
     [Fact]
-    public void Next_ProducesValuesInRange()
+    public void Next_BoundaryCases_ProducesStrictlyBoundedValues()
     {
-        var rng = new SeededRandom(77);
-        const int max = 7;
-        for (var i = 0; i < 10000; i++)
+        var rng = new SeededRandom(1337);
+
+        // Boundary 1: Smallest possible valid range [0, 1) -> must always return 0
+        for (var i = 0; i < 1_000; i++)
         {
-            var v = rng.Next(max);
-            Assert.True(v >= 0);
-            Assert.True(v < max);
+            Assert.Equal(0, rng.Next(1));
+        }
+
+        // Boundary 2: Power-of-two minus one, exact power-of-two, power-of-two plus one
+        int[] testBounds = [2, 3, 4, 31, 32, 33, 63, 64, 65, 1023, 1024, int.MaxValue];
+
+        foreach (var bound in testBounds)
+        {
+            for (var i = 0; i < 500; i++)
+            {
+                var val = rng.Next(bound);
+                Assert.InRange(val, 0, bound - 1);
+            }
         }
     }
 
     [Fact]
-    public void Next_ThrowsOnNonPositiveMax()
+    public void Next_ThrowsOnNonPositiveBoundaries()
     {
         var rng = new SeededRandom(1);
         Assert.Throws<ArgumentOutOfRangeException>(() => rng.Next(0));
         Assert.Throws<ArgumentOutOfRangeException>(() => rng.Next(-1));
+        Assert.Throws<ArgumentOutOfRangeException>(() => rng.Next(int.MinValue));
     }
 
-    // ── Statistical uniformity of NextInt ───────────────────────────
-
     [Fact]
-    public void Next_IsApproximatelyUniform()
+    public void Next_IsUnbiasedUniform_ChiSquaredTest()
     {
         var rng = new SeededRandom(12345);
         const int buckets = 10;
-        const int n = 100_000;
+        const int n = 150_000;
         var counts = new int[buckets];
 
         for (var i = 0; i < n; i++)
+        {
             counts[rng.Next(buckets)]++;
+        }
 
-        var expected = n / (double)buckets;
-        // Use chi-squared to check uniformity
+        const double expected = n / (double)buckets;
         var chi2 = 0.0;
         for (var i = 0; i < buckets; i++)
         {
@@ -156,63 +204,86 @@ public class SeededRandomTests
             chi2 += diff * diff / expected;
         }
 
-        // Critical value for χ²(9, α=0.01) ≈ 21.666
-        Assert.True(chi2 <= 21.666, $"chi2={chi2} exceeds critical value 21.666 — distribution may be biased");
+        // Critical value for χ²(df=9, α=0.01) = 21.666
+        Assert.True(chi2 <= 21.666, $"Chi-squared uniformity test failed: chi2={chi2}");
     }
 
-    // ── Seed property ───────────────────────────────────────────────
+    // ════════════════════════════════════════════════════════════════
+    //  5. Stream Splitting (PRD v3.1 / D3 Parallel Monte Carlo)
+    // ════════════════════════════════════════════════════════════════
 
     [Fact]
-    public void Seed_ReturnsOriginalValue()
+    public void ForStream_ProducesBitIdenticalSequencesIndependently()
     {
-        Assert.Equal(42, new SeededRandom(42).Seed);
-        Assert.Equal(0, new SeededRandom(0).Seed);
-        Assert.Equal(-1, new SeededRandom(-1).Seed);
-        Assert.Equal(long.MaxValue, new SeededRandom(long.MaxValue).Seed);
-    }
+        const ulong masterSeed = 0xDEADBEEFCAFEUL;
 
-    // ── Edge: zero seed ─────────────────────────────────────────────
-
-    [Fact]
-    public void ZeroSeed_Works()
-    {
-        var rng = new SeededRandom(0);
-        var values = Enumerable.Range(0, 10).Select(_ => rng.NextInt64()).ToArray();
-        // Should produce distinct values (not get stuck).
-        Assert.Distinct(values);
-    }
-
-    // ── D3: stream splitting ─────────────────────────────────────────
-
-    [Fact]
-    public void ForStream_IsReproducibleFromMasterSeedAndIndexAlone()
-    {
-        const ulong master = 0xC0FFEE;
-        // Stream i must be reproducible from (masterSeed, i) alone — no shared mutable state.
-        for (long i = 0; i < 8; i++)
+        for (long streamId = 0; streamId < 16; streamId++)
         {
-            var a = SeededRandom.ForStream(master, i);
-            var b = SeededRandom.ForStream(master, i);
-            for (var k = 0; k < 200; k++)
-                Assert.Equal(a.NextUInt64(), b.NextUInt64());
+            SeededRandom streamA = SeededRandom.ForStream(masterSeed, streamId);
+            SeededRandom streamB = SeededRandom.ForStream(masterSeed, streamId);
+
+            for (var k = 0; k < 100; k++)
+            {
+                Assert.Equal(streamA.NextUInt64(), streamB.NextUInt64());
+            }
         }
     }
 
     [Fact]
-    public void ForStream_DistinctStreamsDiffer()
+    public void ForStream_ParallelExecution_IsThreadSafeAndNonOverlapping()
     {
-        const ulong master = 0xC0FFEE;
-        // Two different stream indices should not produce identical leading sequences.
-        var a = SeededRandom.ForStream(master, 3);
-        var b = SeededRandom.ForStream(master, 4);
-        var seqA = Enumerable.Range(0, 50).Select(_ => a.NextUInt64()).ToArray();
-        var seqB = Enumerable.Range(0, 50).Select(_ => b.NextUInt64()).ToArray();
-        Assert.NotEqual(seqA, seqB);
+        const ulong masterSeed = 0xAA55AA5511223344UL;
+        const int streamCount = 64;
+        var streamResults = new ConcurrentDictionary<int, ulong[]>();
+
+        // Emulates multi-threaded Monte Carlo worker threads
+        Parallel.For(0, streamCount, i =>
+        {
+            SeededRandom stream = SeededRandom.ForStream(masterSeed, i);
+            var samples = new ulong[20];
+            for (var k = 0; k < samples.Length; k++)
+            {
+                samples[k] = stream.NextUInt64();
+            }
+
+            streamResults[i] = samples;
+        });
+
+        // Ensure distinct streams did not collide or corrupt each other
+        for (var i = 0; i < streamCount; i++)
+        {
+            for (var j = i + 1; j < streamCount; j++)
+            {
+                Assert.NotEqual(streamResults[i], streamResults[j]);
+            }
+        }
     }
 
     [Fact]
-    public void ForStream_RejectsNegativeIndex()
+    public void ForStream_RejectsNegativeStreamIndex()
     {
-        Assert.Throws<ArgumentOutOfRangeException>(() => SeededRandom.ForStream(1, -1));
+        Assert.Throws<ArgumentOutOfRangeException>(() => SeededRandom.ForStream(42UL, -1L));
+        Assert.Throws<ArgumentOutOfRangeException>(() => SeededRandom.ForStream(42UL, long.MinValue));
+    }
+
+    // ════════════════════════════════════════════════════════════════
+    //  6. Regulatory Audit Trail Integrity
+    // ════════════════════════════════════════════════════════════════
+
+    [Fact]
+    public void EnableAudit_DoesNotAlterRngOutputSequence()
+    {
+        // GLI-19 Invariant: Observability must have zero side-effects on stream draws.
+        var rngStandard = new SeededRandom(999);
+        var rngAudited = new SeededRandom(999);
+
+        rngAudited.EnableAudit();
+
+        for (var i = 0; i < 1_000; i++)
+        {
+            Assert.Equal(rngStandard.NextUInt64(), rngAudited.NextUInt64());
+        }
+
+        rngAudited.EndAudit();
     }
 }

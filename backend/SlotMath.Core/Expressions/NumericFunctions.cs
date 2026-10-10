@@ -33,9 +33,7 @@ internal static class NumericFunctions
         if (2 * remainder >= denominator) quotient++;
         return numerator.Sign < 0 ? -quotient : quotient;
     }
-    public static int Compare(ExprValue left, ExprValue right) => left.NumberDenominator.IsOne && right.NumberDenominator.IsOne
-        ? left.NumberNumerator.CompareTo(right.NumberNumerator)
-        : (left.NumberNumerator * right.NumberDenominator).CompareTo(right.NumberNumerator * left.NumberDenominator);
+    public static int Compare(ExprValue left, ExprValue right) => ExprValue.CompareNumbers(left, right);
     public static void RequireNumber(ExprValue value)
     {
         if (value.Kind != ExprType.Number) throw new ExpressionEvaluationException("EVAL_TYPE_ERROR", "Numeric expression required.");

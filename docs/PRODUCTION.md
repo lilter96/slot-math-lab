@@ -97,8 +97,9 @@ provenance; they do not advertise certified interval bounds. Arbitrary game mode
 are not independently certified by the reference scenarios.
 
 Light evaluations have request limits and a concurrency limit. Heavy jobs have
-bounded sample sizes, two concurrent jobs, 1–4 sampling workers per job and a
-five-minute cancellation deadline.
+bounded sample sizes (at most 10,000,000,000 rounds per run), two concurrent
+jobs, 1–8 sampling workers per job and a cancellation deadline of five minutes
+per started 10,000,000 rounds. Experiments keep their five-minute deadline.
 Protect the deployment host, use HTTPS ingress, monitor disk space, and back up
 volumes. The production compose file applies CPU/memory limits to the API.
 

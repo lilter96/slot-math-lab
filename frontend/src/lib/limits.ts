@@ -7,10 +7,32 @@ export const LIMITS = {
   maxNodes: 100,
   maxEdges: 200,
   maxSpinBudget: 10_000_000,
+  /** Largest sampled run, in complete rounds (backend MaxRunRounds). */
+  maxRunRounds: 10_000_000_000,
+  /** Most sampling workers one run may use (backend MaxRunWorkers). */
+  maxRunWorkers: 8,
   lightEvalMaxSamples: 50_000,
   lightEvalMaxBranches: 100_000,
   maxExpressionLength: 1024,
 } as const;
+
+/** The worker counts a run may be launched with. */
+export const RUN_WORKERS = Array.from({ length: LIMITS.maxRunWorkers }, (_, i) => i + 1);
+
+/** Rounds between progress snapshots. A worker also reports after 250 ms
+ * without one, so a long run asks for one snapshot per PRNG stream. */
+export const progressBatchSize = (rounds: number) => rounds > 10_000_000 ? 65_536 : 1000;
+
+/** Execution budget of a run in minutes: five for every started ten million
+ * rounds (backend RunJobService.ResourceBudget). */
+export const runBudgetMinutes = (rounds: number) =>
+  5 * Math.max(1, Math.ceil((Number.isFinite(rounds) ? rounds : 0) / 10_000_000));
+
+/** The budget as shown beside the launch controls: "5-minute", "1 h 40 min", "83 h 20 min". */
+export function runBudgetLabel(rounds: number) {
+  const minutes = runBudgetMinutes(rounds), hours = Math.floor(minutes / 60);
+  return hours === 0 ? `${minutes}-minute` : minutes % 60 === 0 ? `${hours}-hour` : `${hours} h ${minutes % 60} min`;
+}
 
 export interface LimitError {
   field: string;

@@ -115,12 +115,12 @@ public static class RunsEndpoints
             if (configEntry is null)
                 return Results.NotFound(new { error = $"Config '{request.ConfigId}' not found." });
 
-            if (request.SampleSize is <= 0 or > 10_000_000 || request.ProgressBatchSize is <= 0)
-                return Results.BadRequest(new { error = "Sample size must be 1..10000000; progress batch must be positive." });
+            if (request.SampleSize is <= 0 or > ValidationLimits.MaxRunRounds || request.ProgressBatchSize is <= 0)
+                return Results.BadRequest(new { error = $"Sample size must be 1..{ValidationLimits.MaxRunRounds}; progress batch must be positive." });
             if (environment.IsProduction() && (configEntry.Config.Plugins.Length > 0 || configEntry.Config.Nodes.OfType<SlotMath.Core.Model.MapNode>().Any(n => n.TransformId?.StartsWith("plugin:") == true)))
                 return Results.BadRequest(new { error = "Plugin execution is disabled in production." });
-            if (request.Seed is < -9_007_199_254_740_991 or > 9_007_199_254_740_991 || request.DegreeOfParallelism is < 1 or > 4)
-                return Results.BadRequest(new { error = "Seed must be a safe integer; workers must be 1..4." });
+            if (request.Seed is < -9_007_199_254_740_991 or > 9_007_199_254_740_991 || request.DegreeOfParallelism is < 1 or > ValidationLimits.MaxRunWorkers)
+                return Results.BadRequest(new { error = $"Seed must be a safe integer; workers must be 1..{ValidationLimits.MaxRunWorkers}." });
             if (request.Measurements is null || request.Measurements.Length > 32 || request.Measurements.Any(m => m is null))
                 return Results.BadRequest(new { error = "Use at most 32 measurements." });
             SlotMath.Core.Measurements.MeasurementDefinition[] measurements;
@@ -159,7 +159,7 @@ public static class RunsEndpoints
                     CanonicalHash.Compute(pinned.Config), request.DegreeOfParallelism, measurements, request.Execution, request.VerificationProfile, pinned.Config.EvidenceInputs));
             if (run is null) return Results.NotFound(new { error = "Config was removed before the run could be pinned." });
             var sampleSize = request.SampleSize ?? 100_000;
-            var batchSize = request.ProgressBatchSize ?? Math.Max(100, sampleSize / 100);
+            var batchSize = request.ProgressBatchSize ?? (int)Math.Clamp(sampleSize / 100, 100, RunJobService.MaxProgressBatch);
 
             // Pre-create the CTS so cancellation works even before the job starts.
             runStore.CreateCancellationToken(run.Id);

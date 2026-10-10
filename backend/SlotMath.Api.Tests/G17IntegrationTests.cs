@@ -717,4 +717,64 @@ public class G17IntegrationTests : IClassFixture<WebApplicationFactory<Program>>
         Assert.Equal(final.Sequence, stillPresent.Sequence);
     }
 
+    // ═══════════════════════════════════════════════════════════════════════
+    //  Run limits: 10,000,000,000 rounds and 8 workers
+    // ═══════════════════════════════════════════════════════════════════════
+
+    [Fact]
+    public async Task Runs_LargestRun_IsAcceptedWithEightWorkers_AndCancels()
+    {
+        var configId = await CreateConfigAsync();
+        var response = await _client.PostAsJsonAsync("/api/runs", new
+        {
+            configId, sampleSize = ValidationLimits.MaxRunRounds, degreeOfParallelism = ValidationLimits.MaxRunWorkers, progressBatchSize = 65_536,
+        });
+        Assert.Equal(System.Net.HttpStatusCode.Accepted, response.StatusCode);
+        var run = await response.Content.ReadFromJsonAsync<JsonElement>();
+        var runId = run.GetProperty("id").GetString()!;
+        Assert.Equal(ValidationLimits.MaxRunWorkers, run.GetProperty("degreeOfParallelism").GetInt32());
+
+        // Running, with the full size reported, before it is cancelled.
+        JsonElement body = default;
+        var timer = Stopwatch.StartNew();
+        while (timer.ElapsedMilliseconds < 20_000)
+        {
+            body = await _client.GetFromJsonAsync<JsonElement>($"/api/runs/{runId}");
+            if (body.GetProperty("progress").GetProperty("sampleCount").GetInt64() > 0) break;
+            await Task.Delay(100);
+        }
+        Assert.Equal("running", body.GetProperty("status").GetString());
+        Assert.Equal(ValidationLimits.MaxRunRounds, body.GetProperty("progress").GetProperty("totalSamples").GetInt64());
+
+        await _client.DeleteAsync($"/api/runs/{runId}");
+        timer.Restart();
+        while (timer.ElapsedMilliseconds < 10_000 && body.GetProperty("status").GetString() != "cancelled")
+        {
+            await Task.Delay(100);
+            body = await _client.GetFromJsonAsync<JsonElement>($"/api/runs/{runId}");
+        }
+        Assert.Equal("cancelled", body.GetProperty("status").GetString());
+        var result = JsonSerializer.Deserialize<JsonElement>(body.GetProperty("resultJson").GetString()!);
+        Assert.InRange(result.GetProperty("sampleCount").GetInt64(), 1, ValidationLimits.MaxRunRounds - 1);
+    }
+
+    [Theory]
+    [InlineData(10_000_000_001, 1)]
+    [InlineData(0, 1)]
+    [InlineData(1000, 9)]
+    [InlineData(1000, 0)]
+    public async Task Runs_BeyondLimits_AreRejected(long sampleSize, int workers)
+    {
+        var configId = await CreateConfigAsync();
+        var response = await _client.PostAsJsonAsync("/api/runs", new { configId, sampleSize, degreeOfParallelism = workers });
+        Assert.Equal(System.Net.HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    [Theory]
+    [InlineData(1, 5)]
+    [InlineData(10_000_000, 5)]
+    [InlineData(10_000_001, 10)]
+    [InlineData(10_000_000_000, 5000)]
+    public void ResourceBudget_KeepsFiveMinutesPerTenMillionRounds(long sampleSize, int minutes) =>
+        Assert.Equal(TimeSpan.FromMinutes(minutes), SlotMath.Api.Features.Runs.RunJobService.ResourceBudget(sampleSize));
 }

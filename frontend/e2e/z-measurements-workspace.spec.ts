@@ -96,7 +96,7 @@ test('Scoped measurements use real sockets, survive HTTP recovery and reload, an
   await page.getByRole('button', { name: '＋ Track metric', exact: true }).click(); await page.getByLabel('Metric name').fill('Sticky FS live');
   await page.getByLabel('Metric observation level').selectOption('node'); await page.getByLabel('Metric graph node').selectOption('free-spin/snapshot-winHistory');
   await page.getByLabel('Metric numeric expression').fill('state.spinCoins / 20'); await saveMeasurement(page); await page.route('**/hubs/runs/negotiate**', route => route.abort());
-  await page.getByLabel('Simulation spins').fill('10000000'); const launched = waitForRunLaunch(page);
+  await page.getByLabel('Simulation spins').fill('1000000000'); const launched = waitForRunLaunch(page);
   await page.getByRole('button', { name: /^▶ Start run$/ }).click(); const run = await (await launched).json();
   try {
     const metric = page.getByRole('article', { name: 'Tracked metric Sticky FS live', exact: true });

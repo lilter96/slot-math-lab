@@ -33,7 +33,10 @@ services:
       postgres: {condition: service_healthy}
     restart: unless-stopped
     mem_limit: 2g
-    cpus: 2
+    # A run may use eight sampling workers (ValidationLimits.MaxRunWorkers). With
+    # fewer CPUs than workers the quota throttles them: 4 workers on 2 CPUs
+    # measure slower than 2 workers on 2 CPUs (docs/PERFORMANCE.md).
+    cpus: 8
   frontend:
     build:
       context: .

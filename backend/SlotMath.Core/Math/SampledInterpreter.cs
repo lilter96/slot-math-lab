@@ -239,17 +239,52 @@ public static class SampledInterpreter
             };
         }
 
-        var chunkMeasurements = new MeasurementAccumulator[]?[nChunks];
         var mergedMeasurements = new MeasurementAccumulator[config.Measurements.Count];
-        var chunkStats = new StreamingStats?[nChunks];
         if (execution.AuditRandomStreams && (execution.Regime == "sessions" ? totalSpins / execution.SessionLength : nChunks) > 65536) throw new ArgumentException("Complete RNG audits support at most 65536 logical streams.");
-        var chunkDone = new long[nChunks];
-        var chunkAttempts = new long[nChunks];
-        var chunkCancelled = new long[nChunks];
-        var chunkSessions = new long[nChunks];
-        var chunkInterruptedSessions = new long[nChunks];
-        var chunkSessionEvidence = new SessionEvidence?[nChunks];
-        var chunkLoopEvidence = new LoopTerminationEvidence?[nChunks];
+
+        // D3: strict ascending chunk-index-order merge ⇒ bit-identical result.
+        // A finished chunk is folded into the totals as soon as every earlier
+        // chunk has been folded (see `merge` below), so the memory a run needs
+        // does not depend on its length.
+        var total = new StreamingStats(config.HistogramBins, maxWinCapDouble);
+        var finalMeasurements = new MeasurementAccumulator[config.Measurements.Count];
+        var prefixClosed = false;
+        var orderedPrefix = true;
+        long spinsCompleted = 0, totalAttempts = 0, totalCancelled = 0, totalSessions = 0, totalInterruptedSessions = 0;
+        var finalSessionEvidence = new SessionEvidence();
+        var finalLoopEvidence = new LoopTerminationEvidence();
+
+        // Call in ascending chunk order only. A chunk that did not run (cancellation,
+        // or a replay of one round elsewhere) closes the completed prefix.
+        void Fold(int c, ChunkResult? chunk)
+        {
+            if (chunk is not { } result)
+            {
+                prefixClosed = true;
+                return;
+            }
+
+            if (prefixClosed && result.Done > 0)
+            {
+                orderedPrefix = false;
+            }
+
+            if (result.Done < System.Math.Min(partitionSize, totalSpins - (long)c * partitionSize))
+            {
+                prefixClosed = true;
+            }
+
+            total.Merge(result.Stats);
+            if (result.Measurements is { } measured)
+            {
+                MeasurementCollector.Merge(finalMeasurements, measured);
+            }
+
+            spinsCompleted += result.Done;
+            totalAttempts += result.Attempts; totalCancelled += result.Cancelled; totalSessions += result.Sessions; totalInterruptedSessions += result.InterruptedSessions;
+            finalLoopEvidence.Merge(result.LoopEvidence);
+            finalSessionEvidence.Merge(result.SessionEvidence);
+        }
         var auditedStreams = new System.Collections.Concurrent.ConcurrentDictionary<long, RandomStreamIdentity>();
         var cancelFlag = 0;
 
@@ -268,17 +303,19 @@ public static class SampledInterpreter
                 execution.SessionStop == "fixedHorizon" ? "Fixed horizon; hypothetical credit after ruin. All completed rounds remain in the denominator." : $"Predeclared {execution.SessionStop} session stopping, horizon {execution.SessionLength}. Paid-round outcomes are a stopping-dependent population; use independent-session evidence for inference. Unplayed slots are not zero payouts.", evidence.Snapshot())
             { MonetaryAccounting = execution.Regime == "sessions" ? SessionMoney.Contract : null, SamplingEngine = execution.SamplingEngine != "reference" && program is ICompiledSampling<S, T> ? "compiled-sampling-plan" : "reference-interpreter", LoopTerminations = loops.Snapshot(), LoopTerminationsComplete = loops.Complete, SessionStop = execution.SessionStop, PlannedRoundSlots = totalSpins };
 
-        void RunChunk(int c)
+        var compiledSampling = execution.SamplingEngine == "reference" ? null : program as ICompiledSampling<S, T>;
+
+        ChunkResult? RunChunk(int c, ICompiledSampling<S, T>? sampling)
         {
             if (Volatile.Read(ref cancelFlag) != 0 || config.CancellationToken.IsCancellationRequested)
             {
                 Interlocked.Exchange(ref cancelFlag, 1);
-                return;
+                return null;
             }
 
             var start = (long)c * partitionSize;
             var end = System.Math.Min(start + partitionSize, totalSpins);
-            if (config.ReplayRoundIndex is { } requested && (requested < start || requested >= end)) return;
+            if (config.ReplayRoundIndex is { } requested && (requested < start || requested >= end)) return null;
             if (config.ReplayRoundIndex is { } lastRound) end = lastRound + 1;
             var rng = new SeededRandom(DeriveStreamSeed(config.Seed, c));
             long auditIndex = c;
@@ -292,8 +329,7 @@ public static class SampledInterpreter
             MeasurementCollector? measurements =
                 config.Measurements.Count == 0 ? null : new MeasurementCollector(config.Measurements);
             var loopEvidence = new LoopTerminationEvidence();
-            ISamplingRunner<S, T>? runner =
-                execution.SamplingEngine == "reference" ? null : (program as ICompiledSampling<S, T>)?.CreateRunner(initialState, measurements, execution.PersistentKeys, loopEvidence);
+            ISamplingRunner<S, T>? runner = sampling?.CreateRunner(initialState, measurements, execution.PersistentKeys, loopEvidence);
             var sessionEvidence = new SessionEvidence();
             var sessionDelta = new SessionEvidence();
             SessionTrajectory? session = null;
@@ -502,71 +538,69 @@ public static class SampledInterpreter
             if (rng.AuditSnapshot(auditIndex) is { } audit) auditedStreams[auditIndex] = audit;
             rng.EndAudit();
             Flush();
-            chunkMeasurements[c] = measurements?.Total;
-            chunkStats[c] = stats;
-            Volatile.Write(ref chunkDone[c], done);
-            chunkAttempts[c] = attempts; chunkCancelled[c] = cancelledRounds; chunkSessions[c] = sessions; chunkInterruptedSessions[c] = interruptedSessions; chunkSessionEvidence[c] = sessionEvidence; chunkLoopEvidence[c] = loopEvidence;
+            return new ChunkResult(stats, measurements?.Total, done, attempts, cancelledRounds, sessions, interruptedSessions, sessionEvidence, loopEvidence);
         }
 
-        if (config.DegreeOfParallelism > 1 && nChunks > 1)
+        // Chunk c always draws from stream c, whichever worker runs it. Workers
+        // take the next index from one counter. A worker whose chunk is too far
+        // ahead of the first unfolded one waits, so a slow chunk cannot make the
+        // finished ones pile up. A failure in one worker stops the others.
+        var workers = System.Math.Min(config.DegreeOfParallelism, nChunks);
+        var merge = new OrderedChunkFold<ChunkResult>(workers * MergeWindowPerWorker, Fold);
+        var nextChunk = -1;
+        var faulted = 0;
+        bool Stopped() => Volatile.Read(ref cancelFlag) != 0 || Volatile.Read(ref faulted) != 0 || config.CancellationToken.IsCancellationRequested;
+        void RunChunks(ICompiledSampling<S, T>? sampling)
         {
-            Parallel.For(0, nChunks,
-                new ParallelOptions { MaxDegreeOfParallelism = config.DegreeOfParallelism },
-                RunChunk);
-        }
-        else
-        {
-            for (var c = 0; c < nChunks; c++)
+            while (Volatile.Read(ref cancelFlag) == 0 && Volatile.Read(ref faulted) == 0)
             {
-                RunChunk(c);
-                if (Volatile.Read(ref cancelFlag) != 0)
+                var c = Interlocked.Increment(ref nextChunk);
+                if (c >= nChunks || !merge.Admit(c, Stopped))
                 {
                     break;
                 }
+
+                ChunkResult? result;
+                try { result = RunChunk(c, sampling); }
+                catch { Volatile.Write(ref faulted, 1); throw; }
+                merge.Complete(c, result);
             }
         }
 
-        // D3: strict ascending chunk-index-order merge ⇒ bit-identical result.
-        var total = new StreamingStats(config.HistogramBins, maxWinCapDouble);
-        var finalMeasurements = new MeasurementAccumulator[config.Measurements.Count];
-        var prefixClosed = false;
-        var orderedPrefix = true;
-        long spinsCompleted = 0;
-        var finalSessionEvidence = new SessionEvidence();
-        var finalLoopEvidence = new LoopTerminationEvidence();
-        for (var c = 0; c < nChunks; c++)
+        if (workers > 1)
         {
-            var completed = Volatile.Read(ref chunkDone[c]);
-            if (prefixClosed && completed > 0)
-            {
-                orderedPrefix = false;
-            }
+            // Every worker leases a private instance of the compiled program and
+            // runs until the counter is exhausted. NoBuffering hands each worker
+            // exactly one element, so `workers` loops run side by side.
+            Parallel.ForEach(
+                System.Collections.Concurrent.Partitioner.Create(Enumerable.Range(0, workers), System.Collections.Concurrent.EnumerablePartitionerOptions.NoBuffering),
+                new ParallelOptions { MaxDegreeOfParallelism = workers },
+                _ =>
+                {
+                    var sampling = compiledSampling?.Rent();
+                    try { RunChunks(sampling); }
+                    finally { if (sampling is not null) compiledSampling!.Return(sampling); }
+                });
+        }
+        else
+        {
+            var sampling = compiledSampling?.Rent();
+            try { RunChunks(sampling); }
+            finally { if (sampling is not null) compiledSampling!.Return(sampling); }
+        }
 
-            if (completed < System.Math.Min(partitionSize, totalSpins - (long)c * partitionSize))
-            {
-                prefixClosed = true;
-            }
-
-            if (chunkStats[c] is null)
-            {
-                continue;
-            }
-
-            total.Merge(chunkStats[c]!);
-            if (chunkMeasurements[c] is { } measured)
-            {
-                MeasurementCollector.Merge(finalMeasurements, measured);
-            }
-
-            spinsCompleted += Volatile.Read(ref chunkDone[c]);
-            if (chunkLoopEvidence[c] is { } loops) finalLoopEvidence.Merge(loops);
-            if (chunkSessionEvidence[c] is { } evidence) finalSessionEvidence.Merge(evidence);
+        // What still waits lies beyond a chunk whose worker stopped before
+        // running it: the completed chunks no longer form a prefix.
+        if (merge.Waiting > 0)
+        {
+            prefixClosed = true;
+            merge.FoldRemaining();
         }
 
         var cancelled = Volatile.Read(ref cancelFlag) != 0;
         TimeSpan elapsed = Stopwatch.GetElapsedTime(startedAt);
-        var executionSummary = Summary(chunkAttempts.Sum(), spinsCompleted, chunkCancelled.Sum(), 0, chunkSessions.Sum(),
-            chunkInterruptedSessions.Sum(), finalSessionEvidence, finalLoopEvidence) with
+        var executionSummary = Summary(totalAttempts, spinsCompleted, totalCancelled, 0, totalSessions,
+            totalInterruptedSessions, finalSessionEvidence, finalLoopEvidence) with
         { RandomStreams = execution.AuditRandomStreams ? RandomStreamEvidence.Analyze(auditedStreams.Values, execution.Regime == "sessions" ? totalSpins / execution.SessionLength : nChunks, !cancelled) : null };
 
         if (!cancelled && config.ProgressCallback is not null)
@@ -594,6 +628,12 @@ public static class SampledInterpreter
     ///     Derive a per-chunk seed from the master seed — SplitMix64-style so
     ///     streams are statistically independent yet fully reproducible.
     /// </summary>
+    /// <summary>Chunks a worker may start past the first unfolded one, per worker.</summary>
+    private const int MergeWindowPerWorker = 16;
+
+    private readonly record struct ChunkResult(StreamingStats Stats, MeasurementAccumulator[]? Measurements, long Done, long Attempts,
+        long Cancelled, long Sessions, long InterruptedSessions, SessionEvidence SessionEvidence, LoopTerminationEvidence LoopEvidence);
+
     internal static long DeriveStreamSeed(long seed, int stream)
     {
         unchecked

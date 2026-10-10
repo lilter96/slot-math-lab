@@ -9,12 +9,20 @@ namespace SlotMath.Api.Features.Runs;
 public class RunJobService(InMemoryConfigStore configStore, InMemoryRunStore runStore,
     IHubContext<RunHub> hubContext, ILogger<RunJobService> logger, CompiledGraphCache compiledGraphs, IHostApplicationLifetime lifetime)
 {
+    /// <summary>One PRNG stream; a worker also reports when it finishes one.</summary>
+    public const int MaxProgressBatch = 65_536;
+
+    /// <summary>Five minutes for every started ten million rounds: the pace the
+    /// former ten-million-round limit already had to keep.</summary>
+    public static TimeSpan ResourceBudget(long sampleSize) =>
+        TimeSpan.FromMinutes(5 * Math.Max(1, (sampleSize + 9_999_999) / 10_000_000));
+
     [AutomaticRetry(Attempts = 0)]
-    public async Task ExecuteRunAsync(string runId, int sampleSize, int progressBatchSize)
+    public async Task ExecuteRunAsync(string runId, long sampleSize, int progressBatchSize)
     {
         var cts = runStore.CreateCancellationToken(runId);
         using var operation = CancellationTokenSource.CreateLinkedTokenSource(cts.Token, lifetime.ApplicationStopping);
-        operation.CancelAfter(TimeSpan.FromMinutes(5));
+        operation.CancelAfter(ResourceBudget(sampleSize));
         // One sender per run preserves ordering and applies backpressure. Slow
         // clients receive the latest snapshot, never an unbounded message queue.
         var delivery = new RunProgressDelivery(
@@ -74,7 +82,9 @@ public class RunJobService(InMemoryConfigStore configStore, InMemoryRunStore run
                 CancellationToken = operation.Token,
                 CancellationCheckInterval = 1,
                 ResourceBudgetExpired = () => runStore.Get(runId)?.CancellationReason == "resourceExpiry" || operation.IsCancellationRequested && !cts.IsCancellationRequested && !lifetime.ApplicationStopping.IsCancellationRequested,
-                ProgressReportInterval = Math.Clamp(progressBatchSize, 16, 1000),
+                // A worker also reports after 250 ms without one, so a long run can use
+                // a larger batch without the display going stale.
+                ProgressReportInterval = Math.Clamp(progressBatchSize, 16, sampleSize > 10_000_000 ? MaxProgressBatch : 1000),
                 ProgressCallback = Publish,
             });
             if (sampled.WasCancelled && sampled.SpinsCompleted == 0) throw new OperationCanceledException(operation.Token);
