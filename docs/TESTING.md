@@ -1,6 +1,6 @@
 # Verification strategy
 
-Every push and pull request runs the complete Core, API integration and frontend unit suites, the independent rational Dog House expectation, exported graph and metric-catalogue drift checks, frontend build/lint, and the critical browser contracts. Mathematical distributions, expression semantics, measurement statistics, seed/worker equivalence and transport state transitions belong in Core/API or browser-free frontend unit tests. Browser checks prove the actual user workflow and rendering across those boundaries.
+CI checks exported Nine Lives graphs and the independent Fraction rule oracle, then runs Core, API, frontend logic and critical browser regressions. The full game has no Exact RTP proof; the small component fixture has a separately derived exact expectation.
 
 ## Browser execution
 
@@ -19,7 +19,7 @@ The mandatory contracts cover:
 
 | Area | Required browser evidence |
 |---|---|
-| Constructor | A fresh project paints the full graph; nested mathematics can be edited and changes actual payouts; authored 98% expectation and all analysis modes execute through the UI. |
+| Constructor | A fresh project paints the full graph; nested mathematics can be edited and changes actual payouts; Nine Lives runs and replays through the UI; the small component fixture has an independent Exact expectation, while full-game Exact may be unavailable. |
 | Real-time execution | One socket survives navigation; repeated disconnects recover the same run and cumulative counts; authentication rejection requires explicit authentication wake. |
 | Measurement workspace | A scoped free-spin metric can be authored, displayed, exported, restored and replayed against pinned input. |
 | Verification experiments | Constructor settlement and embedded rule inputs, native finite sampling/resource references, automatic named arms, retained results and reload. |

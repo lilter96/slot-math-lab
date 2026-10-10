@@ -238,8 +238,8 @@ internal static class SamplingOps
 
 /// <summary>Translates one expression AST into a LINQ expression tree. Scalar
 /// operators become straight-line IL with statically typed conditions; forms
-/// that bind iteration variables or take an uncommon path reuse the
-/// interpreted closures, with their bodies compiled.
+/// for map, filter, fold and count become loops with scoped bindings. Other iteration
+/// forms and uncommon paths reuse interpreted closures with compiled bodies.
 /// <para>While translating, the generator writes down the expression's shape:
 /// every decision that selects what is emitted. Slots, constants and closures
 /// are not part of it; they become <see cref="SamplingOperands"/>. Two
@@ -272,6 +272,12 @@ internal sealed class SamplingCodegen
     private readonly List<long> _numbers = [];
     private readonly List<ExprValue> _values = [];
     private readonly List<Func<SamplingFrame, ExprValue>> _closures = [];
+    private sealed record IterationBinding(string Shape, Func<string, Lx> Read)
+    {
+        public bool NeedsFrame { get; set; }
+    }
+    private readonly Dictionary<string, IterationBinding> _bindings = new(StringComparer.Ordinal);
+    private int _iteration;
 
     private SamplingCodegen(SamplingExpressions owner, Func<string, int> slot) { _owner = owner; _slot = slot; }
 
@@ -311,6 +317,7 @@ internal sealed class SamplingCodegen
 
     private Lx Interpreted(Expression expression)
     {
+        foreach (var binding in _bindings.Values) binding.NeedsFrame = true;
         _shape.Append("closure;");
         return Lx.Invoke(Operand(nameof(SamplingOperands.Closures), _closures, _owner.Interpret(expression, Compiled)), _frame);
     }
@@ -361,8 +368,21 @@ internal sealed class SamplingCodegen
             case ConstantExpr:
                 return TryConstant(expression, out var constant) ? Literal(constant) : Interpreted(expression);
             case FieldAccessExpr { Target: null or "state" or "board", Path.Length: 1 } field when !string.IsNullOrEmpty(field.Path[0]):
+                if (_bindings.TryGetValue(field.Path[0], out var binding))
+                {
+                    _shape.Append(binding.Shape);
+                    return binding.Read(field.Path[0]);
+                }
                 _shape.Append("field;");
                 return Lx.Call(_frame, ReadField, Operand(nameof(SamplingOperands.Slots), _slots, _slot(field.Path[0])), Text(field.Path[0]));
+            case AggregateExpr { Func: AggregateFunc.Count } count:
+                return Iterate(count.StateKey, count.ItemName, null, count.Predicate ?? new ConstantExpr { Kind = ConstantKind.Boolean, Value = "true" }, true, counting: true, selectedValue: count.ValueExpr);
+            case FoldExpr fold:
+                return Iterate(fold.StateKey, fold.ItemName, fold.IndexName, fold.Body, false, fold.Init, fold.AccName);
+            case MapExpr map:
+                return Iterate(map.StateKey, map.ItemName, map.IndexName, map.Body, false);
+            case FilterExpr filter:
+                return Iterate(filter.StateKey, filter.ItemName, filter.IndexName, filter.Predicate, true);
             case IfExpr branch:
                 return Form("if", () =>
                 {
@@ -384,6 +404,160 @@ internal sealed class SamplingCodegen
                 return Interpreted(expression);
         }
     }
+
+    // Raw null bindings report null-value errors, whereas typed null state
+    // can report an array-type error. Keep nullable sources on the raw path.
+    private static bool HasNull(ExprValue value) => value.Kind == ExprType.Null
+        || value.ArrayValue?.Any(HasNull) == true
+        || value.RecordValue?.Values.Any(HasNull) == true;
+
+    // Existing iteration semantics emitted as one loop. Scoped aliases let
+    // the generated body read its element/index without repeated frame lookups.
+    // Frame bindings are still published for interpreted nested forms, and
+    // restored even on errors or cancellation.
+    private Lx Iterate(string key, string itemName, string? indexName, Expression body, bool filter, Expression? init = null, string? accName = null, bool counting = false, Expression? selectedValue = null) =>
+        Form((counting ? "count" : init is not null ? "fold" : filter ? "filter" : "map") + (indexName is null ? "-item" : "-indexed"), () =>
+        {
+            var initial = init is null ? null : Value(init);
+            var source = Local(typeof(SamplingCell));
+            var item = Local(typeof(SamplingCell));
+            var savedItem = Local(typeof(SamplingCell));
+            var savedIndex = indexName is null ? null : Local(typeof(SamplingCell));
+            var accumulator = accName is null ? null : Local(typeof(SamplingCell));
+            var savedAcc = accName is null ? null : Local(typeof(SamplingCell));
+            var length = Local(typeof(int));
+            var cursor = Local(typeof(int));
+            var count = Local(typeof(int));
+            var values = Local(typeof(ExprValue[]));
+            var result = Local(typeof(ExprValue));
+            var symbols = Local(typeof(bool));
+            var cells = Lx.Field(_frame, nameof(SamplingFrame.Cells));
+            Lx Cell(int slot) => Lx.ArrayAccess(cells, Operand(nameof(SamplingOperands.Slots), _slots, slot));
+            if (_bindings.TryGetValue(key, out var sourceBinding)) sourceBinding.NeedsFrame = true;
+            Lx sourceCell;
+            if (_owner.TryConstant(new FieldAccessExpr { Target = "state", Path = [key] }, out var constantSource)
+                && constantSource.Kind == ExprType.Array && !constantSource.ContainsSymbols && !HasNull(constantSource))
+            {
+                _shape.Append("constant-source;");
+                sourceCell = Lx.Call(typeof(SamplingCell).GetMethod(nameof(SamplingCell.Typed), Any)!, Operand(nameof(SamplingOperands.Values), _values, constantSource));
+            }
+            else
+            {
+                _shape.Append("state-source;");
+                sourceCell = Cell(_slot(key));
+            }
+            var accCell = accName is null ? null : Cell(_owner.Variable(accName));
+            var itemCell = Cell(_owner.Variable(itemName));
+            var indexCell = indexName is null ? null : Cell(_owner.Variable(indexName));
+            var readable = typeof(StateValues).GetMethod(nameof(StateValues.RequireReadable), Any)!;
+            var readValue = typeof(SamplingCell).GetMethod(nameof(SamplingCell.ReadValue), Any)!;
+            var typed = typeof(SamplingCell).GetMethod(nameof(SamplingCell.Typed), Any)!;
+            var requireArray = typeof(SamplingCell).GetMethod(nameof(SamplingCell.RequireArrayCount), Any)!;
+            var getItem = typeof(SamplingCell).GetMethod(nameof(SamplingCell.Item), Any)!;
+            var checkCancellation = typeof(SamplingFrame).GetMethod(nameof(SamplingFrame.CheckCancellation), Any)!;
+            var owned = typeof(ExprValue).GetMethod(nameof(ExprValue.ArrayOwned), Any)!;
+            var resize = typeof(Array).GetMethods().Single(method => method.Name == nameof(Array.Resize) && method.IsGenericMethod).MakeGenericMethod(typeof(ExprValue));
+            var parentAcc = accName is not null && _bindings.TryGetValue(accName, out var previousAcc) ? previousAcc : null;
+            _bindings.TryGetValue(itemName, out var parentItem);
+            var parentIndex = indexName is not null && _bindings.TryGetValue(indexName, out var found) ? found : null;
+            var iteration = _iteration++;
+            var accBinding = accName is null ? null : new IterationBinding($"acc:{iteration};", name => Lx.Call(readable, Lx.Call(accumulator!, readValue, Text(name)), Text(name)));
+            var itemBinding = new IterationBinding($"item:{iteration};", name => Lx.Call(readable, Lx.Call(item, readValue, Text(name)), Text(name)));
+            var indexBinding = indexName is null ? null : new IterationBinding($"index:{iteration};", _ => Lx.Call(NumberOf, Lx.Convert(cursor, typeof(long))));
+            if (accName is not null) _bindings[accName] = accBinding!;
+            _bindings[itemName] = itemBinding;
+            if (indexName is not null) _bindings[indexName] = indexBinding!;
+            Lx selector;
+            Lx? selected = null;
+            try
+            {
+                selector = filter ? Condition(body) : Value(body);
+                if (counting)
+                {
+                    // Count still evaluates its selector (or validates the raw
+                    // item). Parsing an unused numeric string cannot affect it.
+                    if (selectedValue is null)
+                    {
+                        _shape.Append("default-selection;");
+                        selected = Lx.Property(item, nameof(SamplingCell.Value));
+                    }
+                    else selected = Value(selectedValue);
+                }
+            }
+            finally
+            {
+                if (accName is not null)
+                {
+                    if (parentAcc is null) _bindings.Remove(accName); else _bindings[accName] = parentAcc;
+                }
+                if (parentItem is null) _bindings.Remove(itemName); else _bindings[itemName] = parentItem;
+                if (indexName is not null)
+                {
+                    if (parentIndex is null) _bindings.Remove(indexName); else _bindings[indexName] = parentIndex;
+                }
+            }
+            var publish = itemBinding.NeedsFrame || accBinding?.NeedsFrame == true || indexBinding?.NeedsFrame == true;
+            _shape.Append(publish ? "published;" : "local;");
+            var take = counting ? Lx.Block(selected!, Lx.PostIncrementAssign(count), Lx.Empty()) : init is not null ? Lx.Block(Lx.Assign(result, selector), Lx.Empty()) : Lx.Block(
+                Lx.Assign(result, filter ? Lx.Property(item, nameof(SamplingCell.FilterValue)) : selector),
+                Lx.Assign(Lx.ArrayAccess(values, count), result),
+                Lx.Assign(symbols, Lx.Or(symbols, Lx.Property(result, nameof(ExprValue.ContainsSymbols)))),
+                Lx.PostIncrementAssign(count), Lx.Empty());
+            var steps = new List<Lx>
+            {
+                Lx.Call(_frame, checkCancellation),
+                Lx.Assign(item, Lx.Call(source, getItem, cursor)),
+            };
+            if (accCell is not null)
+            {
+                steps.Add(Lx.Assign(accumulator!, Lx.Call(typed, result)));
+                if (publish) steps.Add(Lx.Assign(accCell, accumulator!));
+            }
+            if (publish) steps.Add(Lx.Assign(itemCell, item));
+            if (publish && indexCell is not null)
+                steps.Add(Lx.Assign(indexCell, Lx.Call(typed, Lx.Call(NumberOf, Lx.Convert(cursor, typeof(long))))));
+            steps.Add(filter ? Lx.IfThen(selector, take) : take);
+            steps.Add(Lx.PostIncrementAssign(cursor));
+            steps.Add(Lx.Empty());
+            var end = Lx.Label();
+            var loop = Lx.Loop(Lx.IfThenElse(Lx.LessThan(cursor, length), Lx.Block(steps), Lx.Break(end)), end);
+            var restore = new List<Lx>();
+            if (accCell is not null) restore.Add(Lx.Assign(accCell, savedAcc!));
+            restore.Add(Lx.Assign(itemCell, savedItem));
+            if (indexCell is not null) restore.Add(Lx.Assign(indexCell, savedIndex!));
+            restore.Add(Lx.Empty());
+            var initialize = new List<Lx>();
+            if (initial is not null) initialize.Add(Lx.Assign(result, initial));
+            initialize.AddRange([
+                Lx.Assign(source, sourceCell),
+                Lx.Assign(length, Lx.Call(source, requireArray, Text(key), Lx.Constant(null, typeof(string)))),
+            ]);
+            if (publish)
+            {
+                if (accCell is not null) initialize.Add(Lx.Assign(savedAcc!, accCell));
+                initialize.Add(Lx.Assign(savedItem, itemCell));
+                if (indexCell is not null) initialize.Add(Lx.Assign(savedIndex!, indexCell));
+            }
+            Lx execute = publish ? Lx.TryFinally(loop, Lx.Block(restore)) : loop;
+            if (counting)
+            {
+                initialize.AddRange([Lx.Assign(cursor, Lx.Constant(0)), Lx.Assign(count, Lx.Constant(0)), execute, Lx.Call(NumberOf, Lx.Convert(count, typeof(long)))]);
+                return Lx.Block(initialize);
+            }
+            if (init is not null)
+            {
+                initialize.AddRange([Lx.Assign(cursor, Lx.Constant(0)), execute, result]);
+                return Lx.Block(initialize);
+            }
+            initialize.AddRange([
+                Lx.Assign(cursor, Lx.Constant(0)), Lx.Assign(count, Lx.Constant(0)),
+                Lx.Assign(symbols, Lx.Constant(false)), Lx.Assign(values, Lx.NewArrayBounds(typeof(ExprValue), length)),
+                execute,
+                Lx.IfThen(Lx.NotEqual(count, length), Lx.Call(resize, values, count)),
+                Lx.Call(owned, values, symbols),
+            ]);
+            return Lx.Block(initialize);
+        });
 
     private Lx Condition(Expression expression)
     {

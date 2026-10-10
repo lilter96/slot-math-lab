@@ -5,7 +5,7 @@ async function launch(page: Page) {
   // Launch can wait through an explicit 60s production quota rejection. Socket
   // recovery/heartbeat deadlines below remain independent and unchanged.
   test.setTimeout(Math.max(test.info().timeout, 180000));
-  await page.goto('/build?project=dog-house');
+  await page.goto('/build?project=nine-lives');
   await page.getByRole('tab', { name: 'Simulate', exact: true }).click();
   await page.getByLabel('Simulation spins').fill('1000000000');
   const created = waitForRunLaunch(page);

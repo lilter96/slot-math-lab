@@ -30,7 +30,7 @@ internal static class GraphPerformance
                 MaxSpins = n,
                 DegreeOfParallelism = workers,
                 WinScale = (double)compiled.WinScale,
-                MaxWinCap = graph.Nodes.OfType<MetricsSinkNode>().Single().WinCap,
+                MaxWinCap = graph.Nodes.OfType<MetricsSinkNode>().Single().WinCap * compiled.WinScale,
                 ProgressCallback = live ? _ => Interlocked.Increment(ref updates) : null
             });
         var warmup = int.Parse(Option("--warmup", "20000"));

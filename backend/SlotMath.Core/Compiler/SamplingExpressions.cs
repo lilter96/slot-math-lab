@@ -41,7 +41,7 @@ internal sealed class SamplingExpressions(Func<string, int> slot, SamplingTier? 
     }
 
     // An iteration variable is assigned while its body runs, so it can never be constant state.
-    private int Variable(string name) => _constants.ContainsKey(name) ? throw new ConstantStateConflict(name) : slot(name);
+    internal int Variable(string name) => _constants.ContainsKey(name) ? throw new ConstantStateConflict(name) : slot(name);
     public void Remember(ExprValue value)
     {
         // Cache only valid integer symbols without interpreting every text
@@ -150,7 +150,7 @@ internal sealed class SamplingExpressions(Func<string, int> slot, SamplingTier? 
                         {
                             s.CheckCancellation();
                             s.Cells[acc] = SamplingCell.Typed(value); s.Cells[item] = array.Item(j);
-                            if (position >= 0) s.Cells[position] = SamplingCell.FromRaw(j);
+                            if (position >= 0) s.Cells[position] = SamplingCell.FromInt(j);
                             value = body(s);
                         }
                         return value;
@@ -203,7 +203,7 @@ internal sealed class SamplingExpressions(Func<string, int> slot, SamplingTier? 
             for (var j = 0; j < length; j++)
             {
                 s.CheckCancellation(); var cell = array.Item(j); s.Cells[binding] = cell;
-                if (position >= 0) s.Cells[position] = SamplingCell.FromRaw(j);
+                if (position >= 0) s.Cells[position] = SamplingCell.FromInt(j);
                 var result = body(s);
                 if (!filter || Truth(result)) values[count++] = filter ? cell.FilterValue : result;
             }

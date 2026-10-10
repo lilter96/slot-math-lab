@@ -73,15 +73,15 @@ test('Editor rejects unknown fields through compiler, and valid empty scopes rem
   await expect(metric).toContainText('0 matching'); await expect(metric).toContainText('16 excluded'); await expect(metric).toContainText('0 invalid');
 });
 test('Metric editor and customizable workspace fit mobile, preserve draft across reload, and include nested FS points', async ({ page }) => {
-  await page.setViewportSize({ width: 390, height: 844 }); await page.goto('/build?project=dog-house');
-  await page.getByRole('button', { name: 'Open free spins graph', exact: true }).click(); await page.getByRole('tab', { name: 'Simulate', exact: true }).click();
-  await page.getByRole('button', { name: '＋ Track metric', exact: true }).click(); await page.getByLabel('Metric name').fill('Sticky free spin payout');
-  await page.getByLabel('Metric observation level').selectOption('node'); await page.getByLabel('Find measurement node').fill('free-spin/snapshot');
-  await page.getByLabel('Metric graph node').selectOption('free-spin/snapshot-winHistory'); await page.getByLabel('Metric numeric expression').fill('state.spinCoins / 20');
+  await page.setViewportSize({ width: 390, height: 844 }); await page.goto('/build?project=nine-lives');
+  await page.getByRole('button', { name: 'Open free-spin graph', exact: true }).click(); await page.getByRole('tab', { name: 'Simulate', exact: true }).click();
+  await page.getByRole('button', { name: '＋ Track metric', exact: true }).click(); await page.getByLabel('Metric name').fill('Free spin payout');
+  await page.getByLabel('Metric observation level').selectOption('node'); await page.getByLabel('Find measurement node').fill('free-spins-body/record');
+  await page.getByLabel('Metric graph node').selectOption('round/paid-body/trigger-body/free-spins-body/record-winHistory'); await page.getByLabel('Metric numeric expression').fill('(state.spinClusterCoins + state.spinCollectionCoins) / 20');
   await saveMeasurement(page);
-  await expect(page.getByRole('article', { name: 'Tracked metric Sticky free spin payout' })).toBeVisible();
+  await expect(page.getByRole('article', { name: 'Tracked metric Free spin payout' })).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
-  await page.reload(); await expect(page.getByRole('article', { name: 'Tracked metric Sticky free spin payout' })).toBeVisible();
+  await page.reload(); await expect(page.getByRole('article', { name: 'Tracked metric Free spin payout' })).toBeVisible();
   await page.screenshot({ path: '../docs/verification/measurements-mobile.png', fullPage: true });
 });
 test('Scoped measurements use real sockets, survive HTTP recovery and reload, and retain the cancelled prefix', async ({ page, request }) => {
@@ -92,14 +92,14 @@ test('Scoped measurements use real sockets, survive HTTP recovery and reload, an
       try { const frame = JSON.parse(raw); if (frame.target === 'ProgressUpdate' && frame.arguments[0].measurements?.[0]?.count > 0) matchingFrames++; } catch { /* SignalR handshake. */ }
     }
   }));
-  await page.goto('/build?project=dog-house'); await page.getByRole('tab', { name: 'Simulate', exact: true }).click();
-  await page.getByRole('button', { name: '＋ Track metric', exact: true }).click(); await page.getByLabel('Metric name').fill('Sticky FS live');
-  await page.getByLabel('Metric observation level').selectOption('node'); await page.getByLabel('Metric graph node').selectOption('free-spin/snapshot-winHistory');
-  await page.getByLabel('Metric numeric expression').fill('state.spinCoins / 20'); await saveMeasurement(page); await page.route('**/hubs/runs/negotiate**', route => route.abort());
+  await page.goto('/build?project=nine-lives'); await page.getByRole('tab', { name: 'Simulate', exact: true }).click();
+  await page.getByRole('button', { name: '＋ Track metric', exact: true }).click(); await page.getByLabel('Metric name').fill('FS live');
+  await page.getByLabel('Metric observation level').selectOption('node'); await page.getByLabel('Metric graph node').selectOption('round/paid-body/trigger-body/free-spins-body/record-winHistory');
+  await page.getByLabel('Metric numeric expression').fill('(state.spinClusterCoins + state.spinCollectionCoins) / 20'); await saveMeasurement(page); await page.route('**/hubs/runs/negotiate**', route => route.abort());
   await page.getByLabel('Simulation spins').fill('1000000000'); const launched = waitForRunLaunch(page);
   await page.getByRole('button', { name: /^▶ Start run$/ }).click(); const run = await (await launched).json();
   try {
-    const metric = page.getByRole('article', { name: 'Tracked metric Sticky FS live', exact: true });
+    const metric = page.getByRole('article', { name: 'Tracked metric FS live', exact: true });
     await expect(page.getByTestId('stream-status')).toContainText('recovering'); await expect(metric.locator('[data-statistic=mean]')).not.toHaveText('—', { timeout: 70000 });
     await page.unroute('**/hubs/runs/negotiate**'); await expect(page.getByTestId('stream-status')).toContainText('WebSocket live', { timeout: 70000 });
     await expect.poll(() => matchingFrames).toBeGreaterThan(0);
@@ -117,13 +117,15 @@ test('Rejected launch honors Retry-After without duplicating an accepted run', a
   await page.route('**/api/runs', async route => {
     if (route.request().method() !== 'POST') return route.continue();
     attempts++; times.push(Date.now());
-    if (attempts === 1) return route.fulfill({ status: 429, headers: { 'Retry-After': '1' }, json: { error: 'busy' } });
+    if (attempts <= 2) return route.fulfill({ status: 429, headers: { 'Retry-After': '1' }, json: { error: 'busy' } });
     return route.continue();
   });
   await page.getByLabel('Simulation spins').fill('10000'); await page.getByRole('button', { name: /^▶ Start run$/ }).click();
   await expect(page.getByText(/retrying the rejected request in 1s/).first()).toBeVisible({ timeout: 70000 });
   await expect(page.locator('.run-status')).toHaveText('completed', { timeout: 70000 });
-  expect(attempts).toBe(2); expect(times[1] - times[0]).toBeGreaterThanOrEqual(950);
+  expect(attempts).toBe(3);
+  expect(times[1] - times[0]).toBeGreaterThanOrEqual(950);
+  expect(times[2] - times[1]).toBeGreaterThanOrEqual(950);
 });
 test('Waiting launch can be cancelled without sending the deferred run POST', async ({ page }) => {
   await page.goto('/build'); await page.getByRole('button', { name: 'Load coin example' }).click(); await page.getByRole('tab', { name: 'Simulate', exact: true }).click();

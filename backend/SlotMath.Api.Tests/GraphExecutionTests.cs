@@ -11,15 +11,15 @@ public class GraphExecutionTests : IClassFixture<WebApplicationFactory<Program>>
 {
     private readonly HttpClient client;
     public GraphExecutionTests(WebApplicationFactory<Program> factory) => client = factory.CreateClient();
-    private static JsonElement Fixture(string name) => JsonSerializer.Deserialize<JsonElement>(File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "TestData", "DogHouse", name)));
+    private static JsonElement Fixture(string name) => JsonSerializer.Deserialize<JsonElement>(File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "TestData", "LabDemo", name)));
     [Fact]
     public async Task GenericPlay_BonusTraceAndSeedReplayUseTheUiGraph()
     {
-        var config = Fixture("dog-house-ui.json");
+        var config = Fixture("lab-demo-buy.json");
         var request = new { config, seed = 42, roundIndex = 230, trace = true };
         var response = await client.PostAsJsonAsync("/api/play/round", request); Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         var round = await response.Content.ReadFromJsonAsync<JsonElement>();
-        Assert.Equal(9, round.GetProperty("state").GetProperty("bonusGrid").GetArrayLength());
+        Assert.Equal(9, round.GetProperty("state").GetProperty("boards").GetArrayLength());
         var replay = await (await client.PostAsJsonAsync("/api/play/round", request)).Content.ReadFromJsonAsync<JsonElement>();
         Assert.Equal(round.GetRawText(), replay.GetRawText());
         var withoutTrace = await (await client.PostAsJsonAsync("/api/play/round", new { config, seed = 42, roundIndex = 230 })).Content.ReadFromJsonAsync<JsonElement>();
@@ -29,7 +29,7 @@ public class GraphExecutionTests : IClassFixture<WebApplicationFactory<Program>>
     [Fact]
     public async Task ExplicitModes_PreserveActualProvenanceAndGraphHash()
     {
-        var config = Fixture("dog-house-mini-ui.json");
+        var config = Fixture("lab-demo-mini.json");
         double exact = 0;
         foreach (var mode in new[] { "Exact", "Pruned", "Sampled", "Hybrid" })
         {
@@ -48,7 +48,7 @@ public class GraphExecutionTests : IClassFixture<WebApplicationFactory<Program>>
     [Fact]
     public async Task MissingExpression_RejectsExecutionInsteadOfReturningZero()
     {
-        var graph = JsonNode.Parse(Fixture("dog-house-ui.json").GetRawText())!;
+        var graph = JsonNode.Parse(Fixture("lab-demo.json").GetRawText())!;
         graph["expressions"]!.AsObject().Remove("credits");
         var response = await client.PostAsJsonAsync("/api/play/round", new { config = graph });
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
@@ -58,7 +58,7 @@ public class GraphExecutionTests : IClassFixture<WebApplicationFactory<Program>>
     [Fact]
     public async Task Play_RejectsUnsafeReplayIndex()
     {
-        var response = await client.PostAsJsonAsync("/api/play/round", new { config = Fixture("dog-house-ui.json"), roundIndex = -1 });
+        var response = await client.PostAsJsonAsync("/api/play/round", new { config = Fixture("lab-demo.json"), roundIndex = -1 });
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
     }
 }

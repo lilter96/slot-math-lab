@@ -298,7 +298,7 @@ internal sealed class SamplingPlan : ICompiledSampling<Dictionary<string, object
             var counter = WriteSlot($"__iter_{loop.Id}__"); var wins = WriteSlot($"__wins_{loop.Id}__");
             chain = (s, rng, _) =>
             {
-                s.Cells[counter] = SamplingCell.FromRaw(0); s.Cells[wins] = SamplingCell.Typed(ExprValue.Number(0));
+                s.Cells[counter] = SamplingCell.FromInt(0); s.Cells[wins] = SamplingCell.Typed(ExprValue.Number(0));
                 while (true)
                 {
                     s.CheckCancellation();
@@ -306,7 +306,7 @@ internal sealed class SamplingPlan : ICompiledSampling<Dictionary<string, object
                     if (iteration >= loop.MaxIterations || stop is not null && stop.Invoke(s)) break;
                     var result = body(s, rng, null);
                     iteration = s.Cells[counter].HasRaw && s.Cells[counter].Raw is int j ? j : 0;
-                    s.Cells[counter] = SamplingCell.FromRaw(iteration + 1);
+                    s.Cells[counter] = SamplingCell.FromInt(iteration + 1);
                     if (result is BigInteger or Win[])
                     {
                         var amount = Extract(result);

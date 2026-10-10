@@ -5,7 +5,7 @@ import { definition } from '../../lib/measurements/model';
 import { calculationRequest } from '../../lib/measurements/requests';
 import { useAppStore } from '../../store';
 import { peekRootProject } from '../../lib/projectFiles';
-import { createDogHouseGraph } from '../../games/doghouse/graph';
+import { createNineLivesGraph } from '../../games/nine-lives/graph';
 
 export function VerificationProfileEditor({ close }: { close(): void }) {
   const dialog = useRef<HTMLDialogElement>(null), controller = useRef<AbortController | null>(null);
@@ -13,7 +13,7 @@ export function VerificationProfileEditor({ close }: { close(): void }) {
   const [name, setName] = useState(workspace.verificationProfile?.name ?? 'Required mathematical checks'), [confidence, setConfidence] = useState(workspace.verificationProfile?.familyConfidence ?? .95);
   const [criteria, setCriteria] = useState<VerificationCriterion[]>(workspace.verificationProfile?.criteria ?? (metrics[0] ? [{ measurementId: metrics[0].id, check: 'observation-integrity', minimumCount: 1 }] : []));
   const [allocate, setAllocate] = useState(true), [busy, setBusy] = useState(false), [error, setError] = useState(''), [status, setStatus] = useState('');
-  const [config] = useState(() => useAppStore.getState().verificationSource ?? (useAppStore.getState().nodes.length ? peekRootProject() : createDogHouseGraph()));
+  const [config] = useState(() => useAppStore.getState().verificationSource ?? (useAppStore.getState().nodes.length ? peekRootProject() : createNineLivesGraph()));
   useEffect(() => { const el = dialog.current!; el.showModal(); return () => { controller.current?.abort(); el.close(); }; }, []);
   const dismiss = () => { controller.current?.abort(); close(); };
   const update = (i: number, patch: Partial<VerificationCriterion>) => setCriteria(c => c.map((v, j) => j === i ? { ...v, ...patch } : v));

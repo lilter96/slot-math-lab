@@ -6,7 +6,7 @@ import AiGenerateModal from '../AiGenerateModal';
 import { useAppStore } from '../../store';
 import { DEFAULT_FEATURES, useFeaturesQuery } from '../../api/hooks';
 import { closeMechanic } from '../../lib/projectFiles';
-import { createDogHouseGraph } from '../../games/doghouse/graph';
+import { createNineLivesGraph } from '../../games/nine-lives/graph';
 import ProjectDataEditor from '../editor/ProjectDataEditor';
 
 export default function CanvasToolbar() {
@@ -25,7 +25,7 @@ export default function CanvasToolbar() {
       <div className="canvas-toolbar" onMouseDown={(e) => e.stopPropagation()}>
         {verificationSource && <button onClick={() => { loadProject(verificationSource); useAppStore.setState({ verificationSource: null, graphTrail: [] }); }}>Return to game graph</button>}
         {trail.length > 0 && <button aria-label="Save subgraph and return" onClick={closeMechanic}>← Save & return</button>}
-        <button aria-label="Build Dog House graph" onClick={() => { useAppStore.setState({ graphTrail: [], verificationSource: null }); loadProject(createDogHouseGraph()); }}>Dog House · 98%</button>
+        <button aria-label="Build Nine Lives graph" onClick={() => { useAppStore.setState({ graphTrail: [], verificationSource: null }); loadProject(createNineLivesGraph()); }}>Nine Lives · target 96%</button>
         <button aria-label="Edit project data and expressions" onClick={() => setShowData(true)}>Data / AST</button>
         <select aria-label="Focus graph node" value="" onChange={e => { if (!e.target.value) return; useAppStore.getState().selectNode(e.target.value); void fitView({ nodes: [{ id: e.target.value }], padding: 1, maxZoom: 1 }); }}>
           <option value="">Find node…</option>{nodes.map(node => <option key={node.id} value={node.id}>{node.data.label}</option>)}

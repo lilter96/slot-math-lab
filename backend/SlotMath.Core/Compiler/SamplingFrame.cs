@@ -27,6 +27,11 @@ internal struct SamplingCell
         if (value.ContainsSymbols) value = NormalizeStored(value);
         return new() { Present = true, _value = value, _readable = value.Kind != ExprType.Null };
     }
+    private static readonly object[] SmallIntegers = Enumerable.Range(0, 256).Select(value => (object)value).ToArray();
+
+    // Preserve raw Int32 counter semantics while reusing immutable boxes.
+    public static SamplingCell FromInt(int value) => FromRaw((uint)value < SmallIntegers.Length ? SmallIntegers[value] : value);
+
     public static SamplingCell FromRaw(object? raw)
     {
         // Unused state and untaken conditional branches must not evaluate an
