@@ -233,7 +233,13 @@ export const useAppStore = create<AppState>((set, get) => ({
   nodes: [],
   edges: [],
   selectedNodeId: null,
-  selectNode: (id) => set({ selectedNodeId: id }),
+  // Keep React Flow's transient `selected` flags in sync with the
+  // application-level selection so Delete/Backspace and Shift-multi-select
+  // act on the node the UI actually reports as selected (e.g. "Find node…").
+  selectNode: (id) => set((s) => ({
+    selectedNodeId: id,
+    nodes: s.nodes.map((n) => (n.selected ?? false) === (n.id === id) ? n : { ...n, selected: n.id === id }),
+  })),
   edgeValidationError: null,
   setEdgeValidationError: (err) => set({ edgeValidationError: err }),
   limitError: null,
@@ -254,7 +260,12 @@ export const useAppStore = create<AppState>((set, get) => ({
       const edges = removedIds.length
         ? s.edges.filter((e) => !removedIds.includes(e.source) && !removedIds.includes(e.target))
         : s.edges;
-      return { nodes, edges };
+      // Keep the inspector in sync: a keyboard deletion of the inspected node
+      // must clear the selection, mirroring removeNode().
+      const selectedNodeId = removedIds.length && s.selectedNodeId !== null && removedIds.includes(s.selectedNodeId)
+        ? null
+        : s.selectedNodeId;
+      return { nodes, edges, selectedNodeId };
     }),
 
   onEdgesChange: (changes: EdgeChange<GraphEdge>[]) =>
@@ -351,7 +362,15 @@ if (typeof window !== 'undefined') {
     const s = useAppStore.getState();
     try {
       localStorage.setItem(DRAFT_KEY, JSON.stringify({
-        nodes: s.nodes,
+        // `selected` is React Flow's transient interaction flag, not model
+        // data. Persisting it would restore a phantom canvas selection on
+        // reload while `selectedNodeId` stays null, so drop it here.
+        nodes: s.nodes.map((n) => {
+          if (!('selected' in n)) return n;
+          const rest = { ...n };
+          delete rest.selected;
+          return rest;
+        }),
         edges: s.edges,
         tables: s.tables,
         graphTrail: s.graphTrail,
@@ -372,15 +391,17 @@ if (typeof window !== 'undefined') {
 
   try {
     const draft = JSON.parse(localStorage.getItem(DRAFT_KEY) ?? 'null');
-    if (draft && Array.isArray(draft.nodes) && Array.isArray(draft.edges)) useAppStore.setState({ nodes: draft.nodes, edges: draft.edges, tables: draft.tables ?? {}, graphTrail: draft.graphTrail ?? [], verificationSource: draft.verificationSource ?? null, configName: draft.configName ?? 'Untitled', resultsDraft: draft.resultsDraft ?? null });
+    if (draft && Array.isArray(draft.nodes) && Array.isArray(draft.edges)) useAppStore.setState({ nodes: draft.nodes.map((n: GraphNode) => (n.selected ? { ...n, selected: false } : n)), edges: draft.edges, tables: draft.tables ?? {}, graphTrail: draft.graphTrail ?? [], verificationSource: draft.verificationSource ?? null, configName: draft.configName ?? 'Untitled', resultsDraft: draft.resultsDraft ?? null });
   } catch { /* a corrupt draft never prevents opening the editor */ }
 
   useAppStore.subscribe(schedulePersist);
   window.addEventListener('beforeunload', () => {
-    if (saveTimer !== undefined) {
-      clearTimeout(saveTimer);
-      saveTimer = undefined;
-    }
+    // Only flush when this tab actually has a pending write. Unconditionally
+    // flushing on unload would let an untouched tab overwrite a newer draft
+    // persisted by another tab with its stale in-memory state.
+    if (saveTimer === undefined) return;
+    clearTimeout(saveTimer);
+    saveTimer = undefined;
     persistNow();
   });
 }
