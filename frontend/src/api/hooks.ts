@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useEffect } from 'react';
-import { apiClient } from './client';
+import { apiClient, BASE_URL } from './client';
 import { useAppStore, type PluginEntry, type CustomMechanic, type GraphNode, type GraphEdge } from '../store';
 import { buildConfigPayload, mapNodeToBackend } from '../lib/configPayload';
 
@@ -29,7 +29,9 @@ export function useFeaturesQuery() {
   return useQuery({
     queryKey: FEATURES_KEY,
     queryFn: async () => {
-      const res = await fetch('/api/features');
+      // Honor the configured API origin (VITE_API_URL); fall back to same-origin.
+      const base = BASE_URL.replace(/\/+$/, '');
+      const res = await fetch(`${base}/api/features`);
       if (!res.ok) throw new Error(`Failed to load feature flags: HTTP ${res.status}`);
       const data = (await res.json()) as Partial<FeatureFlags>;
       // Only explicit `true` enables a surface — anything else collapses to off.

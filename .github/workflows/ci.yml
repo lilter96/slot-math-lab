@@ -65,7 +65,14 @@ jobs:
       - name: Audit NuGet dependencies — fail on high/critical
         run: |
           set -o pipefail
-          dotnet list backend/SlotMathLab.slnx package --vulnerable --include-transitive | tee nuget-vulnerabilities.txt
+          dotnet list backend/SlotMathLab.slnx package --vulnerable --include-transitive 2>&1 | tee nuget-vulnerabilities.txt
+          # A feed outage or missing vulnerability DB emits NU1900/NU1905 instead of a
+          # High/Critical row. Fail on those so an unavailable audit source cannot make
+          # the security gate pass silently.
+          if grep -qE 'NU1900|NU1905' nuget-vulnerabilities.txt; then
+            echo "::error::NuGet audit source unavailable (NU1900/NU1905) — vulnerability data could not be retrieved."
+            exit 1
+          fi
           if grep -qiE '\b(high|critical)\b' nuget-vulnerabilities.txt; then
             echo "::error::High or critical NuGet vulnerabilities found — see the report above."
             exit 1

@@ -29,6 +29,9 @@ test('disabled feature flags hide every non-1.0 surface', { tag: '@critical' }, 
   await page.getByRole('button', { name: 'Mechanics', exact: true }).click();
   await expect(page.getByRole('button', { name: 'Custom Mechanics', exact: true })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Plugins', exact: true })).toHaveCount(0);
+  // A bookmarked /play URL must be redirected away, not just hidden from the nav.
+  await page.goto('/play');
+  await expect(page).toHaveURL(/\/build$/);
 });
 
 test('enabled feature flags keep the default UI visible', { tag: '@critical' }, async ({ page }) => {
@@ -39,4 +42,7 @@ test('enabled feature flags keep the default UI visible', { tag: '@critical' }, 
   await expect(page.getByRole('button', { name: 'AI assist' })).toBeVisible();
   await page.getByRole('button', { name: 'Mechanics', exact: true }).click();
   await expect(page.getByRole('button', { name: 'Plugins', exact: true })).toBeVisible();
+  // The guard must not block /play when the flag is on.
+  await page.goto('/play');
+  await expect(page).toHaveURL(/\/play$/);
 });

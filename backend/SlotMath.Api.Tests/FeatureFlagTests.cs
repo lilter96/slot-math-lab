@@ -4,6 +4,8 @@ using System.Security.Cryptography;
 using System.Text.Json;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.Extensions.Configuration;
+using SlotMath.Api.Infrastructure;
 
 namespace SlotMath.Api.Tests;
 
@@ -94,6 +96,34 @@ public class FeatureFlagTests
         Assert.False(json.GetProperty("autoTune").GetBoolean());
         Assert.False(json.GetProperty("plugins").GetBoolean());
         Assert.True(json.GetProperty("play").GetBoolean());
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("   ")]
+    public void BlankFlagValue_IsRejected_NamingTheKey(string blank)
+    {
+        var configuration = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?> { ["Features:Play"] = blank })
+            .Build();
+
+        var exception = Assert.Throws<InvalidOperationException>(() => FeatureFlags.Read(configuration, localMode: false));
+
+        Assert.Contains("Features:Play", exception.Message);
+    }
+
+    [Fact]
+    public void AbsentFlagKey_FallsBackToTheDefault()
+    {
+        var configuration = new ConfigurationBuilder().Build();
+
+        var production = FeatureFlags.Read(configuration, localMode: false);
+        Assert.True(production.Play);
+        Assert.False(production.Ai);
+
+        var local = FeatureFlags.Read(configuration, localMode: true);
+        Assert.True(local.Play);
+        Assert.True(local.Ai);
     }
 
     private static async Task<JsonElement> ReadFeaturesAsync(HttpClient client)
