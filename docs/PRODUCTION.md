@@ -34,6 +34,36 @@ Runs pin the exact config version used when queued. This storage path supports o
 API writer. Do not scale it to multiple replicas. Legacy PostgreSQL config/cache
 endpoints are available only locally; production uses the encrypted snapshot path.
 
+## Feature flags
+
+The API reads the `Features` configuration section once at startup; changing a flag
+requires a restart. A disabled flag is not a soft hide — its endpoints are never
+registered and answer 404, and plugins are not loaded at all.
+
+| Flag | Production default | Gates |
+|------|--------------------|-------|
+| `Features:Ai` | off | `POST /api/ai/generate-graph`, `/api/ai/lint`, `/api/ai/explain`; the AI generate modal and the topbar AI assist button |
+| `Features:AutoTune` | off | `POST /api/ai/auto-tune`; the AutoTune panel |
+| `Features:Plugins` | off | `/api/plugins`; the plugin manager |
+| `Features:Play` | on | `POST /api/play/round`; the Play navigation entry |
+
+`appsettings.Production.json` ships these defaults. Environment variables override
+them, including the string form (`Features__Ai=false`); outside Production
+(Development, CI, Testing) every flag defaults to enabled. An unparsable value
+fails startup and names the offending key.
+
+`GET /api/features` reports the effective flags without a login:
+
+```json
+{ "ai": false, "autoTune": false, "plugins": false, "play": true }
+```
+
+The UI hides disabled menu items and panels according to this endpoint; if the
+request fails, everything that can be disabled stays hidden. Flags never bypass
+the production secret checks — startup still requires a unique `JWT:Secret`,
+`Auth:User`, `Auth:PasswordHash` and `Storage:Key` even when plugins or AI are
+enabled.
+
 ## Verify a model
 
 Open Build, load REF-A or one of the seven catalog examples, inspect the graph, then
