@@ -719,7 +719,7 @@ public class SampledInterpreter_Parallel
 
 public class ExactInterpreter_AccumulatorConvolution
 {
-    // The Dog-House pattern from the bug report: a base spin banks a win
+    // The synthetic-feature pattern from the bug report: a base spin banks a win
     // BEFORE a free-spins loop runs.  Two paths then reach the same
     // recurrence state (spins left) with different banked totals.  Per
     // invariant #4 the accumulator is excluded from the recurrence hash and

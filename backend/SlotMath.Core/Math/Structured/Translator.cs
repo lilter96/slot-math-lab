@@ -310,6 +310,13 @@ internal sealed class Translator(TermFactory f)
                 }
 
                 break;
+            case BitSetExpr set:
+                foreach (Expression arg in set.Args)
+                {
+                    Reads(arg, names);
+                }
+
+                break;
             case AggregateExpr aggregate:
                 names.Add(aggregate.StateKey);
                 Reads(aggregate.Predicate, names);

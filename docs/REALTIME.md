@@ -113,7 +113,7 @@ recovered a silent socket, repeated disconnection, expired session, and hard API
 crash. The durable checkpoint was 1,399 ms behind the pre-crash observation.
 The subsequent 100,000-round run completed in 4,190 ms and retained the same
 seeded RTP (`0.9967189999999915`, seed 42, two workers); its complete terminal result
-arrived inline over WSS. This observed RTP is distinct from the authored 98% target
+arrived inline over WSS. This observed RTP is distinct from the historical authored target (retired demo)
 and exact expectation. See [recorded evidence](verification/realtime-production.json).
 
 ## Optional execution evidence

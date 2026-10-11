@@ -13,8 +13,8 @@ test('Real WebSocket updates during execution, reload restores run, cancellation
       }
     });
   });
-  await page.goto('/build?project=dog-house');
-  await page.getByRole('button', { name: 'Open base game graph', exact: true }).click();
+  await page.goto('/build?project=nine-lives');
+  await page.getByRole('button', { name: 'Open base-spin graph', exact: true }).click();
   await page.getByRole('tab', { name: 'Simulate', exact: true }).click();
   // Keep the job alive through quota recovery/reload/cancellation. The Core
   // LiveProgressTests separately verify publication inside the first chunk;
@@ -28,8 +28,8 @@ test('Real WebSocket updates during execution, reload restores run, cancellation
   const run = await (await creation).json();
   expect(run.configHash).toMatch(/^[a-f0-9]{64}$/);
   const pinned = await (await getWithQuota(page.request, `/api/configs/${run.configId}`)).json();
-  expect(pinned.config.nodes).toHaveLength(12);
-  expect(pinned.config.nodes.find((node: { id: string }) => node.id === 'bonus-completed')).toMatchObject({ nodeType: 'modifyState', expressionId: 'bonus-completed', outputKey: 'bonusCompleted' });
+  expect(pinned.config.nodes).toHaveLength(4);
+  expect(pinned.config.mechanics.bonus.nodes.find((node: { id: string }) => node.id === 'completed')).toMatchObject({ nodeType: 'modifyState', expressionId: 'completed', outputKey: 'bonusCompleted' });
   await expect(page.getByTestId('stream-status')).toContainText('WebSocket live', { timeout: 70000 });
   await expect.poll(() => messages.some(m => m.status === 'running' && m.sampleCount > 0 && m.sampleCount < 1000000000), { timeout: 15000 }).toBe(true);
   await expect(page.getByTestId('live-rtp')).not.toHaveText('—');
@@ -62,7 +62,7 @@ test('Real WebSocket updates during execution, reload restores run, cancellation
     ? Object.fromEntries(Object.entries(value).filter(([, v]) => v != null).map(([k, v]) => [k, omitNullDefaults(v)])) : value;
   expect(evidence.pinnedGraph.config.nodes).toEqual(omitNullDefaults(pinned.config.nodes));
   expect(evidence.pinnedGraph.config.edges).toEqual(pinned.config.edges);
-  expect(evidence.pinnedGraph.config.expressions['bonus-completed']).toMatchObject({ exprType: 'constant', kind: 'Boolean', value: 'true' });
+  expect(evidence.pinnedGraph.config.mechanics.bonus.expressions.completed).toMatchObject({ exprType: 'constant', kind: 'Boolean', value: 'true' });
   expect(evidence.progress.sampleCount).toBe(result.sampleCount);
 });
 
@@ -106,9 +106,9 @@ test('Evidence export recovers a quota rejection and withholds files on errors, 
     return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(value) });
   });
   await page.getByRole('button', { name: 'Export evidence' }).click();
-  await expect(page.getByRole('alert')).toContainText('Archive temporarily unavailable'); expect(downloads).toHaveLength(0); expect(calls).toBe(1);
+  await expect(page.getByRole('alert').filter({ hasText: /Archive temporarily unavailable|different run/ })).toContainText('Archive temporarily unavailable'); expect(downloads).toHaveLength(0); expect(calls).toBe(1);
   mode = 'wrong'; calls = 0; await page.getByRole('button', { name: 'Retry export', exact: true }).click();
-  await expect(page.getByRole('alert')).toContainText('different run'); expect(downloads).toHaveLength(0);
+  await expect(page.getByRole('alert').filter({ hasText: /Archive temporarily unavailable|different run/ })).toContainText('different run'); expect(downloads).toHaveLength(0);
   mode = 'wait'; calls = 0; await page.getByRole('button', { name: 'Retry export', exact: true }).click();
   await expect(page.getByRole('status')).toContainText('retrying evidence in 60s');
   await expect(page.getByRole('button', { name: 'Preparing evidence…', exact: true })).toBeDisabled();
@@ -128,11 +128,11 @@ test('Evidence export recovers a quota rejection and withholds files on errors, 
 
 test('Mobile simulation dashboard fits viewport and exposes controls and charts', { tag: '@critical' }, async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.goto('/build?project=dog-house');
+  await page.goto('/build?project=nine-lives');
   await page.getByRole('tab', { name: 'Simulate', exact: true }).click();
   await expect(page.getByRole('button', { name: /start run/i })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'RTP convergence' })).toBeVisible();
-  await expect(page.getByText('Target RTP', { exact: true }).locator('..')).toContainText('98.000%');
+  await expect(page.getByText('Target RTP', { exact: true }).locator('..')).toContainText('96.000%');
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   await page.screenshot({ path: '../docs/verification/simulation-mobile.png', fullPage: true });
   await page.getByRole('heading', { name: 'Payout distribution' }).scrollIntoViewIfNeeded();
@@ -146,7 +146,7 @@ test('Mobile simulation dashboard fits viewport and exposes controls and charts'
 test('Blocked socket falls back to authoritative snapshots and reconnects without losing the run', async ({ page }) => {
   test.setTimeout(180000);
   await page.route('**/hubs/runs/negotiate**', route => route.abort());
-  await page.goto('/build?project=dog-house');
+  await page.goto('/build?project=nine-lives');
   await page.getByRole('tab', { name: 'Simulate', exact: true }).click();
   await page.getByLabel('Simulation spins').fill('1000000000');
   await page.getByRole('button', { name: /start run/i }).click();
@@ -190,4 +190,32 @@ test('One observed round does not claim a zero-width confidence interval or know
   await expect(page.getByText('95% CI half-width', { exact: true }).locator('..')).toContainText('Requires at least 2 rounds');
   await expect(page.getByText('Payout volatility', { exact: true }).locator('..').locator('strong')).toHaveText('—');
   await expect(page.getByText('95% confidence interval', { exact: true }).locator('..').locator('dd')).toHaveText('—');
+});
+
+test('Live simulation and archived results use the canonical target percent', async ({ page }) => {
+  test.setTimeout(120000);
+  await page.goto('/build');
+  await page.getByRole('button', { name: 'Load coin example' }).click();
+  await expect.poll(() => page.evaluate(() => JSON.parse(localStorage.getItem('slotmath-draft-v1') ?? '{}').configName)).toBe('REF-A Coin');
+  const graph = await page.evaluate(() => {
+    const draft = JSON.parse(localStorage.getItem('slotmath-draft-v1')!);
+    return {
+      schemaVersion: '1.0.0', name: 'Conflicting authored targets',
+      initialState: { targetRTP: 0.96, targetRtpPercent: 75 },
+      nodes: draft.nodes.map((node: { data: { backendNode: unknown } }) => node.data.backendNode),
+      edges: draft.edges.map((edge: { id: string; source: string; target: string; sourceHandle: string; targetHandle: string }) => ({
+        id: edge.id, sourceNodeId: edge.source, targetNodeId: edge.target, sourcePort: edge.sourceHandle, targetPort: edge.targetHandle,
+      })),
+    };
+  });
+  await page.getByLabel('Import project file').setInputFiles({ name: 'target.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(graph)) });
+  await page.getByRole('tab', { name: 'Simulate', exact: true }).click();
+  await page.getByLabel('Simulation spins').fill('1000');
+  const accepted = waitForRunLaunch(page);
+  await page.getByRole('button', { name: /start run/i }).click();
+  const run = await (await accepted).json();
+  await expect(page.locator('.run-status')).toHaveText('completed', { timeout: 70000 });
+  await expect(page.getByText('Target RTP', { exact: true }).locator('..')).toContainText('75.000%');
+  await page.goto(`/results?run=${run.id}`);
+  await expect(page.locator('.results-rtp-hero').getByText('Authored target', { exact: false })).toContainText('75.000%');
 });

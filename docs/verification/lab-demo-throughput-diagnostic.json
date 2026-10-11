@@ -1,0 +1,113 @@
+{
+  "purpose": "Compare authored graph workloads with the existing optimized engine.",
+  "performanceCommit": "aa9727c7c7996d283d45a310272a1009cffebdc0",
+  "currentHead": "0e768f4",
+  "kernelMigrationChanges": false,
+  "conditions": "Same current Release binary, sequential runs, four workers, 100000 warmup rounds and 1000000 measured rounds. Task-owned test and cleanup jobs stopped. CPU affinity unpinned; one diagnostic repeat; not a D7 acceptance measurement.",
+  "runs": {
+    "previousDemo": {
+      "configHash": "2748e5232e4ca76474c15abb96cf7d9944d65d3e55423fa04b813f218e00e48b",
+      "engine": "compiled-state-plan-v1",
+      "seed": 42,
+      "rounds": 1000000,
+      "warmup": 100000,
+      "workers": 4,
+      "live": true,
+      "streamScheme": "splitmix64-chunk-65536",
+      "compileMs": 188.859,
+      "runtime": ".NET 10.0.12",
+      "cpuCount": 20,
+      "allocationCounter": "process-total",
+      "measurements": [
+        {
+          "elapsedMs": 908.1142,
+          "roundsPerSecond": 1101183.0890872537,
+          "cpuMs": 3615.21,
+          "gcPauseMs": 3.081,
+          "allocatedBytes": 997812080,
+          "bytesPerRound": 997.81208,
+          "gc": [
+            3,
+            0,
+            0
+          ],
+          "updates": 1008,
+          "count": 1000000,
+          "rtp": 0.9698924000000002,
+          "variance": 185.50262340504548,
+          "hitFrequency": 0.276275,
+          "maxWin": 2641.85
+        }
+      ]
+    },
+    "nineLives": {
+      "configHash": "74be087adef45cd1ab6203858a7c7a529aed792191471a4293f80d9c57709813",
+      "engine": "compiled-state-plan-v1",
+      "seed": 42,
+      "rounds": 1000000,
+      "warmup": 100000,
+      "workers": 4,
+      "live": true,
+      "streamScheme": "splitmix64-chunk-65536",
+      "compileMs": 153.781,
+      "runtime": ".NET 10.0.12",
+      "cpuCount": 20,
+      "allocationCounter": "process-total",
+      "measurements": [
+        {
+          "elapsedMs": 31551.6206,
+          "roundsPerSecond": 31694.093076157234,
+          "cpuMs": 123842.988,
+          "gcPauseMs": 325.914,
+          "allocatedBytes": 123301685400,
+          "bytesPerRound": 123301.6854,
+          "gc": [
+            405,
+            4,
+            1
+          ],
+          "updates": 1008,
+          "count": 1000000,
+          "rtp": 0.9541195999999992,
+          "variance": 381.55450624340153,
+          "hitFrequency": 0.37043,
+          "maxWin": 6623.45
+        }
+      ]
+    }
+  },
+  "allocationSample": {
+    "method": "Runtime GCAllocationTick; approximate allocation bytes, not CPU time attribution.",
+    "rounds": 10000,
+    "warmup": 2000,
+    "workers": 1,
+    "bytesPerRoundSampled": 125246,
+    "largestTypes": [
+      {
+        "type": "ExprValue[]",
+        "bytesPerRound": 45908.9,
+        "percent": 36.7
+      },
+      {
+        "type": "System.Int32",
+        "bytesPerRound": 33033.3,
+        "percent": 26.4
+      },
+      {
+        "type": "ExprValue array enumerator",
+        "bytesPerRound": 10317.8,
+        "percent": 8.2
+      },
+      {
+        "type": "Dictionary<string,long> entries",
+        "bytesPerRound": 10136.8,
+        "percent": 8.1
+      },
+      {
+        "type": "Dictionary<string,long>",
+        "bytesPerRound": 8346.5,
+        "percent": 6.7
+      }
+    ]
+  }
+}

@@ -40,7 +40,7 @@ test('Native predeclared mean family rejects underallocation, retains final crit
   await saveValidatedDialog(page, 'Save verification profile');
   await expect(page.locator('#verification-profile')).toContainText('1,000'); await expect(page.locator('#verification-profile')).not.toContainText('10,000,000');
   await page.goto(`/results?run=${run.id}`); await page.evaluate(() => localStorage.clear()); await page.reload();
-  await expect(page.getByLabel('Verification profile result')).toHaveAttribute('data-profile-status', 'criteriaMet'); await expect(page.locator('#verification-profile')).toContainText('Retained server profile restored');
+  await expect(page.getByLabel('Verification profile result')).toHaveAttribute('data-profile-status', 'criteriaMet', { timeout: 70000 }); await expect(page.locator('#verification-profile')).toContainText('Retained server profile restored');
   await page.setViewportSize({ width: 390, height: 844 }); expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);
   await page.setViewportSize({ width: 1280, height: 720 }); await page.getByRole('button', { name: 'Replay pinned run', exact: true }).click(); await page.getByLabel('Pinned run engine').selectOption('reference');
   const replay = waitForRunLaunch(page);
@@ -53,6 +53,8 @@ test('Native predeclared mean family rejects underallocation, retains final crit
 });
 
 test('Cancelling profile validation cannot save late criteria or change collection interval budgets', async ({ page }) => {
+  // A rejected schema calculation can wait through the production 60-second quota window.
+  test.setTimeout(120000);
   await page.goto('/build'); await page.getByLabel('Import project file').setInputFiles('e2e/fixtures/component-accounting-model.json'); await page.getByRole('tab', { name: 'Simulate', exact: true }).click(); await metric(page, 'x');
   let release!: () => void, accepted!: () => void, settled!: () => void;
   const gate = new Promise<void>(r => { release = r; }), started = new Promise<void>(r => { accepted = r; }), handled = new Promise<void>(r => { settled = r; });

@@ -25,7 +25,9 @@ public class WoodlandWhisperGraphTests(ITestOutputHelper output)
     // looking for them takes minutes; the expectation is what the full game is checked on.
     private static readonly StructuredExactOptions ExpectationOnly = new()
     {
-        DistributionWork = 0, HitFrequencyWork = 0, VarianceWork = 0
+        DistributionWork = 0,
+        HitFrequencyWork = 0,
+        VarianceWork = 0
     };
 
     private static readonly Lazy<Variant> Paid = new(() => new Variant("woodland-whisper", "trigger-yes/play",

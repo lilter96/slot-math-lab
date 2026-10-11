@@ -1,0 +1,126 @@
+{
+  "schemaVersion": "1.0.0",
+  "name": "Scaled cap benchmark control",
+  "initialState": {
+    "choice": "half",
+    "win": 0
+  },
+  "nodes": [
+    {
+      "nodeType": "draw",
+      "id": "draw",
+      "stateWriteKey": "choice",
+      "drawWeights": [
+        {
+          "outcomeId": "half",
+          "weight": 1,
+          "value": 0
+        },
+        {
+          "outcomeId": "cap",
+          "weight": 1,
+          "value": 0
+        }
+      ],
+      "outputs": {
+        "state": {
+          "name": "state",
+          "type": "State"
+        }
+      }
+    },
+    {
+      "nodeType": "modifyState",
+      "id": "pay",
+      "expressionId": "pay",
+      "outputKey": "win",
+      "inputs": {
+        "state": {
+          "name": "state",
+          "type": "State"
+        }
+      },
+      "outputs": {
+        "state": {
+          "name": "state",
+          "type": "State"
+        }
+      }
+    },
+    {
+      "nodeType": "metricsSink",
+      "id": "sink",
+      "winStateKey": "win",
+      "winCap": 1,
+      "inputs": {
+        "state": {
+          "name": "state",
+          "type": "State"
+        }
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "0",
+      "sourceNodeId": "draw",
+      "sourcePort": "state",
+      "targetNodeId": "pay",
+      "targetPort": "state"
+    },
+    {
+      "id": "1",
+      "sourceNodeId": "pay",
+      "sourcePort": "state",
+      "targetNodeId": "sink",
+      "targetPort": "state"
+    }
+  ],
+  "expressions": {
+    "pay": {
+      "exprType": "if",
+      "condition": {
+        "exprType": "compare",
+        "op": "Eq",
+        "left": {
+          "exprType": "fieldAccess",
+          "target": "state",
+          "path": [
+            "choice"
+          ]
+        },
+        "right": {
+          "exprType": "constant",
+          "kind": "String",
+          "value": "cap"
+        }
+      },
+      "thenExpr": {
+        "exprType": "constant",
+        "kind": "Integer",
+        "value": "1"
+      },
+      "elseExpr": {
+        "exprType": "constant",
+        "kind": "Rational",
+        "value": "1/2"
+      }
+    }
+  },
+  "paytables": [
+    {
+      "id": "precision",
+      "entries": [
+        {
+          "symbolId": "half",
+          "counts": [
+            1
+          ],
+          "payouts": [
+            "0.5"
+          ]
+        }
+      ]
+    }
+  ]
+}

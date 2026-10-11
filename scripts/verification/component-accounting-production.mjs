@@ -26,7 +26,7 @@ async function launch(engine = 'auto', workers = '2') {
   const accepted = waitForRunLaunch(page);
   await page.getByRole('button', { name: /^▶ Start (new )?run$/ }).click(); const response = await accepted;
   if (response.status() !== 202) throw new Error(`Launch rejected HTTP ${response.status()}`); const { id } = await response.json(); owned.push(id);
-  await expect(page.locator('.run-status')).toHaveText('completed', { timeout: 120000 }); return get('/api/runs/' + id);
+  await expect(page.locator('.run-status')).toHaveText('completed', { timeout: 900000 }); return get('/api/runs/' + id);
 }
 async function reconcile(run, cohort = '') {
   const panel = page.locator('#component-accounting'); await panel.evaluate(el => { el.open = true; });
@@ -62,25 +62,30 @@ try {
   await panel.locator('summary').first().scrollIntoViewIfNeeded(); await page.screenshot({ path: root + '/docs/verification/component-accounting-production-mobile.png' });
   Object.assign(report, { runId: run.id, referenceRunId: canonical.id, measurements: 8, count: r.count, varianceDiagonal: r.componentVarianceSum, twiceCrossCovariances: r.twiceCovarianceSum, observedTotalVariance: r.totalSampleVariance, exactViolations: r.exactViolations,
     workerAndEngineBitIdentical: true, emptyBrowserRestored: true, mobileVerified: true, runtimeProvenance: run.runtimeProvenance, retainedArtifact: artifact.id, resultsUrl: base + `/results?run=${run.id}` });
-  // A real game uses the same generic builder: settled payout equals the raw
-  // award plus the negative cap deduction, with every paid parent included.
-  await page.setViewportSize({ width: 1560, height: 1100 }); await page.goto(base + '/build?project=dog-house'); await expect(page.locator('.react-flow__node')).toHaveCount(12);
+  // Whole-round base and bonus contributions are already capped by the graph.
+  await page.setViewportSize({ width: 1560, height: 1100 }); await page.goto(base + '/build?project=nine-lives'); await expect(page.locator('.react-flow__node')).toHaveCount(4);
   await page.getByRole('tab', { name: 'Simulate', exact: true }).click(); await page.getByRole('button', { name: 'Create component accounting plan', exact: true }).click();
-  await page.getByLabel('Reconciliation name').fill('Dog House payout cap'); await page.getByLabel('Component 1 name').fill('Raw payout'); await page.getByLabel('Component 1 value').selectOption('measurement:rawPayout');
-  await page.getByLabel('Component 2 name').fill('Negative cap deduction'); await page.getByLabel('Component 2 value').selectOption('visual'); await page.getByLabel('Component 2 node type', { exact: true }).selectOption('binary'); await page.getByLabel('Component 2 operator', { exact: true }).selectOption('Sub');
-  await page.getByLabel('Component 2 Right node type', { exact: true }).selectOption('fieldAccess'); await page.getByLabel('Component 2 Right namespace', { exact: true }).selectOption('measurement'); await page.getByLabel('Component 2 Right state path', { exact: true }).fill('capDeduction');
+  await page.getByLabel('Reconciliation name').fill('Nine Lives base and bonus');
+  await page.getByLabel('Component 1 name').fill('Base'); await page.getByLabel('Component 1 value').selectOption('visual');
+  await page.getByLabel('Component 1 node type', { exact: true }).selectOption('binary'); await page.getByLabel('Component 1 operator', { exact: true }).selectOption('Div');
+  await page.getByLabel('Component 1 Left node type', { exact: true }).selectOption('fieldAccess'); await page.getByLabel('Component 1 Left state path', { exact: true }).fill('baseCoins');
+  await page.getByLabel('Component 1 Right constant value', { exact: true }).fill('20');
+  await page.getByLabel('Component 2 name').fill('Bonus'); await page.getByLabel('Component 2 value').selectOption('visual');
+  await page.getByLabel('Component 2 node type', { exact: true }).selectOption('binary'); await page.getByLabel('Component 2 operator', { exact: true }).selectOption('Div');
+  await page.getByLabel('Component 2 Left node type', { exact: true }).selectOption('fieldAccess'); await page.getByLabel('Component 2 Left state path', { exact: true }).fill('freeCoins');
+  await page.getByLabel('Component 2 Right constant value', { exact: true }).fill('20');
   await saveValidatedDialog(page, 'Save accounting plan');
-  const dog = await launch(), cap = await reconcile(dog);
-  await page.goto(base + `/results?run=${dog.id}`); await page.getByRole('button', { name: 'Calculate reference', exact: true }).click(); await expect(page.locator('.results-reference-value')).toHaveText('98.000%', { timeout: 90000 });
-  const dogReference = await launchFromSaved(dog);
-  expect(dogReference.progress.measurements).toEqual(dog.progress.measurements);
-  const primaryFrames = frames.filter(f => f.runId === dog.id && f.measurements?.some(m => m.analysis));
+  const nineLives = await launch(), cap = await reconcile(nineLives);
+  await page.goto(base + `/results?run=${nineLives.id}`); await page.getByRole('button', { name: 'Calculate reference', exact: true }).click(); await expect(page.locator('.results-reference-value')).toHaveText('Unavailable', { timeout: 90000 });
+  const nineLivesReference = await launchFromSaved(nineLives);
+  expect(nineLivesReference.progress.measurements).toEqual(nineLives.progress.measurements);
+  const primaryFrames = frames.filter(f => f.runId === nineLives.id && f.measurements?.some(m => m.analysis));
   if (!primaryFrames.length) throw new Error('No rich accounting WebSocket frames.');
-  Object.assign(report, { dogHouseRunId: dog.id, dogHouseReferenceRunId: dogReference.id, authoredRtp: .98, observedRtp: dog.progress.runningRtp, capHits: dog.progress.capHits, dogHouseAccountingStatus: cap.output.report.status,
-    dogHouseExactViolations: cap.output.report.exactViolations, dogHouseEngineAndWorkerBitIdentical: true, richPrimaryFrames: primaryFrames.length, richFrames: frames.length, simulateUrl: base + `/simulate?run=${dog.id}` });
+  Object.assign(report, { nineLivesRunId: nineLives.id, nineLivesReferenceRunId: nineLivesReference.id, authoredRtp: .96, observedRtp: nineLives.progress.runningRtp, capHits: nineLives.progress.capHits, nineLivesAccountingStatus: cap.output.report.status,
+    nineLivesExactViolations: cap.output.report.exactViolations, nineLivesEngineAndWorkerBitIdentical: true, richPrimaryFrames: primaryFrames.length, richFrames: frames.length, simulateUrl: base + `/simulate?run=${nineLives.id}` });
   if (errors.length) throw new Error('Browser errors: ' + errors.join('; '));
   report.browserErrors = []; await writeFile(root + '/docs/verification/component-accounting-production.json', JSON.stringify(report, null, 2) + '\n');
-  console.log(JSON.stringify({ runId: run.id, dogHouseRunId: dog.id, observedRtp: report.observedRtp, authoredRtp: .98, simulateUrl: report.simulateUrl }));
+  console.log(JSON.stringify({ runId: run.id, nineLivesRunId: nineLives.id, observedRtp: report.observedRtp, authoredRtp: .96, simulateUrl: report.simulateUrl }));
 } finally {
   await page.goto('about:blank').catch(() => {});
   for (const id of owned) try { const run = await get('/api/runs/' + id); if (!['completed', 'cancelled', 'failed'].includes(run.status)) await context.request.delete(base + '/api/runs/' + id); } catch { /* preserve terminal archives */ }

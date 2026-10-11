@@ -176,7 +176,9 @@ public static class SubgraphInliner
         {
             edges.Add(e with
             {
-                Id = prefix + e.Id, SourceNodeId = prefix + e.SourceNodeId, TargetNodeId = prefix + e.TargetNodeId
+                Id = prefix + e.Id,
+                SourceNodeId = prefix + e.SourceNodeId,
+                TargetNodeId = prefix + e.TargetNodeId
             });
         }
 
@@ -207,7 +209,9 @@ public static class SubgraphInliner
                 {
                     edges.Add(e with
                     {
-                        Id = $"{prefix}in:{e.Id}->{nodeId}", TargetNodeId = prefix + nodeId, TargetPort = portName
+                        Id = $"{prefix}in:{e.Id}->{nodeId}",
+                        TargetNodeId = prefix + nodeId,
+                        TargetPort = portName
                     });
                 }
             }
@@ -317,7 +321,10 @@ public static class SubgraphInliner
             PutStateNode p => p with { Id = id, Inputs = inputs, Outputs = outputs },
             ModifyStateNode m => m with
             {
-                Id = id, Inputs = inputs, Outputs = outputs, ExpressionId = NsRef(m.ExpressionId, prefix)
+                Id = id,
+                Inputs = inputs,
+                Outputs = outputs,
+                ExpressionId = NsRef(m.ExpressionId, prefix)
             },
             LoopNode l => l with
             {
@@ -329,11 +336,16 @@ public static class SubgraphInliner
             },
             BranchNode b => b with
             {
-                Id = id, Inputs = inputs, Outputs = outputs, ConditionId = NsRef(b.ConditionId, prefix)
+                Id = id,
+                Inputs = inputs,
+                Outputs = outputs,
+                ConditionId = NsRef(b.ConditionId, prefix)
             },
             MapNode map => map with
             {
-                Id = id, Inputs = inputs, Outputs = outputs
+                Id = id,
+                Inputs = inputs,
+                Outputs = outputs
                 // plugin:<id> references are global ids, not mechanic-local.
             },
             DataNode dn => dn with { Id = id, Inputs = inputs, Outputs = outputs },
@@ -341,7 +353,9 @@ public static class SubgraphInliner
             LibraryNode lib => lib with
             {
                 // Nested library node: namespace its id; it is expanded next pass.
-                Id = id, Inputs = inputs, Outputs = outputs
+                Id = id,
+                Inputs = inputs,
+                Outputs = outputs
             },
             _ => node
         };
@@ -411,7 +425,8 @@ public static class SubgraphInliner
             BinaryExpr b => b with { Left = RewriteExprRefs(b.Left, prefix), Right = RewriteExprRefs(b.Right, prefix) },
             CompareExpr c => c with
             {
-                Left = RewriteExprRefs(c.Left, prefix), Right = RewriteExprRefs(c.Right, prefix)
+                Left = RewriteExprRefs(c.Left, prefix),
+                Right = RewriteExprRefs(c.Right, prefix)
             },
             IfExpr i => i with
             {
@@ -425,10 +440,12 @@ public static class SubgraphInliner
                 Predicate = a.Predicate is null ? null : RewriteExprRefs(a.Predicate, prefix),
                 ValueExpr = a.ValueExpr is null ? null : RewriteExprRefs(a.ValueExpr, prefix)
             },
+            BitSetExpr set => set with { Args = set.Args.Select(arg => RewriteExprRefs(arg, prefix)).ToArray() },
             CallExpr call => call with { Args = call.Args.Select(arg => RewriteExprRefs(arg, prefix)).ToArray() },
             FoldExpr fold => fold with
             {
-                Init = RewriteExprRefs(fold.Init, prefix), Body = RewriteExprRefs(fold.Body, prefix)
+                Init = RewriteExprRefs(fold.Init, prefix),
+                Body = RewriteExprRefs(fold.Body, prefix)
             },
             MapExpr map => map with { Body = RewriteExprRefs(map.Body, prefix) },
             FilterExpr filter => filter with { Predicate = RewriteExprRefs(filter.Predicate, prefix) },

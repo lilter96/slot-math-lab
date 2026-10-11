@@ -507,7 +507,7 @@ public class StructuredEquivalenceTests(ITestOutputHelper output)
         BigInteger cap = new BigInteger(graph.Nodes.OfType<MetricsSinkNode>().Single().WinCap!.Value) *
                          compiled.WinScale;
         var expected = new SortedDictionary<BigInteger, Rational>();
-        foreach ((BigInteger value, Rational mass) in StructuredDogHouseTests.Normalized(classic!))
+        foreach ((BigInteger value, Rational mass) in StructuredLabDemoTests.Normalized(classic!))
         {
             BigInteger capped = BigInteger.Min(value, cap);
             expected[capped] = (expected.TryGetValue(capped, out Rational sum) ? sum : Rational.Zero) + mass;
@@ -566,7 +566,7 @@ public class StructuredEquivalenceTests(ITestOutputHelper output)
         }
 
         Assert.NotNull(result.HitFrequency);
-        Assert.Equal(expected, StructuredDogHouseTests.Normalized(result.Distribution));
+        Assert.Equal(expected, StructuredLabDemoTests.Normalized(result.Distribution));
         return (Verdict.Equal, note);
     }
 
@@ -820,11 +820,30 @@ public class StructuredEquivalenceTests(ITestOutputHelper output)
         Assert.Equal(new Rational(3, 4), result.ExpectedWin / scale);
         Assert.Equal(new Rational(1, 2), result.HitFrequency);
         Assert.Equal(new Rational(1, 2), result.StructuralHitFrequency);
-        Rational second = StructuredDogHouseTests.Normalized(result.Distribution!).Aggregate(Rational.Zero,
+        Rational second = StructuredLabDemoTests.Normalized(result.Distribution!).Aggregate(Rational.Zero,
             (total, entry) =>
                 total + new Rational(entry.Key, 1) / scale * (new Rational(entry.Key, 1) / scale) * entry.Value);
         Assert.Equal(new Rational(15, 16), second - new Rational(9, 16));
         Assert.Equal(Verdict.Equal, Compare(Graph(Fixture(Coin))).Verdict);
+    }
+
+    // A set of positions is read through its operands: the mask is drawn, and the win is the size of the set it
+    // makes with position zero. Masks 1, 2, 5 and 12 with weights 1, 3, 4 and 2 make sets of 1, 2, 2 and 3 positions.
+    [Fact]
+    public void BitSetOverADrawnMask_ReadsItsOperands_AndEqualsTheClassicInterpreter()
+    {
+        (string, int, int)[] masks = [("1", 1, 0), ("2", 3, 0), ("5", 4, 0), ("12", 2, 0)];
+        Expression size = new BitSetExpr
+        {
+            Op = BitSetOp.Count,
+            Args = [new BitSetExpr { Op = BitSetOp.Union, Args = [F("x"), N(1)] }]
+        };
+        Game game = Fixture(new DrawStmt("s", masks), new ModifyStmt("x", Call("tonumber", F("s"))),
+            new ModifyStmt("win", Bin(BinaryOp.Add, F("win"), size)));
+        StructuredExactResult result = Evaluate(game, out CompileResult compiled);
+        Assert.Equal(new Rational(21, 10), result.ExpectedWin / new Rational(compiled.WinScale, 1));
+        Assert.Equal(new Rational(1, 1), result.HitFrequency);
+        Assert.Equal(Verdict.Equal, Compare(Graph(game)).Verdict);
     }
 
     // x is the number of free spins left: a trigger (1 in 20) awards three, and so does every retrigger.

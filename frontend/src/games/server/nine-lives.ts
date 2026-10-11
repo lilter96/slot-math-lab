@@ -1,5 +1,5 @@
 import { ROWS, SYMBOLS, config, initialState, type LivesResult, type LivesState, type LivesStep } from '../contracts/nine-lives';
-import { createNineLivesGraph, nineLivesModel as model } from '../nine-lives/graph';
+import { createNineLivesGraph, nineLivesModel as model } from '../nine-lives-tgslots/graph';
 import { credits, lists, number, numbers, reels, remembered, type Game, type Step } from './game';
 
 const SCATTER = SYMBOLS.indexOf(model.symbols.scatter);

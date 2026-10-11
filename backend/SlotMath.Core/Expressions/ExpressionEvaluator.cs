@@ -90,11 +90,20 @@ public static class ExactExpressionEvaluator
             AggregateExpr a => EvalAggregate(a, ctx),
             NotExpr n => EvalNot(n, ctx),
             CallExpr c => EvalCall(c, ctx),
+            BitSetExpr set => EvalBitSet(set, ctx),
             FoldExpr f => EvalFold(f, ctx),
             MapExpr m => EvalMap(m, ctx),
             FilterExpr fi => EvalFilter(fi, ctx),
             _ => throw new InvalidOperationException($"Unknown expression type: {expr.GetType().Name}")
         };
+    }
+
+    private static ExprValue EvalBitSet(BitSetExpr set, EvalContext ctx)
+    {
+        var first = set.Args.Length > 0 ? Eval(set.Args[0], ctx) : default;
+        var second = set.Args.Length > 1 ? Eval(set.Args[1], ctx) : default;
+        for (var i = 2; i < set.Args.Length; i++) Eval(set.Args[i], ctx);
+        return BitSetOperations.Evaluate(set.Op, set.Args.Length, first, second);
     }
 
     private static ExprValue EvalConstant(ConstantExpr c)

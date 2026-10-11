@@ -1,4 +1,4 @@
-import { graphRequest, type GraphRound } from '../doghouse/api';
+import { graphRequest, type GraphRound } from '../../lib/graphApi';
 import { ancientDragon } from './ancient-dragon';
 import { leMilitare } from './le-militare';
 import { nineLives } from './nine-lives';

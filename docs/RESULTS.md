@@ -50,16 +50,7 @@ The Results module and stylesheet load separately from the initial editor bundle
 Authored RTP is design intent. It is distinct from both an observed estimate and
 a calculated mathematical reference. Reference calculation is explicit:
 
-- Supported Dog House configurations produce a second editable constructor AST
-  that computes the rational expectation and base/scatter/free-spin contributions
-  under checked reel, payout, multiplier, loop, and nonbinding-cap assumptions.
-  It is labeled **ExactExpectation**, not an exact payout distribution.
-- Other models attempt rational full enumeration with a 10,000-branch budget.
-  Complete enumeration is **ExactDistribution**; pruning can produce a conservative
-  **ExactInterval**. Exceeding the budget is explicitly unavailable.
-- Engine calculations are not independent external certification. The existing
-  Python Fraction oracle separately checks the standard Dog House fixture; it is
-  not falsely attached to arbitrary saved or edited models as their certificate.
+Nine Lives retains its source target of 96% and reports Sampled evidence with uncertainty. Full exact evaluation may return Unavailable on budget exhaustion. Its Python Fraction oracle independently verifies rules and traces; it does not prove the full RTP. See [Lab Demo](LAB_DEMO.md).
 
 The approximate RTP interval is `mean ± 1.96 × sample standard error`.
 Acceptance requires verified input, internally consistent evidence, every
@@ -106,7 +97,7 @@ API tests cover pagination, malformed filters, stable cursors under insertion,
 lightweight summaries, executable AST round trips, version pinning, legacy gaps,
 deletion guards, and concurrent pin/deletion. Browser tests cover archive discovery,
 references, exports, editor restoration, seeded replay across worker counts,
-different/correlated runs, the 98% constructor proof, accessibility keyboard tabs,
+different/correlated runs, the reduced component proof and full-game reference unavailability, accessibility keyboard tabs,
 all four sections on mobile, errors, zero variance, and active WebSocket navigation.
 These run in the existing unit/API/E2E CI jobs.
 
@@ -118,14 +109,7 @@ PLAYWRIGHT_CHROMIUM_EXECUTABLE=/path/to/chromium \
 node scripts/verification/results-production.mjs
 ```
 
-The script uses `RESULTS_USER` (default `operator`) and
-`RESULTS_PASSWORD_FILE` (default ignored production credential file). Set
-`RESULTS_RUN_ID` to another completed standard 100,000-round, seed-42 Dog House
-run; otherwise it uses the retained run recorded by realtime verification. It
-launches a replay and records the real checks in
-`docs/verification/results-production.json`, with desktop/mobile screenshots.
-It does not restart or kill the server. Deployment persistence remains the
-documented encrypted, single-writer snapshot architecture.
+Nine Lives retains its source target of 96% and reports Sampled evidence with uncertainty. Full exact evaluation may return Unavailable on budget exhaustion. Its Python Fraction oracle independently verifies rules and traces; it does not prove the full RTP. See [Lab Demo](LAB_DEMO.md).
 
 ## Pinned verification workspace
 

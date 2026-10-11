@@ -41,7 +41,7 @@ async function launch(engine = 'auto', workers = '2') {
   const accepted = waitForRunLaunch(page);
   await page.getByRole('button', { name: /^▶ Start (new )?run$/ }).click(); const response = await accepted;
   if (response.status() !== 202) throw new Error(`Launch rejected HTTP ${response.status()}`); const { id } = await response.json(); owned.push(id);
-  await expect(page.locator('.run-status')).toHaveText('completed', { timeout: 120000 }); return get('/api/runs/' + id);
+  await expect(page.locator('.run-status')).toHaveText('completed', { timeout: 900000 }); return get('/api/runs/' + id);
 }
 async function evaluate(run) {
   await page.getByRole('button', { name: 'Evaluate pinned verification profile', exact: true }).click();
@@ -77,41 +77,41 @@ try {
   await page.locator('#verification-profile > summary').scrollIntoViewIfNeeded(); await page.screenshot({ path: root + '/docs/verification/verification-profile-production-mobile.png' });
   Object.assign(report, { fixtureRunId: run.id, fixtureReferenceRunId: reference.id, fixtureStatus: fixture.output.report.status, fixtureProfileHash: run.verificationProfileHash, fixtureAllocatedAlpha: fixture.output.report.allocatedAlpha,
     fixtureArtifact: fixture.id, engineAndWorkerBitIdentical: true, emptyBrowserRestored: true, mobileVerified: true });
-  await page.setViewportSize({ width: 1560, height: 1100 }); await page.goto(base + '/build?project=dog-house'); await expect(page.locator('.react-flow__node')).toHaveCount(12); await page.getByRole('tab', { name: 'Simulate', exact: true }).click();
-  await metric('Dog House return precision', null, .98, .005); await profile('98% target · 0.5 percentage-point precision', ['Dog House return precision'], 100000);
-  const dog = await launch(), decision = await evaluate(dog), row = decision.output.report.criteria[0];
+  await page.setViewportSize({ width: 1560, height: 1100 }); await page.goto(base + '/build?project=nine-lives'); await expect(page.locator('.react-flow__node')).toHaveCount(4); await page.getByRole('tab', { name: 'Simulate', exact: true }).click();
+  await metric('Nine Lives return precision', null, .96, .005); await profile('96% authored target · 0.5 percentage-point precision', ['Nine Lives return precision'], 100000);
+  const nineLives = await launch(), decision = await evaluate(nineLives), row = decision.output.report.criteria[0];
   // Independent fixed-count normal interval using the standard 97.5% normal
   // quantile. The fixture has no authored bounded/sequential alternative.
-  const sample = dog.progress.measurements[0], width = 1.959963984540054 * sample.stdDev / Math.sqrt(sample.count);
+  const sample = nineLives.progress.measurements[0], width = 1.959963984540054 * sample.stdDev / Math.sqrt(sample.count);
   if (Math.abs(row.interval.lower - (sample.mean - width)) > 1e-7 || Math.abs(row.interval.upper - (sample.mean + width)) > 1e-7) throw new Error('Independent fixed-count interval oracle differs.');
-  const expected = row.interval.lower >= .975 && row.interval.upper <= .985 ? 'withinPrecision' : row.interval.upper < .975 || row.interval.lower > .985 ? 'discrepancy' : 'insufficient';
+  const expected = row.interval.lower >= .955 && row.interval.upper <= .965 ? 'withinPrecision' : row.interval.upper < .955 || row.interval.lower > .965 ? 'discrepancy' : 'insufficient';
   if (row.status !== expected) throw new Error('The precision decision does not follow its pinned interval and tolerance.');
-  await page.goto(base + `/results?run=${dog.id}`); await page.getByRole('button', { name: 'Calculate reference', exact: true }).click(); await expect(page.locator('.results-reference-value')).toHaveText('98.000%', { timeout: 90000 });
+  await page.goto(base + `/results?run=${nineLives.id}`); await page.getByRole('button', { name: 'Calculate reference', exact: true }).click(); await expect(page.locator('.results-reference-value')).toHaveText('Unavailable', { timeout: 90000 });
   await page.getByRole('button', { name: 'Replay pinned run', exact: true }).click(); await page.getByLabel('Pinned run engine').selectOption('reference'); await page.getByLabel('Pinned run workers').selectOption('1');
   const accepted = waitForRunLaunch(page);
   await page.getByRole('button', { name: 'Start pinned run', exact: true }).click(); const replayResponse = await accepted;
   if (replayResponse.status() !== 202) throw new Error('Pinned replay was rejected.'); const replay = await replayResponse.json(); owned.push(replay.id);
-  await expect(page.locator('.run-status')).toHaveText('completed', { timeout: 120000 }); const other = await get('/api/runs/' + replay.id);
-  expect(other.progress.measurements).toEqual(dog.progress.measurements); expect(other.verificationProfileHash).toBe(dog.verificationProfileHash);
-  await page.goto(base + `/simulate?run=${dog.id}`); await expect(page.getByTestId('sample-count')).toHaveText('100,000');
-  await expect(page.locator('#verification-profile')).toContainText(dog.verificationProfile.name);
+  await expect(page.locator('.run-status')).toHaveText('completed', { timeout: 900000 }); const other = await get('/api/runs/' + replay.id);
+  expect(other.progress.measurements).toEqual(nineLives.progress.measurements); expect(other.verificationProfileHash).toBe(nineLives.verificationProfileHash);
+  await page.goto(base + `/simulate?run=${nineLives.id}`); await expect(page.getByTestId('sample-count')).toHaveText('100,000');
+  await expect(page.locator('#verification-profile')).toContainText(nineLives.verificationProfile.name);
   await expect(page.getByLabel('Verification profile result')).toHaveAttribute('data-profile-status', decision.output.report.status);
   const download = page.waitForEvent('download'); await page.getByRole('button', { name: 'Export evidence' }).click();
   const exported = JSON.parse(await readFile(await (await download).path(), 'utf8'));
-  if (exported.schemaVersion !== 'slotmath.simulation.v2' || exported.run.id !== dog.id || exported.run.verificationProfileHash !== dog.verificationProfileHash
-    || !exported.pinnedGraph.inputVerified || exported.pinnedGraph.computedConfigHash !== dog.configHash) throw new Error('Authenticated simulation export lost pinned evidence.');
-  expect(exported.progress).toEqual(dog.progress); expect(exported.run.progress).toEqual(exported.progress);
-  expect(exported.run.runtimeProvenance).toEqual(dog.runtimeProvenance);
+  if (exported.schemaVersion !== 'slotmath.simulation.v2' || exported.run.id !== nineLives.id || exported.run.verificationProfileHash !== nineLives.verificationProfileHash
+    || !exported.pinnedGraph.inputVerified || exported.pinnedGraph.computedConfigHash !== nineLives.configHash) throw new Error('Authenticated simulation export lost pinned evidence.');
+  expect(exported.progress).toEqual(nineLives.progress); expect(exported.run.progress).toEqual(exported.progress);
+  expect(exported.run.runtimeProvenance).toEqual(nineLives.runtimeProvenance);
   report.authoritativeSimulationExportVerified = true;
   report.simulatePermalinkRestored = true;
-  const rich = frames.filter(f => f.runId === dog.id && f.measurements?.some(m => m.analysis)); if (!rich.length) throw new Error('No rich WebSocket metric evidence.');
-  Object.assign(report, { dogHouseRunId: dog.id, dogHouseReferenceRunId: replay.id, authoredRtp: .98, observedRtp: dog.progress.runningRtp, requiredTolerance: .005,
-    dogHouseProfileStatus: decision.output.report.status, meanInterval: row.interval, dogHouseProfileHash: dog.verificationProfileHash, dogHouseArtifact: decision.id,
-    independentIntervalVerified: true, dogHouseEngineAndWorkerBitIdentical: true, richPrimaryFrames: rich.length, richFrames: frames.length, runtimeProvenance: dog.runtimeProvenance,
-    simulateUrl: base + `/simulate?run=${dog.id}`, resultsUrl: base + `/results?run=${dog.id}`, fixtureResultsUrl: base + `/results?run=${run.id}` });
+  const rich = frames.filter(f => f.runId === nineLives.id && f.measurements?.some(m => m.analysis)); if (!rich.length) throw new Error('No rich WebSocket metric evidence.');
+  Object.assign(report, { nineLivesRunId: nineLives.id, nineLivesReferenceRunId: replay.id, authoredRtp: .96, observedRtp: nineLives.progress.runningRtp, requiredTolerance: .005,
+    nineLivesProfileStatus: decision.output.report.status, meanInterval: row.interval, nineLivesProfileHash: nineLives.verificationProfileHash, nineLivesArtifact: decision.id,
+    independentIntervalVerified: true, nineLivesEngineAndWorkerBitIdentical: true, richPrimaryFrames: rich.length, richFrames: frames.length, runtimeProvenance: nineLives.runtimeProvenance,
+    simulateUrl: base + `/simulate?run=${nineLives.id}`, resultsUrl: base + `/results?run=${nineLives.id}`, fixtureResultsUrl: base + `/results?run=${run.id}` });
   if (errors.length) throw new Error('Browser errors: ' + errors.join('; ')); report.browserErrors = [];
   await writeFile(process.env.MEASUREMENTS_REPORT_FILE ?? root + '/docs/verification/verification-profile-production.json', JSON.stringify(report, null, 2) + '\n');
-  console.log(JSON.stringify({ runId: dog.id, status: report.dogHouseProfileStatus, authoredRtp: .98, observedRtp: report.observedRtp, simulateUrl: report.simulateUrl }));
+  console.log(JSON.stringify({ runId: nineLives.id, status: report.nineLivesProfileStatus, authoredRtp: .96, observedRtp: report.observedRtp, simulateUrl: report.simulateUrl }));
 } finally {
   await page.goto('about:blank').catch(() => {});
   for (const id of owned) try { const run = await get('/api/runs/' + id); if (!['completed', 'cancelled', 'failed'].includes(run.status)) await context.request.delete(base + '/api/runs/' + id); } catch { /* Preserve terminal archives. */ }

@@ -8,7 +8,7 @@ import RightPanel from '../components/RightPanel';
 import { useLiveMetrics } from '../hooks/useLiveMetrics';
 import ErrorBoundary from '../components/ErrorBoundary';
 import { loadProject, rootProject } from '../lib/projectFiles';
-import { createDogHouseGraph } from '../games/doghouse/graph';
+import { createNineLivesGraph } from '../games/nine-lives/graph';
 import ModelNavigation from '../components/editor/ModelNavigation';
 
 export default function Build() {
@@ -24,24 +24,24 @@ export default function Build() {
     if (initialized.current) return;
     initialized.current = true;
     const state = useAppStore.getState();
-    if (searchParams.get('project') === 'dog-house') {
-      if ((state.tables.mechanics as Record<string, unknown>)?.['dog-base-spin']) rootProject();
-      else if ((state.verificationSource?.mechanics as Record<string, unknown>)?.['dog-base-spin']) {
+    if (searchParams.get('project') === 'nine-lives') {
+      if ((state.tables.mechanics as Record<string, unknown>)?.['base-spin']) rootProject();
+      else if ((state.verificationSource?.mechanics as Record<string, unknown>)?.['base-spin']) {
         loadProject(state.verificationSource!);
         useAppStore.setState({ graphTrail: [], verificationSource: null });
       } else {
         useAppStore.setState({ graphTrail: [], verificationSource: null });
-        loadProject(createDogHouseGraph());
+        loadProject(createNineLivesGraph());
       }
-      useAppStore.getState().selectNode('base-spin');
+      useAppStore.getState().selectNode('round');
       setSearchParams(previous => { const next = new URLSearchParams(previous); next.delete('project'); return next; }, { replace: true });
       return;
     }
     const encoded = searchParams.get('load');
     if (!encoded) {
       if (!state.nodes.length && !state.graphTrail.length) {
-        loadProject(createDogHouseGraph());
-        useAppStore.getState().selectNode('base-spin');
+        loadProject(createNineLivesGraph());
+        useAppStore.getState().selectNode('round');
       }
       return;
     }

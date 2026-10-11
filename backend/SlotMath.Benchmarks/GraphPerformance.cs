@@ -172,7 +172,10 @@ internal static class GraphPerformance
                 variance = snapshot.Variance,
                 hitFrequency = snapshot.HitFrequency,
                 maxWin = snapshot.MaxObserved,
-                histogram = snapshot.AdaptiveHistogram
+                capHits = snapshot.CapHits,
+                maxWinCap = snapshot.MaxWinCap,
+                histogram = snapshot.AdaptiveHistogram,
+                loopTerminations = result.Execution?.LoopTerminations
             });
             Console.WriteLine(
                 $"{i + 1}: {rounds / timer.Elapsed.TotalSeconds:N0} rounds/s; {allocated / (double)rounds:N0} B/round; RTP {snapshot.Mean:R}; cpu {cpuMs / timer.Elapsed.TotalMilliseconds:N2} cores; gc {string.Join('/', gcCounts)}, pause {pauseMs:N0} ms of {timer.Elapsed.TotalMilliseconds:N0} ms");
@@ -187,6 +190,7 @@ internal static class GraphPerformance
             warmup,
             workers,
             live,
+            winScale = compiled.WinScale.ToString(),
             streamScheme = "splitmix64-chunk-65536",
             compileMs = compileTimer.Elapsed.TotalMilliseconds,
             runtime = RuntimeInformation.FrameworkDescription,

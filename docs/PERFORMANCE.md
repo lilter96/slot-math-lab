@@ -1,190 +1,172 @@
-# Graph execution performance
+# Nine Lives graph execution performance
 
-The full Dog House model is compiled from the same UI graph and typed expression
-AST. The sampled execution plan uses indexed, private state frames, precompiled
-expression delegates, immutable typed arrays, parsed constants and prebuilt alias
-tables. Each logical PRNG chunk owns a runner and resets its frame between rounds.
-State snapshots are materialized only for Play/replay, with defensive copies of
-cached defaults. Integer arithmetic avoids unnecessary rational reduction.
-Hot expressions are compiled to IL, consecutive state and draw nodes run as one
-loop, never-written initial state is folded into the expressions that read it,
-and every sampling worker leases a private replica of the plan.
+Nine Lives is authored in editable JSON subgraphs. The only added graph
+capability is the explicitly approved 64-bit finite-set expression family:
+Union, Intersect, Except, Shift, Count and First. The compiler optimizes generic
+expressions, storage and control flow; game names, mechanic identifiers and
+authored graph patterns do not select kernel implementations.
 
-Exact evaluation continues to consume the canonical immutable Slot program.
-Programs using plugins, transform/evaluator Map nodes, reel-product Draw nodes,
-or legacy loops retain the general interpreter. Composing further monadic effects
-over an optimized program also retains the canonical interpreter's semantics.
-This optimization does not claim to accelerate every graph or exact enumeration.
 Exact results for games too large to enumerate come from a separate evaluator,
 described under [Structured exact evaluation](#structured-exact-evaluation).
 
-The API caches eligible compiled plans by canonical graph SHA-256, with one
-compilation for simultaneous requests, ten-minute idle expiration and a 32 MiB
-estimated-size budget. This accounts conservatively for graph objects and code;
-it is not an exact heap quota. Input edits produce a different key. Registry and
-plugin-dependent programs are not cached. Final run evidence includes
-`samplingEngine` (`compiled-state-plan-v1` or `reference-interpreter`).
+## Workload and current target
 
-## Sampled throughput
+The current acceptance target is **2,000,000 complete paid rounds/second on
+eight workers on this machine**. Every measured round includes triggered free
+spins and cascades, complete payout statistics, histograms and live callbacks.
+HTTP, queueing, SignalR and rendering are outside this kernel benchmark.
+The earlier Release measurement exceeded the target in all three
+ten-million-round repeats; concurrent host workloads affect subsequent runs.
 
-Full Dog House graph, seed 42, 8,388,608 rounds after 400,000 warmup rounds, live
-progress callbacks on, .NET 10.0.12 Release, Server GC with dynamic adaptation
-off, i5-13600KF. Workers are pinned to distinct performance cores unless noted.
-Each row is one of three consecutive measurements; the four-worker row is their
-median (1,052,000–1,071,000):
+The current model hash is
+`09e4fca19d064284290c6d0e869acc5872684ff4e92e1e039720876a3fdc3ae7`.
+Measurements use .NET 10.0.12 Release, seed 42 and logical streams
+`splitmix64-chunk-65536`. The host has twenty logical CPUs with mixed core
+speeds and concurrent unrelated work. These are local observations; a D7
+runner certificate requires its specified hardware and workload conditions.
 
-| Workers | Rounds/second | Bytes/round |
-| ---: | ---: | ---: |
-| 1 | 308,000 | 987 |
-| 2 | 575,000 | 987 |
-| 4 | 1,067,000 | 987 |
-| 4, not pinned | 1,071,000 | 987 |
-| 8, not pinned | 1,727,000 | 987 |
+## Measured changes
 
-The same build with code generation switched off (`--tier interpreted`) reaches
-308,000 rounds/second at four workers, and the canonical interpreter
-(`--reference`) 19,600. Before this work one worker reached about 34,000.
-The seeded mean payout, `0.9742173612117765`, is identical in every row, at every
-worker count and in every tier.
+The following comparisons compile both variants once in one process, warm
+each with two million complete rounds, then alternate ABBA/BAAB over eight
+five-million-round repeats. The table gives the median for each variant.
+Only the indicated optimization changes within a comparison. Different pairs
+ran at different times under different shared-host load; their medians should
+not be combined into a cumulative speedup calculation.
 
-Through the API (`POST /api/runs` with the payload the Simulate page sends: four
-workers, a progress snapshot every 1,000 rounds), a warm process measures
-0.94–1.10 million rounds/second of worker time for 8,388,608 rounds and about
-1.0 million for 1,000,000 rounds. The first run of a new graph pays roughly
-0.2 s for code generation; the first run after process start pays about 1 s.
+| Change | Before rounds/s | After rounds/s | Before CPU µs/round | After CPU µs/round |
+| --- | ---: | ---: | ---: | ---: |
+| Remove redundant no-Wild guards after exact seed selection | 1,490,013 | 1,628,239 | 5.172 | 4.754 |
+| Author two required frontier expansions before the remaining loop | 1,369,743 | 1,464,687 | 5.672 | 5.277 |
+| Keep RNG state in registers across the existing alias pair | 1,468,233 | 1,485,296 | 5.319 | 5.249 |
+| Capture initial scatter count from existing bit planes | 1,415,347 | 1,427,993 | 5.477 | 5.393 |
+| Reuse temporary arrays within a paid round | 1,309,162 | 1,442,051 | 5.935 | 5.349 |
+| Reuse immutable boxed numeric zero on cell export | 1,604,322 | 1,636,921 | 4.818 | 4.670 |
+| Reuse temporary arrays by exact length across different request orders | 1,764,854 | 1,812,251 | 4.367 | 4.259 |
+| Select the existing alias result with an integer mask | 1,629,934 | 1,799,076 | 4.712 | 4.295 |
+| Convert the existing 53-bit RNG fraction through a positive signed integer | 1,725,790 | 1,781,085 | 4.457 | 4.372 |
 
-### What made it slow, and what changed
+The array comparison reduced allocation from 2,479.7 to 453.8 bytes/round.
+Cached numeric zero reduced it to 273.9 bytes/round; matching buffers by exact
+length reduced it further to 64.7 bytes/round in its comparison. Arrays remain
+distinct for the entire current round; exports recursively copy them. The
+bounded arena is disabled for persistent state and custom measurement
+collection. Live payout statistics and progress callbacks are retained.
 
-1. **Per-node dispatch.** Each node was a closure calling the next one, about
-   27 ns per node, and about half the nodes of the Dog House graph are trace
-   recorders that do nothing outside Play. A run of consecutive state and draw
-   nodes is now one loop over a step array, and a field assigned to itself costs
-   a single check.
-2. **Expression evaluation.** Expressions ran as trees of delegates over boxed
-   values. A hot expression (64 evaluations) is now compiled to IL through
-   `System.Linq.Expressions`. Code is generated once per expression *shape*;
-   slots, constants and nested closures are passed as operands, so twenty
-   payline evaluators share one method and a plan replica reuses its original's
-   code. An expression the generator does not support stays interpreted.
-3. **Constant state.** Initial state that no node writes (library parameters,
-   feature switches) is folded into the expressions that read it, and a
-   conditional on such a value keeps only the branch it takes. A runner whose
-   initial state overrides one of these keys uses an unfolded plan.
-4. **Workers sharing one plan.** Four workers running one plan instance were
-   24–32% slower in total than four private instances. Each worker now
-   leases its own replica for the duration of a run. The mechanism behind the
-   penalty was not identified; `perf` was not available on the measuring host.
-5. **PRNG and alias sampler.** `SeededRandom` keeps its state in locals and is
-   inlined into its callers; the alias table is one array of 16-byte entries;
-   `WeightSet.AliasTable` is read without a lock. One core, one draw:
-   raw 64-bit output 2.4 → 0.8 ns, weighted draw 9.4 → 7.7 ns, uniform draw
-   7.1 → 4.8 ns, weighted draw through the `WeightSet` cache 15.3 → 8.3 ns.
-   Output is bit-identical: the table is still built by first-in, first-out
-   pairing, because the pairing order decides which outcome a seeded draw
-   returns, and a threshold is still the plain double quotient while the
-   weights fit the double range. Beyond it (totals above about 2^1024, where
-   the previous build produced infinities) the quotient is computed from the
-   leading 64 bits, so a positive weight keeps a positive share as long as a
-   double can represent it.
-6. **Collector mode.** See below.
+The full payout mean, variance, hit frequency, observed maximum, histogram
+and loop evidence agree within each storage/RNG comparison. Authored loop
+rewrites preserve payout statistics while their loop evidence describes the
+new graph. [Experiment reports](verification/lab-demo-optimization-experiments.json)
+retain individual timings, CPU time, GC pauses, allocation and statistics.
+[The optimization record](verification/NINE_LIVES_OPTIMIZATION.md) explains
+native profiles, independent regressions and rejected experiments.
 
-### Runtime configuration
+The earlier standalone eight-worker run measured **2,061,865 / 2,059,413 /
+2,065,394 complete rounds/s** (median **2,061,865**), with live statistics,
+three ten-million-round repeats and two-million-round warmup. Allocation was
+65 B/round; GC pauses were 0 / 2 / 1 ms. The [earlier report](verification/lab-demo-performance-eight-workers.json)
+retains the model hash and all payout and loop statistics. Concurrent unrelated
+work was left running. The [one-worker report](verification/lab-demo-performance.json)
+measured a median of 310,987 complete rounds/s over
+three one-million-round repeats with the same two-million-round warmup.
 
-- **Garbage collector.** `SlotMath.Api` and `SlotMath.Benchmarks` set Server GC
-  with `GarbageCollectionAdaptationMode` 0. With the .NET 9+ default (DATAS) the
-  four-worker figure falls from 1,067,000 to 853,000 rounds/second: ten times as
-  many gen0 collections and 3.3 of 4 cores used.
-- **CPU quota.** Give the API container at least as many CPUs as the worker
-  limit (eight). Under `--cpus 2 --memory 2g` the benchmark measures 424,000
-  rounds/second with four workers and 571,000 with two; under `--cpus 4`,
-  1,112,000 with four; under `--cpus 8`, 1,571,000 with eight (134,217,728
-  rounds, no out-of-memory kill). Eight workers on this machine include
-  hyper-threads and efficiency cores, so they do not double the four-worker
-  figure.
-- **Run limits.** A run takes 1–10,000,000,000 rounds and 1–8 workers. Its
-  resource budget is five minutes per started 10,000,000 rounds. Finished
-  streams are folded into the totals in stream order as soon as every earlier
-  stream has been folded, so memory does not grow with the length of the run.
-  A worker does not start a stream that is 16 × workers or more ahead of the
-  first unfolded one, so fewer than that many finished streams wait even when
-  one stream is much slower than the rest. At 1,570,000 rounds/second the
-  largest run takes about 1 hour 46 minutes. Runs above 10,000,000 rounds
-  report progress once per stream or after 250 ms, whichever comes first.
-- **Run length.** A PRNG stream covers 65,536 rounds, and a stream is never split
-  between workers. A 100,000-round run therefore uses two workers whatever was
-  requested; four workers need more than 196,608 rounds and eight more than
-  458,752.
-- **.NET 11.** The same binaries on 11.0.0-rc.1 measure 312,600–314,800 against
-  312,400–312,800 rounds/second with one worker and 1,107,500–1,135,200 against
-  1,115,000–1,119,800 with four. That is within run-to-run variation, so the
-  target framework stays `net10.0`.
+## Benchmark cap units
 
-Evidence: [four-worker benchmark](verification/performance-sampling-codegen.json).
+Review corrected the standalone benchmark's statistics cap: wins are divided
+by the compiled WinScale before collection, so the cap must remain **9,999
+original stakes**, rather than being multiplied by the scale. The API already
+used the correct units; its live UI evidence below is unaffected. Earlier
+standalone reports retain historical measurements, but their cap accounting
+must not be used as evidence. The payout mean, variance, hit frequency and
+observed maximum agree with the corrected run because those samples remained
+below the actual cap.
 
-## Earlier measurement: compiled state plan
+The [post-review report](verification/lab-demo-performance-cap-check.json)
+records the corrected scale and cap, cap hits, payout statistics and loop
+terminations. Its three ten-million-round repeats measured **1,732,968 /
+1,676,031 / 1,608,031 rounds/s** while a Core test process in another checkout
+was running and a game started during measurement. These shared-host readings
+do not establish throughput on an idle D7 runner. The processes were left
+running; their start times and the measurement interval are recorded.
 
-Graph: `6ab31814ceb52133e3332855ab8e80aac5af9f9443a886b9361bf5345f0964b4`.
-.NET 10.0.12 Release, processor count pinned to two, one sampling worker, seed 42,
-100,000 warmup rounds, three measurements of 20,000 complete rounds. Live statistics
-callbacks are enabled. Median results:
+CI also runs `scripts/verification/benchmark_cap.py --check` against a generic
+two-point payout graph with WinScale 10 and cap 1×. Seed 42 yields 5,038 cap
+hits in 10,000 rounds, mean 0.7519, and maximum 1×. This independently pinned
+control fails if the CLI multiplies its statistics cap by the payout scale.
 
-| Metric | Previous interpreter | Compiled state plan |
-| --- | ---: | ---: |
-| Complete rounds/second | 5,031 | 39,776 |
-| Allocated bytes/round | 600,997 | 16,065 |
-| Seeded mean payout | 1.0002349999999924 | 1.0002349999999924 |
+## Real UI execution
 
-Throughput improves **7.91×**, and allocations decrease **97.33%**. Count, mean,
-variance, hit frequency, maximum and every histogram bucket are identical.
-The benchmark includes sampled statistics/progress calculation; it does not
-include HTTP, SignalR serialization, queue wait or browser rendering.
+The earlier UI on port 4473 ran a Debug API with a saved pre-optimization
+constructor graph. Its pinned JSON contained no finite-set expressions;
+updating the source fixture did not replace that draft or its saved run.
+That launch measured about 63,000 rounds/s. Replaying its pinned graph through
+the current Release kernel measured 196,349 rounds/s over one million rounds.
+It was a different graph and build from the two-million-round/s benchmark.
 
-The authenticated production browser check uses the full graph, two workers,
-100,000 rounds and seed 42, behind the HTTPS/WebSocket proxies and the API's
-two-CPU limit. Worker execution falls from **20.375 s to 3.301 s** (6.17×).
-The new launch-to-completion measurement is **4.176 s**. Reload recovers the run;
-13 WebSocket snapshots arrive; no browser errors occur. Cached Play requests take
-24–35 ms. RTP, uncertainty, hit frequency, volatility and maximum match the old
-production run bit for bit. Histogram bucket counts match after normalizing the
-previous result's PascalCase property names.
+The corrected UI on port 4474 uses the Release API on port 5453 and the current
+constructor graph. A real Chromium browser selected eight workers, warmed the
+plan with two million rounds, then launched 100 million rounds through the UI.
+With the owner's old eight-worker Debug run still active, it completed in
+73.737 seconds at **1,356,171 rounds/s**, with 910 live progress messages.
+After the owner authorized cancellation of that competing run, the same UI
+workload completed in **49.523 seconds at 2,019,264 rounds/s**, with 615 live
+progress messages. The UI displayed **2.0m/s**. Both runs completed all
+100 million paid rounds with zero interrupted, cancelled or failed rounds;
+the complete payout statistics, histograms and loop evidence were identical.
+The old run retained its 39,774,166 completed rounds and terminal result.
 
-The observed 100,000-round RTP is 99.6719%, with a 95% normal-approximation interval
-of 91.1034%–108.2404%; the authored exact expectation remains 98%.
-Measurements depend on hardware, graph and warmup.
+These measurements include the API's execution timer, live progress
+publication and a subscribed browser. They are separate from the standalone
+kernel benchmark above. The [UI report](verification/lab-demo-ui-performance.json)
+records pinned config hashes, binary fingerprints, execution settings,
+results and concurrent workload; the [screenshot](verification/simulation-live-release.png)
+shows the completed UI run.
 
-Evidence: [controlled benchmark](verification/performance-benchmark.json),
-[production browser run](verification/performance-production.json),
-[dashboard capture](verification/performance-production.png).
+To reproduce, start the API with `dotnet run --project backend/SlotMath.Api -c Release --no-launch-profile` and the normal database/URL environment.
+Point Vite's `SLOT_MATH_API_URL` at that API. In Build, click
+**Nine Lives · target 96%** to load the current authored graph before selecting
+Simulate, eight workers and the paid-round count. Existing drafts and saved
+runs preserve their original graphs. Warm the plan before comparing throughput
+and record any other active simulations competing for CPU.
+
+## RTP and correctness
+
+The pinned ten-million-round sample has mean **96.370975%**, variance
+395.426987, hit frequency 37.07432%, and maximum 7,899.3 original stakes.
+Its fixed-count 95% normal-approximation interval is
+95.138468%–97.603482%. These payout statistics remain identical across the
+optimized graphs and samplers. This is Sampled evidence; complete exact RTP
+for the full cascade/bonus graph is unavailable. The reduced component fixture
+has independently derived Exact expectation 1/40.
+
+The independent Python Fraction corpus checks 862 component boards and 22
+complete rounds. Exhaustive independent set growth checks all 295 connected
+four-cell and 766 connected five-cell placements. Generic tests cover full-width
+integers and masks, scoped aliases, lazy reads, error order, cancellation,
+separate runners, retained snapshots, cache-budget fallback and trajectories.
 
 ## Structured exact evaluation
 
-Enumeration of the full Dog House round exceeds any budget: five reels of base
-stops, then up to 27 free spins whose sticky Wilds make every spin depend on the
-ones before. `StructuredExactEvaluator` computes the exact rational RTP and the
-exact hit frequency of that graph from its structure
+A round with too many outcomes to enumerate can still have an exact RTP.
+`StructuredExactEvaluator` computes the exact rational RTP, and where they fit
+its allowances the exact hit frequency, variance and payout distribution, from
+the structure of the graph
 ([method](architecture.md#structured-exact-evaluator-structuredexactevaluator)).
+It answers only what it can model: Nine Lives, whose cluster search and round
+cap need the whole law of a thirty-cell board, is declined, and its RTP stays
+Sampled ([LAB_DEMO.md](LAB_DEMO.md)).
 
-Measured on the workstation above (i5-13600KF), one thread, full `dog-house-ui.json`,
-default options:
+The measurements this section carried were taken on the retired demo graph and
+were removed with it, rather than attributed to another graph. On this
+workstation (i5-13600KF, one thread, default options) the games that are
+evaluated exactly today took 12 to 21 s for the full Ancient Dragon round and
+20 to 25 s for the full Woodland Whisper round, both by expectation only and
+both on a machine that was busy with other work; their cut-down models, with
+the whole distribution, take under a second. A
+request through the API is given twelve seconds, so the two full rounds are
+reported there as `BudgetExceeded`, never as a number.
 
-| | Before tuning | Now |
-| --- | --- | --- |
-| Whole evaluation, warm | 3,985 ms | 1,596 ms |
-| Whole evaluation, first run in the process | 5,768 ms | 3,204 ms |
-| Allocated per evaluation | 2,262 MiB | 1,778 MiB |
-
-The evaluation covers 233 random variables and builds 102,525 terms and 49,269
-laws in 27,991,118 units of deterministic work; the counts are identical before
-and after, because the tuning changed no decision of the algorithm. The phases
-are the expectation (4.5M work), an attempt at the full payout distribution that
-is abandoned at its 4M allowance, and the hit frequency (19.3M work).
-
-Since then the evaluation also attempts the variance by second moments, which is
-abandoned at its own 4M allowance on this game. With that attempt the whole
-evaluation is 32,073,846 units of work, 112,125 terms and 58,131 laws: 1.9 to
-2.0 s warm, 3.9 s on the first run in the process, 2,272 MiB allocated.
-
-What the profile showed and what changed:
+What the profile of the evaluator showed and what changed:
 
 - Law values were sorted by a recursive comparison of tuples for every law built
   (19% of samples). A law is now listed by the hash of its values, and the total
@@ -203,16 +185,15 @@ EventPipe thread-time samples land on GC safepoints, so allocation sites are
 over-represented; `--allocations` and the collector's own pause counters
 (reported by `--exact`) were used to tell allocation from computation.
 
-Limits, stated plainly: the payout distribution of the full round, and with it
-maximum win, is not computed (the distribution attempt does not finish within
-400M work), and the variance by second moments does not fit its 4M allowance
-either; those metrics come from Sampled. Plugins, evaluators and transforms
-outside the built-in `lines`, `ways` and `cluster`, and wins stored as state
-data are declined.
+Limits, stated plainly: for the full Ancient Dragon and Woodland Whisper rounds
+the payout distribution, and with it maximum win, the hit frequency and the
+variance do not fit their allowances; those metrics come from Sampled. Plugins,
+evaluators and transforms outside the built-in `lines`, `ways` and `cluster`,
+and wins stored as state data are declined.
 
 ```sh
 dotnet backend/SlotMath.Benchmarks/bin/Release/net10.0/SlotMath.Benchmarks.dll \
-  --graph backend/SlotMath.Core.Tests/TestData/DogHouse/dog-house-ui.json \
+  --graph backend/SlotMath.Core.Tests/TestData/Games/ancient-dragon.json \
   --warmup 1 --exact --repeats 4
 # --exact --allocations prints allocated bytes by type for one evaluation.
 ```
@@ -285,62 +266,25 @@ lists; there the result equals formulas written out from the rules (a sum over
 the 10⁵ face combinations of each payline; a closed form in each reel's expected
 match count for `ways`), in 21 s and 11 s.
 
-`StructuredDogHouseTests` holds the full game against the independent
-Fraction-based rational, the reduced model's whole distribution against the
-classic interpreter, and the exact hit frequency 9743/35280 against two million
-pinned sampled rounds within four standard errors; a single weight unit moved in
-the graph, and the hit frequency moved by one percent, are each rejected.
+The games ported from TGSlots hold the evaluator against games it did not grow
+up on (`SlotMath.Core.Tests/Math/Games`). For the full Ancient Dragon and
+Woodland Whisper rounds the structured RTP has to agree with the original game,
+and the same value shifted is rejected. For the cut-down model of every game
+the structured result, the classic interpreter and the hybrid evaluator have to
+give the same rationals. Where the full round is beyond the evaluator (X7 Club,
+Nine Lives, Le Militare) it has to decline within its budget and return no
+number. `StructuredLabDemoTests` holds the same on the graphs of the lab demo.
 
 ## Reproduce
 
 ```sh
 dotnet build backend/SlotMath.Benchmarks -c Release
-DOTNET_PROCESSOR_COUNT=2 dotnet backend/SlotMath.Benchmarks/bin/Release/net10.0/SlotMath.Benchmarks.dll \
-  --graph backend/SlotMath.Core.Tests/TestData/DogHouse/dog-house-ui.json \
-  --warmup 100000 --rounds 20000 --repeats 3 --workers 1 --live --report /tmp/optimized.json
-# Add --reference to measure the canonical interpreter in the current build.
-# The recorded pre-change baseline additionally predates the integer shortcuts.
-
-# Multi-worker throughput on four distinct cores:
-taskset -c 0,2,4,6 dotnet backend/SlotMath.Benchmarks/bin/Release/net10.0/SlotMath.Benchmarks.dll \
-  --graph backend/SlotMath.Core.Tests/TestData/DogHouse/dog-house-ui.json \
-  --warmup 400000 --rounds 8388608 --repeats 3 --workers 4 --live
-# --tier interpreted|compiled|tiered selects expression execution (default tiered).
-# --allocations prints allocated bytes per round by type instead of timings.
+dotnet backend/SlotMath.Benchmarks/bin/Release/net10.0/SlotMath.Benchmarks.dll \
+  --graph backend/SlotMath.Core.Tests/TestData/LabDemo/lab-demo.json \
+  --warmup 2000000 --rounds 10000000 --repeats 3 --workers 8 --live \
+  --report /tmp/nine-lives-performance-eight-workers.json
 ```
 
-Profile with .NET EventPipe's `dotnet-sampled-thread-time` profile. The previous
-trace identified repeated `ToExprValue`/`Array.ConvertAll`, state dictionary
-copying and GC waits; allocation counters quantify the reduction. Thread-time
-sampling includes GC waits and must not be interpreted as exclusive CPU cost.
-
-## Correctness gates
-
-The optimized plan is compared with its independent canonical execution path in
-1,000 generated full-game replays (including bonus traces), 1,000 generated
-control-flow cases and 10,000 generated expression cases, using pinned CsCheck
-seeds and automatic shrinking. Tests compare final state, not just payouts.
-Additional checks cover all statistics and histograms across 1/2/4 workers,
-located evaluation errors, short-circuit evaluation, rational values, iteration
-bindings, record/raw-array semantics, caps, cancellation, concurrent runners,
-exported-default isolation, cache invalidation and exact PMF equivalence.
-The separate small-model exhaustive payout oracle remains in the test suite.
-
-Generated code, shared shapes and constant-state folding have their own gate,
-`SamplingTierEquivalenceTests`: 10,000 generated expressions compared with the
-interpreted tier on value, located error and final state; 10,000 more with part
-of the state folded; 1,000 full-game replays per tier against the reference
-interpreter, with and without folding; and bit-identical statistics across the
-three tiers at 1, 3 and 8 workers. Four deliberately seeded defects (two
-operators sharing a shape, a folded conditional keeping the wrong branch, two
-text comparisons sharing a shape, two constant kinds sharing a token) each fail
-this gate.
-
-The PRNG is pinned by five reference outputs for seed 42, computed independently
-of this code. The alias sampler is pinned by 10,000 generated weight sets compared
-bit for bit with a queue-built reference table, and by two recorded seeded draw
-sequences.
-
-Browser tests use a larger requested sample size for recovery/cancellation so
-the faster engine is still running during those checks. They cancel after a
-small actual prefix. No artificial delay is added to execution.
+For the per-worker observation, use `--workers 1 --rounds 1000000`.
+Record the model hash, runtime, warmup, worker count and host load with the
+result. The canonical interpreter is available through `--reference`.

@@ -8,7 +8,7 @@ import { lazy, Suspense, type ReactNode } from 'react';
 import { DEFAULT_FEATURES, useFeaturesQuery } from './api/hooks';
 const Simulate = lazy(() => import('./pages/Simulate'));
 const Results = lazy(() => import('./pages/Results'));
-const DogHouse = lazy(() => import('./games/doghouse/DogHouse'));
+const NineLives = lazy(() => import('./games/nine-lives/NineLives'));
 
 /**
  * Fail-closed route guard: the /play route is only reachable when the backend
@@ -35,7 +35,7 @@ export default function App() {
           <Route path="export" element={<Export />} />
           <Route
             path="play"
-            element={<RequirePlay><Suspense fallback={<p>Loading game…</p>}><DogHouse /></Suspense></RequirePlay>}
+            element={<RequirePlay><Suspense fallback={<p>Loading game…</p>}><NineLives /></Suspense></RequirePlay>}
           />
         </Route>
       </Routes>

@@ -79,8 +79,8 @@ public class StructuredSweepTests(ITestOutputHelper output)
             Assert.Equal(new Rational(numerator, denominator), result.ExpectedWin);
             if (result.Distribution is not null)
             {
-                Assert.Equal(StructuredDogHouseTests.Normalized(classic),
-                    StructuredDogHouseTests.Normalized(result.Distribution));
+                Assert.Equal(StructuredLabDemoTests.Normalized(classic),
+                    StructuredLabDemoTests.Normalized(result.Distribution));
             }
         }
     }

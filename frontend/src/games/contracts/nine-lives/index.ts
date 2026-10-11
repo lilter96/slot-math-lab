@@ -1,4 +1,4 @@
-import model from '../../nine-lives/model.json' with { type: 'json' };
+import model from '../../nine-lives-tgslots/model.json' with { type: 'json' };
 import { BetConfiguration, type ClusterHit, type SpinResult } from '../slots-core';
 
 /** Symbol names in id order. */

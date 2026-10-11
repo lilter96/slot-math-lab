@@ -17,9 +17,9 @@ namespace SlotMath.Core.Expressions;
 public static class ExpressionCost
 {
     /// <summary>
-    /// Weight applied to a bounded fold/map/filter body to reflect that it runs
-    /// once per array element (D16: fold cost = arrayLength · bodyCost). A static,
-    /// conservative bound on array length for the static op-count estimate.
+    ///     Weight applied to a bounded fold/map/filter body to reflect that it runs
+    ///     once per array element (D16: fold cost = arrayLength · bodyCost). A static,
+    ///     conservative bound on array length for the static op-count estimate.
     /// </summary>
     private const int BoundedIterationFactor = 64;
 
@@ -35,11 +35,12 @@ public static class ExpressionCost
         AggregateExpr a => 1 + BoundedIterationFactor * (
             (a.Predicate is null ? 0 : Compute(a.Predicate)) +
             (a.ValueExpr is null ? 0 : Compute(a.ValueExpr))),
+        BitSetExpr set => 1 + set.Args.Sum(Compute),
         CallExpr call => 1 + call.Args.Sum(Compute),
         MapExpr m => 1 + BoundedIterationFactor * Compute(m.Body),
         FilterExpr f => 1 + BoundedIterationFactor * Compute(f.Predicate),
         FoldExpr fold => 1 + Compute(fold.Init) + BoundedIterationFactor * Compute(fold.Body),
-        _ => 1,
+        _ => 1
     };
 
     /// <summary>True when the expression's static cost is within the D16 budget.</summary>

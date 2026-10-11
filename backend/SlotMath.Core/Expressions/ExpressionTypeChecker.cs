@@ -71,6 +71,7 @@ public static class ExpressionTypeChecker
             AggregateExpr a => InferAggregate(a, ctx, errors),
             NotExpr n => InferNot(n, ctx, errors),
             CallExpr c => InferCall(c, ctx, errors),
+            BitSetExpr set => InferBitSet(set, ctx, errors),
             FoldExpr f => InferFold(f, ctx, errors),
             MapExpr m => InferMap(m, ctx, errors),
             FilterExpr fi => InferFilter(fi, ctx, errors),
@@ -277,6 +278,20 @@ public static class ExpressionTypeChecker
 
     // ── Call ─────────────────────────────────────────────────────────────
 
+    private static ExprType InferBitSet(BitSetExpr set, TypeCheckContext ctx, List<TypeCheckError> errors)
+    {
+        var arity = BitSetOperations.Arity(set.Op);
+        if (arity == 0) return Fail(set, "Unknown finite-set operation.", errors);
+        if (set.Args.Length != arity) return Fail(set, $"Finite-set {set.Op} requires {arity} operands.", errors);
+        foreach (var argument in set.Args)
+        {
+            var type = Infer(argument, ctx, errors);
+            if (type is not (ExprType.Number or ExprType.Error))
+                errors.Add(Error(set, $"Finite-set {set.Op} requires numeric operands, got {type}."));
+        }
+        return ExprType.Number;
+    }
+
     private static ExprType InferCall(CallExpr c, TypeCheckContext ctx, List<TypeCheckError> errors)
     {
         var fn = c.Function.ToLowerInvariant();
@@ -478,6 +493,7 @@ public static class ExpressionTypeChecker
         NotExpr n => ContainsBoundedIterator(n.Expr),
         AggregateExpr a => a.Predicate != null && ContainsBoundedIterator(a.Predicate),
         CallExpr call => call.Args.Any(ContainsBoundedIterator),
+        BitSetExpr set => set.Args.Any(ContainsBoundedIterator),
         _ => false, // ConstantExpr, FieldAccessExpr — leaves
     };
 

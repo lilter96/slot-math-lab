@@ -58,7 +58,7 @@ async function signIn() {
 }
 const count = async () => Number((await page.getByTestId('sample-count').innerText()).replaceAll(',', ''));
 try {
-  await page.goto(base + '/build?project=dog-house'); await signIn();
+  await page.goto(base + '/build?project=nine-lives'); await signIn();
   const script = await page.locator('script[src*="/assets/index-"]').getAttribute('src');
   if (!script) throw new Error('Could not identify the deployed frontend bundle.');
   const bundle = await context.request.get(base + script);
@@ -66,10 +66,10 @@ try {
   report.frontend = { asset: script, sha256: createHash('sha256').update(await bundle.body()).digest('hex') };
   await page.getByRole('tab', { name: 'Simulate', exact: true }).click();
   await page.getByRole('button', { name: '＋ Track metric', exact: true }).click();
-  await page.getByLabel('Metric name').fill('Sticky FS transport evidence');
+  await page.getByLabel('Metric name').fill('FS transport evidence');
   await page.getByLabel('Metric observation level').selectOption('node');
-  await page.getByLabel('Metric graph node').selectOption('free-spin/snapshot-winHistory');
-  await page.getByLabel('Metric numeric expression').fill('state.spinCoins / 20');
+  await page.getByLabel('Metric graph node').selectOption('round/paid-body/trigger-body/free-spins-body/record-winHistory');
+  await page.getByLabel('Metric numeric expression').fill('(state.spinClusterCoins + state.spinCollectionCoins) / 20');
   const validationAttempts = [];
   if (validationRetrySeconds) await page.route('**/api/runs/measurements/schema', route => {
     if (route.request().method() !== 'POST' || !route.request().postDataJSON().measurements?.length) return route.continue();

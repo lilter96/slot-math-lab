@@ -13,19 +13,19 @@ public class GraphExecutionTests : IClassFixture<WebApplicationFactory<Program>>
     private readonly HttpClient _client;
     public GraphExecutionTests(WebApplicationFactory<Program> factory) => _client = factory.CreateClient();
 
-    private static JsonElement Fixture(string name) =>
+    private static JsonElement Fixture(string name, string directory = "LabDemo") =>
         JsonSerializer.Deserialize<JsonElement>(File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "TestData",
-            "DogHouse", name)));
+            directory, name)));
 
     [Fact]
     public async Task GenericPlay_BonusTraceAndSeedReplayUseTheUiGraph()
     {
-        JsonElement config = Fixture("dog-house-ui.json");
+        JsonElement config = Fixture("lab-demo-buy.json");
         var request = new { config, seed = 42, roundIndex = 230, trace = true };
         HttpResponseMessage response = await _client.PostAsJsonAsync("/api/play/round", request);
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         var round = await response.Content.ReadFromJsonAsync<JsonElement>();
-        Assert.Equal(9, round.GetProperty("state").GetProperty("bonusGrid").GetArrayLength());
+        Assert.Equal(9, round.GetProperty("state").GetProperty("boards").GetArrayLength());
         var replay = await (await _client.PostAsJsonAsync("/api/play/round", request)).Content
             .ReadFromJsonAsync<JsonElement>();
         Assert.Equal(round.GetRawText(), replay.GetRawText());
@@ -39,7 +39,7 @@ public class GraphExecutionTests : IClassFixture<WebApplicationFactory<Program>>
     [Fact]
     public async Task ExplicitModes_PreserveActualProvenanceAndGraphHash()
     {
-        JsonElement config = Fixture("dog-house-mini-ui.json");
+        JsonElement config = Fixture("lab-demo-mini.json");
         double exact = 0;
         foreach (var mode in new[] { "Exact", "Pruned", "Sampled", "Hybrid" })
         {
@@ -85,10 +85,12 @@ public class GraphExecutionTests : IClassFixture<WebApplicationFactory<Program>>
         }
     }
 
+    // The cut-down Ancient Dragon has more outcomes than the request may enumerate. Its exact RTP and hit frequency
+    // are the rationals that SlotMath.Core.Tests gets by enumerating it without a limit (AncientDragonGraphTests).
     [Fact]
-    public async Task FullGame_ExactAndAutoReturnTheExactRationalRtpWithoutEnumeration()
+    public async Task GameBeyondEnumeration_ExactAndAutoReturnTheExactRationalRtpFromItsStructure()
     {
-        JsonElement config = Fixture("dog-house-ui.json");
+        JsonElement config = Fixture("ancient-dragon.small.json", "Games");
 
         static (BigInteger N, BigInteger D) Parse(string value)
         {
@@ -96,8 +98,7 @@ public class GraphExecutionTests : IClassFixture<WebApplicationFactory<Program>>
                 BigInteger.Parse(value.Split('/')[1]));
         }
 
-        (BigInteger N, BigInteger D) expected =
-            Parse(Fixture("dog-house-independent-expectation.json").GetProperty("rationalRtp").GetString()!);
+        (BigInteger N, BigInteger D) expected = (17689, 3200);
         foreach (var mode in new[] { "Exact", "Hybrid" })
         {
             HttpResponseMessage response = await _client.PostAsJsonAsync("/api/evaluate/graph",
@@ -112,13 +113,9 @@ public class GraphExecutionTests : IClassFixture<WebApplicationFactory<Program>>
             Assert.Equal(expected.N * actual.D, actual.N * expected.D);
             Assert.Equal(result.GetProperty("rtp").GetDouble(), result.GetProperty("lower").GetDouble());
             Assert.Equal(result.GetProperty("rtp").GetDouble(), result.GetProperty("upper").GetDouble());
-            // The payout distribution of the full round is too large to build: its metrics are absent, never invented.
-            // The hit frequency does not need it and is exact.
-            Assert.Equal("NotBuilt", result.GetProperty("distribution").GetString());
-            Assert.Equal("9743/35280", result.GetProperty("rationalHitFrequency").GetString());
-            Assert.Equal(9743.0 / 35280.0, result.GetProperty("hitFrequency").GetDouble(), 15);
-            Assert.Equal(JsonValueKind.Null, result.GetProperty("variance").ValueKind);
-            Assert.Equal(JsonValueKind.Null, result.GetProperty("maxObserved").ValueKind);
+            Assert.Equal("Exact", result.GetProperty("distribution").GetString());
+            Assert.Equal("15/16", result.GetProperty("rationalHitFrequency").GetString());
+            Assert.Equal(15.0 / 16.0, result.GetProperty("hitFrequency").GetDouble(), 15);
             Assert.Equal(0, result.GetProperty("samples").GetInt64());
         }
     }
@@ -126,7 +123,7 @@ public class GraphExecutionTests : IClassFixture<WebApplicationFactory<Program>>
     [Fact]
     public async Task MissingExpression_RejectsExecutionInsteadOfReturningZero()
     {
-        JsonNode graph = JsonNode.Parse(Fixture("dog-house-ui.json").GetRawText())!;
+        JsonNode graph = JsonNode.Parse(Fixture("lab-demo.json").GetRawText())!;
         graph["expressions"]!.AsObject().Remove("credits");
         HttpResponseMessage response = await _client.PostAsJsonAsync("/api/play/round", new { config = graph });
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
@@ -138,7 +135,7 @@ public class GraphExecutionTests : IClassFixture<WebApplicationFactory<Program>>
     public async Task Play_RejectsUnsafeReplayIndex()
     {
         HttpResponseMessage response = await _client.PostAsJsonAsync("/api/play/round",
-            new { config = Fixture("dog-house-ui.json"), roundIndex = -1 });
+            new { config = Fixture("lab-demo.json"), roundIndex = -1 });
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
     }
 }

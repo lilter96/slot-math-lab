@@ -11,16 +11,7 @@ namespace SlotMath.Core.Random;
 /// </summary>
 public sealed class AliasMethod
 {
-    /// <summary>
-    ///     Contiguous 16-byte aligned entry (power-of-two size: lea rax, [rcx + rdx*16]).
-    ///     Both threshold and alias reside in the exact same 64-byte L1 cache line.
-    /// </summary>
-    [StructLayout(LayoutKind.Sequential, Pack = 8)]
-    public readonly struct SlotEntry(double threshold, int alias)
-    {
-        public readonly double Threshold = threshold;
-        public readonly int Alias = alias;
-    }
+    private readonly ulong _indexMask;
 
     private readonly SlotEntry[]? _table;
 
@@ -28,6 +19,7 @@ public sealed class AliasMethod
     {
         _table = table;
         Count = n;
+        _indexMask = ulong.MaxValue >> BitOperations.LeadingZeroCount(((uint)n - 1UL) | 1UL);
     }
 
     public int Count { get; }
@@ -218,11 +210,10 @@ public sealed class AliasMethod
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public int Sample(SeededRandom rng)
     {
-        var i = rng.Next(Count);
+        var i = rng.NextWithFraction(Count, _indexMask, out var fraction);
         if (_table is null)
         {
             // Preserves strict RNG sequence parity with table path.
-            rng.NextDouble();
             return i;
         }
 
@@ -231,7 +222,10 @@ public sealed class AliasMethod
             ref MemoryMarshal.GetArrayDataReference(_table), i);
 
         // Compiles down to ucomisd + cmov (branchless conditional move).
-        return rng.NextDouble() < entry.Threshold ? i : entry.Alias;
+        // Select with a full-width mask so the unpredictable alias decision
+        // can avoid a branch. The bucket, threshold and RNG words are unchanged.
+        var accepted = fraction < entry.Threshold ? -1 : 0;
+        return (i & accepted) | (entry.Alias & ~accepted);
     }
 
     /// <summary>
@@ -260,5 +254,16 @@ public sealed class AliasMethod
         }
 
         return (prob, alias);
+    }
+
+    /// <summary>
+    ///     Contiguous 16-byte aligned entry (power-of-two size: lea rax, [rcx + rdx*16]).
+    ///     Both threshold and alias reside in the exact same 64-byte L1 cache line.
+    /// </summary>
+    [StructLayout(LayoutKind.Sequential, Pack = 8)]
+    public readonly struct SlotEntry(double threshold, int alias)
+    {
+        public readonly double Threshold = threshold;
+        public readonly int Alias = alias;
     }
 }

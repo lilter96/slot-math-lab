@@ -116,7 +116,6 @@
       ],
       "evidence": [
         "backend/SlotMath.Core.Tests/Math/ParentExposureTests.cs",
-        "backend/SlotMath.Core.Tests/Math/DogHouseUiGraphTests.cs",
         "backend/SlotMath.Api.Tests/ParentExposureApiTests.cs",
         "frontend/unit/parent-exposure.spec.ts",
         "frontend/e2e/z-parent-exposure.spec.ts"

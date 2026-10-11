@@ -1,6 +1,6 @@
 import { ancientDragonModel, createAncientDragonGraph } from './ancient-dragon/graph';
 import { createLeMilitareGraph, leMilitareFeatures, leMilitareModel, type LeMilitareFeature } from './le-militare/graph';
-import { createNineLivesGraph, nineLivesModel } from './nine-lives/graph';
+import { createNineLivesGraph, nineLivesModel } from './nine-lives-tgslots/graph';
 import { createWoodlandWhisperGraph, woodlandWhisperModel } from './woodland-whisper/graph';
 import { createX7ClubGraph, x7ClubModel } from './x7-club/graph';
 

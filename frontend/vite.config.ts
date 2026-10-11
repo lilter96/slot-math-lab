@@ -14,20 +14,20 @@ export default defineConfig({
   },
   // Two pages: the lab itself and the slot games played on its graphs.
   build: { rollupOptions: { input: { main: source('./index.html'), games: source('./games.html') } } },
-  preview: { proxy: { '/api': { target: 'http://localhost:5152', changeOrigin: true }, '/hubs': { target: 'http://localhost:5152', changeOrigin: true, ws: true } } },
+  preview: { proxy: { '/api': { target: process.env.SLOT_MATH_API_URL ?? 'http://localhost:5152', changeOrigin: true }, '/hubs': { target: process.env.SLOT_MATH_API_URL ?? 'http://localhost:5152', changeOrigin: true, ws: true } } },
   server: {
     proxy: {
       '/api': {
-        target: 'http://localhost:5152',
+        target: process.env.SLOT_MATH_API_URL ?? 'http://localhost:5152',
         changeOrigin: true,
       },
       '/hubs': {
-        target: 'http://localhost:5152',
+        target: process.env.SLOT_MATH_API_URL ?? 'http://localhost:5152',
         changeOrigin: true,
         ws: true,
       },
       '/openapi': {
-        target: 'http://localhost:5152',
+        target: process.env.SLOT_MATH_API_URL ?? 'http://localhost:5152',
         changeOrigin: true,
       },
     },

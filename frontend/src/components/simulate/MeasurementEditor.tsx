@@ -2,7 +2,7 @@ import { MeasurementDesigner } from './MeasurementDesigner';
 import { useEffect, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { peekRootProject } from '../../lib/projectFiles';
-import { createDogHouseGraph } from '../../games/doghouse/graph';
+import { createNineLivesGraph } from '../../games/nine-lives/graph';
 import { useAppStore } from '../../store';
 import { definition, stateFieldExpression, metricExpression, newMetric, availableReducers, chartReducer, reducers, reducerNames, measurementPopulation, type MetricDraft, type MeasurementSchema } from '../../lib/measurements/model';
 import ExpressionTreeEditor from '../editor/ExpressionTreeEditor';
@@ -15,7 +15,7 @@ export function MeasurementEditor({ initial, close }: { initial?: MetricDraft; c
   const [status, setStatus] = useState('');
   const [draft, setDraft] = useState<MetricDraft>(() => initial ?? newMetric()), [error, setError] = useState(''), [search, setSearch] = useState(''), [busy, setBusy] = useState(false);
   // Reading the schema neither starts a simulation nor navigates out of a mechanic.
-  const [config] = useState(() => useAppStore.getState().verificationSource ?? (useAppStore.getState().nodes.length ? peekRootProject() : createDogHouseGraph()));
+  const [config] = useState(() => useAppStore.getState().verificationSource ?? (useAppStore.getState().nodes.length ? peekRootProject() : createNineLivesGraph()));
   const schema = useQuery<MeasurementSchema>({ queryKey: ['measurement-schema', config], queryFn: ({ signal }) =>
     calculationRequest<MeasurementSchema>('/api/runs/measurements/schema', { config }, signal, () => {}, 10000), retry: false, staleTime: Infinity });
   useEffect(() => { const element = dialog.current!; element.showModal(); return () => { validation.current?.abort(); element.close(); }; }, []);
