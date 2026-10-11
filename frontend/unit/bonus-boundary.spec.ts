@@ -1,13 +1,13 @@
 import { test, expect } from '@playwright/test';
-import { createDogHouseGraph } from '../src/games/doghouse/graph';
-import { createExpectationGraph } from '../src/games/doghouse/expectationGraph';
+import { createNineLivesGraph } from '../src/games/nine-lives/graph';
 
-test('The bonus-only completion point is authored and old standard graphs retain their proof scope', () => {
-  const full = createDogHouseGraph(), legacy = createDogHouseGraph(false);
-  const nodes = full.nodes as { id: string; nodeType: string; expressionId?: string; outputKey?: string }[];
-  expect(nodes.find(n => n.id === 'bonus-completed')).toMatchObject({ nodeType: 'modifyState', expressionId: 'bonus-completed', outputKey: 'bonusCompleted' });
-  expect((full.expressions as Record<string, unknown>)['bonus-completed']).toEqual({ exprType: 'constant', kind: 'Boolean', value: 'true' });
-  expect(createExpectationGraph(full).name).toBeDefined(); expect(createExpectationGraph(legacy).name).toBeDefined();
-  const altered = structuredClone(full); (altered.expressions as Record<string, unknown>)['bonus-completed'] = { exprType: 'constant', kind: 'Boolean', value: 'false' };
-  expect(() => createExpectationGraph(altered)).toThrow('modified logic');
+test('Nine Lives composes subgraphs from the existing atomic vocabulary', () => {
+  const graph = createNineLivesGraph();
+  const mechanics = graph.mechanics as Record<string, { nodes: { nodeType: string; id: string; outputKey?: string }[]; expressions: Record<string, unknown> }>;
+  const allowed = new Set(['draw', 'modifyState', 'getState', 'branch', 'loop', 'library', 'metricsSink']);
+  for (const mechanic of Object.values(mechanics))
+    for (const node of mechanic.nodes) expect(allowed.has(node.nodeType)).toBe(true);
+  expect(mechanics.bonus.nodes.find(node => node.outputKey === 'bonusCompleted')).toBeDefined();
+  expect(mechanics['restore-row-major'].expressions.restore).toMatchObject({ exprType: 'map', indexName: 'index', body: { exprType: 'call', function: 'index' } });
+  expect(JSON.stringify(graph)).not.toMatch(/"transformId"|"setIndex"|"setindex"|"plugin"/);
 });

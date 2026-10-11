@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import ExpressionTreeEditor from '../editor/ExpressionTreeEditor';
 import { peekRootProject } from '../../lib/projectFiles';
-import { createDogHouseGraph } from '../../games/doghouse/graph';
+import { createNineLivesGraph } from '../../games/nine-lives/graph';
 import { useAppStore } from '../../store';
 import { useMeasurementWorkspace } from '../../lib/measurements/store';
 import { accountingPlan, payoutExpression } from '../../lib/measurements/accounting';
@@ -17,7 +17,7 @@ export function AccountingEditor({ close }: { close(): void }) {
   const [total, setTotal] = useState<ExpressionAst>(payoutExpression), [components, setComponents] = useState<{ name: string; value: ExpressionAst | null }[]>([{ name: 'Base', value: null }, { name: 'Feature', value: null }]);
   const [filter, setFilter] = useState<ExpressionAst | null>(null), [group, setGroup] = useState<ExpressionAst | null>(null), [support, setSupport] = useState(32), [groups, setGroups] = useState(4);
   const [busy, setBusy] = useState(false), [error, setError] = useState(''), [status, setStatus] = useState('');
-  const [config] = useState(() => useAppStore.getState().verificationSource ?? (useAppStore.getState().nodes.length ? peekRootProject() : createDogHouseGraph()));
+  const [config] = useState(() => useAppStore.getState().verificationSource ?? (useAppStore.getState().nodes.length ? peekRootProject() : createNineLivesGraph()));
   const schema = useQuery<MeasurementSchema>({ queryKey: ['measurement-schema', config], queryFn: ({ signal }) => calculationRequest('/api/runs/measurements/schema', { config }, signal, () => {}, 10000), retry: false, staleTime: Infinity });
   useEffect(() => { const el = dialog.current!; el.showModal(); return () => { validation.current?.abort(); el.close(); }; }, []);
   const dismiss = () => { validation.current?.abort(); close(); };

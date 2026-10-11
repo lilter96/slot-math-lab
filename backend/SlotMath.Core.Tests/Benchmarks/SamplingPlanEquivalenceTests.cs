@@ -16,7 +16,7 @@ public class SamplingPlanEquivalenceTests
     private static FieldAccessExpr F(string name) => new() { Path = [name], Target = "state" };
     private static BinaryExpr Add(Expression a, Expression b) => new() { Op = BinaryOp.Add, Left = a, Right = b };
     private static CallExpr Call(string name, params Expression[] args) => new() { Function = name, Args = args };
-    private static GraphConfig Fixture(string file) => JsonSerializer.Deserialize<GraphConfig>(File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "TestData", "DogHouse", file)), JsonOptions.Default)!;
+    private static GraphConfig Fixture(string file) => JsonSerializer.Deserialize<GraphConfig>(File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "TestData", "LabDemo", file)), JsonOptions.Default)!;
 
     private static ExprValue Native(Expression expr, Dict state, out Dict final)
     {
@@ -54,7 +54,7 @@ public class SamplingPlanEquivalenceTests
     [Fact]
     public void FullGame_Pbt_1000_PayoutFinalStateAndBonusTraceMatchReference()
     {
-        var result = new GraphCompiler().Compile(Fixture("dog-house-ui.json"));
+        var result = new GraphCompiler().Compile(Fixture("lab-demo.json"));
         Assert.True(result.IsValid); Assert.Equal("compiled-state-plan-v1", result.SamplingEngine);
         Gen.Select(Gen.Int[0, 1000000], Gen.Int[0, 500], Gen.Bool).Sample((seed, round, trace) =>
         {
@@ -74,7 +74,7 @@ public class SamplingPlanEquivalenceTests
     [Fact]
     public void Sampled_AllStatisticsAndHistogramAreBitIdentical_WithParallelismAndLiveProgress()
     {
-        var result = new GraphCompiler().Compile(Fixture("dog-house-ui.json"));
+        var result = new GraphCompiler().Compile(Fixture("lab-demo.json"));
         var expected = SampledInterpreter.Evaluate(result.ReferenceProgram!, new Dict(), new SampledConfig { Seed = 42, MaxSpins = 10000, ChunkSize = 4096, WinScale = (double)result.WinScale }).Stats.Snapshot();
         foreach (var workers in new[] { 1, 2, 4 })
         {
@@ -128,7 +128,7 @@ public class SamplingPlanEquivalenceTests
     [Fact]
     public void ExactPmfAndComposedMonadsStillUseTheCanonicalProgram()
     {
-        var compiled = new GraphCompiler().Compile(Fixture("dog-house-mini-ui.json"));
+        var compiled = new GraphCompiler().Compile(Fixture("lab-demo-mini.json"));
         var expected = ExactInterpreter.Evaluate(compiled.ReferenceProgram!, new Dict(), StateHasher.CanonicalHash).ValueDistribution();
         var actual = ExactInterpreter.Evaluate(compiled.Program!, new Dict(), StateHasher.CanonicalHash).ValueDistribution();
         Assert.Equal(expected.Denominator, actual.Denominator); Assert.Equal(expected.Entries, actual.Entries);
@@ -139,7 +139,7 @@ public class SamplingPlanEquivalenceTests
     [Fact]
     public void CancellationBeforeFirstRoundIsHonored()
     {
-        var compiled = new GraphCompiler().Compile(Fixture("dog-house-ui.json"));
+        var compiled = new GraphCompiler().Compile(Fixture("lab-demo.json"));
         using var cts = new CancellationTokenSource(); cts.Cancel();
         var result = SampledInterpreter.Evaluate(compiled.Program!, new Dict(), new SampledConfig { Seed = 1, MaxSpins = 1000, CancellationToken = cts.Token });
         Assert.True(result.WasCancelled); Assert.Equal(0, result.SpinsCompleted);
@@ -149,11 +149,11 @@ public class SamplingPlanEquivalenceTests
     [Fact]
     public void ExportedDefaultsCannotMutateTheSharedPlan_ConcurrentRunnersAreIndependent()
     {
-        var compiled = new GraphCompiler().Compile(Fixture("dog-house-ui.json"));
+        var compiled = new GraphCompiler().Compile(Fixture("lab-demo.json"));
         var first = SampledInterpreter.RunSingle(compiled.Program!, new Dict(), 42, 230);
         var expected = StateHasher.CanonicalHash(first.State);
-        ((object?[])first.State["baseReel0"]!)[0] = "corrupted";
-        ((object?[])first.State["linePaytable"]!)[0] = "corrupted";
+        ((object?[])first.State["scanOrder"]!)[0] = "corrupted";
+        ((object?[])first.State["clusterPaytable"]!)[0] = "corrupted";
         Parallel.For(0, 32, _ =>
         {
             var next = SampledInterpreter.RunSingle(compiled.Program!, new Dict(), 42, 230);

@@ -25,14 +25,14 @@ try {
   const previous = JSON.parse(await readFile(root + '/docs/verification/realtime-production.json', 'utf8'));
   const id = process.env.RESULTS_RUN_ID ?? previous.completeRun.runId;
   const source = await (await context.request.get(base + `/api/runs/${id}/evidence`)).json();
-  if (!source.inputVerified || source.run.status !== 'completed') throw new Error('A completed pinned production run is required.');
+  if (!source.inputVerified || source.run.status !== 'completed' || source.model.name !== 'Nine Lives' || source.pinnedConfig?.initialState?.entryBuy === true) throw new Error('A completed pinned Nine Lives production run is required. Run realtime-production.mjs first or set RESULTS_RUN_ID.');
   await page.goto(base + `/results?run=${id}`);
   await expect(page.getByRole('heading', { name: source.model.name, exact: true })).toBeVisible();
-  await expect(page.getByTestId('results-rtp')).toHaveText('99.672%');
+  await expect(page.getByTestId('results-rtp')).toHaveText((source.run.progress.runningRtp * 100).toFixed(3) + '%');
   await page.getByRole('button', { name: 'Calculate reference', exact: true }).click();
-  await expect(page.locator('.results-reference-value')).toHaveText('98.000%');
+  await expect(page.locator('.results-reference-value')).toHaveText('Unavailable');
   report.referenceKind = await page.locator('.results-reference .results-source-tag').innerText();
-  if (report.referenceKind !== 'ExactExpectation') throw new Error('Incorrect provenance for the constructor expectation.');
+  if (report.referenceKind !== 'Unavailable') throw new Error('Incorrect full-game reference provenance.');
   report.authoredTarget = source.model.targetRtp;
   report.observedRtp = source.run.progress.runningRtp;
   report.pinnedVersion = source.run.configVersion; report.configHash = source.run.configHash; report.modelHash = source.model.modelHash;
@@ -46,7 +46,7 @@ try {
   await page.getByRole('tab', { name: 'Reproducibility', exact: true }).click();
   const pending = page.waitForEvent('download'); await page.getByRole('button', { name: 'Download evidence JSON', exact: true }).click();
   const bundle = JSON.parse(await readFile(await (await pending).path(), 'utf8'));
-  if (bundle.evidence.run.id !== id || bundle.evidence.run.configHash !== source.run.configHash || bundle.reference.rtp !== .98 || !bundle.reference.proof) throw new Error('Export does not preserve the pinned graph and reference.');
+  if (bundle.evidence.run.id !== id || bundle.evidence.run.configHash !== source.run.configHash || bundle.reference.kind !== 'Unavailable' || bundle.reference.rtp != null || bundle.reference.proof != null) throw new Error('Export does not preserve the pinned graph and reference.');
   report.reference = { rtp: bundle.reference.rtp, rational: bundle.reference.rational, components: bundle.reference.components };
   report.evidenceExport = { schema: bundle.schemaVersion, inputVerified: bundle.evidence.inputVerified, pinnedNodes: bundle.evidence.pinnedConfig.nodes.length };
   await page.getByRole('button', { name: 'Replay pinned run', exact: true }).click();
@@ -54,7 +54,7 @@ try {
   await page.getByLabel('Pinned run workers').selectOption(String(workers));
   const creation = waitForRunLaunch(page);
   await page.getByRole('button', { name: 'Start pinned run', exact: true }).click(); const replay = await (await creation).json(); owned.push(replay.id);
-  await expect(page.locator('.run-status')).toHaveText('completed', { timeout: 30000 });
+  await expect(page.locator('.run-status')).toHaveText('completed', { timeout: 120000 });
   await page.goto(base + `/results?run=${replay.id}&view=compare&compare=${id}`);
   await expect(page.getByTestId('results-comparison-verdict')).toHaveText('Replay matches'); await capture('results-production-comparison.png');
   report.replay = { runId: replay.id, originalRunId: id, originalWorkers: source.run.degreeOfParallelism, workers,

@@ -34,6 +34,7 @@ appsettings.*.json
 !appsettings.Production.json
 .playwright-mcp/
 *.png
+!docs/verification/lab-demo-play.png
 
 production-secrets/
 frontend/test-results/

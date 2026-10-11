@@ -58,10 +58,12 @@ jobs:
           cache-dependency-path: frontend/package-lock.json
       - run: npm ci --legacy-peer-deps
         working-directory: frontend
-      - run: node frontend/scripts/export-doghouse-fixtures.mjs --check
-      - run: python3 scripts/verification/doghouse_reference.py --check
+      - run: node frontend/scripts/export-lab-demo-fixtures.mjs --check
+      - run: python3 scripts/verification/demo_reference.py --check
+      - run: python3 scripts/verification/check-demo-names.py
       - run: dotnet restore backend/SlotMathLab.slnx
       - run: dotnet build backend/SlotMathLab.slnx -c Release --no-restore
+      - run: python3 scripts/verification/benchmark_cap.py --check
       - name: Audit NuGet dependencies — fail on high/critical
         run: |
           set -o pipefail

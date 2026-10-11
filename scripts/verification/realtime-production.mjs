@@ -39,7 +39,7 @@ async function create(spins) {
 const count = async () => Number((await page.getByTestId('sample-count').innerText()).replaceAll(',', ''));
 const get = async id => (await context.request.get(base + '/api/runs/' + id)).json();
 try {
-  await page.goto(base + '/build?project=dog-house'); await signIn();
+  await page.goto(base + '/build?project=nine-lives'); await signIn();
   await page.getByRole('button', { name: 'Open full game graph', exact: true }).waitFor();
   await page.getByRole('tab', { name: 'Simulate', exact: true }).click();
   const run = await create(10000000);
@@ -83,7 +83,7 @@ try {
   const started = Date.now(), complete = await create(100000);
   await expect(page.locator('.run-status')).toHaveText('completed', { timeout: 30000 });
   const stored = await get(complete.id), result = JSON.parse(stored.resultJson);
-  if (result.rtp !== 0.9967189999999915 || result.sampleCount !== 100000) throw new Error('Deterministic RTP changed');
+  if (Math.abs(result.rtp - 1.043479) > 1e-12 || result.sampleCount !== 100000) throw new Error('Deterministic RTP changed');
   report.completeRun = { runId: complete.id, elapsedMs: result.elapsedMs, wallMs: Date.now() - started, roundCount: result.sampleCount,
     observedRtp: result.rtp, sameDeterministicMath: true, resultDeliveredInline: frames.some(p => p.runId === complete.id && p.status === 'completed' && p.resultJson),
     revision: stored.sequence, graphHash: complete.configHash, seed: complete.seed, streamScheme: complete.streamScheme };

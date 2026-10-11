@@ -187,7 +187,7 @@ These are source-code findings at `217f8ca`, separate from the internet-derived 
 | Scoped count, sum, min/max, mean, SD and matching share | Configurable numeric expression and filter at round/node | No typed event-only measure, subject reduction, automatic grouping or lifecycle identity |
 | Payout histogram/CDF and P50/P90/P99 | Saved settled payout bins and quantile bounds in Results | No custom-value histograms, configurable quantiles, within-bin payout sums or sketch provenance |
 | Zero-event tail bound | Results has one fixed 100x threshold analysis | Not a generic threshold/probability interval engine |
-| Exact return and per-feature reducers | Mathematical core has report types/reducers; Dog House has a separate mean proof | These do not imply generic live feature collection or full-distribution proof |
+| Demo model | Nine Lives uses editable atomic subgraphs and an independent Fraction rule oracle | Full RTP is Sampled; full Exact expectation is unavailable |
 | Feature statistics through authored state | Manual point/value/filter definitions can observe suitable fields | No generic feature ledger, zero-filled per-round components, covariance or component reconciliation |
 | Cap metrics | UI accurately calls the existing counter sampler clippings | `SampledMetrics.ComputeMaxWin` assigns that strictly-above-cap clipping count to `PCapReached`; equality at cap is not counted there |
 | State/sequence and persistent models | Constructor can encode within-round state; sampling resets each paid round | No generic transition/gap collector or persistent paid-round regime |
@@ -197,7 +197,7 @@ These are source-code findings at `217f8ca`, separate from the internet-derived 
 
 Relevant implementation paths: [measurements](../backend/SlotMath.Core/Measurements/Measurements.cs), [sampled reducers](../backend/SlotMath.Core/Math/SampledMetrics.cs), [streaming statistics](../backend/SlotMath.Core/Math/StreamingStats.cs), [exact reducers](../backend/SlotMath.Core/Math/ExactMetrics.cs), [run service](../backend/SlotMath.Api/Features/Runs/RunJobService.cs), [Results distribution](../frontend/src/components/results/Distribution.tsx).
 
-The existing 100,000-round Dog House demonstration has 11,275 FS visits across 630 bonuses. Its pooled FS average is about 3.692 parent stakes. The captured FS sum divided by all paid rounds is about 0.416271, a different quantity. Its "Bonus round payout" metric includes the triggering base payout, so that cohort total is not a standalone FS component. A pre-settlement FS sum also needs cap allocation before it is generally an additive settled RTP component. These distinctions should be visible in the product.
+Evidence for the preceding release demo was retired during the original-game migration. It must not be attributed to Nine Lives. Current rules and verification scope are documented in [Lab Demo](LAB_DEMO.md).
 
 ## Product design
 

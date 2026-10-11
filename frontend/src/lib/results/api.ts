@@ -2,8 +2,7 @@ import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
 import { HttpFailure } from '../realtime/RunConnection';
 import { retryAfterMilliseconds } from '../realtime/httpFailure';
 import { snapshotDecision, validSnapshot, terminal, type RunSnapshot } from '../realtime/runProtocol';
-import { createExpectationGraph } from '../../games/doghouse/expectationGraph';
-import type { GraphAnalysis, GraphRound } from '../../games/doghouse/api';
+import type { GraphAnalysis } from '../../lib/graphApi';
 import type { Reference, RunEvidence, RunPage } from './model';
 import { validateRunEvidence } from './evidence';
 import { waitForRetry } from '../measurements/requests';
@@ -73,21 +72,6 @@ export function usePinnedReference(evidence: RunEvidence | undefined) {
     retryDelay, queryFn: async ({ signal }): Promise<Reference> => {
       if (!evidence?.inputVerified || !evidence.pinnedConfig) throw new Error('Verify the pinned input before calculating a reference.');
       const sourceHash = evidence.run.configHash, calculatedAt = new Date().toISOString();
-      let proof: Record<string, unknown> | null = null;
-      try { proof = createExpectationGraph(evidence.pinnedConfig); } catch { /* Other models use generic full enumeration. */ }
-      if (proof) {
-        const result = await resultsRequest<GraphRound>('play/round', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ config: proof, seed: 42, roundIndex: 0 }) }, signal, 16000);
-        const value = result.state.expectedRtp as { numerator: string; denominator: string; displayValue: number };
-        if (!value || !Number.isFinite(value.displayValue)) throw new Error('The authored expectation proof did not return a valid expectedRtp.');
-        const components = ['baseRtp', 'scatterRtp', 'bonusRtp'].map((key, index) => {
-          const v = result.state[key] as typeof value;
-          if (!v || !Number.isFinite(v.displayValue) || v.displayValue < 0) throw new Error('The proof returned invalid contribution metrics.');
-          return { name: ['Base paylines', 'Scatter awards', 'Free spins'][index], rtp: v.displayValue, rational: `${v.numerator}/${v.denominator}` };
-        });
-        if (Math.abs(components.reduce((sum, item) => sum + item.rtp, 0) - value.displayValue) > 1e-12) throw new Error('The proof contributions do not sum to the expectation.');
-        return { sourceHash, calculatedAt, kind: 'ExactExpectation', rtp: value.displayValue, rational: `${value.numerator}/${value.denominator}`, components, proof,
-          note: 'Rational expectation from the editable constructor proof under its checked assumptions. The payout distribution remains sampled; an independent external oracle is not attached.' };
-      }
       const result = await resultsRequest<GraphAnalysis>('evaluate/graph', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ config: evidence.pinnedConfig, mode: 'Exact', maxBranches: 10000, samples: 1 }) }, signal, 16000);
       if (result.configHash !== sourceHash) throw new Error('Reference input fingerprint differs from the pinned run.');
       if (result.provenance === 'Exact' && result.status === 'Complete' && Number.isFinite(result.rtp))

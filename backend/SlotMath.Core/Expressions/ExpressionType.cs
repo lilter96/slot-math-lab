@@ -57,13 +57,19 @@ public enum ExprType
 /// </summary>
 public readonly struct ExprValue : IEquatable<ExprValue>
 {
-    // Compact tagged representation (24 bytes, one object reference). Integers
-    // that fit in 64 bits are stored inline; larger integers and proper
-    // rationals are boxed, so every value remains an exact rational (D1).
-    // A value is an inline integer exactly when Tag == 0.
+    // Sixteen bytes: a null reference denotes a full-width inline integer.
+    // Other values keep their kind/flags in the low 16 payload bits and use
+    // a shared sentinel when they have no object payload. Large numbers and
+    // proper rationals still use the existing exact BigNumber representation.
     private readonly object? _ref;
     private readonly long _bits;
-    private readonly ushort _tag;
+    private static readonly object EmptyReference = new();
+    private ushort Tag
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get => _ref is null ? (ushort)0 : (ushort)_bits;
+    }
+    private object? Reference => ReferenceEquals(_ref, EmptyReference) ? null : _ref;
 
     private const ushort KindMask = 0x00FF;
     private const ushort SymbolsFlag = 0x0100;
@@ -76,43 +82,49 @@ public readonly struct ExprValue : IEquatable<ExprValue>
         public readonly BigInteger Denominator = denominator;
     }
 
-    public ExprType Kind => (ExprType)(_tag & KindMask);
+    public ExprType Kind => (ExprType)(Tag & KindMask);
 
-    public BigInteger NumberNumerator => _tag == 0 ? _bits
-        : (_tag & BigFlag) != 0 ? Unsafe.As<BigNumber>(_ref!).Numerator : BigInteger.Zero;
-    public BigInteger NumberDenominator => (_tag & BigFlag) != 0 ? Unsafe.As<BigNumber>(_ref!).Denominator : BigInteger.One;
-    public bool BoolValue => _tag == (ushort)ExprType.Boolean && _bits != 0;
+    public BigInteger NumberNumerator => Tag == 0 ? _bits
+        : (Tag & BigFlag) != 0 ? Unsafe.As<BigNumber>(_ref!).Numerator : BigInteger.Zero;
+    public BigInteger NumberDenominator => (Tag & BigFlag) != 0 ? Unsafe.As<BigNumber>(_ref!).Denominator : BigInteger.One;
+    public bool BoolValue => Tag == (ushort)ExprType.Boolean && (_bits >> 16) != 0;
     // Immutable arrays carry this once, so storing/rebinding them need not
     // scan every item to reproduce ToStateObject's symbol normalization.
-    internal bool ContainsSymbols => (_tag & SymbolsFlag) != 0;
-    public string? StringValue => Kind is ExprType.String or ExprType.Symbol ? Unsafe.As<string>(_ref) : null;
+    internal bool ContainsSymbols => (Tag & SymbolsFlag) != 0;
+    public string? StringValue => Kind is ExprType.String or ExprType.Symbol ? Unsafe.As<string>(Reference) : null;
 
     /// <summary>Array items — non-null only when Kind == Array.</summary>
-    public IReadOnlyList<ExprValue>? ArrayValue => Kind == ExprType.Array ? Unsafe.As<IReadOnlyList<ExprValue>>(_ref) : null;
-    public IReadOnlyDictionary<string, ExprValue>? RecordValue => Kind == ExprType.Record ? Unsafe.As<IReadOnlyDictionary<string, ExprValue>>(_ref) : null;
+    public IReadOnlyList<ExprValue>? ArrayValue => Kind == ExprType.Array ? Unsafe.As<IReadOnlyList<ExprValue>>(Reference) : null;
+    public IReadOnlyDictionary<string, ExprValue>? RecordValue => Kind == ExprType.Record ? Unsafe.As<IReadOnlyDictionary<string, ExprValue>>(Reference) : null;
 
     // ── Fast accessors for the evaluators ─────────────────────────────────
 
     /// <summary>True when this is an integer stored inline in 64 bits.</summary>
-    internal bool IsInlineInteger => _tag == 0;
+    internal bool IsInlineInteger => Tag == 0;
     /// <summary>The inline integer; meaningful only when <see cref="IsInlineInteger"/>.</summary>
     internal long InlineInteger => _bits;
-    internal bool IsBoolean => _tag == (ushort)ExprType.Boolean;
-    internal bool IsString => (_tag & KindMask) == (ushort)ExprType.String;
-    internal bool IsText => (_tag & KindMask) is (ushort)ExprType.String or (ushort)ExprType.Symbol;
-    internal string TextUnchecked => Unsafe.As<string>(_ref!);
+    /// <summary>Compiler use only after proving this is an integer in [0, 2^64-1].</summary>
+    internal ulong MaskUnchecked
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get => _ref is null ? unchecked((ulong)_bits) : (ulong)Unsafe.As<BigNumber>(_ref).Numerator;
+    }
+    internal bool IsBoolean => Tag == (ushort)ExprType.Boolean;
+    internal bool IsString => (Tag & KindMask) == (ushort)ExprType.String;
+    internal bool IsText => (Tag & KindMask) is (ushort)ExprType.String or (ushort)ExprType.Symbol;
+    internal string TextUnchecked => Unsafe.As<string>(Reference!);
     /// <summary>The backing array when the items are stored as one, otherwise null.</summary>
     internal ExprValue[]? ItemsArray => Kind == ExprType.Array ? _ref as ExprValue[] : null;
     /// <summary>Text that is a canonical 64-bit integer literal carries its parsed value.</summary>
-    internal bool TryGetNumericText(out long value) { value = _bits; return (_tag & NumericTextFlag) != 0; }
+    internal bool TryGetNumericText(out long value) { value = _bits >> 16; return (Tag & NumericTextFlag) != 0; }
 
     // ── Constructors ──────────────────────────────────────────────────────
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private ExprValue(ushort tag, long bits, object? reference)
     {
-        _tag = tag;
-        _bits = bits;
-        _ref = reference;
+        _bits = tag == 0 ? bits : unchecked((bits << 16) | tag);
+        _ref = tag == 0 ? null : reference ?? EmptyReference;
     }
 
     private static bool HasSymbols(IReadOnlyList<ExprValue>? items)
@@ -165,7 +177,9 @@ public readonly struct ExprValue : IEquatable<ExprValue>
             if (digit > 9) return new(tag, 0, value);
             parsed = parsed * 10 + digit;
         }
-        return new((ushort)(tag | NumericTextFlag), value[0] == '-' ? -parsed : parsed, value);
+        parsed = value[0] == '-' ? -parsed : parsed;
+        return parsed is >= -(1L << 47) and < (1L << 47)
+            ? new((ushort)(tag | NumericTextFlag), parsed, value) : new(tag, 0, value);
     }
 
     public static ExprValue Array(IReadOnlyList<ExprValue> items)
@@ -186,7 +200,7 @@ public readonly struct ExprValue : IEquatable<ExprValue>
 
     /// <summary>Convert the rational number to a single BigInteger (truncating division).</summary>
     public BigInteger AsInteger() =>
-        _tag == 0 ? _bits
+        Tag == 0 ? _bits
             : Kind == ExprType.Number ? NumberNumerator / NumberDenominator
             : throw new ExpressionEvaluationException("EVAL_TYPE_ERROR", "Numeric expression required.");
 
@@ -196,7 +210,7 @@ public readonly struct ExprValue : IEquatable<ExprValue>
         if (Kind != ExprType.Number) throw new ExpressionEvaluationException("EVAL_TYPE_ERROR", "Numeric expression required.");
         // Integers of magnitude ≤ 2^53 convert exactly; larger ones keep the
         // BigInteger conversion so results stay bit-identical.
-        if (_tag == 0 && _bits is >= -(1L << 53) and <= 1L << 53) return _bits;
+        if (Tag == 0 && _bits is >= -(1L << 53) and <= 1L << 53) return _bits;
         var numerator = (double)NumberNumerator;
         if (NumberDenominator.IsOne) return numerator;
         var denominator = (double)NumberDenominator;
@@ -208,7 +222,7 @@ public readonly struct ExprValue : IEquatable<ExprValue>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static ExprValue Mul(ExprValue a, ExprValue b)
     {
-        if ((a._tag | b._tag) == 0)
+        if ((a.Tag | b.Tag) == 0)
         {
             var high = System.Math.BigMul(a._bits, b._bits, out long low);
             if (high == low >> 63) return new(0, low, null);
@@ -231,7 +245,7 @@ public readonly struct ExprValue : IEquatable<ExprValue>
     /// </summary>
     public static ExprValue Div(ExprValue a, ExprValue b)
     {
-        if ((a._tag | b._tag) == 0 && b._bits > 0 && a._bits % b._bits == 0)
+        if ((a.Tag | b.Tag) == 0 && b._bits > 0 && a._bits % b._bits == 0)
             return new(0, a._bits / b._bits, null);
         if (b.NumberNumerator == 0)
             throw new ExpressionEvaluationException(
@@ -246,7 +260,7 @@ public readonly struct ExprValue : IEquatable<ExprValue>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static ExprValue Add(ExprValue a, ExprValue b)
     {
-        if ((a._tag | b._tag) == 0)
+        if ((a.Tag | b.Tag) == 0)
         {
             var sum = unchecked(a._bits + b._bits);
             if (((a._bits ^ sum) & (b._bits ^ sum)) >= 0) return new(0, sum, null);
@@ -267,7 +281,7 @@ public readonly struct ExprValue : IEquatable<ExprValue>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static ExprValue Sub(ExprValue a, ExprValue b)
     {
-        if ((a._tag | b._tag) == 0)
+        if ((a.Tag | b.Tag) == 0)
         {
             var difference = unchecked(a._bits - b._bits);
             if (((a._bits ^ b._bits) & (a._bits ^ difference)) >= 0) return new(0, difference, null);
@@ -287,7 +301,7 @@ public readonly struct ExprValue : IEquatable<ExprValue>
     /// <summary>Order two number values exactly.</summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static int CompareNumbers(ExprValue a, ExprValue b)
-        => (a._tag | b._tag) == 0 ? a._bits.CompareTo(b._bits) : CompareNumbersSlow(a, b);
+        => (a.Tag | b.Tag) == 0 ? a._bits.CompareTo(b._bits) : CompareNumbersSlow(a, b);
 
     private static int CompareNumbersSlow(ExprValue a, ExprValue b) => a.NumberDenominator.IsOne && b.NumberDenominator.IsOne
         ? a.NumberNumerator.CompareTo(b.NumberNumerator)
@@ -311,16 +325,16 @@ public readonly struct ExprValue : IEquatable<ExprValue>
 
     public bool Equals(ExprValue other)
     {
-        if (((_tag ^ other._tag) & KindMask) != 0) return false;
+        if (((Tag ^ other.Tag) & KindMask) != 0) return false;
         switch (Kind)
         {
             case ExprType.Number:
-                if (((_tag | other._tag) & BigFlag) == 0) return _bits == other._bits;
+                if (((Tag | other.Tag) & BigFlag) == 0) return _bits == other._bits;
                 // Inline integers are canonical: a boxed number never equals one.
-                return ((_tag & other._tag) & BigFlag) != 0
+                return ((Tag & other.Tag) & BigFlag) != 0
                     && NumberNumerator == other.NumberNumerator && NumberDenominator == other.NumberDenominator;
             case ExprType.Boolean: return _bits == other._bits;
-            case ExprType.String or ExprType.Symbol: return string.Equals(Unsafe.As<string>(_ref), Unsafe.As<string>(other._ref));
+            case ExprType.String or ExprType.Symbol: return string.Equals(Unsafe.As<string>(Reference), Unsafe.As<string>(other.Reference));
             case ExprType.Array: return ArrayEquality(ArrayValue, other.ArrayValue);
             case ExprType.Record: return RecordEquality(RecordValue, other.RecordValue);
             default: return true;

@@ -27,6 +27,7 @@ export function parseExpression(source: string): ExpressionAst {
   };
   const functions: Record<string, number> = { abs: 1, min: 2, max: 2, floor: 1, ceil: 1, round: 1,
     tonumber: 1, tostring: 1, length: 1, contains: 2, append: 2, index: 2 };
+  const sets: Record<string, [string, number]> = { setunion: ['Union', 2], setintersect: ['Intersect', 2], setexcept: ['Except', 2], setshift: ['Shift', 2], setcount: ['Count', 1], setfirst: ['First', 1] };
   function expression(min = 0): ExpressionAst {
     if (++depth > 64) throw new Error('Expression nesting exceeds 64');
     const token = tokens[pos++];
@@ -41,7 +42,9 @@ export function parseExpression(source: string): ExpressionAst {
     } else if (token?.startsWith('"')) left = constant('String', JSON.parse(token));
     else if (token?.startsWith("'")) left = constant('String', token.slice(1, -1));
     else if (token && /^[A-Za-z_]/.test(token) && tokens[pos] === '(') {
-      const name = token.toLowerCase(), arity = Object.hasOwn(functions, name) ? functions[name] : undefined;
+      const name = token.toLowerCase();
+      const set = Object.hasOwn(sets, name) ? sets[name] : undefined;
+      const arity = set?.[1] ?? (Object.hasOwn(functions, name) ? functions[name] : undefined);
       if (arity === undefined) throw new Error(`Unsupported function '${token}'`);
       pos++; const args: ExpressionAst[] = [];
       if (tokens[pos] !== ')') {
@@ -53,7 +56,7 @@ export function parseExpression(source: string): ExpressionAst {
       }
       take(')');
       if (args.length !== arity) throw new Error(`${name} requires ${arity} argument${arity === 1 ? '' : 's'}`);
-      left = { exprType: 'call', function: name, args };
+      left = set ? { exprType: 'bitset', op: set[0], args } : { exprType: 'call', function: name, args };
     }
     else if (token && /^[A-Za-z_]/.test(token)) {
       const settlement = token === 'measurement' && tokens[pos] === '.';

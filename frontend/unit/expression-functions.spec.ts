@@ -29,3 +29,14 @@ test('Collection and exact text conversions remain typed calls in the native edi
     right: { function: 'length', args: [{ path: ['awards'] }] } });
   expect(parseExpression('contains(state.awards, 1) ? tonumber(tostring(1 / 3)) : 0')).toMatchObject({ exprType: 'if', condition: { function: 'contains' }, thenExpr: { function: 'tonumber', args: [{ function: 'tostring' }] } });
 });
+
+
+test('finite-set syntax produces the typed bitset AST with exact mask literals', () => {
+  expect(parseExpression('setCount(setUnion(9223372036854775808, state.mask))')).toEqual({ exprType: 'bitset', op: 'Count', args: [
+    { exprType: 'bitset', op: 'Union', args: [{ exprType: 'constant', kind: 'Integer', value: '9223372036854775808' }, { exprType: 'fieldAccess', target: 'state', path: ['mask'] }] },
+  ] });
+  for (const [name, op, argumentsText] of [['setIntersect', 'Intersect', '7, 3'], ['setExcept', 'Except', '7, 3'], ['setShift', 'Shift', '7, -1'], ['setFirst', 'First', '0']]) {
+    expect(parseExpression(`${name}(${argumentsText})`)).toMatchObject({ exprType: 'bitset', op });
+  }
+  for (const text of ['setCount()', 'setUnion(1)', 'setFirst(1, 2)', 'setShift(1, 2, 3)', 'setUnknown(1)']) expect(() => parseExpression(text)).toThrow();
+});

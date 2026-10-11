@@ -12,12 +12,16 @@ namespace SlotMath.Core.Compiler;
 /// <para><paramref name="constants"/> holds state fields that keep their initial
 /// value for the whole round because nothing writes them. A read of such a
 /// field is its value, and a conditional on one keeps only the branch taken.</para></summary>
-internal sealed class SamplingExpressions(Func<string, int> slot, SamplingTier? tier = null, IReadOnlyDictionary<string, ExprValue>? constants = null, SamplingShapes? shapes = null)
+internal sealed class SamplingExpressions(Func<string, int> slot, SamplingTier? tier = null, IReadOnlyDictionary<string, ExprValue>? constants = null, SamplingShapes? shapes = null, IReadOnlySet<string>? maskFields = null, IReadOnlySet<string>? inlineMaskFields = null)
 {
     internal SamplingShapes Shapes { get; } = shapes ?? new();
     private static readonly IReadOnlyDictionary<string, ExprValue> None = new Dictionary<string, ExprValue>();
     private readonly SamplingTier _tier = tier ?? SamplingOptions.Tier;
     private readonly IReadOnlyDictionary<string, ExprValue> _constants = constants ?? None;
+    private readonly IReadOnlySet<string> _maskFields = maskFields ?? SamplingMaskState.None;
+    internal bool IsMaskField(string name) => _maskFields.Contains(name);
+    private readonly IReadOnlySet<string> _inlineMaskFields = inlineMaskFields ?? SamplingMaskState.None;
+    internal bool IsInlineMaskField(string name) => _inlineMaskFields.Contains(name);
     // Code is generated while other workers evaluate, so lookups must tolerate a concurrent insert.
     private readonly System.Collections.Concurrent.ConcurrentDictionary<string, ExprValue> _numbers = new(StringComparer.Ordinal);
 
@@ -29,8 +33,16 @@ internal sealed class SamplingExpressions(Func<string, int> slot, SamplingTier? 
 
     internal bool TryConstantBool(Expression expression, out bool value)
     {
-        value = TryConstant(expression, out var constant) && constant.Kind == ExprType.Boolean && constant.BoolValue;
-        return value || TryConstant(expression, out constant) && constant.Kind == ExprType.Boolean;
+        if (TryConstant(expression, out var constant) && constant.IsBoolean) { value = constant.BoolValue; return true; }
+        if (expression is ConstantExpr { Kind: ConstantKind.Boolean } literal && bool.TryParse(literal.Value, out value)) return true;
+        if (expression is NotExpr not && TryConstantBool(not.Expr, out value)) { value = !value; return true; }
+        if (expression is BinaryExpr { Op: BinaryOp.And or BinaryOp.Or } binary && TryConstantBool(binary.Left, out value))
+        {
+            if (binary.Op == BinaryOp.And ? !value : value) return true;
+            return TryConstantBool(binary.Right, out value);
+        }
+        value = false;
+        return false;
     }
 
     /// <summary>The expression that is actually evaluated once conditionals on constant state are decided.</summary>
@@ -41,7 +53,7 @@ internal sealed class SamplingExpressions(Func<string, int> slot, SamplingTier? 
     }
 
     // An iteration variable is assigned while its body runs, so it can never be constant state.
-    private int Variable(string name) => _constants.ContainsKey(name) ? throw new ConstantStateConflict(name) : slot(name);
+    internal int Variable(string name) => _constants.ContainsKey(name) ? throw new ConstantStateConflict(name) : slot(name);
     public void Remember(ExprValue value)
     {
         // Cache only valid integer symbols without interpreting every text
@@ -56,6 +68,10 @@ internal sealed class SamplingExpressions(Func<string, int> slot, SamplingTier? 
 
     public Func<SamplingFrame, ExprValue> Compile(Expression expression) => Bind(expression).Entry;
 
+    internal SamplingRunDelegate BindRun(IReadOnlyList<Node> nodes, IReadOnlyDictionary<string, Expression> expressions, BigInteger scale,
+        Func<SamplingFrame, SlotMath.Core.Random.SeededRandom, object?, object?> interpreted, bool discardOutput = false) =>
+        new(interpreted, () => SamplingCodegen.CompileRun(this, slot, nodes, expressions, scale, discardOutput), _tier);
+
     /// <summary>Binds field slots and constants now; code generation may follow later.</summary>
     public SamplingDelegate<ExprValue> Bind(Expression expression)
     {
@@ -63,6 +79,18 @@ internal sealed class SamplingExpressions(Func<string, int> slot, SamplingTier? 
         // A constant or a plain field read is already a single call.
         var simple = Reduce(expression) is ConstantExpr or FieldAccessExpr;
         return new(interpreted, simple ? null : () => SamplingCodegen.CompileValue(this, slot, expression), _tier);
+    }
+
+    internal SamplingDelegate<bool> BindWrite(Expression expression, int destination, bool integer, bool inlineMask = false)
+    {
+        var interpreted = Interpret(expression);
+        bool Write(SamplingFrame frame)
+        {
+            var value = interpreted(frame);
+            frame.Cells[destination].SetTyped(integer ? ExprValue.Number(value.AsInteger()) : value);
+            return true;
+        }
+        return new(Write, () => SamplingCodegen.CompileWrite(this, slot, expression, destination, integer, inlineMask), _tier);
     }
 
     /// <summary>A condition that must evaluate to a Boolean, as a typed predicate.</summary>
@@ -136,6 +164,15 @@ internal sealed class SamplingExpressions(Func<string, int> slot, SamplingTier? 
                     for (var j = 2; j < args.Length; j++) args[j](s); // arguments are eager, including unused ones
                     return Call(function, a, b, args.Length);
                 };
+            case BitSetExpr set:
+                var operands = set.Args.Select(compile).ToArray();
+                return s =>
+                {
+                    var first = operands.Length > 0 ? operands[0](s) : default;
+                    var second = operands.Length > 1 ? operands[1](s) : default;
+                    for (var j = 2; j < operands.Length; j++) operands[j](s);
+                    return BitSetOperations.Evaluate(set.Op, operands.Length, first, second);
+                };
             case FoldExpr f:
                 var source = slot(f.StateKey); var acc = Variable(f.AccName); var item = Variable(f.ItemName);
                 var position = f.IndexName is null ? -1 : Variable(f.IndexName);
@@ -150,7 +187,7 @@ internal sealed class SamplingExpressions(Func<string, int> slot, SamplingTier? 
                         {
                             s.CheckCancellation();
                             s.Cells[acc] = SamplingCell.Typed(value); s.Cells[item] = array.Item(j);
-                            if (position >= 0) s.Cells[position] = SamplingCell.FromRaw(j);
+                            if (position >= 0) s.Cells[position] = SamplingCell.FromInt(j);
                             value = body(s);
                         }
                         return value;
@@ -203,7 +240,7 @@ internal sealed class SamplingExpressions(Func<string, int> slot, SamplingTier? 
             for (var j = 0; j < length; j++)
             {
                 s.CheckCancellation(); var cell = array.Item(j); s.Cells[binding] = cell;
-                if (position >= 0) s.Cells[position] = SamplingCell.FromRaw(j);
+                if (position >= 0) s.Cells[position] = SamplingCell.FromInt(j);
                 var result = body(s);
                 if (!filter || Truth(result)) values[count++] = filter ? cell.FilterValue : result;
             }

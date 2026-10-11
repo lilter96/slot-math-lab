@@ -11,7 +11,7 @@ import { useSimulation, startSimulation, cancelSimulation, openSimulation, recon
 import { LiveChart } from '../components/simulate/LiveChart';
 import { count } from '../components/simulate/format';
 import { LiveHistogram } from '../components/simulate/LiveHistogram';
-import { downloadJson } from '../games/doghouse/api';
+import { downloadJson } from '../lib/graphApi';
 import { MeasurementWorkspace } from '../components/simulate/MeasurementWorkspace';
 import { useMeasurementWorkspace, type Widget } from '../lib/measurements/store';
 import { readSimulationEvidence } from '../lib/results/api';
@@ -104,7 +104,7 @@ export default function Simulate() {
     {requestedRun && requestedRun !== selectedRunId && active && <p className="measurement-next-note">Another simulation is active. Finish or cancel it before opening this linked run. <Link to={`/results?run=${encodeURIComponent(requestedRun)}`}>Inspect its saved results ↗</Link></p>}
     {loadingRun && <p role="status" className="measurement-next-note">Opening the pinned run and its measurement plan…</p>}
     {queryError && <p role="alert" className="simulation-error">{queryError} <button className="btn" onClick={() => void linked.refetch()}>Retry saved run</button></p>}
-    {!active && <p className="simulation-next-model">Next run uses the current constructor draft: <strong>{currentName || "Dog House · 98%"}</strong>. Saved runs retain their pinned graph and collection plan.</p>}
+    {!active && <p className="simulation-next-model">Next run uses the current constructor draft: <strong>{currentName || "Nine Lives · target 96%"}</strong>. Saved runs retain their pinned graph and collection plan.</p>}
     {s.launchNote && <p role="status" className="measurement-next-note">{s.launchNote}</p>}
     {s.error && <div className="simulation-error" role="alert">{s.error}</div>}
     <section className="simulation-progress" aria-label="Run progress"><div><strong data-testid="sample-count">{p?.sampleCount.toLocaleString() ?? '0'}</strong><span>{stoppedPopulation ? ` paid rounds observed · ${p?.execution?.completedSessions ?? 0} sessions completed` : ` / ${(p?.totalSamples || samples).toLocaleString()} rounds`}</span><b>{percent.toFixed(1)}%</b></div><div className="run-progress-track" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={percent}><div style={{ width: `${percent}%` }} /></div><footer><span>{status === 'pending' ? 'Queued for a worker' : hasData ? `${duration(p.elapsedMs)} elapsed` : 'No observations yet'}</span><span>{active && rate > 0 && !stoppedPopulation ? `~${duration((p!.totalSamples - p!.sampleCount) / rate * 1000)} remaining` : status === 'cancelled' ? 'Partial result · stopped by cancellation or execution budget' : 'Full game graph pinned at launch'}</span></footer></section>

@@ -388,6 +388,7 @@ public static class SubgraphInliner
                 Predicate = a.Predicate is null ? null : RewriteExprRefs(a.Predicate, prefix),
                 ValueExpr = a.ValueExpr is null ? null : RewriteExprRefs(a.ValueExpr, prefix)
             },
+            BitSetExpr set => set with { Args = set.Args.Select(arg => RewriteExprRefs(arg, prefix)).ToArray() },
             CallExpr call => call with
             {
                 Args = call.Args.Select(arg => RewriteExprRefs(arg, prefix)).ToArray(),

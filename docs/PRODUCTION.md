@@ -120,11 +120,7 @@ the run, while cancellation waits for the worker's terminal status and retains
 actual partial counts. The dashboard exports the pinned graph, seed, stream
 scheme, config hash, result and observed convergence history as JSON.
 
-A target is separate from a verified reference. For the authored Dog House model,
-the exact expectation is calculated by the editable AST proof through the generic
-graph endpoint. Other models show an exact reference only when the backend
-actually returns Exact provenance. Sampled preflight estimates are not exact
-references. Full payout distributions still have the documented exact budget.
+Evidence for the preceding release demo was retired during the original-game migration. It must not be attributed to Nine Lives. Current rules and verification scope are documented in [Lab Demo](LAB_DEMO.md).
 
 Browser checks cover live mid-chunk events, nested graph execution, reload,
 fast completion, cancellation, evidence export, blocked socket recovery and mobile

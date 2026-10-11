@@ -55,7 +55,9 @@ internal static class CollectionFunctions
     {
         if (first.Kind == ExprType.Array)
         {
-            foreach (var item in first.ArrayValue!) if (item.Equals(second)) return ExprValue.Bool(true);
+            var items = first.ArrayValue!;
+            for (var i = 0; i < items.Count; i++)
+                if (items[i].Equals(second)) return ExprValue.Bool(true);
             return ExprValue.Bool(false);
         }
         RequireText(first, "contains"); RequireText(second, "contains");

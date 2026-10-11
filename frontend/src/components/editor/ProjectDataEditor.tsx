@@ -3,8 +3,8 @@ import { useState } from 'react';
 import { useAppStore } from '../../store';
 import type { ExpressionAst } from '../../lib/expressionParser';
 import ExpressionTreeEditor from './ExpressionTreeEditor';
-import GameDialog from '../../games/doghouse/GameDialog';
-import { graphRequest, type GraphRound } from '../../games/doghouse/api';
+import GameDialog from './GraphDialog';
+import { graphRequest, type GraphRound } from '../../lib/graphApi';
 import { exportProject } from '../../lib/projectFiles';
 export default function ProjectDataEditor({ onClose, initialTable }: { onClose: () => void; initialTable?: string }) {
   const tables = useAppStore(s => s.tables);

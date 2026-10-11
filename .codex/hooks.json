@@ -1,0 +1,29 @@
+{
+  "description": "Reformat and apply Rider Full Cleanup to this session's touched backend files before finishing.",
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$(git rev-parse --show-toplevel)/.codex/hooks/rider_cleanup.py\"",
+            "statusMessage": "Recording source files for scoped Rider cleanup",
+            "timeout": 30
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$(git rev-parse --show-toplevel)/.codex/hooks/rider_cleanup.py\"",
+            "statusMessage": "Reformatting and applying Rider Full Cleanup to touched files",
+            "timeout": 600
+          }
+        ]
+      }
+    ]
+  }
+}

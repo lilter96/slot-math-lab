@@ -16,7 +16,7 @@ public class CompiledGraphCacheTests(WebApplicationFactory<Program> factory) : I
     public void IdenticalGraphsShareOnePlan_EditingInputsInvalidatesIt()
     {
         var cache = factory.Services.GetRequiredService<CompiledGraphCache>();
-        var config = JsonSerializer.Deserialize<GraphConfig>(File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "TestData", "DogHouse", "dog-house-ui.json")), JsonOptions.Default)!;
+        var config = JsonSerializer.Deserialize<GraphConfig>(File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "TestData", "LabDemo", "lab-demo.json")), JsonOptions.Default)!;
         var plans = new CompileResult[16];
         Parallel.For(0, plans.Length, i => plans[i] = cache.Compile(config));
         foreach (var plan in plans) { Assert.True(plan.IsValid); Assert.Same(plans[0], plan); }
