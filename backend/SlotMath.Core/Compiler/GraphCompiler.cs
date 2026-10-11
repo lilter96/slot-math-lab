@@ -354,13 +354,6 @@ public sealed class GraphCompiler
     //  ProgramBuilder — one compilation pass over a validated graph
     // ════════════════════════════════════════════════════════════════════
 
-    /// <summary>
-    ///     The built-in evaluator a map node names, bound to this config's tables; null when the name is not a
-    ///     built-in or the config lacks the tables it reads.
-    /// </summary>
-    internal static IFastPathEvaluator? BuiltInEvaluator(GraphConfig config, string transformId, MapNode node) =>
-        ProgramBuilder.BuiltInEvaluator(config, transformId, node, node.Id);
-
     private sealed class ProgramBuilder
     {
         /// <summary>The finest precision a paytable may ask for: 10^18 units to the credit.</summary>
@@ -1550,7 +1543,7 @@ public sealed class GraphCompiler
         ///     The built-in evaluator a map node names, bound to this config's tables; null when the name is not a
         ///     built-in or the config lacks the tables it reads.
         /// </summary>
-        internal static IFastPathEvaluator? BuiltInEvaluator(GraphConfig config, string transformId, MapNode? node,
+        private static IFastPathEvaluator? BuiltInEvaluator(GraphConfig config, string transformId, MapNode? node,
             string nodeId)
         {
             if (transformId is not ("lines" or "ways" or "cluster") || config.Paytables.Length == 0

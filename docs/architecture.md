@@ -115,25 +115,19 @@ between nothing and the win cap in the game and in the shortened game alike, so 
 pruned mass × cap of the value computed, and a probability within the pruned mass. Statements in
 iterations past the cut are not checked for failing. Setting `PruneLoopMassBelow = null` never prunes.
 
-**Reel strips and built-in evaluators.** A reel-strip draw is one uniform variable per reel, and every
-cell of the board a table over its own reel's stop, so the reels stay independent whatever the product
-of their lengths. The `lines`, `ways` and `cluster` evaluators are not restated as terms: the engine's
-own evaluator classes are called on values, behind a term (`Op.Native`) whose arguments are the cells
-they read. What is exploited is only how the amount splits:
+**Reel strips and authored payouts.** A reel-strip draw is one uniform variable per reel,
+and every cell is a table over its reel's stop. Payouts are composed in editable graphs from
+atoms and typed expressions. Generic sums, products, conditionals and dependency sets
+provide factoring; the structured evaluator does not recognize evaluator classes, mechanic
+names, or authored graph patterns. The equivalence fixtures compose line and ways payouts
+in test-owned graphs and compare them with independent probability formulas.
 
-- `lines` is the sum over the paylines of the evaluator run on that payline's own cells, so a payline is
-  a function of one cell per reel and twenty paylines never meet in one term;
-- `ways` is the sum over the paytable's symbols of the evaluator run on a board built from the number of
-  matching cells in each reel, so a symbol is a function of one small count per reel;
-- `cluster`, and anything that does not split, is one call over the whole board.
-
-A multiplier port multiplies outside the call. Each part's amount must be a whole number of win units
-by itself, which is checked on every outcome like any statement that can fail; where it is not, the
-evaluator declines. The catalog mechanics (`lines`, `ways`, `cluster`) are single nodes naming these
-evaluators, so games built from the catalog are covered.
+A named opaque map has no expression semantics for this evaluator to model. It declines
+before execution, including legacy catalog maps. The caller retains the classic exact/hybrid
+path and its budget/provenance behavior. There is no `Op.Native` or special line/ways split.
 
 The evaluator never approximates silently. Plugins (D5: a result with a plugin is never `Exact`),
-evaluators and transforms registered outside the built-in three, wins stored as state data, a
+opaque transforms, wins stored as state data, a
 statement that can fail on a reachable outcome, or an exhausted work budget make it **decline**, and
 the caller keeps what it had. A result is `Exact`, or `ExactInterval` with its pruned
 mass when a loop was cut short. When the payout distribution is too large to build, RTP is still

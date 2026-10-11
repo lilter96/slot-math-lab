@@ -37,7 +37,6 @@ const hwCoins = (coins: ClubCoin[]): HwCoin<ClubCoin>[] =>
   coins.map((coin) => ({ cell: coordinate(coin), id: 'COIN', data: coin }))
 
 export async function launchX7Club(): Promise<void> {
-  document.getElementById('game-loader')?.remove()
   document.title = 'X7 Club — TGSlots'
   const root = document.createElement('main')
   root.className = 'x7-club'
@@ -598,4 +597,5 @@ export async function launchX7Club(): Promise<void> {
     { once: true },
   )
   await restore()
+  document.getElementById('game-loader')?.remove()
 }

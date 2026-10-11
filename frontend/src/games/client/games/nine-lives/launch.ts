@@ -29,7 +29,6 @@ const titles = [
 ]
 const wait = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms))
 export async function launchNineLives(): Promise<void> {
-  document.getElementById('game-loader')?.remove()
   document.title = 'Nine Lives — TGSlots'
   const root = document.createElement('main')
   root.className = 'nl-game'
@@ -437,4 +436,5 @@ export async function launchNineLives(): Promise<void> {
     { once: true },
   )
   await restore()
+  document.getElementById('game-loader')?.remove()
 }

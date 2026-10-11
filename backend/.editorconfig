@@ -44,3 +44,7 @@ csharp_style_pattern_matching_over_as_with_null_check = true
 # Match the structured evaluator's existing Rider switch and label layout.
 csharp_indent_case_contents_when_block = false
 csharp_indent_labels = no_change
+
+[SlotMath.Core.Tests/Math/Structured/StructuredEquivalenceTests.cs]
+# Match Rider's case-block layout in the structured equivalence gate.
+csharp_indent_case_contents_when_block = false

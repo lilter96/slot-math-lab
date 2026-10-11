@@ -194,8 +194,8 @@ over-represented; `--allocations` and the collector's own pause counters
 Limits, stated plainly: for the full Ancient Dragon and Woodland Whisper rounds
 the payout distribution, and with it maximum win, the hit frequency and the
 variance do not fit their allowances; those metrics come from Sampled. Plugins,
-evaluators and transforms outside the built-in `lines`, `ways` and `cluster`,
-and wins stored as state data are declined.
+all opaque map transforms (including legacy built-ins), and wins stored as state
+data are declined.
 
 ```sh
 dotnet backend/SlotMath.Benchmarks/bin/Release/net10.0/SlotMath.Benchmarks.dll \
@@ -254,23 +254,26 @@ pruned must enclose the reference's value in the interval it reports, and at
 least 300 must be pruned for the gate to count; reporting the interval without
 its pruned mass fails the gate.
 
-Reel strips and the built-in evaluators have a gate of 5,000 generated reel
-games: two to four reels of two to five stops, one to three rows, payouts that
-are and are not whole win units, paylines that are short or leave the board,
-`lines`, `ways` and `cluster`, multiplier ports, respin loops, two spins in a
-round, a branch between two evaluators. 4,716 equal the reference distribution
-for distribution, 2,586 of them with the structural hit frequency and second
-moment checked as well; 284 are not compared because the reference exceeds its
-branch limit; none is declined and none differs. Dropping one payline or one
-paytable symbol from the split fails 333 of 1,000 games.
+The reel gate generates 5,000 configurations containing short reels, multiplier ports,
+loops, branches and opaque maps. The review rerun compared 831 unnamed-map configurations
+by rational distribution equality, explicitly declined 3,885 opaque-map configurations and
+left 284 outside the classic reference's branch budget. The structural hit frequency and
+second moment matched in all 831 comparisons. Separate deterministic fixtures verify that
+the classic interpreter still pays legacy named maps after structured evaluation declines.
 
-At the usual size, five reels of fifteen stops with three rows and twenty
-paylines, the structured RTP equals the reference's over all 759,375 boards:
-0.75 s against 3.3 s for `lines`, 0.1 s against 2.9 s for `ways`. Fifteen cells
-drawn one by one from ten faces of unequal weight make 10¹⁵ boards, which nothing
-lists; there the result equals formulas written out from the rules (a sum over
-the 10⁵ face combinations of each payline; a closed form in each reel's expected
-match count for `ways`), in 21 s and 11 s.
+Line and ways expectations are tested using payouts authored from ordinary ModifyState
+nodes and typed expressions. The five-reel, fifteen-stop case compares with the classic
+interpreter over all 759,375 boards. Fifteen independent cells with ten faces each represent
+10¹⁵ boards; their exact expectations are checked against independent formulas (explicit
+line combinations and per-reel match-count moments). The earlier timings for specialized
+native evaluator splitting do not apply to this implementation and have been removed.
+
+The review rerun used Release, .NET 10.0.12 on the shared workstation. The authored
+five-reel cases took 10.803 s (line expressions) and 0.032 s (ways expressions), against
+5.853 s and 5.846 s for the independent classic reference using legacy evaluators.
+The 10¹⁵-outcome expectations took 20.054 s and 1.123 s. These are shared-host
+observations, not a D7 runner certificate; their independent rational checks are retained
+in `StructuredEquivalenceTests`.
 
 The games ported from TGSlots hold the evaluator against games it did not grow
 up on (`SlotMath.Core.Tests/Math/Games`). For the full Ancient Dragon and

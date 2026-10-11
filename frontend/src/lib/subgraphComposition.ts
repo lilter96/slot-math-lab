@@ -30,11 +30,32 @@ export function extractSubgraph(graph: ComposableGraph, name: string, selected: 
   }
   if (!Object.keys(outputs).length) throw new Error('The subgraph needs an output to continue the round.');
   const expressions: Record<string, unknown> = {};
+  const visiting = new Set<string>();
+  const include = (id: string) => {
+    if (visiting.has(id)) throw new Error(`Expression dependency cycle at "${id}".`);
+    if (Object.hasOwn(expressions, id)) return;
+    if (!Object.hasOwn(graph.expressions ?? {}, id)) throw new Error(`Expression or parameter "${id}" is not defined in this graph. Include its definition before extracting.`);
+    visiting.add(id);
+    const expression = graph.expressions![id];
+    visit(expression);
+    expressions[id] = expression;
+    visiting.delete(id);
+  };
+  const visit = (value: unknown): void => {
+    if (!value || typeof value !== 'object') return;
+    if (Array.isArray(value)) { value.forEach(visit); return; }
+    const record = value as Record<string, unknown>;
+    if (record.exprType === 'fieldAccess' && (record.target == null || record.target === 'state')
+      && Array.isArray(record.path) && record.path[0] === 'expressions' && typeof record.path[1] === 'string') include(record.path[1]);
+    Object.values(record).forEach(visit);
+  };
   for (const node of nodes) {
     for (const property of ['expressionId', 'conditionId', 'stopConditionId', 'weightExpressionId']) {
       const id = node[property];
-      if (typeof id === 'string' && Object.hasOwn(graph.expressions ?? {}, id)) expressions[id] = graph.expressions![id];
+      if (typeof id === 'string') include(id);
     }
+    // Port defaults and loop exit classifications can read expressions too.
+    visit(node);
   }
   const instance: Node = { nodeType: 'library', id: instanceId, label: name, mechanicName: name, parameters: {}, inputs, outputs };
   const first = graph.nodes.findIndex(node => ids.has(node.id));

@@ -46,3 +46,35 @@ test('Extraction rejects ambiguous boundaries, missing selections and name colli
   expect(() => extractSubgraph(original, 'new', ['before', 'second'], 'instance')).toThrow(/Several outputs/);
   expect(original).toEqual(saved);
 });
+
+const reference = (id: string, target: string | null = 'state') => ({ exprType: 'fieldAccess', target, path: ['expressions', id] });
+
+test('Extraction closes transitive and inline dependencies and preserves nested library parameters', () => {
+  const original = graph();
+  original.expressions = {
+    add: { exprType: 'binary', op: 'Add', left: reference('rate'), right: reference('amount', null) },
+    rate: reference('amount'), amount: { exprType: 'constant', kind: 'Integer', value: '7' },
+    exit: reference('rate'), unrelated: { exprType: 'constant', kind: 'Integer', value: '99' },
+  };
+  original.nodes[1].outputs = { state: { ...ports.state, defaultValue: reference('exit') } };
+  original.nodes[2].parameters = { multiplier: '3', option: 'bonus' };
+  const saved = structuredClone(original);
+  const extracted = extractSubgraph(original, 'payout', ['first', 'second'], 'one');
+  expect(Object.keys(extracted.mechanics!.payout.expressions).sort()).toEqual(['add', 'amount', 'exit', 'rate']);
+  expect(extracted.mechanics!.payout.nodes[1].parameters).toEqual({ multiplier: '3', option: 'bonus' });
+  expect(original).toEqual(saved);
+  // Extracting the same dependency graph again uses independent IDs without changing shared data.
+  const nested = extractSubgraph({ ...extracted, nodes: saved.nodes, edges: saved.edges }, 'other', ['first'], 'two');
+  expect(nested.mechanics!.other.expressions).toEqual(extracted.mechanics!.payout.expressions);
+});
+
+test('Extraction rejects unresolved and cyclic dependencies before changing the runnable graph', () => {
+  const original = graph();
+  original.expressions!.add = reference('missingParameter');
+  const saved = structuredClone(original);
+  expect(() => extractSubgraph(original, 'new', ['first'], 'one')).toThrow(/missingParameter.*not defined/);
+  expect(original).toEqual(saved);
+  original.expressions!.add = reference('second');
+  original.expressions!.second = reference('add');
+  expect(() => extractSubgraph(original, 'new', ['first'], 'one')).toThrow(/cycle/);
+});

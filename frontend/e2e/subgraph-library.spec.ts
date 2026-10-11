@@ -1,4 +1,5 @@
 import { test, expect } from './fixtures';
+import { extractSubgraph, type ComposableGraph } from '../src/lib/subgraphComposition';
 
 test('Complete migrated game models open directly in Build and preserve the previous draft', async ({ page }) => {
   await page.goto('/build');
@@ -99,4 +100,47 @@ test('Mechanics panel uses the same editable definitions as the canvas', async (
   await page.getByRole('button', { name: 'Mechanics', exact: true }).click();
   await manager.getByRole('button', { name: 'Reuse definition cluster-pays', exact: true }).click();
   await expect(page.getByLabel('Subgraph name')).toHaveValue('cluster-pays');
+});
+
+
+test('Extracted transitive expressions and parameterized nested libraries keep the same played payout', async ({ request }) => {
+  test.setTimeout(180000);
+  const ports = { state: { name: 'state', type: 'State' } };
+  const numeric = (value: number) => ({ exprType: 'constant', kind: 'Integer', value: String(value) });
+  const ref = (id: string) => ({ exprType: 'fieldAccess', target: 'state', path: ['expressions', id] });
+  const amount = { exprType: 'fieldAccess', target: 'state', path: ['amount'] };
+  const original: ComposableGraph = {
+    schemaVersion: '1.0', name: 'Dependency closure', initialState: { amount: 3 },
+    nodes: [
+      { id: 'draw', nodeType: 'draw', drawWeights: [{ outcomeId: 'one', weight: 1, value: 1 }], outputs: ports },
+      { id: 'add', nodeType: 'modifyState', expressionId: 'award', outputKey: 'amount', inputs: ports, outputs: ports },
+      { id: 'nested', nodeType: 'library', mechanicName: 'increment', parameters: { step: '5' }, inputs: ports, outputs: ports },
+      { id: 'sink', nodeType: 'metricsSink', winStateKey: 'amount', winCap: 100, inputs: ports },
+    ],
+    edges: [['draw', 'add'], ['add', 'nested'], ['nested', 'sink']].map(([sourceNodeId, targetNodeId], i) => ({
+      id: `e${i}`, sourceNodeId, targetNodeId, sourcePort: 'state', targetPort: 'state',
+    })),
+    expressions: {
+      award: { exprType: 'binary', op: 'Add', left: amount, right: ref('rate') },
+      rate: { exprType: 'binary', op: 'Mul', left: ref('factor'), right: ref('base') },
+      factor: numeric(2), base: numeric(7),
+    },
+    mechanics: { increment: { name: 'increment', nodes: [
+      { id: 'raise', nodeType: 'modifyState', expressionId: 'raise', outputKey: 'amount', inputs: ports, outputs: ports },
+    ], edges: [], expressions: { raise: { exprType: 'binary', op: 'Add', left: amount, right: ref('step') } } } },
+  };
+  const extracted = extractSubgraph(original, 'payout', ['add', 'nested'], 'own-payout');
+  for (const config of [original, extracted]) {
+    const data = { config, seed: 42, roundIndex: 0, trace: true };
+    let played = await request.post('/api/play/round', { data });
+    for (let attempt = 1; played.status() === 429 && attempt < 3; attempt++) {
+      const seconds = Number(played.headers()['retry-after'] ?? '1');
+      await new Promise(resolve => setTimeout(resolve, Number.isFinite(seconds) ? Math.min(65000, Math.max(1000, seconds * 1000)) : 1000));
+      played = await request.post('/api/play/round', { data });
+    }
+    expect(played.status(), await played.text()).toBe(200);
+    const result = await played.json();
+    expect(Number(result.win)).toBe(22);
+    expect(Number(result.state.amount)).toBe(22);
+  }
 });

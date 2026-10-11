@@ -22,6 +22,7 @@ export interface OrchestratorActions<G extends GameId> {
 
 export class SpinOrchestrator<G extends GameId> {
   private _autoState: { config: AutoSpinConfig; remaining: number } | null = null
+  private _autoTimer: ReturnType<typeof setTimeout> | null = null
   private _freeSpinsRemaining = 0
   private _wonThisCycle = false
   private _bonusTriggeredThisCycle = false
@@ -60,19 +61,26 @@ export class SpinOrchestrator<G extends GameId> {
   }
 
   startAutoSpin(config: AutoSpinConfig): void {
+    this.stopAutoSpin()
     this._autoState = { config, remaining: config.spins }
     if (this._fsm.state === GameUIState.IDLE) {
-      this.spin(this._session.betMultiplier).catch(console.error)
+      this._spin(this._session.betMultiplier).catch(console.error)
     }
   }
 
   stopAutoSpin(): void {
     this._autoState = null
+    if (this._autoTimer !== null) clearTimeout(this._autoTimer)
+    this._autoTimer = null
   }
 
   async spin(betMultiplier: number): Promise<void> {
+    if (this._autoState) return
+    await this._spin(betMultiplier)
+  }
+
+  private async _spin(betMultiplier: number): Promise<void> {
     if (this._fsm.state !== GameUIState.IDLE) return
-    if (this._autoState && !this._autoState.config.spins) return // manual spin during unlimited auto-spin
 
     const cost = this._actions.spinCost(betMultiplier)
     if (!this._session.deductWager(cost)) {
@@ -224,8 +232,9 @@ export class SpinOrchestrator<G extends GameId> {
       return
     }
 
-    setTimeout(() => {
-      this.spin(this._session.betMultiplier).catch(console.error)
+    this._autoTimer = setTimeout(() => {
+      this._autoTimer = null
+      if (this._autoState) this._spin(this._session.betMultiplier).catch(console.error)
     }, this._getSpinSpeedProfile().autoSpinDelayMs)
   }
 }

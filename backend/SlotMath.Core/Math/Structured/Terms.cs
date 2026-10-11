@@ -58,8 +58,7 @@ internal enum StructuredFault
     ChainCapOffByOne,
     ChainZeroMassUnconditional,
     ProductsTakenIndependent,
-    PrunedMassDropped,
-    EvaluatorPartDropped
+    PrunedMassDropped
 }
 
 /// <summary>
@@ -381,24 +380,7 @@ internal enum Op : byte
     Arr,
     Tuple,
     Opaque,
-    Index,
-    Native
-}
-
-/// <summary>
-///     A pure function of values that is not an expression: engine code run as it is, so that what it computes is
-///     never restated here. Two terms apply the same function only when they hold the same instance.
-/// </summary>
-internal sealed class NativeFunction(string name, NativeFunction.Body body)
-{
-    public delegate ExprValue Body(ReadOnlySpan<ExprValue> arguments);
-
-    public string Name { get; } = name;
-
-    /// <summary>Its values are whole numbers from zero to this, when that is known.</summary>
-    public BigInteger? Most { get; init; }
-
-    public ExprValue Apply(ReadOnlySpan<ExprValue> arguments) => body(arguments);
+    Index
 }
 
 internal abstract class Term
@@ -873,8 +855,6 @@ internal sealed class TermFactory
                     return ((Dictionary<ExprValue, int>)payload!).TryGetValue(a[0], out var position)
                         ? ExprValue.Number(position)
                         : V.Err;
-                case Op.Native:
-                    return ((NativeFunction)payload!).Apply(a);
                 case Op.Path:
                     var segments = (string[])payload!;
                     if (segments.Length == 0)
@@ -1145,11 +1125,6 @@ internal sealed class TermFactory
 
                 break;
             case Op.Arr or Op.Tuple: term.Kinds = V.Arr; break;
-            case Op.Native:
-                // Engine code can throw on what it is given; that is an evaluation error like any other.
-                term.Kinds = V.Num;
-                term.OwnFail = true;
-                break;
             case Op.Call:
                 var function = (string)term.Payload!;
                 term.OwnFail = true;
@@ -1329,7 +1304,6 @@ internal sealed class TermFactory
         return MakeOp(Op.Call, 0, function, null, args);
     }
 
-    public Term Native(NativeFunction function, Term[] args) => MakeOp(Op.Native, 0, function, null, args);
 
     public Term Opaque(Expression expression, string[] names, Term[] args) =>
         MakeOp(Op.Opaque, 0, expression, names, args);

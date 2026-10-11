@@ -184,3 +184,60 @@ neither replaces the required Rider passes. The affected source files are:
 - `frontend/src/store/index.ts`
 - `frontend/unit/game-server.spec.ts`
 - `frontend/unit/subgraph-composition.spec.ts`
+
+## Review corrections
+
+The structured evaluator's named Lines/Ways dispatch and native evaluator term have been
+removed. Large exact fixtures now author the payout through ordinary atoms and expressions;
+legacy opaque transforms explicitly decline to the classic interpreter. The sampling graph,
+its hash and the earlier raw timing evidence remain unchanged.
+
+Extraction now follows transitive named expression dependencies and inline references,
+preserves nested library parameters, and rejects unresolved/cyclic dependencies before
+mutating a model. Browser sessions serialize the entire load/validate/play/commit transaction
+with Web Locks across tabs. When cross-tab locks are unavailable, the browser server keeps
+its sessions in memory instead of sharing a persistent wallet unsafely. Same-realm server
+instances also share a cancellable queue. Abort signals reach the play transport and retry
+waits, and an aborted action cannot commit later. The simple dispatcher retains an in-memory
+session when storage fails. Auto-spin uses a separate internal invocation and cancels queued
+continuations. Standalone launchers retain their startup recovery overlay until setup finishes.
+Le Militare applies the restored mode to its feature menu when applying authoritative state.
+
+Additional frontend files touched for these corrections are subject to the same tooling blocker:
+Rider Reformat exits with `solution can't be null`; standalone JetBrains Full Cleanup reports
+`No items found to clean up`. Neither required frontend cleanup pass is claimed as completed:
+
+- `frontend/e2e/tgslots-games.spec.ts`
+- `frontend/src/games/client/engine/dispatcher.ts`
+- `frontend/src/games/client/engine/spin-orchestrator.ts`
+- `frontend/src/games/client/games/le-militare/buy-feature-modal.ts`
+- `frontend/src/games/client/games/le-militare/runtime.ts`
+- `frontend/src/games/client/games/nine-lives/launch.ts`
+- `frontend/src/games/client/games/x7-club/launch.ts`
+- `frontend/src/games/server/index.ts`
+- `frontend/src/games/server/play.ts`
+- `frontend/src/games/server/server.ts`
+- `frontend/src/lib/subgraphComposition.ts`
+- `frontend/unit/subgraph-composition.spec.ts`
+- `frontend/src/games/server/abort.ts`
+- `frontend/src/games/server/session-lock.ts`
+- `frontend/unit/game-session-reliability.spec.ts`
+- `frontend/e2e/subgraph-library.spec.ts`
+- `frontend/e2e/realtime-durability.spec.ts`
+
+Review validation: Release build and whole-solution format verification; 28 affected
+backend cases (including all 12 sampling CSE cases and independent large-space exact
+formulas); 114 frontend unit cases; frontend build/lint; and 38 exported fixture checks.
+Backend Reformat and Full Cleanup passed on all five touched sources.
+
+The complete browser run passed 87 of 88 cases. The remaining durability test compared
+a legitimate fast-sampler count of 37,814,272 with a fixed corrupt-frame sentinel of
+9,999,999. Its sentinel now exceeds the requested population, it waits for authoritative
+reconciliation, and it checks the retained sequence as well as displayed values. The
+full failure report is retained at `/tmp/tgslots-review-complete-browser-failure` on the
+validation workstation. After this correction and restarting the Release API with the
+final backend, all 17 WebSocket durability and subgraph scenarios passed without retries
+in 2.2 minutes. These include the corrected test and the additional API integration check
+that payout remains 22 before/after extraction with transitive expressions and a
+parameterized nested library. Across the complete run and targeted rerun, all 89 current
+browser scenarios have passed; this is not a claim of one clean complete rerun.

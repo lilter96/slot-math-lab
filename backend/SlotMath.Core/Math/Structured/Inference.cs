@@ -1506,9 +1506,6 @@ internal sealed class Inference(TermFactory f)
                     }
 
                     break;
-                case OpTerm { Code: Op.Native, Payload: NativeFunction { Most: { } most } }:
-                    bound = new Bound(V.Zero, ExprValue.Number(most), Rational.One);
-                    break;
                 case OpTerm { Code: Op.Extract } extract:
                     bound = BoundOf(extract.Args[0]) is { } inner && extract.Args[0].IsNum
                         ? new Bound(Min(inner.Lo, V.Zero), Max(inner.Hi, V.Zero), Rational.One)

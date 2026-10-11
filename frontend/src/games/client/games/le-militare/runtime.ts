@@ -150,6 +150,7 @@ export class LeMilitareRuntime implements GameRuntime<'le-militare'> {
   }
 
   applyState(state: LeMilitareSerializedState): void {
+    if (state.mode) this._buyFeatureModal?.setMode(state.mode)
     const remaining = state.freeSpins?.spinsRemaining ?? 0
     this._freeRemaining = remaining
     this._freeTotal = state.freeSpins?.totalWin ?? 0

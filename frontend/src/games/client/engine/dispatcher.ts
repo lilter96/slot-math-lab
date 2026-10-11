@@ -15,19 +15,26 @@ export class ApiError extends Error {
 
 export class GameDispatcher<G extends GameId> {
   private readonly _sessionKey: string
+  private _sessionId: string | null = null
+  private _sessionLoaded = false
 
   constructor(
     private readonly _gameId: G,
     private readonly _baseUrl: string,
+    private readonly _serve = serveGame,
   ) {
     this._sessionKey = `${SESSION_KEY_PREFIX}${_gameId}`
   }
 
   get sessionId(): string | null {
+    if (this._sessionLoaded) return this._sessionId
+    this._sessionLoaded = true
     try {
-      return localStorage.getItem(this._sessionKey)
+      const stored = localStorage.getItem(this._sessionKey)
+      if (stored !== null) this._sessionId = stored
+      return this._sessionId
     } catch {
-      return null
+      return this._sessionId
     }
   }
 
@@ -44,7 +51,7 @@ export class GameDispatcher<G extends GameId> {
 
     let res: Response
     try {
-      res = await serveGame(`${this._baseUrl}/game/${this._gameId}/${String(action)}`, {
+      res = await this._serve(`${this._baseUrl}/game/${this._gameId}/${String(action)}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
@@ -71,6 +78,8 @@ export class GameDispatcher<G extends GameId> {
     }
 
     const data = (await res.json()) as ActionResponse<G>
+    this._sessionId = data.sessionId
+    this._sessionLoaded = true
     try {
       localStorage.setItem(this._sessionKey, data.sessionId)
     } catch {
@@ -80,6 +89,8 @@ export class GameDispatcher<G extends GameId> {
   }
 
   clearSession(): void {
+    this._sessionId = null
+    this._sessionLoaded = true
     try {
       localStorage.removeItem(this._sessionKey)
     } catch {

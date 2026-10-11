@@ -1,3 +1,5 @@
+import { abortable } from './abort';
+import { withSessionLock } from './session-lock';
 import type { Game, Opening, Payload, PlayedRound, Step } from './game';
 
 /** The body of a game request: what the ported client posted to its original server. */
@@ -14,7 +16,7 @@ export interface GameResponse {
 }
 
 /** Plays round `round` of a graph for a seed, traced. */
-export type PlayRound = (graph: Record<string, unknown>, seed: number, round: number) => Promise<PlayedRound>;
+export type PlayRound = (graph: Record<string, unknown>, seed: number, round: number, signal?: AbortSignal) => Promise<PlayedRound>;
 
 export interface SessionStore {
   getItem(key: string): string | null;
@@ -83,16 +85,25 @@ export class GameServer {
     return this;
   }
 
-  async handle(gameId: string, action: string, request: GameRequest): Promise<GameResponse> {
+  async handle(gameId: string, action: string, request: GameRequest, signal?: AbortSignal): Promise<GameResponse> {
     try {
-      return { status: 200, body: await this.answer(gameId, action, request) };
+      const answer = async () => {
+        try { return await this.answer(gameId, action, request, signal); }
+        catch (error) {
+          if (signal?.aborted && request.sessionId) this.laidOut.delete(request.sessionId);
+          throw error;
+        }
+      };
+      const body = request.sessionId ? await withSessionLock(request.sessionId, answer, signal) : await answer();
+      return { status: 200, body };
     } catch (error) {
       if (error instanceof Refusal) return { status: error.status, body: { error: error.message } };
       throw error;
     }
   }
 
-  private async answer(gameId: string, action: string, request: GameRequest): Promise<unknown> {
+  private async answer(gameId: string, action: string, request: GameRequest, signal?: AbortSignal): Promise<unknown> {
+    signal?.throwIfAborted();
     const game = this.games.get(gameId);
     if (!game) throw new Refusal(400, `Unknown game: ${gameId}`);
     const payload = request.payload ?? {};
@@ -118,7 +129,8 @@ export class GameServer {
         this.save(sessionId, session);
         return { sessionId, state: session.state };
       }
-      const reply = await this.take(game, sessionId, session, action, payload);
+      const reply = await this.take(game, sessionId, session, action, payload, signal);
+      signal?.throwIfAborted();
       this.save(sessionId, session);
       return { sessionId, result: reply.result, state: reply.state };
     }
@@ -141,7 +153,8 @@ export class GameServer {
     if (refused) throw new Refusal(400, refused);
     const cost = game.wallet.cost(action, session.state, payload);
     if (wallet.balance < cost) throw new Refusal(400, 'Insufficient demo credits');
-    const reply = await this.take(game, sessionId, session, action, payload);
+    const reply = await this.take(game, sessionId, session, action, payload, signal);
+    signal?.throwIfAborted();
     wallet.balance += game.wallet.award(reply.result) - cost;
     wallet.revision++;
     const response = { sessionId, state: reply.state, result: reply.result, balance: wallet.balance, revision: wallet.revision };
@@ -151,11 +164,12 @@ export class GameServer {
   }
 
   /** Takes one action in the session: starts a round, or gives the next answer of the round in progress. */
-  private async take(game: Game<unknown, unknown>, sessionId: string, session: Session, action: string, payload: Payload) {
+  private async take(game: Game<unknown, unknown>, sessionId: string, session: Session, action: string, payload: Payload, signal?: AbortSignal) {
     const opening: Opening<unknown> = { action, payload, state: session.state };
     if (game.graph(opening)) {
       const index = session.started;
-      const steps = await this.layOut(game, sessionId, session.seed, { index, opening, inputs: [] });
+      const steps = await this.layOut(game, sessionId, session.seed, { index, opening, inputs: [] }, signal);
+      signal?.throwIfAborted();
       const reply = steps[0].reply(payload, session.state);
       session.started = index + 1;
       session.round = { index, opening, inputs: [] };
@@ -164,7 +178,8 @@ export class GameServer {
     }
     const round = session.round;
     if (!round) throw new Refusal(400, 'No round in progress');
-    const steps = await this.layOut(game, sessionId, session.seed, round);
+    const steps = await this.layOut(game, sessionId, session.seed, round, signal);
+    signal?.throwIfAborted();
     const step = steps[round.inputs.length + 1];
     if (step?.action !== action) throw new Refusal(400, `The round in progress does not continue with ${action}`);
     const reply = step.reply(payload, session.state);
@@ -174,10 +189,13 @@ export class GameServer {
   }
 
   /** The answers of a round. They are kept while the page lives and played again from the seed after a reload. */
-  private async layOut(game: Game<unknown, unknown>, sessionId: string, seed: number, round: RoundInProgress) {
+  private async layOut(game: Game<unknown, unknown>, sessionId: string, seed: number, round: RoundInProgress, signal?: AbortSignal) {
     const kept = this.laidOut.get(sessionId);
     if (kept?.index === round.index) return kept.steps;
-    const steps = game.steps(await this.play(game.graph(round.opening)!, seed, round.index), round.opening);
+    const played = await abortable(this.play(game.graph(round.opening)!, seed, round.index, signal), signal);
+    signal?.throwIfAborted();
+    const steps = game.steps(played, round.opening);
+    signal?.throwIfAborted();
     this.laidOut.set(sessionId, { index: round.index, steps });
     return steps;
   }

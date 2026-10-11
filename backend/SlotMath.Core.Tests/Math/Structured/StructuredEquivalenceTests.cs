@@ -162,7 +162,10 @@ public class StructuredEquivalenceTests(ITestOutputHelper output)
                         CompareOp.Gte).Select(n, n).Select((op, x, y) => Cmp(op, x, y))),
                 (2, Gen.OneOfConst(CompareOp.Eq, CompareOp.Neq).Select(t, t).Select((op, x, y) => Cmp(op, x, y))),
                 (4, Gen.OneOfConst(BinaryOp.And, BinaryOp.Or).Select(b, b).Select((op, x, y) => Bin(op, x, y))),
-                (2, b.Select(x => (Expression)new NotExpr { Expr = x })),
+                (2, b.Select(x => (Expression)new NotExpr
+                {
+                    Expr = x
+                })),
                 (1, l.Select(t).Select((a, x) => Call("contains", a, x))),
                 (1, b.Select(b, b).Select(If)));
             Text[d] = Gen.Frequency(
@@ -372,25 +375,61 @@ public class StructuredEquivalenceTests(ITestOutputHelper output)
     }
 
     // ── Expression AST shorthands ────────────────────────────────────────
-    private static Expression N(int n) => new ConstantExpr { Kind = ConstantKind.Integer, Value = n.ToString() };
-    private static Expression S(string s) => new ConstantExpr { Kind = ConstantKind.String, Value = s };
+    private static Expression N(int n) => new ConstantExpr
+    {
+        Kind = ConstantKind.Integer,
+        Value = n.ToString()
+    };
+
+    private static Expression S(string s) => new ConstantExpr
+    {
+        Kind = ConstantKind.String,
+        Value = s
+    };
 
     private static Expression B(bool b) =>
-        new ConstantExpr { Kind = ConstantKind.Boolean, Value = b ? "true" : "false" };
+        new ConstantExpr
+        {
+            Kind = ConstantKind.Boolean,
+            Value = b ? "true" : "false"
+        };
 
-    private static Expression F(string name) => new FieldAccessExpr { Path = [name], Target = "state" };
+    private static Expression F(string name) => new FieldAccessExpr
+    {
+        Path = [name],
+        Target = "state"
+    };
 
     private static Expression Bin(BinaryOp op, Expression a, Expression b) =>
-        new BinaryExpr { Op = op, Left = a, Right = b };
+        new BinaryExpr
+        {
+            Op = op,
+            Left = a,
+            Right = b
+        };
 
     private static Expression Cmp(CompareOp op, Expression a, Expression b) =>
-        new CompareExpr { Op = op, Left = a, Right = b };
+        new CompareExpr
+        {
+            Op = op,
+            Left = a,
+            Right = b
+        };
 
     private static Expression If(Expression c, Expression a, Expression b) =>
-        new IfExpr { Condition = c, ThenExpr = a, ElseExpr = b };
+        new IfExpr
+        {
+            Condition = c,
+            ThenExpr = a,
+            ElseExpr = b
+        };
 
     private static Expression Call(string name, params Expression[] args) =>
-        new CallExpr { Function = name, Args = args };
+        new CallExpr
+        {
+            Function = name,
+            Args = args
+        };
 
     private static GraphConfig Graph(Game game)
     {
@@ -400,7 +439,14 @@ public class StructuredEquivalenceTests(ITestOutputHelper output)
             Id = "sink",
             WinCap = game.Cap,
             WinStateKey = game.WinKey ? "win" : null,
-            Inputs = new Dictionary<string, Port> { ["in"] = new() { Name = "in", Type = PortType.Number } }
+            Inputs = new Dictionary<string, Port>
+            {
+                ["in"] = new()
+                {
+                    Name = "in",
+                    Type = PortType.Number
+                }
+            }
         });
         emitter.Emit(game.Main, "sink");
         if (game.Second is not null)
@@ -431,7 +477,14 @@ public class StructuredEquivalenceTests(ITestOutputHelper output)
             Edges = [.. emitter.Edges],
             Expressions = emitter.Expressions,
             InitialState = initial,
-            StateSchema = [new StateFieldSchema { Name = "late", Type = "number" }]
+            StateSchema =
+            [
+                new StateFieldSchema
+                {
+                    Name = "late",
+                    Type = "number"
+                }
+            ]
         };
     }
 
@@ -466,7 +519,14 @@ public class StructuredEquivalenceTests(ITestOutputHelper output)
             // The branch limit alone bounds the reference, so the verdict does not depend on the machine. It is kept
             // low: enumeration near the limit takes seconds and gigabytes on graphs the evaluator under test finishes in a millisecond.
             classic = ExactInterpreter.Evaluate(compiled.ReferenceProgram!, new Dict(), StateHasher.CanonicalHash,
-                    new ExactConfig { Budget = new Budget { MaxBranches = branches, MaxTime = TimeSpan.FromHours(1) } })
+                    new ExactConfig
+                    {
+                        Budget = new Budget
+                        {
+                            MaxBranches = branches,
+                            MaxTime = TimeSpan.FromHours(1)
+                        }
+                    })
                 .ValueDistribution();
         }
         catch (BudgetExceededException)
@@ -644,7 +704,10 @@ public class StructuredEquivalenceTests(ITestOutputHelper output)
         var failed = int.MaxValue;
         // An evaluation blocks its caller while it runs on its own thread, and the pool answers blocked workers with
         // more workers; the heaviest cases hold gigabytes each, so their number at one time is fixed here.
-        var workers = new ParallelOptions { MaxDegreeOfParallelism = System.Math.Min(Environment.ProcessorCount, 8) };
+        var workers = new ParallelOptions
+        {
+            MaxDegreeOfParallelism = System.Math.Min(Environment.ProcessorCount, 8)
+        };
         Parallel.For(0, count, workers, index =>
         {
             if (!all && index > Volatile.Read(ref failed))
@@ -805,7 +868,10 @@ public class StructuredEquivalenceTests(ITestOutputHelper output)
         compiled = new GraphCompiler().Compile(Graph(game));
         Assert.True(compiled.IsValid, string.Join("; ", compiled.Errors.Select(e => $"{e.NodeId}: {e.Message}")));
         StructuredExactResult result = StructuredExactEvaluator.Evaluate(compiled,
-            new StructuredExactOptions { AlwaysStructuralHitFrequency = true });
+            new StructuredExactOptions
+            {
+                AlwaysStructuralHitFrequency = true
+            });
         output.WriteLine(
             $"succeeded={result.Succeeded} declined={result.DeclinedReason} elapsed={result.Elapsed.TotalMilliseconds:F0}ms work={result.Work} values={result.Distribution?.Count}");
         Assert.True(result.Succeeded, result.DeclinedReason);
@@ -836,7 +902,14 @@ public class StructuredEquivalenceTests(ITestOutputHelper output)
         Expression size = new BitSetExpr
         {
             Op = BitSetOp.Count,
-            Args = [new BitSetExpr { Op = BitSetOp.Union, Args = [F("x"), N(1)] }]
+            Args =
+            [
+                new BitSetExpr
+                {
+                    Op = BitSetOp.Union,
+                    Args = [F("x"), N(1)]
+                }
+            ]
         };
         Game game = Fixture(new DrawStmt("s", masks), new ModifyStmt("x", Call("tonumber", F("s"))),
             new ModifyStmt("win", Bin(BinaryOp.Add, F("win"), size)));
@@ -882,7 +955,10 @@ public class StructuredEquivalenceTests(ITestOutputHelper output)
         CompileResult compiled = new GraphCompiler().Compile(Graph(Retrigger(cap)));
         Assert.True(compiled.IsValid);
         StructuredExactResult result = StructuredExactEvaluator.Evaluate(compiled,
-            new StructuredExactOptions { MaxTime = TimeSpan.FromSeconds(120) });
+            new StructuredExactOptions
+            {
+                MaxTime = TimeSpan.FromSeconds(120)
+            });
         StructuredLoopResult? loop = result.Loops.SingleOrDefault();
         output.WriteLine(
             $"succeeded={result.Succeeded} declined={result.DeclinedReason} elapsed={result.Elapsed.TotalMilliseconds:F0}ms work={result.Work} notes={string.Join(" | ", result.LoopNotes)} loop={loop?.Evaluation} states={loop?.States}");
@@ -973,7 +1049,11 @@ public class StructuredEquivalenceTests(ITestOutputHelper output)
         CompileResult compiled = new GraphCompiler().Compile(Graph(Retrigger(cap)));
         var epsilon = new Rational(1, 1_000_000_000);
         StructuredExactResult result = StructuredExactEvaluator.Evaluate(compiled,
-            new StructuredExactOptions { PruneLoopMassBelow = epsilon, PruneLoopsAboveBits = 0 });
+            new StructuredExactOptions
+            {
+                PruneLoopMassBelow = epsilon,
+                PruneLoopsAboveBits = 0
+            });
         Assert.True(result.Succeeded, result.DeclinedReason);
         Rational[] alive = RetriggerAlive(cap);
         // The chain runs from each entry state on its own, so it is the loop's rounds that are measured against
@@ -1022,7 +1102,10 @@ public class StructuredEquivalenceTests(ITestOutputHelper output)
             CompileResult compiled = new GraphCompiler().Compile(Graph(game));
             Assert.True(compiled.IsValid);
             StructuredExactResult result = StructuredExactEvaluator.Evaluate(compiled,
-                new StructuredExactOptions { MaxTime = TimeSpan.FromSeconds(120) });
+                new StructuredExactOptions
+                {
+                    MaxTime = TimeSpan.FromSeconds(120)
+                });
             output.WriteLine(
                 $"limit {limit}: succeeded={result.Succeeded} declined={result.DeclinedReason} pruned={result.PrunedMass.ToDouble():E3} elapsed={result.Elapsed.TotalMilliseconds:F0}ms work={result.Work}");
             Assert.True(result.Succeeded, result.DeclinedReason);
@@ -1109,7 +1192,11 @@ public class StructuredEquivalenceTests(ITestOutputHelper output)
         CompileResult compiled = new GraphCompiler().Compile(Graph(MiniCascade(cap)));
         Assert.True(compiled.IsValid);
         StructuredExactResult result = StructuredExactEvaluator.Evaluate(compiled,
-            new StructuredExactOptions { MaxTime = TimeSpan.FromSeconds(120), PruneLoopMassBelow = null });
+            new StructuredExactOptions
+            {
+                MaxTime = TimeSpan.FromSeconds(120),
+                PruneLoopMassBelow = null
+            });
         output.WriteLine(
             $"cap {cap}: succeeded={result.Succeeded} declined={result.DeclinedReason} elapsed={result.Elapsed.TotalMilliseconds:F0}ms work={result.Work} loops={string.Join(" | ", result.Loops.Select(loop => loop.Evaluation))}");
         Assert.True(result.Succeeded, result.DeclinedReason);
@@ -1224,7 +1311,12 @@ public class StructuredEquivalenceTests(ITestOutputHelper output)
             return c[32] % 5 == 0 && count % 2 == 0 ? $"{units}.5" : units.ToString(CultureInfo.InvariantCulture);
         }
 
-        var paid = new List<int> { 0, 1, 2 };
+        var paid = new List<int>
+        {
+            0,
+            1,
+            2
+        };
         if (c[33] % 3 == 0)
         {
             paid.Add(3);
@@ -1280,16 +1372,31 @@ public class StructuredEquivalenceTests(ITestOutputHelper output)
             _ => [coin, new SpinStmt(), eval]
         };
 
-        var emitter = new Emitter { Typed = true };
+        var emitter = new Emitter
+        {
+            Typed = true
+        };
         emitter.Nodes.Add(new MetricsSinkNode
         {
             Id = "sink",
             WinCap = c[63] % 5 == 0 ? 3 : 1_000_000,
             Inputs = new Dictionary<string, Port>
             {
-                ["in"] = new() { Name = "in", Type = PortType.Number },
-                ["board"] = new() { Name = "board", Type = PortType.Board },
-                ["wins"] = new() { Name = "wins", Type = PortType.Wins }
+                ["in"] = new()
+                {
+                    Name = "in",
+                    Type = PortType.Number
+                },
+                ["board"] = new()
+                {
+                    Name = "board",
+                    Type = PortType.Board
+                },
+                ["wins"] = new()
+                {
+                    Name = "wins",
+                    Type = PortType.Wins
+                }
             }
         });
         emitter.Emit(main, "sink");
@@ -1304,23 +1411,51 @@ public class StructuredEquivalenceTests(ITestOutputHelper output)
                     Name = id,
                     Kind = id == "W" && c[56] % 4 != 0 ? SymbolKind.Wild : SymbolKind.Standard
                 }).ToArray(),
-            Paytables = [new Paytable { Id = "pt", Entries = entries }],
-            PaylineSets = [new PaylineSet { Id = "ps", Paylines = lines }],
+            Paytables =
+            [
+                new Paytable
+                {
+                    Id = "pt",
+                    Entries = entries
+                }
+            ],
+            PaylineSets =
+            [
+                new PaylineSet
+                {
+                    Id = "ps",
+                    Paylines = lines
+                }
+            ],
             ReelStrips = strips,
             ReelSets =
-                [new ReelSet { Id = "rs", Name = "Main", StripIds = strips.Select(strip => strip.Id).ToArray() }],
-            BoardConfig = new BoardConfig { Rows = rows, Columns = cols },
+            [
+                new ReelSet
+                {
+                    Id = "rs",
+                    Name = "Main",
+                    StripIds = strips.Select(strip => strip.Id).ToArray()
+                }
+            ],
+            BoardConfig = new BoardConfig
+            {
+                Rows = rows,
+                Columns = cols
+            },
             Nodes = [.. emitter.Nodes],
             Edges = [.. emitter.Edges],
             Expressions = emitter.Expressions,
-            InitialState = new Dictionary<string, JsonElement> { ["t"] = JsonSerializer.SerializeToElement("1") }
+            InitialState = new Dictionary<string, JsonElement>
+            {
+                ["t"] = JsonSerializer.SerializeToElement("1")
+            }
         };
     }
 
     // Reel-strip draws and the built-in evaluators against the reference, which draws one board out of the whole
     // product of the reels and runs the evaluator on it: every payout distribution must be the same.
     [Fact]
-    public void ReelGames_Pbt_5000_BuiltInEvaluators_EqualClassicInterpreter()
+    public void ReelGames_Pbt_5000_OpaqueTransformsDecline_UnnamedMapsEqualClassicInterpreter()
     {
         (SortedDictionary<Verdict, int> verdicts, ConcurrentDictionary<string, int> notes, var failed, _) =
             Run(5_000, StructuredFault.None, graphs: index => ReelCase(index, out _));
@@ -1345,33 +1480,80 @@ public class StructuredEquivalenceTests(ITestOutputHelper output)
         }
 
         var equal = verdicts.GetValueOrDefault(Verdict.Equal);
-        Assert.True(equal >= 4000, $"Only {equal} of 5000 reel games were compared distribution for distribution.");
+        Assert.True(equal >= 500, $"Only {equal} unnamed-map reel games were compared distribution for distribution.");
+        // Every named transform declines before executing or interpreting its mechanic.
+        for (var caseIndex = 0; caseIndex < 5000; caseIndex++)
+        {
+            GraphConfig graph = ReelCase(caseIndex, out _);
+            if (!graph.Nodes.OfType<MapNode>().Any(node => node.TransformId is not null))
+            {
+                continue;
+            }
+
+            CompileResult compiled = new GraphCompiler().Compile(graph);
+            if (!compiled.IsValid)
+            {
+                continue;
+            }
+
+            StructuredExactResult result = StructuredExactEvaluator.Evaluate(compiled);
+            Assert.False(result.Succeeded);
+            Assert.Contains("opaque transform", result.DeclinedReason);
+        }
     }
 
-    // The parts an evaluator's amount is split into must be all of it: with one part left out the gate fails.
-    [Fact]
-    public void SeededEvaluatorDefect_FailsTheGate()
+    [Theory]
+    [InlineData("lines")]
+    [InlineData("ways")]
+    [InlineData("cluster")]
+    public void OpaqueMap_DeclinesAndClassicInterpreterStillPays(string transform)
     {
-        var (_, _, failed, failures) = Run(1_000, StructuredFault.EvaluatorPartDropped, true,
-            graphs: index => ReelCase(index, out _));
-        output.WriteLine($"{failures} of 1000 reel games fail, the first is case {failed}");
-        Assert.True(failures >= 100, $"Only {failures} of 1000 reel games catch a dropped part.");
+        ReelStrip[] strips = Enumerable.Range(0, 5).Select(reel => new ReelStrip
+        {
+            Id = $"r{reel}",
+            Name = $"R{reel}",
+            Symbols = ["S0"]
+        }).ToArray();
+        CompileResult compiled = new GraphCompiler().Compile(FaceGame(
+            [new SpinStmt(), new EvalStmt(transform, null, false)], strips, null));
+        Assert.True(compiled.IsValid);
+        StructuredExactResult result = StructuredExactEvaluator.Evaluate(compiled);
+        Assert.False(result.Succeeded);
+        Assert.Contains("opaque transform", result.DeclinedReason);
+        Dist<BigInteger> classic = ExactInterpreter
+            .Evaluate(compiled.ReferenceProgram!, new Dict(), StateHasher.CanonicalHash).ValueDistribution();
+        Assert.True(classic.ExpectedBigIntegerValue().Num > 0);
     }
 
     private static int FacePay(int face, int count) => (face + 1) * (count == 3 ? 1 : count == 4 ? 3 : 10);
 
     private static GraphConfig FaceGame(Stmt[] main, ReelStrip[] strips, Dictionary<string, JsonElement>? initial)
     {
-        var emitter = new Emitter { Typed = true };
+        var emitter = new Emitter
+        {
+            Typed = true
+        };
         emitter.Nodes.Add(new MetricsSinkNode
         {
             Id = "sink",
             WinCap = 100_000_000,
             Inputs = new Dictionary<string, Port>
             {
-                ["in"] = new() { Name = "in", Type = PortType.Number },
-                ["board"] = new() { Name = "board", Type = PortType.Board },
-                ["wins"] = new() { Name = "wins", Type = PortType.Wins }
+                ["in"] = new()
+                {
+                    Name = "in",
+                    Type = PortType.Number
+                },
+                ["board"] = new()
+                {
+                    Name = "board",
+                    Type = PortType.Board
+                },
+                ["wins"] = new()
+                {
+                    Name = "wins",
+                    Type = PortType.Wins
+                }
             }
         });
         emitter.Emit(main, "sink");
@@ -1402,18 +1584,139 @@ public class StructuredEquivalenceTests(ITestOutputHelper output)
             [
                 new PaylineSet
                 {
-                    Id = "ps", Paylines = TwentyLines.Select(rows => new Payline { Positions = rows }).ToArray()
+                    Id = "ps",
+                    Paylines = TwentyLines.Select(rows => new Payline
+                    {
+                        Positions = rows
+                    }).ToArray()
                 }
             ],
             ReelStrips = strips,
             ReelSets = strips.Length == 0
                 ? []
-                : [new ReelSet { Id = "rs", Name = "Main", StripIds = strips.Select(strip => strip.Id).ToArray() }],
-            BoardConfig = new BoardConfig { Rows = 3, Columns = 5 },
+                :
+                [
+                    new ReelSet
+                    {
+                        Id = "rs",
+                        Name = "Main",
+                        StripIds = strips.Select(strip => strip.Id).ToArray()
+                    }
+                ],
+            BoardConfig = new BoardConfig
+            {
+                Rows = 3,
+                Columns = 5
+            },
             Nodes = [.. emitter.Nodes],
             Edges = [.. emitter.Edges],
             Expressions = emitter.Expressions,
             InitialState = initial
+        };
+    }
+
+    // Test-owned authored expressions compose the payouts. The kernel sees only scalar dependencies,
+    // sums and products, with no evaluator name or inferred mechanic structure.
+    private static Stmt[] AuthoredFacePayout(string kind)
+    {
+        var statements = new List<Stmt>
+        {
+            new ModifyStmt("award", N(0))
+        };
+
+        Expression Cell(int row, int col)
+        {
+            return Call("index", F("board"), N(row * 5 + col));
+        }
+
+        Expression Matches(Expression cell, string face)
+        {
+            return Bin(BinaryOp.Or,
+                Cmp(CompareOp.Eq, cell, S(face)), Cmp(CompareOp.Eq, cell, S("W")));
+        }
+
+        if (kind == "lines")
+        {
+            foreach (var line in TwentyLines)
+            {
+                Expression symbol = S("X");
+                for (var col = 4; col >= 0; col--)
+                {
+                    Expression cell = Cell(line[col], col);
+                    symbol = If(Cmp(CompareOp.Neq, cell, S("W")), cell, symbol);
+                }
+
+                statements.Add(new ModifyStmt("symbol", symbol));
+                Expression prefix = B(true);
+                Expression count = N(0);
+                for (var col = 0; col < 5; col++)
+                {
+                    Expression cell = Cell(line[col], col);
+                    prefix = Bin(BinaryOp.And, prefix, Bin(BinaryOp.Or,
+                        Cmp(CompareOp.Eq, cell, F("symbol")), Cmp(CompareOp.Eq, cell, S("W"))));
+                    count = If(prefix, N(col + 1), count);
+                }
+
+                statements.Add(new ModifyStmt("count", count));
+                Expression payout = N(0);
+                for (var face = 0; face < 8; face++)
+                {
+                    Expression pays = N(0);
+                    for (var matched = 3; matched <= 5; matched++)
+                    {
+                        pays = If(Cmp(CompareOp.Eq, F("count"), N(matched)), N(FacePay(face, matched)), pays);
+                    }
+
+                    payout = If(Cmp(CompareOp.Eq, F("symbol"), S(Faces[face])), pays, payout);
+                }
+
+                statements.Add(new ModifyStmt("award", Bin(BinaryOp.Add, F("award"), payout)));
+            }
+        }
+        else
+        {
+            for (var face = 0; face < 8; face++)
+            {
+                for (var col = 0; col < 5; col++)
+                {
+                    Expression count = N(0);
+                    for (var row = 0; row < 3; row++)
+                    {
+                        count = Bin(BinaryOp.Add, count, If(Matches(Cell(row, col), Faces[face]), N(1), N(0)));
+                    }
+
+                    statements.Add(new ModifyStmt($"count{col}", count));
+                }
+
+                Expression tail = Bin(BinaryOp.Mul, F("count4"), N(FacePay(face, 5)));
+                tail = If(Cmp(CompareOp.Gt, F("count4"), N(0)), tail, N(FacePay(face, 4)));
+                tail = If(Cmp(CompareOp.Gt, F("count3"), N(0)), Bin(BinaryOp.Mul, F("count3"), tail),
+                    N(FacePay(face, 3)));
+                Expression payout = tail;
+                for (var col = 0; col < 3; col++)
+                {
+                    payout = Bin(BinaryOp.Mul, F($"count{col}"), payout);
+                }
+
+                statements.Add(new ModifyStmt("award", Bin(BinaryOp.Add, F("award"), payout)));
+            }
+        }
+
+        return [.. statements];
+    }
+
+    private static GraphConfig AuthoredFaceGame(Stmt[] draws, string kind, ReelStrip[] strips,
+        Dictionary<string, JsonElement>? initial)
+    {
+        GraphConfig graph = FaceGame([.. draws, .. AuthoredFacePayout(kind)], strips, initial);
+        return graph with
+        {
+            Nodes = graph.Nodes.Select(node => node is MetricsSinkNode sink
+                ? sink with
+                {
+                    WinStateKey = "award"
+                }
+                : node).ToArray()
         };
     }
 
@@ -1431,8 +1734,8 @@ public class StructuredEquivalenceTests(ITestOutputHelper output)
             Symbols = Enumerable.Range(0, 15).Select(stop => Faces[(stop * (reel + 2) + stop * stop / 3 + reel) % 9])
                 .ToArray()
         }).ToArray();
-        CompileResult compiled = new GraphCompiler().Compile(FaceGame(
-            [new SpinStmt(), new EvalStmt(transform, null, false)], strips, null));
+        CompileResult compiled =
+            new GraphCompiler().Compile(AuthoredFaceGame([new SpinStmt()], transform, strips, null));
         Assert.True(compiled.IsValid, compiled.Errors.FirstOrDefault()?.Message);
 
         StructuredExactResult result = StructuredExactEvaluator.Evaluate(compiled);
@@ -1440,10 +1743,22 @@ public class StructuredEquivalenceTests(ITestOutputHelper output)
             $"structured: succeeded={result.Succeeded} declined={result.DeclinedReason} elapsed={result.Elapsed.TotalMilliseconds:F0}ms work={result.Work} distribution={(result.Distribution is null ? "not built" : "built")}");
         Assert.True(result.Succeeded, result.DeclinedReason);
 
+        // The independent reference uses the existing legacy evaluator, not the authored payout expressions.
+        CompileResult reference = new GraphCompiler().Compile(FaceGame(
+            [new SpinStmt(), new EvalStmt(transform, null, false)], strips, null));
+        Assert.True(reference.IsValid);
+        Assert.Equal(compiled.WinScale, reference.WinScale);
         var clock = Stopwatch.StartNew();
-        Dist<BigInteger> classic = ExactInterpreter.Evaluate(compiled.ReferenceProgram!, new Dict(),
+        Dist<BigInteger> classic = ExactInterpreter.Evaluate(reference.ReferenceProgram!, new Dict(),
                 StateHasher.CanonicalHash,
-                new ExactConfig { Budget = new Budget { MaxBranches = 2_000_000, MaxTime = TimeSpan.FromMinutes(10) } })
+                new ExactConfig
+                {
+                    Budget = new Budget
+                    {
+                        MaxBranches = 2_000_000,
+                        MaxTime = TimeSpan.FromMinutes(10)
+                    }
+                })
             .ValueDistribution();
         BigInteger sum = classic.Entries.Aggregate(BigInteger.Zero, (total, entry) =>
             total + entry.Value * entry.Numerator);
@@ -1501,8 +1816,9 @@ public class StructuredEquivalenceTests(ITestOutputHelper output)
         const int wild = 8;
         foreach (var transform in new[] { "lines", "ways" })
         {
-            CompileResult compiled = new GraphCompiler().Compile(FaceGame(
-                [.. draws, new ModifyStmt("board", board), new EvalStmt(transform, null, false)], [], initial));
+            CompileResult compiled =
+                new GraphCompiler().Compile(AuthoredFaceGame([.. draws, new ModifyStmt("board", board)], transform, [],
+                    initial));
             Assert.True(compiled.IsValid, compiled.Errors.FirstOrDefault()?.Message);
             StructuredExactResult result = StructuredExactEvaluator.Evaluate(compiled);
             output.WriteLine(
@@ -1632,15 +1948,27 @@ public class StructuredEquivalenceTests(ITestOutputHelper output)
         private int _next;
 
         private static Dictionary<string, Port> Ports(params string[] names) =>
-            names.ToDictionary(n => n, n => new Port { Name = n, Type = PortType.Number });
+            names.ToDictionary(n => n, n => new Port
+            {
+                Name = n,
+                Type = PortType.Number
+            });
 
         private Dictionary<string, Port> In()
         {
             Dictionary<string, Port> ports = Ports("in");
             if (Typed)
             {
-                ports["board"] = new Port { Name = "board", Type = PortType.Board };
-                ports["wins"] = new Port { Name = "wins", Type = PortType.Wins };
+                ports["board"] = new Port
+                {
+                    Name = "board",
+                    Type = PortType.Board
+                };
+                ports["wins"] = new Port
+                {
+                    Name = "wins",
+                    Type = PortType.Wins
+                };
             }
 
             return ports;
@@ -1686,151 +2014,182 @@ public class StructuredEquivalenceTests(ITestOutputHelper output)
             switch (statement)
             {
                 case DrawStmt draw:
+                {
+                    var id = Id("draw");
+                    Nodes.Add(new DrawNode
                     {
-                        var id = Id("draw");
-                        Nodes.Add(new DrawNode
-                        {
-                            Id = id,
-                            StateWriteKey = draw.Key,
-                            Inputs = In(),
-                            Outputs = Ports("out"),
-                            DrawWeights = draw.Outcomes.Select(o =>
-                                new DrawWeight { OutcomeId = o.Id, Weight = o.Weight, Value = o.Value }).ToArray()
-                        });
-                        Link(id, "out", next);
-                        return id;
-                    }
+                        Id = id,
+                        StateWriteKey = draw.Key,
+                        Inputs = In(),
+                        Outputs = Ports("out"),
+                        DrawWeights = draw.Outcomes.Select(o =>
+                            new DrawWeight
+                            {
+                                OutcomeId = o.Id,
+                                Weight = o.Weight,
+                                Value = o.Value
+                            }).ToArray()
+                    });
+                    Link(id, "out", next);
+                    return id;
+                }
                 case ModifyStmt modify:
+                {
+                    var id = Id("set");
+                    Nodes.Add(new ModifyStateNode
                     {
-                        var id = Id("set");
-                        Nodes.Add(new ModifyStateNode
-                        {
-                            Id = id,
-                            OutputKey = modify.Key,
-                            ExpressionId = Expr(modify.Expr),
-                            Inputs = In(),
-                            Outputs = Ports("out")
-                        });
-                        Link(id, "out", next);
-                        return id;
-                    }
+                        Id = id,
+                        OutputKey = modify.Key,
+                        ExpressionId = Expr(modify.Expr),
+                        Inputs = In(),
+                        Outputs = Ports("out")
+                    });
+                    Link(id, "out", next);
+                    return id;
+                }
                 case DataStmt data:
+                {
+                    var id = Id("data");
+                    Nodes.Add(new DataNode
                     {
-                        var id = Id("data");
-                        Nodes.Add(new DataNode
-                        {
-                            Id = id,
-                            StateKey = data.Key,
-                            Values = data.Values,
-                            Inputs = In(),
-                            Outputs = Ports("out")
-                        });
-                        Link(id, "out", next);
-                        return id;
-                    }
+                        Id = id,
+                        StateKey = data.Key,
+                        Values = data.Values,
+                        Inputs = In(),
+                        Outputs = Ports("out")
+                    });
+                    Link(id, "out", next);
+                    return id;
+                }
                 case GetStmt get:
+                {
+                    var id = Id("get");
+                    Nodes.Add(new GetStateNode
                     {
-                        var id = Id("get");
-                        Nodes.Add(new GetStateNode { Id = id, StateKey = get.Key, Inputs = In(), Outputs = Ports("out") });
-                        Link(id, "out", next);
-                        return id;
-                    }
+                        Id = id,
+                        StateKey = get.Key,
+                        Inputs = In(),
+                        Outputs = Ports("out")
+                    });
+                    Link(id, "out", next);
+                    return id;
+                }
                 case PutStmt put:
+                {
+                    var id = Id("put");
+                    Nodes.Add(new PutStateNode
                     {
-                        var id = Id("put");
-                        Nodes.Add(new PutStateNode { Id = id, StateKey = put.Key, Inputs = In(), Outputs = Ports("out") });
-                        Link(id, "out", next);
-                        return id;
-                    }
+                        Id = id,
+                        StateKey = put.Key,
+                        Inputs = In(),
+                        Outputs = Ports("out")
+                    });
+                    Link(id, "out", next);
+                    return id;
+                }
                 case BranchStmt branch:
+                {
+                    var id = Id("if");
+                    Nodes.Add(new BranchNode
                     {
-                        var id = Id("if");
-                        Nodes.Add(new BranchNode
-                        {
-                            Id = id,
-                            ConditionId = Expr(branch.Cond),
-                            Inputs = In(),
-                            Outputs = Ports("true", "false")
-                        });
-                        Link(id, "true", branch.Then is null ? null : Emit(branch.Then, next));
-                        Link(id, "false", branch.Else is null ? null : Emit(branch.Else, next));
-                        return id;
-                    }
+                        Id = id,
+                        ConditionId = Expr(branch.Cond),
+                        Inputs = In(),
+                        Outputs = Ports("true", "false")
+                    });
+                    Link(id, "true", branch.Then is null ? null : Emit(branch.Then, next));
+                    Link(id, "false", branch.Else is null ? null : Emit(branch.Else, next));
+                    return id;
+                }
                 case LoopStmt loop:
+                {
+                    var id = Id("loop");
+                    Expression? stop = loop.IterBound switch
                     {
-                        var id = Id("loop");
-                        Expression? stop = loop.IterBound switch
-                        {
-                            0 => loop.Stop,
-                            _ when loop.Stop is null => Cmp(CompareOp.Gte, F($"__iter_{id}__"), N(loop.IterBound)),
-                            _ => Bin(BinaryOp.Or, Cmp(CompareOp.Gte, F($"__iter_{id}__"), Call("tonumber", F("s"))),
-                                loop.Stop)
-                        };
-                        Nodes.Add(new LoopNode
-                        {
-                            Id = id,
-                            MaxIterations = loop.Max,
-                            StopConditionId = stop is null ? null : Expr(stop),
-                            Inputs = In(),
-                            Outputs = Ports("body", "exit")
-                        });
-                        Link(id, "body", Emit(loop.Body, null));
-                        Link(id, "exit", next);
-                        return id;
-                    }
+                        0 => loop.Stop,
+                        _ when loop.Stop is null => Cmp(CompareOp.Gte, F($"__iter_{id}__"), N(loop.IterBound)),
+                        _ => Bin(BinaryOp.Or, Cmp(CompareOp.Gte, F($"__iter_{id}__"), Call("tonumber", F("s"))),
+                            loop.Stop)
+                    };
+                    Nodes.Add(new LoopNode
+                    {
+                        Id = id,
+                        MaxIterations = loop.Max,
+                        StopConditionId = stop is null ? null : Expr(stop),
+                        Inputs = In(),
+                        Outputs = Ports("body", "exit")
+                    });
+                    Link(id, "body", Emit(loop.Body, null));
+                    Link(id, "exit", next);
+                    return id;
+                }
                 case SpinStmt:
+                {
+                    var id = Id("spin");
+                    Nodes.Add(new DrawNode
                     {
-                        var id = Id("spin");
-                        Nodes.Add(new DrawNode
+                        Id = id,
+                        Inputs = In(),
+                        Outputs = new Dictionary<string, Port>
                         {
-                            Id = id,
-                            Inputs = In(),
-                            Outputs = new Dictionary<string, Port>
+                            ["board"] = new()
                             {
-                                ["board"] = new() { Name = "board", Type = PortType.Board }
+                                Name = "board",
+                                Type = PortType.Board
                             }
-                        });
-                        Link(id, "board", next);
-                        return id;
-                    }
-                case EvalStmt eval:
-                    {
-                        var id = Id("eval");
-                        Dictionary<string, Port> inputs = In();
-                        if (eval.Multiplier is not null)
-                        {
-                            inputs["multiplier"] = new Port
-                            {
-                                Name = "multiplier",
-                                Type = PortType.Number,
-                                DefaultValue = eval.Multiplier
-                            };
                         }
-
-                        Nodes.Add(new MapNode
+                    });
+                    Link(id, "board", next);
+                    return id;
+                }
+                case EvalStmt eval:
+                {
+                    var id = Id("eval");
+                    Dictionary<string, Port> inputs = In();
+                    if (eval.Multiplier is not null)
+                    {
+                        inputs["multiplier"] = new Port
                         {
-                            Id = id,
-                            TransformId = eval.Transform,
-                            ShareWildAcrossSymbols = eval.Share,
-                            Inputs = inputs,
-                            Outputs = new Dictionary<string, Port>
-                            {
-                                ["wins"] = new() { Name = "wins", Type = PortType.Wins }
-                            }
-                        });
-                        Link(id, "wins", next);
-                        return id;
+                            Name = "multiplier",
+                            Type = PortType.Number,
+                            DefaultValue = eval.Multiplier
+                        };
                     }
+
+                    Nodes.Add(new MapNode
+                    {
+                        Id = id,
+                        TransformId = eval.Transform,
+                        ShareWildAcrossSymbols = eval.Share,
+                        Inputs = inputs,
+                        Outputs = new Dictionary<string, Port>
+                        {
+                            ["wins"] = new()
+                            {
+                                Name = "wins",
+                                Type = PortType.Wins
+                            }
+                        }
+                    });
+                    Link(id, "wins", next);
+                    return id;
+                }
                 case SeqStmt sequence: return Emit(sequence.Parts, next)!;
                 default:
+                {
+                    var fan = (FanStmt)statement;
+                    var id = Id("fan");
+                    Nodes.Add(new PutStateNode
                     {
-                        var fan = (FanStmt)statement;
-                        var id = Id("fan");
-                        Nodes.Add(new PutStateNode { Id = id, StateKey = "fan", Inputs = In(), Outputs = Ports("out") });
-                        Link(id, "out", Emit(fan.First, next) ?? next);
-                        Link(id, "out", Emit(fan.Second, next) ?? next);
-                        return id;
-                    }
+                        Id = id,
+                        StateKey = "fan",
+                        Inputs = In(),
+                        Outputs = Ports("out")
+                    });
+                    Link(id, "out", Emit(fan.First, next) ?? next);
+                    Link(id, "out", Emit(fan.Second, next) ?? next);
+                    return id;
+                }
             }
         }
     }

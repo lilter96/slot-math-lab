@@ -346,11 +346,15 @@ export class BuyFeatureModal extends Container {
     this._refreshCards()
   }
 
-  private _selectMode(id: ModeId): void {
+  setMode(id: ModeId): void {
     this._selectedMode = id
-    this._eventBus.emit('volatility:selected', { mode: id })
     this._refreshModePills()
     this._refreshCards()
+  }
+
+  private _selectMode(id: ModeId): void {
+    this.setMode(id)
+    this._eventBus.emit('volatility:selected', { mode: id })
   }
 
   private _refreshBet(): void {

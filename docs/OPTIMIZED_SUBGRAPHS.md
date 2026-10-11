@@ -34,6 +34,13 @@ its typed expressions and references to other subgraphs; data remains in the
 project. Open its new navigation button to edit it or add another reference.
 Include branch joins and loop bodies in the selection, and keep the round payout
 sink in the full graph. Ambiguous boundary ports are reported before any change.
+Extraction copies the complete transitive closure of named expression references, including
+inline port defaults and loop exit classifications. Nested library references retain their
+parameter bindings. Cycles or unresolved references are reported before modifying the model;
+a parameter available only from an enclosing instance cannot be silently frozen into the
+new shared definition. Expose it through ordinary state or include a local named definition
+before extracting. Forwarding dynamic parameters between nested library instances is not
+part of the current constant-string parameter contract.
 
 ## Cluster example
 
