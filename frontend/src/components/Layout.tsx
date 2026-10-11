@@ -10,6 +10,7 @@ import { DEFAULT_FEATURES, useFeaturesQuery } from '../api/hooks';
 
 const TABS = [
   { id: 'overview' as const, label: 'Overview', Icon: Ic.build },
+  { id: 'data' as const, path: 'model/data', label: 'Model data', Icon: Ic.draw },
   { id: 'build' as const, label: 'Build', Icon: Ic.build },
   { id: 'simulate' as const, label: 'Simulate', Icon: Ic.sim },
   { id: 'results' as const, label: 'Results', Icon: Ic.results },
@@ -36,7 +37,7 @@ export default function Layout() {
 
   // Sync tab from URL
   useEffect(() => {
-    const matched = TABS.find((t) => location.pathname.startsWith('/' + t.id));
+    const matched = TABS.find((t) => location.pathname.startsWith('/' + ('path' in t ? t.path : t.id)));
     if (matched && matched.id !== tab) setTab(matched.id);
   }, [location.pathname, tab, setTab]);
 
@@ -90,18 +91,18 @@ export default function Layout() {
           <button className="btn nav-toggle" aria-label={collapsed ? 'Expand navigation' : 'Collapse navigation'} aria-expanded={!collapsed} onClick={toggleNav}>{collapsed ? '☰' : 'Collapse navigation'}</button>
           <span className="nav-project">{configName ?? 'Untitled'}</span>
         <div className="tabs" role="tablist" aria-label="Main navigation">
-          {tabs.map(({ id, label, Icon }) => (
+          {tabs.map((item) => (
             <NavLink
-              key={id}
-              to={`/${id}`}
+              key={item.id}
+              to={`/${'path' in item ? item.path : item.id}`}
               role="tab"
-              aria-selected={tab === id}
-              aria-label={label}
-              title={label}
+              aria-selected={tab === item.id}
+              aria-label={item.label}
+              title={item.label}
               className={({ isActive }) => 'tab' + (isActive ? ' active' : '')}
             >
-              <Icon style={{ width: 14, height: 14 }} />
-              {label}
+              <item.Icon style={{ width: 14, height: 14 }} />
+              {item.label}
             </NavLink>
           ))}
         </div>

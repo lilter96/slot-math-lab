@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAppStore } from '../store';
 import { rootProject, openMechanic } from '../lib/projectFiles';
@@ -7,12 +6,10 @@ import { manifest, assets } from '../games/nine-lives/manifest';
 import { DEFAULT_FEATURES, useFeaturesQuery } from '../api/hooks';
 import { useModelProjection } from '../hooks/useModelProjection';
 import StarterLibrary from '../components/editor/StarterLibrary';
-import ProjectDataEditor from '../components/editor/ProjectDataEditor';
 
 export default function Overview() {
   // Subscribe to the actual draft, including nested edits. Projection never mutates it.
   const name = useAppStore(s => s.configName);
-  const [showData, setShowData] = useState(false);
   const navigate = useNavigate();
   const features = useFeaturesQuery().data ?? DEFAULT_FEATURES;
   const graph = useModelProjection();
@@ -35,13 +32,12 @@ export default function Overview() {
       </div>
       <div className="model-summary"><h2>Model inputs</h2><dl><div><dt>Logic definitions</dt><dd>{Object.keys(mechanics).length}</dd></div><div><dt>Weighted draws</dt><dd>{capabilities.weightedDraws}</dd></div><div><dt>Reel strips</dt><dd>{capabilities.reelStrips ? 'Defined in model' : 'Not exposed by this model'}</dd></div><div><dt>Paytable metadata</dt><dd>{capabilities.paytables ? 'Available; see source mapping' : 'Not exposed by this model'}</dd></div></dl>
         {nineLives && <p className="model-notice">Uncalibrated research model. Configured targets are not measured RTP.</p>}
-        <button className="btn" onClick={() => { rootProject(); setShowData(true); }}>Edit model inputs</button>
+        <Link className="btn" to="/model/data">Edit model inputs</Link>
         {features.play && nineLives && <Link className="btn" to="/play">Test spin</Link>}
       </div>
     </div>
     <section className="overview-mechanics"><h2>Explore mechanics</h2><p>Open the definition that implements each part of the game.</p><div className="feature-list">{Object.keys(mechanics).filter(id => nineLives ? ['base-spin', 'cascade-step', 'bonus', 'free-spin', 'round-entry'].includes(id) : true).slice(0, 8).map(id => <button key={id} onClick={() => open(id)}><strong>{mechanicLabel(id)}</strong><span>{mechanics[id].description ?? `${mechanics[id].nodes.length} nodes`}</span><small>Open logic</small></button>)}</div>{nineLives && <p className="hint">Presentation features: {manifest.features.join(', ')}. Definitions above come from the editable graph.</p>}</section>
     <section className="overview-evidence"><div><h2>Analysis evidence</h2><p>This view has no verified result for the current model. Review saved runs with their model hashes, seeds and calculation methods.</p></div><Link className="btn" to="/results">Review results</Link></section>
     <section className="overview-library"><h2>Create or open a model</h2><StarterLibrary /></section>
-    {showData && <ProjectDataEditor onClose={() => setShowData(false)} />}
   </section>;
 }

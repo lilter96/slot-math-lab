@@ -18,7 +18,7 @@ Branch: `feat/precision-workbench-redesign`. Isolated worktree based on fetched 
 | 1 trust and shell | implemented; critical sweep pending | suppress absent/stale proof; responsive semantic nav | build/lint/unit/critical/browser |
 | 2 overview/tree | verified after interaction test adaptations | manifest-derived 6×5, source-linked mechanic hierarchy | round-trip/browser |
 | 3 graph workspace | verified (cleanup limitation) | contextual inspector, palette/library separation, camera/search | nested editing/browser |
-| 4 data editing | todo | capability-detected weighted draws; transaction/undo | unit/export/reload |
+| 4 data editing | verified weighted draws; strip/CSV/payout mappings deferred | capability-detected weighted draws; transaction/undo | unit/export/reload |
 | 5 features | todo | readable summaries; safe mapped parameters only | form/graph preservation |
 | 6 evidence/debug | todo | existing evidence and actual traces only | no invented attribution |
 | 7 hardening/report | todo | viewports/accessibility/regression/manual review | FINAL_QA_REPORT.md |
@@ -34,3 +34,5 @@ Extended slice-2 regression: 11/14 pass; three starter tests assumed all definit
 Slice 3: build/lint, 117 units pass; feature gates/metric checks pass. Graph screenshots captured at all four requested sizes (slice3-graph-*), selected inspector at 1440. Extended tests found assumptions about example backup: toolbar now preserves the earliest draft, so tests now start with a real coin share-link instead of replacing an auto-created Nine Lives draft first. Inspector tabs remain accessible when drawer is open. A later API-only test received 502 because local API stopped gracefully; restarted isolated service and rerunning affected workflows. No regression is waived.
 
 Phase 3 final: clean build/lint, 117 units, feature/metric tests and 9/9 graph/library/Overview interactions pass on restarted API. Source-preserving payout test passes through actual /play/round. Next exact task: weighted-data transactions, canonical round-trip tests, export/reload/browser proof.
+
+Slice 4: 119 units and 3 workbench browser tests pass; actual API independently proves changed coin expectation 1. Undo bug from JSON key ordering fixed using canonical comparison. Screenshots slice4-data-*.png; qa/SLICE_4_REVIEW.md. Next: safe feature form with complete known source mapping, then trace/evidence and final comprehensive regression.

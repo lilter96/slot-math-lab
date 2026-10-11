@@ -31,3 +31,33 @@ test('Graph selection opens a contextual inspector and closing preserves the sel
   await expect(page.getByText('Graph movement and connections are read only on this screen.', { exact: false })).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
 });
+test('Weighted edits validate, undo, survive mode switches and export/import with independently checked expectation', { tag: '@critical' }, async ({ page, request }) => {
+  const original = { schemaVersion: '1.0.0', name: 'Table round trip', reviewerMetadata: { retained: true }, nodes: [
+    { nodeType: 'draw', id: 'draw', drawWeights: [{ outcomeId: 'three', weight: 1, value: 3 }, { outcomeId: 'one', weight: 3, value: 1 }, { outcomeId: 'zero', weight: 4, value: 0 }], outputs: { out: { name: 'out', type: 'Wins' } } },
+    { nodeType: 'metricsSink', id: 'sink', winCap: 10000, inputs: { in: { name: 'in', type: 'Wins' } } },
+  ], edges: [{ id: 'edge', sourceNodeId: 'draw', sourcePort: 'out', targetNodeId: 'sink', targetPort: 'in' }] };
+  await page.goto('/model/data?load=' + encodeURIComponent(Buffer.from(encodeURIComponent(JSON.stringify(original))).toString('base64')));
+  const weight = page.getByLabel('Weight for three', { exact: true });
+  await expect(weight).toHaveValue('1');
+  await weight.fill('-1'); await expect(page.getByRole('button', { name: 'Validate & apply weights' })).toBeDisabled();
+  await weight.fill('2'); await page.getByRole('button', { name: 'Validate & apply weights' }).click();
+  await expect(page.getByRole('button', { name: 'Undo weight change' })).toBeVisible();
+  await page.getByRole('button', { name: 'Undo weight change' }).click(); await expect(weight).toHaveValue('1');
+  await weight.fill('2'); await page.getByRole('button', { name: 'Validate & apply weights' }).click();
+  await expect(page.getByRole('button', { name: 'Undo weight change' })).toBeVisible();
+  await page.getByRole('tab', { name: 'Overview', exact: true }).click(); await page.getByRole('tab', { name: 'Model data', exact: true }).click();
+  await expect(weight).toHaveValue('2');
+  await weight.fill('3'); await page.getByRole('tab', { name: 'Build', exact: true }).click(); await page.getByRole('tab', { name: 'Model data', exact: true }).click();
+  await expect(weight).toHaveValue('3'); await page.getByRole('button', { name: 'Reset weights' }).click(); await expect(weight).toHaveValue('2');
+  await page.getByRole('tab', { name: 'Build', exact: true }).click();
+  const downloaded = page.waitForEvent('download'); await page.getByRole('button', { name: 'Export project', exact: true }).click();
+  const download = await downloaded;
+  const { readFile } = await import('node:fs/promises'); const config = JSON.parse(await readFile((await download.path())!, 'utf8'));
+  expect(config.reviewerMetadata).toEqual(original.reviewerMetadata); expect(config.edges).toEqual(original.edges);
+  expect(config.nodes[0].drawWeights).toEqual([{ outcomeId: 'three', weight: 2, value: 3 }, ...original.nodes[0].drawWeights!.slice(1)]);
+  const actual = await request.post('/api/evaluate/light', { data: { config, maxBranches: 10000, sampleSize: 5000 } });
+  expect(actual.ok()).toBe(true); const result = await actual.json(); expect(result.strategy).toBe('Exact'); expect(result.rtp).toBe(1); // (2×3 + 3×1 + 4×0) / 9
+  await page.getByLabel('Import project file').setInputFiles({ name: 'round-trip.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(config)) });
+  await expect.poll(async () => JSON.parse(await page.evaluate(() => localStorage.getItem('slotmath-draft-v1') ?? '{}')).nodes?.[0]?.data?.drawWeights?.[0]?.weight).toBe(2);
+  await page.reload(); await page.getByRole('tab', { name: 'Model data', exact: true }).click(); await expect(weight).toHaveValue('2');
+});
