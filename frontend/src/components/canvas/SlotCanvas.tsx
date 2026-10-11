@@ -130,6 +130,7 @@ function CanvasSurface() {
         onDrop={onDrop}
         nodeTypes={nodeTypes}
         defaultEdgeOptions={defaultEdgeOptions}
+        onlyRenderVisibleElements
         fitView
         minZoom={0.1}
         maxZoom={2}

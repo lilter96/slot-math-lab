@@ -67,15 +67,20 @@ test('An emptied subgraph remains editable and can return to its parent', async 
   await library.locator('summary').click();
   await library.getByRole('button', { name: 'Inspect Cluster pays subgraph', exact: true }).click();
   const nodes = page.locator('.react-flow__node');
-  while (await nodes.count()) {
-    const id = await nodes.first().getAttribute('data-id');
-    await page.getByLabel('Focus graph node').selectOption(id!);
+  const picker = page.getByLabel('Focus graph node');
+  const ids = await picker.locator('option').evaluateAll(options => options.map(option => (option as HTMLOptionElement).value).filter(Boolean));
+  expect(ids.length).toBeGreaterThan(0);
+  for (const id of ids) {
+    await picker.selectOption(id);
     await page.getByRole('button', { name: 'Delete node', exact: true }).click();
+    await expect(picker.locator(`option[value="${id}"]`)).toHaveCount(0);
   }
+  await expect(picker.locator('option')).toHaveCount(1);
   await page.getByRole('button', { name: 'Open full game graph', exact: true }).click();
   await expect(page.locator('.react-flow__node[data-id="draw"]')).toBeVisible();
   await page.getByLabel('Find subgraph').fill('cluster-pays');
   await page.getByRole('button', { name: 'Open cluster-pays graph', exact: true }).click();
+  await expect(picker.locator('option')).toHaveCount(1);
   await expect(nodes).toHaveCount(0);
   await page.getByRole('button', { name: 'Open full game graph', exact: true }).click();
   await expect(page.locator('.react-flow__node[data-id="draw"]')).toBeVisible();
