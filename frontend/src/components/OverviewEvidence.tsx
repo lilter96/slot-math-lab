@@ -31,10 +31,12 @@ export default function OverviewEvidence({ graph }: { graph: Record<string, unkn
   });
   const checking = query.isPending || query.isFetching;
   const result = !checking && !query.isError ? query.data : null;
+  const failureMessage = query.error instanceof TypeError ? 'Saved results could not be loaded. Check the connection and retry.'
+    : ['TimeoutError', 'AbortError'].includes(query.error?.name ?? '') ? 'Saved results did not respond in time. Retry or inspect Results.' : query.error?.message;
   return <section className="overview-evidence" aria-labelledby="overview-evidence-heading">
     <div>
       <h2 id="overview-evidence-heading">Analysis evidence</h2>
-      {checking ? <p role="status">Checking saved results for this model…</p> : query.isError ? <p role="alert">{query.error.message} <button className="btn" onClick={() => void query.refetch()}>Retry saved evidence</button></p> : result ? <>
+      {checking ? <p role="status">Checking saved results for this model…</p> : query.isError ? <p role="alert">{failureMessage} <button className="btn" onClick={() => void query.refetch()}>Retry saved evidence</button></p> : result ? <>
         <h3>Last verified saved run</h3>
         <p>Matching pinned model · completed Monte Carlo calculation.</p>
         <dl className="overview-run-metrics">
