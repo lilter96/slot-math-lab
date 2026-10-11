@@ -24,6 +24,8 @@ Branch: `feat/precision-workbench-redesign`. Isolated worktree based on fetched 
 | 7 hardening/report | verified; release gates documented | viewports/accessibility/regression/manual review | FINAL_QA_REPORT.md |
 | 8 private personal projects | implemented and verified; release gates documented | per-project drafts, verified browser namespaces, owner-scoped configs/runs/experiments/SignalR, configured accounts; no sharing | 140 API / 128 unit / 108 final Chromium cases |
 
+Next exact task: implement explicit inspector pinning with persisted user preference (UX_MASTERPLAN §7.2 / DESIGN_SYSTEM §D), verify only the affected contextual-inspector/project-switch workflows, then measure actual graph pan/zoom interaction and Overview readiness. The new requirement audit below prevents the previous final-regression report from being mistaken for completion of every roadmap item. No tests are needed for this documentation-only update.
+
 Final implementation checkpoint: the unchanged final production bundle (source b9d92a1) passed 108/108 Chromium cases in 18.5 minutes. Build/lint/128 units, API 140, scoped 18/18 and final personal-project 7/7 passed. Final capture has 64 four-size viewport checks with no overflow, five actual hit cells, zero offline proof badges and text-token contrast ≥5.0069:1, plus save/session-failure captures. Final reports record the evidence and limits. The previous Firefox/WebKit bundle passed 26/26; the final refresh was not repeated under the user’s updated test policy. Rider passes and the expensive full Core release gate remain explicitly blocked/incomplete. No publication or deployment occurred.
 
 Slice 1: build/lint pass; 117 units pass; metric/feature-gate targeted browser checks 3/3 pass. Initial critical sweep exposed removed AI assist; fixed by wiring it to actual generation dialog and targeted control passed. Remaining sweep pending. Screenshot slice1-build-{1440,1280,1024,390}.png. Rider frontend passes unavailable (see qa/BASELINE.md); no cleanup success claimed. Next: Overview and searchable mechanic hierarchy using canonical projections.
@@ -74,3 +76,26 @@ Final personal-project integration: shared config query invalidation now refresh
 ## User steering — test frequency
 
 AGENTS.md now prohibits complete suites on every iteration. Ordinary changes run only affected or new tests; full suites run after an integrated substantial feature or an explicit user request. After a failed full run, fixes receive failed/affected checks rather than an automatic full rerun. Documentation-only changes require no tests. No additional broad suite was launched after this instruction.
+
+
+## Documentation alignment and renewed completion audit
+
+The 2026-10-12 user instruction requires the documentation to reflect many private projects per user. Updated UX_MASTERPLAN, DESIGN_SYSTEM, CODEX_HANDOFF, PRD, README and TESTING; added the named `design-system/MASTER.md` artifact and a migration/rollback plan. Removed single-game entry assumptions and current sharing requirements. Historical QA/slice observations remain historical evidence; they are not rewritten as present-day product requirements. No source changes or tests were made for this documentation slice.
+
+This is progress toward the active goal, not full completion. Current audit findings:
+
+| Requirement | Current evidence / next work |
+|---|---|
+| Many projects per verified user, no sharing | Projects/store/browser identity and owner-scoped API; 7 private browser workflows and 5 private API test cases in the recorded 108/140 passing suites |
+| Model-derived facts, safe editing, actual evidence and Debug | Existing source adapters and recorded unit/API/browser/viewport evidence; no new pass implied by documentation edits |
+| Design reference artifact | `design-system/MASTER.md` now exists and describes actual CSS tokens, current scope and pending design acceptance |
+| Migration/rollback plan | `MIGRATION_ROLLBACK.md` now exists, grounded in encrypted snapshot and browser storage code; hosted rehearsal/deployment not performed |
+| Inspector pin with persisted preference | Missing: Build currently mounts on selection/panel mode, and RightPanel has close but no pin control; implement next |
+| Graph interaction performance target and Overview readiness | Missing: initial frame sample was idle, not a pan/zoom benchmark; perform a real bounded local measurement without claiming device-independent FPS |
+| Keyboard/reduced-motion/accessibility acceptance | Six targeted final checks and token contrast verified; further inspector/tree/graph and reduced-motion interactions need scoped evidence |
+| Current Firefox/WebKit private-project behavior | Previous bundle 26 cases passed; final private behavior not yet cross-browser verified. Select affected scenarios when relevant; no full cross suite on every iteration |
+| Rider cleanup | Required passes remain blocked by tooling; source list and actual failure evidence retained |
+| Full Core release verification | Earlier full run incomplete; focused 191 passed. This remains a release gate, not a reason to run unrelated suites after docs changes |
+| Practitioner/user acceptance and staged release | Not proven; local work must not invent tester feedback or deploy without authorization |
+
+Trace event-to-node attribution and per-feature RTP anatomy remain conditional on a generic source contract; the required separate specification is `DEBUG_TRACE_REQUIREMENTS.md`. Physical strips are conditional on an actual selected-model schema; unsupported states do not invent one. Scenario Lab is explicitly later in the roadmap, sharing explicitly deferred by the user. These are not implemented-feature claims.

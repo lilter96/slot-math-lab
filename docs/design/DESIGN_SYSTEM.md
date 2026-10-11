@@ -1,6 +1,6 @@
 # Slot Math Lab — Precision Workbench Design System
 
-**Status:** proposed source of design truth for first redesign iteration. Validate in browser before calling it final.  
+**Status:** design requirements updated for private multi-project workspaces (2026-10-12). Current implementation and browser evidence are tracked separately; validate new changes before claiming them verified.
 **Companion:** `UX_MASTERPLAN.md`. Current app has a cool charcoal UI, IBM Plex type tokens and per-method provenance colors; evolve them rather than replace them blindly.
 
 ## A. Identity: mathematical instrument, not a casino lobby
@@ -10,6 +10,15 @@
 **Signature feature:** selected game symbol / mechanic / outcome retains its identity across game preview → editable data → graph → result evidence. This is the single prominent visual expression of the product.
 
 **Avoid:** orange/purple gradient blobs; floating SaaS cards for every datum; ubiquitous micro-badges; random iconography; decorative ticker animations; overuse of monospace and uppercase meta labels; unrelated 'jackpot neon' in engineering panels.
+
+### Workspace context
+
+- The starting surface is **My projects**, with the verified user's personal collection or a useful empty state. A user can own many games/models; many users have independent workspaces.
+- Show the selected project's name in the switcher and headings. Create/import/template-copy actions produce separate private drafts; switching preserves edits and nested context.
+- Treat project identity separately from model/template ID. Same-template copies must not share staged edits, layout, Debug receipts or mathematical evidence.
+- Use the selected model's geometry, symbols and capability mappings. Nine Lives reference is one 6×5 fixture, not a global layout or default game.
+- Public templates become private copies. No sharing, invitations, teams or publication controls now. Saved server versions and run bookmarks remain owner-only.
+- Distinguish browser autosave from explicit server saving. Show truthful recovery/backup actions on storage failure; do not imply automatic cross-device synchronization.
 
 ## B. Tokens (starting proposal)
 
@@ -92,7 +101,7 @@ Never put tiny 11px faint hints in the main working path. Labels should describe
 - Indicate absent editor capability explicitly, e.g. `This model uses weighted draws instead of reel strips`.
 
 ### Game preview
-- Use **actual Nine Lives 6×5** art/manifest if available; do not fabricate a 5×3 placeholder. The preview is a portal to mathematics, not a full-time decorative animation.
+- Derive preview geometry and symbols from the selected model; use compatible actual assets when available. **Nine Lives reference is 6×5**, while other models can differ. Do not fabricate a universal 5×3 or 6×5 board. Label coordinate diagrams and the separate reference demo truthfully.
 - Explain when the game is paused, seeded or in demo mode. Support `Test spin` with deterministic evidence only when endpoint supports it.
 
 ## F. Motion and interaction
@@ -115,7 +124,7 @@ Never put tiny 11px faint hints in the main working path. Labels should describe
 
 ## H. The signature visual moment
 
-In Play, clicking a win selects its underlying **event**. A restrained cyan/teal outline follows the source symbols and associated mechanic, while an evidence panel identifies calculation provenance. If the trace backend cannot provide links yet, do not fake interactivity: defer the feature and keep the preview clean.
+In the selected project’s compatible Debug/Play presentation, clicking a win selects its underlying **event**. A restrained cyan/teal outline follows the source symbols and associated mechanic, while an evidence panel identifies calculation provenance. If the trace backend cannot provide links yet, do not fake interactivity: defer the feature and keep the preview clean.
 
 ## I. Design review rubric (each 0–2; min 14/16 to accept a view)
 
@@ -126,6 +135,6 @@ In Play, clicking a win selects its underlying **event**. A restrained cyan/teal
 5. **Interaction:** keyboard and mouse produce predictable state changes.
 6. **Accessibility:** focus/contrast/labels responsive to user settings.
 7. **Design identity:** not a generic bento SaaS template.
-8. **Integration:** state/route/test behavior remains correct.
+8. **Integration:** state/route/test behavior remains correct across multiple projects and verified user identities; another model’s evidence is never shown as current.
 
 Record reviewer notes and iterate screenshots before merge.

@@ -43,88 +43,49 @@ Restart Codex if a skill does not appear. The two skills complement each other: 
 ### C. Browser testing — already available in the project
 `frontend/package.json` already includes **`@playwright/test`** and scripts `test:e2e`, `test:e2e:critical`, `test:unit`. Use these plus screenshots and interaction checks. Installing additional browser skills is **optional**, not a substitute for actual browser verification.
 
-## 2. Start Codex from the repository root
+## 2. Current product scope and execution
 
-Before starting, put documents in repo:
+Updated 2026-10-12 after the user's clarification. This section replaces the original single-game handoff and between-phase approval prompts.
 
-```bash
-mkdir -p docs/design
-cp /path/to/downloaded/*.md docs/design/
-# Review diffs; commit design documents on your own branch if desired.
-```
+Read `UX_MASTERPLAN.md`, `DESIGN_SYSTEM.md`, `PRIVATE_WORKSPACES.md`, `IMPLEMENTATION_STATUS.md`, `README.md`, `docs/PRD.md`, `docs/TESTING.md` and applicable `AGENTS.md`. Inspect the current source and recorded evidence before continuing; do not restart completed phases.
 
-Launch Codex from repo root in **higher reasoning/plan mode if available**. The following is the opening prompt (copy all):
+The product is a private workbench for **many users, each owning many projects, games, models and personal materials**. `/` leads to **My projects** (`/projects`). A fresh workspace has no automatically selected game. Create a blank model, import personal JSON or copy a game template; search/open/duplicate/rename projects. Opening a project leads to its model-derived Overview. Public examples become independent private copies.
 
-```text
-You are the principal product designer, senior frontend architect and QA lead for Slot Math Lab.
-Read first, in full:
-- docs/design/UX_MASTERPLAN.md
-- docs/design/DESIGN_SYSTEM.md
-- docs/design/CODEX_HANDOFF.md
-- README.md
-- docs/PRD.md
+Nine Lives reference is one regression fixture: 6×5, cluster/cascade/free-spins/bonus-buy, uncalibrated. Other models use their own geometry, symbols, definitions and supported editors. Never turn every game into Nine Lives or display another project's result as current.
 
-Activate/use installed UI UX Pro Max and frontend-design skills. Where external skill suggestions conflict with this product-specific design brief or math correctness, the repo requirements and brief win.
+Project switching retains canonical edits, layout and nested context. Generated project/storage identity is independent of authored model ID. Scope staged edits, Debug receipts, asynchronous validation and presentation state by project. Verify browser identity before opening user-scoped stores. Enforce ownership of server configurations, runs, experiments and SignalR subscriptions.
 
-Task: modernize the existing React 19/Vite/TypeScript Slot Math Lab into a precise, domain-first mathematical workbench. THIS IS NOT A NEW LANDING PAGE. Preserve and reuse React Flow, Zustand, React Router, existing Playwright infrastructure, exports, backend contracts, feature flags, graph editor and mathematical provenance.
+**Sharing/collaboration are out of scope now.** Do not add public project links, publication, teams or invitations. Preserve JSON backup/import and legacy inbound `?load=` compatibility. A private run bookmark does not grant access to another user. Local drafts autosave within browser capacity; server save is explicit, and automatic cross-device synchronization is not implemented.
 
-IMPORTANT REAL FACTS:
-- Nine Lives is a SIX-REEL FIVE-ROW cluster-pays game (6×5), with cascade, free spins and bonus buy.
-- The current prototype library says the sample RTP is uncalibrated. Never invent a verified RTP, win frequency, max win or results.
-- Existing MetricStrip can show an Exact status when values are unavailable; fix semantic validity early.
-- Current editing/nested subgraph state must survive navigation and serialization.
+Retain React 19, TypeScript, Vite, React Router, Zustand, React Flow, CodeMirror, Playwright and .NET 10. Keep one canonical GraphConfig/AST model and preserve unknown fields, nested graphs, model round trips, feature flags and pinned mathematical evidence. Do not change kernel/compiler/PRNG semantics to implement presentation features. No fabricated metrics, fake Exact/Sampled labels, universal reel schema or game-specific kernel dispatch.
 
-WORK IN ITERATIONS:
-1) PHASE 0 ONLY: Inspect the actual code, data model, tests and screenshot references. Summarize findings, dependencies, risks, design decisions and discrepancies against this brief; list exact components/paths to change. Show a small implementation plan by PR. DO NOT modify source code before presenting the audit.
-2) Then implement PHASE 1 only after the plan is approved by the user: semantic data-state integrity + design tokens + responsive shell/nav, preserving all existing functionality.
-3) Run frontend build, lint, units, critical Playwright E2E; run backend tests if touched or needed to verify integration. On failures distinguish pre-existing/environmental issues from regressions.
-4) Start local app and use a real browser or Playwright to validate desktop and small viewport. Capture visual screenshots with evidence, test keyboard navigation, status empty state, old routes, feature gates, nested mechanics and selected-node inspector.
-5) Produce a QA report: screenshot before/after, tests, failures, trade-offs, remaining risks. Stop for review before Phase 2. Never push to main or deploy without explicit request.
+The user authorizes continuous local work through the roadmap. Historical Phase 0/1-only and screenshot-approval pauses are superseded by `/home/terentiy/Downloads/CODEX_AUTORUN.md`. Keep coherent local commits and report blockers. Pushes, merges, deployment and paid services still need explicit authorization.
 
-DESIGN STANDARD:
-- No 21 unstructured subgraph chips at the top of the final graph UX.
-- No always-open 360px empty inspector.
-- No fake Exact/Sampled statuses.
-- No generic bento-card/gradient dashboard or neon casino UI.
-- Primary focus: Nine Lives Overview, feature navigation, usable graph workspace and honest evidence.
-- Preserve `?project=nine-lives`, existing run deep links, Play flag and full data round-trip.
-- 1440x900, 1280x800, 1024x768, 390x844 screenshots.
+**Test frequency is mandatory in AGENTS.md.** Routine changes run only affected/new tests. Full suites run after a substantial integrated feature or an explicit user request. After fixing a failed full run, rerun failed/affected scenarios rather than automatically repeating the entire suite. Documentation-only edits need no tests. Do not interpret the list of available commands as a checklist to run every iteration.
 
-Start with Phase 0 audit and a short design-choice critique. Do not skip it.
-```
+## 3. Implementation slices and evidence
 
-## 3. Follow-up prompts by scope (send after review)
+1. **Trust and shell:** accurate missing/loading/error/provenance states, responsive navigation, project switcher and feature gates. Preserve old routes and deep links.
+2. **Personal project library and Overview:** private collection/empty state, independent template copies, import, search, switching and saved owner-only versions. Model-derived facts must match at least two different games; Nine Lives reference remains 6×5.
+3. **Graph workbench:** searchable mechanic hierarchy and breadcrumbs, separate templates/palette, contextual inspector, readable framing and project/mechanic camera state. Preserve nested graph serialization and source IDs.
+4. **Real math editors:** capability detection first, then weighted tables/payouts/feature forms only where source mappings are explicit and safe. Validate transactions, Undo, export/reload and independent copy edits; unsupported models retain raw data and graph escape hatches.
+5. **Evidence and Debug:** keep saved-run authority, seeds/hashes/N/uncertainty; Debug executes the current project, using compatible returned board histories or raw state. No invented event-to-node mapping. Missing instrumentation belongs in the separate generic trace specification.
+6. **Hardening:** targeted keyboard/accessibility/cross-browser checks and genuine interaction performance measurement; compatibility, migration/rollback plan and truthful final QA. Take actual captures at 1440×900, 1280×800, 1024×768 and 390×844. Preserve release gates and do not claim acceptance or certification without evidence.
 
-### PR 1 — shell & trust
-```text
-Proceed with Phase 1 / PR 1 from docs/design/UX_MASTERPLAN.md only. Implement semantic MetricStrip provenance states and responsive workspace shell. Maintain backwards-compatible routes and behavior. Create focused tests. Verify screenshots and keyboard interaction. Do not start Phase 2.
-```
+For each slice, inspect current state, implement the missing behavior, run relevant checks under AGENTS.md, review real browser output where applicable, and update `IMPLEMENTATION_STATUS.md` with evidence and the next exact action. Use the installed frontend-design and UI UX Pro Max skills as guidance within the project brief.
 
-### PR 2 — Nine Lives overview + tree
-```text
-Proceed with Phase 2 / PR 2 from docs/design/UX_MASTERPLAN.md only. Build an evidence-honest, truly 6×5 Nine Lives Overview. Replace chip clutter with hierarchical MechanicTree and preserved graph drilldowns. Verify draft preservation, deep links, responsive screens and Play feature flag. Screenshot review gate before next PR.
-```
+## 4. Rejection criteria
 
-### PR 3 — graph workbench
-```text
-Proceed with Phase 3 / PR 3 from docs/design/UX_MASTERPLAN.md only. Refactor the graph editor's layout without replacing React Flow. Hide inspector unless selected/pinned. Separate starter games from node palette. Improve fit, search, breadcrumbs, validation focus and no-overlap layout. Preserve round-trip semantics and take screenshots at required viewports.
-```
-
-### PR 4 — first real math table
-```text
-Proceed with Phase 4 only after inspecting Nine Lives model data shape. Implement one capability-detected tabular editor for a model capability that is actually present (weighted draws/symbols/reel strips, whichever source data supports). Do not fabricate a payline or reel-strip schema. Provide stable mapping, undo, validation, import/export round-trip tests and browser screenshots. Stop after one vertical slice.
-```
-
-## 4. Red flags that mean reject Codex's PR
-
-- Entire `index.css` blindly replaced with Tailwind components or unrelated framework.
-- Hero/card dashboard that looks generic or uses artificial metrics.
-- Nine Lives incorrectly rendered 5×3/payline instead of 6×5/cluster.
-- Changes `GraphConfig` in a way that breaks models, exact math, seeded behavior, drafts or exports.
-- Status badges claim Exact/green with no numerical result.
-- No screenshots, only 'looks good' in textual claims.
-- Tests skipped or failing without analysis.
-- Agent tries to implement all seven roadmap phases in one branch.
+- A single hardcoded game/default draft replaces the personal collection, or unrelated models inherit Nine Lives facts.
+- Project switching loses edits; identical template copies share mutable state; late responses change a different project.
+- A user's archive or browser state is visible to another identity, or share/invite/publish controls appear now.
+- Wholesale CSS/framework rewrite, generic decorative dashboard or invented measurements.
+- Nine Lives reference rendered as 5×3/paylines; unsupported reel/paytable structures fabricated.
+- Backend math, seeded behavior, exports or feature flags weakened to fit a UI.
+- Exact/Sampled shown without current numeric evidence; targets presented as computed actuals.
+- Screenshots, cleanup, tests, performance, user acceptance or release readiness claimed without relevant current evidence.
+- Complete suites run on every iteration, unrelated tests rerun after small fixes, or documentation changes trigger testing.
+- Unrelated work overwritten, or code pushed/deployed without authorization.
 
 ## 5. Sources and installation notes
 

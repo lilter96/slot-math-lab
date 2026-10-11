@@ -39,6 +39,10 @@ Environment equivalents are `Auth__Users__0__UserId` and `Auth__Users__0__Passwo
 
 No public registration, password-reset flow, OIDC provider, teams, roles, invitation, publication, public share lookup or collaboration was added. The existing store is a single-process encrypted snapshot archive with bounded compute concurrency; owner isolation is not evidence of large-scale throughput or multi-instance storage safety. A scalable deployment requires its own persistence/capacity work and validation. The local-only experimental `/api/persisted/cache` interface remains outside production routing and is not the private project archive.
 
+## Migration and review
+
+The main [UX plan](UX_MASTERPLAN.md), [design system](DESIGN_SYSTEM.md), [design reference](../../design-system/MASTER.md) and [Codex handoff](CODEX_HANDOFF.md) now use this multi-project scope. The [migration/rollback plan](MIGRATION_ROLLBACK.md) describes a future coordinated upgrade, legacy ownership mapping and downgrade constraints; no hosted migration has been performed.
+
 ## Verification
 
 PrivateWorkspaceTests exercise two real JWT identities, independent copies, config CRUD/version denial, run launch/read/evidence/cancel denial, witness/verification denial, real SignalR subscription/snapshot rejection, owner worker completion, experiment child isolation, encrypted restart, explicit legacy ownership and multiple production credential accounts. Browser tests cover nested edits across different games, same-template independence, staged form isolation, verified-account changes, unavailable/unsigned session boot and validation finishing after a project switch.

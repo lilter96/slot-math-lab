@@ -59,7 +59,8 @@ The final unchanged production bundle has 64 four-size screenshots plus save/ses
 1. [AGENTS.md](../../AGENTS.md) requires Rider Reformat then Built-in: Full Cleanup on touched source. Standalone Rider exits 3 with `solution can't be null`; frontend files are outside the .NET solution. The pinned solution CLI encounters missing `System.Composition.AttributedModel, Version=10.0.0.12` and bounded passes time out. [RIDER_CLEANUP_REQUIRED.md](qa/RIDER_CLEANUP_REQUIRED.md) lists all affected source. Scoped supplementary whitespace/ESLint checks do not replace these passes. Run them in the owner's Rider workspace, inspect changes and repeat relevant validation before release.
 2. Complete the expensive full Core suite on a suitable test host before release. Focused math/API evidence is not a substitute for that additional gate.
 3. Take encrypted-storage/key and important draft backups before any hosted upgrade; preserve the legacy account mapping. Capacity, provider/provisioning and multi-instance persistence need separate deployment work. No production deployment was authorized or performed.
-4. Advanced raw graph/state edits still require math review. Compiler success proves structural validity, not certified RTP. Complete accessibility/practitioner acceptance is owner-side work.
+4. The renewed roadmap audit found missing explicit inspector pinning and actual graph-interaction performance measurement; these remain implementation/acceptance work in [IMPLEMENTATION_STATUS.md](IMPLEMENTATION_STATUS.md). The [design reference](../../design-system/MASTER.md) and [migration/rollback plan](MIGRATION_ROLLBACK.md) now exist; no hosted rehearsal is claimed.
+5. Advanced raw graph/state edits still require math review. Compiler success proves structural validity, not certified RTP. Complete accessibility/practitioner acceptance is owner-side work.
 
 ## Local review
 

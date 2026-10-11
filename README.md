@@ -1,6 +1,6 @@
 # Slot Math Lab
 
-A .NET 10 / React 19 engineering prototype for composing slot-game mathematics on a visual graph and comparing exact probability calculations with Monte Carlo simulation.
+A .NET 10 / React 19 engineering prototype where each user can manage many private game/model projects, compose slot mathematics on a visual graph, and compare exact probability calculations with Monte Carlo simulation.
 
 **Author:** Terentiy Gatsukov · **Status:** research / portfolio prototype, not a certified gambling engine.
 
@@ -18,7 +18,7 @@ Start with [the core](backend/SlotMath.Core), [cross-check tests](backend/SlotMa
 
 This is an experimental engineering showcase. It has no gambling certification, production-readiness claim, or proven plugin security boundary. The bundled database credentials and default JWT settings are development defaults; replace them before any hosted deployment. Plugin support must be treated as trusted-code experimentation.
 
-Current local, remote CI and authenticated deployment evidence is recorded in the [verification ledger](docs/verification/METRICS_IMPLEMENTATION.md), including retry-assisted passes and remaining metric prerequisites. The [verification strategy](docs/TESTING.md) keeps all Core/API and frontend logic checks on every change, selects 14 critical browser workflows for ordinary CI, and retains the complete browser regression for nightly/manual runs and release verification.
+Current local, remote CI and authenticated deployment evidence is recorded in the [verification ledger](docs/verification/METRICS_IMPLEMENTATION.md), including retry-assisted passes and remaining metric prerequisites. The [verification strategy](docs/TESTING.md) describes CI and release checks. Local iterations run only affected and new tests; full suites run after a substantial integrated feature or an explicit user request, as required by AGENTS.md. Complete browser regression remains available for nightly/manual CI and release verification.
 
 ## Development workflow
 
@@ -114,4 +114,4 @@ slot-math-lab/
 
 ### Personal workspaces
 
-The workbench starts with **My projects**. Create independent game/template copies, switch without losing editor drafts, and open saved private server versions. Signed-in accounts have separate project/run/experiment archives and browser workspaces. Sharing is not available. See [personal workspace behavior and account configuration](docs/design/PRIVATE_WORKSPACES.md) for persistence, legacy ownership and deployment limits.
+The workbench starts with **My projects**; a fresh account has no automatically selected game. Each user can own many games/models and create independent blank, imported or template-copy projects, switch without losing editor drafts, and open saved private server versions. Nine Lives is one reference example; each selected model supplies its own geometry, symbols and mechanics. Signed-in accounts have separate project/run/experiment archives and browser workspaces. Sharing is not available. See [personal workspace behavior and account configuration](docs/design/PRIVATE_WORKSPACES.md) for persistence, legacy ownership and deployment limits.

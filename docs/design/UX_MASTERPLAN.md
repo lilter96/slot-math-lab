@@ -1,9 +1,9 @@
 # Slot Math Lab — UX/UI Redesign Masterplan
 
-**Version:** 1.0 / 2026-10-11  
+**Version:** 1.1 / 2026-10-12
 **Product direction:** **Precision Workbench — a mathematical instrument for slot-game design**  
 **Project:** https://github.com/lilter96/slot-math-lab  
-**Status:** implementation-ready product/design proposal, **not** a verified deployed design.  
+**Status:** product/design requirements updated for private multi-project workspaces. Implementation evidence is tracked in `IMPLEMENTATION_STATUS.md` and `FINAL_QA_REPORT.md`; no deployed-design claim.
 **Audience:** senior frontend engineers, product designers, Codex implementation agent, QA reviewers.
 
 > **Product promise:** Define the math. Run a spin. Explain every result.
@@ -11,6 +11,19 @@
 > **North-star interaction:** From a paid-round result, the user can navigate to the exact rule or model parameter responsible for it, without losing game context or falsifying the provenance of statistical evidence.
 
 ---
+
+## 0. Current product scope — private multi-project workspaces
+
+One user may own many projects, games, models and personal materials. Many users use the application independently. The entry point is **My projects** (`/projects`), including an empty state for a new account. Opening a project leads to that project's Overview and editing surfaces. No game is silently created on first open.
+
+- Create a blank project, import personal JSON, or create an independent copy of a template. Search, open, duplicate and rename personal projects.
+- Preserve each project's canonical model, edits, layout, open subgraph and supported authoring state when switching. A project identity is separate from its authored model ID: two copies of the same game remain independent.
+- Isolate browser workspaces by verified user identity. Enforce ownership of server configurations, runs, experiments and realtime subscriptions; another user's IDs do not grant access.
+- Browser drafts autosave locally; server version saving is explicit. Opening a server version creates an editable local copy without changing pinned evidence. Automatic cross-device draft synchronization is not implemented.
+- **No sharing or collaboration now.** Public links, invitations, teams and publication are deferred. Legacy inbound `?load=` is import compatibility; private run bookmarks are owner-only.
+- Nine Lives is one reference fixture, not the default project or a universal game schema. Read geometry, symbols, mechanics and editor capabilities from the selected model. Nine Lives reference is 6×5; other games can differ. Public templates are examples copied into a private workspace.
+
+This clarification supersedes single-game entry assumptions and sharing suggestions elsewhere in the original proposal. The local autonomy directive in `CODEX_AUTORUN.md` supersedes historical between-phase review pauses. Test selection follows `AGENTS.md`: new/affected tests during ordinary iterations, full suites after a substantial integrated feature or an explicit user request.
 
 ## 1. Context & evidence
 
@@ -48,7 +61,7 @@
 | Lead mathematician / technical director | Review mathematical assumptions and release evidence | Hard to judge what is calculated vs estimated | See provenance, parameters, run metadata and downloadable reproducibility data in ≤3 interactions |
 | New contributor | Understand architecture and make safe changes | Technical terms everywhere, poor onboarding | Locate mechanics, edit bounded flow, pass validation and tests |
 
-**Primary goal for v1:** A user with Nine Lives open can understand the game architecture and open a meaningful work surface in **≤30 seconds**. Target to validate in usability tests, not a claimed measured metric.
+**Primary goal for v1:** A user can find or create a personal project, understand its game architecture and open a meaningful work surface in **≤30 seconds**. Use Nine Lives and another game as fixtures. Target to validate in usability tests, not a claimed measured metric.
 
 **Success measures (targets; instrument before claims):**
 - ≥4/5 testers identify where to edit game math and where to run an evaluation within 30 s.
@@ -82,12 +95,13 @@ A specialized engineering workspace: calmly dense, exceptionally legible, mathem
 ## 4. Navigation and information architecture
 
 ### Primary UI (desktop)
-**Global top bar (52–56px):** brand · project switcher (`Nine Lives`) · unsaved/saved state · `Validate`/`Run analysis` and context action · account/help. Do not keep a global Exact/ε/Sampled legend when no evidence is visible; show provenance in context.
+**Global top bar (52–56px):** brand · personal project switcher (selected project name) · unsaved/saved state · `Validate`/`Run analysis` and context action · account/help. Do not keep a global Exact/ε/Sampled legend when no evidence is visible; show provenance in context.
 
 **Workspace sidebar (220–252px, collapsible):**
 
 ```text
-NINE LIVES                  [switch]
+MY PROJECTS                 [open]
+SELECTED PROJECT            [switch]
   Overview
   Model
     Symbols & reels       [if supported]
@@ -108,7 +122,9 @@ NINE LIVES                  [switch]
 **Keyboard-centric advanced entry:** command palette `⌘/Ctrl+K` or searchable tree: Find mechanic, Open graph, Start simulation, Go to run. Keep technical `id` in secondary text and user-facing label as primary text.
 
 ### Workspace layouts
-**Overview**: game image/interactive preview + model facts + features list + last verified result. **No forced real-time full analysis on first paint.**
+**My projects**: personal draft collection, search, template copies, blank/JSON import, saved private server versions.
+
+**Overview**: selected-game image/interactive preview + model facts + features list + last verified result. **No forced real-time full analysis on first paint.**
 
 **Tabular authoring**: domain tree/filter left; real table center; inline validation / restrained inspector to the right when requested.
 
@@ -116,19 +132,20 @@ NINE LIVES                  [switch]
 
 **Results**: keep existing archive/evidence facilities, simplify hierarchy and maintain deep links; not a new dashboard disconnected from real runs.
 
-**Play & debug**: actual game presentation and event/state rail, with trace features gated by backend support (see Phase 6).
+**Play & debug**: Debug executes the selected model and shows actual returned state; use a board presentation only when a compatible trace exists. Existing `/play` remains explicitly labelled Reference demo. Trace features are gated by backend support (see Phase 6).
 
 ### The first 30 seconds
-1. Project opens to **Overview**, showing `Nine Lives`, **6 reels × 5 rows**, cluster wins, cascades, free spins, bonus buy.
-2. Primary choices: **Edit math**, **Explore mechanics**, **Test spin**, **Run analysis**.
-3. If no valid completed run, show `No verified result yet` + `Run analysis`; do not render a numerical fake.
-4. Clicking a feature opens its product-friendly overview and then `Open underlying graph` for complex edits.
+1. Open **My projects**; find a personal project or create a blank/template copy. A fresh account has no automatic game.
+2. Open that project's **Overview**. Facts describe the selected model: Nine Lives reference is 6×5 with clusters/cascades/free spins; Ancient Dragon is 5×3. Unsupported geometry stays explicit.
+3. Primary choices: **Edit math**, **Explore mechanics**, **Test spin** (when supported/enabled), **Run analysis**.
+4. If no valid completed result belongs to this model, show `No verified result yet` + `Run analysis`; do not reuse another project's evidence.
+5. Open a feature's readable summary or underlying graph. Return to My projects and switch without losing edits.
 
 ---
 
 ## 5. UX wireframes (not final pixels)
 
-### A. Overview · 1440px desktop
+### A. Overview · 1440px desktop (Nine Lives reference project selected)
 
 ```text
 ┌─────────────────────────────────────────────────────────────────────────────────────────────────────────┐
@@ -150,7 +167,7 @@ NINE LIVES                  [switch]
 └──────────────────┴──────────────────────────────────────────────────────────────────────────────────────┘
 ```
 
-### B. Logic Graph · responsive workbench
+### B. Logic Graph · responsive workbench (example selected project)
 
 ```text
 ┌─────────────────────────────────────────────────────────────────────────────────────────────────────────┐
@@ -230,12 +247,12 @@ NINE LIVES                  [switch]
 ## 7. Screen requirements & behavior contracts
 
 ### 7.1 Overview (new)
-**Purpose:** immediate understanding and next action. Use real Nine Lives game preview/assets if accessible. Safe static fallback if a game cannot load.
+**Purpose:** immediate understanding of the selected project and next action. Use compatible real game assets when available; otherwise a clearly labelled model-derived diagram or safe static fallback. Never apply Nine Lives facts to unrelated models.
 - Show model attributes **derived from manifest/config**, not hardcoded.
 - Show feature summary grouped by player-facing semantics, e.g. Cluster wins, Cascades, Free spins.
 - Last analysis: value(s) plus `runId`, method, seed, sample count and date when applicable; otherwise explicit empty state.
 - Actions: Open data, Open feature, Test spin (only with enabled Play), Run analysis.
-- Project switch / example import must preserve current draft and allow restoration.
+- Project switching preserves each draft; example import creates a separate private project. Same-template copies have different project identities, retain independent edits and do not share version histories.
 
 ### 7.2 Logic graph (revise)
 - Replace 21 top chips with hierarchy/search in mechanic explorer. Keep raw ID discoverable via tooltip/detail.
@@ -251,7 +268,7 @@ NINE LIVES                  [switch]
 - For reels: column-based strips, index, symbol badge, counts and cumulative probabilities; add/remove/reorder through keyboard too; warning on invalid empty/unknown symbols; CSV import preview.
 - For weighted model: value/weight table with validation, normalization preview and event probabilities.
 - Editing is transactional: draft change → validate (debounced) → commit with Undo; no silent mutation of unspecified fields.
-- Data mappings must be explicit and round-trip-tested on Nine Lives fixtures and a simpler example.
+- Data mappings must be explicit and round-trip-tested on Nine Lives fixtures and a simpler example. Also verify switching between different games and independent copies; unsupported mappings must preserve raw data.
 
 ### 7.4 Pays & rules (progressive enhancement)
 - Render paytable/cluster rules only where data schema is explicit.
@@ -271,7 +288,7 @@ NINE LIVES                  [switch]
 - On Compare, preserve seed, params, model hash, sample counts and CI — difference between two Monte Carlo point estimates is not definitive without uncertainty.
 
 ### 7.7 Play / Debug
-- **Stage A:** reuse Nine Lives Play surface and existing paid-round events; show what was actually emitted.
+- **Stage A:** Debug executes the selected project through existing paid-round endpoints and shows actual returned state. Reuse a compatible board-history adapter when available. The separate Nine Lives Play surface remains a labelled reference demo, not a universal project preview.
 - **Stage B (requires instrumented backend):** trace stream format with event ID, round ID, source node/mechanic reference, state delta, RNG stream/seed mapping where safe, payout component, timing. Store or regenerate required deterministic state.
 - Replay of same seed is only claimed if all relevant inputs, engine version and stream mapping are pinned and validated.
 - Link trace event to graph when source mapping exists; show `Not available` otherwise.
@@ -288,7 +305,7 @@ NINE LIVES                  [switch]
 - A read-only `ModelProjection` adapter derives view models for Overview, mechanic tree and data editors; a controlled `ModelCommand` layer produces validated updates. Consider this interface proposal, not a request to replace backend types.
 - All write commands must preserve unknown fields, plugin references, IDs, typed expressions, edge ports, shared mechanics, and schema version. If a mapping cannot be safely round-tripped, **display read-only** with link to graph.
 - No reverse transforms from rendered pixels/UI labels; use stable IDs.
-- Draft management/restore and navigation into nested mechanics must preserve the `graphTrail` semantics. Diff against `peekRootProject()` prior to applying.
+- Draft management/restore and navigation into nested mechanics must preserve the `graphTrail` semantics. Diff against `peekRootProject()` prior to applying. Use project identity, not authored graph ID alone, to scope editor buffers, camera state and asynchronous validation. Late responses must not mutate another project or publish its evidence.
 
 ### Provenance and missing data
 - Data model: `unavailable | loading | error | exact | bounded | sampled | needsFullRun` as explicit UI states, with numeric payload only when present.
@@ -321,9 +338,9 @@ NINE LIVES                  [switch]
 **Gate:** project switcher preserved; keyboard nav; all existing routes resolve; metrics never claim Exact absent evidence; screenshots 1440×900/1280×800/390×844; old tests pass.
 
 ### Phase 2 — Overview & mechanic explorer (PR 2)
-**Scope:** new Overview for Nine Lives; correct 6×5 dynamic facts; real/empty last run state; expandable `MechanicTree` replacing top-chip navigation; deep links maintained.
+**Scope:** personal project collection and model-derived Overview; correct facts for each selected game, including Nine Lives reference 6×5; real/empty last run state; expandable `MechanicTree` replacing top-chip navigation; deep links maintained.
 
-**Gate:** overview navigates to existing graph, table edit, results and (if enabled) Play; no hardcoded fake RTP; return from mechanics preserves draft.
+**Gate:** create/open/switch/duplicate/import personal projects; Overview navigates to graph, data, results and enabled Debug; no hardcoded fake RTP or game facts; return from mechanics and project switching preserve independent drafts; private owner isolation is verified.
 
 ### Phase 3 — Graph workbench (PR 3)
 **Scope:** move library examples out of primitive palette; context-only inspector; full usable canvas; legible fit & per-mechanic camera; search and breadcrumbs; validation focus.
@@ -331,7 +348,7 @@ NINE LIVES                  [switch]
 **Gate:** click/drag/connect/edit nested subgraph and return round-trips unchanged; no editor overlap; graph keyboard focus; screenshot/DOM interaction evidence.
 
 ### Phase 4 — Real data editors (PR 4–5)
-**Scope:** first capability-detected **weighted table / symbols** (choose model supported by Nine Lives), then reel strips and paytables on known schema. CSV import only after validation and confirmation UX.
+**Scope:** first capability-detected **weighted table / symbols** (choose a capability actually present in the selected model; Nine Lives is a regression fixture), then reel strips and paytables on known schema. CSV import only after validation and confirmation UX.
 
 **Gate:** data changes round-trip without losing unknown mechanics and edge mappings; seeds and core math results unchanged unless intended parameter changed; input validation and undo tested.
 
@@ -357,18 +374,21 @@ NINE LIVES                  [switch]
 
 ## 10. Acceptance test scenarios
 
-1. **First open**: nine-lives project opens with correct 6×5 and mechanics; no invalid `EXACT` badges or invented RTP when backend is idle/offline.
+1. **First open**: My projects shows the current user’s collection or empty state. Explicitly creating/opening Nine Lives reference shows 6×5; opening another game shows its own geometry/mechanics. No invalid `EXACT` badges or invented RTP when backend is idle/offline.
 2. **Route survival**: `/build`, `/simulate`, `/results`, `/export`, and feature-gated `/play` still behave correctly; deep linked `?project=nine-lives` remains functional.
 3. **Explorer**: search `free spins`; open nested graph; go back; edit persists; no lost node/edge.
 4. **Canvas**: no selected node → no wasted 360px inspector; selection opens panel; `Fit graph` yields legible controls and safe interactions.
 5. **Data edit**: change one known weight in a supported model; validate; export and reload; no unrelated graph changes.
 6. **Evidence**: run pending → no green Exact; completed sampled run → `Sampled`, N & CI; exact → Exact only with evidence; bounded → explicit ε or bound; failure → concrete next step.
 7. **Feature flags**: disabled Play/AI/plugins are not leaked in navigation; auth guards unchanged.
-8. **Saved state**: importing a demo does not silently lose the user's draft; restore works.
+8. **Saved state**: importing a template creates an independent project; switching different games and identical copies preserves edits, layout and nested context; reload/export/restore work.
 9. **Keyboard**: focus rings, keyboard tree navigation, ESC close, dialogs restore focus; reduced-motion state tested.
 10. **Viewport**: 1440×900, 1280×800, 1024×768 and 390×844. Mobile exposes a usable read-only or minimal editing experience if advanced graph cannot fit.
 
-**Commands** (from `frontend/`): `npm ci`, `npm run build`, `npm run lint`, `npm run test:unit`, `npm run test:e2e:critical`. From `backend/`: `dotnet build`, `dotnet test`. In practice respect existing scripts/environment and document infrastructure failures rather than hiding or force-skipping them.
+11. **Private ownership**: two authenticated users cannot list/read/update/delete each other's configurations, runs or experiments, subscribe to their realtime evidence, or hydrate each other's browser workspace. Trusted workers can complete their own admitted work.
+12. **Persistence and scope**: local autosave failures preserve the in-memory graph and offer a backup. Explicit server save appears in the owner's archive; opening it makes a separate draft. There are no share/invite/publish controls.
+
+**Available commands, not a per-iteration checklist** (from `frontend/`): `npm ci`, `npm run build`, `npm run lint`, `npm run test:unit`, `npm run test:e2e:critical`. From `backend/`: `dotnet build`, `dotnet test`. For routine work select new/affected tests under AGENTS.md; full suites are reserved for a substantial integrated feature or an explicit user request. Respect existing scripts/environment and document infrastructure failures rather than hiding or force-skipping them.
 
 ### Screenshot QA evidence expected per PR
 - Before screenshot(s), after screenshot(s), selected node and empty panel state, off-line/no-metrics state, focus/keyboard view, responsive view.
@@ -397,7 +417,9 @@ NINE LIVES                  [switch]
 - **D-03:** Nine Lives fixture must be **6×5** and **cluster/cascade**, not generic 5×3 line slot.
 - **D-04:** One structural source of truth for model edits, capability-gated specialized editors.
 - **D-05:** Keep CodeMirror / React Flow / router / Zustand / Playwright; reuse with narrow refactors.
-- **D-06:** Release PR by PR with screenshots and tests, **not** a single autonomous mega-commit.
+- **D-06:** Keep local commits scoped to coherent slices with screenshots and relevant checks; no push/deployment without authorization.
+- **D-07:** Many private projects per user, many independent users; My projects is the entry point. Sharing/collaboration are deferred.
+- **D-08:** Respect the mandatory AGENTS.md test-frequency policy; no complete suites on every iteration.
 
-**First Codex task:** Read this masterplan + accompanying `DESIGN_SYSTEM.md` and `CODEX_HANDOFF.md`. Audit repo. Execute **Phase 0 and Phase 1 only**, stop for screenshot review.
+**Continuation task:** Read this masterplan, `DESIGN_SYSTEM.md`, `CODEX_HANDOFF.md` and `IMPLEMENTATION_STATUS.md`. Audit current evidence, then continue unfinished authorized local work. Historical phase-review pauses do not override the user’s autonomy directive; keep release blockers explicit.
 
