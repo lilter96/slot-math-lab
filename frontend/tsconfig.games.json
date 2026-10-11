@@ -1,0 +1,29 @@
+{
+  // The slot game client ported from tgslots (src/games/client) is kept as it was written, and it was written for
+  // the compiler options of its own repository: enums, constructor parameter properties, unused names allowed.
+  "compilerOptions": {
+    "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.games.tsbuildinfo",
+    "target": "es2023",
+    "lib": ["ES2023", "DOM", "DOM.Iterable"],
+    "module": "esnext",
+    "types": ["vite/client"],
+    "skipLibCheck": true,
+
+    /* Bundler mode */
+    "moduleResolution": "bundler",
+    "allowImportingTsExtensions": true,
+    "verbatimModuleSyntax": true,
+    "moduleDetection": "force",
+    "resolveJsonModule": true,
+    "noEmit": true,
+
+    /* Strict */
+    "strict": true,
+    "noImplicitOverride": true,
+    "noFallthroughCasesInSwitch": true,
+
+    /* The packages of the original workspace the client imports are served by the modules in src/games/contracts. */
+    "paths": { "@tgslots/*": ["./src/games/contracts/*"] }
+  },
+  "include": ["src/games/client", "src/vite-env.d.ts"]
+}

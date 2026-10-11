@@ -6,6 +6,15 @@ Union, Intersect, Except, Shift, Count and First. The compiler optimizes generic
 expressions, storage and control flow; game names, mechanic identifiers and
 authored graph patterns do not select kernel implementations.
 
+The original `TestData/LabDemo/lab-demo.json` measurements below and the ported
+`TestData/Games/nine-lives.json` shared-subgraph model are different workloads.
+The shared graph measured 2.49–2.53M complete paid rounds/s through the Release
+UI in three 100M-round runs on eight workers. Its separate evidence is recorded in
+[TGSlots optimization evidence](verification/TGSLOTS_OPTIMIZATION.md).
+
+Exact results for games too large to enumerate come from a separate evaluator,
+described under [Structured exact evaluation](#structured-exact-evaluation).
+
 ## Workload and current target
 
 The current acceptance target is **2,000,000 complete paid rounds/second on
@@ -142,6 +151,139 @@ four-cell and 766 connected five-cell placements. Generic tests cover full-width
 integers and masks, scoped aliases, lazy reads, error order, cancellation,
 separate runners, retained snapshots, cache-budget fallback and trajectories.
 
+## Structured exact evaluation
+
+A round with too many outcomes to enumerate can still have an exact RTP.
+`StructuredExactEvaluator` computes the exact rational RTP, and where they fit
+its allowances the exact hit frequency, variance and payout distribution, from
+the structure of the graph
+([method](architecture.md#structured-exact-evaluator-structuredexactevaluator)).
+It answers only what it can model: Nine Lives, whose cluster search and round
+cap need the whole law of a thirty-cell board, is declined, and its RTP stays
+Sampled ([LAB_DEMO.md](LAB_DEMO.md)).
+
+The measurements this section carried were taken on the retired demo graph and
+were removed with it, rather than attributed to another graph. On this
+workstation (i5-13600KF, one thread, default options) the games that are
+evaluated exactly today took 12 to 21 s for the full Ancient Dragon round and
+20 to 25 s for the full Woodland Whisper round, both by expectation only and
+both on a machine that was busy with other work; their cut-down models, with
+the whole distribution, take under a second. A
+request through the API is given twelve seconds, so the two full rounds are
+reported there as `BudgetExceeded`, never as a number.
+
+What the profile of the evaluator showed and what changed:
+
+- Law values were sorted by a recursive comparison of tuples for every law built
+  (19% of samples). A law is now listed by the hash of its values, and the total
+  order is consulted only among values whose hashes collide.
+- `ExprValue.GetHashCode` combines five fields for every element of a tuple (15%).
+  The evaluator has its own hash, a function of the value alone, so the listing
+  order, and with it the work counted, is the same in every process.
+- Every new table allocated a `HashSet` to collect its distinct values (12% in
+  resizing). They are collected in a 65-entry buffer by hash, in first-seen order.
+- Masses were accumulated in a `Dictionary` per law, hashing every value again
+  at every mixture. An open-addressing accumulator takes the hash kept by the
+  source law; a value is hashed once however many mixtures it passes through.
+- Arrays of tables that turn out to exist already are reused for the next table.
+
+EventPipe thread-time samples land on GC safepoints, so allocation sites are
+over-represented; `--allocations` and the collector's own pause counters
+(reported by `--exact`) were used to tell allocation from computation.
+
+Limits, stated plainly: for the full Ancient Dragon and Woodland Whisper rounds
+the payout distribution, and with it maximum win, the hit frequency and the
+variance do not fit their allowances; those metrics come from Sampled. Plugins,
+all opaque map transforms (including legacy built-ins), and wins stored as state
+data are declined.
+
+```sh
+dotnet backend/SlotMath.Benchmarks/bin/Release/net10.0/SlotMath.Benchmarks.dll \
+  --graph backend/SlotMath.Core.Tests/TestData/Games/ancient-dragon.json \
+  --warmup 1 --exact --repeats 4
+# --exact --allocations prints allocated bytes by type for one evaluation.
+```
+
+### Correctness gates of the structured evaluator
+
+`StructuredEquivalenceTests` generates 10,000 graphs (CsCheck, pinned seed,
+shrinking) with draws, dependent state, loops, conditionals, folds, failing
+expressions and win caps, and compares the structured result with the classic
+exact interpreter: the whole payout distribution by rational equality, and the
+hit frequency derived without the distribution against the distribution's. A
+case the classic interpreter cannot finish, or where the reference fails, must
+be declined, never answered. Seven deliberately seeded defects (a merge keeping
+the wrong arm, dependent sums convolved, pseudo-variables shared between
+dependent parts, errors ignored, the cap ignored, hit frequency taken from the
+first part, the second moment of dependent factors taken as a product) each fail
+the gate. Recorded
+counts: 7,157 graphs equal distribution for distribution, 6,733 of them with the
+structural hit frequency checked as well; 2,338 declined where the reference
+fails; 504 not compared because the reference exceeds its 10,000-branch limit;
+one declined on its work budget. No case answered differently from the reference,
+or answered where the reference fails. The seeded defects fail 19 to 85 of
+their 2,000 cases each.
+
+The D9 fixtures, authored as graphs: REF-A gives RTP 3/4, variance 15/16 and hit
+frequency 1/2 by both derivations; REF-C equals the classic interpreter and the
+closed form 94/1000 · (1 − (35/1000)^10) / (1 − 35/1000), within 10⁻¹² of 94/965,
+and the same closed form at a cap of 4,000. REF-B, whose retrigger loop is solved
+as a Markov reward chain, equals the classic distribution at caps 1, 3 and 6 and
+at its cap of 1,000 is `Exact` in 2 to 3 s: the RTP equals an independent
+recurrence over the number of spins left, rational for rational, and lies in
+(15/17 − 10⁻⁹, 15/17]. At the largest cap the schema allows, 100,000, both
+fixtures end as `ExactInterval` with `boundSource = DeclaredWinCap`, enclosed
+within 10⁻²⁴: REF-B in 4 to 6 s with 2.4·10⁻²¹⁸ of pruned mass, REF-C in 0.1 s
+without pruning. With pruning forced early, the pruned mass reported equals the
+mass an independent recurrence leaves running at that iteration, and the exact
+value lies inside the interval.
+
+Loops solved as chains have their own gates on generated feature games (a
+trigger, then a loop of free spins with retriggers, counters, sticky state and
+multipliers), each run once with the loop's full law and once with its moments
+only. Of 10,000 games, the law run equals the reference distribution for
+distribution in 9,815 and declines 7; the moments run equals it in 8,023 (1,496
+of them with every metric, 6,527 on the mean, where the reference has no cheaper
+second moment to compare), with 178 not compared and 1,799 declined where the
+reference answers. The gates kept in the suite run 5,000 games per mode. Five
+seeded chain defects (rewards taken unconditionally, the cross term of the
+second moment dropped, the zero-payout mass taken unconditionally, the cap off
+by one, products of dependent factors taken as independent) fail 84 to 576 of
+1,000 games each. With pruning forced on 3,000 games, every result that was
+pruned must enclose the reference's value in the interval it reports, and at
+least 300 must be pruned for the gate to count; reporting the interval without
+its pruned mass fails the gate.
+
+The reel gate generates 5,000 configurations containing short reels, multiplier ports,
+loops, branches and opaque maps. The review rerun compared 831 unnamed-map configurations
+by rational distribution equality, explicitly declined 3,885 opaque-map configurations and
+left 284 outside the classic reference's branch budget. The structural hit frequency and
+second moment matched in all 831 comparisons. Separate deterministic fixtures verify that
+the classic interpreter still pays legacy named maps after structured evaluation declines.
+
+Line and ways expectations are tested using payouts authored from ordinary ModifyState
+nodes and typed expressions. The five-reel, fifteen-stop case compares with the classic
+interpreter over all 759,375 boards. Fifteen independent cells with ten faces each represent
+10¹⁵ boards; their exact expectations are checked against independent formulas (explicit
+line combinations and per-reel match-count moments). The earlier timings for specialized
+native evaluator splitting do not apply to this implementation and have been removed.
+
+The review rerun used Release, .NET 10.0.12 on the shared workstation. The authored
+five-reel cases took 10.803 s (line expressions) and 0.032 s (ways expressions), against
+5.853 s and 5.846 s for the independent classic reference using legacy evaluators.
+The 10¹⁵-outcome expectations took 20.054 s and 1.123 s. These are shared-host
+observations, not a D7 runner certificate; their independent rational checks are retained
+in `StructuredEquivalenceTests`.
+
+The games ported from TGSlots hold the evaluator against games it did not grow
+up on (`SlotMath.Core.Tests/Math/Games`). For the full Ancient Dragon and
+Woodland Whisper rounds the structured RTP has to agree with the original game,
+and the same value shifted is rejected. For the cut-down model of every game
+the structured result, the classic interpreter and the hybrid evaluator have to
+give the same rationals. Where the full round is beyond the evaluator (X7 Club,
+Nine Lives, Le Militare) it has to decline within its budget and return no
+number. `StructuredLabDemoTests` holds the same on the graphs of the lab demo.
+
 ## Reproduce
 
 ```sh
@@ -151,6 +293,23 @@ dotnet backend/SlotMath.Benchmarks/bin/Release/net10.0/SlotMath.Benchmarks.dll \
   --warmup 2000000 --rounds 10000000 --repeats 3 --workers 8 --live \
   --report /tmp/nine-lives-performance-eight-workers.json
 ```
+
+For the shared graph port, select **Ready subgraphs → Open Nine Lives model** in
+Build, then Simulate with eight workers. The corresponding standalone command is:
+
+```sh
+dotnet backend/SlotMath.Benchmarks/bin/Release/net10.0/SlotMath.Benchmarks.dll \
+  --graph backend/SlotMath.Core.Tests/TestData/Games/nine-lives.json \
+  --warmup 2000000 --rounds 100000000 --repeats 3 --workers 8 --live \
+  --report /tmp/tgslots-nine-lives-performance.json
+```
+
+Its exported model hash is
+`32d8a2b32e09c55e97cb14d2bd613c619f45d1331822d5553eb0c484bc471b6c`.
+The comparison between old and table-driven settling in
+[TGSLOTS_OPTIMIZATION.md](verification/TGSLOTS_OPTIMIZATION.md) uses five million
+rounds per observation. The standalone timing excludes HTTP, queueing and SignalR;
+use a Release API run to verify the full application path.
 
 For the per-worker observation, use `--workers 1 --rounds 1000000`.
 Record the model hash, runtime, warmup, worker count and host load with the

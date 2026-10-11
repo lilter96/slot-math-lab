@@ -1,0 +1,3466 @@
+{
+ "schemaVersion": "1.0.0",
+ "id": "woodland-whisper-buy",
+ "name": "Woodland Whisper · bought feature",
+ "description": "Woodland Whisper, the feature bought for 100 bets: tgslots packages/games/woodland-whisper/config/config.json (version 2) and src/constants.ts PAYLINE_DATA.",
+ "initialState": {
+  "traceEnabled": false,
+  "emptyArray": [],
+  "totalBet": 30,
+  "roundCost": 3000,
+  "scatterPays": [0,0,1,5,10,500,0,0,0,0,0,0,0,0,0,0],
+  "freeSpins": 0,
+  "bonusDue": false,
+  "spinMultiplier": 1,
+  "mysterySymbol": "",
+  "winCredits": 0,
+  "pickSpins": [],
+  "reel0": ["8","2","7","6","12","12","12","12","12","12","2","7","5","11","6","7","8","1","7","5","4","8","7","3","8","7","3","9","6","10","2","6","4","9","8","1","6","9","11","6","5","1","10","8","2"],
+  "reel1": ["9","5","4","7","9","1","7","8","2","12","12","12","12","12","12","12","12","6","8","1","5","4","10","5","11","7","8","4","8","0","5","2","9","1","6","3","5","10","11","3","6","1","9","5"],
+  "reel2": ["0","7","3","6","11","9","3","7","6","4","5","9","2","10","3","12","12","12","12","12","12","12","12","2","8","1","7","3","9","2","5","4","7","2","5","4","7","3","9","2","5","3","9","2","5","1","6","4","5","0","7"],
+  "reel3": ["6","2","7","4","9","3","10","4","8","3","7","9","11","8","1","6","10","4","3","9","1","10","2","12","12","12","12","12","12","12","12","1","6","3","10","4","8","0","10","3","5","1","6","2"],
+  "reel4": ["8","5","3","9","5","3","8","1","7","5","2","8","6","3","7","0","6","4","9","2","8","3","2","12","12","12","12","12","12","12","12","2","6","1","9","10","11","4","9","10","5","4","8","5"],
+  "stop0": "0",
+  "stop1": "0",
+  "stop2": "0",
+  "stop3": "0",
+  "stop4": "0",
+  "showPatterns": [
+   [0,0,1,1,1],
+   [0,1,0,1,1],
+   [0,1,1,0,1],
+   [0,1,1,1,0],
+   [0,1,1,1,1],
+   [1,0,0,1,1],
+   [1,0,1,0,1],
+   [1,0,1,1,0],
+   [1,0,1,1,1],
+   [1,1,0,0,1],
+   [1,1,0,1,0],
+   [1,1,0,1,1],
+   [1,1,1,0,0],
+   [1,1,1,0,1],
+   [1,1,1,1,0],
+   [1,1,1,1,1]
+  ],
+  "showPattern": "0",
+  "wildSymbol": "0",
+  "linePays": [
+   [0,0,0,25,135,710],
+   [0,0,0,0,0,0],
+   [0,0,0,25,135,710],
+   [0,0,0,20,65,435],
+   [0,0,0,20,65,435],
+   [0,0,0,5,35,200],
+   [0,0,0,5,35,200],
+   [0,0,0,5,25,135],
+   [0,0,0,5,25,135],
+   [0,0,0,5,25,135],
+   [0,0,0,5,25,135],
+   [0,0,0,0,0,0],
+   [0,0,0,0,0,0]
+  ],
+  "lineSymbol": "",
+  "lineCount": 0,
+  "linePay": 0,
+  "lineCoins": 0,
+  "linePayouts": [],
+  "lineSymbols": [],
+  "lineCounts": [],
+  "board": [],
+  "scatterCount": 0,
+  "scatterCoins": 0,
+  "spinCoins": 0,
+  "roundCoins": 0,
+  "spinBoards": [],
+  "spinLinePayouts": [],
+  "spinLineSymbols": [],
+  "spinLineCounts": [],
+  "spinScatters": [],
+  "spinScatterWins": [],
+  "spinWins": [],
+  "pickAmounts": [100,75,50,30,20,15,13,10,9,8],
+  "pickFaceDown": [0,0,0,0,0,0,0,0,0,0],
+  "pickSeen": [0,0,0,0,0,0,0,0,0,0],
+  "pickCard": "0",
+  "pickAward": 0,
+  "pickAwards": [],
+  "pickReveals": []
+ },
+ "nodes": [
+  {
+   "nodeType": "library",
+   "id": "bought-spin",
+   "label": "Bought spin · 3+ COINs are certain",
+   "mechanicName": "bought-spin",
+   "inputs": {"state":{"name":"state","type":"State"}},
+   "outputs": {"state":{"name":"state","type":"State"}},
+   "parameters": {}
+  },
+  {
+   "nodeType": "library",
+   "id": "feature",
+   "label": "Pick bonus and free spins",
+   "mechanicName": "free-spins",
+   "inputs": {"state":{"name":"state","type":"State"}},
+   "outputs": {"state":{"name":"state","type":"State"}},
+   "parameters": {}
+  },
+  {
+   "nodeType": "modifyState",
+   "id": "credits",
+   "label": "Round win as a multiple of the price paid",
+   "outputKey": "winCredits",
+   "expressionId": "credits",
+   "inputs": {"state":{"name":"state","type":"State"}},
+   "outputs": {"state":{"name":"state","type":"State"}}
+  },
+  {
+   "nodeType": "metricsSink",
+   "id": "round",
+   "label": "Round payout & RTP",
+   "winStateKey": "winCredits",
+   "winCap": 3643,
+   "inputs": {"state":{"name":"state","type":"State"}},
+   "outputs": {}
+  }
+ ],
+ "edges": [
+  {"id":"bought-spin.state->feature","sourceNodeId":"bought-spin","sourcePort":"state","targetNodeId":"feature","targetPort":"state"},
+  {"id":"feature.state->credits","sourceNodeId":"feature","sourcePort":"state","targetNodeId":"credits","targetPort":"state"},
+  {"id":"credits.state->round","sourceNodeId":"credits","sourcePort":"state","targetNodeId":"round","targetPort":"state"}
+ ],
+ "expressions": {
+  "credits": {
+   "exprType": "binary",
+   "op": "Div",
+   "left": {"exprType":"fieldAccess","target":"state","path":["roundCoins"]},
+   "right": {"exprType":"fieldAccess","target":"state","path":["roundCost"]}
+  }
+ },
+ "mechanics": {
+  "payline": {
+   "name": "payline",
+   "description": "One payline, left to right: the first symbol that is not a Wild sets what the line pays as, Wilds stand in for it, and the longest run from the first reel is looked up in the paytable.",
+   "nodes": [
+    {
+     "nodeType": "modifyState",
+     "id": "symbol",
+     "label": "Which symbol the line pays as",
+     "outputKey": "lineSymbol",
+     "expressionId": "symbol",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}}
+    },
+    {
+     "nodeType": "modifyState",
+     "id": "count",
+     "label": "How many reels match from the left",
+     "outputKey": "lineCount",
+     "expressionId": "count",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}}
+    },
+    {
+     "nodeType": "modifyState",
+     "id": "pay",
+     "label": "Look the payout up: the symbol's row, the count's column",
+     "outputKey": "linePay",
+     "expressionId": "pay",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}}
+    },
+    {
+     "nodeType": "modifyState",
+     "id": "total",
+     "label": "Add it to the spin's line win",
+     "outputKey": "lineCoins",
+     "expressionId": "total",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}}
+    },
+    {
+     "nodeType": "modifyState",
+     "id": "trace-pay",
+     "label": "Remember this line's payout",
+     "outputKey": "linePayouts",
+     "expressionId": "trace-pay",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}}
+    },
+    {
+     "nodeType": "modifyState",
+     "id": "trace-symbol",
+     "label": "Remember this line's symbol",
+     "outputKey": "lineSymbols",
+     "expressionId": "trace-symbol",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}}
+    },
+    {
+     "nodeType": "modifyState",
+     "id": "trace-count",
+     "label": "Remember this line's length",
+     "outputKey": "lineCounts",
+     "expressionId": "trace-count",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}}
+    }
+   ],
+   "edges": [
+    {"id":"symbol.state->count","sourceNodeId":"symbol","sourcePort":"state","targetNodeId":"count","targetPort":"state"},
+    {"id":"count.state->pay","sourceNodeId":"count","sourcePort":"state","targetNodeId":"pay","targetPort":"state"},
+    {"id":"pay.state->total","sourceNodeId":"pay","sourcePort":"state","targetNodeId":"total","targetPort":"state"},
+    {"id":"total.state->trace-pay","sourceNodeId":"total","sourcePort":"state","targetNodeId":"trace-pay","targetPort":"state"},
+    {"id":"trace-pay.state->trace-symbol","sourceNodeId":"trace-pay","sourcePort":"state","targetNodeId":"trace-symbol","targetPort":"state"},
+    {
+     "id": "trace-symbol.state->trace-count",
+     "sourceNodeId": "trace-symbol",
+     "sourcePort": "state",
+     "targetNodeId": "trace-count",
+     "targetPort": "state"
+    }
+   ],
+   "expressions": {
+    "symbol": {
+     "exprType": "if",
+     "condition": {
+      "exprType": "compare",
+      "op": "Neq",
+      "left": {
+       "exprType": "call",
+       "function": "index",
+       "args": [{"exprType":"fieldAccess","target":"state","path":["board"]},{"exprType":"fieldAccess","target":"state","path":["expressions","p0"]}]
+      },
+      "right": {"exprType":"fieldAccess","target":"state","path":["wildSymbol"]}
+     },
+     "thenExpr": {
+      "exprType": "call",
+      "function": "index",
+      "args": [{"exprType":"fieldAccess","target":"state","path":["board"]},{"exprType":"fieldAccess","target":"state","path":["expressions","p0"]}]
+     },
+     "elseExpr": {
+      "exprType": "if",
+      "condition": {
+       "exprType": "compare",
+       "op": "Neq",
+       "left": {
+        "exprType": "call",
+        "function": "index",
+        "args": [{"exprType":"fieldAccess","target":"state","path":["board"]},{"exprType":"fieldAccess","target":"state","path":["expressions","p1"]}]
+       },
+       "right": {"exprType":"fieldAccess","target":"state","path":["wildSymbol"]}
+      },
+      "thenExpr": {
+       "exprType": "call",
+       "function": "index",
+       "args": [{"exprType":"fieldAccess","target":"state","path":["board"]},{"exprType":"fieldAccess","target":"state","path":["expressions","p1"]}]
+      },
+      "elseExpr": {
+       "exprType": "if",
+       "condition": {
+        "exprType": "compare",
+        "op": "Neq",
+        "left": {
+         "exprType": "call",
+         "function": "index",
+         "args": [{"exprType":"fieldAccess","target":"state","path":["board"]},{"exprType":"fieldAccess","target":"state","path":["expressions","p2"]}]
+        },
+        "right": {"exprType":"fieldAccess","target":"state","path":["wildSymbol"]}
+       },
+       "thenExpr": {
+        "exprType": "call",
+        "function": "index",
+        "args": [{"exprType":"fieldAccess","target":"state","path":["board"]},{"exprType":"fieldAccess","target":"state","path":["expressions","p2"]}]
+       },
+       "elseExpr": {
+        "exprType": "if",
+        "condition": {
+         "exprType": "compare",
+         "op": "Neq",
+         "left": {
+          "exprType": "call",
+          "function": "index",
+          "args": [{"exprType":"fieldAccess","target":"state","path":["board"]},{"exprType":"fieldAccess","target":"state","path":["expressions","p3"]}]
+         },
+         "right": {"exprType":"fieldAccess","target":"state","path":["wildSymbol"]}
+        },
+        "thenExpr": {
+         "exprType": "call",
+         "function": "index",
+         "args": [{"exprType":"fieldAccess","target":"state","path":["board"]},{"exprType":"fieldAccess","target":"state","path":["expressions","p3"]}]
+        },
+        "elseExpr": {
+         "exprType": "call",
+         "function": "index",
+         "args": [{"exprType":"fieldAccess","target":"state","path":["board"]},{"exprType":"fieldAccess","target":"state","path":["expressions","p4"]}]
+        }
+       }
+      }
+     }
+    },
+    "count": {
+     "exprType": "if",
+     "condition": {
+      "exprType": "binary",
+      "op": "Or",
+      "left": {
+       "exprType": "compare",
+       "op": "Eq",
+       "left": {
+        "exprType": "call",
+        "function": "index",
+        "args": [{"exprType":"fieldAccess","target":"state","path":["board"]},{"exprType":"fieldAccess","target":"state","path":["expressions","p1"]}]
+       },
+       "right": {"exprType":"fieldAccess","target":"state","path":["lineSymbol"]}
+      },
+      "right": {
+       "exprType": "compare",
+       "op": "Eq",
+       "left": {
+        "exprType": "call",
+        "function": "index",
+        "args": [{"exprType":"fieldAccess","target":"state","path":["board"]},{"exprType":"fieldAccess","target":"state","path":["expressions","p1"]}]
+       },
+       "right": {"exprType":"fieldAccess","target":"state","path":["wildSymbol"]}
+      }
+     },
+     "thenExpr": {
+      "exprType": "if",
+      "condition": {
+       "exprType": "binary",
+       "op": "Or",
+       "left": {
+        "exprType": "compare",
+        "op": "Eq",
+        "left": {
+         "exprType": "call",
+         "function": "index",
+         "args": [{"exprType":"fieldAccess","target":"state","path":["board"]},{"exprType":"fieldAccess","target":"state","path":["expressions","p2"]}]
+        },
+        "right": {"exprType":"fieldAccess","target":"state","path":["lineSymbol"]}
+       },
+       "right": {
+        "exprType": "compare",
+        "op": "Eq",
+        "left": {
+         "exprType": "call",
+         "function": "index",
+         "args": [{"exprType":"fieldAccess","target":"state","path":["board"]},{"exprType":"fieldAccess","target":"state","path":["expressions","p2"]}]
+        },
+        "right": {"exprType":"fieldAccess","target":"state","path":["wildSymbol"]}
+       }
+      },
+      "thenExpr": {
+       "exprType": "if",
+       "condition": {
+        "exprType": "binary",
+        "op": "Or",
+        "left": {
+         "exprType": "compare",
+         "op": "Eq",
+         "left": {
+          "exprType": "call",
+          "function": "index",
+          "args": [{"exprType":"fieldAccess","target":"state","path":["board"]},{"exprType":"fieldAccess","target":"state","path":["expressions","p3"]}]
+         },
+         "right": {"exprType":"fieldAccess","target":"state","path":["lineSymbol"]}
+        },
+        "right": {
+         "exprType": "compare",
+         "op": "Eq",
+         "left": {
+          "exprType": "call",
+          "function": "index",
+          "args": [{"exprType":"fieldAccess","target":"state","path":["board"]},{"exprType":"fieldAccess","target":"state","path":["expressions","p3"]}]
+         },
+         "right": {"exprType":"fieldAccess","target":"state","path":["wildSymbol"]}
+        }
+       },
+       "thenExpr": {
+        "exprType": "if",
+        "condition": {
+         "exprType": "binary",
+         "op": "Or",
+         "left": {
+          "exprType": "compare",
+          "op": "Eq",
+          "left": {
+           "exprType": "call",
+           "function": "index",
+           "args": [{"exprType":"fieldAccess","target":"state","path":["board"]},{"exprType":"fieldAccess","target":"state","path":["expressions","p4"]}]
+          },
+          "right": {"exprType":"fieldAccess","target":"state","path":["lineSymbol"]}
+         },
+         "right": {
+          "exprType": "compare",
+          "op": "Eq",
+          "left": {
+           "exprType": "call",
+           "function": "index",
+           "args": [{"exprType":"fieldAccess","target":"state","path":["board"]},{"exprType":"fieldAccess","target":"state","path":["expressions","p4"]}]
+          },
+          "right": {"exprType":"fieldAccess","target":"state","path":["wildSymbol"]}
+         }
+        },
+        "thenExpr": {"exprType":"constant","kind":"Integer","value":"5"},
+        "elseExpr": {"exprType":"constant","kind":"Integer","value":"4"}
+       },
+       "elseExpr": {"exprType":"constant","kind":"Integer","value":"3"}
+      },
+      "elseExpr": {"exprType":"constant","kind":"Integer","value":"2"}
+     },
+     "elseExpr": {"exprType":"constant","kind":"Integer","value":"1"}
+    },
+    "pay": {
+     "exprType": "call",
+     "function": "index",
+     "args": [
+      {
+       "exprType": "call",
+       "function": "index",
+       "args": [
+        {"exprType":"fieldAccess","target":"state","path":["linePays"]},
+        {"exprType":"call","function":"toNumber","args":[{"exprType":"fieldAccess","target":"state","path":["lineSymbol"]}]}
+       ]
+      },
+      {"exprType":"fieldAccess","target":"state","path":["lineCount"]}
+     ]
+    },
+    "total": {
+     "exprType": "binary",
+     "op": "Add",
+     "left": {"exprType":"fieldAccess","target":"state","path":["lineCoins"]},
+     "right": {"exprType":"fieldAccess","target":"state","path":["linePay"]}
+    },
+    "trace-pay": {
+     "exprType": "if",
+     "condition": {"exprType":"fieldAccess","target":"state","path":["traceEnabled"]},
+     "thenExpr": {
+      "exprType": "call",
+      "function": "append",
+      "args": [{"exprType":"fieldAccess","target":"state","path":["linePayouts"]},{"exprType":"fieldAccess","target":"state","path":["linePay"]}]
+     },
+     "elseExpr": {"exprType":"fieldAccess","target":"state","path":["linePayouts"]}
+    },
+    "trace-symbol": {
+     "exprType": "if",
+     "condition": {"exprType":"fieldAccess","target":"state","path":["traceEnabled"]},
+     "thenExpr": {
+      "exprType": "call",
+      "function": "append",
+      "args": [{"exprType":"fieldAccess","target":"state","path":["lineSymbols"]},{"exprType":"fieldAccess","target":"state","path":["lineSymbol"]}]
+     },
+     "elseExpr": {"exprType":"fieldAccess","target":"state","path":["lineSymbols"]}
+    },
+    "trace-count": {
+     "exprType": "if",
+     "condition": {"exprType":"fieldAccess","target":"state","path":["traceEnabled"]},
+     "thenExpr": {
+      "exprType": "call",
+      "function": "append",
+      "args": [{"exprType":"fieldAccess","target":"state","path":["lineCounts"]},{"exprType":"fieldAccess","target":"state","path":["lineCount"]}]
+     },
+     "elseExpr": {"exprType":"fieldAccess","target":"state","path":["lineCounts"]}
+    }
+   }
+  },
+  "paylines": {
+   "name": "paylines",
+   "description": "All 30 paylines of the game, each one the same payline subgraph placed on different board cells.",
+   "nodes": [
+    {
+     "nodeType": "modifyState",
+     "id": "reset",
+     "label": "Start the line win at zero",
+     "outputKey": "lineCoins",
+     "expressionId": "reset",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}}
+    },
+    {
+     "nodeType": "modifyState",
+     "id": "clear-linePayouts",
+     "label": "Clear linePayouts",
+     "outputKey": "linePayouts",
+     "expressionId": "clear-linePayouts",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}}
+    },
+    {
+     "nodeType": "modifyState",
+     "id": "clear-lineSymbols",
+     "label": "Clear lineSymbols",
+     "outputKey": "lineSymbols",
+     "expressionId": "clear-lineSymbols",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}}
+    },
+    {
+     "nodeType": "modifyState",
+     "id": "clear-lineCounts",
+     "label": "Clear lineCounts",
+     "outputKey": "lineCounts",
+     "expressionId": "clear-lineCounts",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}}
+    },
+    {
+     "nodeType": "library",
+     "id": "line-1",
+     "label": "Payline 1",
+     "mechanicName": "payline",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}},
+     "parameters": {"p0":"1","p1":"4","p2":"7","p3":"10","p4":"13"}
+    },
+    {
+     "nodeType": "library",
+     "id": "line-2",
+     "label": "Payline 2",
+     "mechanicName": "payline",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}},
+     "parameters": {"p0":"0","p1":"3","p2":"6","p3":"9","p4":"12"}
+    },
+    {
+     "nodeType": "library",
+     "id": "line-3",
+     "label": "Payline 3",
+     "mechanicName": "payline",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}},
+     "parameters": {"p0":"2","p1":"5","p2":"8","p3":"11","p4":"14"}
+    },
+    {
+     "nodeType": "library",
+     "id": "line-4",
+     "label": "Payline 4",
+     "mechanicName": "payline",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}},
+     "parameters": {"p0":"0","p1":"4","p2":"8","p3":"10","p4":"12"}
+    },
+    {
+     "nodeType": "library",
+     "id": "line-5",
+     "label": "Payline 5",
+     "mechanicName": "payline",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}},
+     "parameters": {"p0":"2","p1":"4","p2":"6","p3":"10","p4":"14"}
+    },
+    {
+     "nodeType": "library",
+     "id": "line-6",
+     "label": "Payline 6",
+     "mechanicName": "payline",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}},
+     "parameters": {"p0":"0","p1":"3","p2":"7","p3":"9","p4":"12"}
+    },
+    {
+     "nodeType": "library",
+     "id": "line-7",
+     "label": "Payline 7",
+     "mechanicName": "payline",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}},
+     "parameters": {"p0":"2","p1":"5","p2":"7","p3":"11","p4":"14"}
+    },
+    {
+     "nodeType": "library",
+     "id": "line-8",
+     "label": "Payline 8",
+     "mechanicName": "payline",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}},
+     "parameters": {"p0":"1","p1":"3","p2":"7","p3":"9","p4":"13"}
+    },
+    {
+     "nodeType": "library",
+     "id": "line-9",
+     "label": "Payline 9",
+     "mechanicName": "payline",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}},
+     "parameters": {"p0":"1","p1":"5","p2":"7","p3":"11","p4":"13"}
+    },
+    {
+     "nodeType": "library",
+     "id": "line-10",
+     "label": "Payline 10",
+     "mechanicName": "payline",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}},
+     "parameters": {"p0":"0","p1":"4","p2":"6","p3":"10","p4":"12"}
+    },
+    {
+     "nodeType": "library",
+     "id": "line-11",
+     "label": "Payline 11",
+     "mechanicName": "payline",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}},
+     "parameters": {"p0":"2","p1":"4","p2":"8","p3":"10","p4":"14"}
+    },
+    {
+     "nodeType": "library",
+     "id": "line-12",
+     "label": "Payline 12",
+     "mechanicName": "payline",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}},
+     "parameters": {"p0":"1","p1":"3","p2":"6","p3":"9","p4":"13"}
+    },
+    {
+     "nodeType": "library",
+     "id": "line-13",
+     "label": "Payline 13",
+     "mechanicName": "payline",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}},
+     "parameters": {"p0":"1","p1":"5","p2":"8","p3":"11","p4":"13"}
+    },
+    {
+     "nodeType": "library",
+     "id": "line-14",
+     "label": "Payline 14",
+     "mechanicName": "payline",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}},
+     "parameters": {"p0":"0","p1":"4","p2":"7","p3":"10","p4":"12"}
+    },
+    {
+     "nodeType": "library",
+     "id": "line-15",
+     "label": "Payline 15",
+     "mechanicName": "payline",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}},
+     "parameters": {"p0":"2","p1":"4","p2":"7","p3":"10","p4":"14"}
+    },
+    {
+     "nodeType": "library",
+     "id": "line-16",
+     "label": "Payline 16",
+     "mechanicName": "payline",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}},
+     "parameters": {"p0":"1","p1":"4","p2":"6","p3":"10","p4":"13"}
+    },
+    {
+     "nodeType": "library",
+     "id": "line-17",
+     "label": "Payline 17",
+     "mechanicName": "payline",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}},
+     "parameters": {"p0":"1","p1":"4","p2":"8","p3":"10","p4":"13"}
+    },
+    {
+     "nodeType": "library",
+     "id": "line-18",
+     "label": "Payline 18",
+     "mechanicName": "payline",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}},
+     "parameters": {"p0":"0","p1":"3","p2":"8","p3":"9","p4":"12"}
+    },
+    {
+     "nodeType": "library",
+     "id": "line-19",
+     "label": "Payline 19",
+     "mechanicName": "payline",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}},
+     "parameters": {"p0":"2","p1":"5","p2":"6","p3":"11","p4":"14"}
+    },
+    {
+     "nodeType": "library",
+     "id": "line-20",
+     "label": "Payline 20",
+     "mechanicName": "payline",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}},
+     "parameters": {"p0":"0","p1":"5","p2":"6","p3":"11","p4":"12"}
+    },
+    {
+     "nodeType": "library",
+     "id": "line-21",
+     "label": "Payline 21",
+     "mechanicName": "payline",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}},
+     "parameters": {"p0":"2","p1":"3","p2":"8","p3":"9","p4":"14"}
+    },
+    {
+     "nodeType": "library",
+     "id": "line-22",
+     "label": "Payline 22",
+     "mechanicName": "payline",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}},
+     "parameters": {"p0":"0","p1":"5","p2":"8","p3":"11","p4":"12"}
+    },
+    {
+     "nodeType": "library",
+     "id": "line-23",
+     "label": "Payline 23",
+     "mechanicName": "payline",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}},
+     "parameters": {"p0":"2","p1":"3","p2":"6","p3":"9","p4":"14"}
+    },
+    {
+     "nodeType": "library",
+     "id": "line-24",
+     "label": "Payline 24",
+     "mechanicName": "payline",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}},
+     "parameters": {"p0":"1","p1":"3","p2":"8","p3":"9","p4":"13"}
+    },
+    {
+     "nodeType": "library",
+     "id": "line-25",
+     "label": "Payline 25",
+     "mechanicName": "payline",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}},
+     "parameters": {"p0":"1","p1":"5","p2":"6","p3":"11","p4":"13"}
+    },
+    {
+     "nodeType": "library",
+     "id": "line-26",
+     "label": "Payline 26",
+     "mechanicName": "payline",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}},
+     "parameters": {"p0":"0","p1":"3","p2":"6","p3":"10","p4":"14"}
+    },
+    {
+     "nodeType": "library",
+     "id": "line-27",
+     "label": "Payline 27",
+     "mechanicName": "payline",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}},
+     "parameters": {"p0":"2","p1":"5","p2":"8","p3":"10","p4":"12"}
+    },
+    {
+     "nodeType": "library",
+     "id": "line-28",
+     "label": "Payline 28",
+     "mechanicName": "payline",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}},
+     "parameters": {"p0":"0","p1":"4","p2":"6","p3":"9","p4":"12"}
+    },
+    {
+     "nodeType": "library",
+     "id": "line-29",
+     "label": "Payline 29",
+     "mechanicName": "payline",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}},
+     "parameters": {"p0":"2","p1":"4","p2":"8","p3":"11","p4":"14"}
+    },
+    {
+     "nodeType": "library",
+     "id": "line-30",
+     "label": "Payline 30",
+     "mechanicName": "payline",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}},
+     "parameters": {"p0":"0","p1":"3","p2":"7","p3":"11","p4":"14"}
+    }
+   ],
+   "edges": [
+    {"id":"reset.state->clear-linePayouts","sourceNodeId":"reset","sourcePort":"state","targetNodeId":"clear-linePayouts","targetPort":"state"},
+    {
+     "id": "clear-linePayouts.state->clear-lineSymbols",
+     "sourceNodeId": "clear-linePayouts",
+     "sourcePort": "state",
+     "targetNodeId": "clear-lineSymbols",
+     "targetPort": "state"
+    },
+    {
+     "id": "clear-lineSymbols.state->clear-lineCounts",
+     "sourceNodeId": "clear-lineSymbols",
+     "sourcePort": "state",
+     "targetNodeId": "clear-lineCounts",
+     "targetPort": "state"
+    },
+    {"id":"clear-lineCounts.state->line-1","sourceNodeId":"clear-lineCounts","sourcePort":"state","targetNodeId":"line-1","targetPort":"state"},
+    {"id":"line-1.state->line-2","sourceNodeId":"line-1","sourcePort":"state","targetNodeId":"line-2","targetPort":"state"},
+    {"id":"line-2.state->line-3","sourceNodeId":"line-2","sourcePort":"state","targetNodeId":"line-3","targetPort":"state"},
+    {"id":"line-3.state->line-4","sourceNodeId":"line-3","sourcePort":"state","targetNodeId":"line-4","targetPort":"state"},
+    {"id":"line-4.state->line-5","sourceNodeId":"line-4","sourcePort":"state","targetNodeId":"line-5","targetPort":"state"},
+    {"id":"line-5.state->line-6","sourceNodeId":"line-5","sourcePort":"state","targetNodeId":"line-6","targetPort":"state"},
+    {"id":"line-6.state->line-7","sourceNodeId":"line-6","sourcePort":"state","targetNodeId":"line-7","targetPort":"state"},
+    {"id":"line-7.state->line-8","sourceNodeId":"line-7","sourcePort":"state","targetNodeId":"line-8","targetPort":"state"},
+    {"id":"line-8.state->line-9","sourceNodeId":"line-8","sourcePort":"state","targetNodeId":"line-9","targetPort":"state"},
+    {"id":"line-9.state->line-10","sourceNodeId":"line-9","sourcePort":"state","targetNodeId":"line-10","targetPort":"state"},
+    {"id":"line-10.state->line-11","sourceNodeId":"line-10","sourcePort":"state","targetNodeId":"line-11","targetPort":"state"},
+    {"id":"line-11.state->line-12","sourceNodeId":"line-11","sourcePort":"state","targetNodeId":"line-12","targetPort":"state"},
+    {"id":"line-12.state->line-13","sourceNodeId":"line-12","sourcePort":"state","targetNodeId":"line-13","targetPort":"state"},
+    {"id":"line-13.state->line-14","sourceNodeId":"line-13","sourcePort":"state","targetNodeId":"line-14","targetPort":"state"},
+    {"id":"line-14.state->line-15","sourceNodeId":"line-14","sourcePort":"state","targetNodeId":"line-15","targetPort":"state"},
+    {"id":"line-15.state->line-16","sourceNodeId":"line-15","sourcePort":"state","targetNodeId":"line-16","targetPort":"state"},
+    {"id":"line-16.state->line-17","sourceNodeId":"line-16","sourcePort":"state","targetNodeId":"line-17","targetPort":"state"},
+    {"id":"line-17.state->line-18","sourceNodeId":"line-17","sourcePort":"state","targetNodeId":"line-18","targetPort":"state"},
+    {"id":"line-18.state->line-19","sourceNodeId":"line-18","sourcePort":"state","targetNodeId":"line-19","targetPort":"state"},
+    {"id":"line-19.state->line-20","sourceNodeId":"line-19","sourcePort":"state","targetNodeId":"line-20","targetPort":"state"},
+    {"id":"line-20.state->line-21","sourceNodeId":"line-20","sourcePort":"state","targetNodeId":"line-21","targetPort":"state"},
+    {"id":"line-21.state->line-22","sourceNodeId":"line-21","sourcePort":"state","targetNodeId":"line-22","targetPort":"state"},
+    {"id":"line-22.state->line-23","sourceNodeId":"line-22","sourcePort":"state","targetNodeId":"line-23","targetPort":"state"},
+    {"id":"line-23.state->line-24","sourceNodeId":"line-23","sourcePort":"state","targetNodeId":"line-24","targetPort":"state"},
+    {"id":"line-24.state->line-25","sourceNodeId":"line-24","sourcePort":"state","targetNodeId":"line-25","targetPort":"state"},
+    {"id":"line-25.state->line-26","sourceNodeId":"line-25","sourcePort":"state","targetNodeId":"line-26","targetPort":"state"},
+    {"id":"line-26.state->line-27","sourceNodeId":"line-26","sourcePort":"state","targetNodeId":"line-27","targetPort":"state"},
+    {"id":"line-27.state->line-28","sourceNodeId":"line-27","sourcePort":"state","targetNodeId":"line-28","targetPort":"state"},
+    {"id":"line-28.state->line-29","sourceNodeId":"line-28","sourcePort":"state","targetNodeId":"line-29","targetPort":"state"},
+    {"id":"line-29.state->line-30","sourceNodeId":"line-29","sourcePort":"state","targetNodeId":"line-30","targetPort":"state"}
+   ],
+   "expressions": {
+    "reset": {"exprType":"constant","kind":"Integer","value":"0"},
+    "clear-linePayouts": {"exprType":"fieldAccess","target":"state","path":["emptyArray"]},
+    "clear-lineSymbols": {"exprType":"fieldAccess","target":"state","path":["emptyArray"]},
+    "clear-lineCounts": {"exprType":"fieldAccess","target":"state","path":["emptyArray"]}
+   }
+  },
+  "scatter-pay": {
+   "name": "scatter-pay",
+   "description": "Scatters pay anywhere: their count selects a multiple of the total bet.",
+   "nodes": [
+    {
+     "nodeType": "modifyState",
+     "id": "count",
+     "label": "Count the scatters on the board",
+     "outputKey": "scatterCount",
+     "expressionId": "count",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}}
+    },
+    {
+     "nodeType": "modifyState",
+     "id": "pay",
+     "label": "Scatter payout × total bet",
+     "outputKey": "scatterCoins",
+     "expressionId": "pay",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}}
+    }
+   ],
+   "edges": [{"id":"count.state->pay","sourceNodeId":"count","sourcePort":"state","targetNodeId":"pay","targetPort":"state"}],
+   "expressions": {
+    "count": {
+     "exprType": "aggregate",
+     "func": "Count",
+     "stateKey": "board",
+     "itemName": "item",
+     "itemType": "String",
+     "predicate": {
+      "exprType": "compare",
+      "op": "Eq",
+      "left": {"exprType":"fieldAccess","target":"state","path":["item"]},
+      "right": {"exprType":"call","function":"toString","args":[{"exprType":"fieldAccess","target":"state","path":["expressions","symbol"]}]}
+     }
+    },
+    "pay": {
+     "exprType": "binary",
+     "op": "Mul",
+     "left": {
+      "exprType": "call",
+      "function": "index",
+      "args": [{"exprType":"fieldAccess","target":"state","path":["scatterPays"]},{"exprType":"fieldAccess","target":"state","path":["scatterCount"]}]
+     },
+     "right": {"exprType":"fieldAccess","target":"state","path":["totalBet"]}
+    }
+   }
+  },
+  "spin-reels": {
+   "name": "spin-reels",
+   "description": "Stops each of the 5 reels at a random position and reads the 3 symbols showing on each into the board.",
+   "nodes": [
+    {
+     "nodeType": "draw",
+     "id": "stop-0",
+     "label": "Reel 1 stops",
+     "stateWriteKey": "stop0",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}},
+     "drawWeights": [
+      {"outcomeId":"0","weight":1,"value":0},
+      {"outcomeId":"1","weight":1,"value":0},
+      {"outcomeId":"2","weight":1,"value":0},
+      {"outcomeId":"3","weight":1,"value":0},
+      {"outcomeId":"4","weight":1,"value":0},
+      {"outcomeId":"5","weight":1,"value":0},
+      {"outcomeId":"6","weight":1,"value":0},
+      {"outcomeId":"7","weight":1,"value":0},
+      {"outcomeId":"8","weight":1,"value":0},
+      {"outcomeId":"9","weight":1,"value":0},
+      {"outcomeId":"10","weight":1,"value":0},
+      {"outcomeId":"11","weight":1,"value":0},
+      {"outcomeId":"12","weight":1,"value":0},
+      {"outcomeId":"13","weight":1,"value":0},
+      {"outcomeId":"14","weight":1,"value":0},
+      {"outcomeId":"15","weight":1,"value":0},
+      {"outcomeId":"16","weight":1,"value":0},
+      {"outcomeId":"17","weight":1,"value":0},
+      {"outcomeId":"18","weight":1,"value":0},
+      {"outcomeId":"19","weight":1,"value":0},
+      {"outcomeId":"20","weight":1,"value":0},
+      {"outcomeId":"21","weight":1,"value":0},
+      {"outcomeId":"22","weight":1,"value":0},
+      {"outcomeId":"23","weight":1,"value":0},
+      {"outcomeId":"24","weight":1,"value":0},
+      {"outcomeId":"25","weight":1,"value":0},
+      {"outcomeId":"26","weight":1,"value":0},
+      {"outcomeId":"27","weight":1,"value":0},
+      {"outcomeId":"28","weight":1,"value":0},
+      {"outcomeId":"29","weight":1,"value":0},
+      {"outcomeId":"30","weight":1,"value":0},
+      {"outcomeId":"31","weight":1,"value":0},
+      {"outcomeId":"32","weight":1,"value":0},
+      {"outcomeId":"33","weight":1,"value":0},
+      {"outcomeId":"34","weight":1,"value":0},
+      {"outcomeId":"35","weight":1,"value":0},
+      {"outcomeId":"36","weight":1,"value":0},
+      {"outcomeId":"37","weight":1,"value":0},
+      {"outcomeId":"38","weight":1,"value":0},
+      {"outcomeId":"39","weight":1,"value":0},
+      {"outcomeId":"40","weight":1,"value":0},
+      {"outcomeId":"41","weight":1,"value":0},
+      {"outcomeId":"42","weight":1,"value":0}
+     ]
+    },
+    {
+     "nodeType": "draw",
+     "id": "stop-1",
+     "label": "Reel 2 stops",
+     "stateWriteKey": "stop1",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}},
+     "drawWeights": [
+      {"outcomeId":"0","weight":1,"value":0},
+      {"outcomeId":"1","weight":1,"value":0},
+      {"outcomeId":"2","weight":1,"value":0},
+      {"outcomeId":"3","weight":1,"value":0},
+      {"outcomeId":"4","weight":1,"value":0},
+      {"outcomeId":"5","weight":1,"value":0},
+      {"outcomeId":"6","weight":1,"value":0},
+      {"outcomeId":"7","weight":1,"value":0},
+      {"outcomeId":"8","weight":1,"value":0},
+      {"outcomeId":"9","weight":1,"value":0},
+      {"outcomeId":"10","weight":1,"value":0},
+      {"outcomeId":"11","weight":1,"value":0},
+      {"outcomeId":"12","weight":1,"value":0},
+      {"outcomeId":"13","weight":1,"value":0},
+      {"outcomeId":"14","weight":1,"value":0},
+      {"outcomeId":"15","weight":1,"value":0},
+      {"outcomeId":"16","weight":1,"value":0},
+      {"outcomeId":"17","weight":1,"value":0},
+      {"outcomeId":"18","weight":1,"value":0},
+      {"outcomeId":"19","weight":1,"value":0},
+      {"outcomeId":"20","weight":1,"value":0},
+      {"outcomeId":"21","weight":1,"value":0},
+      {"outcomeId":"22","weight":1,"value":0},
+      {"outcomeId":"23","weight":1,"value":0},
+      {"outcomeId":"24","weight":1,"value":0},
+      {"outcomeId":"25","weight":1,"value":0},
+      {"outcomeId":"26","weight":1,"value":0},
+      {"outcomeId":"27","weight":1,"value":0},
+      {"outcomeId":"28","weight":1,"value":0},
+      {"outcomeId":"29","weight":1,"value":0},
+      {"outcomeId":"30","weight":1,"value":0},
+      {"outcomeId":"31","weight":1,"value":0},
+      {"outcomeId":"32","weight":1,"value":0},
+      {"outcomeId":"33","weight":1,"value":0},
+      {"outcomeId":"34","weight":1,"value":0},
+      {"outcomeId":"35","weight":1,"value":0},
+      {"outcomeId":"36","weight":1,"value":0},
+      {"outcomeId":"37","weight":1,"value":0},
+      {"outcomeId":"38","weight":1,"value":0},
+      {"outcomeId":"39","weight":1,"value":0},
+      {"outcomeId":"40","weight":1,"value":0},
+      {"outcomeId":"41","weight":1,"value":0}
+     ]
+    },
+    {
+     "nodeType": "draw",
+     "id": "stop-2",
+     "label": "Reel 3 stops",
+     "stateWriteKey": "stop2",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}},
+     "drawWeights": [
+      {"outcomeId":"0","weight":1,"value":0},
+      {"outcomeId":"1","weight":1,"value":0},
+      {"outcomeId":"2","weight":1,"value":0},
+      {"outcomeId":"3","weight":1,"value":0},
+      {"outcomeId":"4","weight":1,"value":0},
+      {"outcomeId":"5","weight":1,"value":0},
+      {"outcomeId":"6","weight":1,"value":0},
+      {"outcomeId":"7","weight":1,"value":0},
+      {"outcomeId":"8","weight":1,"value":0},
+      {"outcomeId":"9","weight":1,"value":0},
+      {"outcomeId":"10","weight":1,"value":0},
+      {"outcomeId":"11","weight":1,"value":0},
+      {"outcomeId":"12","weight":1,"value":0},
+      {"outcomeId":"13","weight":1,"value":0},
+      {"outcomeId":"14","weight":1,"value":0},
+      {"outcomeId":"15","weight":1,"value":0},
+      {"outcomeId":"16","weight":1,"value":0},
+      {"outcomeId":"17","weight":1,"value":0},
+      {"outcomeId":"18","weight":1,"value":0},
+      {"outcomeId":"19","weight":1,"value":0},
+      {"outcomeId":"20","weight":1,"value":0},
+      {"outcomeId":"21","weight":1,"value":0},
+      {"outcomeId":"22","weight":1,"value":0},
+      {"outcomeId":"23","weight":1,"value":0},
+      {"outcomeId":"24","weight":1,"value":0},
+      {"outcomeId":"25","weight":1,"value":0},
+      {"outcomeId":"26","weight":1,"value":0},
+      {"outcomeId":"27","weight":1,"value":0},
+      {"outcomeId":"28","weight":1,"value":0},
+      {"outcomeId":"29","weight":1,"value":0},
+      {"outcomeId":"30","weight":1,"value":0},
+      {"outcomeId":"31","weight":1,"value":0},
+      {"outcomeId":"32","weight":1,"value":0},
+      {"outcomeId":"33","weight":1,"value":0},
+      {"outcomeId":"34","weight":1,"value":0},
+      {"outcomeId":"35","weight":1,"value":0},
+      {"outcomeId":"36","weight":1,"value":0},
+      {"outcomeId":"37","weight":1,"value":0},
+      {"outcomeId":"38","weight":1,"value":0},
+      {"outcomeId":"39","weight":1,"value":0},
+      {"outcomeId":"40","weight":1,"value":0},
+      {"outcomeId":"41","weight":1,"value":0},
+      {"outcomeId":"42","weight":1,"value":0},
+      {"outcomeId":"43","weight":1,"value":0},
+      {"outcomeId":"44","weight":1,"value":0},
+      {"outcomeId":"45","weight":1,"value":0},
+      {"outcomeId":"46","weight":1,"value":0},
+      {"outcomeId":"47","weight":1,"value":0},
+      {"outcomeId":"48","weight":1,"value":0}
+     ]
+    },
+    {
+     "nodeType": "draw",
+     "id": "stop-3",
+     "label": "Reel 4 stops",
+     "stateWriteKey": "stop3",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}},
+     "drawWeights": [
+      {"outcomeId":"0","weight":1,"value":0},
+      {"outcomeId":"1","weight":1,"value":0},
+      {"outcomeId":"2","weight":1,"value":0},
+      {"outcomeId":"3","weight":1,"value":0},
+      {"outcomeId":"4","weight":1,"value":0},
+      {"outcomeId":"5","weight":1,"value":0},
+      {"outcomeId":"6","weight":1,"value":0},
+      {"outcomeId":"7","weight":1,"value":0},
+      {"outcomeId":"8","weight":1,"value":0},
+      {"outcomeId":"9","weight":1,"value":0},
+      {"outcomeId":"10","weight":1,"value":0},
+      {"outcomeId":"11","weight":1,"value":0},
+      {"outcomeId":"12","weight":1,"value":0},
+      {"outcomeId":"13","weight":1,"value":0},
+      {"outcomeId":"14","weight":1,"value":0},
+      {"outcomeId":"15","weight":1,"value":0},
+      {"outcomeId":"16","weight":1,"value":0},
+      {"outcomeId":"17","weight":1,"value":0},
+      {"outcomeId":"18","weight":1,"value":0},
+      {"outcomeId":"19","weight":1,"value":0},
+      {"outcomeId":"20","weight":1,"value":0},
+      {"outcomeId":"21","weight":1,"value":0},
+      {"outcomeId":"22","weight":1,"value":0},
+      {"outcomeId":"23","weight":1,"value":0},
+      {"outcomeId":"24","weight":1,"value":0},
+      {"outcomeId":"25","weight":1,"value":0},
+      {"outcomeId":"26","weight":1,"value":0},
+      {"outcomeId":"27","weight":1,"value":0},
+      {"outcomeId":"28","weight":1,"value":0},
+      {"outcomeId":"29","weight":1,"value":0},
+      {"outcomeId":"30","weight":1,"value":0},
+      {"outcomeId":"31","weight":1,"value":0},
+      {"outcomeId":"32","weight":1,"value":0},
+      {"outcomeId":"33","weight":1,"value":0},
+      {"outcomeId":"34","weight":1,"value":0},
+      {"outcomeId":"35","weight":1,"value":0},
+      {"outcomeId":"36","weight":1,"value":0},
+      {"outcomeId":"37","weight":1,"value":0},
+      {"outcomeId":"38","weight":1,"value":0},
+      {"outcomeId":"39","weight":1,"value":0},
+      {"outcomeId":"40","weight":1,"value":0},
+      {"outcomeId":"41","weight":1,"value":0}
+     ]
+    },
+    {
+     "nodeType": "draw",
+     "id": "stop-4",
+     "label": "Reel 5 stops",
+     "stateWriteKey": "stop4",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}},
+     "drawWeights": [
+      {"outcomeId":"0","weight":1,"value":0},
+      {"outcomeId":"1","weight":1,"value":0},
+      {"outcomeId":"2","weight":1,"value":0},
+      {"outcomeId":"3","weight":1,"value":0},
+      {"outcomeId":"4","weight":1,"value":0},
+      {"outcomeId":"5","weight":1,"value":0},
+      {"outcomeId":"6","weight":1,"value":0},
+      {"outcomeId":"7","weight":1,"value":0},
+      {"outcomeId":"8","weight":1,"value":0},
+      {"outcomeId":"9","weight":1,"value":0},
+      {"outcomeId":"10","weight":1,"value":0},
+      {"outcomeId":"11","weight":1,"value":0},
+      {"outcomeId":"12","weight":1,"value":0},
+      {"outcomeId":"13","weight":1,"value":0},
+      {"outcomeId":"14","weight":1,"value":0},
+      {"outcomeId":"15","weight":1,"value":0},
+      {"outcomeId":"16","weight":1,"value":0},
+      {"outcomeId":"17","weight":1,"value":0},
+      {"outcomeId":"18","weight":1,"value":0},
+      {"outcomeId":"19","weight":1,"value":0},
+      {"outcomeId":"20","weight":1,"value":0},
+      {"outcomeId":"21","weight":1,"value":0},
+      {"outcomeId":"22","weight":1,"value":0},
+      {"outcomeId":"23","weight":1,"value":0},
+      {"outcomeId":"24","weight":1,"value":0},
+      {"outcomeId":"25","weight":1,"value":0},
+      {"outcomeId":"26","weight":1,"value":0},
+      {"outcomeId":"27","weight":1,"value":0},
+      {"outcomeId":"28","weight":1,"value":0},
+      {"outcomeId":"29","weight":1,"value":0},
+      {"outcomeId":"30","weight":1,"value":0},
+      {"outcomeId":"31","weight":1,"value":0},
+      {"outcomeId":"32","weight":1,"value":0},
+      {"outcomeId":"33","weight":1,"value":0},
+      {"outcomeId":"34","weight":1,"value":0},
+      {"outcomeId":"35","weight":1,"value":0},
+      {"outcomeId":"36","weight":1,"value":0},
+      {"outcomeId":"37","weight":1,"value":0},
+      {"outcomeId":"38","weight":1,"value":0},
+      {"outcomeId":"39","weight":1,"value":0},
+      {"outcomeId":"40","weight":1,"value":0},
+      {"outcomeId":"41","weight":1,"value":0}
+     ]
+    },
+    {
+     "nodeType": "modifyState",
+     "id": "window",
+     "label": "Symbols showing in the window",
+     "outputKey": "board",
+     "expressionId": "window",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}}
+    }
+   ],
+   "edges": [
+    {"id":"stop-0.state->stop-1","sourceNodeId":"stop-0","sourcePort":"state","targetNodeId":"stop-1","targetPort":"state"},
+    {"id":"stop-1.state->stop-2","sourceNodeId":"stop-1","sourcePort":"state","targetNodeId":"stop-2","targetPort":"state"},
+    {"id":"stop-2.state->stop-3","sourceNodeId":"stop-2","sourcePort":"state","targetNodeId":"stop-3","targetPort":"state"},
+    {"id":"stop-3.state->stop-4","sourceNodeId":"stop-3","sourcePort":"state","targetNodeId":"stop-4","targetPort":"state"},
+    {"id":"stop-4.state->window","sourceNodeId":"stop-4","sourcePort":"state","targetNodeId":"window","targetPort":"state"}
+   ],
+   "expressions": {
+    "window": {
+     "exprType": "call",
+     "function": "append",
+     "args": [
+      {
+       "exprType": "call",
+       "function": "append",
+       "args": [
+        {
+         "exprType": "call",
+         "function": "append",
+         "args": [
+          {
+           "exprType": "call",
+           "function": "append",
+           "args": [
+            {
+             "exprType": "call",
+             "function": "append",
+             "args": [
+              {
+               "exprType": "call",
+               "function": "append",
+               "args": [
+                {
+                 "exprType": "call",
+                 "function": "append",
+                 "args": [
+                  {
+                   "exprType": "call",
+                   "function": "append",
+                   "args": [
+                    {
+                     "exprType": "call",
+                     "function": "append",
+                     "args": [
+                      {
+                       "exprType": "call",
+                       "function": "append",
+                       "args": [
+                        {
+                         "exprType": "call",
+                         "function": "append",
+                         "args": [
+                          {
+                           "exprType": "call",
+                           "function": "append",
+                           "args": [
+                            {
+                             "exprType": "call",
+                             "function": "append",
+                             "args": [
+                              {
+                               "exprType": "call",
+                               "function": "append",
+                               "args": [
+                                {
+                                 "exprType": "call",
+                                 "function": "append",
+                                 "args": [
+                                  {"exprType":"fieldAccess","target":"state","path":["emptyArray"]},
+                                  {
+                                   "exprType": "call",
+                                   "function": "index",
+                                   "args": [
+                                    {"exprType":"fieldAccess","target":"state","path":["reel0"]},
+                                    {
+                                     "exprType": "binary",
+                                     "op": "Add",
+                                     "left": {"exprType":"call","function":"toNumber","args":[{"exprType":"fieldAccess","target":"state","path":["stop0"]}]},
+                                     "right": {"exprType":"constant","kind":"Integer","value":"0"}
+                                    }
+                                   ]
+                                  }
+                                 ]
+                                },
+                                {
+                                 "exprType": "call",
+                                 "function": "index",
+                                 "args": [
+                                  {"exprType":"fieldAccess","target":"state","path":["reel0"]},
+                                  {
+                                   "exprType": "binary",
+                                   "op": "Add",
+                                   "left": {"exprType":"call","function":"toNumber","args":[{"exprType":"fieldAccess","target":"state","path":["stop0"]}]},
+                                   "right": {"exprType":"constant","kind":"Integer","value":"1"}
+                                  }
+                                 ]
+                                }
+                               ]
+                              },
+                              {
+                               "exprType": "call",
+                               "function": "index",
+                               "args": [
+                                {"exprType":"fieldAccess","target":"state","path":["reel0"]},
+                                {
+                                 "exprType": "binary",
+                                 "op": "Add",
+                                 "left": {"exprType":"call","function":"toNumber","args":[{"exprType":"fieldAccess","target":"state","path":["stop0"]}]},
+                                 "right": {"exprType":"constant","kind":"Integer","value":"2"}
+                                }
+                               ]
+                              }
+                             ]
+                            },
+                            {
+                             "exprType": "call",
+                             "function": "index",
+                             "args": [
+                              {"exprType":"fieldAccess","target":"state","path":["reel1"]},
+                              {
+                               "exprType": "binary",
+                               "op": "Add",
+                               "left": {"exprType":"call","function":"toNumber","args":[{"exprType":"fieldAccess","target":"state","path":["stop1"]}]},
+                               "right": {"exprType":"constant","kind":"Integer","value":"0"}
+                              }
+                             ]
+                            }
+                           ]
+                          },
+                          {
+                           "exprType": "call",
+                           "function": "index",
+                           "args": [
+                            {"exprType":"fieldAccess","target":"state","path":["reel1"]},
+                            {
+                             "exprType": "binary",
+                             "op": "Add",
+                             "left": {"exprType":"call","function":"toNumber","args":[{"exprType":"fieldAccess","target":"state","path":["stop1"]}]},
+                             "right": {"exprType":"constant","kind":"Integer","value":"1"}
+                            }
+                           ]
+                          }
+                         ]
+                        },
+                        {
+                         "exprType": "call",
+                         "function": "index",
+                         "args": [
+                          {"exprType":"fieldAccess","target":"state","path":["reel1"]},
+                          {
+                           "exprType": "binary",
+                           "op": "Add",
+                           "left": {"exprType":"call","function":"toNumber","args":[{"exprType":"fieldAccess","target":"state","path":["stop1"]}]},
+                           "right": {"exprType":"constant","kind":"Integer","value":"2"}
+                          }
+                         ]
+                        }
+                       ]
+                      },
+                      {
+                       "exprType": "call",
+                       "function": "index",
+                       "args": [
+                        {"exprType":"fieldAccess","target":"state","path":["reel2"]},
+                        {
+                         "exprType": "binary",
+                         "op": "Add",
+                         "left": {"exprType":"call","function":"toNumber","args":[{"exprType":"fieldAccess","target":"state","path":["stop2"]}]},
+                         "right": {"exprType":"constant","kind":"Integer","value":"0"}
+                        }
+                       ]
+                      }
+                     ]
+                    },
+                    {
+                     "exprType": "call",
+                     "function": "index",
+                     "args": [
+                      {"exprType":"fieldAccess","target":"state","path":["reel2"]},
+                      {
+                       "exprType": "binary",
+                       "op": "Add",
+                       "left": {"exprType":"call","function":"toNumber","args":[{"exprType":"fieldAccess","target":"state","path":["stop2"]}]},
+                       "right": {"exprType":"constant","kind":"Integer","value":"1"}
+                      }
+                     ]
+                    }
+                   ]
+                  },
+                  {
+                   "exprType": "call",
+                   "function": "index",
+                   "args": [
+                    {"exprType":"fieldAccess","target":"state","path":["reel2"]},
+                    {
+                     "exprType": "binary",
+                     "op": "Add",
+                     "left": {"exprType":"call","function":"toNumber","args":[{"exprType":"fieldAccess","target":"state","path":["stop2"]}]},
+                     "right": {"exprType":"constant","kind":"Integer","value":"2"}
+                    }
+                   ]
+                  }
+                 ]
+                },
+                {
+                 "exprType": "call",
+                 "function": "index",
+                 "args": [
+                  {"exprType":"fieldAccess","target":"state","path":["reel3"]},
+                  {
+                   "exprType": "binary",
+                   "op": "Add",
+                   "left": {"exprType":"call","function":"toNumber","args":[{"exprType":"fieldAccess","target":"state","path":["stop3"]}]},
+                   "right": {"exprType":"constant","kind":"Integer","value":"0"}
+                  }
+                 ]
+                }
+               ]
+              },
+              {
+               "exprType": "call",
+               "function": "index",
+               "args": [
+                {"exprType":"fieldAccess","target":"state","path":["reel3"]},
+                {
+                 "exprType": "binary",
+                 "op": "Add",
+                 "left": {"exprType":"call","function":"toNumber","args":[{"exprType":"fieldAccess","target":"state","path":["stop3"]}]},
+                 "right": {"exprType":"constant","kind":"Integer","value":"1"}
+                }
+               ]
+              }
+             ]
+            },
+            {
+             "exprType": "call",
+             "function": "index",
+             "args": [
+              {"exprType":"fieldAccess","target":"state","path":["reel3"]},
+              {
+               "exprType": "binary",
+               "op": "Add",
+               "left": {"exprType":"call","function":"toNumber","args":[{"exprType":"fieldAccess","target":"state","path":["stop3"]}]},
+               "right": {"exprType":"constant","kind":"Integer","value":"2"}
+              }
+             ]
+            }
+           ]
+          },
+          {
+           "exprType": "call",
+           "function": "index",
+           "args": [
+            {"exprType":"fieldAccess","target":"state","path":["reel4"]},
+            {
+             "exprType": "binary",
+             "op": "Add",
+             "left": {"exprType":"call","function":"toNumber","args":[{"exprType":"fieldAccess","target":"state","path":["stop4"]}]},
+             "right": {"exprType":"constant","kind":"Integer","value":"0"}
+            }
+           ]
+          }
+         ]
+        },
+        {
+         "exprType": "call",
+         "function": "index",
+         "args": [
+          {"exprType":"fieldAccess","target":"state","path":["reel4"]},
+          {
+           "exprType": "binary",
+           "op": "Add",
+           "left": {"exprType":"call","function":"toNumber","args":[{"exprType":"fieldAccess","target":"state","path":["stop4"]}]},
+           "right": {"exprType":"constant","kind":"Integer","value":"1"}
+          }
+         ]
+        }
+       ]
+      },
+      {
+       "exprType": "call",
+       "function": "index",
+       "args": [
+        {"exprType":"fieldAccess","target":"state","path":["reel4"]},
+        {
+         "exprType": "binary",
+         "op": "Add",
+         "left": {"exprType":"call","function":"toNumber","args":[{"exprType":"fieldAccess","target":"state","path":["stop4"]}]},
+         "right": {"exprType":"constant","kind":"Integer","value":"2"}
+        }
+       ]
+      }
+     ]
+    }
+   }
+  },
+  "spin": {
+   "name": "spin",
+   "description": "One spin: the reels stop, the lines and the scatters are paid, and the win is added to the round.",
+   "nodes": [
+    {
+     "nodeType": "draw",
+     "id": "mystery",
+     "label": "Draw this spin's mystery symbol",
+     "stateWriteKey": "mysterySymbol",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}},
+     "drawWeights": [
+      {"outcomeId":"1","weight":2,"value":0},
+      {"outcomeId":"2","weight":4,"value":0},
+      {"outcomeId":"3","weight":4,"value":0},
+      {"outcomeId":"4","weight":4,"value":0},
+      {"outcomeId":"5","weight":5,"value":0},
+      {"outcomeId":"6","weight":5,"value":0},
+      {"outcomeId":"7","weight":5,"value":0},
+      {"outcomeId":"8","weight":6,"value":0},
+      {"outcomeId":"9","weight":5,"value":0},
+      {"outcomeId":"10","weight":5,"value":0}
+     ]
+    },
+    {
+     "nodeType": "library",
+     "id": "reels",
+     "label": "Spin the reels",
+     "mechanicName": "spin-reels",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}},
+     "parameters": {}
+    },
+    {
+     "nodeType": "modifyState",
+     "id": "reveal",
+     "label": "Every mystery cell shows the drawn symbol",
+     "outputKey": "board",
+     "expressionId": "reveal",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}}
+    },
+    {
+     "nodeType": "library",
+     "id": "lines",
+     "label": "Pay the lines",
+     "mechanicName": "paylines",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}},
+     "parameters": {}
+    },
+    {
+     "nodeType": "library",
+     "id": "scatters",
+     "label": "Pay the scatters",
+     "mechanicName": "scatter-pay",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}},
+     "parameters": {"symbol":"11"}
+    },
+    {
+     "nodeType": "modifyState",
+     "id": "trigger",
+     "label": "3 or more scatters trigger the feature",
+     "outputKey": "bonusDue",
+     "expressionId": "trigger",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}}
+    },
+    {
+     "nodeType": "modifyState",
+     "id": "win",
+     "label": "Spin win: (lines + scatters) × spin multiplier",
+     "outputKey": "spinCoins",
+     "expressionId": "win",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}}
+    },
+    {
+     "nodeType": "modifyState",
+     "id": "round",
+     "label": "Add the spin to the round",
+     "outputKey": "roundCoins",
+     "expressionId": "round",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}}
+    },
+    {
+     "nodeType": "modifyState",
+     "id": "trace-board",
+     "label": "Remember the board",
+     "outputKey": "spinBoards",
+     "expressionId": "trace-board",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}}
+    },
+    {
+     "nodeType": "modifyState",
+     "id": "trace-payouts",
+     "label": "Remember the line payouts",
+     "outputKey": "spinLinePayouts",
+     "expressionId": "trace-payouts",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}}
+    },
+    {
+     "nodeType": "modifyState",
+     "id": "trace-symbols",
+     "label": "Remember the line symbols",
+     "outputKey": "spinLineSymbols",
+     "expressionId": "trace-symbols",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}}
+    },
+    {
+     "nodeType": "modifyState",
+     "id": "trace-counts",
+     "label": "Remember the line lengths",
+     "outputKey": "spinLineCounts",
+     "expressionId": "trace-counts",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}}
+    },
+    {
+     "nodeType": "modifyState",
+     "id": "trace-scatters",
+     "label": "Remember the scatter count",
+     "outputKey": "spinScatters",
+     "expressionId": "trace-scatters",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}}
+    },
+    {
+     "nodeType": "modifyState",
+     "id": "trace-scatter-win",
+     "label": "Remember how much of the spin win the scatters paid",
+     "outputKey": "spinScatterWins",
+     "expressionId": "trace-scatter-win",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}}
+    },
+    {
+     "nodeType": "modifyState",
+     "id": "trace-win",
+     "label": "Remember the spin win",
+     "outputKey": "spinWins",
+     "expressionId": "trace-win",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}}
+    }
+   ],
+   "edges": [
+    {"id":"mystery.state->reels","sourceNodeId":"mystery","sourcePort":"state","targetNodeId":"reels","targetPort":"state"},
+    {"id":"reels.state->reveal","sourceNodeId":"reels","sourcePort":"state","targetNodeId":"reveal","targetPort":"state"},
+    {"id":"reveal.state->lines","sourceNodeId":"reveal","sourcePort":"state","targetNodeId":"lines","targetPort":"state"},
+    {"id":"lines.state->scatters","sourceNodeId":"lines","sourcePort":"state","targetNodeId":"scatters","targetPort":"state"},
+    {"id":"scatters.state->trigger","sourceNodeId":"scatters","sourcePort":"state","targetNodeId":"trigger","targetPort":"state"},
+    {"id":"trigger.state->win","sourceNodeId":"trigger","sourcePort":"state","targetNodeId":"win","targetPort":"state"},
+    {"id":"win.state->round","sourceNodeId":"win","sourcePort":"state","targetNodeId":"round","targetPort":"state"},
+    {"id":"round.state->trace-board","sourceNodeId":"round","sourcePort":"state","targetNodeId":"trace-board","targetPort":"state"},
+    {
+     "id": "trace-board.state->trace-payouts",
+     "sourceNodeId": "trace-board",
+     "sourcePort": "state",
+     "targetNodeId": "trace-payouts",
+     "targetPort": "state"
+    },
+    {
+     "id": "trace-payouts.state->trace-symbols",
+     "sourceNodeId": "trace-payouts",
+     "sourcePort": "state",
+     "targetNodeId": "trace-symbols",
+     "targetPort": "state"
+    },
+    {
+     "id": "trace-symbols.state->trace-counts",
+     "sourceNodeId": "trace-symbols",
+     "sourcePort": "state",
+     "targetNodeId": "trace-counts",
+     "targetPort": "state"
+    },
+    {
+     "id": "trace-counts.state->trace-scatters",
+     "sourceNodeId": "trace-counts",
+     "sourcePort": "state",
+     "targetNodeId": "trace-scatters",
+     "targetPort": "state"
+    },
+    {
+     "id": "trace-scatters.state->trace-scatter-win",
+     "sourceNodeId": "trace-scatters",
+     "sourcePort": "state",
+     "targetNodeId": "trace-scatter-win",
+     "targetPort": "state"
+    },
+    {
+     "id": "trace-scatter-win.state->trace-win",
+     "sourceNodeId": "trace-scatter-win",
+     "sourcePort": "state",
+     "targetNodeId": "trace-win",
+     "targetPort": "state"
+    }
+   ],
+   "expressions": {
+    "reveal": {
+     "exprType": "map",
+     "stateKey": "board",
+     "itemName": "item",
+     "itemType": "String",
+     "body": {
+      "exprType": "if",
+      "condition": {
+       "exprType": "compare",
+       "op": "Eq",
+       "left": {"exprType":"fieldAccess","target":"state","path":["item"]},
+       "right": {"exprType":"constant","kind":"String","value":"12"}
+      },
+      "thenExpr": {"exprType":"fieldAccess","target":"state","path":["mysterySymbol"]},
+      "elseExpr": {"exprType":"fieldAccess","target":"state","path":["item"]}
+     }
+    },
+    "trigger": {
+     "exprType": "compare",
+     "op": "Gte",
+     "left": {"exprType":"fieldAccess","target":"state","path":["scatterCount"]},
+     "right": {"exprType":"constant","kind":"Integer","value":"3"}
+    },
+    "win": {
+     "exprType": "binary",
+     "op": "Mul",
+     "left": {
+      "exprType": "binary",
+      "op": "Add",
+      "left": {"exprType":"fieldAccess","target":"state","path":["lineCoins"]},
+      "right": {"exprType":"fieldAccess","target":"state","path":["scatterCoins"]}
+     },
+     "right": {"exprType":"fieldAccess","target":"state","path":["spinMultiplier"]}
+    },
+    "round": {
+     "exprType": "binary",
+     "op": "Add",
+     "left": {"exprType":"fieldAccess","target":"state","path":["roundCoins"]},
+     "right": {"exprType":"fieldAccess","target":"state","path":["spinCoins"]}
+    },
+    "trace-board": {
+     "exprType": "if",
+     "condition": {"exprType":"fieldAccess","target":"state","path":["traceEnabled"]},
+     "thenExpr": {
+      "exprType": "call",
+      "function": "append",
+      "args": [{"exprType":"fieldAccess","target":"state","path":["spinBoards"]},{"exprType":"fieldAccess","target":"state","path":["board"]}]
+     },
+     "elseExpr": {"exprType":"fieldAccess","target":"state","path":["spinBoards"]}
+    },
+    "trace-payouts": {
+     "exprType": "if",
+     "condition": {"exprType":"fieldAccess","target":"state","path":["traceEnabled"]},
+     "thenExpr": {
+      "exprType": "call",
+      "function": "append",
+      "args": [{"exprType":"fieldAccess","target":"state","path":["spinLinePayouts"]},{"exprType":"fieldAccess","target":"state","path":["linePayouts"]}]
+     },
+     "elseExpr": {"exprType":"fieldAccess","target":"state","path":["spinLinePayouts"]}
+    },
+    "trace-symbols": {
+     "exprType": "if",
+     "condition": {"exprType":"fieldAccess","target":"state","path":["traceEnabled"]},
+     "thenExpr": {
+      "exprType": "call",
+      "function": "append",
+      "args": [{"exprType":"fieldAccess","target":"state","path":["spinLineSymbols"]},{"exprType":"fieldAccess","target":"state","path":["lineSymbols"]}]
+     },
+     "elseExpr": {"exprType":"fieldAccess","target":"state","path":["spinLineSymbols"]}
+    },
+    "trace-counts": {
+     "exprType": "if",
+     "condition": {"exprType":"fieldAccess","target":"state","path":["traceEnabled"]},
+     "thenExpr": {
+      "exprType": "call",
+      "function": "append",
+      "args": [{"exprType":"fieldAccess","target":"state","path":["spinLineCounts"]},{"exprType":"fieldAccess","target":"state","path":["lineCounts"]}]
+     },
+     "elseExpr": {"exprType":"fieldAccess","target":"state","path":["spinLineCounts"]}
+    },
+    "trace-scatters": {
+     "exprType": "if",
+     "condition": {"exprType":"fieldAccess","target":"state","path":["traceEnabled"]},
+     "thenExpr": {
+      "exprType": "call",
+      "function": "append",
+      "args": [{"exprType":"fieldAccess","target":"state","path":["spinScatters"]},{"exprType":"fieldAccess","target":"state","path":["scatterCount"]}]
+     },
+     "elseExpr": {"exprType":"fieldAccess","target":"state","path":["spinScatters"]}
+    },
+    "trace-scatter-win": {
+     "exprType": "if",
+     "condition": {"exprType":"fieldAccess","target":"state","path":["traceEnabled"]},
+     "thenExpr": {
+      "exprType": "call",
+      "function": "append",
+      "args": [
+       {"exprType":"fieldAccess","target":"state","path":["spinScatterWins"]},
+       {
+        "exprType": "binary",
+        "op": "Mul",
+        "left": {"exprType":"fieldAccess","target":"state","path":["scatterCoins"]},
+        "right": {"exprType":"fieldAccess","target":"state","path":["spinMultiplier"]}
+       }
+      ]
+     },
+     "elseExpr": {"exprType":"fieldAccess","target":"state","path":["spinScatterWins"]}
+    },
+    "trace-win": {
+     "exprType": "if",
+     "condition": {"exprType":"fieldAccess","target":"state","path":["traceEnabled"]},
+     "thenExpr": {
+      "exprType": "call",
+      "function": "append",
+      "args": [{"exprType":"fieldAccess","target":"state","path":["spinWins"]},{"exprType":"fieldAccess","target":"state","path":["spinCoins"]}]
+     },
+     "elseExpr": {"exprType":"fieldAccess","target":"state","path":["spinWins"]}
+    }
+   }
+  },
+  "turn-card": {
+   "name": "turn-card",
+   "description": "Turns one card. The first amount to come up twice is the award.",
+   "nodes": [
+    {
+     "nodeType": "draw",
+     "id": "card",
+     "label": "Turn a card",
+     "stateWriteKey": "pickCard",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}},
+     "drawWeights": [
+      {"outcomeId":"0","weight":1,"value":0},
+      {"outcomeId":"1","weight":4,"value":0},
+      {"outcomeId":"2","weight":15,"value":0},
+      {"outcomeId":"3","weight":80,"value":0},
+      {"outcomeId":"4","weight":490,"value":0},
+      {"outcomeId":"5","weight":1022,"value":0},
+      {"outcomeId":"6","weight":1130,"value":0},
+      {"outcomeId":"7","weight":996,"value":0},
+      {"outcomeId":"8","weight":741,"value":0},
+      {"outcomeId":"9","weight":54,"value":0}
+     ]
+    },
+    {
+     "nodeType": "modifyState",
+     "id": "match",
+     "label": "A second card of the same kind wins its amount",
+     "outputKey": "pickAward",
+     "expressionId": "match",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}}
+    },
+    {
+     "nodeType": "modifyState",
+     "id": "seen",
+     "label": "Remember that this kind has been turned",
+     "outputKey": "pickSeen",
+     "expressionId": "seen",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}}
+    },
+    {
+     "nodeType": "modifyState",
+     "id": "trace-card",
+     "label": "Remember the amount on the card",
+     "outputKey": "pickReveals",
+     "expressionId": "trace-card",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}}
+    }
+   ],
+   "edges": [
+    {"id":"card.state->match","sourceNodeId":"card","sourcePort":"state","targetNodeId":"match","targetPort":"state"},
+    {"id":"match.state->seen","sourceNodeId":"match","sourcePort":"state","targetNodeId":"seen","targetPort":"state"},
+    {"id":"seen.state->trace-card","sourceNodeId":"seen","sourcePort":"state","targetNodeId":"trace-card","targetPort":"state"}
+   ],
+   "expressions": {
+    "match": {
+     "exprType": "if",
+     "condition": {
+      "exprType": "compare",
+      "op": "Eq",
+      "left": {
+       "exprType": "call",
+       "function": "index",
+       "args": [
+        {"exprType":"fieldAccess","target":"state","path":["pickSeen"]},
+        {"exprType":"call","function":"toNumber","args":[{"exprType":"fieldAccess","target":"state","path":["pickCard"]}]}
+       ]
+      },
+      "right": {"exprType":"constant","kind":"Integer","value":"1"}
+     },
+     "thenExpr": {
+      "exprType": "call",
+      "function": "index",
+      "args": [
+       {"exprType":"fieldAccess","target":"state","path":["pickAmounts"]},
+       {"exprType":"call","function":"toNumber","args":[{"exprType":"fieldAccess","target":"state","path":["pickCard"]}]}
+      ]
+     },
+     "elseExpr": {"exprType":"constant","kind":"Integer","value":"0"}
+    },
+    "seen": {
+     "exprType": "map",
+     "stateKey": "pickSeen",
+     "itemName": "item",
+     "indexName": "kind",
+     "itemType": "Number",
+     "body": {
+      "exprType": "if",
+      "condition": {
+       "exprType": "compare",
+       "op": "Eq",
+       "left": {"exprType":"fieldAccess","target":"state","path":["kind"]},
+       "right": {"exprType":"call","function":"toNumber","args":[{"exprType":"fieldAccess","target":"state","path":["pickCard"]}]}
+      },
+      "thenExpr": {"exprType":"constant","kind":"Integer","value":"1"},
+      "elseExpr": {"exprType":"fieldAccess","target":"state","path":["item"]}
+     }
+    },
+    "trace-card": {
+     "exprType": "if",
+     "condition": {"exprType":"fieldAccess","target":"state","path":["traceEnabled"]},
+     "thenExpr": {
+      "exprType": "call",
+      "function": "append",
+      "args": [
+       {"exprType":"fieldAccess","target":"state","path":["pickReveals"]},
+       {
+        "exprType": "call",
+        "function": "index",
+        "args": [
+         {"exprType":"fieldAccess","target":"state","path":["pickAmounts"]},
+         {"exprType":"call","function":"toNumber","args":[{"exprType":"fieldAccess","target":"state","path":["pickCard"]}]}
+        ]
+       }
+      ]
+     },
+     "elseExpr": {"exprType":"fieldAccess","target":"state","path":["pickReveals"]}
+    }
+   }
+  },
+  "pick-bonus": {
+   "name": "pick-bonus",
+   "description": "Pick bonus: cards are turned until two show the same amount, and that amount is the award.",
+   "nodes": [
+    {
+     "nodeType": "modifyState",
+     "id": "reset",
+     "label": "Start with no award",
+     "outputKey": "pickAward",
+     "expressionId": "reset",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}}
+    },
+    {
+     "nodeType": "modifyState",
+     "id": "cover",
+     "label": "Start with every card face down",
+     "outputKey": "pickSeen",
+     "expressionId": "cover",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}}
+    },
+    {
+     "nodeType": "loop",
+     "id": "turn",
+     "label": "Turn cards until two match",
+     "maxIterations": 12,
+     "stopConditionId": "turn-until",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"body":{"name":"body","type":"State"},"exit":{"name":"exit","type":"State"}}
+    },
+    {
+     "nodeType": "modifyState",
+     "id": "trace-award",
+     "label": "Remember the award",
+     "outputKey": "pickAwards",
+     "expressionId": "trace-award",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}}
+    },
+    {
+     "nodeType": "library",
+     "id": "turn-pass",
+     "label": "Turn a card",
+     "mechanicName": "turn-card",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}},
+     "parameters": {}
+    }
+   ],
+   "edges": [
+    {"id":"reset.state->cover","sourceNodeId":"reset","sourcePort":"state","targetNodeId":"cover","targetPort":"state"},
+    {"id":"cover.state->turn","sourceNodeId":"cover","sourcePort":"state","targetNodeId":"turn","targetPort":"state"},
+    {"id":"turn.body->turn-pass","sourceNodeId":"turn","sourcePort":"body","targetNodeId":"turn-pass","targetPort":"state"},
+    {"id":"turn.exit->trace-award","sourceNodeId":"turn","sourcePort":"exit","targetNodeId":"trace-award","targetPort":"state"}
+   ],
+   "expressions": {
+    "reset": {"exprType":"constant","kind":"Integer","value":"0"},
+    "cover": {"exprType":"fieldAccess","target":"state","path":["pickFaceDown"]},
+    "turn-until": {
+     "exprType": "compare",
+     "op": "Gt",
+     "left": {"exprType":"fieldAccess","target":"state","path":["pickAward"]},
+     "right": {"exprType":"constant","kind":"Integer","value":"0"}
+    },
+    "trace-award": {
+     "exprType": "if",
+     "condition": {"exprType":"fieldAccess","target":"state","path":["traceEnabled"]},
+     "thenExpr": {
+      "exprType": "call",
+      "function": "append",
+      "args": [{"exprType":"fieldAccess","target":"state","path":["pickAwards"]},{"exprType":"fieldAccess","target":"state","path":["pickAward"]}]
+     },
+     "elseExpr": {"exprType":"fieldAccess","target":"state","path":["pickAwards"]}
+    }
+   }
+  },
+  "award-free-spins": {
+   "name": "award-free-spins",
+   "description": "The pick bonus decides how many free spins are awarded.",
+   "nodes": [
+    {
+     "nodeType": "library",
+     "id": "pick",
+     "label": "Pick bonus: turn cards until two match",
+     "mechanicName": "pick-bonus",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}},
+     "parameters": {}
+    },
+    {
+     "nodeType": "modifyState",
+     "id": "award",
+     "label": "The matched amount is added to the free spins (at most 150 held)",
+     "outputKey": "freeSpins",
+     "expressionId": "award",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}}
+    },
+    {
+     "nodeType": "modifyState",
+     "id": "trace-spin",
+     "label": "Remember after which spin the bonus was played",
+     "outputKey": "pickSpins",
+     "expressionId": "trace-spin",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}}
+    }
+   ],
+   "edges": [
+    {"id":"pick.state->award","sourceNodeId":"pick","sourcePort":"state","targetNodeId":"award","targetPort":"state"},
+    {"id":"award.state->trace-spin","sourceNodeId":"award","sourcePort":"state","targetNodeId":"trace-spin","targetPort":"state"}
+   ],
+   "expressions": {
+    "award": {
+     "exprType": "call",
+     "function": "min",
+     "args": [
+      {
+       "exprType": "binary",
+       "op": "Add",
+       "left": {"exprType":"fieldAccess","target":"state","path":["freeSpins"]},
+       "right": {"exprType":"fieldAccess","target":"state","path":["pickAward"]}
+      },
+      {"exprType":"constant","kind":"Integer","value":"150"}
+     ]
+    },
+    "trace-spin": {
+     "exprType": "if",
+     "condition": {"exprType":"fieldAccess","target":"state","path":["traceEnabled"]},
+     "thenExpr": {
+      "exprType": "call",
+      "function": "append",
+      "args": [
+       {"exprType":"fieldAccess","target":"state","path":["pickSpins"]},
+       {"exprType":"call","function":"length","args":[{"exprType":"fieldAccess","target":"state","path":["spinWins"]}]}
+      ]
+     },
+     "elseExpr": {"exprType":"fieldAccess","target":"state","path":["pickSpins"]}
+    }
+   }
+  },
+  "free-spin": {
+   "name": "free-spin",
+   "description": "One step of the feature: the pick bonus if the spin before earned it, then one free spin, played like a paid spin.",
+   "nodes": [
+    {
+     "nodeType": "branch",
+     "id": "bonus",
+     "label": "The spin before showed 3+ COINs: the pick bonus adds free spins",
+     "conditionId": "bonus",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"true":{"name":"true","type":"State"},"false":{"name":"false","type":"State"}}
+    },
+    {
+     "nodeType": "modifyState",
+     "id": "use",
+     "label": "Use one free spin",
+     "outputKey": "freeSpins",
+     "expressionId": "use",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}}
+    },
+    {
+     "nodeType": "library",
+     "id": "spin",
+     "label": "Free spin",
+     "mechanicName": "spin",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}},
+     "parameters": {}
+    },
+    {
+     "nodeType": "library",
+     "id": "bonus-yes",
+     "label": "The spin before showed 3+ COINs: the pick bonus adds free spins",
+     "mechanicName": "award-free-spins",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}},
+     "parameters": {}
+    }
+   ],
+   "edges": [
+    {"id":"bonus.true->bonus-yes","sourceNodeId":"bonus","sourcePort":"true","targetNodeId":"bonus-yes","targetPort":"state"},
+    {"id":"bonus.false->use","sourceNodeId":"bonus","sourcePort":"false","targetNodeId":"use","targetPort":"state"},
+    {"id":"bonus-yes.state->use","sourceNodeId":"bonus-yes","sourcePort":"state","targetNodeId":"use","targetPort":"state"},
+    {"id":"use.state->spin","sourceNodeId":"use","sourcePort":"state","targetNodeId":"spin","targetPort":"state"}
+   ],
+   "expressions": {
+    "bonus": {"exprType":"fieldAccess","target":"state","path":["bonusDue"]},
+    "use": {
+     "exprType": "binary",
+     "op": "Sub",
+     "left": {"exprType":"fieldAccess","target":"state","path":["freeSpins"]},
+     "right": {"exprType":"constant","kind":"Integer","value":"1"}
+    }
+   }
+  },
+  "free-spins": {
+   "name": "free-spins",
+   "description": "The feature: every spin with 3+ COINs earns a pick bonus that awards free spins, and every free spin pays ×2.",
+   "nodes": [
+    {
+     "nodeType": "modifyState",
+     "id": "multiplier",
+     "label": "Free spins pay ×2",
+     "outputKey": "spinMultiplier",
+     "expressionId": "multiplier",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}}
+    },
+    {
+     "nodeType": "loop",
+     "id": "play",
+     "label": "Play while a pick bonus is due or free spins are left",
+     "maxIterations": 150,
+     "stopConditionId": "play-until",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"body":{"name":"body","type":"State"},"exit":{"name":"exit","type":"State"}}
+    },
+    {
+     "nodeType": "getState",
+     "id": "done",
+     "label": "Done",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}}
+    },
+    {
+     "nodeType": "library",
+     "id": "play-pass",
+     "label": "Pick bonus if due, then a free spin",
+     "mechanicName": "free-spin",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}},
+     "parameters": {}
+    }
+   ],
+   "edges": [
+    {"id":"multiplier.state->play","sourceNodeId":"multiplier","sourcePort":"state","targetNodeId":"play","targetPort":"state"},
+    {"id":"play.body->play-pass","sourceNodeId":"play","sourcePort":"body","targetNodeId":"play-pass","targetPort":"state"},
+    {"id":"play.exit->done","sourceNodeId":"play","sourcePort":"exit","targetNodeId":"done","targetPort":"state"}
+   ],
+   "expressions": {
+    "multiplier": {"exprType":"constant","kind":"Integer","value":"2"},
+    "play-until": {
+     "exprType": "binary",
+     "op": "And",
+     "left": {"exprType":"not","expr":{"exprType":"fieldAccess","target":"state","path":["bonusDue"]}},
+     "right": {
+      "exprType": "compare",
+      "op": "Lte",
+      "left": {"exprType":"fieldAccess","target":"state","path":["freeSpins"]},
+      "right": {"exprType":"constant","kind":"Integer","value":"0"}
+     }
+    }
+   }
+  },
+  "spin-reels-triggering": {
+   "name": "spin-reels-triggering",
+   "description": "Stops the 5 reels so that at least 3 COINs show, with the chances an ordinary spin gives those stops.",
+   "nodes": [
+    {
+     "nodeType": "draw",
+     "id": "pattern",
+     "label": "How many COINs each reel shows",
+     "stateWriteKey": "showPattern",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}},
+     "drawWeights": [
+      {"outcomeId":"0","weight":35964,"value":0},
+      {"outcomeId":"1","weight":91908,"value":0},
+      {"outcomeId":"2","weight":77922,"value":0},
+      {"outcomeId":"3","weight":77922,"value":0},
+      {"outcomeId":"4","weight":5994,"value":0},
+      {"outcomeId":"5","weight":89424,"value":0},
+      {"outcomeId":"6","weight":75816,"value":0},
+      {"outcomeId":"7","weight":75816,"value":0},
+      {"outcomeId":"8","weight":5832,"value":0},
+      {"outcomeId":"9","weight":193752,"value":0},
+      {"outcomeId":"10","weight":193752,"value":0},
+      {"outcomeId":"11","weight":14904,"value":0},
+      {"outcomeId":"12","weight":164268,"value":0},
+      {"outcomeId":"13","weight":12636,"value":0},
+      {"outcomeId":"14","weight":12636,"value":0},
+      {"outcomeId":"15","weight":972,"value":0}
+     ]
+    },
+    {
+     "nodeType": "branch",
+     "id": "reel-0-shows-0",
+     "label": "Does reel 1 show 0?",
+     "conditionId": "reel-0-shows-0",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"true":{"name":"true","type":"State"},"false":{"name":"false","type":"State"}}
+    },
+    {
+     "nodeType": "branch",
+     "id": "reel-1-shows-0",
+     "label": "Does reel 2 show 0?",
+     "conditionId": "reel-1-shows-0",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"true":{"name":"true","type":"State"},"false":{"name":"false","type":"State"}}
+    },
+    {
+     "nodeType": "branch",
+     "id": "reel-2-shows-0",
+     "label": "Does reel 3 show 0?",
+     "conditionId": "reel-2-shows-0",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"true":{"name":"true","type":"State"},"false":{"name":"false","type":"State"}}
+    },
+    {
+     "nodeType": "branch",
+     "id": "reel-3-shows-0",
+     "label": "Does reel 4 show 0?",
+     "conditionId": "reel-3-shows-0",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"true":{"name":"true","type":"State"},"false":{"name":"false","type":"State"}}
+    },
+    {
+     "nodeType": "branch",
+     "id": "reel-4-shows-0",
+     "label": "Does reel 5 show 0?",
+     "conditionId": "reel-4-shows-0",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"true":{"name":"true","type":"State"},"false":{"name":"false","type":"State"}}
+    },
+    {
+     "nodeType": "modifyState",
+     "id": "window",
+     "label": "Symbols showing in the window",
+     "outputKey": "board",
+     "expressionId": "window",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}}
+    },
+    {
+     "nodeType": "draw",
+     "id": "stop-0-showing-0",
+     "label": "Reel 1 stops showing 0",
+     "stateWriteKey": "stop0",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}},
+     "drawWeights": [
+      {"outcomeId":"0","weight":1,"value":0},
+      {"outcomeId":"1","weight":1,"value":0},
+      {"outcomeId":"2","weight":1,"value":0},
+      {"outcomeId":"3","weight":1,"value":0},
+      {"outcomeId":"4","weight":1,"value":0},
+      {"outcomeId":"5","weight":1,"value":0},
+      {"outcomeId":"6","weight":1,"value":0},
+      {"outcomeId":"7","weight":1,"value":0},
+      {"outcomeId":"8","weight":1,"value":0},
+      {"outcomeId":"9","weight":1,"value":0},
+      {"outcomeId":"10","weight":1,"value":0},
+      {"outcomeId":"14","weight":1,"value":0},
+      {"outcomeId":"15","weight":1,"value":0},
+      {"outcomeId":"16","weight":1,"value":0},
+      {"outcomeId":"17","weight":1,"value":0},
+      {"outcomeId":"18","weight":1,"value":0},
+      {"outcomeId":"19","weight":1,"value":0},
+      {"outcomeId":"20","weight":1,"value":0},
+      {"outcomeId":"21","weight":1,"value":0},
+      {"outcomeId":"22","weight":1,"value":0},
+      {"outcomeId":"23","weight":1,"value":0},
+      {"outcomeId":"24","weight":1,"value":0},
+      {"outcomeId":"25","weight":1,"value":0},
+      {"outcomeId":"26","weight":1,"value":0},
+      {"outcomeId":"27","weight":1,"value":0},
+      {"outcomeId":"28","weight":1,"value":0},
+      {"outcomeId":"29","weight":1,"value":0},
+      {"outcomeId":"30","weight":1,"value":0},
+      {"outcomeId":"31","weight":1,"value":0},
+      {"outcomeId":"32","weight":1,"value":0},
+      {"outcomeId":"33","weight":1,"value":0},
+      {"outcomeId":"34","weight":1,"value":0},
+      {"outcomeId":"35","weight":1,"value":0},
+      {"outcomeId":"39","weight":1,"value":0},
+      {"outcomeId":"40","weight":1,"value":0},
+      {"outcomeId":"41","weight":1,"value":0},
+      {"outcomeId":"42","weight":1,"value":0}
+     ]
+    },
+    {
+     "nodeType": "draw",
+     "id": "stop-0-showing-1",
+     "label": "Reel 1 stops showing 1",
+     "stateWriteKey": "stop0",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}},
+     "drawWeights": [
+      {"outcomeId":"11","weight":1,"value":0},
+      {"outcomeId":"12","weight":1,"value":0},
+      {"outcomeId":"13","weight":1,"value":0},
+      {"outcomeId":"36","weight":1,"value":0},
+      {"outcomeId":"37","weight":1,"value":0},
+      {"outcomeId":"38","weight":1,"value":0}
+     ]
+    },
+    {
+     "nodeType": "draw",
+     "id": "stop-1-showing-0",
+     "label": "Reel 2 stops showing 0",
+     "stateWriteKey": "stop1",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}},
+     "drawWeights": [
+      {"outcomeId":"0","weight":1,"value":0},
+      {"outcomeId":"1","weight":1,"value":0},
+      {"outcomeId":"2","weight":1,"value":0},
+      {"outcomeId":"3","weight":1,"value":0},
+      {"outcomeId":"4","weight":1,"value":0},
+      {"outcomeId":"5","weight":1,"value":0},
+      {"outcomeId":"6","weight":1,"value":0},
+      {"outcomeId":"7","weight":1,"value":0},
+      {"outcomeId":"8","weight":1,"value":0},
+      {"outcomeId":"9","weight":1,"value":0},
+      {"outcomeId":"10","weight":1,"value":0},
+      {"outcomeId":"11","weight":1,"value":0},
+      {"outcomeId":"12","weight":1,"value":0},
+      {"outcomeId":"13","weight":1,"value":0},
+      {"outcomeId":"14","weight":1,"value":0},
+      {"outcomeId":"15","weight":1,"value":0},
+      {"outcomeId":"16","weight":1,"value":0},
+      {"outcomeId":"17","weight":1,"value":0},
+      {"outcomeId":"18","weight":1,"value":0},
+      {"outcomeId":"19","weight":1,"value":0},
+      {"outcomeId":"20","weight":1,"value":0},
+      {"outcomeId":"21","weight":1,"value":0},
+      {"outcomeId":"25","weight":1,"value":0},
+      {"outcomeId":"26","weight":1,"value":0},
+      {"outcomeId":"27","weight":1,"value":0},
+      {"outcomeId":"28","weight":1,"value":0},
+      {"outcomeId":"29","weight":1,"value":0},
+      {"outcomeId":"30","weight":1,"value":0},
+      {"outcomeId":"31","weight":1,"value":0},
+      {"outcomeId":"32","weight":1,"value":0},
+      {"outcomeId":"33","weight":1,"value":0},
+      {"outcomeId":"34","weight":1,"value":0},
+      {"outcomeId":"35","weight":1,"value":0},
+      {"outcomeId":"39","weight":1,"value":0},
+      {"outcomeId":"40","weight":1,"value":0},
+      {"outcomeId":"41","weight":1,"value":0}
+     ]
+    },
+    {
+     "nodeType": "draw",
+     "id": "stop-1-showing-1",
+     "label": "Reel 2 stops showing 1",
+     "stateWriteKey": "stop1",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}},
+     "drawWeights": [
+      {"outcomeId":"22","weight":1,"value":0},
+      {"outcomeId":"23","weight":1,"value":0},
+      {"outcomeId":"24","weight":1,"value":0},
+      {"outcomeId":"36","weight":1,"value":0},
+      {"outcomeId":"37","weight":1,"value":0},
+      {"outcomeId":"38","weight":1,"value":0}
+     ]
+    },
+    {
+     "nodeType": "draw",
+     "id": "stop-2-showing-0",
+     "label": "Reel 3 stops showing 0",
+     "stateWriteKey": "stop2",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}},
+     "drawWeights": [
+      {"outcomeId":"0","weight":1,"value":0},
+      {"outcomeId":"1","weight":1,"value":0},
+      {"outcomeId":"5","weight":1,"value":0},
+      {"outcomeId":"6","weight":1,"value":0},
+      {"outcomeId":"7","weight":1,"value":0},
+      {"outcomeId":"8","weight":1,"value":0},
+      {"outcomeId":"9","weight":1,"value":0},
+      {"outcomeId":"10","weight":1,"value":0},
+      {"outcomeId":"11","weight":1,"value":0},
+      {"outcomeId":"12","weight":1,"value":0},
+      {"outcomeId":"13","weight":1,"value":0},
+      {"outcomeId":"14","weight":1,"value":0},
+      {"outcomeId":"15","weight":1,"value":0},
+      {"outcomeId":"16","weight":1,"value":0},
+      {"outcomeId":"17","weight":1,"value":0},
+      {"outcomeId":"18","weight":1,"value":0},
+      {"outcomeId":"19","weight":1,"value":0},
+      {"outcomeId":"20","weight":1,"value":0},
+      {"outcomeId":"21","weight":1,"value":0},
+      {"outcomeId":"22","weight":1,"value":0},
+      {"outcomeId":"23","weight":1,"value":0},
+      {"outcomeId":"24","weight":1,"value":0},
+      {"outcomeId":"25","weight":1,"value":0},
+      {"outcomeId":"26","weight":1,"value":0},
+      {"outcomeId":"27","weight":1,"value":0},
+      {"outcomeId":"28","weight":1,"value":0},
+      {"outcomeId":"29","weight":1,"value":0},
+      {"outcomeId":"30","weight":1,"value":0},
+      {"outcomeId":"31","weight":1,"value":0},
+      {"outcomeId":"32","weight":1,"value":0},
+      {"outcomeId":"33","weight":1,"value":0},
+      {"outcomeId":"34","weight":1,"value":0},
+      {"outcomeId":"35","weight":1,"value":0},
+      {"outcomeId":"36","weight":1,"value":0},
+      {"outcomeId":"37","weight":1,"value":0},
+      {"outcomeId":"38","weight":1,"value":0},
+      {"outcomeId":"39","weight":1,"value":0},
+      {"outcomeId":"40","weight":1,"value":0},
+      {"outcomeId":"41","weight":1,"value":0},
+      {"outcomeId":"42","weight":1,"value":0},
+      {"outcomeId":"43","weight":1,"value":0},
+      {"outcomeId":"44","weight":1,"value":0},
+      {"outcomeId":"45","weight":1,"value":0},
+      {"outcomeId":"46","weight":1,"value":0},
+      {"outcomeId":"47","weight":1,"value":0},
+      {"outcomeId":"48","weight":1,"value":0}
+     ]
+    },
+    {
+     "nodeType": "draw",
+     "id": "stop-2-showing-1",
+     "label": "Reel 3 stops showing 1",
+     "stateWriteKey": "stop2",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}},
+     "drawWeights": [{"outcomeId":"2","weight":1,"value":0},{"outcomeId":"3","weight":1,"value":0},{"outcomeId":"4","weight":1,"value":0}]
+    },
+    {
+     "nodeType": "draw",
+     "id": "stop-3-showing-0",
+     "label": "Reel 4 stops showing 0",
+     "stateWriteKey": "stop3",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}},
+     "drawWeights": [
+      {"outcomeId":"0","weight":1,"value":0},
+      {"outcomeId":"1","weight":1,"value":0},
+      {"outcomeId":"2","weight":1,"value":0},
+      {"outcomeId":"3","weight":1,"value":0},
+      {"outcomeId":"4","weight":1,"value":0},
+      {"outcomeId":"5","weight":1,"value":0},
+      {"outcomeId":"6","weight":1,"value":0},
+      {"outcomeId":"7","weight":1,"value":0},
+      {"outcomeId":"8","weight":1,"value":0},
+      {"outcomeId":"9","weight":1,"value":0},
+      {"outcomeId":"13","weight":1,"value":0},
+      {"outcomeId":"14","weight":1,"value":0},
+      {"outcomeId":"15","weight":1,"value":0},
+      {"outcomeId":"16","weight":1,"value":0},
+      {"outcomeId":"17","weight":1,"value":0},
+      {"outcomeId":"18","weight":1,"value":0},
+      {"outcomeId":"19","weight":1,"value":0},
+      {"outcomeId":"20","weight":1,"value":0},
+      {"outcomeId":"21","weight":1,"value":0},
+      {"outcomeId":"22","weight":1,"value":0},
+      {"outcomeId":"23","weight":1,"value":0},
+      {"outcomeId":"24","weight":1,"value":0},
+      {"outcomeId":"25","weight":1,"value":0},
+      {"outcomeId":"26","weight":1,"value":0},
+      {"outcomeId":"27","weight":1,"value":0},
+      {"outcomeId":"28","weight":1,"value":0},
+      {"outcomeId":"29","weight":1,"value":0},
+      {"outcomeId":"30","weight":1,"value":0},
+      {"outcomeId":"31","weight":1,"value":0},
+      {"outcomeId":"32","weight":1,"value":0},
+      {"outcomeId":"33","weight":1,"value":0},
+      {"outcomeId":"34","weight":1,"value":0},
+      {"outcomeId":"35","weight":1,"value":0},
+      {"outcomeId":"36","weight":1,"value":0},
+      {"outcomeId":"37","weight":1,"value":0},
+      {"outcomeId":"38","weight":1,"value":0},
+      {"outcomeId":"39","weight":1,"value":0},
+      {"outcomeId":"40","weight":1,"value":0},
+      {"outcomeId":"41","weight":1,"value":0}
+     ]
+    },
+    {
+     "nodeType": "draw",
+     "id": "stop-3-showing-1",
+     "label": "Reel 4 stops showing 1",
+     "stateWriteKey": "stop3",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}},
+     "drawWeights": [{"outcomeId":"10","weight":1,"value":0},{"outcomeId":"11","weight":1,"value":0},{"outcomeId":"12","weight":1,"value":0}]
+    },
+    {
+     "nodeType": "draw",
+     "id": "stop-4-showing-0",
+     "label": "Reel 5 stops showing 0",
+     "stateWriteKey": "stop4",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}},
+     "drawWeights": [
+      {"outcomeId":"0","weight":1,"value":0},
+      {"outcomeId":"1","weight":1,"value":0},
+      {"outcomeId":"2","weight":1,"value":0},
+      {"outcomeId":"3","weight":1,"value":0},
+      {"outcomeId":"4","weight":1,"value":0},
+      {"outcomeId":"5","weight":1,"value":0},
+      {"outcomeId":"6","weight":1,"value":0},
+      {"outcomeId":"7","weight":1,"value":0},
+      {"outcomeId":"8","weight":1,"value":0},
+      {"outcomeId":"9","weight":1,"value":0},
+      {"outcomeId":"10","weight":1,"value":0},
+      {"outcomeId":"11","weight":1,"value":0},
+      {"outcomeId":"12","weight":1,"value":0},
+      {"outcomeId":"13","weight":1,"value":0},
+      {"outcomeId":"14","weight":1,"value":0},
+      {"outcomeId":"15","weight":1,"value":0},
+      {"outcomeId":"16","weight":1,"value":0},
+      {"outcomeId":"17","weight":1,"value":0},
+      {"outcomeId":"18","weight":1,"value":0},
+      {"outcomeId":"19","weight":1,"value":0},
+      {"outcomeId":"20","weight":1,"value":0},
+      {"outcomeId":"21","weight":1,"value":0},
+      {"outcomeId":"22","weight":1,"value":0},
+      {"outcomeId":"23","weight":1,"value":0},
+      {"outcomeId":"24","weight":1,"value":0},
+      {"outcomeId":"25","weight":1,"value":0},
+      {"outcomeId":"26","weight":1,"value":0},
+      {"outcomeId":"27","weight":1,"value":0},
+      {"outcomeId":"28","weight":1,"value":0},
+      {"outcomeId":"29","weight":1,"value":0},
+      {"outcomeId":"30","weight":1,"value":0},
+      {"outcomeId":"31","weight":1,"value":0},
+      {"outcomeId":"32","weight":1,"value":0},
+      {"outcomeId":"33","weight":1,"value":0},
+      {"outcomeId":"37","weight":1,"value":0},
+      {"outcomeId":"38","weight":1,"value":0},
+      {"outcomeId":"39","weight":1,"value":0},
+      {"outcomeId":"40","weight":1,"value":0},
+      {"outcomeId":"41","weight":1,"value":0}
+     ]
+    },
+    {
+     "nodeType": "draw",
+     "id": "stop-4-showing-1",
+     "label": "Reel 5 stops showing 1",
+     "stateWriteKey": "stop4",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}},
+     "drawWeights": [{"outcomeId":"34","weight":1,"value":0},{"outcomeId":"35","weight":1,"value":0},{"outcomeId":"36","weight":1,"value":0}]
+    }
+   ],
+   "edges": [
+    {"id":"pattern.state->reel-0-shows-0","sourceNodeId":"pattern","sourcePort":"state","targetNodeId":"reel-0-shows-0","targetPort":"state"},
+    {
+     "id": "reel-0-shows-0.true->stop-0-showing-0",
+     "sourceNodeId": "reel-0-shows-0",
+     "sourcePort": "true",
+     "targetNodeId": "stop-0-showing-0",
+     "targetPort": "state"
+    },
+    {
+     "id": "reel-0-shows-0.false->stop-0-showing-1",
+     "sourceNodeId": "reel-0-shows-0",
+     "sourcePort": "false",
+     "targetNodeId": "stop-0-showing-1",
+     "targetPort": "state"
+    },
+    {
+     "id": "stop-0-showing-0.state->reel-1-shows-0",
+     "sourceNodeId": "stop-0-showing-0",
+     "sourcePort": "state",
+     "targetNodeId": "reel-1-shows-0",
+     "targetPort": "state"
+    },
+    {
+     "id": "stop-0-showing-1.state->reel-1-shows-0",
+     "sourceNodeId": "stop-0-showing-1",
+     "sourcePort": "state",
+     "targetNodeId": "reel-1-shows-0",
+     "targetPort": "state"
+    },
+    {
+     "id": "reel-1-shows-0.true->stop-1-showing-0",
+     "sourceNodeId": "reel-1-shows-0",
+     "sourcePort": "true",
+     "targetNodeId": "stop-1-showing-0",
+     "targetPort": "state"
+    },
+    {
+     "id": "reel-1-shows-0.false->stop-1-showing-1",
+     "sourceNodeId": "reel-1-shows-0",
+     "sourcePort": "false",
+     "targetNodeId": "stop-1-showing-1",
+     "targetPort": "state"
+    },
+    {
+     "id": "stop-1-showing-0.state->reel-2-shows-0",
+     "sourceNodeId": "stop-1-showing-0",
+     "sourcePort": "state",
+     "targetNodeId": "reel-2-shows-0",
+     "targetPort": "state"
+    },
+    {
+     "id": "stop-1-showing-1.state->reel-2-shows-0",
+     "sourceNodeId": "stop-1-showing-1",
+     "sourcePort": "state",
+     "targetNodeId": "reel-2-shows-0",
+     "targetPort": "state"
+    },
+    {
+     "id": "reel-2-shows-0.true->stop-2-showing-0",
+     "sourceNodeId": "reel-2-shows-0",
+     "sourcePort": "true",
+     "targetNodeId": "stop-2-showing-0",
+     "targetPort": "state"
+    },
+    {
+     "id": "reel-2-shows-0.false->stop-2-showing-1",
+     "sourceNodeId": "reel-2-shows-0",
+     "sourcePort": "false",
+     "targetNodeId": "stop-2-showing-1",
+     "targetPort": "state"
+    },
+    {
+     "id": "stop-2-showing-0.state->reel-3-shows-0",
+     "sourceNodeId": "stop-2-showing-0",
+     "sourcePort": "state",
+     "targetNodeId": "reel-3-shows-0",
+     "targetPort": "state"
+    },
+    {
+     "id": "stop-2-showing-1.state->reel-3-shows-0",
+     "sourceNodeId": "stop-2-showing-1",
+     "sourcePort": "state",
+     "targetNodeId": "reel-3-shows-0",
+     "targetPort": "state"
+    },
+    {
+     "id": "reel-3-shows-0.true->stop-3-showing-0",
+     "sourceNodeId": "reel-3-shows-0",
+     "sourcePort": "true",
+     "targetNodeId": "stop-3-showing-0",
+     "targetPort": "state"
+    },
+    {
+     "id": "reel-3-shows-0.false->stop-3-showing-1",
+     "sourceNodeId": "reel-3-shows-0",
+     "sourcePort": "false",
+     "targetNodeId": "stop-3-showing-1",
+     "targetPort": "state"
+    },
+    {
+     "id": "stop-3-showing-0.state->reel-4-shows-0",
+     "sourceNodeId": "stop-3-showing-0",
+     "sourcePort": "state",
+     "targetNodeId": "reel-4-shows-0",
+     "targetPort": "state"
+    },
+    {
+     "id": "stop-3-showing-1.state->reel-4-shows-0",
+     "sourceNodeId": "stop-3-showing-1",
+     "sourcePort": "state",
+     "targetNodeId": "reel-4-shows-0",
+     "targetPort": "state"
+    },
+    {
+     "id": "reel-4-shows-0.true->stop-4-showing-0",
+     "sourceNodeId": "reel-4-shows-0",
+     "sourcePort": "true",
+     "targetNodeId": "stop-4-showing-0",
+     "targetPort": "state"
+    },
+    {
+     "id": "reel-4-shows-0.false->stop-4-showing-1",
+     "sourceNodeId": "reel-4-shows-0",
+     "sourcePort": "false",
+     "targetNodeId": "stop-4-showing-1",
+     "targetPort": "state"
+    },
+    {"id":"stop-4-showing-0.state->window","sourceNodeId":"stop-4-showing-0","sourcePort":"state","targetNodeId":"window","targetPort":"state"},
+    {"id":"stop-4-showing-1.state->window","sourceNodeId":"stop-4-showing-1","sourcePort":"state","targetNodeId":"window","targetPort":"state"}
+   ],
+   "expressions": {
+    "reel-0-shows-0": {
+     "exprType": "compare",
+     "op": "Eq",
+     "left": {
+      "exprType": "call",
+      "function": "index",
+      "args": [
+       {
+        "exprType": "call",
+        "function": "index",
+        "args": [
+         {"exprType":"fieldAccess","target":"state","path":["showPatterns"]},
+         {"exprType":"call","function":"toNumber","args":[{"exprType":"fieldAccess","target":"state","path":["showPattern"]}]}
+        ]
+       },
+       {"exprType":"constant","kind":"Integer","value":"0"}
+      ]
+     },
+     "right": {"exprType":"constant","kind":"Integer","value":"0"}
+    },
+    "reel-1-shows-0": {
+     "exprType": "compare",
+     "op": "Eq",
+     "left": {
+      "exprType": "call",
+      "function": "index",
+      "args": [
+       {
+        "exprType": "call",
+        "function": "index",
+        "args": [
+         {"exprType":"fieldAccess","target":"state","path":["showPatterns"]},
+         {"exprType":"call","function":"toNumber","args":[{"exprType":"fieldAccess","target":"state","path":["showPattern"]}]}
+        ]
+       },
+       {"exprType":"constant","kind":"Integer","value":"1"}
+      ]
+     },
+     "right": {"exprType":"constant","kind":"Integer","value":"0"}
+    },
+    "reel-2-shows-0": {
+     "exprType": "compare",
+     "op": "Eq",
+     "left": {
+      "exprType": "call",
+      "function": "index",
+      "args": [
+       {
+        "exprType": "call",
+        "function": "index",
+        "args": [
+         {"exprType":"fieldAccess","target":"state","path":["showPatterns"]},
+         {"exprType":"call","function":"toNumber","args":[{"exprType":"fieldAccess","target":"state","path":["showPattern"]}]}
+        ]
+       },
+       {"exprType":"constant","kind":"Integer","value":"2"}
+      ]
+     },
+     "right": {"exprType":"constant","kind":"Integer","value":"0"}
+    },
+    "reel-3-shows-0": {
+     "exprType": "compare",
+     "op": "Eq",
+     "left": {
+      "exprType": "call",
+      "function": "index",
+      "args": [
+       {
+        "exprType": "call",
+        "function": "index",
+        "args": [
+         {"exprType":"fieldAccess","target":"state","path":["showPatterns"]},
+         {"exprType":"call","function":"toNumber","args":[{"exprType":"fieldAccess","target":"state","path":["showPattern"]}]}
+        ]
+       },
+       {"exprType":"constant","kind":"Integer","value":"3"}
+      ]
+     },
+     "right": {"exprType":"constant","kind":"Integer","value":"0"}
+    },
+    "reel-4-shows-0": {
+     "exprType": "compare",
+     "op": "Eq",
+     "left": {
+      "exprType": "call",
+      "function": "index",
+      "args": [
+       {
+        "exprType": "call",
+        "function": "index",
+        "args": [
+         {"exprType":"fieldAccess","target":"state","path":["showPatterns"]},
+         {"exprType":"call","function":"toNumber","args":[{"exprType":"fieldAccess","target":"state","path":["showPattern"]}]}
+        ]
+       },
+       {"exprType":"constant","kind":"Integer","value":"4"}
+      ]
+     },
+     "right": {"exprType":"constant","kind":"Integer","value":"0"}
+    },
+    "window": {
+     "exprType": "call",
+     "function": "append",
+     "args": [
+      {
+       "exprType": "call",
+       "function": "append",
+       "args": [
+        {
+         "exprType": "call",
+         "function": "append",
+         "args": [
+          {
+           "exprType": "call",
+           "function": "append",
+           "args": [
+            {
+             "exprType": "call",
+             "function": "append",
+             "args": [
+              {
+               "exprType": "call",
+               "function": "append",
+               "args": [
+                {
+                 "exprType": "call",
+                 "function": "append",
+                 "args": [
+                  {
+                   "exprType": "call",
+                   "function": "append",
+                   "args": [
+                    {
+                     "exprType": "call",
+                     "function": "append",
+                     "args": [
+                      {
+                       "exprType": "call",
+                       "function": "append",
+                       "args": [
+                        {
+                         "exprType": "call",
+                         "function": "append",
+                         "args": [
+                          {
+                           "exprType": "call",
+                           "function": "append",
+                           "args": [
+                            {
+                             "exprType": "call",
+                             "function": "append",
+                             "args": [
+                              {
+                               "exprType": "call",
+                               "function": "append",
+                               "args": [
+                                {
+                                 "exprType": "call",
+                                 "function": "append",
+                                 "args": [
+                                  {"exprType":"fieldAccess","target":"state","path":["emptyArray"]},
+                                  {
+                                   "exprType": "call",
+                                   "function": "index",
+                                   "args": [
+                                    {"exprType":"fieldAccess","target":"state","path":["reel0"]},
+                                    {
+                                     "exprType": "binary",
+                                     "op": "Add",
+                                     "left": {"exprType":"call","function":"toNumber","args":[{"exprType":"fieldAccess","target":"state","path":["stop0"]}]},
+                                     "right": {"exprType":"constant","kind":"Integer","value":"0"}
+                                    }
+                                   ]
+                                  }
+                                 ]
+                                },
+                                {
+                                 "exprType": "call",
+                                 "function": "index",
+                                 "args": [
+                                  {"exprType":"fieldAccess","target":"state","path":["reel0"]},
+                                  {
+                                   "exprType": "binary",
+                                   "op": "Add",
+                                   "left": {"exprType":"call","function":"toNumber","args":[{"exprType":"fieldAccess","target":"state","path":["stop0"]}]},
+                                   "right": {"exprType":"constant","kind":"Integer","value":"1"}
+                                  }
+                                 ]
+                                }
+                               ]
+                              },
+                              {
+                               "exprType": "call",
+                               "function": "index",
+                               "args": [
+                                {"exprType":"fieldAccess","target":"state","path":["reel0"]},
+                                {
+                                 "exprType": "binary",
+                                 "op": "Add",
+                                 "left": {"exprType":"call","function":"toNumber","args":[{"exprType":"fieldAccess","target":"state","path":["stop0"]}]},
+                                 "right": {"exprType":"constant","kind":"Integer","value":"2"}
+                                }
+                               ]
+                              }
+                             ]
+                            },
+                            {
+                             "exprType": "call",
+                             "function": "index",
+                             "args": [
+                              {"exprType":"fieldAccess","target":"state","path":["reel1"]},
+                              {
+                               "exprType": "binary",
+                               "op": "Add",
+                               "left": {"exprType":"call","function":"toNumber","args":[{"exprType":"fieldAccess","target":"state","path":["stop1"]}]},
+                               "right": {"exprType":"constant","kind":"Integer","value":"0"}
+                              }
+                             ]
+                            }
+                           ]
+                          },
+                          {
+                           "exprType": "call",
+                           "function": "index",
+                           "args": [
+                            {"exprType":"fieldAccess","target":"state","path":["reel1"]},
+                            {
+                             "exprType": "binary",
+                             "op": "Add",
+                             "left": {"exprType":"call","function":"toNumber","args":[{"exprType":"fieldAccess","target":"state","path":["stop1"]}]},
+                             "right": {"exprType":"constant","kind":"Integer","value":"1"}
+                            }
+                           ]
+                          }
+                         ]
+                        },
+                        {
+                         "exprType": "call",
+                         "function": "index",
+                         "args": [
+                          {"exprType":"fieldAccess","target":"state","path":["reel1"]},
+                          {
+                           "exprType": "binary",
+                           "op": "Add",
+                           "left": {"exprType":"call","function":"toNumber","args":[{"exprType":"fieldAccess","target":"state","path":["stop1"]}]},
+                           "right": {"exprType":"constant","kind":"Integer","value":"2"}
+                          }
+                         ]
+                        }
+                       ]
+                      },
+                      {
+                       "exprType": "call",
+                       "function": "index",
+                       "args": [
+                        {"exprType":"fieldAccess","target":"state","path":["reel2"]},
+                        {
+                         "exprType": "binary",
+                         "op": "Add",
+                         "left": {"exprType":"call","function":"toNumber","args":[{"exprType":"fieldAccess","target":"state","path":["stop2"]}]},
+                         "right": {"exprType":"constant","kind":"Integer","value":"0"}
+                        }
+                       ]
+                      }
+                     ]
+                    },
+                    {
+                     "exprType": "call",
+                     "function": "index",
+                     "args": [
+                      {"exprType":"fieldAccess","target":"state","path":["reel2"]},
+                      {
+                       "exprType": "binary",
+                       "op": "Add",
+                       "left": {"exprType":"call","function":"toNumber","args":[{"exprType":"fieldAccess","target":"state","path":["stop2"]}]},
+                       "right": {"exprType":"constant","kind":"Integer","value":"1"}
+                      }
+                     ]
+                    }
+                   ]
+                  },
+                  {
+                   "exprType": "call",
+                   "function": "index",
+                   "args": [
+                    {"exprType":"fieldAccess","target":"state","path":["reel2"]},
+                    {
+                     "exprType": "binary",
+                     "op": "Add",
+                     "left": {"exprType":"call","function":"toNumber","args":[{"exprType":"fieldAccess","target":"state","path":["stop2"]}]},
+                     "right": {"exprType":"constant","kind":"Integer","value":"2"}
+                    }
+                   ]
+                  }
+                 ]
+                },
+                {
+                 "exprType": "call",
+                 "function": "index",
+                 "args": [
+                  {"exprType":"fieldAccess","target":"state","path":["reel3"]},
+                  {
+                   "exprType": "binary",
+                   "op": "Add",
+                   "left": {"exprType":"call","function":"toNumber","args":[{"exprType":"fieldAccess","target":"state","path":["stop3"]}]},
+                   "right": {"exprType":"constant","kind":"Integer","value":"0"}
+                  }
+                 ]
+                }
+               ]
+              },
+              {
+               "exprType": "call",
+               "function": "index",
+               "args": [
+                {"exprType":"fieldAccess","target":"state","path":["reel3"]},
+                {
+                 "exprType": "binary",
+                 "op": "Add",
+                 "left": {"exprType":"call","function":"toNumber","args":[{"exprType":"fieldAccess","target":"state","path":["stop3"]}]},
+                 "right": {"exprType":"constant","kind":"Integer","value":"1"}
+                }
+               ]
+              }
+             ]
+            },
+            {
+             "exprType": "call",
+             "function": "index",
+             "args": [
+              {"exprType":"fieldAccess","target":"state","path":["reel3"]},
+              {
+               "exprType": "binary",
+               "op": "Add",
+               "left": {"exprType":"call","function":"toNumber","args":[{"exprType":"fieldAccess","target":"state","path":["stop3"]}]},
+               "right": {"exprType":"constant","kind":"Integer","value":"2"}
+              }
+             ]
+            }
+           ]
+          },
+          {
+           "exprType": "call",
+           "function": "index",
+           "args": [
+            {"exprType":"fieldAccess","target":"state","path":["reel4"]},
+            {
+             "exprType": "binary",
+             "op": "Add",
+             "left": {"exprType":"call","function":"toNumber","args":[{"exprType":"fieldAccess","target":"state","path":["stop4"]}]},
+             "right": {"exprType":"constant","kind":"Integer","value":"0"}
+            }
+           ]
+          }
+         ]
+        },
+        {
+         "exprType": "call",
+         "function": "index",
+         "args": [
+          {"exprType":"fieldAccess","target":"state","path":["reel4"]},
+          {
+           "exprType": "binary",
+           "op": "Add",
+           "left": {"exprType":"call","function":"toNumber","args":[{"exprType":"fieldAccess","target":"state","path":["stop4"]}]},
+           "right": {"exprType":"constant","kind":"Integer","value":"1"}
+          }
+         ]
+        }
+       ]
+      },
+      {
+       "exprType": "call",
+       "function": "index",
+       "args": [
+        {"exprType":"fieldAccess","target":"state","path":["reel4"]},
+        {
+         "exprType": "binary",
+         "op": "Add",
+         "left": {"exprType":"call","function":"toNumber","args":[{"exprType":"fieldAccess","target":"state","path":["stop4"]}]},
+         "right": {"exprType":"constant","kind":"Integer","value":"2"}
+        }
+       ]
+      }
+     ]
+    }
+   }
+  },
+  "bought-spin": {
+   "name": "bought-spin",
+   "description": "The spin a bought feature opens with: an ordinary spin, given that it shows 3 or more COINs.",
+   "nodes": [
+    {
+     "nodeType": "draw",
+     "id": "mystery",
+     "label": "Draw this spin's mystery symbol",
+     "stateWriteKey": "mysterySymbol",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}},
+     "drawWeights": [
+      {"outcomeId":"1","weight":2,"value":0},
+      {"outcomeId":"2","weight":4,"value":0},
+      {"outcomeId":"3","weight":4,"value":0},
+      {"outcomeId":"4","weight":4,"value":0},
+      {"outcomeId":"5","weight":5,"value":0},
+      {"outcomeId":"6","weight":5,"value":0},
+      {"outcomeId":"7","weight":5,"value":0},
+      {"outcomeId":"8","weight":6,"value":0},
+      {"outcomeId":"9","weight":5,"value":0},
+      {"outcomeId":"10","weight":5,"value":0}
+     ]
+    },
+    {
+     "nodeType": "library",
+     "id": "reels",
+     "label": "Spin the reels",
+     "mechanicName": "spin-reels-triggering",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}},
+     "parameters": {}
+    },
+    {
+     "nodeType": "modifyState",
+     "id": "reveal",
+     "label": "Every mystery cell shows the drawn symbol",
+     "outputKey": "board",
+     "expressionId": "reveal",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}}
+    },
+    {
+     "nodeType": "library",
+     "id": "lines",
+     "label": "Pay the lines",
+     "mechanicName": "paylines",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}},
+     "parameters": {}
+    },
+    {
+     "nodeType": "library",
+     "id": "scatters",
+     "label": "Pay the scatters",
+     "mechanicName": "scatter-pay",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}},
+     "parameters": {"symbol":"11"}
+    },
+    {
+     "nodeType": "modifyState",
+     "id": "trigger",
+     "label": "3 or more scatters trigger the feature",
+     "outputKey": "bonusDue",
+     "expressionId": "trigger",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}}
+    },
+    {
+     "nodeType": "modifyState",
+     "id": "win",
+     "label": "Spin win: (lines + scatters) × spin multiplier",
+     "outputKey": "spinCoins",
+     "expressionId": "win",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}}
+    },
+    {
+     "nodeType": "modifyState",
+     "id": "round",
+     "label": "Add the spin to the round",
+     "outputKey": "roundCoins",
+     "expressionId": "round",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}}
+    },
+    {
+     "nodeType": "modifyState",
+     "id": "trace-board",
+     "label": "Remember the board",
+     "outputKey": "spinBoards",
+     "expressionId": "trace-board",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}}
+    },
+    {
+     "nodeType": "modifyState",
+     "id": "trace-payouts",
+     "label": "Remember the line payouts",
+     "outputKey": "spinLinePayouts",
+     "expressionId": "trace-payouts",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}}
+    },
+    {
+     "nodeType": "modifyState",
+     "id": "trace-symbols",
+     "label": "Remember the line symbols",
+     "outputKey": "spinLineSymbols",
+     "expressionId": "trace-symbols",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}}
+    },
+    {
+     "nodeType": "modifyState",
+     "id": "trace-counts",
+     "label": "Remember the line lengths",
+     "outputKey": "spinLineCounts",
+     "expressionId": "trace-counts",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}}
+    },
+    {
+     "nodeType": "modifyState",
+     "id": "trace-scatters",
+     "label": "Remember the scatter count",
+     "outputKey": "spinScatters",
+     "expressionId": "trace-scatters",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}}
+    },
+    {
+     "nodeType": "modifyState",
+     "id": "trace-scatter-win",
+     "label": "Remember how much of the spin win the scatters paid",
+     "outputKey": "spinScatterWins",
+     "expressionId": "trace-scatter-win",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}}
+    },
+    {
+     "nodeType": "modifyState",
+     "id": "trace-win",
+     "label": "Remember the spin win",
+     "outputKey": "spinWins",
+     "expressionId": "trace-win",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}}
+    }
+   ],
+   "edges": [
+    {"id":"mystery.state->reels","sourceNodeId":"mystery","sourcePort":"state","targetNodeId":"reels","targetPort":"state"},
+    {"id":"reels.state->reveal","sourceNodeId":"reels","sourcePort":"state","targetNodeId":"reveal","targetPort":"state"},
+    {"id":"reveal.state->lines","sourceNodeId":"reveal","sourcePort":"state","targetNodeId":"lines","targetPort":"state"},
+    {"id":"lines.state->scatters","sourceNodeId":"lines","sourcePort":"state","targetNodeId":"scatters","targetPort":"state"},
+    {"id":"scatters.state->trigger","sourceNodeId":"scatters","sourcePort":"state","targetNodeId":"trigger","targetPort":"state"},
+    {"id":"trigger.state->win","sourceNodeId":"trigger","sourcePort":"state","targetNodeId":"win","targetPort":"state"},
+    {"id":"win.state->round","sourceNodeId":"win","sourcePort":"state","targetNodeId":"round","targetPort":"state"},
+    {"id":"round.state->trace-board","sourceNodeId":"round","sourcePort":"state","targetNodeId":"trace-board","targetPort":"state"},
+    {
+     "id": "trace-board.state->trace-payouts",
+     "sourceNodeId": "trace-board",
+     "sourcePort": "state",
+     "targetNodeId": "trace-payouts",
+     "targetPort": "state"
+    },
+    {
+     "id": "trace-payouts.state->trace-symbols",
+     "sourceNodeId": "trace-payouts",
+     "sourcePort": "state",
+     "targetNodeId": "trace-symbols",
+     "targetPort": "state"
+    },
+    {
+     "id": "trace-symbols.state->trace-counts",
+     "sourceNodeId": "trace-symbols",
+     "sourcePort": "state",
+     "targetNodeId": "trace-counts",
+     "targetPort": "state"
+    },
+    {
+     "id": "trace-counts.state->trace-scatters",
+     "sourceNodeId": "trace-counts",
+     "sourcePort": "state",
+     "targetNodeId": "trace-scatters",
+     "targetPort": "state"
+    },
+    {
+     "id": "trace-scatters.state->trace-scatter-win",
+     "sourceNodeId": "trace-scatters",
+     "sourcePort": "state",
+     "targetNodeId": "trace-scatter-win",
+     "targetPort": "state"
+    },
+    {
+     "id": "trace-scatter-win.state->trace-win",
+     "sourceNodeId": "trace-scatter-win",
+     "sourcePort": "state",
+     "targetNodeId": "trace-win",
+     "targetPort": "state"
+    }
+   ],
+   "expressions": {
+    "reveal": {
+     "exprType": "map",
+     "stateKey": "board",
+     "itemName": "item",
+     "itemType": "String",
+     "body": {
+      "exprType": "if",
+      "condition": {
+       "exprType": "compare",
+       "op": "Eq",
+       "left": {"exprType":"fieldAccess","target":"state","path":["item"]},
+       "right": {"exprType":"constant","kind":"String","value":"12"}
+      },
+      "thenExpr": {"exprType":"fieldAccess","target":"state","path":["mysterySymbol"]},
+      "elseExpr": {"exprType":"fieldAccess","target":"state","path":["item"]}
+     }
+    },
+    "trigger": {
+     "exprType": "compare",
+     "op": "Gte",
+     "left": {"exprType":"fieldAccess","target":"state","path":["scatterCount"]},
+     "right": {"exprType":"constant","kind":"Integer","value":"3"}
+    },
+    "win": {
+     "exprType": "binary",
+     "op": "Mul",
+     "left": {
+      "exprType": "binary",
+      "op": "Add",
+      "left": {"exprType":"fieldAccess","target":"state","path":["lineCoins"]},
+      "right": {"exprType":"fieldAccess","target":"state","path":["scatterCoins"]}
+     },
+     "right": {"exprType":"fieldAccess","target":"state","path":["spinMultiplier"]}
+    },
+    "round": {
+     "exprType": "binary",
+     "op": "Add",
+     "left": {"exprType":"fieldAccess","target":"state","path":["roundCoins"]},
+     "right": {"exprType":"fieldAccess","target":"state","path":["spinCoins"]}
+    },
+    "trace-board": {
+     "exprType": "if",
+     "condition": {"exprType":"fieldAccess","target":"state","path":["traceEnabled"]},
+     "thenExpr": {
+      "exprType": "call",
+      "function": "append",
+      "args": [{"exprType":"fieldAccess","target":"state","path":["spinBoards"]},{"exprType":"fieldAccess","target":"state","path":["board"]}]
+     },
+     "elseExpr": {"exprType":"fieldAccess","target":"state","path":["spinBoards"]}
+    },
+    "trace-payouts": {
+     "exprType": "if",
+     "condition": {"exprType":"fieldAccess","target":"state","path":["traceEnabled"]},
+     "thenExpr": {
+      "exprType": "call",
+      "function": "append",
+      "args": [{"exprType":"fieldAccess","target":"state","path":["spinLinePayouts"]},{"exprType":"fieldAccess","target":"state","path":["linePayouts"]}]
+     },
+     "elseExpr": {"exprType":"fieldAccess","target":"state","path":["spinLinePayouts"]}
+    },
+    "trace-symbols": {
+     "exprType": "if",
+     "condition": {"exprType":"fieldAccess","target":"state","path":["traceEnabled"]},
+     "thenExpr": {
+      "exprType": "call",
+      "function": "append",
+      "args": [{"exprType":"fieldAccess","target":"state","path":["spinLineSymbols"]},{"exprType":"fieldAccess","target":"state","path":["lineSymbols"]}]
+     },
+     "elseExpr": {"exprType":"fieldAccess","target":"state","path":["spinLineSymbols"]}
+    },
+    "trace-counts": {
+     "exprType": "if",
+     "condition": {"exprType":"fieldAccess","target":"state","path":["traceEnabled"]},
+     "thenExpr": {
+      "exprType": "call",
+      "function": "append",
+      "args": [{"exprType":"fieldAccess","target":"state","path":["spinLineCounts"]},{"exprType":"fieldAccess","target":"state","path":["lineCounts"]}]
+     },
+     "elseExpr": {"exprType":"fieldAccess","target":"state","path":["spinLineCounts"]}
+    },
+    "trace-scatters": {
+     "exprType": "if",
+     "condition": {"exprType":"fieldAccess","target":"state","path":["traceEnabled"]},
+     "thenExpr": {
+      "exprType": "call",
+      "function": "append",
+      "args": [{"exprType":"fieldAccess","target":"state","path":["spinScatters"]},{"exprType":"fieldAccess","target":"state","path":["scatterCount"]}]
+     },
+     "elseExpr": {"exprType":"fieldAccess","target":"state","path":["spinScatters"]}
+    },
+    "trace-scatter-win": {
+     "exprType": "if",
+     "condition": {"exprType":"fieldAccess","target":"state","path":["traceEnabled"]},
+     "thenExpr": {
+      "exprType": "call",
+      "function": "append",
+      "args": [
+       {"exprType":"fieldAccess","target":"state","path":["spinScatterWins"]},
+       {
+        "exprType": "binary",
+        "op": "Mul",
+        "left": {"exprType":"fieldAccess","target":"state","path":["scatterCoins"]},
+        "right": {"exprType":"fieldAccess","target":"state","path":["spinMultiplier"]}
+       }
+      ]
+     },
+     "elseExpr": {"exprType":"fieldAccess","target":"state","path":["spinScatterWins"]}
+    },
+    "trace-win": {
+     "exprType": "if",
+     "condition": {"exprType":"fieldAccess","target":"state","path":["traceEnabled"]},
+     "thenExpr": {
+      "exprType": "call",
+      "function": "append",
+      "args": [{"exprType":"fieldAccess","target":"state","path":["spinWins"]},{"exprType":"fieldAccess","target":"state","path":["spinCoins"]}]
+     },
+     "elseExpr": {"exprType":"fieldAccess","target":"state","path":["spinWins"]}
+    }
+   }
+  }
+ },
+ "symbols": [
+  {"id":"0","name":"WOMAN","kind":"Wild"},
+  {"id":"1","name":"CHEST","kind":"Standard"},
+  {"id":"2","name":"TIARA","kind":"Standard"},
+  {"id":"3","name":"MUSHROOMS","kind":"Standard"},
+  {"id":"4","name":"PINECONE","kind":"Standard"},
+  {"id":"5","name":"A","kind":"Standard"},
+  {"id":"6","name":"K","kind":"Standard"},
+  {"id":"7","name":"Q","kind":"Standard"},
+  {"id":"8","name":"J","kind":"Standard"},
+  {"id":"9","name":"10","kind":"Standard"},
+  {"id":"10","name":"9","kind":"Standard"},
+  {"id":"11","name":"COIN","kind":"Scatter"},
+  {"id":"12","name":"REPLACEMENT","kind":"Standard"}
+ ],
+ "paytables": [
+  {
+   "id": "lines",
+   "entries": [
+    {"symbolId":"10","counts":[3,4,5],"payouts":["1/600","1/120","9/200"]},
+    {"symbolId":"9","counts":[3,4,5],"payouts":["1/600","1/120","9/200"]},
+    {"symbolId":"2","counts":[3,4,5],"payouts":["1/120","9/200","71/300"]},
+    {"symbolId":"3","counts":[3,4,5],"payouts":["1/150","13/600","29/200"]},
+    {"symbolId":"4","counts":[3,4,5],"payouts":["1/150","13/600","29/200"]},
+    {"symbolId":"5","counts":[3,4,5],"payouts":["1/600","7/600","1/15"]},
+    {"symbolId":"6","counts":[3,4,5],"payouts":["1/600","7/600","1/15"]},
+    {"symbolId":"7","counts":[3,4,5],"payouts":["1/600","1/120","9/200"]},
+    {"symbolId":"8","counts":[3,4,5],"payouts":["1/600","1/120","9/200"]}
+   ]
+  },
+  {"id":"scatters","entries":[{"symbolId":"11","counts":[2,3,4,5],"payouts":["1/100","1/20","1/10","5"]}]}
+ ],
+ "paylineSets": [
+  {
+   "id": "lines",
+   "paylines": [
+    {"positions":[1,1,1,1,1]},
+    {"positions":[0,0,0,0,0]},
+    {"positions":[2,2,2,2,2]},
+    {"positions":[0,1,2,1,0]},
+    {"positions":[2,1,0,1,2]},
+    {"positions":[0,0,1,0,0]},
+    {"positions":[2,2,1,2,2]},
+    {"positions":[1,0,1,0,1]},
+    {"positions":[1,2,1,2,1]},
+    {"positions":[0,1,0,1,0]},
+    {"positions":[2,1,2,1,2]},
+    {"positions":[1,0,0,0,1]},
+    {"positions":[1,2,2,2,1]},
+    {"positions":[0,1,1,1,0]},
+    {"positions":[2,1,1,1,2]},
+    {"positions":[1,1,0,1,1]},
+    {"positions":[1,1,2,1,1]},
+    {"positions":[0,0,2,0,0]},
+    {"positions":[2,2,0,2,2]},
+    {"positions":[0,2,0,2,0]},
+    {"positions":[2,0,2,0,2]},
+    {"positions":[0,2,2,2,0]},
+    {"positions":[2,0,0,0,2]},
+    {"positions":[1,0,2,0,1]},
+    {"positions":[1,2,0,2,1]},
+    {"positions":[0,0,0,1,2]},
+    {"positions":[2,2,2,1,0]},
+    {"positions":[0,1,0,0,0]},
+    {"positions":[2,1,2,2,2]},
+    {"positions":[0,0,1,2,2]}
+   ]
+  }
+ ],
+ "boardConfig": {"rows":3,"columns":5}
+}

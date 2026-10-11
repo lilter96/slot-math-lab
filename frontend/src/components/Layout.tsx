@@ -94,6 +94,13 @@ export default function Layout() {
               Sampled
             </span>
           </div>
+          {/* The ported games are a page of their own: they play their graphs through the same endpoint as /play. */}
+          {features.play && (
+            <a className="btn" href="/games.html" style={{ textDecoration: 'none' }}>
+              <Ic.sim style={{ width: 15, height: 15 }} />
+              Games
+            </a>
+          )}
           {features.ai && (
             <button
               className="btn"

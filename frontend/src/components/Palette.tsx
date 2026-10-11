@@ -1,5 +1,6 @@
 import { useCallback } from 'react';
 import { Ic, NODE_ACCENT } from './Icons';
+import StarterLibrary from './editor/StarterLibrary';
 
 interface PaletteItem {
   id: string;
@@ -71,6 +72,7 @@ function PaletteRow({ item }: { item: PaletteItem }) {
 export default function Palette() {
   return (
     <div className="palette" tabIndex={0}>
+      <StarterLibrary />
       <div className="grp">
         <div className="section-label">Primitives</div>
       </div>

@@ -24,6 +24,7 @@
   <ItemGroup>
     <Using Include="Xunit" />
     <Content Include="../SlotMath.Core.Tests/TestData/LabDemo/*.json" Link="TestData/LabDemo/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="../SlotMath.Core.Tests/TestData/Games/ancient-dragon.small.json" Link="TestData/Games/ancient-dragon.small.json" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="../../frontend/e2e/fixtures/fractional-model.json" Link="TestData/fractional-model.json" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="../../frontend/e2e/fixtures/measurement-model.json" Link="TestData/measurement-model.json" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="../../frontend/e2e/fixtures/component-accounting-model.json" Link="TestData/component-accounting-model.json" CopyToOutputDirectory="PreserveNewest" />

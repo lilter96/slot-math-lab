@@ -1,0 +1,26 @@
+{
+  "IMPACT_0": {
+    "x": 0,
+    "y": 0,
+    "width": 543,
+    "height": 724
+  },
+  "IMPACT_1": {
+    "x": 543,
+    "y": 0,
+    "width": 543,
+    "height": 724
+  },
+  "IMPACT_2": {
+    "x": 1086,
+    "y": 0,
+    "width": 543,
+    "height": 724
+  },
+  "IMPACT_3": {
+    "x": 1629,
+    "y": 0,
+    "width": 543,
+    "height": 724
+  }
+}

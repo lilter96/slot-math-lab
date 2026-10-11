@@ -151,6 +151,9 @@ button { font-family: inherit; color: inherit; cursor: pointer; }
 .model-navigation-heading span { color: var(--muted); font-size: 11px; }
 .model-navigation-actions { display: flex; gap: 6px; flex-wrap: wrap; }
 .model-navigation-actions .btn { font-size: 11px; }
+.model-navigation-actions .inp { width: 220px; max-width: 100%; }
+.model-navigation-list { max-height: 96px; overflow-y: auto; margin: 6px 0; }
+.model-navigation-extract { align-items: center; }
 .node-open-subgraph { width: 100%; margin-top: 8px; font-size: 11px; }
 @media (max-width: 880px) {
   .workspace:has(.model-navigation) { min-height: 660px; max-height: none; flex: none; }

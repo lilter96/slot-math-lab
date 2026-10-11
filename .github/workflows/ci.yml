@@ -59,6 +59,7 @@ jobs:
       - run: npm ci --legacy-peer-deps
         working-directory: frontend
       - run: node frontend/scripts/export-lab-demo-fixtures.mjs --check
+      - run: node frontend/scripts/export-game-fixtures.mjs --check
       - run: python3 scripts/verification/demo_reference.py --check
       - run: python3 scripts/verification/check-demo-names.py
       - run: dotnet restore backend/SlotMathLab.slnx

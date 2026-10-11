@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <link rel="icon" href="data:," />
+    <title>TG Slots</title>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body {
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        background: #060e04;
+        overscroll-behavior: none;
+      }
+      body {
+        position: fixed;
+        inset: 0;
+        touch-action: manipulation;
+      }
+      #game-container {
+        width: 100%;
+        height: 100%;
+      }
+      canvas {
+        display: block;
+        width: 100%;
+        height: 100%;
+      }
+
+      /* ── Game Loader ─────────────────────────────────────────────── */
+      #game-loader {
+        position: fixed;
+        inset: 0;
+        z-index: 10000;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        background: var(--lb, #060e04);
+        opacity: 1;
+        transition: opacity 0.4s ease;
+        cursor: default;
+        user-select: none;
+      }
+      #game-loader.is-fade {
+        opacity: 0;
+        pointer-events: none;
+      }
+      .loader-bg {
+        position: absolute;
+        inset: 0;
+        background-image: var(--lbg-img, none);
+        background-size: cover;
+        background-position: center;
+        z-index: 0;
+      }
+      .loader-vignette {
+        position: absolute;
+        inset: 0;
+        background: radial-gradient(ellipse at center, transparent 10%, rgba(0,0,0,0.82) 100%);
+        z-index: 1;
+      }
+      .loader-content {
+        position: relative;
+        z-index: 2;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 1.5rem;
+        padding: 2rem;
+        width: 100%;
+      }
+      .loader-title {
+        font-family: Georgia, serif;
+        color: var(--lt, #ffe066);
+        font-size: clamp(1.4rem, 5vw, 3.5rem);
+        font-weight: 900;
+        letter-spacing: 0.15em;
+        text-align: center;
+        text-shadow: 0 0 40px var(--la, #d4a017), 0 2px 8px rgba(0,0,0,0.9);
+      }
+      .loader-bar {
+        width: clamp(180px, 40vw, 420px);
+        height: 3px;
+        background: rgba(255,255,255,0.12);
+        border-radius: 2px;
+        overflow: hidden;
+      }
+      .loader-bar-fill {
+        height: 100%;
+        width: 0%;
+        background: var(--la, #d4a017);
+        border-radius: 2px;
+        transition: width 0.35s ease;
+        box-shadow: 0 0 8px var(--la, #d4a017);
+      }
+      .loader-status {
+        font-family: Georgia, serif;
+        color: var(--lt, #ffe066);
+        font-size: 0.7rem;
+        letter-spacing: 0.35em;
+        text-transform: uppercase;
+        opacity: 0.6;
+      }
+      @keyframes loader-pulse {
+        0%, 100% { opacity: 0.6; }
+        50% { opacity: 1; }
+      }
+      #game-loader.is-tap .loader-status {
+        opacity: 0.9;
+        animation: loader-pulse 1.6s ease-in-out infinite;
+        font-size: 0.8rem;
+        letter-spacing: 0.4em;
+      }
+
+      .game-shell { position: fixed; inset: 0 0 auto; z-index: 100; min-height: 52px; padding: 4px max(12px,env(safe-area-inset-right)); display:flex; justify-content:space-between; align-items:center; gap:8px; background:linear-gradient(#071015ed,#071015a8); color:#eef5ef; font-family:Arial,sans-serif; border-bottom:1px solid #cfba7330; }
+      .game-identity { display:flex; align-items:center; gap:12px; min-width:0; }
+      .game-brand { color:#e5c77a; font-size:21px; font-weight:900; letter-spacing:-1px; }
+      .game-shell h1 { font-size:16px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+      .game-shell nav { display:flex; align-items:center; gap:6px; flex-shrink:0; }
+      .game-shell button,.game-shell a,.game-rules button { font:600 12px Arial,sans-serif; color:#eef5ef; background:#19292dcc; border:1px solid #b7c9cb40; border-radius:7px; min-width:44px; min-height:44px; padding:10px; cursor:pointer; display:inline-flex; align-items:center; justify-content:center; text-decoration:none; }
+      .game-shell button:hover,.game-shell a:hover { background:#29434c; }
+      .game-shell :focus-visible,.game-rules :focus-visible { outline:3px solid #e5c77a; outline-offset:2px; }
+      .game-rules { width:min(520px,calc(100% - 32px)); max-height:calc(100dvh - 40px); margin:auto; padding:28px; overflow:auto; border:1px solid #66817e; border-radius:18px; background:#101f23; color:#eef5ef; font:15px/1.7 Arial,sans-serif; box-shadow:0 25px 100px #0009; }
+      .game-rules::backdrop { background:#030909bb; backdrop-filter:blur(5px); }
+      .game-rules h2 { font-size:24px; margin-bottom:8px; }
+      .game-rules .rules-context { color:#e5c77a; font-size:12px; }
+      .game-rules ul { padding-left:18px; margin:20px 0; }
+      .game-rules p { color:#b5c8cb; margin-bottom:16px; }
+      .game-rules details { border-top:1px solid #b7c9cb30; padding:8px 0; }
+      .game-rules summary { min-height:44px; cursor:pointer; font-weight:700; color:#e5c77a; display:flex; align-items:center; gap:8px; }
+      .rules-symbol-icon { display:inline-block; position:relative; width:44px; height:44px; flex:0 0 44px; overflow:hidden; vertical-align:middle; margin-right:6px; }
+      .rules-symbol-icon img { width:100%; height:100%; object-fit:contain; }
+      .rules-paytable { width:100%; border-collapse:collapse; font-size:13px; }
+      .rules-paytable th,.rules-paytable td { padding:6px 4px; text-align:center; border-bottom:1px solid #b7c9cb20; }
+      .rules-paytable th:first-child { text-align:left; }
+      .rules-payout-grid { display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); gap:6px; }
+      .rules-payout-grid div { padding:6px 2px; background:#1b3033; border-radius:5px; text-align:center; }
+      .rules-payout-grid dt { font-size:10px; color:#b5c8cb; }.rules-payout-grid dd { margin:0; color:#e5c77a; font-weight:700; }
+      .rules-paylines { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:10px; }
+      .rules-paylines figure { margin:0; padding:8px; background:#192b2d; border-radius:6px; }.rules-paylines figcaption { font-size:12px; }
+      .rules-line-grid { display:grid; grid-template-columns:repeat(5,1fr); gap:2px; margin-top:6px; }
+      .rules-line-grid span { height:12px; background:#ffffff15; border-radius:2px; }.rules-line-grid .active { background:#e5c77a; }
+      .rules-audio { border:1px solid #b7c9cb30; border-radius:8px; margin:18px 0; padding:12px; }.rules-audio label { display:grid; grid-template-columns:55px minmax(0,1fr) 40px; align-items:center; gap:8px; min-height:44px; }.rules-audio input { width:100%; accent-color:#e5c77a; }
+      .rules-bet { display:flex; gap:12px; margin-bottom:20px; }
+      .game-toast { position:fixed; bottom:125px; left:50%; transform:translateX(-50%); z-index:200; width:min(460px,calc(100% - 32px)); padding:14px 18px; border:1px solid #e5c77a; border-radius:10px; background:#122328ee; color:#eef5ef; font:14px/1.6 Arial,sans-serif; }
+      @media(max-width:500px) { .game-brand { display:none; } .game-shell h1 { font-size:13px; } .game-shell nav { gap:4px; } .game-shell button,.game-shell a { padding:6px; font-size:11px; } }
+
+      .game-lobby { position:fixed; inset:0; z-index:11000; overflow:auto; padding:clamp(32px,7vw,88px) max(24px,calc((100vw - 1200px)/2)); background:radial-gradient(ellipse at 70% 0%,#1d3744,#080f19 65%); color:#edf4f6; font-family:Arial,sans-serif; }
+      .lobby-intro { margin-bottom:40px; }
+      .lobby-eyebrow { font-size:12px; letter-spacing:3px; color:#a3d9c8; margin-bottom:20px; }
+      .lobby-intro h1 { font-size:clamp(36px,5vw,64px); font-weight:700; letter-spacing:-2px; margin-bottom:16px; }
+      .lobby-intro > p:last-child { color:#b4c3cf; font-size:17px; line-height:1.6; }
+      .lobby-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:24px; }
+      .lobby-card { position:relative; min-height:380px; overflow:hidden; text-align:left; padding:0; border:1px solid #a9bdce40; border-radius:18px; background:#101f2b; color:inherit; cursor:pointer; transition:transform .2s,border-color .2s; }
+      .lobby-card .lobby-card-mascot { inset:12px 10px auto auto; width:65%; height:65%; object-fit:contain; filter:drop-shadow(0 0 18px #ed60b155); }
+      .lobby-card img { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; }
+      .lobby-card::after { content:''; position:absolute; inset:0; background:linear-gradient(transparent 5%,#08101966 30%,#081019f2 75%); }
+      .lobby-card-content { position:relative; z-index:1; padding:190px 26px 28px; }
+      .lobby-category { color:var(--game-accent); font-size:10px; letter-spacing:1.5px; font-weight:700; }
+      .lobby-card h2 { font-size:26px; letter-spacing:-.5px; margin:12px 0; }
+      .lobby-card p { color:#b6c7d0; font-size:14px; line-height:1.6; min-height:45px; }
+      .lobby-play { display:inline-block; color:var(--game-accent); margin-top:24px; font-size:14px; font-weight:700; }
+      .lobby-card:hover { transform:translateY(-5px); border-color:var(--game-accent); }
+      .lobby-card:focus-visible { outline:3px solid var(--game-accent); outline-offset:5px; }
+      .lobby-source { display:inline-block; margin-top:32px; color:#b4c3cf; font-size:13px; text-decoration:none; }
+      @media(max-width:760px) { .lobby-grid { grid-template-columns:1fr; gap:18px; } .lobby-card { min-height:270px; } .lobby-card-content { padding-top:95px; } .game-lobby { padding:36px 24px; } }
+      @media(prefers-reduced-motion:reduce) { .lobby-card { transition:none; } .lobby-card:hover { transform:none; } }
+      .loader-retry { margin-top:20px; padding:14px 24px; font:600 15px Arial,sans-serif; color:#10201b; border:0; border-radius:8px; background:#e5c77a; cursor:pointer; }
+    </style>
+  </head>
+  <body>
+    <div id="game-loader">
+      <div class="loader-bg"></div>
+      <div class="loader-vignette"></div>
+      <div class="loader-content">
+        <h1 class="loader-title"></h1>
+        <div class="loader-bar"><div class="loader-bar-fill"></div></div>
+        <p class="loader-status">Loading…</p>
+      </div>
+    </div>
+    <div id="game-container"></div>
+    <script type="module" src="/src/games/client/main.ts"></script>
+  </body>
+</html>

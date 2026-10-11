@@ -41,9 +41,35 @@ export function rootProject(): Record<string, unknown> | null {
   while (useAppStore.getState().graphTrail.length) closeMechanic();
   return exportProject();
 }
+
+/** Add a reference to the current editable definition, preserving its ports and shared dependencies. */
+export function reuseMechanic(name: string) {
+  const root = rootProject();
+  const mechanic = (root?.mechanics as Record<string, { nodes: Record<string, unknown>[]; edges: Record<string, unknown>[] }> | undefined)?.[name];
+  if (!mechanic) throw new Error('Mechanic is not defined in this project');
+  const inputs: Record<string, unknown> = {}, outputs: Record<string, unknown> = {};
+  for (const node of mechanic.nodes) {
+    for (const [port, contract] of Object.entries(node.inputs as Record<string, unknown> ?? {})) {
+      if (!mechanic.edges.some(edge => edge.targetNodeId === node.id && edge.targetPort === port)) inputs[port] = contract;
+    }
+    for (const [port, contract] of Object.entries(node.outputs as Record<string, unknown> ?? {})) {
+      if (!(port in outputs) && !mechanic.edges.some(edge => edge.sourceNodeId === node.id && edge.sourcePort === port)) outputs[port] = contract;
+    }
+  }
+  const id = `subgraph-${crypto.randomUUID()}`;
+  const count = useAppStore.getState().nodes.length;
+  useAppStore.getState().addNode({ id, type: 'library', position: { x: 80 + count % 5 * 270, y: 100 + Math.floor(count / 5) * 200 },
+    data: { nodeType: 'library', label: name, mechanicName: name,
+      backendNode: { nodeType: 'library', id, label: name, mechanicName: name, parameters: {}, inputs, outputs } } });
+  useAppStore.getState().selectNode(id);
+}
 export function exportProject() {
   const state = useAppStore.getState();
-  return buildConfigPayload(state.nodes, state.edges, { name: state.configName ?? 'Untitled', tables: state.tables });
+  const name = state.configName ?? 'Untitled';
+  const config = buildConfigPayload(state.nodes, state.edges, { name, tables: state.tables });
+  // An empty definition is a valid editing draft. Save it before returning to its
+  // parent; otherwise rootProject repeatedly tries to close the same empty graph.
+  return config ?? (state.graphTrail.length ? { ...state.tables, schemaVersion: '1.0.0', name, nodes: [], edges: [] } : null);
 }
 export function loadCoinExample() {
   loadProject({ schemaVersion: '1.0.0', name: 'REF-A Coin', nodes: [

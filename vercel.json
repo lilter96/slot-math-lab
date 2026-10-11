@@ -21,7 +21,7 @@
   ],
   "headers": [
     {
-      "source": "/assets/(.*)",
+      "source": "/assets/:bundle",
       "headers": [
         {
           "key": "Cache-Control",

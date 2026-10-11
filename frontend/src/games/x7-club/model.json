@@ -1,0 +1,65 @@
+{
+  "source": "tgslots packages/games/x7-club/config/config.json, src/constants.ts PAYLINES and HOLD_RULES, src/machine.ts",
+  "game_metadata": {"name": "X7 Club", "cost_to_play": 20},
+  "symbols": {
+    "regular": ["CHILL", "HYPE", "LOL", "GG", "SEVEN", "WILD", "COIN"],
+    "wild": "WILD",
+    "coin": "COIN"
+  },
+  "cell_weights": {"CHILL": 2500, "HYPE": 2300, "LOL": 2000, "GG": 1700, "SEVEN": 1200, "WILD": 300, "COIN": 1972},
+  "paytable": {
+    "CHILL": {"3": 4, "4": 12, "5": 40},
+    "HYPE": {"3": 5, "4": 15, "5": 50},
+    "LOL": {"3": 6, "4": 20, "5": 70},
+    "GG": {"3": 8, "4": 25, "5": 90},
+    "SEVEN": {"3": 12, "4": 40, "5": 150}
+  },
+  "prizes": [
+    {"tier": "CREDIT", "bets": 1, "weight": 6500},
+    {"tier": "CREDIT", "bets": 2, "weight": 2000},
+    {"tier": "CREDIT", "bets": 3, "weight": 800},
+    {"tier": "CREDIT", "bets": 5, "weight": 400},
+    {"tier": "CREDIT", "bets": 7, "weight": 200},
+    {"tier": "MINI", "bets": 10, "weight": 100},
+    {"tier": "MAJOR", "bets": 50, "weight": 10},
+    {"tier": "MEGA", "bets": 250, "weight": 1}
+  ],
+  "hold": {"rows": 3, "trigger": 6, "respins": 3, "hit_weight": 85, "miss_weight": 915},
+  "column_boost": {
+    "max_pulls": 7,
+    "kinds": [
+      {"kind": "STOP", "weight": 65, "add_bets": 0, "times": 1, "ends": true},
+      {"kind": "PLUS1", "weight": 24, "add_bets": 1, "times": 1, "ends": false},
+      {"kind": "PLUS2", "weight": 10, "add_bets": 2, "times": 1, "ends": false},
+      {"kind": "X7", "weight": 1, "add_bets": 0, "times": 7, "ends": true}
+    ]
+  },
+  "buy": {
+    "cost_multiplier": 77,
+    "entry_credits": 201,
+    "cells": [0, 2, 4, 6, 10, 14]
+  },
+  "max_win": 7777,
+  "paylines": [
+    [0, 0, 0, 0, 0],
+    [1, 1, 1, 1, 1],
+    [2, 2, 2, 2, 2],
+    [0, 1, 2, 1, 0],
+    [2, 1, 0, 1, 2],
+    [0, 0, 1, 0, 0],
+    [2, 2, 1, 2, 2],
+    [1, 0, 0, 0, 1],
+    [1, 2, 2, 2, 1],
+    [0, 1, 1, 1, 0],
+    [2, 1, 1, 1, 2],
+    [1, 0, 1, 0, 1],
+    [1, 2, 1, 2, 1],
+    [0, 1, 0, 1, 0],
+    [2, 1, 2, 1, 2],
+    [0, 2, 0, 2, 0],
+    [2, 0, 2, 0, 2],
+    [0, 2, 2, 2, 0],
+    [2, 0, 0, 0, 2],
+    [1, 0, 2, 0, 1]
+  ]
+}

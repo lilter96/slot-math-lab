@@ -1,0 +1,87 @@
+{
+  "generator": "imagegen",
+  "encoding": "WebP 93%, alpha preserved; symbols 384px, foreground 1024px, background 1536px",
+  "assets": [
+    {
+      "id": "CHILL",
+      "source": "exec-9706c999-c0ae-4980-971f-f9fbe8affa85.png",
+      "output": "chill.webp",
+      "width": 384,
+      "height": 384,
+      "bytes": 62906,
+      "cornerAlpha": 0
+    },
+    {
+      "id": "HYPE",
+      "source": "exec-b37b794c-659d-4ac0-b884-dba770123aa9.png",
+      "output": "hype.webp",
+      "width": 384,
+      "height": 384,
+      "bytes": 53952,
+      "cornerAlpha": 0
+    },
+    {
+      "id": "LOL",
+      "source": "exec-d25dcbdc-418b-4cdc-affe-23559ea7e733.png",
+      "output": "lol.webp",
+      "width": 384,
+      "height": 384,
+      "bytes": 42332,
+      "cornerAlpha": 0
+    },
+    {
+      "id": "GG",
+      "source": "exec-83fd8aba-a84f-41b2-9c3e-0211f9a7b752.png",
+      "output": "gg.webp",
+      "width": 384,
+      "height": 384,
+      "bytes": 62268,
+      "cornerAlpha": 0
+    },
+    {
+      "id": "SEVEN",
+      "source": "exec-3dc9394e-be7a-476b-ab55-b8010cff8e3f.png",
+      "output": "seven.webp",
+      "width": 384,
+      "height": 384,
+      "bytes": 60026,
+      "cornerAlpha": 0
+    },
+    {
+      "id": "background",
+      "source": "exec-15c041ad-3262-4206-aa39-b6304f82b455.png",
+      "output": "nightclub.webp",
+      "width": 1536,
+      "height": 1024,
+      "bytes": 230152,
+      "cornerAlpha": 255
+    },
+    {
+      "id": "WILD",
+      "source": "exec-ef336431-5e2d-4560-8b55-6e776b618329.png",
+      "output": "wild.webp",
+      "width": 384,
+      "height": 384,
+      "bytes": 69986,
+      "cornerAlpha": 0
+    },
+    {
+      "id": "COIN",
+      "source": "exec-49d330fa-2b85-4a1b-b134-0483db21d4d7.png",
+      "output": "coin.webp",
+      "width": 384,
+      "height": 384,
+      "bytes": 50094,
+      "cornerAlpha": 0
+    },
+    {
+      "id": "WILD_HERO",
+      "source": "exec-ef336431-5e2d-4560-8b55-6e776b618329.png",
+      "output": "wild-hero.webp",
+      "width": 1024,
+      "height": 1024,
+      "bytes": 359268,
+      "cornerAlpha": 0
+    }
+  ]
+}

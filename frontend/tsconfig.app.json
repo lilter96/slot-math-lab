@@ -22,5 +22,7 @@
     "erasableSyntaxOnly": true,
     "noFallthroughCasesInSwitch": true
   },
-  "include": ["src"]
+  "include": ["src"],
+  // The ported slot game client is compiled with the options it was written for: tsconfig.games.json.
+  "exclude": ["src/games/client"]
 }

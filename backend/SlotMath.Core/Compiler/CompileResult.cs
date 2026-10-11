@@ -1,4 +1,6 @@
 using System.Numerics;
+using SlotMath.Core.Math.Structured;
+using SlotMath.Core.Measurements;
 using SlotMath.Core.Monad;
 
 namespace SlotMath.Core.Compiler;
@@ -15,19 +17,24 @@ public sealed record CompileResult
 {
     /// <summary>The compiled Slot program, or null if validation failed.</summary>
     public Slot<Dictionary<string, object?>, BigInteger>? Program { get; init; }
+
     /// <summary>Canonical immutable program for exact evaluation and equivalence checks.</summary>
     public Slot<Dictionary<string, object?>, BigInteger>? ReferenceProgram { get; init; }
-    public SlotMath.Core.Measurements.MeasurementSchema? MeasurementSchema { get; init; }
+
+    public MeasurementSchema? MeasurementSchema { get; init; }
     public string SamplingEngine { get; init; } = "reference-interpreter";
 
     /// <summary>
-    /// Sub-credit scale of the program's win amounts.  1 when every payout
-    /// is integral.  When the config contains fractional paytable payouts
-    /// (e.g. "2.5"), the compiler multiplies all win sources by this power
-    /// of ten so the value channel stays exact integers; evaluators must
-    /// divide it back out (HybridEvaluator does this via RegimeConfig.WinScale).
+    ///     Sub-credit scale of the program's win amounts.  1 when every payout
+    ///     is integral.  When the config contains fractional paytable payouts
+    ///     (e.g. "2.5"), the compiler multiplies all win sources by this power
+    ///     of ten so the value channel stays exact integers; evaluators must
+    ///     divide it back out (HybridEvaluator does this via RegimeConfig.WinScale).
     /// </summary>
     public BigInteger WinScale { get; init; } = BigInteger.One;
+
+    /// <summary>The resolved graph and initial state, kept for the structured exact evaluator.</summary>
+    internal StructuredModel? Structured { get; init; }
 
     /// <summary>Validation/compilation errors. Empty means valid.</summary>
     public IReadOnlyList<CompileError> Errors { get; init; } = Array.Empty<CompileError>();

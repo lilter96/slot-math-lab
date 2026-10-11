@@ -1,14 +1,78 @@
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using SlotMath.Core;
 using SlotMath.Core.Compiler;
 using SlotMath.Core.Math;
+using SlotMath.Core.Math.Structured;
 using SlotMath.Core.Model;
 using SlotMath.Core.Serialization;
 
+namespace SlotMath.Benchmarks;
+
 internal static class GraphPerformance
 {
+    /// <summary>Structured exact evaluation: the exact rational RTP of a graph with too many outcomes to enumerate.</summary>
+    private static void Exact(CompileResult compiled, int repeats, string report)
+    {
+        var measurements = new List<object>();
+        for (var i = 0; i < repeats; i++)
+        {
+            GC.Collect();
+            GC.WaitForPendingFinalizers();
+            GC.Collect();
+            var bytes = GC.GetTotalAllocatedBytes(true);
+            var collections = Enumerable.Range(0, 3).Select(GC.CollectionCount).ToArray();
+            TimeSpan pause = GC.GetTotalPauseDuration();
+            StructuredExactResult result = StructuredExactEvaluator.Evaluate(compiled);
+            var allocated = GC.GetTotalAllocatedBytes(true) - bytes;
+            var gc = string.Join('/', Enumerable.Range(0, 3).Select(g => GC.CollectionCount(g) - collections[g]));
+            var pauseMs = (GC.GetTotalPauseDuration() - pause).TotalMilliseconds;
+            if (!result.Succeeded)
+            {
+                Console.WriteLine($"declined: {result.DeclinedReason} ({result.Elapsed.TotalMilliseconds:N0} ms)");
+                return;
+            }
+
+            RtpMetric rtp = result.Rtp(compiled.WinScale);
+            Console.WriteLine(
+                $"{i + 1}: {result.Elapsed.TotalMilliseconds:N0} ms; RTP {rtp.DisplayValue:R}; distribution {(result.Distribution is { } d ? $"{d.Count} values" : "not built")}; " +
+                $"{result.RandomVariables} variables; {result.Terms:N0} terms; {result.Laws:N0} laws; work {result.Work:N0}; {allocated / 1048576.0:N0} MiB allocated; gc {gc}, {pauseMs:N0} ms paused; heap {GC.GetTotalMemory(false) / 1048576.0:N0} MiB");
+            measurements.Add(new
+            {
+                elapsedMs = result.Elapsed.TotalMilliseconds,
+                rtp = rtp.DisplayValue,
+                rationalRtp = $"{rtp.RationalNumerator}/{rtp.RationalDenominator}",
+                distributionValues = result.Distribution?.Count,
+                randomVariables = result.RandomVariables,
+                terms = result.Terms,
+                laws = result.Laws,
+                work = result.Work,
+                allocatedBytes = allocated,
+                gcPauseMs = pauseMs,
+                hitFrequency = result.HitFrequency?.ToDouble(),
+                rationalHitFrequency =
+                    result.HitFrequency is { } hits ? $"{hits.Numerator}/{hits.Denominator}" : null
+            });
+        }
+
+        if (report.Length > 0)
+        {
+            File.WriteAllText(report,
+                JsonSerializer.Serialize(
+                    new
+                    {
+                        runtime = Environment.Version.ToString(),
+                        processors = Environment.ProcessorCount,
+                        measurements
+                    }, new JsonSerializerOptions
+                    {
+                        WriteIndented = true
+                    }));
+        }
+    }
+
     public static void Run(string[] args)
     {
         string Option(string name, string fallback)
@@ -31,6 +95,20 @@ internal static class GraphPerformance
         }
 
         compileTimer.Stop();
+        if (args.Contains("--exact") && args.Contains("--allocations"))
+        {
+            using var profile = new AllocationProfile();
+            StructuredExactEvaluator.Evaluate(compiled);
+            profile.Report(1);
+            return;
+        }
+
+        if (args.Contains("--exact"))
+        {
+            Exact(compiled, repeats, Option("--report", ""));
+            return;
+        }
+
         var live = args.Contains("--live");
         var updates = 0;
 
@@ -124,7 +202,13 @@ internal static class GraphPerformance
             allocationCounter = workers == 1 ? "current-thread" : "process-total",
             measurements
         };
-        var json = JsonSerializer.Serialize(report, new JsonSerializerOptions { WriteIndented = true });
+        // The last bucket of a win histogram has no upper bound.
+        var json = JsonSerializer.Serialize(report,
+            new JsonSerializerOptions
+            {
+                WriteIndented = true,
+                NumberHandling = JsonNumberHandling.AllowNamedFloatingPointLiterals
+            });
         var output = Option("--report", "");
         if (output.Length > 0)
         {
