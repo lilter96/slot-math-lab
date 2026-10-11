@@ -20,7 +20,7 @@ Branch: `feat/precision-workbench-redesign`. Isolated worktree based on fetched 
 | 3 graph workspace | verified (cleanup limitation) | contextual inspector, palette/library separation, camera/search | nested editing/browser |
 | 4 data editing | verified weighted draws; strip/CSV/payout mappings deferred | capability-detected weighted draws; transaction/undo | unit/export/reload |
 | 5 features | verified | readable summaries; safe mapped parameters only | form/graph preservation |
-| 6 evidence/debug | todo | existing evidence and actual traces only | no invented attribution |
+| 6 evidence/debug | verified supported trace | existing evidence and actual traces only | no invented attribution |
 | 7 hardening/report | todo | viewports/accessibility/regression/manual review | FINAL_QA_REPORT.md |
 
 Next exact task: finish baseline build/lint/unit/critical + before screenshots; implement trust-state correction and responsive shell.
@@ -38,3 +38,5 @@ Phase 3 final: clean build/lint, 117 units, feature/metric tests and 9/9 graph/l
 Slice 4: 119 units and 3 workbench browser tests pass; actual API independently proves changed coin expectation 1. Undo bug from JSON key ordering fixed using canonical comparison. Screenshots slice4-data-*.png; qa/SLICE_4_REVIEW.md. Next: safe feature form with complete known source mapping, then trace/evidence and final comprehensive regression.
 
 Slice 5: build/lint, 121 units, 4/4 workbench browser tests pass. Guarded free-spin form updates all executable count sources together; actual purchased round with one life returns one board. Screenshots slice5-features-{1440,1280,1024,390}.png. No universal form conversion or bonus-price inference. Next exact task: current-model Debug round, source-backed board/cascade trace and replay verification, then final evidence and viewport audit.
+
+Slice 6: build/lint, 123 units, 7 browser checks pass. Debug executes the canonical current graph, renders returned boards/cascade hit positions, downloads pinned receipts and verifies replay against full actual response even after draft edits. Play/Debug remain fail-closed behind play flag. No node IDs or version pinning exist in API; no fabricated mapping or cross-version replay assurance. Actual screenshots slice6-debug-*.png. Existing saved-run evidence remains authoritative. Next: guarded cluster payout mapping (metadata alone is not executable), final export/root/provenance audit and comprehensive checks.

@@ -16,6 +16,7 @@ const TABS = [
   { id: 'simulate' as const, label: 'Simulate', Icon: Ic.sim },
   { id: 'results' as const, label: 'Results', Icon: Ic.results },
   { id: 'export' as const, label: 'Export', Icon: Ic.export },
+  { id: 'debug' as const, label: 'Debug', Icon: Ic.sim },
   { id: 'play' as const, label: 'Play', Icon: Ic.sim },
 ];
 
@@ -34,7 +35,7 @@ export default function Layout() {
   const toggleNav = () => setCollapsed(value => { sessionStorage.setItem('slotmath-nav-collapsed', String(!value)); return !value; });
 
   // Fail-closed: without a confirmed `play` flag the Play entry is dropped.
-  const tabs = TABS.filter(({ id }) => id !== 'play' || features.play);
+  const tabs = TABS.filter(({ id }) => (id !== 'play' && id !== 'debug') || features.play);
 
   // Sync tab from URL
   useEffect(() => {

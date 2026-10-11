@@ -1,0 +1,7 @@
+# Debug and evidence review
+
+New feature-gated /debug executes the current root model through the existing /api/play/round endpoint with trace=true. Overview Test spin opens it. Existing /play presentation and seeded paths remain intact; its existing adapter also pins compatible Nine Lives drafts. Debug labels actual rational payout in model units, seed/index/hash and authored cascade values in coin units. It renders row-major before/after boards and highlights only returned hit positions, with a raw-state fallback for other graphs.
+
+Replay uses a cloned receipt configuration, original seed and index and compares the complete actual returned response. A browser test changes the current free-spin model then proves replay still matches the pinned receipt. Engine version, node-level event references, timing and RNG stream mapping are absent from the API; explicit unavailable states replace invented links or assurances across engine versions. Existing Results exports retain saved-run provenance rather than edited draft values.
+
+Build/lint pass, 123 units pass, 7/7 feature/workbench browser tests pass. Adapter tests reject incomplete and out-of-range records. All four requested screenshots captured as slice6-debug-*.png. Desktop review confirms receipt precedes real board/history, hit controls match board highlights, and narrow viewports stack the trace rail. No backend execution/compiler changes. Rider cleanup remains blocked as documented in BASELINE.md.

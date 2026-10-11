@@ -29,6 +29,9 @@ test('disabled feature flags hide every non-1.0 surface', { tag: '@critical' }, 
   await page.getByRole('button', { name: 'Open mechanic manager', exact: true }).click();
   await expect(page.getByRole('button', { name: 'Custom Mechanics', exact: true })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Plugins', exact: true })).toHaveCount(0);
+  await expect(page.getByRole('tab', { name: 'Debug', exact: true })).toHaveCount(0);
+  await page.goto('/debug');
+  await expect(page).toHaveURL(/\/build$/);
   // A bookmarked /play URL must be redirected away, not just hidden from the nav.
   await page.goto('/play');
   await expect(page).toHaveURL(/\/build$/);

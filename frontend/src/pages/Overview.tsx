@@ -33,7 +33,7 @@ export default function Overview() {
       <div className="model-summary"><h2>Model inputs</h2><dl><div><dt>Logic definitions</dt><dd>{Object.keys(mechanics).length}</dd></div><div><dt>Weighted draws</dt><dd>{capabilities.weightedDraws}</dd></div><div><dt>Reel strips</dt><dd>{capabilities.reelStrips ? 'Defined in model' : 'Not exposed by this model'}</dd></div><div><dt>Paytable metadata</dt><dd>{capabilities.paytables ? 'Available; see source mapping' : 'Not exposed by this model'}</dd></div></dl>
         {nineLives && <p className="model-notice">Uncalibrated research model. Configured targets are not measured RTP.</p>}
         <Link className="btn" to="/model/data">Edit model inputs</Link>
-        {features.play && nineLives && <Link className="btn" to="/play">Test spin</Link>}
+        {features.play && nineLives && <Link className="btn" to="/debug">Test spin</Link>}
       </div>
     </div>
     <section className="overview-mechanics"><h2>Explore mechanics</h2><p>Open the definition that implements each part of the game.</p><div className="feature-list">{Object.keys(mechanics).filter(id => nineLives ? ['base-spin', 'cascade-step', 'bonus', 'free-spin', 'round-entry'].includes(id) : true).slice(0, 8).map(id => <button key={id} onClick={() => open(id)}><strong>{mechanicLabel(id)}</strong><span>{mechanics[id].description ?? `${mechanics[id].nodes.length} nodes`}</span><small>Open logic</small></button>)}</div>{nineLives && <p className="hint">Presentation features: {manifest.features.join(', ')}. Definitions above come from the editable graph.</p>}</section>

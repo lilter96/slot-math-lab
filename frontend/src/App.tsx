@@ -11,6 +11,7 @@ import { lazy, Suspense, type ReactNode } from 'react';
 import { DEFAULT_FEATURES, useFeaturesQuery } from './api/hooks';
 const Simulate = lazy(() => import('./pages/Simulate'));
 const Results = lazy(() => import('./pages/Results'));
+const Debug = lazy(() => import('./pages/Debug'));
 const NineLives = lazy(() => import('./games/nine-lives/NineLives'));
 
 /**
@@ -39,6 +40,7 @@ export default function App() {
           <Route path="simulate" element={<Suspense fallback={<p>Loading simulation lab…</p>}><Simulate /></Suspense>} />
           <Route path="results" element={<Suspense fallback={<p role="status">Loading run evidence…</p>}><Results /></Suspense>} />
           <Route path="export" element={<Export />} />
+          <Route path="debug" element={<RequirePlay><Suspense fallback={<p>Loading debugger…</p>}><Debug /></Suspense></RequirePlay>} />
           <Route
             path="play"
             element={<RequirePlay><Suspense fallback={<p>Loading game…</p>}><NineLives /></Suspense></RequirePlay>}

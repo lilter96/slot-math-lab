@@ -80,3 +80,21 @@ test('Free-spin form keeps source counts synchronized and one purchased graph li
   expect(played.ok(), await played.text()).toBe(true); const round = await played.json(); expect(round.state.boards).toHaveLength(1);
   await page.getByRole('tab', { name: 'Features', exact: true }).click(); await expect(page.getByLabel('Awarded free spins')).toHaveValue('1');
 });
+test('Debug displays actual trace cells and replay uses the pinned model after edits', { tag: '@critical' }, async ({ page }) => {
+  await page.goto('/debug?project=nine-lives');
+  await expect(page.getByText('No round executed in this session.', { exact: false })).toBeVisible();
+  await page.getByRole('button', { name: 'Run current model', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'Executed round', exact: true })).toBeVisible();
+  await expect(page.locator('.trace-board > div')).toHaveCount(30);
+  await page.getByRole('button', { name: 'Replay pinned round' }).click();
+  await expect(page.getByRole('status')).toContainText('Replay matches');
+  const hits = page.locator('.trace-hit');
+  if (await hits.count()) { await hits.first().click(); expect(await page.locator('.trace-cell.hit').count()).toBeGreaterThan(0); await page.getByRole('button', { name: 'Show after refill' }).click(); await expect(page.locator('.trace-cell.hit')).toHaveCount(0); }
+  await page.getByRole('tab', { name: 'Features', exact: true }).click();
+  await page.getByLabel('Awarded free spins').fill('1'); await page.getByRole('button', { name: 'Validate & apply free spins' }).click();
+  await expect(page.getByRole('button', { name: 'Undo free-spin change' })).toBeVisible();
+  await page.getByRole('tab', { name: 'Debug', exact: true }).click();
+  await expect(page.getByText('The current draft differs from this receipt.', { exact: false })).toBeVisible();
+  await page.getByRole('button', { name: 'Replay pinned round' }).click(); await expect(page.getByRole('status')).toContainText('Replay matches');
+  for (const [width, height] of [[1440, 900], [1280, 800], [1024, 768], [390, 844]]) { await page.setViewportSize({ width, height }); expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true); }
+});
