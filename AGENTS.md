@@ -62,7 +62,17 @@ Include paths are relative to the solution directory. Full Cleanup requires solu
 
 ## Testing Guidelines
 
-Use `*Tests.cs` for xUnit tests and `*.spec.ts` for Playwright tests. Add mathematical regressions at the lowest appropriate layer, with pinned seeds and independent expected results. Preserve the PRD's PRNG/constants contract. CI has no numeric coverage threshold. Run `npm run test:e2e` for shared runtime changes and before releases; retain failure evidence.
+Use `*Tests.cs` for xUnit tests and `*.spec.ts` for Playwright tests. Add mathematical regressions at the lowest appropriate layer, with pinned seeds and independent expected results. Preserve the PRD's PRNG/constants contract. CI has no numeric coverage threshold. Retain failure evidence.
+
+### Test Selection and Run Frequency (Mandatory)
+
+- Do not run complete test suites on every iteration.
+- For routine changes, run only affected tests and newly added tests. Select relevant unit, API, or browser scenarios based on the behavior changed, including shared runtime changes.
+- Run a full suite only after a substantial feature has been integrated, or when the user explicitly requests it. Do not repeat a successful full run without new changes or unresolved failures that justify it.
+- If a full run fails, fix the failures and rerun only failed or affected tests; do not automatically repeat the entire suite.
+- Documentation-only changes do not require tests.
+
+This policy takes precedence over broader per-iteration testing instructions in autorun files, design handoffs, and other repository documents. Required release checks still apply at release time; they do not authorize full suites during each implementation iteration.
 
 ## Commit & Pull Request Guidelines
 
