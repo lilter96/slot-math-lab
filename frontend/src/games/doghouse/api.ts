@@ -3,12 +3,25 @@ export interface GameFrame { board: number[]; multipliers: number[]; lines: Line
 export interface GraphRound { seed: number; roundIndex: number; configHash: string; win: number; winNumerator: string; winDenominator: string; state: Record<string, unknown> }
 export interface GameRound extends GraphRound { bonusGrid: number[]; frames: GameFrame[] }
 export type MathMode = 'Exact' | 'Pruned' | 'Sampled' | 'Hybrid';
+export interface GraphLoopEvidence {
+  loopId: string; evaluation: 'unrolled' | 'chain' | 'chain-moments'; iterationCap: number; runs: number; states: number;
+  /** Exact expected number of rounds per round that end at the iteration cap; counts pruned rounds too. */
+  expectedCapHits?: number | null;
+  /** Probability of the rounds in which the loop was cut short of its cap; 0 when the loop was solved exactly. */
+  prunedMass: number;
+}
 export interface GraphAnalysis {
   requestedMode: MathMode; actualStrategy: string; provenance: string; status: string;
   rtp?: number; rationalRtp?: string; lower?: number; upper?: number; prunedMass?: number;
   samples?: number; requestedSamples?: number; seed?: number; degreeOfParallelism?: number;
-  hitFrequency?: number; variance?: number; maxObserved?: number; elapsedMs: number; configHash: string; note?: string;
+  hitFrequency?: number | null; rationalHitFrequency?: string | null; variance?: number | null; maxObserved?: number | null; elapsedMs: number; configHash: string; note?: string;
   streamScheme?: string; chunkSize?: number;
+  /** How the result was obtained. `structured` is exact inference over the graph's structure, used when outcomes are too many to enumerate. */
+  method?: 'enumeration' | 'structured' | 'sampling';
+  /** `NotBuilt`: the RTP is exact but the payout distribution was too large to build; hit frequency and variance are exact when present, maximum win is absent. */
+  distribution?: 'Exact' | 'Sampled' | 'NotBuilt';
+  /** How each loop was evaluated by the structured evaluator: unrolled, or solved as a Markov reward chain over its state. */
+  loops?: GraphLoopEvidence[] | null;
 }
 export async function graphRequest<T>(path: string, body: unknown, signal?: AbortSignal): Promise<T> {
   const response = await fetch((import.meta.env.VITE_API_URL ?? '') + '/api/' + path, { method: 'POST',

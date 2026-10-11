@@ -72,7 +72,7 @@ test('Dog House math is editable in nested constructor graphs and affects actual
 });
 
 test('All modes and independent rational expectation run through the real UI graph pipeline', { tag: '@critical' }, async ({ page }) => {
-  test.setTimeout(90000);
+  test.setTimeout(150000);
   await build(page); await page.getByRole('tab', { name: 'Play', exact: true }).click();
   await page.getByRole('button', { name: 'Verify RTP', exact: true }).click();
   await page.getByRole('button', { name: 'Run rational expectation graph', exact: true }).click();
@@ -80,10 +80,12 @@ test('All modes and independent rational expectation run through the real UI gra
   await expect(page.getByTestId('rtp-target')).toContainText('Target verified');
   await page.getByLabel('Analysis samples').fill('1000');
   await page.getByRole('button', { name: 'Verify all modes', exact: true }).click();
-  await expect(page.getByTestId('math-Exact')).toContainText('BudgetExceeded', { timeout: 20000 });
+  // Too many outcomes to enumerate: the exact RTP comes from the graph's structure.
+  await expect(page.getByTestId('math-Exact')).toContainText('Exact · Complete', { timeout: 40000 });
+  await expect(page.getByTestId('math-Exact')).toContainText('structured'); await expect(page.getByTestId('math-Exact')).toContainText('98.0000%');
   await expect(page.getByTestId('math-Pruned')).toContainText('ExactInterval', { timeout: 20000 });
   await expect(page.getByTestId('math-Sampled')).toContainText('n=1,000', { timeout: 20000 });
-  await expect(page.getByTestId('math-Hybrid')).toContainText('Sampled · Complete', { timeout: 20000 });
+  await expect(page.getByTestId('math-Hybrid')).toContainText('Exact · Complete', { timeout: 40000 });
   const promise = page.waitForEvent('download'); await page.getByRole('button', { name: 'Export verification JSON', exact: true }).click();
   const report = JSON.parse(await fs.readFile((await (await promise).path())!, 'utf8'));
   const exact = report.reference.state.expectedRtp;
@@ -91,8 +93,16 @@ test('All modes and independent rational expectation run through the real UI gra
   expect(expected).toBeCloseTo(0.98, 12);
   expect(report.targetRtp).toBe(0.98); expect(report.targetVerified).toBe(true);
   expect(report.results.Pruned.lower).toBeLessThanOrEqual(expected); expect(report.results.Pruned.upper).toBeGreaterThanOrEqual(expected);
-  expect(report.results.Sampled.rtp).toBe(report.results.Hybrid.rtp);
-  expect(report.results.Exact.rtp).toBeUndefined();
+  // The engine's exact rational equals the authored expectation graph's rational, not merely its rounding.
+  const [numerator, denominator] = report.results.Exact.rationalRtp.split('/').map(BigInt);
+  expect(numerator * BigInt(exact.denominator)).toBe(BigInt(exact.numerator) * denominator);
+  expect(report.results.Exact.method).toBe('structured'); expect(report.results.Exact.distribution).toBe('NotBuilt');
+  expect(report.results.Exact.rationalHitFrequency).toBe('9743/35280'); expect(report.results.Exact.hitFrequency).toBeCloseTo(9743 / 35280, 12);
+  expect(report.results.Exact.variance).toBeNull();
+  // 1,000 pinned rounds: within four standard errors of the exact proportion.
+  const hits = 9743 / 35280; expect(Math.abs(report.results.Sampled.hitFrequency - hits)).toBeLessThan(4 * Math.sqrt(hits * (1 - hits) / 1000));
+  expect(report.results.Hybrid.rationalRtp).toBe(report.results.Exact.rationalRtp);
+  expect(Math.abs(report.results.Sampled.rtp - expected)).toBeLessThan(1);
   await page.getByRole('button', { name: 'Open expectation graph in constructor', exact: true }).click();
   await expect(page).toHaveURL('/build'); await focus(page, 'rtp-total');
   await expect(page.getByLabel('Expression operator', { exact: true })).toHaveValue('Add');

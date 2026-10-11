@@ -68,7 +68,16 @@ The exact trigger probability is `3/490`, or one bonus per 163.3333 paid rounds.
 | Sampled | 97.0671%; approximate 95% CI 86.5311–107.6031%, containing 98% |
 | Auto mode labelled Hybrid | Sampled fallback, identical samples and result |
 
-The pruned interval is conservative and uninformative. A smaller epsilon can exceed the online budget. The current Hybrid implementation selects Exact or Sampled for the complete program; it does not claim a mixed estimator. Exact attempts have a ten-thousand-branch/three-second budget. Sampled requests stop after forty-five seconds and label incomplete runs; a partial run must not be mistaken for the requested sample count.
+That report predates the structured exact evaluator ([architecture](architecture.md#structured-exact-evaluator-structuredexactevaluator)). The current build answers the full round exactly:
+
+| Requested calculation | Current result |
+| --- | --- |
+| Full-round Exact | Exact, method `structured`: the rational RTP, equal to the Fraction-based oracle's rational (98.0000%) |
+| Full-round hit frequency | Exact: 9743/35280 = 27.6162% |
+| Full-round variance, maximum win | Not reported: the payout distribution of the full round is too large to build; use Sampled |
+| Auto mode labelled Hybrid | Exact by structured evaluation; Sampled only when the graph cannot be modelled exactly |
+
+Enumeration is still tried first for Exact and epsilon-pruned requests, within a ten-thousand-branch/three-second budget; a game beyond it is evaluated from its structure within twelve seconds. Hybrid selects Exact or Sampled for the complete program; it does not claim a mixed estimator. Sampled requests stop after forty-five seconds and label incomplete runs; a partial run must not be mistaken for the requested sample count.
 
 The explicit mode endpoint uses fixed 4096-round logical streams and merges them by stream index. The stream scheme is recorded as `splitmix64-chunks-4096-v1`; worker count does not affect completed results. Existing background runs keep their legacy 65536-round stream scheme. Play/replay derives a separate stream for each round index, so its index is not an index into the Monte Carlo sequence.
 
