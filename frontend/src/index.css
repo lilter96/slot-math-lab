@@ -731,3 +731,5 @@ body { font-size: 14px; line-height: 1.5; }
 .debug-page .hint { color: var(--muted); font-size: 13px; line-height: 1.6; }
 @media (max-width: 1100px) { .trace-workspace { grid-template-columns: minmax(0,1fr); } .trace-rail { border-left: 0; border-top: 1px solid var(--line); padding: 16px 0; } }
 @media (max-width: 767px) { .debug-page { padding: 16px; } .debug-inputs label { width: 140px; } .trace-cell { aspect-ratio: 1; } .trace-cell small { font-size: 10px; } .round-receipt dl > div { display: block; } }
+.data-view-switch { display: flex; flex-wrap: wrap; gap: 8px; padding-bottom: 20px; margin-bottom: 20px; border-bottom: 1px solid var(--line); }
+.data-view-switch [aria-selected=true] { border-color: var(--sampled); background: var(--bg-2); }

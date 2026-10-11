@@ -83,13 +83,15 @@ test('Free-spin form keeps source counts synchronized and one purchased graph li
 test('Debug displays actual trace cells and replay uses the pinned model after edits', { tag: '@critical' }, async ({ page }) => {
   await page.goto('/debug?project=nine-lives');
   await expect(page.getByText('No round executed in this session.', { exact: false })).toBeVisible();
+  await page.getByLabel('Debug seed').fill('1');
   await page.getByRole('button', { name: 'Run current model', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'Executed round', exact: true })).toBeVisible();
   await expect(page.locator('.trace-board > div')).toHaveCount(30);
   await page.getByRole('button', { name: 'Replay pinned round' }).click();
   await expect(page.getByRole('status')).toContainText('Replay matches');
   const hits = page.locator('.trace-hit');
-  if (await hits.count()) { await hits.first().click(); expect(await page.locator('.trace-cell.hit').count()).toBeGreaterThan(0); await page.getByRole('button', { name: 'Show after refill' }).click(); await expect(page.locator('.trace-cell.hit')).toHaveCount(0); }
+  expect(await hits.count()).toBeGreaterThan(0);
+  { await hits.first().click(); expect(await page.locator('.trace-cell.hit').count()).toBeGreaterThan(0); await page.getByRole('button', { name: 'Show after refill' }).click(); await expect(page.locator('.trace-cell.hit')).toHaveCount(0); }
   await page.getByRole('tab', { name: 'Features', exact: true }).click();
   await page.getByLabel('Awarded free spins').fill('1'); await page.getByRole('button', { name: 'Validate & apply free spins' }).click();
   await expect(page.getByRole('button', { name: 'Undo free-spin change' })).toBeVisible();
@@ -97,4 +99,27 @@ test('Debug displays actual trace cells and replay uses the pinned model after e
   await expect(page.getByText('The current draft differs from this receipt.', { exact: false })).toBeVisible();
   await page.getByRole('button', { name: 'Replay pinned round' }).click(); await expect(page.getByRole('status')).toContainText('Replay matches');
   for (const [width, height] of [[1440, 900], [1280, 800], [1024, 768], [390, 844]]) { await page.setViewportSize({ width, height }); expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true); }
+});
+test('Cluster payout editor changes executable coins and matching metadata with undo and actual trace evidence', { tag: '@critical' }, async ({ page, request }) => {
+  await page.goto('/model/data?project=nine-lives');
+  await page.getByRole('tab', { name: 'Cluster payouts', exact: true }).click();
+  const input = page.getByLabel('Coins for 5 cells', { exact: true });
+  await expect(input).toHaveValue('1'); await input.fill('1.5');
+  await expect(page.getByRole('button', { name: 'Validate & apply payouts' })).toBeDisabled();
+  await input.fill('2'); await page.getByRole('button', { name: 'Validate & apply payouts' }).click();
+  await expect(page.getByRole('button', { name: 'Undo payout change' })).toBeVisible();
+  await page.getByRole('button', { name: 'Undo payout change' }).click(); await expect(input).toHaveValue('1');
+  await input.fill('2'); await page.getByRole('button', { name: 'Validate & apply payouts' }).click();
+  await expect(page.getByRole('button', { name: 'Undo payout change' })).toBeVisible();
+  await page.getByRole('tab', { name: 'Build', exact: true }).click();
+  const downloaded = page.waitForEvent('download'); await page.getByRole('button', { name: 'Export project', exact: true }).click();
+  const { readFile } = await import('node:fs/promises'); const config = JSON.parse(await readFile((await (await downloaded).path())!, 'utf8'));
+  expect(config.initialState.clusterPaytable[0]).toBe('2'); expect(config.paytables[0].entries[0].payouts[0]).toBe('0.1');
+  const played = await request.post('/api/play/round', { data: { config, seed: 1, roundIndex: 0, trace: true } });
+  expect(played.ok(), await played.text()).toBe(true); const round = await played.json();
+  expect(round.state.stepHitSymbols[0][0]).toBe('1'); expect(round.state.stepHitSizes[0][0]).toBe('5'); expect(round.state.stepHitPayouts[0][0]).toBe('2');
+  const original = structuredClone(config); original.initialState.clusterPaytable[0] = '1'; original.paytables[0].entries[0].payouts[0] = '0.05';
+  const baseline = await request.post('/api/play/round', { data: { config: original, seed: 1, roundIndex: 0, trace: true } });
+  expect(baseline.ok()).toBe(true); const previous = await baseline.json(); expect(previous.state.stepHitPayouts[0][0]).toBe('1'); expect(round.state.boards[0]).toEqual(previous.state.boards[0]);
+  await page.getByRole('tab', { name: 'Model data', exact: true }).click(); await page.getByRole('tab', { name: 'Cluster payouts', exact: true }).click(); await expect(input).toHaveValue('2');
 });

@@ -18,7 +18,7 @@ Branch: `feat/precision-workbench-redesign`. Isolated worktree based on fetched 
 | 1 trust and shell | implemented; critical sweep pending | suppress absent/stale proof; responsive semantic nav | build/lint/unit/critical/browser |
 | 2 overview/tree | verified after interaction test adaptations | manifest-derived 6×5, source-linked mechanic hierarchy | round-trip/browser |
 | 3 graph workspace | verified (cleanup limitation) | contextual inspector, palette/library separation, camera/search | nested editing/browser |
-| 4 data editing | verified weighted draws; strip/CSV/payout mappings deferred | capability-detected weighted draws; transaction/undo | unit/export/reload |
+| 4 data editing | verified weighted draws and guarded cluster payouts; strip/CSV deferred | capability-detected weighted draws; transaction/undo | unit/export/reload |
 | 5 features | verified | readable summaries; safe mapped parameters only | form/graph preservation |
 | 6 evidence/debug | verified supported trace | existing evidence and actual traces only | no invented attribution |
 | 7 hardening/report | todo | viewports/accessibility/regression/manual review | FINAL_QA_REPORT.md |
@@ -40,3 +40,5 @@ Slice 4: 119 units and 3 workbench browser tests pass; actual API independently 
 Slice 5: build/lint, 121 units, 4/4 workbench browser tests pass. Guarded free-spin form updates all executable count sources together; actual purchased round with one life returns one board. Screenshots slice5-features-{1440,1280,1024,390}.png. No universal form conversion or bonus-price inference. Next exact task: current-model Debug round, source-backed board/cascade trace and replay verification, then final evidence and viewport audit.
 
 Slice 6: build/lint, 123 units, 7 browser checks pass. Debug executes the canonical current graph, renders returned boards/cascade hit positions, downloads pinned receipts and verifies replay against full actual response even after draft edits. Play/Debug remain fail-closed behind play flag. No node IDs or version pinning exist in API; no fabricated mapping or cross-version replay assurance. Actual screenshots slice6-debug-*.png. Existing saved-run evidence remains authoritative. Next: guarded cluster payout mapping (metadata alone is not executable), final export/root/provenance audit and comprehensive checks.
+
+Slice 4b: executable cluster payout editor added after proving its flat coin array, both authored lookup expressions and metadata unit mapping. Build/lint, 125 units, 6/6 workbench tests pass. Seed 1 independently demonstrates the same initial board and five-cell symbol-1 hit paying 1 → 2 coins after edit; metadata changes 0.05 → 0.1 model units. Undo/inverse preserves all other graph data. Screenshots slice4b-payouts-*.png. Next: export the root rather than open subgraph, per-field PAR evidence, keyboard/appearance polish and full browser regressions.
