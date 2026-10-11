@@ -63,6 +63,7 @@ jobs:
       - run: python3 scripts/verification/check-demo-names.py
       - run: dotnet restore backend/SlotMathLab.slnx
       - run: dotnet build backend/SlotMathLab.slnx -c Release --no-restore
+      - run: python3 scripts/verification/benchmark_cap.py --check
       - name: Audit NuGet dependencies — fail on high/critical
         run: |
           set -o pipefail

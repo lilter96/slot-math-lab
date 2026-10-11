@@ -170,7 +170,7 @@ export async function startSimulation(seed: number, samples: number, workers: nu
     if (verificationProfile) validateProfile(verificationProfile, measurements);
     if (execution) validateExecution(execution, samples, workers);
     const initial = config.initialState as Record<string, unknown>;
-    const target = initial?.targetRTP === undefined ? Number(initial?.targetRtpPercent) / 100 : Number(initial.targetRTP);
+    const target = Number(initial?.targetRtpPercent) / 100;
     const history = useSession.getState().history;
     useSession.setState({ starting: true, error: '', launchNote: '' });
     log('Saving and pinning the full constructor graph');

@@ -43,7 +43,7 @@ internal static class GraphPerformance
                     MaxSpins = n,
                     DegreeOfParallelism = workers,
                     WinScale = (double)compiled.WinScale,
-                    MaxWinCap = graph.Nodes.OfType<MetricsSinkNode>().Single().WinCap * compiled.WinScale,
+                    MaxWinCap = graph.Nodes.OfType<MetricsSinkNode>().Single().WinCap,
                     ProgressCallback = live ? _ => Interlocked.Increment(ref updates) : null
                 });
         }
@@ -98,6 +98,8 @@ internal static class GraphPerformance
                 variance = snapshot.Variance,
                 hitFrequency = snapshot.HitFrequency,
                 maxWin = snapshot.MaxObserved,
+                capHits = snapshot.CapHits,
+                maxWinCap = snapshot.MaxWinCap,
                 histogram = snapshot.AdaptiveHistogram,
                 loopTerminations = result.Execution?.LoopTerminations
             });
@@ -114,6 +116,7 @@ internal static class GraphPerformance
             warmup,
             workers,
             live,
+            winScale = compiled.WinScale.ToString(),
             streamScheme = "splitmix64-chunk-65536",
             compileMs = compileTimer.Elapsed.TotalMilliseconds,
             runtime = RuntimeInformation.FrameworkDescription,

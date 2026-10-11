@@ -36,3 +36,15 @@ paths = [
   '''^docs/verification/ws-negotiation-production\.json$''',
   '''^docs/verification/METRICS_IMPLEMENTATION\.md$''',
 ]
+
+# The live UI report records this Release API binary fingerprint, not an API key.
+# Restrict the exception to this field, exact reviewed hash and report path.
+[[rules]]
+id = "generic-api-key"
+
+[[rules.allowlists]]
+description = "Reviewed API binary SHA-256 in the live UI performance evidence"
+condition = "AND"
+regexTarget = "line"
+paths = [ '''^docs/verification/lab-demo-ui-performance\.json$''' ]
+regexes = [ '''"apiBinarySha256": "c4a5959fd960e364dba8ea1df74a02d4fecd85cf8c96c00cb7202d3e5d6f3598"''' ]

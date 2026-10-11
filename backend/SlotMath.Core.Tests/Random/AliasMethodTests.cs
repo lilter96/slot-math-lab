@@ -404,46 +404,46 @@ public sealed class AliasMethodTests
     public void SamplingPreservesEveryRngWordWithRejectionsUniformTablesAndAudit()
     {
         foreach (var count in new[] { 1, 2, 3, 7, 8, 9, 257, 1025 })
-        foreach (var uniform in new[] { false, true })
-        foreach (var audited in new[] { false, true })
-        foreach (var seed in new[] { 0L, 42L, -1L, long.MinValue })
-        {
-            var weights = Enumerable.Range(0, count)
-                .Select(i => uniform ? 1 : i == count - 1 ? 50 : i % 3 == 0 ? 0 : i + 1).ToArray();
-            AliasMethod table = WeightSet.FromIntegers(weights).AliasTable;
-            var (thresholds, aliases) = table.GetTables();
-            var expected = new SeededRandom(seed);
-            var actual = new SeededRandom(seed);
-            if (audited)
-            {
-                expected.EnableAudit();
-                actual.EnableAudit();
-            }
+            foreach (var uniform in new[] { false, true })
+                foreach (var audited in new[] { false, true })
+                    foreach (var seed in new[] { 0L, 42L, -1L, long.MinValue })
+                    {
+                        var weights = Enumerable.Range(0, count)
+                            .Select(i => uniform ? 1 : i == count - 1 ? 50 : i % 3 == 0 ? 0 : i + 1).ToArray();
+                        AliasMethod table = WeightSet.FromIntegers(weights).AliasTable;
+                        var (thresholds, aliases) = table.GetTables();
+                        var expected = new SeededRandom(seed);
+                        var actual = new SeededRandom(seed);
+                        if (audited)
+                        {
+                            expected.EnableAudit();
+                            actual.EnableAudit();
+                        }
 
-            try
-            {
-                for (var i = 0; i < 256; i++)
-                {
-                    var bucket = expected.Next(count);
-                    var fraction = expected.NextDouble();
-                    Assert.Equal(fraction < thresholds[bucket] ? bucket : aliases[bucket], table.Sample(actual));
-                    Assert.Equal(expected.NextUInt64(), actual.NextUInt64());
-                    Assert.Equal(expected.Next(19), actual.Next(19));
-                    Assert.Equal(BitConverter.DoubleToInt64Bits(expected.NextDouble()),
-                        BitConverter.DoubleToInt64Bits(actual.NextDouble()));
-                }
+                        try
+                        {
+                            for (var i = 0; i < 256; i++)
+                            {
+                                var bucket = expected.Next(count);
+                                var fraction = expected.NextDouble();
+                                Assert.Equal(fraction < thresholds[bucket] ? bucket : aliases[bucket], table.Sample(actual));
+                                Assert.Equal(expected.NextUInt64(), actual.NextUInt64());
+                                Assert.Equal(expected.Next(19), actual.Next(19));
+                                Assert.Equal(BitConverter.DoubleToInt64Bits(expected.NextDouble()),
+                                    BitConverter.DoubleToInt64Bits(actual.NextDouble()));
+                            }
 
-                if (audited)
-                {
-                    Assert.Equal(expected.AuditSnapshot(0), actual.AuditSnapshot(0));
-                }
-            }
-            finally
-            {
-                expected.EndAudit();
-                actual.EndAudit();
-            }
-        }
+                            if (audited)
+                            {
+                                Assert.Equal(expected.AuditSnapshot(0), actual.AuditSnapshot(0));
+                            }
+                        }
+                        finally
+                        {
+                            expected.EndAudit();
+                            actual.EndAudit();
+                        }
+                    }
     }
 
     [Fact]

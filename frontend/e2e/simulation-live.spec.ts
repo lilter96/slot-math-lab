@@ -106,9 +106,9 @@ test('Evidence export recovers a quota rejection and withholds files on errors, 
     return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(value) });
   });
   await page.getByRole('button', { name: 'Export evidence' }).click();
-  await expect(page.getByRole('alert')).toContainText('Archive temporarily unavailable'); expect(downloads).toHaveLength(0); expect(calls).toBe(1);
+  await expect(page.getByRole('alert').filter({ hasText: /Archive temporarily unavailable|different run/ })).toContainText('Archive temporarily unavailable'); expect(downloads).toHaveLength(0); expect(calls).toBe(1);
   mode = 'wrong'; calls = 0; await page.getByRole('button', { name: 'Retry export', exact: true }).click();
-  await expect(page.getByRole('alert')).toContainText('different run'); expect(downloads).toHaveLength(0);
+  await expect(page.getByRole('alert').filter({ hasText: /Archive temporarily unavailable|different run/ })).toContainText('different run'); expect(downloads).toHaveLength(0);
   mode = 'wait'; calls = 0; await page.getByRole('button', { name: 'Retry export', exact: true }).click();
   await expect(page.getByRole('status')).toContainText('retrying evidence in 60s');
   await expect(page.getByRole('button', { name: 'Preparing evidence…', exact: true })).toBeDisabled();
@@ -190,4 +190,32 @@ test('One observed round does not claim a zero-width confidence interval or know
   await expect(page.getByText('95% CI half-width', { exact: true }).locator('..')).toContainText('Requires at least 2 rounds');
   await expect(page.getByText('Payout volatility', { exact: true }).locator('..').locator('strong')).toHaveText('—');
   await expect(page.getByText('95% confidence interval', { exact: true }).locator('..').locator('dd')).toHaveText('—');
+});
+
+test('Live simulation and archived results use the canonical target percent', async ({ page }) => {
+  test.setTimeout(120000);
+  await page.goto('/build');
+  await page.getByRole('button', { name: 'Load coin example' }).click();
+  await expect.poll(() => page.evaluate(() => JSON.parse(localStorage.getItem('slotmath-draft-v1') ?? '{}').configName)).toBe('REF-A Coin');
+  const graph = await page.evaluate(() => {
+    const draft = JSON.parse(localStorage.getItem('slotmath-draft-v1')!);
+    return {
+      schemaVersion: '1.0.0', name: 'Conflicting authored targets',
+      initialState: { targetRTP: 0.96, targetRtpPercent: 75 },
+      nodes: draft.nodes.map((node: { data: { backendNode: unknown } }) => node.data.backendNode),
+      edges: draft.edges.map((edge: { id: string; source: string; target: string; sourceHandle: string; targetHandle: string }) => ({
+        id: edge.id, sourceNodeId: edge.source, targetNodeId: edge.target, sourcePort: edge.sourceHandle, targetPort: edge.targetHandle,
+      })),
+    };
+  });
+  await page.getByLabel('Import project file').setInputFiles({ name: 'target.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(graph)) });
+  await page.getByRole('tab', { name: 'Simulate', exact: true }).click();
+  await page.getByLabel('Simulation spins').fill('1000');
+  const accepted = waitForRunLaunch(page);
+  await page.getByRole('button', { name: /start run/i }).click();
+  const run = await (await accepted).json();
+  await expect(page.locator('.run-status')).toHaveText('completed', { timeout: 70000 });
+  await expect(page.getByText('Target RTP', { exact: true }).locator('..')).toContainText('75.000%');
+  await page.goto(`/results?run=${run.id}`);
+  await expect(page.locator('.results-rtp-hero').getByText('Authored target', { exact: false })).toContainText('75.000%');
 });

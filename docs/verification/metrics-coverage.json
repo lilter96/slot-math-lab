@@ -1,0 +1,2098 @@
+{
+  "schemaVersion": 1,
+  "reviewedAt": "2026-10-10",
+  "baselineCommit": "c7294b67a7df21a373371a3e5f12af530a25087d",
+  "meaning": {
+    "ready": "Native algorithm/workflow and independent fixtures exist within stated assumptions; this is not game certification.",
+    "authored": "Generic native collection/assertion supports the requirement after the game author supplies the typed boundary, value/rule and scope. Family fixtures validate the primitive, not every game-specific rule.",
+    "partial": "A useful subset exists; scope names the unimplemented requirement. Do not present the catalogue entry as complete."
+  },
+  "metrics": [
+    {
+      "id": "counts.completed_rounds",
+      "status": "ready",
+      "scope": "Complete/attempted/interrupted round and scoped observation counters are distinct; cancelled round measurements are discarded transactionally.",
+      "implementation": [
+        "backend/SlotMath.Core/Measurements/MeasurementCollector.cs"
+      ],
+      "evidence": [
+        "backend/SlotMath.Core.Tests/Math/MeasurementTests.cs",
+        "backend/SlotMath.Core.Tests/Math/DiagnosticEvidenceTests.cs"
+      ]
+    },
+    {
+      "id": "counts.attempted_rounds",
+      "status": "ready",
+      "scope": "Complete/attempted/interrupted round and scoped observation counters are distinct; cancelled round measurements are discarded transactionally.",
+      "implementation": [
+        "backend/SlotMath.Core/Measurements/MeasurementCollector.cs"
+      ],
+      "evidence": [
+        "backend/SlotMath.Core.Tests/Math/MeasurementTests.cs",
+        "backend/SlotMath.Core.Tests/Math/DiagnosticEvidenceTests.cs"
+      ]
+    },
+    {
+      "id": "counts.interrupted_rounds",
+      "status": "ready",
+      "scope": "Complete/attempted/interrupted round and scoped observation counters are distinct; cancelled round measurements are discarded transactionally.",
+      "implementation": [
+        "backend/SlotMath.Core/Measurements/MeasurementCollector.cs"
+      ],
+      "evidence": [
+        "backend/SlotMath.Core.Tests/Math/MeasurementTests.cs",
+        "backend/SlotMath.Core.Tests/Math/DiagnosticEvidenceTests.cs"
+      ]
+    },
+    {
+      "id": "counts.eligible",
+      "status": "ready",
+      "scope": "Complete/attempted/interrupted round and scoped observation counters are distinct; cancelled round measurements are discarded transactionally.",
+      "implementation": [
+        "backend/SlotMath.Core/Measurements/MeasurementCollector.cs"
+      ],
+      "evidence": [
+        "backend/SlotMath.Core.Tests/Math/MeasurementTests.cs",
+        "backend/SlotMath.Core.Tests/Math/DiagnosticEvidenceTests.cs"
+      ]
+    },
+    {
+      "id": "counts.matching",
+      "status": "ready",
+      "scope": "Complete/attempted/interrupted round and scoped observation counters are distinct; cancelled round measurements are discarded transactionally.",
+      "implementation": [
+        "backend/SlotMath.Core/Measurements/MeasurementCollector.cs"
+      ],
+      "evidence": [
+        "backend/SlotMath.Core.Tests/Math/MeasurementTests.cs",
+        "backend/SlotMath.Core.Tests/Math/DiagnosticEvidenceTests.cs"
+      ]
+    },
+    {
+      "id": "counts.excluded",
+      "status": "ready",
+      "scope": "Complete/attempted/interrupted round and scoped observation counters are distinct; cancelled round measurements are discarded transactionally.",
+      "implementation": [
+        "backend/SlotMath.Core/Measurements/MeasurementCollector.cs"
+      ],
+      "evidence": [
+        "backend/SlotMath.Core.Tests/Math/MeasurementTests.cs",
+        "backend/SlotMath.Core.Tests/Math/DiagnosticEvidenceTests.cs"
+      ]
+    },
+    {
+      "id": "counts.invalid",
+      "status": "ready",
+      "scope": "Complete/attempted/interrupted round and scoped observation counters are distinct; cancelled round measurements are discarded transactionally.",
+      "implementation": [
+        "backend/SlotMath.Core/Measurements/MeasurementCollector.cs"
+      ],
+      "evidence": [
+        "backend/SlotMath.Core.Tests/Math/MeasurementTests.cs",
+        "backend/SlotMath.Core.Tests/Math/DiagnosticEvidenceTests.cs"
+      ]
+    },
+    {
+      "id": "counts.visits",
+      "status": "ready",
+      "scope": "Complete/attempted/interrupted round and scoped observation counters are distinct; cancelled round measurements are discarded transactionally.",
+      "implementation": [
+        "backend/SlotMath.Core/Measurements/MeasurementCollector.cs"
+      ],
+      "evidence": [
+        "backend/SlotMath.Core.Tests/Math/MeasurementTests.cs",
+        "backend/SlotMath.Core.Tests/Math/DiagnosticEvidenceTests.cs"
+      ]
+    },
+    {
+      "id": "counts.distinct_parents",
+      "status": "ready",
+      "scope": "Accepted child exposure counts each settled paid round and innermost owning episode once, independent of repeated visits, zero-valued children, exit filtering or empty reduction identities. Entry-selected cohorts, sparse worker merges, native scalar selection and known rational enumeration exposure share the explicit contract; unfinished paid rounds are discarded.",
+      "implementation": [
+        "backend/SlotMath.Core/Measurements/MeasurementCollector.cs",
+        "backend/SlotMath.Core/Measurements/MeasurementAnalysisAccumulator.cs",
+        "backend/SlotMath.Core/Measurements/GraphMeasurementEnumeration.cs",
+        "frontend/src/lib/measurements/model.ts"
+      ],
+      "evidence": [
+        "backend/SlotMath.Core.Tests/Math/ParentExposureTests.cs",
+        "backend/SlotMath.Api.Tests/ParentExposureApiTests.cs",
+        "frontend/unit/parent-exposure.spec.ts",
+        "frontend/e2e/z-parent-exposure.spec.ts"
+      ]
+    },
+    {
+      "id": "counts.feature_entries",
+      "status": "ready",
+      "scope": "Settled feature/transition entries and reached exits remain separate from cancelled/failed paid-round boundary exposure. Interrupted counts include closed instances and censored open instances, retain entry-selected cohorts without numeric children, and never alter payout statistics or settled-parent turnover. Nesting/boundary faults withhold completeness; cohort overflow withholds the breakdown. The native dashboard can select interruption counters, and live/reloaded/saved evidence agrees in both engines. Resource deadlines currently classify as cancellation; detailed stop attribution remains a separate feature-exit workflow.",
+      "implementation": [
+        "backend/SlotMath.Core/Measurements/MeasurementCollector.cs",
+        "backend/SlotMath.Core/Measurements/InterruptedFeatureLifecycle.cs",
+        "backend/SlotMath.Core/Measurements/MeasurementAnalysisAccumulator.cs",
+        "frontend/src/components/simulate/MeasurementAnalysis.tsx",
+        "frontend/src/lib/measurements/model.ts",
+        "frontend/src/lib/realtime/runProtocol.ts"
+      ],
+      "evidence": [
+        "backend/SlotMath.Core.Tests/Math/MeasurementTests.cs",
+        "backend/SlotMath.Core.Tests/Math/DiagnosticEvidenceTests.cs",
+        "backend/SlotMath.Core.Tests/Math/CohortLifecycleTests.cs",
+        "backend/SlotMath.Api.Tests/CohortLifecycleApiTests.cs",
+        "frontend/e2e/z-cohort-lifecycle.spec.ts",
+        "backend/SlotMath.Core.Tests/Math/InterruptedLifecycleTests.cs",
+        "backend/SlotMath.Api.Tests/InterruptedLifecycleApiTests.cs",
+        "frontend/unit/interrupted-lifecycle.spec.ts",
+        "frontend/e2e/z-interrupted-lifecycle.spec.ts"
+      ]
+    },
+    {
+      "id": "counts.feature_exits",
+      "status": "ready",
+      "scope": "Settled feature/transition entries and reached exits remain separate from cancelled/failed paid-round boundary exposure. Interrupted counts include closed instances and censored open instances, retain entry-selected cohorts without numeric children, and never alter payout statistics or settled-parent turnover. Nesting/boundary faults withhold completeness; cohort overflow withholds the breakdown. The native dashboard can select interruption counters, and live/reloaded/saved evidence agrees in both engines. Resource deadlines currently classify as cancellation; detailed stop attribution remains a separate feature-exit workflow.",
+      "implementation": [
+        "backend/SlotMath.Core/Measurements/MeasurementCollector.cs",
+        "backend/SlotMath.Core/Measurements/InterruptedFeatureLifecycle.cs",
+        "backend/SlotMath.Core/Measurements/MeasurementAnalysisAccumulator.cs",
+        "frontend/src/components/simulate/MeasurementAnalysis.tsx",
+        "frontend/src/lib/measurements/model.ts",
+        "frontend/src/lib/realtime/runProtocol.ts"
+      ],
+      "evidence": [
+        "backend/SlotMath.Core.Tests/Math/MeasurementTests.cs",
+        "backend/SlotMath.Core.Tests/Math/DiagnosticEvidenceTests.cs",
+        "backend/SlotMath.Core.Tests/Math/CohortLifecycleTests.cs",
+        "backend/SlotMath.Api.Tests/CohortLifecycleApiTests.cs",
+        "frontend/e2e/z-cohort-lifecycle.spec.ts",
+        "backend/SlotMath.Core.Tests/Math/InterruptedLifecycleTests.cs",
+        "backend/SlotMath.Api.Tests/InterruptedLifecycleApiTests.cs",
+        "frontend/unit/interrupted-lifecycle.spec.ts",
+        "frontend/e2e/z-interrupted-lifecycle.spec.ts"
+      ]
+    },
+    {
+      "id": "counts.reveals",
+      "status": "authored",
+      "scope": "Select the paid-round or authored lifecycle/award boundary and include invalid/excluded exposure.",
+      "implementation": [
+        "backend/SlotMath.Core/Measurements/MeasurementCollector.cs"
+      ],
+      "evidence": [
+        "backend/SlotMath.Core.Tests/Math/MeasurementTests.cs",
+        "backend/SlotMath.Core.Tests/Math/DiagnosticEvidenceTests.cs"
+      ]
+    },
+    {
+      "id": "counts.unique_awards",
+      "status": "authored",
+      "scope": "Select the paid-round or authored lifecycle/award boundary and include invalid/excluded exposure.",
+      "implementation": [
+        "backend/SlotMath.Core/Measurements/MeasurementCollector.cs"
+      ],
+      "evidence": [
+        "backend/SlotMath.Core.Tests/Math/MeasurementTests.cs",
+        "backend/SlotMath.Core.Tests/Math/DiagnosticEvidenceTests.cs"
+      ]
+    },
+    {
+      "id": "counts.accounting_residual",
+      "status": "authored",
+      "scope": "Author the actual monetary/rule residual or Boolean failure predicate. Exact zero/false assertions count failures before report conversion and retain replayable coordinates; exposure residual is a separate statistic.",
+      "implementation": [
+        "backend/SlotMath.Core/Measurements/MeasurementCollector.cs"
+      ],
+      "evidence": [
+        "backend/SlotMath.Core.Tests/Math/MeasurementTests.cs",
+        "backend/SlotMath.Core.Tests/Math/DiagnosticEvidenceTests.cs"
+      ]
+    },
+    {
+      "id": "return.turnover",
+      "status": "ready",
+      "scope": "Complete-round payout and external cost are pinned; variable-cost return uses paired sums, with cost charged once per parent.",
+      "implementation": [
+        "backend/SlotMath.Core/Measurements/MeasurementCollector.cs",
+        "backend/SlotMath.Core/Measurements/MeasurementAnalysisAccumulator.cs"
+      ],
+      "evidence": [
+        "backend/SlotMath.Core.Tests/Math/AdvancedMeasurementTests.cs"
+      ]
+    },
+    {
+      "id": "return.payout",
+      "status": "ready",
+      "scope": "Complete-round payout and external cost are pinned; variable-cost return uses paired sums, with cost charged once per parent.",
+      "implementation": [
+        "backend/SlotMath.Core/Measurements/MeasurementCollector.cs",
+        "backend/SlotMath.Core/Measurements/MeasurementAnalysisAccumulator.cs"
+      ],
+      "evidence": [
+        "backend/SlotMath.Core.Tests/Math/AdvancedMeasurementTests.cs"
+      ]
+    },
+    {
+      "id": "return.rtp_fixed",
+      "status": "ready",
+      "scope": "Complete-round payout and external cost are pinned; variable-cost return uses paired sums, with cost charged once per parent.",
+      "implementation": [
+        "backend/SlotMath.Core/Measurements/MeasurementCollector.cs",
+        "backend/SlotMath.Core/Measurements/MeasurementAnalysisAccumulator.cs"
+      ],
+      "evidence": [
+        "backend/SlotMath.Core.Tests/Math/AdvancedMeasurementTests.cs"
+      ]
+    },
+    {
+      "id": "return.rtp_mixed",
+      "status": "ready",
+      "scope": "Complete-round payout and external cost are pinned; variable-cost return uses paired sums, with cost charged once per parent.",
+      "implementation": [
+        "backend/SlotMath.Core/Measurements/MeasurementCollector.cs",
+        "backend/SlotMath.Core/Measurements/MeasurementAnalysisAccumulator.cs"
+      ],
+      "evidence": [
+        "backend/SlotMath.Core.Tests/Math/AdvancedMeasurementTests.cs"
+      ]
+    },
+    {
+      "id": "return.theoretical",
+      "status": "ready",
+      "scope": "Independent rational finite-law and finite-state calculators retain their own cost/model contract; they are not an inferred specification of the graph.",
+      "implementation": [
+        "backend/SlotMath.Core/Measurements/MeasurementCollector.cs",
+        "backend/SlotMath.Core/Measurements/MeasurementAnalysisAccumulator.cs"
+      ],
+      "evidence": [
+        "backend/SlotMath.Core.Tests/Math/AdvancedMeasurementTests.cs"
+      ]
+    },
+    {
+      "id": "return.net",
+      "status": "ready",
+      "scope": "Complete-round payout and external cost are pinned; variable-cost return uses paired sums, with cost charged once per parent.",
+      "implementation": [
+        "backend/SlotMath.Core/Measurements/MeasurementCollector.cs",
+        "backend/SlotMath.Core/Measurements/MeasurementAnalysisAccumulator.cs"
+      ],
+      "evidence": [
+        "backend/SlotMath.Core.Tests/Math/AdvancedMeasurementTests.cs"
+      ]
+    },
+    {
+      "id": "return.house_edge",
+      "status": "ready",
+      "scope": "Independent rational finite-law and finite-state calculators retain their own cost/model contract; they are not an inferred specification of the graph.",
+      "implementation": [
+        "backend/SlotMath.Core/Measurements/MeasurementCollector.cs",
+        "backend/SlotMath.Core/Measurements/MeasurementAnalysisAccumulator.cs"
+      ],
+      "evidence": [
+        "backend/SlotMath.Core.Tests/Math/AdvancedMeasurementTests.cs"
+      ]
+    },
+    {
+      "id": "return.component",
+      "status": "authored",
+      "scope": "Pin the external cost and allocation/rounding contract. Repeated reveal values are not a paid-round return.",
+      "implementation": [
+        "backend/SlotMath.Core/Measurements/MeasurementCollector.cs",
+        "backend/SlotMath.Core/Measurements/MeasurementAnalysisAccumulator.cs"
+      ],
+      "evidence": [
+        "backend/SlotMath.Core.Tests/Math/AdvancedMeasurementTests.cs"
+      ]
+    },
+    {
+      "id": "return.component_share",
+      "status": "authored",
+      "scope": "Pin the external cost and allocation/rounding contract. Repeated reveal values are not a paid-round return.",
+      "implementation": [
+        "backend/SlotMath.Core/Measurements/MeasurementCollector.cs",
+        "backend/SlotMath.Core/Measurements/MeasurementAnalysisAccumulator.cs"
+      ],
+      "evidence": [
+        "backend/SlotMath.Core.Tests/Math/AdvancedMeasurementTests.cs"
+      ]
+    },
+    {
+      "id": "return.conditional",
+      "status": "authored",
+      "scope": "Pin the external cost and allocation/rounding contract. Repeated reveal values are not a paid-round return.",
+      "implementation": [
+        "backend/SlotMath.Core/Measurements/MeasurementCollector.cs",
+        "backend/SlotMath.Core/Measurements/MeasurementAnalysisAccumulator.cs"
+      ],
+      "evidence": [
+        "backend/SlotMath.Core.Tests/Math/AdvancedMeasurementTests.cs"
+      ]
+    },
+    {
+      "id": "return.mode",
+      "status": "ready",
+      "scope": "Complete-round payout and external cost are pinned; variable-cost return uses paired sums, with cost charged once per parent.",
+      "implementation": [
+        "backend/SlotMath.Core/Measurements/MeasurementCollector.cs",
+        "backend/SlotMath.Core/Measurements/MeasurementAnalysisAccumulator.cs"
+      ],
+      "evidence": [
+        "backend/SlotMath.Core.Tests/Math/AdvancedMeasurementTests.cs"
+      ]
+    },
+    {
+      "id": "return.reconciliation",
+      "status": "authored",
+      "scope": "Author the actual monetary/rule residual or Boolean failure predicate. Exact zero/false assertions count failures before report conversion and retain replayable coordinates; exposure residual is a separate statistic.",
+      "implementation": [
+        "backend/SlotMath.Core/Measurements/MeasurementCollector.cs",
+        "backend/SlotMath.Core/Measurements/MeasurementAnalysisAccumulator.cs"
+      ],
+      "evidence": [
+        "backend/SlotMath.Core.Tests/Math/AdvancedMeasurementTests.cs"
+      ]
+    },
+    {
+      "id": "return.rounding",
+      "status": "ready",
+      "scope": "Exact rational whole-award settlement with configurable quantum and floor/ceiling/nearest-even/nearest-away, before WinCap. Both engines retain exact before/after/difference fields; collector reports their scoped moments.",
+      "implementation": [
+        "backend/SlotMath.Core/Measurements/MeasurementCollector.cs",
+        "backend/SlotMath.Core/Measurements/MeasurementAnalysisAccumulator.cs",
+        "backend/SlotMath.Core/Model/MonetarySettlement.cs",
+        "frontend/src/components/editor/NativeInspector.tsx"
+      ],
+      "evidence": [
+        "backend/SlotMath.Core.Tests/Math/AdvancedMeasurementTests.cs",
+        "backend/SlotMath.Core.Tests/Math/VerificationMilestoneTests.cs",
+        "backend/SlotMath.Api.Tests/VerificationExperimentApiTests.cs",
+        "frontend/e2e/z-verification-experiments.spec.ts"
+      ]
+    },
+    {
+      "id": "events.hit",
+      "status": "ready",
+      "scope": "Money predicates use read-only settlement/cost fields. Empirical reciprocal is undefined at zero and is not a guaranteed gap.",
+      "implementation": [
+        "backend/SlotMath.Core/Measurements/MeasurementCollector.cs",
+        "backend/SlotMath.Core/Measurements/StatisticalInference.cs"
+      ],
+      "evidence": [
+        "backend/SlotMath.Core.Tests/Math/AdvancedMeasurementTests.cs"
+      ]
+    },
+    {
+      "id": "events.zero",
+      "status": "ready",
+      "scope": "Money predicates use read-only settlement/cost fields. Empirical reciprocal is undefined at zero and is not a guaranteed gap.",
+      "implementation": [
+        "backend/SlotMath.Core/Measurements/MeasurementCollector.cs",
+        "backend/SlotMath.Core/Measurements/StatisticalInference.cs"
+      ],
+      "evidence": [
+        "backend/SlotMath.Core.Tests/Math/AdvancedMeasurementTests.cs"
+      ]
+    },
+    {
+      "id": "events.substake",
+      "status": "ready",
+      "scope": "Money predicates use read-only settlement/cost fields. Empirical reciprocal is undefined at zero and is not a guaranteed gap.",
+      "implementation": [
+        "backend/SlotMath.Core/Measurements/MeasurementCollector.cs",
+        "backend/SlotMath.Core/Measurements/StatisticalInference.cs"
+      ],
+      "evidence": [
+        "backend/SlotMath.Core.Tests/Math/AdvancedMeasurementTests.cs"
+      ]
+    },
+    {
+      "id": "events.breakeven",
+      "status": "ready",
+      "scope": "Money predicates use read-only settlement/cost fields. Empirical reciprocal is undefined at zero and is not a guaranteed gap.",
+      "implementation": [
+        "backend/SlotMath.Core/Measurements/MeasurementCollector.cs",
+        "backend/SlotMath.Core/Measurements/StatisticalInference.cs"
+      ],
+      "evidence": [
+        "backend/SlotMath.Core.Tests/Math/AdvancedMeasurementTests.cs"
+      ]
+    },
+    {
+      "id": "events.profit",
+      "status": "ready",
+      "scope": "Money predicates use read-only settlement/cost fields. Empirical reciprocal is undefined at zero and is not a guaranteed gap.",
+      "implementation": [
+        "backend/SlotMath.Core/Measurements/MeasurementCollector.cs",
+        "backend/SlotMath.Core/Measurements/StatisticalInference.cs"
+      ],
+      "evidence": [
+        "backend/SlotMath.Core.Tests/Math/AdvancedMeasurementTests.cs"
+      ]
+    },
+    {
+      "id": "events.match_share",
+      "status": "ready",
+      "scope": "Money predicates use read-only settlement/cost fields. Empirical reciprocal is undefined at zero and is not a guaranteed gap.",
+      "implementation": [
+        "backend/SlotMath.Core/Measurements/MeasurementCollector.cs",
+        "backend/SlotMath.Core/Measurements/StatisticalInference.cs"
+      ],
+      "evidence": [
+        "backend/SlotMath.Core.Tests/Math/AdvancedMeasurementTests.cs"
+      ]
+    },
+    {
+      "id": "events.round_activation",
+      "status": "authored",
+      "scope": "Author a Boolean event with explicit scope and boundaries; declare independence for binomial inference.",
+      "implementation": [
+        "backend/SlotMath.Core/Measurements/MeasurementCollector.cs",
+        "backend/SlotMath.Core/Measurements/StatisticalInference.cs"
+      ],
+      "evidence": [
+        "backend/SlotMath.Core.Tests/Math/AdvancedMeasurementTests.cs"
+      ]
+    },
+    {
+      "id": "events.entry_rate",
+      "status": "authored",
+      "scope": "Author a Boolean event with explicit scope and boundaries; declare independence for binomial inference.",
+      "implementation": [
+        "backend/SlotMath.Core/Measurements/MeasurementCollector.cs",
+        "backend/SlotMath.Core/Measurements/StatisticalInference.cs"
+      ],
+      "evidence": [
+        "backend/SlotMath.Core.Tests/Math/AdvancedMeasurementTests.cs"
+      ]
+    },
+    {
+      "id": "events.conditional",
+      "status": "authored",
+      "scope": "Author a Boolean event with explicit scope and boundaries; declare independence for binomial inference.",
+      "implementation": [
+        "backend/SlotMath.Core/Measurements/MeasurementCollector.cs",
+        "backend/SlotMath.Core/Measurements/StatisticalInference.cs"
+      ],
+      "evidence": [
+        "backend/SlotMath.Core.Tests/Math/AdvancedMeasurementTests.cs"
+      ]
+    },
+    {
+      "id": "events.threshold",
+      "status": "authored",
+      "scope": "Author a Boolean event with explicit scope and boundaries; declare independence for binomial inference.",
+      "implementation": [
+        "backend/SlotMath.Core/Measurements/MeasurementCollector.cs",
+        "backend/SlotMath.Core/Measurements/StatisticalInference.cs"
+      ],
+      "evidence": [
+        "backend/SlotMath.Core.Tests/Math/AdvancedMeasurementTests.cs"
+      ]
+    },
+    {
+      "id": "events.reciprocal",
+      "status": "ready",
+      "scope": "Money predicates use read-only settlement/cost fields. Empirical reciprocal is undefined at zero and is not a guaranteed gap.",
+      "implementation": [
+        "backend/SlotMath.Core/Measurements/MeasurementCollector.cs",
+        "backend/SlotMath.Core/Measurements/StatisticalInference.cs"
+      ],
+      "evidence": [
+        "backend/SlotMath.Core.Tests/Math/AdvancedMeasurementTests.cs"
+      ]
+    },
+    {
+      "id": "moments.sum",
+      "status": "ready",
+      "scope": "Valid numeric subjects; conventions and empty/constant cases are explicit. Sample maximum is descriptive.",
+      "implementation": [
+        "backend/SlotMath.Core/Measurements/MeasurementAnalysisAccumulator.cs"
+      ],
+      "evidence": [
+        "backend/SlotMath.Core.Tests/Math/AdvancedMeasurementTests.cs"
+      ]
+    },
+    {
+      "id": "moments.min",
+      "status": "ready",
+      "scope": "Valid numeric subjects; conventions and empty/constant cases are explicit. Sample maximum is descriptive.",
+      "implementation": [
+        "backend/SlotMath.Core/Measurements/MeasurementAnalysisAccumulator.cs"
+      ],
+      "evidence": [
+        "backend/SlotMath.Core.Tests/Math/AdvancedMeasurementTests.cs"
+      ]
+    },
+    {
+      "id": "moments.max",
+      "status": "ready",
+      "scope": "Valid numeric subjects; conventions and empty/constant cases are explicit. Sample maximum is descriptive.",
+      "implementation": [
+        "backend/SlotMath.Core/Measurements/MeasurementAnalysisAccumulator.cs"
+      ],
+      "evidence": [
+        "backend/SlotMath.Core.Tests/Math/AdvancedMeasurementTests.cs"
+      ]
+    },
+    {
+      "id": "moments.mean",
+      "status": "ready",
+      "scope": "Valid numeric subjects; conventions and empty/constant cases are explicit. Sample maximum is descriptive.",
+      "implementation": [
+        "backend/SlotMath.Core/Measurements/MeasurementAnalysisAccumulator.cs"
+      ],
+      "evidence": [
+        "backend/SlotMath.Core.Tests/Math/AdvancedMeasurementTests.cs"
+      ]
+    },
+    {
+      "id": "moments.second",
+      "status": "ready",
+      "scope": "Valid numeric subjects; conventions and empty/constant cases are explicit. Sample maximum is descriptive.",
+      "implementation": [
+        "backend/SlotMath.Core/Measurements/MeasurementAnalysisAccumulator.cs"
+      ],
+      "evidence": [
+        "backend/SlotMath.Core.Tests/Math/AdvancedMeasurementTests.cs"
+      ]
+    },
+    {
+      "id": "moments.variance",
+      "status": "ready",
+      "scope": "Valid numeric subjects; conventions and empty/constant cases are explicit. Sample maximum is descriptive.",
+      "implementation": [
+        "backend/SlotMath.Core/Measurements/MeasurementAnalysisAccumulator.cs"
+      ],
+      "evidence": [
+        "backend/SlotMath.Core.Tests/Math/AdvancedMeasurementTests.cs"
+      ]
+    },
+    {
+      "id": "moments.sd",
+      "status": "ready",
+      "scope": "Valid numeric subjects; conventions and empty/constant cases are explicit. Sample maximum is descriptive.",
+      "implementation": [
+        "backend/SlotMath.Core/Measurements/MeasurementAnalysisAccumulator.cs"
+      ],
+      "evidence": [
+        "backend/SlotMath.Core.Tests/Math/AdvancedMeasurementTests.cs"
+      ]
+    },
+    {
+      "id": "moments.cv",
+      "status": "ready",
+      "scope": "Sample SD divided by a strictly positive mean; zero/negative means withhold the coefficient under the declared convention.",
+      "implementation": [
+        "backend/SlotMath.Core/Measurements/MeasurementAnalysisAccumulator.cs"
+      ],
+      "evidence": [
+        "backend/SlotMath.Core.Tests/Math/AdvancedMeasurementTests.cs"
+      ]
+    },
+    {
+      "id": "moments.skew",
+      "status": "ready",
+      "scope": "Valid numeric subjects; conventions and empty/constant cases are explicit. Sample maximum is descriptive.",
+      "implementation": [
+        "backend/SlotMath.Core/Measurements/MeasurementAnalysisAccumulator.cs"
+      ],
+      "evidence": [
+        "backend/SlotMath.Core.Tests/Math/AdvancedMeasurementTests.cs"
+      ]
+    },
+    {
+      "id": "moments.kurtosis",
+      "status": "ready",
+      "scope": "Valid numeric subjects; conventions and empty/constant cases are explicit. Sample maximum is descriptive.",
+      "implementation": [
+        "backend/SlotMath.Core/Measurements/MeasurementAnalysisAccumulator.cs"
+      ],
+      "evidence": [
+        "backend/SlotMath.Core.Tests/Math/AdvancedMeasurementTests.cs"
+      ]
+    },
+    {
+      "id": "moments.mean_abs_deviation",
+      "status": "ready",
+      "scope": "Valid numeric subjects; conventions and empty/constant cases are explicit. Sample maximum is descriptive.",
+      "implementation": [
+        "backend/SlotMath.Core/Measurements/MeasurementAnalysisAccumulator.cs"
+      ],
+      "evidence": [
+        "backend/SlotMath.Core.Tests/Math/AdvancedMeasurementTests.cs"
+      ]
+    },
+    {
+      "id": "distribution.pmf",
+      "status": "ready",
+      "scope": "Full support or complete fixed bins; incomplete support yields enclosures instead of point quantiles.",
+      "implementation": [
+        "backend/SlotMath.Core/Measurements/MeasurementAnalysisAccumulator.cs"
+      ],
+      "evidence": [
+        "backend/SlotMath.Core.Tests/Math/AdvancedMeasurementTests.cs"
+      ]
+    },
+    {
+      "id": "distribution.bin_count",
+      "status": "ready",
+      "scope": "Full support or complete fixed bins; incomplete support yields enclosures instead of point quantiles.",
+      "implementation": [
+        "backend/SlotMath.Core/Measurements/MeasurementAnalysisAccumulator.cs"
+      ],
+      "evidence": [
+        "backend/SlotMath.Core.Tests/Math/AdvancedMeasurementTests.cs"
+      ]
+    },
+    {
+      "id": "distribution.bin_sum",
+      "status": "ready",
+      "scope": "Full support or complete fixed bins; incomplete support yields enclosures instead of point quantiles.",
+      "implementation": [
+        "backend/SlotMath.Core/Measurements/MeasurementAnalysisAccumulator.cs"
+      ],
+      "evidence": [
+        "backend/SlotMath.Core.Tests/Math/AdvancedMeasurementTests.cs"
+      ]
+    },
+    {
+      "id": "distribution.bin_return",
+      "status": "ready",
+      "scope": "Value-band sums divided by explicit external turnover. Fixed cost includes absent-feature parents; mixed wagers use included complete paid-round pair sums. Conditional mode scope and monetary units remain declared.",
+      "implementation": [
+        "backend/SlotMath.Core/Measurements/MeasurementAnalysisAccumulator.cs"
+      ],
+      "evidence": [
+        "backend/SlotMath.Core.Tests/Math/AdvancedMeasurementTests.cs",
+        "backend/SlotMath.Core.Tests/Math/DiagnosticEvidenceTests.cs"
+      ]
+    },
+    {
+      "id": "distribution.cdf",
+      "status": "ready",
+      "scope": "Full support or complete fixed bins; incomplete support yields enclosures instead of point quantiles.",
+      "implementation": [
+        "backend/SlotMath.Core/Measurements/MeasurementAnalysisAccumulator.cs"
+      ],
+      "evidence": [
+        "backend/SlotMath.Core.Tests/Math/AdvancedMeasurementTests.cs"
+      ]
+    },
+    {
+      "id": "distribution.survival",
+      "status": "ready",
+      "scope": "Full support or complete fixed bins; incomplete support yields enclosures instead of point quantiles.",
+      "implementation": [
+        "backend/SlotMath.Core/Measurements/MeasurementAnalysisAccumulator.cs"
+      ],
+      "evidence": [
+        "backend/SlotMath.Core.Tests/Math/AdvancedMeasurementTests.cs"
+      ]
+    },
+    {
+      "id": "distribution.quantile",
+      "status": "ready",
+      "scope": "Full support or complete fixed bins; incomplete support yields enclosures instead of point quantiles.",
+      "implementation": [
+        "backend/SlotMath.Core/Measurements/MeasurementAnalysisAccumulator.cs"
+      ],
+      "evidence": [
+        "backend/SlotMath.Core.Tests/Math/AdvancedMeasurementTests.cs"
+      ]
+    },
+    {
+      "id": "distribution.tail_return",
+      "status": "ready",
+      "scope": "Full support or complete fixed bins; incomplete support yields enclosures instead of point quantiles.",
+      "implementation": [
+        "backend/SlotMath.Core/Measurements/MeasurementAnalysisAccumulator.cs"
+      ],
+      "evidence": [
+        "backend/SlotMath.Core.Tests/Math/AdvancedMeasurementTests.cs"
+      ]
+    },
+    {
+      "id": "distribution.tail_mean",
+      "status": "ready",
+      "scope": "Full support or complete fixed bins; incomplete support yields enclosures instead of point quantiles.",
+      "implementation": [
+        "backend/SlotMath.Core/Measurements/MeasurementAnalysisAccumulator.cs"
+      ],
+      "evidence": [
+        "backend/SlotMath.Core.Tests/Math/AdvancedMeasurementTests.cs"
+      ]
+    },
+    {
+      "id": "distribution.tail_second",
+      "status": "ready",
+      "scope": "Full support or complete fixed bins; incomplete support yields enclosures instead of point quantiles.",
+      "implementation": [
+        "backend/SlotMath.Core/Measurements/MeasurementAnalysisAccumulator.cs"
+      ],
+      "evidence": [
+        "backend/SlotMath.Core.Tests/Math/AdvancedMeasurementTests.cs"
+      ]
+    },
+    {
+      "id": "distribution.upper_tail_mean",
+      "status": "ready",
+      "scope": "Full support or complete fixed bins; incomplete support yields enclosures instead of point quantiles.",
+      "implementation": [
+        "backend/SlotMath.Core/Measurements/MeasurementAnalysisAccumulator.cs"
+      ],
+      "evidence": [
+        "backend/SlotMath.Core.Tests/Math/AdvancedMeasurementTests.cs"
+      ]
+    },
+    {
+      "id": "distribution.return_concentration",
+      "status": "ready",
+      "scope": "Full support or complete fixed bins; incomplete support yields enclosures instead of point quantiles.",
+      "implementation": [
+        "backend/SlotMath.Core/Measurements/MeasurementAnalysisAccumulator.cs"
+      ],
+      "evidence": [
+        "backend/SlotMath.Core.Tests/Math/AdvancedMeasurementTests.cs"
+      ]
+    },
+    {
+      "id": "features.type_mix",
+      "status": "authored",
+      "scope": "Bind the authored entry, reveal, award and completion points; episode and paid-round populations differ.",
+      "implementation": [
+        "backend/SlotMath.Core/Measurements/MeasurementCollector.cs"
+      ],
+      "evidence": [
+        "backend/SlotMath.Core.Tests/Math/AdvancedMeasurementTests.cs",
+        "backend/SlotMath.Core.Tests/Math/MeasurementTests.cs"
+      ]
+    },
+    {
+      "id": "features.episode_payout",
+      "status": "authored",
+      "scope": "Bind the authored entry, reveal, award and completion points; episode and paid-round populations differ.",
+      "implementation": [
+        "backend/SlotMath.Core/Measurements/MeasurementCollector.cs"
+      ],
+      "evidence": [
+        "backend/SlotMath.Core.Tests/Math/AdvancedMeasurementTests.cs",
+        "backend/SlotMath.Core.Tests/Math/MeasurementTests.cs"
+      ]
+    },
+    {
+      "id": "features.reveal_payout",
+      "status": "authored",
+      "scope": "Bind the authored entry, reveal, award and completion points; episode and paid-round populations differ.",
+      "implementation": [
+        "backend/SlotMath.Core/Measurements/MeasurementCollector.cs"
+      ],
+      "evidence": [
+        "backend/SlotMath.Core.Tests/Math/AdvancedMeasurementTests.cs",
+        "backend/SlotMath.Core.Tests/Math/MeasurementTests.cs"
+      ]
+    },
+    {
+      "id": "features.initial_awards",
+      "status": "authored",
+      "scope": "Bind a once-at-entry award value, newly added/removed award deltas or an exact remaining-balance assertion at the authored boundary. Reading a remaining counter repeatedly is not an award count.",
+      "implementation": [
+        "backend/SlotMath.Core/Measurements/MeasurementCollector.cs"
+      ],
+      "evidence": [
+        "backend/SlotMath.Core.Tests/Math/AdvancedMeasurementTests.cs",
+        "backend/SlotMath.Core.Tests/Math/MeasurementTests.cs"
+      ]
+    },
+    {
+      "id": "features.additional_awards",
+      "status": "authored",
+      "scope": "Bind a once-at-entry award value, newly added/removed award deltas or an exact remaining-balance assertion at the authored boundary. Reading a remaining counter repeatedly is not an award count.",
+      "implementation": [
+        "backend/SlotMath.Core/Measurements/MeasurementCollector.cs"
+      ],
+      "evidence": [
+        "backend/SlotMath.Core.Tests/Math/AdvancedMeasurementTests.cs",
+        "backend/SlotMath.Core.Tests/Math/MeasurementTests.cs"
+      ]
+    },
+    {
+      "id": "features.played",
+      "status": "authored",
+      "scope": "Bind the authored entry, reveal, award and completion points; episode and paid-round populations differ.",
+      "implementation": [
+        "backend/SlotMath.Core/Measurements/MeasurementCollector.cs"
+      ],
+      "evidence": [
+        "backend/SlotMath.Core.Tests/Math/AdvancedMeasurementTests.cs",
+        "backend/SlotMath.Core.Tests/Math/MeasurementTests.cs"
+      ]
+    },
+    {
+      "id": "features.remaining",
+      "status": "authored",
+      "scope": "Bind a once-at-entry award value, newly added/removed award deltas or an exact remaining-balance assertion at the authored boundary. Reading a remaining counter repeatedly is not an award count.",
+      "implementation": [
+        "backend/SlotMath.Core/Measurements/MeasurementCollector.cs"
+      ],
+      "evidence": [
+        "backend/SlotMath.Core.Tests/Math/AdvancedMeasurementTests.cs",
+        "backend/SlotMath.Core.Tests/Math/MeasurementTests.cs"
+      ]
+    },
+    {
+      "id": "features.removed",
+      "status": "authored",
+      "scope": "Bind a once-at-entry award value, newly added/removed award deltas or an exact remaining-balance assertion at the authored boundary. Reading a remaining counter repeatedly is not an award count.",
+      "implementation": [
+        "backend/SlotMath.Core/Measurements/MeasurementCollector.cs"
+      ],
+      "evidence": [
+        "backend/SlotMath.Core.Tests/Math/AdvancedMeasurementTests.cs",
+        "backend/SlotMath.Core.Tests/Math/MeasurementTests.cs"
+      ]
+    },
+    {
+      "id": "features.retriggers",
+      "status": "authored",
+      "scope": "Bind a once-at-entry award value, newly added/removed award deltas or an exact remaining-balance assertion at the authored boundary. Reading a remaining counter repeatedly is not an award count.",
+      "implementation": [
+        "backend/SlotMath.Core/Measurements/MeasurementCollector.cs"
+      ],
+      "evidence": [
+        "backend/SlotMath.Core.Tests/Math/AdvancedMeasurementTests.cs",
+        "backend/SlotMath.Core.Tests/Math/MeasurementTests.cs"
+      ]
+    },
+    {
+      "id": "features.any_retrigger",
+      "status": "authored",
+      "scope": "The recipe uses an episode Boolean-any reduction and requires entry, exit and retrigger opportunity/predicate. It does not substitute paid-round activation.",
+      "implementation": [
+        "backend/SlotMath.Core/Measurements/MeasurementCollector.cs"
+      ],
+      "evidence": [
+        "backend/SlotMath.Core.Tests/Math/AdvancedMeasurementTests.cs",
+        "backend/SlotMath.Core.Tests/Math/MeasurementTests.cs"
+      ]
+    },
+    {
+      "id": "features.zero_episode",
+      "status": "authored",
+      "scope": "Bind the completed episode-total predicate at its authored exit, with the eligible feature type. A sum of zero child predicates is not a zero-paying episode test.",
+      "implementation": [
+        "backend/SlotMath.Core/Measurements/MeasurementCollector.cs"
+      ],
+      "evidence": [
+        "backend/SlotMath.Core.Tests/Math/AdvancedMeasurementTests.cs",
+        "backend/SlotMath.Core.Tests/Math/MeasurementTests.cs"
+      ]
+    },
+    {
+      "id": "features.ordinal_profile",
+      "status": "ready",
+      "scope": "Nested closed included episodes retain parent/depth/ordinal identities and bounded first-16 child profiles, including covariance conditioned on reaching both ordinals. Entry cohorts and replay witnesses preserve scope; larger profiles require a separate authored design.",
+      "implementation": [
+        "backend/SlotMath.Core/Measurements/MeasurementCollector.cs",
+        "backend/SlotMath.Core/Measurements/EpisodeEvidence.cs",
+        "frontend/src/components/simulate/MeasurementDesigner.tsx"
+      ],
+      "evidence": [
+        "backend/SlotMath.Core.Tests/Math/AdvancedMeasurementTests.cs",
+        "backend/SlotMath.Core.Tests/Math/MeasurementTests.cs",
+        "backend/SlotMath.Core.Tests/Math/VerificationMilestoneTests.cs",
+        "backend/SlotMath.Api.Tests/VerificationExperimentApiTests.cs",
+        "frontend/e2e/z-verification-experiments.spec.ts"
+      ]
+    },
+    {
+      "id": "features.exit_reason",
+      "status": "ready",
+      "scope": "Typed authored loop/episode classification distinguishes condition, modelLimit, payoutCap and authoredStop. Resource-budget interruption is a separately retained subset of cancelled feature boundaries, without publishing partial numeric rewards. Missing authored classifications stay unclassified.",
+      "implementation": [
+        "backend/SlotMath.Core/Measurements/MeasurementCollector.cs",
+        "backend/SlotMath.Core/Measurements/ExitClassification.cs",
+        "frontend/src/components/simulate/MeasurementDesigner.tsx"
+      ],
+      "evidence": [
+        "backend/SlotMath.Core.Tests/Math/AdvancedMeasurementTests.cs",
+        "backend/SlotMath.Core.Tests/Math/MeasurementTests.cs",
+        "backend/SlotMath.Core.Tests/Math/InterruptedLifecycleTests.cs",
+        "backend/SlotMath.Api.Tests/InterruptedLifecycleApiTests.cs",
+        "frontend/e2e/z-interrupted-lifecycle.spec.ts",
+        "backend/SlotMath.Core.Tests/Math/VerificationMilestoneTests.cs",
+        "backend/SlotMath.Api.Tests/VerificationExperimentApiTests.cs",
+        "frontend/e2e/z-verification-experiments.spec.ts"
+      ]
+    },
+    {
+      "id": "mechanics.reel_stop",
+      "status": "authored",
+      "scope": "The constructor must expose typed symbol/award/state values at the correct boundary and author the rule predicate.",
+      "implementation": [
+        "backend/SlotMath.Core/Measurements/MeasurementCollector.cs"
+      ],
+      "evidence": [
+        "backend/SlotMath.Core.Tests/Math/MeasurementTests.cs",
+        "backend/SlotMath.Core.Tests/Math/DiagnosticEvidenceTests.cs"
+      ]
+    },
+    {
+      "id": "mechanics.symbol",
+      "status": "authored",
+      "scope": "The constructor must expose typed symbol/award/state values at the correct boundary and author the rule predicate.",
+      "implementation": [
+        "backend/SlotMath.Core/Measurements/MeasurementCollector.cs"
+      ],
+      "evidence": [
+        "backend/SlotMath.Core.Tests/Math/MeasurementTests.cs",
+        "backend/SlotMath.Core.Tests/Math/DiagnosticEvidenceTests.cs"
+      ]
+    },
+    {
+      "id": "mechanics.line_combo",
+      "status": "authored",
+      "scope": "The constructor must expose typed symbol/award/state values at the correct boundary and author the rule predicate.",
+      "implementation": [
+        "backend/SlotMath.Core/Measurements/MeasurementCollector.cs"
+      ],
+      "evidence": [
+        "backend/SlotMath.Core.Tests/Math/MeasurementTests.cs",
+        "backend/SlotMath.Core.Tests/Math/DiagnosticEvidenceTests.cs"
+      ]
+    },
+    {
+      "id": "mechanics.payable_lines",
+      "status": "authored",
+      "scope": "The constructor must expose typed symbol/award/state values at the correct boundary and author the rule predicate.",
+      "implementation": [
+        "backend/SlotMath.Core/Measurements/MeasurementCollector.cs"
+      ],
+      "evidence": [
+        "backend/SlotMath.Core.Tests/Math/MeasurementTests.cs",
+        "backend/SlotMath.Core.Tests/Math/DiagnosticEvidenceTests.cs"
+      ]
+    },
+    {
+      "id": "mechanics.ways",
+      "status": "authored",
+      "scope": "The constructor must expose typed symbol/award/state values at the correct boundary and author the rule predicate.",
+      "implementation": [
+        "backend/SlotMath.Core/Measurements/MeasurementCollector.cs"
+      ],
+      "evidence": [
+        "backend/SlotMath.Core.Tests/Math/MeasurementTests.cs",
+        "backend/SlotMath.Core.Tests/Math/DiagnosticEvidenceTests.cs"
+      ]
+    },
+    {
+      "id": "mechanics.scatter",
+      "status": "authored",
+      "scope": "The constructor must expose typed symbol/award/state values at the correct boundary and author the rule predicate.",
+      "implementation": [
+        "backend/SlotMath.Core/Measurements/MeasurementCollector.cs"
+      ],
+      "evidence": [
+        "backend/SlotMath.Core.Tests/Math/MeasurementTests.cs",
+        "backend/SlotMath.Core.Tests/Math/DiagnosticEvidenceTests.cs"
+      ]
+    },
+    {
+      "id": "mechanics.cluster",
+      "status": "authored",
+      "scope": "The constructor must expose typed symbol/award/state values at the correct boundary and author the rule predicate.",
+      "implementation": [
+        "backend/SlotMath.Core/Measurements/MeasurementCollector.cs"
+      ],
+      "evidence": [
+        "backend/SlotMath.Core.Tests/Math/MeasurementTests.cs",
+        "backend/SlotMath.Core.Tests/Math/DiagnosticEvidenceTests.cs"
+      ]
+    },
+    {
+      "id": "mechanics.shared_wild",
+      "status": "authored",
+      "scope": "The constructor must expose typed symbol/award/state values at the correct boundary and author the rule predicate.",
+      "implementation": [
+        "backend/SlotMath.Core/Measurements/MeasurementCollector.cs"
+      ],
+      "evidence": [
+        "backend/SlotMath.Core.Tests/Math/MeasurementTests.cs",
+        "backend/SlotMath.Core.Tests/Math/DiagnosticEvidenceTests.cs"
+      ]
+    },
+    {
+      "id": "mechanics.sticky",
+      "status": "authored",
+      "scope": "The constructor must expose typed symbol/award/state values at the correct boundary and author the rule predicate.",
+      "implementation": [
+        "backend/SlotMath.Core/Measurements/MeasurementCollector.cs"
+      ],
+      "evidence": [
+        "backend/SlotMath.Core.Tests/Math/MeasurementTests.cs",
+        "backend/SlotMath.Core.Tests/Math/DiagnosticEvidenceTests.cs"
+      ]
+    },
+    {
+      "id": "mechanics.cascade",
+      "status": "authored",
+      "scope": "The constructor must expose typed symbol/award/state values at the correct boundary and author the rule predicate.",
+      "implementation": [
+        "backend/SlotMath.Core/Measurements/MeasurementCollector.cs"
+      ],
+      "evidence": [
+        "backend/SlotMath.Core.Tests/Math/MeasurementTests.cs",
+        "backend/SlotMath.Core.Tests/Math/DiagnosticEvidenceTests.cs"
+      ]
+    },
+    {
+      "id": "mechanics.collection",
+      "status": "authored",
+      "scope": "The constructor must expose typed symbol/award/state values at the correct boundary and author the rule predicate.",
+      "implementation": [
+        "backend/SlotMath.Core/Measurements/MeasurementCollector.cs"
+      ],
+      "evidence": [
+        "backend/SlotMath.Core.Tests/Math/MeasurementTests.cs",
+        "backend/SlotMath.Core.Tests/Math/DiagnosticEvidenceTests.cs"
+      ]
+    },
+    {
+      "id": "mechanics.multiplier",
+      "status": "authored",
+      "scope": "The constructor must expose typed symbol/award/state values at the correct boundary and author the rule predicate.",
+      "implementation": [
+        "backend/SlotMath.Core/Measurements/MeasurementCollector.cs"
+      ],
+      "evidence": [
+        "backend/SlotMath.Core.Tests/Math/MeasurementTests.cs",
+        "backend/SlotMath.Core.Tests/Math/DiagnosticEvidenceTests.cs"
+      ]
+    },
+    {
+      "id": "mechanics.award_component",
+      "status": "authored",
+      "scope": "The constructor must expose typed symbol/award/state values at the correct boundary and author the rule predicate.",
+      "implementation": [
+        "backend/SlotMath.Core/Measurements/MeasurementCollector.cs"
+      ],
+      "evidence": [
+        "backend/SlotMath.Core.Tests/Math/MeasurementTests.cs",
+        "backend/SlotMath.Core.Tests/Math/DiagnosticEvidenceTests.cs"
+      ]
+    },
+    {
+      "id": "mechanics.strategy",
+      "status": "ready",
+      "scope": "Native automatic named parameter/session-policy experiments preflight all arms, pin graph/measurement/execution manifests, execute separate seeded ordinary runs and retain comparisons. Game strategy rules remain authored; distinct seeds are not a common-random-number paired design.",
+      "implementation": [
+        "backend/SlotMath.Core/Measurements/MeasurementCollector.cs",
+        "backend/SlotMath.Api/Features/Runs/Experiments.cs",
+        "frontend/src/components/simulate/VerificationWorkbench.tsx"
+      ],
+      "evidence": [
+        "backend/SlotMath.Core.Tests/Math/MeasurementTests.cs",
+        "backend/SlotMath.Core.Tests/Math/DiagnosticEvidenceTests.cs",
+        "backend/SlotMath.Core.Tests/Math/VerificationMilestoneTests.cs",
+        "backend/SlotMath.Api.Tests/VerificationExperimentApiTests.cs",
+        "frontend/e2e/z-verification-experiments.spec.ts"
+      ]
+    },
+    {
+      "id": "states.transition_count",
+      "status": "authored",
+      "scope": "Declare exact categorical state codes and lifecycle, or an independent finite transition/reward/cost model.",
+      "implementation": [
+        "backend/SlotMath.Core/Measurements/MeasurementCollector.cs",
+        "backend/SlotMath.Core/Measurements/FiniteStateReferences.cs"
+      ],
+      "evidence": [
+        "backend/SlotMath.Core.Tests/Math/AdvancedMeasurementTests.cs",
+        "backend/SlotMath.Core.Tests/Math/FiniteModelAnalysisTests.cs"
+      ]
+    },
+    {
+      "id": "states.transition_probability",
+      "status": "authored",
+      "scope": "Declare exact categorical state codes and lifecycle, or an independent finite transition/reward/cost model.",
+      "implementation": [
+        "backend/SlotMath.Core/Measurements/MeasurementCollector.cs",
+        "backend/SlotMath.Core/Measurements/FiniteStateReferences.cs"
+      ],
+      "evidence": [
+        "backend/SlotMath.Core.Tests/Math/AdvancedMeasurementTests.cs",
+        "backend/SlotMath.Core.Tests/Math/FiniteModelAnalysisTests.cs"
+      ]
+    },
+    {
+      "id": "states.occupancy",
+      "status": "authored",
+      "scope": "Declare exact categorical state codes and lifecycle, or an independent finite transition/reward/cost model.",
+      "implementation": [
+        "backend/SlotMath.Core/Measurements/MeasurementCollector.cs",
+        "backend/SlotMath.Core/Measurements/FiniteStateReferences.cs"
+      ],
+      "evidence": [
+        "backend/SlotMath.Core.Tests/Math/AdvancedMeasurementTests.cs",
+        "backend/SlotMath.Core.Tests/Math/FiniteModelAnalysisTests.cs"
+      ]
+    },
+    {
+      "id": "states.dwell",
+      "status": "authored",
+      "scope": "Declare exact categorical state codes and lifecycle, or an independent finite transition/reward/cost model.",
+      "implementation": [
+        "backend/SlotMath.Core/Measurements/MeasurementCollector.cs",
+        "backend/SlotMath.Core/Measurements/FiniteStateReferences.cs"
+      ],
+      "evidence": [
+        "backend/SlotMath.Core.Tests/Math/AdvancedMeasurementTests.cs",
+        "backend/SlotMath.Core.Tests/Math/FiniteModelAnalysisTests.cs"
+      ]
+    },
+    {
+      "id": "states.absorption",
+      "status": "ready",
+      "scope": "Independent rational finite-state analysis includes partial absorption, duration moments, recurrent classes and occupation-weighted costs; unjustified scalar results are withheld.",
+      "implementation": [
+        "backend/SlotMath.Core/Measurements/MeasurementCollector.cs",
+        "backend/SlotMath.Core/Measurements/FiniteStateReferences.cs"
+      ],
+      "evidence": [
+        "backend/SlotMath.Core.Tests/Math/AdvancedMeasurementTests.cs",
+        "backend/SlotMath.Core.Tests/Math/FiniteModelAnalysisTests.cs"
+      ]
+    },
+    {
+      "id": "states.expected_duration",
+      "status": "ready",
+      "scope": "Independent rational finite-state analysis includes partial absorption, duration moments, recurrent classes and occupation-weighted costs; unjustified scalar results are withheld.",
+      "implementation": [
+        "backend/SlotMath.Core/Measurements/MeasurementCollector.cs",
+        "backend/SlotMath.Core/Measurements/FiniteStateReferences.cs"
+      ],
+      "evidence": [
+        "backend/SlotMath.Core.Tests/Math/AdvancedMeasurementTests.cs",
+        "backend/SlotMath.Core.Tests/Math/FiniteModelAnalysisTests.cs"
+      ]
+    },
+    {
+      "id": "states.expected_reward",
+      "status": "ready",
+      "scope": "Independent rational finite-state analysis includes partial absorption, duration moments, recurrent classes and occupation-weighted costs; unjustified scalar results are withheld.",
+      "implementation": [
+        "backend/SlotMath.Core/Measurements/MeasurementCollector.cs",
+        "backend/SlotMath.Core/Measurements/FiniteStateReferences.cs"
+      ],
+      "evidence": [
+        "backend/SlotMath.Core.Tests/Math/AdvancedMeasurementTests.cs",
+        "backend/SlotMath.Core.Tests/Math/FiniteModelAnalysisTests.cs"
+      ]
+    },
+    {
+      "id": "states.retrigger_offspring",
+      "status": "authored",
+      "scope": "Track newly awarded offspring per eligible reveal under the authored branching assumptions; a generic finite-state reference is also available.",
+      "implementation": [
+        "backend/SlotMath.Core/Measurements/MeasurementCollector.cs",
+        "backend/SlotMath.Core/Measurements/FiniteStateReferences.cs"
+      ],
+      "evidence": [
+        "backend/SlotMath.Core.Tests/Math/AdvancedMeasurementTests.cs",
+        "backend/SlotMath.Core.Tests/Math/FiniteModelAnalysisTests.cs"
+      ]
+    },
+    {
+      "id": "states.nontermination",
+      "status": "ready",
+      "scope": "Independent rational finite-state analysis includes partial absorption, duration moments, recurrent classes and occupation-weighted costs; unjustified scalar results are withheld.",
+      "implementation": [
+        "backend/SlotMath.Core/Measurements/MeasurementCollector.cs",
+        "backend/SlotMath.Core/Measurements/FiniteStateReferences.cs"
+      ],
+      "evidence": [
+        "backend/SlotMath.Core.Tests/Math/AdvancedMeasurementTests.cs",
+        "backend/SlotMath.Core.Tests/Math/FiniteModelAnalysisTests.cs"
+      ]
+    },
+    {
+      "id": "states.long_run_return",
+      "status": "ready",
+      "scope": "Independent rational finite-state analysis includes partial absorption, duration moments, recurrent classes and occupation-weighted costs; unjustified scalar results are withheld.",
+      "implementation": [
+        "backend/SlotMath.Core/Measurements/MeasurementCollector.cs",
+        "backend/SlotMath.Core/Measurements/FiniteStateReferences.cs"
+      ],
+      "evidence": [
+        "backend/SlotMath.Core.Tests/Math/AdvancedMeasurementTests.cs",
+        "backend/SlotMath.Core.Tests/Math/FiniteModelAnalysisTests.cs"
+      ]
+    },
+    {
+      "id": "states.reset_violation",
+      "status": "authored",
+      "scope": "Author the actual monetary/rule residual or Boolean failure predicate. Exact zero/false assertions count failures before report conversion and retain replayable coordinates; exposure residual is a separate statistic.",
+      "implementation": [
+        "backend/SlotMath.Core/Measurements/MeasurementCollector.cs",
+        "backend/SlotMath.Core/Measurements/FiniteStateReferences.cs"
+      ],
+      "evidence": [
+        "backend/SlotMath.Core.Tests/Math/AdvancedMeasurementTests.cs",
+        "backend/SlotMath.Core.Tests/Math/FiniteModelAnalysisTests.cs"
+      ]
+    },
+    {
+      "id": "dependence.covariance",
+      "status": "ready",
+      "scope": "Pair values on the same subject or retain final logical sequence order; dependence and censoring remain explicit.",
+      "implementation": [
+        "backend/SlotMath.Core/Measurements/MeasurementAnalysisAccumulator.cs",
+        "backend/SlotMath.Core/Measurements/SequenceAccumulator.cs"
+      ],
+      "evidence": [
+        "backend/SlotMath.Core.Tests/Math/AdvancedMeasurementTests.cs",
+        "backend/SlotMath.Core.Tests/Math/DiagnosticEvidenceTests.cs"
+      ]
+    },
+    {
+      "id": "dependence.correlation",
+      "status": "ready",
+      "scope": "Pair values on the same subject or retain final logical sequence order; dependence and censoring remain explicit.",
+      "implementation": [
+        "backend/SlotMath.Core/Measurements/MeasurementAnalysisAccumulator.cs",
+        "backend/SlotMath.Core/Measurements/SequenceAccumulator.cs"
+      ],
+      "evidence": [
+        "backend/SlotMath.Core.Tests/Math/AdvancedMeasurementTests.cs",
+        "backend/SlotMath.Core.Tests/Math/DiagnosticEvidenceTests.cs"
+      ]
+    },
+    {
+      "id": "dependence.variance_decomposition",
+      "status": "ready",
+      "scope": "Native bounded 2\u20136 component accounting authors total/components, every pair and an exact ordered residual on one unweighted observation population. Reports reconcile means and sample variance including all covariance terms, reject incompatible scopes or invalid/incomplete cohort evidence, distinguish exact violations and numeric cancellation, and retain pinned producer/snapshot identity. Completed feature component totals require an authored boundary; no population-law or independence certificate is inferred.",
+      "implementation": [
+        "backend/SlotMath.Core/Measurements/ComponentAccounting.cs",
+        "backend/SlotMath.Api/Features/Runs/MeasurementAccounting.cs",
+        "frontend/src/components/simulate/AccountingEditor.tsx",
+        "frontend/src/components/simulate/ComponentAccounting.tsx",
+        "frontend/src/lib/measurements/accounting.ts"
+      ],
+      "evidence": [
+        "backend/SlotMath.Core.Tests/Math/ComponentAccountingTests.cs",
+        "backend/SlotMath.Api.Tests/ComponentAccountingApiTests.cs",
+        "frontend/e2e/z-component-accounting.spec.ts",
+        "frontend/e2e/fixtures/component-accounting-model.json",
+        "scripts/verification/metrics_reference.py",
+        "scripts/verification/component-accounting-production.mjs"
+      ]
+    },
+    {
+      "id": "dependence.autocorrelation",
+      "status": "ready",
+      "scope": "Pair values on the same subject or retain final logical sequence order; dependence and censoring remain explicit.",
+      "implementation": [
+        "backend/SlotMath.Core/Measurements/MeasurementAnalysisAccumulator.cs",
+        "backend/SlotMath.Core/Measurements/SequenceAccumulator.cs"
+      ],
+      "evidence": [
+        "backend/SlotMath.Core.Tests/Math/AdvancedMeasurementTests.cs",
+        "backend/SlotMath.Core.Tests/Math/DiagnosticEvidenceTests.cs"
+      ]
+    },
+    {
+      "id": "dependence.gaps",
+      "status": "ready",
+      "scope": "Pair values on the same subject or retain final logical sequence order; dependence and censoring remain explicit.",
+      "implementation": [
+        "backend/SlotMath.Core/Measurements/MeasurementAnalysisAccumulator.cs",
+        "backend/SlotMath.Core/Measurements/SequenceAccumulator.cs"
+      ],
+      "evidence": [
+        "backend/SlotMath.Core.Tests/Math/AdvancedMeasurementTests.cs",
+        "backend/SlotMath.Core.Tests/Math/DiagnosticEvidenceTests.cs"
+      ]
+    },
+    {
+      "id": "dependence.streaks",
+      "status": "ready",
+      "scope": "Pair values on the same subject or retain final logical sequence order; dependence and censoring remain explicit.",
+      "implementation": [
+        "backend/SlotMath.Core/Measurements/MeasurementAnalysisAccumulator.cs",
+        "backend/SlotMath.Core/Measurements/SequenceAccumulator.cs"
+      ],
+      "evidence": [
+        "backend/SlotMath.Core.Tests/Math/AdvancedMeasurementTests.cs",
+        "backend/SlotMath.Core.Tests/Math/DiagnosticEvidenceTests.cs"
+      ]
+    },
+    {
+      "id": "dependence.paired_delta",
+      "status": "authored",
+      "scope": "Place both counterfactual outputs under an explicitly authored random coupling in one subject, then pair them. Same-seed separate runs alone do not establish a paired interval.",
+      "implementation": [
+        "backend/SlotMath.Core/Measurements/MeasurementAnalysisAccumulator.cs",
+        "backend/SlotMath.Core/Measurements/SequenceAccumulator.cs"
+      ],
+      "evidence": [
+        "backend/SlotMath.Core.Tests/Math/AdvancedMeasurementTests.cs",
+        "backend/SlotMath.Core.Tests/Math/DiagnosticEvidenceTests.cs"
+      ]
+    },
+    {
+      "id": "rng.mapped_frequency",
+      "status": "authored",
+      "scope": "Observe mapped outcomes and pin the intended conditional/joint law. Descriptive tests are not a PRNG certification.",
+      "implementation": [
+        "backend/SlotMath.Core/Measurements/PairDiagnostics.cs",
+        "backend/SlotMath.Core/Measurements/SequenceAccumulator.cs"
+      ],
+      "evidence": [
+        "backend/SlotMath.Core.Tests/Math/DiagnosticEvidenceTests.cs",
+        "backend/SlotMath.Core.Tests/Math/AdvancedMeasurementTests.cs"
+      ]
+    },
+    {
+      "id": "rng.mapping_bias",
+      "status": "authored",
+      "scope": "Pin each intended marginal/conditional/joint reference and observe the matching cohort or pair; calibration is withheld for sparse/dependent data unless explicitly supported.",
+      "implementation": [
+        "backend/SlotMath.Core/Measurements/PairDiagnostics.cs",
+        "backend/SlotMath.Core/Measurements/SequenceAccumulator.cs"
+      ],
+      "evidence": [
+        "backend/SlotMath.Core.Tests/Math/DiagnosticEvidenceTests.cs",
+        "backend/SlotMath.Core.Tests/Math/AdvancedMeasurementTests.cs"
+      ]
+    },
+    {
+      "id": "rng.serial",
+      "status": "authored",
+      "scope": "Observe mapped outcomes and pin the intended conditional/joint law. Descriptive tests are not a PRNG certification.",
+      "implementation": [
+        "backend/SlotMath.Core/Measurements/PairDiagnostics.cs",
+        "backend/SlotMath.Core/Measurements/SequenceAccumulator.cs"
+      ],
+      "evidence": [
+        "backend/SlotMath.Core.Tests/Math/DiagnosticEvidenceTests.cs",
+        "backend/SlotMath.Core.Tests/Math/AdvancedMeasurementTests.cs"
+      ]
+    },
+    {
+      "id": "rng.within_draw",
+      "status": "authored",
+      "scope": "Pin each intended marginal/conditional/joint reference and observe the matching cohort or pair; calibration is withheld for sparse/dependent data unless explicitly supported.",
+      "implementation": [
+        "backend/SlotMath.Core/Measurements/PairDiagnostics.cs",
+        "backend/SlotMath.Core/Measurements/SequenceAccumulator.cs"
+      ],
+      "evidence": [
+        "backend/SlotMath.Core.Tests/Math/DiagnosticEvidenceTests.cs",
+        "backend/SlotMath.Core.Tests/Math/AdvancedMeasurementTests.cs"
+      ]
+    },
+    {
+      "id": "rng.duplicates",
+      "status": "ready",
+      "scope": "Opt-in bounded actual consumed RNG stream auditing preserves the sequence and detects duplicate initial states, four-word prefixes and equal-length transcript digest candidates. Scheduled first-word duplication is calibrated using seed/output bijections; an ideal independent prefix null is labeled separately, not a PRNG independence proof.",
+      "implementation": [
+        "backend/SlotMath.Core/Measurements/PairDiagnostics.cs",
+        "backend/SlotMath.Core/Measurements/SequenceAccumulator.cs",
+        "backend/SlotMath.Core/Math/RandomStreamEvidence.cs",
+        "frontend/src/components/simulate/ExecutionConfiguration.tsx"
+      ],
+      "evidence": [
+        "backend/SlotMath.Core.Tests/Math/DiagnosticEvidenceTests.cs",
+        "backend/SlotMath.Core.Tests/Math/AdvancedMeasurementTests.cs",
+        "backend/SlotMath.Core.Tests/Math/VerificationMilestoneTests.cs",
+        "backend/SlotMath.Api.Tests/VerificationExperimentApiTests.cs",
+        "frontend/e2e/z-verification-experiments.spec.ts"
+      ]
+    },
+    {
+      "id": "rng.state_conditioned",
+      "status": "authored",
+      "scope": "Pin each intended marginal/conditional/joint reference and observe the matching cohort or pair; calibration is withheld for sparse/dependent data unless explicitly supported.",
+      "implementation": [
+        "backend/SlotMath.Core/Measurements/PairDiagnostics.cs",
+        "backend/SlotMath.Core/Measurements/SequenceAccumulator.cs"
+      ],
+      "evidence": [
+        "backend/SlotMath.Core.Tests/Math/DiagnosticEvidenceTests.cs",
+        "backend/SlotMath.Core.Tests/Math/AdvancedMeasurementTests.cs"
+      ]
+    },
+    {
+      "id": "bounds.cap_reached",
+      "status": "authored",
+      "scope": "Pin the cap/stop rule. Reach includes equality; raw exceedance and deduction use separate pre-/post-settlement values.",
+      "implementation": [
+        "backend/SlotMath.Core/Measurements/FiniteModelAnalysis.cs",
+        "backend/SlotMath.Core/Measurements/GraphMeasurementEnumeration.cs"
+      ],
+      "evidence": [
+        "backend/SlotMath.Core.Tests/Math/FiniteModelAnalysisTests.cs",
+        "backend/SlotMath.Core.Tests/Math/GraphMeasurementEnumerationTests.cs"
+      ]
+    },
+    {
+      "id": "bounds.cap_exceeded",
+      "status": "authored",
+      "scope": "Pin the cap/stop rule. Reach includes equality; raw exceedance and deduction use separate pre-/post-settlement values.",
+      "implementation": [
+        "backend/SlotMath.Core/Measurements/FiniteModelAnalysis.cs",
+        "backend/SlotMath.Core/Measurements/GraphMeasurementEnumeration.cs"
+      ],
+      "evidence": [
+        "backend/SlotMath.Core.Tests/Math/FiniteModelAnalysisTests.cs",
+        "backend/SlotMath.Core.Tests/Math/GraphMeasurementEnumerationTests.cs"
+      ]
+    },
+    {
+      "id": "bounds.cap_deduction",
+      "status": "authored",
+      "scope": "Pin the cap/stop rule. Reach includes equality; raw exceedance and deduction use separate pre-/post-settlement values.",
+      "implementation": [
+        "backend/SlotMath.Core/Measurements/FiniteModelAnalysis.cs",
+        "backend/SlotMath.Core/Measurements/GraphMeasurementEnumeration.cs"
+      ],
+      "evidence": [
+        "backend/SlotMath.Core.Tests/Math/FiniteModelAnalysisTests.cs",
+        "backend/SlotMath.Core.Tests/Math/GraphMeasurementEnumerationTests.cs"
+      ]
+    },
+    {
+      "id": "bounds.reachable_max",
+      "status": "ready",
+      "scope": "Use a proven bound/independent reference, not a sampled maximum; unresolved probability is not renormalized.",
+      "implementation": [
+        "backend/SlotMath.Core/Measurements/FiniteModelAnalysis.cs",
+        "backend/SlotMath.Core/Measurements/GraphMeasurementEnumeration.cs"
+      ],
+      "evidence": [
+        "backend/SlotMath.Core.Tests/Math/FiniteModelAnalysisTests.cs",
+        "backend/SlotMath.Core.Tests/Math/GraphMeasurementEnumerationTests.cs"
+      ]
+    },
+    {
+      "id": "bounds.pruned_mass",
+      "status": "ready",
+      "scope": "Use a proven bound/independent reference, not a sampled maximum; unresolved probability is not renormalized.",
+      "implementation": [
+        "backend/SlotMath.Core/Measurements/FiniteModelAnalysis.cs",
+        "backend/SlotMath.Core/Measurements/GraphMeasurementEnumeration.cs"
+      ],
+      "evidence": [
+        "backend/SlotMath.Core.Tests/Math/FiniteModelAnalysisTests.cs",
+        "backend/SlotMath.Core.Tests/Math/GraphMeasurementEnumerationTests.cs"
+      ]
+    },
+    {
+      "id": "bounds.mean",
+      "status": "ready",
+      "scope": "Use a proven bound/independent reference, not a sampled maximum; unresolved probability is not renormalized.",
+      "implementation": [
+        "backend/SlotMath.Core/Measurements/FiniteModelAnalysis.cs",
+        "backend/SlotMath.Core/Measurements/GraphMeasurementEnumeration.cs"
+      ],
+      "evidence": [
+        "backend/SlotMath.Core.Tests/Math/FiniteModelAnalysisTests.cs",
+        "backend/SlotMath.Core.Tests/Math/GraphMeasurementEnumerationTests.cs"
+      ]
+    },
+    {
+      "id": "bounds.event",
+      "status": "ready",
+      "scope": "Use a proven bound/independent reference, not a sampled maximum; unresolved probability is not renormalized.",
+      "implementation": [
+        "backend/SlotMath.Core/Measurements/FiniteModelAnalysis.cs",
+        "backend/SlotMath.Core/Measurements/GraphMeasurementEnumeration.cs"
+      ],
+      "evidence": [
+        "backend/SlotMath.Core.Tests/Math/FiniteModelAnalysisTests.cs",
+        "backend/SlotMath.Core.Tests/Math/GraphMeasurementEnumerationTests.cs"
+      ]
+    },
+    {
+      "id": "bounds.second_variance",
+      "status": "ready",
+      "scope": "Use a proven bound/independent reference, not a sampled maximum; unresolved probability is not renormalized.",
+      "implementation": [
+        "backend/SlotMath.Core/Measurements/FiniteModelAnalysis.cs",
+        "backend/SlotMath.Core/Measurements/GraphMeasurementEnumeration.cs"
+      ],
+      "evidence": [
+        "backend/SlotMath.Core.Tests/Math/FiniteModelAnalysisTests.cs",
+        "backend/SlotMath.Core.Tests/Math/GraphMeasurementEnumerationTests.cs"
+      ]
+    },
+    {
+      "id": "bounds.loop_termination",
+      "status": "ready",
+      "scope": "Native exact finite substochastic reference propagation compares bounded and uncapped feature duration/reward, reporting stop probability and omitted expected reward when the supplied reference is finite. The author must justify its relation to the game; elapsed runtime alone does not identify omitted reward.",
+      "implementation": [
+        "backend/SlotMath.Core/Measurements/FiniteModelAnalysis.cs",
+        "backend/SlotMath.Core/Measurements/GraphMeasurementEnumeration.cs",
+        "backend/SlotMath.Core/Measurements/VerificationDesign.cs",
+        "frontend/src/components/simulate/VerificationWorkbench.tsx"
+      ],
+      "evidence": [
+        "backend/SlotMath.Core.Tests/Math/FiniteModelAnalysisTests.cs",
+        "backend/SlotMath.Core.Tests/Math/GraphMeasurementEnumerationTests.cs",
+        "backend/SlotMath.Core.Tests/Math/VerificationMilestoneTests.cs",
+        "backend/SlotMath.Api.Tests/VerificationExperimentApiTests.cs",
+        "frontend/e2e/z-verification-experiments.spec.ts"
+      ]
+    },
+    {
+      "id": "bounds.zero_event",
+      "status": "ready",
+      "scope": "Use a proven bound/independent reference, not a sampled maximum; unresolved probability is not renormalized.",
+      "implementation": [
+        "backend/SlotMath.Core/Measurements/FiniteModelAnalysis.cs",
+        "backend/SlotMath.Core/Measurements/GraphMeasurementEnumeration.cs"
+      ],
+      "evidence": [
+        "backend/SlotMath.Core.Tests/Math/FiniteModelAnalysisTests.cs",
+        "backend/SlotMath.Core.Tests/Math/GraphMeasurementEnumerationTests.cs"
+      ]
+    },
+    {
+      "id": "bounds.weight_diagnostics",
+      "status": "ready",
+      "scope": "Native finite importance/fixed-allocation stratified sampling validates exact target/proposal normalization and support, derives global/conditional likelihoods and reports exact design variance, weight second moments and observed ESS. This proves the supplied finite design, not arbitrary graph-authored weight expressions.",
+      "implementation": [
+        "backend/SlotMath.Core/Measurements/FiniteModelAnalysis.cs",
+        "backend/SlotMath.Core/Measurements/GraphMeasurementEnumeration.cs",
+        "backend/SlotMath.Core/Measurements/VerificationDesign.cs",
+        "frontend/src/components/simulate/VerificationWorkbench.tsx"
+      ],
+      "evidence": [
+        "backend/SlotMath.Core.Tests/Math/FiniteModelAnalysisTests.cs",
+        "backend/SlotMath.Core.Tests/Math/GraphMeasurementEnumerationTests.cs",
+        "backend/SlotMath.Core.Tests/Math/VerificationMilestoneTests.cs",
+        "backend/SlotMath.Api.Tests/VerificationExperimentApiTests.cs",
+        "frontend/e2e/z-verification-experiments.spec.ts"
+      ]
+    },
+    {
+      "id": "bounds.weighted_estimate",
+      "status": "ready",
+      "scope": "Verified finite target/proposal designs actually execute native importance or fixed-stratum sampling, retaining reward/event estimates and exact references/variance. Empirical intervals are approximate and withheld at zero observed variance. Arbitrary graph proposal semantics still require an authored likelihood contract.",
+      "implementation": [
+        "backend/SlotMath.Core/Measurements/FiniteModelAnalysis.cs",
+        "backend/SlotMath.Core/Measurements/GraphMeasurementEnumeration.cs",
+        "backend/SlotMath.Core/Measurements/VerificationDesign.cs",
+        "frontend/src/components/simulate/VerificationWorkbench.tsx"
+      ],
+      "evidence": [
+        "backend/SlotMath.Core.Tests/Math/FiniteModelAnalysisTests.cs",
+        "backend/SlotMath.Core.Tests/Math/GraphMeasurementEnumerationTests.cs",
+        "backend/SlotMath.Core.Tests/Math/VerificationMilestoneTests.cs",
+        "backend/SlotMath.Api.Tests/VerificationExperimentApiTests.cs",
+        "frontend/e2e/z-verification-experiments.spec.ts"
+      ]
+    },
+    {
+      "id": "comparison.rtp_delta",
+      "status": "ready",
+      "scope": "Pin compatible subject definitions and an independent reference or separate saved runs; calibration prerequisites apply.",
+      "implementation": [
+        "backend/SlotMath.Core/Measurements/MeasurementAnalysisAccumulator.cs",
+        "backend/SlotMath.Core/Measurements/DiscreteNullCalibration.cs",
+        "frontend/src/lib/measurements/comparison.ts"
+      ],
+      "evidence": [
+        "backend/SlotMath.Core.Tests/Math/AdvancedMeasurementTests.cs",
+        "backend/SlotMath.Core.Tests/Math/DiscreteCalibrationTests.cs",
+        "frontend/unit/measurement-comparison.spec.ts"
+      ]
+    },
+    {
+      "id": "comparison.probability_delta",
+      "status": "ready",
+      "scope": "Pin compatible subject definitions and an independent reference or separate saved runs; calibration prerequisites apply.",
+      "implementation": [
+        "backend/SlotMath.Core/Measurements/MeasurementAnalysisAccumulator.cs",
+        "backend/SlotMath.Core/Measurements/DiscreteNullCalibration.cs",
+        "frontend/src/lib/measurements/comparison.ts"
+      ],
+      "evidence": [
+        "backend/SlotMath.Core.Tests/Math/AdvancedMeasurementTests.cs",
+        "backend/SlotMath.Core.Tests/Math/DiscreteCalibrationTests.cs",
+        "frontend/unit/measurement-comparison.spec.ts"
+      ]
+    },
+    {
+      "id": "comparison.component_delta",
+      "status": "ready",
+      "scope": "Pin compatible subject definitions and an independent reference or separate saved runs; calibration prerequisites apply.",
+      "implementation": [
+        "backend/SlotMath.Core/Measurements/MeasurementAnalysisAccumulator.cs",
+        "backend/SlotMath.Core/Measurements/DiscreteNullCalibration.cs",
+        "frontend/src/lib/measurements/comparison.ts"
+      ],
+      "evidence": [
+        "backend/SlotMath.Core.Tests/Math/AdvancedMeasurementTests.cs",
+        "backend/SlotMath.Core.Tests/Math/DiscreteCalibrationTests.cs",
+        "frontend/unit/measurement-comparison.spec.ts"
+      ]
+    },
+    {
+      "id": "comparison.exact_support",
+      "status": "ready",
+      "scope": "Native exact rational equality, total variation and discrete CDF distance for two independently supplied complete scalar laws. Equivalent rational representations and zero-mass atoms preserve equality; partial mass is rejected, and retained comparisons do not imply graph correctness.",
+      "implementation": [
+        "backend/SlotMath.Core/Measurements/FiniteLawComparison.cs",
+        "frontend/src/components/simulate/ExactLawComparison.tsx",
+        "backend/SlotMath.Api/Features/Runs/DiagnosticReferences.cs"
+      ],
+      "evidence": [
+        "backend/SlotMath.Core.Tests/Math/FiniteLawComparisonTests.cs",
+        "backend/SlotMath.Api.Tests/MeasurementApiTests.cs",
+        "frontend/e2e/z-advanced-measurements.spec.ts"
+      ]
+    },
+    {
+      "id": "comparison.total_variation",
+      "status": "ready",
+      "scope": "Pin compatible subject definitions and an independent reference or separate saved runs; calibration prerequisites apply.",
+      "implementation": [
+        "backend/SlotMath.Core/Measurements/MeasurementAnalysisAccumulator.cs",
+        "backend/SlotMath.Core/Measurements/DiscreteNullCalibration.cs",
+        "frontend/src/lib/measurements/comparison.ts"
+      ],
+      "evidence": [
+        "backend/SlotMath.Core.Tests/Math/AdvancedMeasurementTests.cs",
+        "backend/SlotMath.Core.Tests/Math/DiscreteCalibrationTests.cs",
+        "frontend/unit/measurement-comparison.spec.ts"
+      ]
+    },
+    {
+      "id": "comparison.cdf_distance",
+      "status": "ready",
+      "scope": "Pin compatible subject definitions and an independent reference or separate saved runs; calibration prerequisites apply.",
+      "implementation": [
+        "backend/SlotMath.Core/Measurements/MeasurementAnalysisAccumulator.cs",
+        "backend/SlotMath.Core/Measurements/DiscreteNullCalibration.cs",
+        "frontend/src/lib/measurements/comparison.ts"
+      ],
+      "evidence": [
+        "backend/SlotMath.Core.Tests/Math/AdvancedMeasurementTests.cs",
+        "backend/SlotMath.Core.Tests/Math/DiscreteCalibrationTests.cs",
+        "frontend/unit/measurement-comparison.spec.ts"
+      ]
+    },
+    {
+      "id": "comparison.chi_square",
+      "status": "ready",
+      "scope": "Pin compatible subject definitions and an independent reference or separate saved runs; calibration prerequisites apply.",
+      "implementation": [
+        "backend/SlotMath.Core/Measurements/MeasurementAnalysisAccumulator.cs",
+        "backend/SlotMath.Core/Measurements/DiscreteNullCalibration.cs",
+        "frontend/src/lib/measurements/comparison.ts"
+      ],
+      "evidence": [
+        "backend/SlotMath.Core.Tests/Math/AdvancedMeasurementTests.cs",
+        "backend/SlotMath.Core.Tests/Math/DiscreteCalibrationTests.cs",
+        "frontend/unit/measurement-comparison.spec.ts"
+      ]
+    },
+    {
+      "id": "comparison.mean_equivalence",
+      "status": "ready",
+      "scope": "Pin compatible subject definitions and an independent reference or separate saved runs; calibration prerequisites apply.",
+      "implementation": [
+        "backend/SlotMath.Core/Measurements/MeasurementAnalysisAccumulator.cs",
+        "backend/SlotMath.Core/Measurements/DiscreteNullCalibration.cs",
+        "frontend/src/lib/measurements/comparison.ts"
+      ],
+      "evidence": [
+        "backend/SlotMath.Core.Tests/Math/AdvancedMeasurementTests.cs",
+        "backend/SlotMath.Core.Tests/Math/DiscreteCalibrationTests.cs",
+        "frontend/unit/measurement-comparison.spec.ts"
+      ]
+    },
+    {
+      "id": "comparison.invariants",
+      "status": "authored",
+      "scope": "Author the actual monetary/rule residual or Boolean failure predicate. Exact zero/false assertions count failures before report conversion and retain replayable coordinates; exposure residual is a separate statistic.",
+      "implementation": [
+        "backend/SlotMath.Core/Measurements/MeasurementAnalysisAccumulator.cs",
+        "backend/SlotMath.Core/Measurements/DiscreteNullCalibration.cs",
+        "frontend/src/lib/measurements/comparison.ts"
+      ],
+      "evidence": [
+        "backend/SlotMath.Core.Tests/Math/AdvancedMeasurementTests.cs",
+        "backend/SlotMath.Core.Tests/Math/DiscreteCalibrationTests.cs",
+        "frontend/unit/measurement-comparison.spec.ts"
+      ]
+    },
+    {
+      "id": "comparison.sensitivity",
+      "status": "ready",
+      "scope": "Named native numeric perturbations report local finite differences, mean/event/tail and actual session payout/turnover deltas, justified independent-arm intervals and variance-based sample planning. Stopped/dependent rounds remain descriptive; no global or analytic derivative claim.",
+      "implementation": [
+        "backend/SlotMath.Core/Measurements/MeasurementAnalysisAccumulator.cs",
+        "backend/SlotMath.Core/Measurements/DiscreteNullCalibration.cs",
+        "frontend/src/lib/measurements/comparison.ts",
+        "backend/SlotMath.Api/Features/Runs/Experiments.cs",
+        "frontend/src/components/simulate/VerificationWorkbench.tsx"
+      ],
+      "evidence": [
+        "backend/SlotMath.Core.Tests/Math/AdvancedMeasurementTests.cs",
+        "backend/SlotMath.Core.Tests/Math/DiscreteCalibrationTests.cs",
+        "frontend/unit/measurement-comparison.spec.ts",
+        "backend/SlotMath.Core.Tests/Math/VerificationMilestoneTests.cs",
+        "backend/SlotMath.Api.Tests/VerificationExperimentApiTests.cs",
+        "frontend/e2e/z-verification-experiments.spec.ts"
+      ]
+    },
+    {
+      "id": "inference.subject_count",
+      "status": "ready",
+      "scope": "Explicit independence/bounds/cost assumptions and valid subjects; family allocation and repeated-look semantics are pinned.",
+      "implementation": [
+        "backend/SlotMath.Core/Measurements/StatisticalInference.cs",
+        "backend/SlotMath.Core/Measurements/SamplePlanning.cs"
+      ],
+      "evidence": [
+        "backend/SlotMath.Core.Tests/Math/AdvancedMeasurementTests.cs",
+        "backend/SlotMath.Core.Tests/Math/FiniteModelAnalysisTests.cs"
+      ]
+    },
+    {
+      "id": "inference.mean_se",
+      "status": "ready",
+      "scope": "Explicit independence/bounds/cost assumptions and valid subjects; family allocation and repeated-look semantics are pinned.",
+      "implementation": [
+        "backend/SlotMath.Core/Measurements/StatisticalInference.cs",
+        "backend/SlotMath.Core/Measurements/SamplePlanning.cs"
+      ],
+      "evidence": [
+        "backend/SlotMath.Core.Tests/Math/AdvancedMeasurementTests.cs",
+        "backend/SlotMath.Core.Tests/Math/FiniteModelAnalysisTests.cs"
+      ]
+    },
+    {
+      "id": "inference.mean_interval",
+      "status": "ready",
+      "scope": "Explicit independence/bounds/cost assumptions and valid subjects; family allocation and repeated-look semantics are pinned.",
+      "implementation": [
+        "backend/SlotMath.Core/Measurements/StatisticalInference.cs",
+        "backend/SlotMath.Core/Measurements/SamplePlanning.cs"
+      ],
+      "evidence": [
+        "backend/SlotMath.Core.Tests/Math/AdvancedMeasurementTests.cs",
+        "backend/SlotMath.Core.Tests/Math/FiniteModelAnalysisTests.cs"
+      ]
+    },
+    {
+      "id": "inference.proportion_interval",
+      "status": "ready",
+      "scope": "Explicit independence/bounds/cost assumptions and valid subjects; family allocation and repeated-look semantics are pinned.",
+      "implementation": [
+        "backend/SlotMath.Core/Measurements/StatisticalInference.cs",
+        "backend/SlotMath.Core/Measurements/SamplePlanning.cs"
+      ],
+      "evidence": [
+        "backend/SlotMath.Core.Tests/Math/AdvancedMeasurementTests.cs",
+        "backend/SlotMath.Core.Tests/Math/FiniteModelAnalysisTests.cs"
+      ]
+    },
+    {
+      "id": "inference.ratio_interval",
+      "status": "ready",
+      "scope": "Explicit independence/bounds/cost assumptions and valid subjects; family allocation and repeated-look semantics are pinned.",
+      "implementation": [
+        "backend/SlotMath.Core/Measurements/StatisticalInference.cs",
+        "backend/SlotMath.Core/Measurements/SamplePlanning.cs"
+      ],
+      "evidence": [
+        "backend/SlotMath.Core.Tests/Math/AdvancedMeasurementTests.cs",
+        "backend/SlotMath.Core.Tests/Math/FiniteModelAnalysisTests.cs"
+      ]
+    },
+    {
+      "id": "inference.clustered",
+      "status": "ready",
+      "scope": "Explicit independence/bounds/cost assumptions and valid subjects; family allocation and repeated-look semantics are pinned.",
+      "implementation": [
+        "backend/SlotMath.Core/Measurements/StatisticalInference.cs",
+        "backend/SlotMath.Core/Measurements/SamplePlanning.cs"
+      ],
+      "evidence": [
+        "backend/SlotMath.Core.Tests/Math/AdvancedMeasurementTests.cs",
+        "backend/SlotMath.Core.Tests/Math/FiniteModelAnalysisTests.cs"
+      ]
+    },
+    {
+      "id": "inference.sample_plan",
+      "status": "ready",
+      "scope": "Explicit independence/bounds/cost assumptions and valid subjects; family allocation and repeated-look semantics are pinned.",
+      "implementation": [
+        "backend/SlotMath.Core/Measurements/StatisticalInference.cs",
+        "backend/SlotMath.Core/Measurements/SamplePlanning.cs"
+      ],
+      "evidence": [
+        "backend/SlotMath.Core.Tests/Math/AdvancedMeasurementTests.cs",
+        "backend/SlotMath.Core.Tests/Math/FiniteModelAnalysisTests.cs"
+      ]
+    },
+    {
+      "id": "inference.family_error",
+      "status": "ready",
+      "scope": "Explicit independence/bounds/cost assumptions and valid subjects; family allocation and repeated-look semantics are pinned.",
+      "implementation": [
+        "backend/SlotMath.Core/Measurements/StatisticalInference.cs",
+        "backend/SlotMath.Core/Measurements/SamplePlanning.cs"
+      ],
+      "evidence": [
+        "backend/SlotMath.Core.Tests/Math/AdvancedMeasurementTests.cs",
+        "backend/SlotMath.Core.Tests/Math/FiniteModelAnalysisTests.cs"
+      ]
+    },
+    {
+      "id": "inference.sequential",
+      "status": "ready",
+      "scope": "Explicit independence/bounds/cost assumptions and valid subjects; family allocation and repeated-look semantics are pinned.",
+      "implementation": [
+        "backend/SlotMath.Core/Measurements/StatisticalInference.cs",
+        "backend/SlotMath.Core/Measurements/SamplePlanning.cs"
+      ],
+      "evidence": [
+        "backend/SlotMath.Core.Tests/Math/AdvancedMeasurementTests.cs",
+        "backend/SlotMath.Core.Tests/Math/FiniteModelAnalysisTests.cs"
+      ]
+    },
+    {
+      "id": "inference.sufficiency",
+      "status": "ready",
+      "scope": "Predeclared bounded profiles combine 1\u201332 required global filtered-measurement integrity, exact residual, reference-support and unweighted reference-precision checks. Shared marginal error allocation is validated before launch; complete final evidence, minimum matching counts, pinned hashes, durable replay and native authoring are required. Approximate intervals retain their assumptions; logical checks cover observed cases. Arbitrary weighted proposal certification and post hoc cohort selection are excluded.",
+      "implementation": [
+        "backend/SlotMath.Core/Measurements/VerificationProfile.cs",
+        "backend/SlotMath.Api/Features/Runs/RunVerification.cs",
+        "frontend/src/components/simulate/VerificationProfileEditor.tsx",
+        "frontend/src/components/simulate/VerificationProfile.tsx",
+        "backend/SlotMath.Core/Measurements/ReferenceSemantics.cs",
+        "frontend/src/lib/results/evidence.ts"
+      ],
+      "evidence": [
+        "backend/SlotMath.Core.Tests/Math/VerificationProfileTests.cs",
+        "backend/SlotMath.Api.Tests/VerificationProfileApiTests.cs",
+        "frontend/e2e/z-verification-profile.spec.ts",
+        "scripts/verification/verification-profile-production.mjs",
+        "frontend/e2e/z-verification-provenance.spec.ts",
+        "frontend/unit/simulation-evidence.spec.ts"
+      ]
+    },
+    {
+      "id": "provenance.seed_replay",
+      "status": "ready",
+      "scope": "Pinned graph, plan, execution, stream and software artifact; replay proves reproducibility rather than rule correctness.",
+      "implementation": [
+        "backend/SlotMath.Api/Infrastructure/RuntimeProvenance.cs",
+        "frontend/src/lib/realtime/runProtocol.ts"
+      ],
+      "evidence": [
+        "backend/SlotMath.Core.Tests/Math/DiagnosticEvidenceTests.cs",
+        "frontend/e2e/realtime-durability.spec.ts",
+        "scripts/verification/measurements-advanced-production.mjs"
+      ]
+    },
+    {
+      "id": "provenance.parallel",
+      "status": "ready",
+      "scope": "Pinned graph, plan, execution, stream and software artifact; replay proves reproducibility rather than rule correctness.",
+      "implementation": [
+        "backend/SlotMath.Api/Infrastructure/RuntimeProvenance.cs",
+        "frontend/src/lib/realtime/runProtocol.ts"
+      ],
+      "evidence": [
+        "backend/SlotMath.Core.Tests/Math/DiagnosticEvidenceTests.cs",
+        "frontend/e2e/realtime-durability.spec.ts",
+        "scripts/verification/measurements-advanced-production.mjs"
+      ]
+    },
+    {
+      "id": "provenance.engine",
+      "status": "ready",
+      "scope": "Pinned graph, plan, execution, stream and software artifact; replay proves reproducibility rather than rule correctness.",
+      "implementation": [
+        "backend/SlotMath.Api/Infrastructure/RuntimeProvenance.cs",
+        "frontend/src/lib/realtime/runProtocol.ts"
+      ],
+      "evidence": [
+        "backend/SlotMath.Core.Tests/Math/DiagnosticEvidenceTests.cs",
+        "frontend/e2e/realtime-durability.spec.ts",
+        "scripts/verification/measurements-advanced-production.mjs"
+      ]
+    },
+    {
+      "id": "provenance.serialization",
+      "status": "ready",
+      "scope": "Pinned graph, plan, execution, stream and software artifact; replay proves reproducibility rather than rule correctness.",
+      "implementation": [
+        "backend/SlotMath.Api/Infrastructure/RuntimeProvenance.cs",
+        "frontend/src/lib/realtime/runProtocol.ts"
+      ],
+      "evidence": [
+        "backend/SlotMath.Core.Tests/Math/DiagnosticEvidenceTests.cs",
+        "frontend/e2e/realtime-durability.spec.ts",
+        "scripts/verification/measurements-advanced-production.mjs"
+      ]
+    },
+    {
+      "id": "provenance.recovery",
+      "status": "ready",
+      "scope": "Pinned graph, plan, execution, stream and software artifact; replay proves reproducibility rather than rule correctness.",
+      "implementation": [
+        "backend/SlotMath.Api/Infrastructure/RuntimeProvenance.cs",
+        "frontend/src/lib/realtime/runProtocol.ts"
+      ],
+      "evidence": [
+        "backend/SlotMath.Core.Tests/Math/DiagnosticEvidenceTests.cs",
+        "frontend/e2e/realtime-durability.spec.ts",
+        "scripts/verification/measurements-advanced-production.mjs"
+      ]
+    },
+    {
+      "id": "provenance.identity",
+      "status": "ready",
+      "scope": "Pinned graph inputs now include versioned external rule/specification/asset identities, digests and optional embedded bytes, checked against SHA-256 and retained/exportable. URI-only digest identities remain authored assertions; producer/model/measurement/execution identities stay distinct.",
+      "implementation": [
+        "backend/SlotMath.Api/Infrastructure/RuntimeProvenance.cs",
+        "frontend/src/lib/realtime/runProtocol.ts",
+        "backend/SlotMath.Core/Model/EvidenceInput.cs",
+        "frontend/src/components/editor/EvidenceInputsEditor.tsx"
+      ],
+      "evidence": [
+        "backend/SlotMath.Core.Tests/Math/DiagnosticEvidenceTests.cs",
+        "frontend/e2e/realtime-durability.spec.ts",
+        "scripts/verification/measurements-advanced-production.mjs",
+        "backend/SlotMath.Core.Tests/Math/VerificationMilestoneTests.cs",
+        "backend/SlotMath.Api.Tests/VerificationExperimentApiTests.cs",
+        "frontend/e2e/z-verification-experiments.spec.ts"
+      ]
+    },
+    {
+      "id": "provenance.witness",
+      "status": "ready",
+      "scope": "Pinned graph, plan, execution, stream and software artifact; replay proves reproducibility rather than rule correctness.",
+      "implementation": [
+        "backend/SlotMath.Api/Infrastructure/RuntimeProvenance.cs",
+        "frontend/src/lib/realtime/runProtocol.ts"
+      ],
+      "evidence": [
+        "backend/SlotMath.Core.Tests/Math/DiagnosticEvidenceTests.cs",
+        "frontend/e2e/realtime-durability.spec.ts",
+        "scripts/verification/measurements-advanced-production.mjs"
+      ]
+    },
+    {
+      "id": "experience.session_return",
+      "status": "ready",
+      "scope": "Independent fixed-horizon hypothetical-credit sessions; conditional first-passage times retain censoring. Money uses exact round-trip decimals.",
+      "implementation": [
+        "backend/SlotMath.Core/Math/ExecutionOptions.cs",
+        "backend/SlotMath.Core/Math/SessionMoney.cs"
+      ],
+      "evidence": [
+        "backend/SlotMath.Core.Tests/Math/ExecutionPopulationTests.cs",
+        "frontend/e2e/z-advanced-measurements.spec.ts"
+      ]
+    },
+    {
+      "id": "experience.session_profit",
+      "status": "ready",
+      "scope": "Independent fixed-horizon hypothetical-credit sessions; conditional first-passage times retain censoring. Money uses exact round-trip decimals.",
+      "implementation": [
+        "backend/SlotMath.Core/Math/ExecutionOptions.cs",
+        "backend/SlotMath.Core/Math/SessionMoney.cs"
+      ],
+      "evidence": [
+        "backend/SlotMath.Core.Tests/Math/ExecutionPopulationTests.cs",
+        "frontend/e2e/z-advanced-measurements.spec.ts"
+      ]
+    },
+    {
+      "id": "experience.drought",
+      "status": "ready",
+      "scope": "Independent fixed-horizon hypothetical-credit sessions; conditional first-passage times retain censoring. Money uses exact round-trip decimals.",
+      "implementation": [
+        "backend/SlotMath.Core/Math/ExecutionOptions.cs",
+        "backend/SlotMath.Core/Math/SessionMoney.cs"
+      ],
+      "evidence": [
+        "backend/SlotMath.Core.Tests/Math/ExecutionPopulationTests.cs",
+        "frontend/e2e/z-advanced-measurements.spec.ts"
+      ]
+    },
+    {
+      "id": "experience.drawdown",
+      "status": "ready",
+      "scope": "Independent fixed-horizon hypothetical-credit sessions; conditional first-passage times retain censoring. Money uses exact round-trip decimals.",
+      "implementation": [
+        "backend/SlotMath.Core/Math/ExecutionOptions.cs",
+        "backend/SlotMath.Core/Math/SessionMoney.cs"
+      ],
+      "evidence": [
+        "backend/SlotMath.Core.Tests/Math/ExecutionPopulationTests.cs",
+        "frontend/e2e/z-advanced-measurements.spec.ts"
+      ]
+    },
+    {
+      "id": "experience.ruin",
+      "status": "ready",
+      "scope": "Independent fixed-horizon hypothetical-credit sessions; conditional first-passage times retain censoring. Money uses exact round-trip decimals.",
+      "implementation": [
+        "backend/SlotMath.Core/Math/ExecutionOptions.cs",
+        "backend/SlotMath.Core/Math/SessionMoney.cs"
+      ],
+      "evidence": [
+        "backend/SlotMath.Core.Tests/Math/ExecutionPopulationTests.cs",
+        "frontend/e2e/z-advanced-measurements.spec.ts"
+      ]
+    },
+    {
+      "id": "experience.duration",
+      "status": "ready",
+      "scope": "Independent sessions actually execute fixed horizon, ruin, profit/loss threshold and first-feature stopping, preserving planned coordinates while measuring actual paid rounds/turnover/duration and stop classifications. Initial unfunded sessions can complete with zero duration; interrupted sessions remain censored.",
+      "implementation": [
+        "backend/SlotMath.Core/Math/ExecutionOptions.cs",
+        "backend/SlotMath.Core/Math/SessionMoney.cs",
+        "backend/SlotMath.Core/Math/SampledInterpreter.cs",
+        "frontend/src/components/simulate/ExecutionConfiguration.tsx"
+      ],
+      "evidence": [
+        "backend/SlotMath.Core.Tests/Math/ExecutionPopulationTests.cs",
+        "frontend/e2e/z-advanced-measurements.spec.ts",
+        "backend/SlotMath.Core.Tests/Math/VerificationMilestoneTests.cs",
+        "backend/SlotMath.Api.Tests/VerificationExperimentApiTests.cs",
+        "frontend/e2e/z-verification-experiments.spec.ts"
+      ]
+    },
+    {
+      "id": "experience.feature_wait",
+      "status": "ready",
+      "scope": "Independent fixed-horizon hypothetical-credit sessions; conditional first-passage times retain censoring. Money uses exact round-trip decimals.",
+      "implementation": [
+        "backend/SlotMath.Core/Math/ExecutionOptions.cs",
+        "backend/SlotMath.Core/Math/SessionMoney.cs"
+      ],
+      "evidence": [
+        "backend/SlotMath.Core.Tests/Math/ExecutionPopulationTests.cs",
+        "frontend/e2e/z-advanced-measurements.spec.ts"
+      ]
+    },
+    {
+      "id": "experience.session_extreme",
+      "status": "ready",
+      "scope": "Independent fixed-horizon hypothetical-credit sessions; conditional first-passage times retain censoring. Money uses exact round-trip decimals.",
+      "implementation": [
+        "backend/SlotMath.Core/Math/ExecutionOptions.cs",
+        "backend/SlotMath.Core/Math/SessionMoney.cs"
+      ],
+      "evidence": [
+        "backend/SlotMath.Core.Tests/Math/ExecutionPopulationTests.cs",
+        "frontend/e2e/z-advanced-measurements.spec.ts"
+      ]
+    }
+  ]
+}

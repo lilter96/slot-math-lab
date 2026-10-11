@@ -18,7 +18,10 @@ test('Nine Lives is editable as nested atomic subgraphs', { tag: '@critical' }, 
 });
 
 test('Nine Lives plays and replays a graph round without changing credits', { tag: '@critical' }, async ({ page }) => {
-  await page.goto('/play');
+  test.setTimeout(120000);
+  await page.goto('/build');
+  await page.getByRole('button', { name: 'Load coin example' }).click();
+  await page.getByRole('tab', { name: 'Play', exact: true }).click();
   const spin = page.getByRole('button', { name: 'SPIN', exact: true });
   await expect(spin).toBeEnabled({ timeout: 30000 });
   await page.getByRole('button', { name: 'TURBO OFF', exact: true }).click();
@@ -35,7 +38,21 @@ test('Nine Lives plays and replays a graph round without changing credits', { ta
   const replay = await (await repeated).json();
   expect(replay).toEqual(round);
   await expect(page.locator('.nl-balance')).toHaveText(balance!);
+  await expect(spin).toBeEnabled({ timeout: 30000 });
+  await page.getByLabel('Replay seed').fill('-42');
+  const signedRequest = page.waitForResponse(result => result.url().endsWith('/api/play/round'));
+  await page.getByRole('button', { name: 'Replay round', exact: true }).click();
+  const signed = await (await signedRequest).json();
+  expect(signed.seed).toBe(-42);
+  expect(signed.configHash).toBe(round.configHash);
+  const config = JSON.parse((await signedRequest).request().postData()!).config;
+  const reference = await page.request.post('/api/play/round', { data: { config, seed: -42, roundIndex: 0, trace: true } });
+  expect(reference.ok()).toBe(true);
+  expect(signed).toEqual(await reference.json());
+  await expect(spin).toBeEnabled({ timeout: 30000 });
+  await expect(page.locator('.nl-balance')).toHaveText(balance!);
   await page.reload();
+  await expect(spin).toBeEnabled({ timeout: 30000 });
   await expect(page.locator('.nl-balance')).toHaveText(balance!);
 });
 
@@ -49,6 +66,25 @@ test('Nine Lives purchase resolves nine graph lives and charges the entry once',
   await page.getByRole('button', { name: 'DEAL.', exact: true }).click();
   const round = await (await response).json();
   expect(round.state.boards).toHaveLength(9);
+  await expect(page.getByRole('button', { name: 'NEXT LIFE · 9', exact: true })).toBeEnabled({ timeout: 30000 });
+  const savedBonus = await page.evaluate(() => localStorage.getItem('slot-math-lab:nine-lives:v1'));
+  const base = JSON.parse((await response).request().postData()!).config;
+  base.id = 'nine-lives-base';
+  base.initialState.entryBuy = false;
+  base.initialState.entryCost = 1;
+  const baseResponse = await page.request.post('/api/play/round', { data: { config: base, seed: 42, roundIndex: 0, trace: true } });
+  expect(baseResponse.ok()).toBe(true);
+  await page.getByLabel('Replay config hash').fill((await baseResponse.json()).configHash);
+  await page.getByLabel('Bonus buy').uncheck();
+  await page.getByRole('button', { name: 'Replay round', exact: true }).click();
+  const paid = page.getByRole('button', { name: 'SPIN', exact: true });
+  await expect(paid).toBeEnabled({ timeout: 30000 });
+  let paidRequests = 0;
+  page.on('request', request => { if (request.url().endsWith('/api/play/round')) paidRequests++; });
+  await paid.click();
+  await expect(page.locator('.nl-error')).toHaveText('Finish the remaining lives first.');
+  expect(paidRequests).toBe(0);
+  expect(await page.evaluate(() => localStorage.getItem('slot-math-lab:nine-lives:v1'))).toBe(savedBonus);
   const numeric = (value: number | string | { numerator: string; denominator: string }) => typeof value === 'object' ? Number(value.numerator) / Number(value.denominator) : Number(value);
   for (let remaining = 9; remaining > 0; remaining--) {
     const next = page.getByRole('button', { name: `NEXT LIFE · ${remaining}`, exact: true });
@@ -61,4 +97,39 @@ test('Nine Lives purchase resolves nine graph lives and charges the entry once',
   expect(saved.response.state.remaining).toBe(0);
   expect(saved.nextIndex).toBe(1);
   expect(saved.cursor).toBe(10);
+});
+
+test('Failed game assets release the partial game and allow a clean retry', async ({ page }) => {
+  await page.goto('/build');
+  const title = await page.title();
+  await page.route('**/assets/images/nine-lives/cat.webp', route => route.fulfill({ status: 404, body: 'missing' }));
+  await page.getByRole('tab', { name: 'Play', exact: true }).click();
+  await expect(page.locator('.nl-play > [role="alert"]')).toBeVisible({ timeout: 30000 });
+  await expect(page.locator('.nl-game')).toHaveCount(0);
+  await expect(page).toHaveTitle(title);
+  await page.getByRole('tab', { name: 'Build', exact: true }).click();
+  await page.unroute('**/assets/images/nine-lives/cat.webp');
+  await page.getByRole('tab', { name: 'Play', exact: true }).click();
+  await expect(page.getByRole('button', { name: 'SPIN', exact: true })).toBeEnabled({ timeout: 30000 });
+  await expect(page.locator('.nl-game')).toHaveCount(1);
+});
+
+test('Navigation during game initialization releases the game after the pending load settles', async ({ page }) => {
+  await page.goto('/build');
+  const title = await page.title();
+  let release!: () => void;
+  const pending = new Promise<void>(resolve => { release = resolve; });
+  let entered!: () => void;
+  const requested = new Promise<void>(resolve => { entered = resolve; });
+  await page.route('**/assets/images/nine-lives/cat.webp', async route => { entered(); await pending; await route.continue(); });
+  await page.getByRole('tab', { name: 'Play', exact: true }).click();
+  await requested;
+  await page.getByRole('tab', { name: 'Build', exact: true }).click();
+  await expect(page.locator('.nl-game')).toHaveCount(0);
+  await expect(page).toHaveTitle(title);
+  release();
+  await page.unroute('**/assets/images/nine-lives/cat.webp', { behavior: 'wait' });
+  await page.getByRole('tab', { name: 'Play', exact: true }).click();
+  await expect(page.getByRole('button', { name: 'SPIN', exact: true })).toBeEnabled({ timeout: 30000 });
+  await expect(page.locator('.nl-game')).toHaveCount(1);
 });

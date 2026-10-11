@@ -12,8 +12,8 @@ The current acceptance target is **2,000,000 complete paid rounds/second on
 eight workers on this machine**. Every measured round includes triggered free
 spins and cascades, complete payout statistics, histograms and live callbacks.
 HTTP, queueing, SignalR and rendering are outside this kernel benchmark.
-The current Release build exceeds the target in all three ten-million-round
-repeats.
+The earlier Release measurement exceeded the target in all three
+ten-million-round repeats; concurrent host workloads affect subsequent runs.
 
 The current model hash is
 `09e4fca19d064284290c6d0e869acc5872684ff4e92e1e039720876a3fdc3ae7`.
@@ -58,14 +58,38 @@ retain individual timings, CPU time, GC pauses, allocation and statistics.
 [The optimization record](verification/NINE_LIVES_OPTIMIZATION.md) explains
 native profiles, independent regressions and rejected experiments.
 
-The current standalone eight-worker run measured **2,061,865 / 2,059,413 /
+The earlier standalone eight-worker run measured **2,061,865 / 2,059,413 /
 2,065,394 complete rounds/s** (median **2,061,865**), with live statistics,
 three ten-million-round repeats and two-million-round warmup. Allocation was
-65 B/round; GC pauses were 0 / 2 / 1 ms. The [current report](verification/lab-demo-performance-eight-workers.json)
+65 B/round; GC pauses were 0 / 2 / 1 ms. The [earlier report](verification/lab-demo-performance-eight-workers.json)
 retains the model hash and all payout and loop statistics. Concurrent unrelated
 work was left running. The [one-worker report](verification/lab-demo-performance.json)
 measured a median of 310,987 complete rounds/s over
 three one-million-round repeats with the same two-million-round warmup.
+
+## Benchmark cap units
+
+Review corrected the standalone benchmark's statistics cap: wins are divided
+by the compiled WinScale before collection, so the cap must remain **9,999
+original stakes**, rather than being multiplied by the scale. The API already
+used the correct units; its live UI evidence below is unaffected. Earlier
+standalone reports retain historical measurements, but their cap accounting
+must not be used as evidence. The payout mean, variance, hit frequency and
+observed maximum agree with the corrected run because those samples remained
+below the actual cap.
+
+The [post-review report](verification/lab-demo-performance-cap-check.json)
+records the corrected scale and cap, cap hits, payout statistics and loop
+terminations. Its three ten-million-round repeats measured **1,732,968 /
+1,676,031 / 1,608,031 rounds/s** while a Core test process in another checkout
+was running and a game started during measurement. These shared-host readings
+do not establish throughput on an idle D7 runner. The processes were left
+running; their start times and the measurement interval are recorded.
+
+CI also runs `scripts/verification/benchmark_cap.py --check` against a generic
+two-point payout graph with WinScale 10 and cap 1×. Seed 42 yields 5,038 cap
+hits in 10,000 rounds, mean 0.7519, and maximum 1×. This independently pinned
+control fails if the CLI multiplies its statistics cap by the payout scale.
 
 ## Real UI execution
 

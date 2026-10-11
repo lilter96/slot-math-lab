@@ -389,10 +389,7 @@
       }
     },
     "expression": {
-      "type": [
-        "object",
-        "null"
-      ],
+      "type": "object",
       "required": [
         "exprType"
       ],
@@ -433,10 +430,7 @@
             "path": {
               "type": "array",
               "items": {
-                "type": [
-                  "string",
-                  "null"
-                ]
+                "type": "string"
               }
             },
             "target": {

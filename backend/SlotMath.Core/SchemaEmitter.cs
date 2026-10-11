@@ -1,6 +1,7 @@
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.Json.Schema;
+using System.Text.Json.Serialization.Metadata;
 using Json.Schema;
 using Json.Schema.Generation;
 using SlotMath.Core.Model;
@@ -40,7 +41,12 @@ public static class SchemaEmitter
         CamelCaseProperties(node);
         // The general schema generator sees only the abstract Expression base.
         // Export its polymorphic JSON contract from the serializer metadata.
-        JsonNode expression = JsonOptions.Default.GetJsonSchemaAsNode(typeof(Expression));
+        var options = new JsonSerializerOptions(JsonOptions.Default)
+        {
+            TypeInfoResolver = JsonOptions.Default.TypeInfoResolver ?? new DefaultJsonTypeInfoResolver()
+        };
+        JsonNode expression = options.GetJsonSchemaAsNode(typeof(Expression),
+            new JsonSchemaExporterOptions { TreatNullObliviousAsNonNullable = true });
         RebaseReferences(expression, "#/$defs/expression");
         node["$defs"]!["expression"] = expression;
         JsonNode? defaultValue = node["$defs"]?["dictionaryOfStringAndPort"]?["additionalProperties"]?["properties"];
@@ -66,7 +72,7 @@ public static class SchemaEmitter
                 obj["$ref"] = prefix + path[1..];
             }
 
-            foreach ((var _, JsonNode? child) in obj)
+            foreach ((_, JsonNode? child) in obj)
             {
                 if (child is not null)
                 {

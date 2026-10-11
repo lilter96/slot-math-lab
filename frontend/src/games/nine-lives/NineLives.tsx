@@ -17,6 +17,7 @@ export default function NineLives() {
   const navigate = useNavigate();
   useEffect(() => {
     let disposed = false;
+    const controller = new AbortController();
     const element = host.current!;
     const record = (event: Event) => {
       const replay = (event as CustomEvent<Replay>).detail;
@@ -26,12 +27,13 @@ export default function NineLives() {
     element.addEventListener('nine-lives:round', record);
     void import('./launch').then(async ({ launchNineLives }) => {
       if (disposed) return;
-      const mounted = await launchNineLives(element);
+      const mounted = await launchNineLives(element, controller.signal);
       if (disposed) mounted.dispose();
       else game.current = mounted;
     }).catch(reason => { if (!disposed) setError(reason instanceof Error ? reason.message : String(reason)); });
     return () => {
       disposed = true;
+      controller.abort();
       element.removeEventListener('nine-lives:round', record);
       game.current?.dispose();
       game.current = null;

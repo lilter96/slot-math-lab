@@ -104,7 +104,11 @@ export class GraphGameApi {
   dispose() { this.controller?.abort(); }
   private pinnedConfig(buy: boolean) {
     const draft = peekRootProject();
-    const graph = structuredClone(Array.isArray(draft?.nodes) && draft.nodes.length ? draft : createNineLivesGraph());
+    const board = draft?.boardConfig as { rows?: number; columns?: number } | undefined;
+    const state = draft?.initialState as Record<string, unknown> | undefined;
+    const compatible = (draft?.id === 'nine-lives-base' || draft?.id === 'nine-lives-buy')
+      && board?.rows === 5 && board.columns === 6 && Array.isArray(state?.boards) && Array.isArray(state?.stepSpins);
+    const graph = structuredClone(compatible ? draft! : createNineLivesGraph());
     graph.initialState = { ...(graph.initialState as Record<string, unknown>), entryBuy: buy, entryCost: buy ? config.buyCost : 1 };
     graph.id = buy ? 'nine-lives-buy' : 'nine-lives-base';
     return graph;
@@ -123,13 +127,13 @@ export class GraphGameApi {
     return this.finish(this.saved.pending);
   }
   async action(action: 'spin' | 'buybonus' | 'next', multiplier: number): Promise<Response> {
-    if (this.hasPending) return this.retry();
     if (action === 'next') return this.next();
-    if (this.response.state.phase === 'FREE') throw new Error('Finish the remaining lives first.');
     if (this.replaying) {
       this.replaying = false;
       this.saved = new GraphGameApi().saved;
     }
+    if (this.hasPending) return this.retry();
+    if (this.response.state.phase === 'FREE') throw new Error('Finish the remaining lives first.');
     if (!Number.isSafeInteger(multiplier) || multiplier < 1 || multiplier > 10000) throw new Error('Invalid bet level.');
     const pending = { seed: 42, index: this.saved.nextIndex, multiplier, buy: action === 'buybonus', config: this.pinnedConfig(action === 'buybonus') };
     if (this.response.balance < config.baseCost * multiplier * (pending.buy ? config.buyCost : 1)) throw new Error('Insufficient virtual credits.');
@@ -162,11 +166,11 @@ export class GraphGameApi {
     return this.response;
   }
   async replay(hash: string, seed: number, index: number, buy: boolean): Promise<Response> {
-    if (!Number.isSafeInteger(seed) || seed < 0 || !Number.isSafeInteger(index) || index < 0) throw new Error('Use non-negative integer seed and index.');
+    if (!Number.isSafeInteger(seed) || !Number.isSafeInteger(index) || index < 0) throw new Error('Use a safe integer seed and a non-negative safe integer index.');
     const raw = await this.request({ seed, index, buy, multiplier: 1 });
     if (raw.configHash !== hash) throw new Error('Config hash mismatch. Load the original graph before replaying.');
     this.replaying = true;
-    this.saved = { ...this.saved, frames: framesFromTrace(raw, 1, buy), cursor: 0,
+    this.saved = { ...this.saved, pending: undefined, frames: framesFromTrace(raw, 1, buy), cursor: 0,
       response: { ...this.response, replay: { configHash: hash, seed, index, buy }, state: { ...this.response.state, triggeringMultiplier: 1 } } };
     return this.next();
   }

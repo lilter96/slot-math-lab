@@ -116,7 +116,10 @@ public class SamplingTierEquivalenceTests
             {
                 0 => (Expression)new MapExpr
                 {
-                    StateKey = "arr", ItemName = "item", IndexName = "position", Body = body
+                    StateKey = "arr",
+                    ItemName = "item",
+                    IndexName = "position",
+                    Body = body
                 },
                 1 => new FilterExpr { StateKey = "arr", ItemName = "item", Predicate = body },
                 2 => new FoldExpr
@@ -129,11 +132,17 @@ public class SamplingTierEquivalenceTests
                 },
                 3 => new AggregateExpr
                 {
-                    StateKey = "arr", ItemName = "item", Func = AggregateFunc.Sum, ValueExpr = body
+                    StateKey = "arr",
+                    ItemName = "item",
+                    Func = AggregateFunc.Sum,
+                    ValueExpr = body
                 },
                 _ => new AggregateExpr
                 {
-                    StateKey = "arr", ItemName = "item", Func = AggregateFunc.Count, Predicate = body
+                    StateKey = "arr",
+                    ItemName = "item",
+                    Func = AggregateFunc.Count,
+                    Predicate = body
                 }
             }));
     }
@@ -197,7 +206,9 @@ public class SamplingTierEquivalenceTests
             var discardOutput = (mask & 32) != 0;
             Node[] nodes = expressions.Select((_, i) => (Node)new ModifyStateNode
             {
-                Id = "m" + i, ExpressionId = "e" + i, OutputKey = (mask & (1 << i)) == 0 ? Names[i % 4] : null
+                Id = "m" + i,
+                ExpressionId = "e" + i,
+                OutputKey = (mask & (1 << i)) == 0 ? Names[i % 4] : null
             }).ToArray();
             Dictionary<string, Expression> ast = expressions
                 .Select((expression, i) => (Key: "e" + i, Expression: expression))
@@ -339,11 +350,15 @@ public class SamplingTierEquivalenceTests
         binder.Compile(new BinaryExpr { Op = BinaryOp.Add, Left = F("a"), Right = F("b") });
         binder.Compile(new BinaryExpr
         {
-            Op = BinaryOp.Add, Left = F("a"), Right = Constant(ConstantKind.Integer, "1")
+            Op = BinaryOp.Add,
+            Left = F("a"),
+            Right = Constant(ConstantKind.Integer, "1")
         });
         binder.Compile(new BinaryExpr
         {
-            Op = BinaryOp.Add, Left = F("a"), Right = Constant(ConstantKind.Rational, "1/3")
+            Op = BinaryOp.Add,
+            Left = F("a"),
+            Right = Constant(ConstantKind.Rational, "1/3")
         });
         Assert.Equal(5, binder.Shapes.Count);
     }
@@ -353,54 +368,59 @@ public class SamplingTierEquivalenceTests
     {
         var shapes = new SamplingShapes();
         foreach (var length in new[] { 0, 1, 31, 32, 33 })
-        foreach (var reversed in new[] { false, true })
-        foreach (var sameAlias in new[] { false, true })
-        {
-            ExprValue[] items = Enumerable.Range(0, length).Select(i => ExprValue.Number(reversed ? length - i : i))
-                .ToArray();
-            var state = new Dict
-            {
-                ["arr"] = items.Select(item => item.ToStateObject()).ToArray(),
-                ["a"] = 17,
-                ["item"] = "outer",
-                ["position"] = 91
-            };
-            var alias = sameAlias ? "item" : "position";
-            Expression expression = new MapExpr
-            {
-                StateKey = "arr",
-                ItemName = "item",
-                IndexName = alias,
-                Body = new IfExpr
+            foreach (var reversed in new[] { false, true })
+                foreach (var sameAlias in new[] { false, true })
                 {
-                    Condition = new CompareExpr
+                    ExprValue[] items = Enumerable.Range(0, length).Select(i => ExprValue.Number(reversed ? length - i : i))
+                        .ToArray();
+                    var state = new Dict
                     {
-                        Op = CompareOp.Lt, Left = F(alias), Right = Constant(ConstantKind.Integer, "19")
-                    },
-                    ThenExpr = F("a"),
-                    ElseExpr = F("missing")
+                        ["arr"] = items.Select(item => item.ToStateObject()).ToArray(),
+                        ["a"] = 17,
+                        ["item"] = "outer",
+                        ["position"] = 91
+                    };
+                    var alias = sameAlias ? "item" : "position";
+                    Expression expression = new MapExpr
+                    {
+                        StateKey = "arr",
+                        ItemName = "item",
+                        IndexName = alias,
+                        Body = new IfExpr
+                        {
+                            Condition = new CompareExpr
+                            {
+                                Op = CompareOp.Lt,
+                                Left = F(alias),
+                                Right = Constant(ConstantKind.Integer, "19")
+                            },
+                            ThenExpr = F("a"),
+                            ElseExpr = F("missing")
+                        }
+                    };
+                    var constants = new Dictionary<string, ExprValue> { ["arr"] = ExprValue.Array(items) };
+                    var expected = Run(new SamplingExpressions(Slot, SamplingTier.Interpreted).Compile(expression), state);
+                    Assert.Equal(expected,
+                        Run(new SamplingExpressions(Slot, SamplingTier.Compiled, constants, shapes).Compile(expression),
+                            state));
+                    // A nested form publishes its scoped aliases to interpreted
+                    // operators, and restores the original cells after failures.
+                    var nested = new MapExpr
+                    {
+                        StateKey = "arr",
+                        ItemName = "item",
+                        IndexName = alias,
+                        Body = new AggregateExpr
+                        {
+                            Func = AggregateFunc.Sum,
+                            StateKey = "arr",
+                            ItemName = "b",
+                            ValueExpr = F(alias)
+                        }
+                    };
+                    Assert.Equal(Run(new SamplingExpressions(Slot, SamplingTier.Interpreted).Compile(nested), state),
+                        Run(new SamplingExpressions(Slot, SamplingTier.Compiled, constants, shapes).Compile(nested), state));
                 }
-            };
-            var constants = new Dictionary<string, ExprValue> { ["arr"] = ExprValue.Array(items) };
-            var expected = Run(new SamplingExpressions(Slot, SamplingTier.Interpreted).Compile(expression), state);
-            Assert.Equal(expected,
-                Run(new SamplingExpressions(Slot, SamplingTier.Compiled, constants, shapes).Compile(expression),
-                    state));
-            // A nested form publishes its scoped aliases to interpreted
-            // operators, and restores the original cells after failures.
-            var nested = new MapExpr
-            {
-                StateKey = "arr",
-                ItemName = "item",
-                IndexName = alias,
-                Body = new AggregateExpr
-                {
-                    Func = AggregateFunc.Sum, StateKey = "arr", ItemName = "b", ValueExpr = F(alias)
-                }
-            };
-            Assert.Equal(Run(new SamplingExpressions(Slot, SamplingTier.Interpreted).Compile(nested), state),
-                Run(new SamplingExpressions(Slot, SamplingTier.Compiled, constants, shapes).Compile(nested), state));
-        }
     }
 
     [Fact]
@@ -425,9 +445,7 @@ public class SamplingTierEquivalenceTests
                             F("c"),
                             new BinaryExpr
                             {
-                                Op = BinaryOp.Add,
-                                Left = F("position"),
-                                Right = Constant(ConstantKind.Integer, "0")
+                                Op = BinaryOp.Add, Left = F("position"), Right = Constant(ConstantKind.Integer, "0")
                             }
                         ]
                     }
@@ -497,7 +515,10 @@ public class SamplingTierEquivalenceTests
         var binder = new SamplingExpressions(Slot, SamplingTier.Compiled);
         var state = new Dict
         {
-            ["arr"] = new object[] { 10, 20, 30 }, ["a"] = new object[] { 4, 5 }, ["item"] = 90, ["position"] = 91
+            ["arr"] = new object[] { 10, 20, 30 },
+            ["a"] = new object[] { 4, 5 },
+            ["item"] = 90,
+            ["position"] = 91
         };
 
         Expression Map(string key, string item, string index, Expression body)
@@ -601,7 +622,9 @@ public class SamplingTierEquivalenceTests
         {
             var state = new Dict
             {
-                ["arr"] = Enumerable.Range(0, 1024).ToArray(), ["item"] = "outer", ["position"] = 73
+                ["arr"] = Enumerable.Range(0, 1024).ToArray(),
+                ["item"] = "outer",
+                ["position"] = 73
             };
             var frame = new SamplingFrame(Layout, new SamplingCell[Layout.Count], state);
             frame.Reset(default);
@@ -691,8 +714,10 @@ public class SamplingTierEquivalenceTests
                 {
                     Dict state = start switch
                     {
-                        0 => new Dict(), 1 => new Dict { ["external"] = "preserved" },
-                        2 => new Dict { ["traceEnabled"] = true }, _ => new Dict { ["traceEnabled"] = false }
+                        0 => new Dict(),
+                        1 => new Dict { ["external"] = "preserved" },
+                        2 => new Dict { ["traceEnabled"] = true },
+                        _ => new Dict { ["traceEnabled"] = false }
                     };
                     (BigInteger Value, Dict State) expected =
                         SampledInterpreter.RunSingle(result.ReferenceProgram!, state, seed, round);
@@ -723,7 +748,10 @@ public class SamplingTierEquivalenceTests
                 expected ??= JsonSerializer.Serialize(SampledInterpreter.Evaluate(result.ReferenceProgram!, new Dict(),
                     new SampledConfig
                     {
-                        Seed = 42, MaxSpins = 20000, ChunkSize = 2048, WinScale = (double)result.WinScale
+                        Seed = 42,
+                        MaxSpins = 20000,
+                        ChunkSize = 2048,
+                        WinScale = (double)result.WinScale
                     }).Stats.Snapshot());
                 foreach (var workers in new[] { 1, 3, 8 })
                 {

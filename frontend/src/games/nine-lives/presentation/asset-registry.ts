@@ -108,23 +108,32 @@ export class AssetRegistry {
       }
     }
 
-    await Promise.all(jobs)
-    return this._makeAccessor(gameId)
+    try {
+      await Promise.all(jobs)
+      return this._makeAccessor(gameId)
+    } catch (error) {
+      await Promise.allSettled(jobs)
+      await this.unloadGame(gameId).catch(console.error)
+      throw error
+    }
   }
 
   async unloadGame(gameId: string): Promise<void> {
     for (const texture of this._frames.get(gameId) ?? []) texture.destroy(false)
     this._frames.delete(gameId)
     this._textures.delete(gameId)
-    await Assets.unloadBundle(gameId)
+    try {
+      await Assets.unloadBundle(gameId)
+    } finally {
 
-    // 3. Clear Sounds
-    const sounds = this._soundKeys.get(gameId)
-    sounds?.forEach((k) => sound.remove(k))
-    this._soundKeys.delete(gameId)
+      // 3. Clear Sounds
+      const sounds = this._soundKeys.get(gameId)
+      sounds?.forEach((k) => sound.remove(k))
+      this._soundKeys.delete(gameId)
 
-    // 4. Clear Manifest
-    this._manifests.delete(gameId)
+      // 4. Clear Manifest
+      this._manifests.delete(gameId)
+    }
   }
 
   private _makeAccessor(gameId: string): GameAssets {
