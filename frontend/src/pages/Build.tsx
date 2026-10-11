@@ -1,6 +1,6 @@
 import { useMemo, useEffect, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { useAppStore } from '../store';
+import { useAppStore, withoutSelection } from '../store';
 import Palette from '../components/Palette';
 import MetricStrip from '../components/MetricStrip';
 import SlotCanvas from '../components/canvas/SlotCanvas';
@@ -91,7 +91,7 @@ export default function Build() {
     <>
       <Palette />
       <div className="workspace">
-        {savedDraft && <div className="model-navigation"><div className="model-navigation-heading"><b>Saved model opened from Results</b><span>Your earlier editor draft is preserved, including open subgraphs.</span></div><div className="model-navigation-actions"><button className="btn" onClick={() => useAppStore.setState({ ...savedDraft, selectedNodeId: null, resultsDraft: null })}>Restore previous editor draft</button></div></div>}
+        {savedDraft && <div className="model-navigation"><div className="model-navigation-heading"><b>Saved model opened from Results</b><span>Your earlier editor draft is preserved, including open subgraphs.</span></div><div className="model-navigation-actions"><button className="btn" onClick={() => useAppStore.setState({ ...savedDraft, nodes: withoutSelection(savedDraft.nodes) ?? [], selectedNodeId: null, resultsDraft: null })}>Restore previous editor draft</button></div></div>}
         <ModelNavigation />
         <ErrorBoundary>
           <SlotCanvas />
