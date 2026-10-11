@@ -152,3 +152,13 @@ Frontend and verification sources whose required cleanup is unconfirmed:
 - [scripts/verification/results-production.mjs](../../scripts/verification/results-production.mjs)
 - [scripts/verification/verification-profile-production.mjs](../../scripts/verification/verification-profile-production.mjs)
 - [scripts/verification/ws-negotiation-production.mjs](../../scripts/verification/ws-negotiation-production.mjs)
+
+## Subsequent cleanup and integration
+
+The cleanup limitations and file inventories above describe the earlier agent
+attempts. The owner subsequently reported completing manual cleanup and asked
+for a commit without rerunning tests. The branch then merged `origin/main` at
+`fa9c088` without conflicts. Earlier test counts and performance fingerprints
+remain historical evidence; CI on the pull request checks the integrated code.
+See `lab-demo-cleanup-status.json` and `lab-demo-validation.json` for the recorded
+validation boundary.

@@ -280,3 +280,11 @@ The RNG fraction conversion now casts **after** the 11-bit unsigned shift: the r
 The signed-fraction conversion combined with exact-length array reuse and alias selection measured **2,061,865 / 2,059,413 / 2,065,394 complete paid rounds/s** (median **2,061,865**) on eight workers, three 10M-round repeats, 2M warmup and live statistics. All three repeats exceed 2M. Counts, RTP, variance, hit frequency, maximum, complete histogram and loop evidence are identical to the earlier current-model report. Progress callbacks ran in every repeat. Allocation: 65 B/round; GC pauses: 0 / 2 / 1 ms. This supersedes the earlier unmet intermediate measurements; it is a local machine measurement, not a D7 hardware certificate.
 
 Final current full E2E: **70 passed in 17.9 minutes**, including the corrected cancellation timeout in the complete suite. Full backend: 1,160 Core + 134 API passed. Independent Fraction reference, fixture exporter, branding scan, scoped ESLint and absolute-scoped backend format verification passed. The mandatory Rider Reformat/Full Cleanup passes were attempted and remain blocked as listed in `lab-demo-cleanup-status.json`; these are not claimed successful. Machine-readable final validation is retained in `lab-demo-validation.json`.
+
+## Cleanup and integration status
+
+After the recorded validation and measurements, the owner reported completing
+manual cleanup. Tests were not rerun afterward at the owner's explicit request.
+The machine-readable cleanup report retains earlier agent tooling failures as
+historical evidence. The branch subsequently merged `origin/main` at `fa9c088`
+without conflicts; the pull request's CI validates the integrated commit.
