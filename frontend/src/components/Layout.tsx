@@ -1,6 +1,7 @@
 import Login from './Login';
+import AiGenerateModal from './AiGenerateModal';
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useAppStore, MOOD_HUE, type Mood } from '../store';
 import { Ic } from './Icons';
 import { useSimulationConnection } from '../hooks/useSimulation';
@@ -22,6 +23,10 @@ export default function Layout() {
   const configName = useAppStore((s) => s.configName);
   const tweaks = useAppStore((s) => s.tweaks);
   const features = useFeaturesQuery().data ?? DEFAULT_FEATURES;
+
+  const [showAi, setShowAi] = useState(false);
+  const [collapsed, setCollapsed] = useState(() => sessionStorage.getItem('slotmath-nav-collapsed') === 'true');
+  const toggleNav = () => setCollapsed(value => { sessionStorage.setItem('slotmath-nav-collapsed', String(!value)); return !value; });
 
   // Fail-closed: without a confirmed `play` flag the Play entry is dropped.
   const tabs = TABS.filter(({ id }) => id !== 'play' || features.play);
@@ -47,6 +52,7 @@ export default function Layout() {
   return (
     <div className="app">
       <Login />
+      {showAi && features.ai && <AiGenerateModal onClose={() => setShowAi(false)} />}
       <a href="#main-content" className="skip-link">
         Skip to main content
       </a>
@@ -64,6 +70,22 @@ export default function Layout() {
           {configName}
         </div>
 
+        <div className="topbar-right"><NavLink className="btn primary" to="/simulate">Run analysis</NavLink>
+          {features.ai && <button className="btn" onClick={() => setShowAi(true)}>AI assist</button>}
+          {/* The ported games are a page of their own: they play their graphs through the same endpoint as /play. */}
+          {features.play && (
+            <a className="btn" href="/games.html" style={{ textDecoration: 'none' }}>
+              <Ic.sim style={{ width: 15, height: 15 }} />
+              Games
+            </a>
+          )}
+        </div>
+      </div>
+
+      <div className={'workspace-shell' + (collapsed ? ' nav-collapsed' : '')}>
+        <aside className="workspace-nav" aria-label="Workspace">
+          <button className="btn nav-toggle" aria-label={collapsed ? 'Expand navigation' : 'Collapse navigation'} aria-expanded={!collapsed} onClick={toggleNav}>{collapsed ? '☰' : 'Collapse navigation'}</button>
+          <span className="nav-project">{configName ?? 'Untitled'}</span>
         <div className="tabs" role="tablist" aria-label="Main navigation">
           {tabs.map(({ id, label, Icon }) => (
             <NavLink
@@ -71,6 +93,8 @@ export default function Layout() {
               to={`/${id}`}
               role="tab"
               aria-selected={tab === id}
+              aria-label={label}
+              title={label}
               className={({ isActive }) => 'tab' + (isActive ? ' active' : '')}
             >
               <Icon style={{ width: 14, height: 14 }} />
@@ -79,45 +103,10 @@ export default function Layout() {
           ))}
         </div>
 
-        <div className="topbar-right">
-          <div className="legend">
-            <span className="item">
-              <span className="sw" style={{ background: 'var(--exact)' }} />
-              Exact
-            </span>
-            <span className="item">
-              <span className="sw" style={{ background: 'var(--epsilon)' }} />
-              ε-pruned
-            </span>
-            <span className="item">
-              <span className="sw" style={{ background: 'var(--sampled)' }} />
-              Sampled
-            </span>
-          </div>
-          {/* The ported games are a page of their own: they play their graphs through the same endpoint as /play. */}
-          {features.play && (
-            <a className="btn" href="/games.html" style={{ textDecoration: 'none' }}>
-              <Ic.sim style={{ width: 15, height: 15 }} />
-              Games
-            </a>
-          )}
-          {features.ai && (
-            <button
-              className="btn"
-              style={{ borderColor: 'oklch(0.78 0.15 305 / 0.4)' }}
-            >
-              <span style={{ color: 'var(--n-loop)' }}>
-                <Ic.ai style={{ width: 15, height: 15 }} />
-              </span>
-              AI assist
-            </button>
-          )}
-        </div>
-      </div>
 
-      <main className="body" id="main-content">
-        <Outlet />
-      </main>
+        </aside>
+        <main className="body" id="main-content" tabIndex={-1}><Outlet /></main>
+      </div>
     </div>
   );
 }

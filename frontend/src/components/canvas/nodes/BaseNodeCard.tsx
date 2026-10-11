@@ -39,12 +39,12 @@ const BaseNodeCard: FC<BaseNodeProps> = ({ data, selected }) => {
   const liveRtp = useAppStore((s) => s.liveRtp);
   const liveProvenance = useAppStore((s) => s.liveProvenance);
   const canOpen = useAppStore(s => !!(s.tables.mechanics as Record<string, unknown>)?.[String(data.mechanicName)]);
-  const rtpProvenance: Provenance | null = liveProvenance === 'Exact'
+  const rtpProvenance: Provenance | null = liveRtp == null ? null : liveProvenance === 'Exact'
     ? { kind: 'Exact' }
     : liveProvenance === 'ExactInterval' ? { kind: 'ExactInterval' }
     : liveProvenance === 'ExactWithMassLoss' ? { kind: 'ExactWithMassLoss' }
     : liveProvenance === 'Sampled'
-      ? { kind: 'Sampled', n: 0 }
+      ? { kind: 'Sampled' }
       : null;
 
   return (
@@ -118,7 +118,7 @@ const BaseNodeCard: FC<BaseNodeProps> = ({ data, selected }) => {
         {data.nodeType === 'sink' && (
           <div className="mini-row">
             <span className="k">RTP</span>
-            <span className="v" style={{ color: liveRtp != null ? 'var(--exact)' : 'var(--faint)', fontSize: 13 }}>
+            <span className="v" style={{ color: liveRtp != null ? liveProvenance === 'Sampled' ? 'var(--sampled)' : 'var(--text)' : 'var(--faint)', fontSize: 13 }}>
               {liveRtp != null ? `${(liveRtp * 100).toFixed(2)}%` : '—'}
             </span>
             {rtpProvenance && <ProvBadge p={rtpProvenance} mini />}

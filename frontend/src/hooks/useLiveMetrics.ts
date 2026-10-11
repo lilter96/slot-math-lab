@@ -8,9 +8,9 @@ import { buildConfigPayload } from '../lib/configPayload';
 
 
 export interface LiveMetric {
-  rtp: number;
-  hitFrequency: number;
-  volatility: number;
+  rtp?: number;
+  hitFrequency?: number;
+  volatility?: number;
   stdErr?: number;
   ci95?: string;
   provenance: 'Exact' | 'ExactInterval' | 'ExactWithMassLoss' | 'Sampled' | 'NeedsFullRun' | 'Error';
@@ -51,7 +51,7 @@ export function useLiveMetrics(
   const edges = useAppStore((s) => s.edges);
   const tables = useAppStore((s) => s.tables);
   const trail = useAppStore(s => s.graphTrail);
-  const [state, setState] = useState<LiveMetricsState>(EMPTY);
+  const [state, setState] = useState<LiveMetricsState & { configJson?: string | null }>(EMPTY);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const abortRef = useRef<AbortController | null>(null);
   const seqRef = useRef(0);
@@ -80,7 +80,7 @@ export function useLiveMetrics(
     abortRef.current = controller;
     const seq = ++seqRef.current;
 
-    setState((s) => ({ ...s, loading: true, error: null }));
+    setState({ ...EMPTY, loading: true, configJson });
 
     try {
       const res = await fetch('/api/evaluate/light', {
@@ -105,9 +105,9 @@ export function useLiveMetrics(
         data.strategy === 'NeedsFullRun' ? 'NeedsFullRun' : 'Error';
 
       const overall: LiveMetric = {
-        rtp: data.rtp ?? 0,
-        hitFrequency: data.hitFrequency ?? 0,
-        volatility: data.volatility ?? 0,
+        rtp: typeof data.rtp === 'number' && Number.isFinite(data.rtp) ? data.rtp : undefined,
+        hitFrequency: typeof data.hitFrequency === 'number' && Number.isFinite(data.hitFrequency) ? data.hitFrequency : undefined,
+        volatility: typeof data.volatility === 'number' && Number.isFinite(data.volatility) ? data.volatility : undefined,
         stdErr: data.stdErr,
         ci95: data.ci95,
         provenance,
@@ -117,6 +117,7 @@ export function useLiveMetrics(
       };
 
       setState({
+        configJson,
         overall: provenance === 'Error' ? null : overall,
         perEdge: {},
         loading: false,
@@ -128,6 +129,8 @@ export function useLiveMetrics(
       if (seq !== seqRef.current) return;
       setState((s) => ({
         ...s,
+        overall: null,
+        perEdge: {},
         loading: false,
         error: err instanceof Error ? err.message : 'Evaluation failed',
         lastUpdated: Date.now(),
@@ -137,6 +140,8 @@ export function useLiveMetrics(
 
   // Debounced evaluation — fires 400ms after the last *content* change.
   useEffect(() => {
+    ++seqRef.current;
+    abortRef.current?.abort();
     if (timerRef.current) clearTimeout(timerRef.current);
     timerRef.current = setTimeout(() => void evaluate(payloadJson), 400);
     return () => {
@@ -151,5 +156,5 @@ export function useLiveMetrics(
     };
   }, []);
 
-  return state;
+  return state.configJson === payloadJson ? state : { ...EMPTY, loading: !!payloadJson };
 }

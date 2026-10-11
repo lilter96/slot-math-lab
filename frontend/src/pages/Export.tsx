@@ -80,8 +80,8 @@ export default function Export() {
   const [shareUrl, setShareUrl] = useState<string | null>(null);
   const [savedConfigId, setSavedConfigId] = useState<string | null>(null);
   const tables = useAppStore(s => s.tables);
-  const { overall } = useLiveMetrics();
-  const metrics = useMemo(() => overall ? { rtp: overall.rtp, hitFreq: overall.hitFrequency, volatility: overall.volatility, provenance: overall.provenance } : undefined, [overall]);
+  const { overall, loading, error } = useLiveMetrics();
+  const metrics = useMemo(() => !loading && !error && overall?.rtp != null && ['Exact', 'ExactInterval', 'ExactWithMassLoss', 'Sampled'].includes(overall.provenance) ? { rtp: overall.rtp, hitFreq: overall.hitFrequency, volatility: overall.volatility, provenance: overall.provenance } : undefined, [overall, loading, error]);
   const fileRef = useRef<HTMLInputElement>(null);
 
   const saveConfig = useSaveConfig();
