@@ -1,0 +1,275 @@
+{
+  "method": "GCAllocationTick estimated bytes by sampled type; first five seconds excluded",
+  "results": [
+    {
+      "type": "SlotMath.Core.Expressions.ExprValue[]",
+      "samples": 6073,
+      "estimatedBytes": 647212376,
+      "sampledObjectBytes": 1659032
+    },
+    {
+      "type": "System.Numerics.BigInteger",
+      "samples": 5007,
+      "estimatedBytes": 533613384,
+      "sampledObjectBytes": 160224
+    },
+    {
+      "type": "BigNumber",
+      "samples": 472,
+      "estimatedBytes": 50310832,
+      "sampledObjectBytes": 22656
+    },
+    {
+      "type": "SlotMath.Core.Math.AdaptiveHistogramBin",
+      "samples": 243,
+      "estimatedBytes": 25897136,
+      "sampledObjectBytes": 9720
+    },
+    {
+      "type": "SlotMath.Core.Math.AdaptiveHistogramBin[]",
+      "samples": 105,
+      "estimatedBytes": 11188136,
+      "sampledObjectBytes": 154648
+    },
+    {
+      "type": "System.Int64[]",
+      "samples": 73,
+      "estimatedBytes": 7780176,
+      "sampledObjectBytes": 143680
+    },
+    {
+      "type": "Entry[System.String,System.Int64][]",
+      "samples": 72,
+      "estimatedBytes": 7668976,
+      "sampledObjectBytes": 6912
+    },
+    {
+      "type": "System.Collections.Generic.Dictionary`2[System.String,System.Int64]",
+      "samples": 70,
+      "estimatedBytes": 7464624,
+      "sampledObjectBytes": 5600
+    },
+    {
+      "type": "SlotMath.Core.Math.HistogramBin",
+      "samples": 47,
+      "estimatedBytes": 5007640,
+      "sampledObjectBytes": 1880
+    },
+    {
+      "type": "System.Int32[]",
+      "samples": 46,
+      "estimatedBytes": 4902576,
+      "sampledObjectBytes": 2360
+    },
+    {
+      "type": "System.Byte[]",
+      "samples": 10,
+      "estimatedBytes": 4834568,
+      "sampledObjectBytes": 4666144
+    },
+    {
+      "type": "SlotMath.Core.Math.LoopTerminationSummary",
+      "samples": 44,
+      "estimatedBytes": 4687840,
+      "sampledObjectBytes": 3168
+    },
+    {
+      "type": "System.Text.Json.Nodes.JsonValueOfElement",
+      "samples": 19,
+      "estimatedBytes": 2025400,
+      "sampledObjectBytes": 912
+    },
+    {
+      "type": "System.Collections.Generic.KeyValuePair`2[SlotMath.Core.Math.LoopTerminationEvidence+Key,SlotMath.Core.Math.LoopTerminationEvidence+Counter][]",
+      "samples": 18,
+      "estimatedBytes": 1918288,
+      "sampledObjectBytes": 12960
+    },
+    {
+      "type": "Entry[System.String,System.Text.Json.Nodes.JsonNode][]",
+      "samples": 15,
+      "estimatedBytes": 1599000,
+      "sampledObjectBytes": 6576
+    },
+    {
+      "type": "SlotMath.Core.Math.HistogramBin[]",
+      "samples": 13,
+      "estimatedBytes": 1385288,
+      "sampledObjectBytes": 5512
+    },
+    {
+      "type": "System.Collections.Generic.OrderedDictionary`2[System.String,System.Text.Json.Nodes.JsonNode]",
+      "samples": 12,
+      "estimatedBytes": 1279200,
+      "sampledObjectBytes": 864
+    },
+    {
+      "type": "System.String",
+      "samples": 5,
+      "estimatedBytes": 1015776,
+      "sampledObjectBytes": 655096
+    },
+    {
+      "type": "SlotMath.Core.Compiler.SamplingCell[]",
+      "samples": 9,
+      "estimatedBytes": 976152,
+      "sampledObjectBytes": 84312
+    },
+    {
+      "type": "System.Text.Json.Nodes.JsonObject",
+      "samples": 9,
+      "estimatedBytes": 959400,
+      "sampledObjectBytes": 576
+    },
+    {
+      "type": "SlotMath.Core.Math.LoopTerminationSummary[]",
+      "samples": 9,
+      "estimatedBytes": 959144,
+      "sampledObjectBytes": 2304
+    },
+    {
+      "type": "SlotMath.Core.Math.StreamingStats",
+      "samples": 8,
+      "estimatedBytes": 852800,
+      "sampledObjectBytes": 1216
+    },
+    {
+      "type": "System.Collections.Generic.KeyValuePair`2[System.String,System.Text.Json.Nodes.JsonNode][]",
+      "samples": 8,
+      "estimatedBytes": 852800,
+      "sampledObjectBytes": 624
+    },
+    {
+      "type": "System.String[]",
+      "samples": 7,
+      "estimatedBytes": 745944,
+      "sampledObjectBytes": 1792
+    },
+    {
+      "type": "OrderedIterator`2[System.Collections.Generic.KeyValuePair`2[System.String,SlotMath.Core.Measurements.MeasurementAccumulator],System.String]",
+      "samples": 6,
+      "estimatedBytes": 639600,
+      "sampledObjectBytes": 1104
+    },
+    {
+      "type": "OrderedIterator`2[System.Collections.Generic.KeyValuePair`2[SlotMath.Core.Math.LoopTerminationEvidence+Key,SlotMath.Core.Math.LoopTerminationEvidence+Counter],System.String]",
+      "samples": 6,
+      "estimatedBytes": 639600,
+      "sampledObjectBytes": 624
+    },
+    {
+      "type": "OrderedIterator`2[System.Collections.Generic.KeyValuePair`2[System.String,System.Text.Json.Nodes.JsonNode],System.String]",
+      "samples": 6,
+      "estimatedBytes": 639600,
+      "sampledObjectBytes": 576
+    },
+    {
+      "type": "SlotMath.Core.Math.StreamingStatsSnapshot",
+      "samples": 4,
+      "estimatedBytes": 426400,
+      "sampledObjectBytes": 576
+    },
+    {
+      "type": "SlotMath.Core.Math.ExecutionSummary",
+      "samples": 4,
+      "estimatedBytes": 426400,
+      "sampledObjectBytes": 640
+    },
+    {
+      "type": "System.Collections.Generic.Dictionary`2[System.String,SlotMath.Core.Measurements.MeasurementAccumulator]",
+      "samples": 4,
+      "estimatedBytes": 426400,
+      "sampledObjectBytes": 320
+    },
+    {
+      "type": "Counter",
+      "samples": 4,
+      "estimatedBytes": 425632,
+      "sampledObjectBytes": 320
+    },
+    {
+      "type": "IteratorSelectIterator`2[System.Collections.Generic.KeyValuePair`2[System.String,SlotMath.Core.Measurements.MeasurementAccumulator],SlotMath.Core.Measurements.MeasurementSnapshot]",
+      "samples": 3,
+      "estimatedBytes": 319800,
+      "sampledObjectBytes": 168
+    },
+    {
+      "type": "System.Collections.Generic.List`1[SlotMath.Core.Math.AdaptiveHistogramBin]",
+      "samples": 2,
+      "estimatedBytes": 213200,
+      "sampledObjectBytes": 64
+    },
+    {
+      "type": "System.Func`3[SlotMath.Core.Measurements.MeasurementAccumulator,System.Int32,SlotMath.Core.Measurements.MeasurementSnapshot]",
+      "samples": 2,
+      "estimatedBytes": 213200,
+      "sampledObjectBytes": 128
+    },
+    {
+      "type": "Entry[SlotMath.Core.Math.LoopTerminationEvidence+Key,SlotMath.Core.Math.LoopTerminationEvidence+Counter][]",
+      "samples": 2,
+      "estimatedBytes": 213200,
+      "sampledObjectBytes": 2416
+    },
+    {
+      "type": "SlotMath.Core.Math.SampledProgress",
+      "samples": 2,
+      "estimatedBytes": 213200,
+      "sampledObjectBytes": 128
+    },
+    {
+      "type": "System.Text.Json.Nodes.JsonNode[]",
+      "samples": 2,
+      "estimatedBytes": 213200,
+      "sampledObjectBytes": 1096
+    },
+    {
+      "type": "System.Comparison`1[System.Int32]",
+      "samples": 2,
+      "estimatedBytes": 213200,
+      "sampledObjectBytes": 128
+    },
+    {
+      "type": "EnumerableSorter`2[System.Collections.Generic.KeyValuePair`2[System.String,System.Text.Json.Nodes.JsonNode],System.String]",
+      "samples": 2,
+      "estimatedBytes": 213200,
+      "sampledObjectBytes": 112
+    },
+    {
+      "type": "<>c__DisplayClass50_0",
+      "samples": 2,
+      "estimatedBytes": 212688,
+      "sampledObjectBytes": 64
+    },
+    {
+      "type": "Counter[]",
+      "samples": 1,
+      "estimatedBytes": 108936,
+      "sampledObjectBytes": 56
+    },
+    {
+      "type": "SlotMath.Core.Expressions.ExprValue[][]",
+      "samples": 1,
+      "estimatedBytes": 108936,
+      "sampledObjectBytes": 1048
+    },
+    {
+      "type": "System.Collections.Generic.List`1[System.Text.Json.Nodes.JsonNode]",
+      "samples": 1,
+      "estimatedBytes": 106600,
+      "sampledObjectBytes": 32
+    },
+    {
+      "type": "System.Reflection.RuntimePropertyInfo[]",
+      "samples": 1,
+      "estimatedBytes": 106600,
+      "sampledObjectBytes": 56
+    },
+    {
+      "type": "System.Func`2[System.String,System.Boolean]",
+      "samples": 1,
+      "estimatedBytes": 106344,
+      "sampledObjectBytes": 64
+    }
+  ]
+}

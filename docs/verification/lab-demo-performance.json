@@ -1,27 +1,27 @@
 {
-  "configHash": "adec4b6e71e42c50e653674fd7b23e42d2113085f6d048a9bea6a51157283ce0",
+  "configHash": "09e4fca19d064284290c6d0e869acc5872684ff4e92e1e039720876a3fdc3ae7",
   "engine": "compiled-state-plan-v1",
   "seed": 42,
   "rounds": 1000000,
-  "warmup": 100000,
+  "warmup": 2000000,
   "workers": 1,
   "live": true,
   "streamScheme": "splitmix64-chunk-65536",
-  "compileMs": 220.0862,
+  "compileMs": 369.5159,
   "runtime": ".NET 10.0.12",
   "cpuCount": 20,
   "allocationCounter": "current-thread",
   "measurements": [
     {
-      "elapsedMs": 30779.1762,
-      "roundsPerSecond": 32489.498533102393,
-      "cpuMs": 33819.268,
-      "gcPauseMs": 203.469,
-      "allocatedBytes": 21437972856,
-      "bytesPerRound": 21437.972856,
+      "elapsedMs": 3212.5769,
+      "roundsPerSecond": 311276.59543340426,
+      "cpuMs": 3213.679,
+      "gcPauseMs": 0,
+      "allocatedBytes": 61713600,
+      "bytesPerRound": 61.7136,
       "gc": [
-        70,
-        1,
+        0,
+        0,
         0
       ],
       "updates": 1008,
@@ -1056,18 +1056,372 @@
           "UpperBound": 6700,
           "Count": 1
         }
+      ],
+      "loopTerminations": [
+        {
+          "NodeId": "round/paid-body/spin/cascades/cascades",
+          "CompletedInvocations": 1000000,
+          "ModelLimitCompletions": 0,
+          "ConditionCompletions": 1000000,
+          "TotalIterations": 717467,
+          "MinimumIterations": 0,
+          "MaximumIterations": 21,
+          "ExitReasons": {
+            "condition": 1000000
+          }
+        },
+        {
+          "NodeId": "round/paid-body/spin/cascades/cascades-body/evaluate/sample-body/no-wilds-body/symbols",
+          "CompletedInvocations": 654492,
+          "ModelLimitCompletions": 0,
+          "ConditionCompletions": 654492,
+          "TotalIterations": 356549,
+          "MinimumIterations": 0,
+          "MaximumIterations": 4,
+          "ExitReasons": {
+            "condition": 654492
+          }
+        },
+        {
+          "NodeId": "round/paid-body/spin/cascades/cascades-body/evaluate/sample-body/no-wilds-body/symbols-body/components/components",
+          "CompletedInvocations": 356549,
+          "ModelLimitCompletions": 0,
+          "ConditionCompletions": 356549,
+          "TotalIterations": 364535,
+          "MinimumIterations": 1,
+          "MaximumIterations": 3,
+          "ExitReasons": {
+            "condition": 356549
+          }
+        },
+        {
+          "NodeId": "round/paid-body/spin/cascades/cascades-body/evaluate/sample-body/no-wilds-body/symbols-body/components/components-body/expand",
+          "CompletedInvocations": 364535,
+          "ModelLimitCompletions": 0,
+          "ConditionCompletions": 364535,
+          "TotalIterations": 596926,
+          "MinimumIterations": 0,
+          "MaximumIterations": 12,
+          "ExitReasons": {
+            "condition": 364535
+          }
+        },
+        {
+          "NodeId": "round/paid-body/spin/cascades/cascades-body/evaluate/sample-body/wilds-body/symbols",
+          "CompletedInvocations": 62975,
+          "ModelLimitCompletions": 54853,
+          "ConditionCompletions": 8122,
+          "TotalIterations": 306698,
+          "MinimumIterations": 3,
+          "MaximumIterations": 5,
+          "ExitReasons": {
+            "condition": 8122,
+            "modelLimit": 54853
+          }
+        },
+        {
+          "NodeId": "round/paid-body/spin/cascades/cascades-body/evaluate/sample-body/wilds-body/symbols-body/possible-body/possible-body/components",
+          "CompletedInvocations": 94474,
+          "ModelLimitCompletions": 0,
+          "ConditionCompletions": 94474,
+          "TotalIterations": 149934,
+          "MinimumIterations": 0,
+          "MaximumIterations": 5,
+          "ExitReasons": {
+            "condition": 94474
+          }
+        },
+        {
+          "NodeId": "round/paid-body/spin/cascades/cascades-body/evaluate/sample-body/wilds-body/symbols-body/possible-body/possible-body/components-body/expand",
+          "CompletedInvocations": 149934,
+          "ModelLimitCompletions": 0,
+          "ConditionCompletions": 149934,
+          "TotalIterations": 199360,
+          "MinimumIterations": 0,
+          "MaximumIterations": 13,
+          "ExitReasons": {
+            "condition": 149934
+          }
+        },
+        {
+          "NodeId": "round/paid-body/spin/cascades/cascades-body/refill/columns",
+          "CompletedInvocations": 717467,
+          "ModelLimitCompletions": 717467,
+          "ConditionCompletions": 0,
+          "TotalIterations": 4304802,
+          "MinimumIterations": 6,
+          "MaximumIterations": 6,
+          "ExitReasons": {
+            "modelLimit": 717467
+          }
+        },
+        {
+          "NodeId": "round/paid-body/spin/cascades/evaluate/sample-body/no-wilds-body/symbols",
+          "CompletedInvocations": 884845,
+          "ModelLimitCompletions": 0,
+          "ConditionCompletions": 884845,
+          "TotalIterations": 340852,
+          "MinimumIterations": 0,
+          "MaximumIterations": 4,
+          "ExitReasons": {
+            "condition": 884845
+          }
+        },
+        {
+          "NodeId": "round/paid-body/spin/cascades/evaluate/sample-body/no-wilds-body/symbols-body/components/components",
+          "CompletedInvocations": 340852,
+          "ModelLimitCompletions": 0,
+          "ConditionCompletions": 340852,
+          "TotalIterations": 344405,
+          "MinimumIterations": 1,
+          "MaximumIterations": 3,
+          "ExitReasons": {
+            "condition": 340852
+          }
+        },
+        {
+          "NodeId": "round/paid-body/spin/cascades/evaluate/sample-body/no-wilds-body/symbols-body/components/components-body/expand",
+          "CompletedInvocations": 344405,
+          "ModelLimitCompletions": 0,
+          "ConditionCompletions": 344405,
+          "TotalIterations": 525966,
+          "MinimumIterations": 0,
+          "MaximumIterations": 11,
+          "ExitReasons": {
+            "condition": 344405
+          }
+        },
+        {
+          "NodeId": "round/paid-body/spin/cascades/evaluate/sample-body/wilds-body/symbols",
+          "CompletedInvocations": 115155,
+          "ModelLimitCompletions": 113159,
+          "ConditionCompletions": 1996,
+          "TotalIterations": 573777,
+          "MinimumIterations": 3,
+          "MaximumIterations": 5,
+          "ExitReasons": {
+            "condition": 1996,
+            "modelLimit": 113159
+          }
+        },
+        {
+          "NodeId": "round/paid-body/spin/cascades/evaluate/sample-body/wilds-body/symbols-body/possible-body/possible-body/components",
+          "CompletedInvocations": 139090,
+          "ModelLimitCompletions": 0,
+          "ConditionCompletions": 139090,
+          "TotalIterations": 204253,
+          "MinimumIterations": 0,
+          "MaximumIterations": 5,
+          "ExitReasons": {
+            "condition": 139090
+          }
+        },
+        {
+          "NodeId": "round/paid-body/spin/cascades/evaluate/sample-body/wilds-body/symbols-body/possible-body/possible-body/components-body/expand",
+          "CompletedInvocations": 204253,
+          "ModelLimitCompletions": 0,
+          "ConditionCompletions": 204253,
+          "TotalIterations": 271298,
+          "MinimumIterations": 0,
+          "MaximumIterations": 11,
+          "ExitReasons": {
+            "condition": 204253
+          }
+        },
+        {
+          "NodeId": "round/paid-body/trigger-body/free-spins",
+          "CompletedInvocations": 1874,
+          "ModelLimitCompletions": 1874,
+          "ConditionCompletions": 0,
+          "TotalIterations": 16866,
+          "MinimumIterations": 9,
+          "MaximumIterations": 9,
+          "ExitReasons": {
+            "modelLimit": 1874
+          }
+        },
+        {
+          "NodeId": "round/paid-body/trigger-body/free-spins-body/cascades/cascades",
+          "CompletedInvocations": 16866,
+          "ModelLimitCompletions": 0,
+          "ConditionCompletions": 16866,
+          "TotalIterations": 22071,
+          "MinimumIterations": 0,
+          "MaximumIterations": 24,
+          "ExitReasons": {
+            "condition": 16866
+          }
+        },
+        {
+          "NodeId": "round/paid-body/trigger-body/free-spins-body/cascades/cascades-body/evaluate/sample-body/no-wilds-body/symbols",
+          "CompletedInvocations": 15996,
+          "ModelLimitCompletions": 0,
+          "ConditionCompletions": 15996,
+          "TotalIterations": 10091,
+          "MinimumIterations": 0,
+          "MaximumIterations": 3,
+          "ExitReasons": {
+            "condition": 15996
+          }
+        },
+        {
+          "NodeId": "round/paid-body/trigger-body/free-spins-body/cascades/cascades-body/evaluate/sample-body/no-wilds-body/symbols-body/components/components",
+          "CompletedInvocations": 10091,
+          "ModelLimitCompletions": 0,
+          "ConditionCompletions": 10091,
+          "TotalIterations": 10367,
+          "MinimumIterations": 1,
+          "MaximumIterations": 2,
+          "ExitReasons": {
+            "condition": 10091
+          }
+        },
+        {
+          "NodeId": "round/paid-body/trigger-body/free-spins-body/cascades/cascades-body/evaluate/sample-body/no-wilds-body/symbols-body/components/components-body/expand",
+          "CompletedInvocations": 10367,
+          "ModelLimitCompletions": 0,
+          "ConditionCompletions": 10367,
+          "TotalIterations": 17539,
+          "MinimumIterations": 0,
+          "MaximumIterations": 9,
+          "ExitReasons": {
+            "condition": 10367
+          }
+        },
+        {
+          "NodeId": "round/paid-body/trigger-body/free-spins-body/cascades/cascades-body/evaluate/sample-body/wilds-body/symbols",
+          "CompletedInvocations": 6075,
+          "ModelLimitCompletions": 5324,
+          "ConditionCompletions": 751,
+          "TotalIterations": 29620,
+          "MinimumIterations": 3,
+          "MaximumIterations": 5,
+          "ExitReasons": {
+            "condition": 751,
+            "modelLimit": 5324
+          }
+        },
+        {
+          "NodeId": "round/paid-body/trigger-body/free-spins-body/cascades/cascades-body/evaluate/sample-body/wilds-body/symbols-body/possible-body/possible-body/components",
+          "CompletedInvocations": 9869,
+          "ModelLimitCompletions": 0,
+          "ConditionCompletions": 9869,
+          "TotalIterations": 16147,
+          "MinimumIterations": 0,
+          "MaximumIterations": 5,
+          "ExitReasons": {
+            "condition": 9869
+          }
+        },
+        {
+          "NodeId": "round/paid-body/trigger-body/free-spins-body/cascades/cascades-body/evaluate/sample-body/wilds-body/symbols-body/possible-body/possible-body/components-body/expand",
+          "CompletedInvocations": 16147,
+          "ModelLimitCompletions": 0,
+          "ConditionCompletions": 16147,
+          "TotalIterations": 20942,
+          "MinimumIterations": 0,
+          "MaximumIterations": 10,
+          "ExitReasons": {
+            "condition": 16147
+          }
+        },
+        {
+          "NodeId": "round/paid-body/trigger-body/free-spins-body/cascades/cascades-body/refill/columns",
+          "CompletedInvocations": 22071,
+          "ModelLimitCompletions": 22071,
+          "ConditionCompletions": 0,
+          "TotalIterations": 132426,
+          "MinimumIterations": 6,
+          "MaximumIterations": 6,
+          "ExitReasons": {
+            "modelLimit": 22071
+          }
+        },
+        {
+          "NodeId": "round/paid-body/trigger-body/free-spins-body/cascades/evaluate/sample-body/no-wilds-body/symbols",
+          "CompletedInvocations": 4586,
+          "ModelLimitCompletions": 0,
+          "ConditionCompletions": 4586,
+          "TotalIterations": 2008,
+          "MinimumIterations": 0,
+          "MaximumIterations": 4,
+          "ExitReasons": {
+            "condition": 4586
+          }
+        },
+        {
+          "NodeId": "round/paid-body/trigger-body/free-spins-body/cascades/evaluate/sample-body/no-wilds-body/symbols-body/components/components",
+          "CompletedInvocations": 2008,
+          "ModelLimitCompletions": 0,
+          "ConditionCompletions": 2008,
+          "TotalIterations": 2025,
+          "MinimumIterations": 1,
+          "MaximumIterations": 2,
+          "ExitReasons": {
+            "condition": 2008
+          }
+        },
+        {
+          "NodeId": "round/paid-body/trigger-body/free-spins-body/cascades/evaluate/sample-body/no-wilds-body/symbols-body/components/components-body/expand",
+          "CompletedInvocations": 2025,
+          "ModelLimitCompletions": 0,
+          "ConditionCompletions": 2025,
+          "TotalIterations": 3205,
+          "MinimumIterations": 0,
+          "MaximumIterations": 6,
+          "ExitReasons": {
+            "condition": 2025
+          }
+        },
+        {
+          "NodeId": "round/paid-body/trigger-body/free-spins-body/cascades/evaluate/sample-body/wilds-body/symbols",
+          "CompletedInvocations": 12280,
+          "ModelLimitCompletions": 12076,
+          "ConditionCompletions": 204,
+          "TotalIterations": 61195,
+          "MinimumIterations": 3,
+          "MaximumIterations": 5,
+          "ExitReasons": {
+            "condition": 204,
+            "modelLimit": 12076
+          }
+        },
+        {
+          "NodeId": "round/paid-body/trigger-body/free-spins-body/cascades/evaluate/sample-body/wilds-body/symbols-body/possible-body/possible-body/components",
+          "CompletedInvocations": 19166,
+          "ModelLimitCompletions": 0,
+          "ConditionCompletions": 19166,
+          "TotalIterations": 31882,
+          "MinimumIterations": 0,
+          "MaximumIterations": 6,
+          "ExitReasons": {
+            "condition": 19166
+          }
+        },
+        {
+          "NodeId": "round/paid-body/trigger-body/free-spins-body/cascades/evaluate/sample-body/wilds-body/symbols-body/possible-body/possible-body/components-body/expand",
+          "CompletedInvocations": 31882,
+          "ModelLimitCompletions": 0,
+          "ConditionCompletions": 31882,
+          "TotalIterations": 40621,
+          "MinimumIterations": 0,
+          "MaximumIterations": 10,
+          "ExitReasons": {
+            "condition": 31882
+          }
+        }
       ]
     },
     {
-      "elapsedMs": 30211.6205,
-      "roundsPerSecond": 33099.84646470718,
-      "cpuMs": 34530.42,
-      "gcPauseMs": 290.815,
-      "allocatedBytes": 21437972792,
-      "bytesPerRound": 21437.972792,
+      "elapsedMs": 3215.5663,
+      "roundsPerSecond": 310987.2124235162,
+      "cpuMs": 3235.341,
+      "gcPauseMs": 0,
+      "allocatedBytes": 61713280,
+      "bytesPerRound": 61.71328,
       "gc": [
-        70,
-        1,
+        0,
+        0,
         0
       ],
       "updates": 1008,
@@ -2102,18 +2456,372 @@
           "UpperBound": 6700,
           "Count": 1
         }
+      ],
+      "loopTerminations": [
+        {
+          "NodeId": "round/paid-body/spin/cascades/cascades",
+          "CompletedInvocations": 1000000,
+          "ModelLimitCompletions": 0,
+          "ConditionCompletions": 1000000,
+          "TotalIterations": 717467,
+          "MinimumIterations": 0,
+          "MaximumIterations": 21,
+          "ExitReasons": {
+            "condition": 1000000
+          }
+        },
+        {
+          "NodeId": "round/paid-body/spin/cascades/cascades-body/evaluate/sample-body/no-wilds-body/symbols",
+          "CompletedInvocations": 654492,
+          "ModelLimitCompletions": 0,
+          "ConditionCompletions": 654492,
+          "TotalIterations": 356549,
+          "MinimumIterations": 0,
+          "MaximumIterations": 4,
+          "ExitReasons": {
+            "condition": 654492
+          }
+        },
+        {
+          "NodeId": "round/paid-body/spin/cascades/cascades-body/evaluate/sample-body/no-wilds-body/symbols-body/components/components",
+          "CompletedInvocations": 356549,
+          "ModelLimitCompletions": 0,
+          "ConditionCompletions": 356549,
+          "TotalIterations": 364535,
+          "MinimumIterations": 1,
+          "MaximumIterations": 3,
+          "ExitReasons": {
+            "condition": 356549
+          }
+        },
+        {
+          "NodeId": "round/paid-body/spin/cascades/cascades-body/evaluate/sample-body/no-wilds-body/symbols-body/components/components-body/expand",
+          "CompletedInvocations": 364535,
+          "ModelLimitCompletions": 0,
+          "ConditionCompletions": 364535,
+          "TotalIterations": 596926,
+          "MinimumIterations": 0,
+          "MaximumIterations": 12,
+          "ExitReasons": {
+            "condition": 364535
+          }
+        },
+        {
+          "NodeId": "round/paid-body/spin/cascades/cascades-body/evaluate/sample-body/wilds-body/symbols",
+          "CompletedInvocations": 62975,
+          "ModelLimitCompletions": 54853,
+          "ConditionCompletions": 8122,
+          "TotalIterations": 306698,
+          "MinimumIterations": 3,
+          "MaximumIterations": 5,
+          "ExitReasons": {
+            "condition": 8122,
+            "modelLimit": 54853
+          }
+        },
+        {
+          "NodeId": "round/paid-body/spin/cascades/cascades-body/evaluate/sample-body/wilds-body/symbols-body/possible-body/possible-body/components",
+          "CompletedInvocations": 94474,
+          "ModelLimitCompletions": 0,
+          "ConditionCompletions": 94474,
+          "TotalIterations": 149934,
+          "MinimumIterations": 0,
+          "MaximumIterations": 5,
+          "ExitReasons": {
+            "condition": 94474
+          }
+        },
+        {
+          "NodeId": "round/paid-body/spin/cascades/cascades-body/evaluate/sample-body/wilds-body/symbols-body/possible-body/possible-body/components-body/expand",
+          "CompletedInvocations": 149934,
+          "ModelLimitCompletions": 0,
+          "ConditionCompletions": 149934,
+          "TotalIterations": 199360,
+          "MinimumIterations": 0,
+          "MaximumIterations": 13,
+          "ExitReasons": {
+            "condition": 149934
+          }
+        },
+        {
+          "NodeId": "round/paid-body/spin/cascades/cascades-body/refill/columns",
+          "CompletedInvocations": 717467,
+          "ModelLimitCompletions": 717467,
+          "ConditionCompletions": 0,
+          "TotalIterations": 4304802,
+          "MinimumIterations": 6,
+          "MaximumIterations": 6,
+          "ExitReasons": {
+            "modelLimit": 717467
+          }
+        },
+        {
+          "NodeId": "round/paid-body/spin/cascades/evaluate/sample-body/no-wilds-body/symbols",
+          "CompletedInvocations": 884845,
+          "ModelLimitCompletions": 0,
+          "ConditionCompletions": 884845,
+          "TotalIterations": 340852,
+          "MinimumIterations": 0,
+          "MaximumIterations": 4,
+          "ExitReasons": {
+            "condition": 884845
+          }
+        },
+        {
+          "NodeId": "round/paid-body/spin/cascades/evaluate/sample-body/no-wilds-body/symbols-body/components/components",
+          "CompletedInvocations": 340852,
+          "ModelLimitCompletions": 0,
+          "ConditionCompletions": 340852,
+          "TotalIterations": 344405,
+          "MinimumIterations": 1,
+          "MaximumIterations": 3,
+          "ExitReasons": {
+            "condition": 340852
+          }
+        },
+        {
+          "NodeId": "round/paid-body/spin/cascades/evaluate/sample-body/no-wilds-body/symbols-body/components/components-body/expand",
+          "CompletedInvocations": 344405,
+          "ModelLimitCompletions": 0,
+          "ConditionCompletions": 344405,
+          "TotalIterations": 525966,
+          "MinimumIterations": 0,
+          "MaximumIterations": 11,
+          "ExitReasons": {
+            "condition": 344405
+          }
+        },
+        {
+          "NodeId": "round/paid-body/spin/cascades/evaluate/sample-body/wilds-body/symbols",
+          "CompletedInvocations": 115155,
+          "ModelLimitCompletions": 113159,
+          "ConditionCompletions": 1996,
+          "TotalIterations": 573777,
+          "MinimumIterations": 3,
+          "MaximumIterations": 5,
+          "ExitReasons": {
+            "condition": 1996,
+            "modelLimit": 113159
+          }
+        },
+        {
+          "NodeId": "round/paid-body/spin/cascades/evaluate/sample-body/wilds-body/symbols-body/possible-body/possible-body/components",
+          "CompletedInvocations": 139090,
+          "ModelLimitCompletions": 0,
+          "ConditionCompletions": 139090,
+          "TotalIterations": 204253,
+          "MinimumIterations": 0,
+          "MaximumIterations": 5,
+          "ExitReasons": {
+            "condition": 139090
+          }
+        },
+        {
+          "NodeId": "round/paid-body/spin/cascades/evaluate/sample-body/wilds-body/symbols-body/possible-body/possible-body/components-body/expand",
+          "CompletedInvocations": 204253,
+          "ModelLimitCompletions": 0,
+          "ConditionCompletions": 204253,
+          "TotalIterations": 271298,
+          "MinimumIterations": 0,
+          "MaximumIterations": 11,
+          "ExitReasons": {
+            "condition": 204253
+          }
+        },
+        {
+          "NodeId": "round/paid-body/trigger-body/free-spins",
+          "CompletedInvocations": 1874,
+          "ModelLimitCompletions": 1874,
+          "ConditionCompletions": 0,
+          "TotalIterations": 16866,
+          "MinimumIterations": 9,
+          "MaximumIterations": 9,
+          "ExitReasons": {
+            "modelLimit": 1874
+          }
+        },
+        {
+          "NodeId": "round/paid-body/trigger-body/free-spins-body/cascades/cascades",
+          "CompletedInvocations": 16866,
+          "ModelLimitCompletions": 0,
+          "ConditionCompletions": 16866,
+          "TotalIterations": 22071,
+          "MinimumIterations": 0,
+          "MaximumIterations": 24,
+          "ExitReasons": {
+            "condition": 16866
+          }
+        },
+        {
+          "NodeId": "round/paid-body/trigger-body/free-spins-body/cascades/cascades-body/evaluate/sample-body/no-wilds-body/symbols",
+          "CompletedInvocations": 15996,
+          "ModelLimitCompletions": 0,
+          "ConditionCompletions": 15996,
+          "TotalIterations": 10091,
+          "MinimumIterations": 0,
+          "MaximumIterations": 3,
+          "ExitReasons": {
+            "condition": 15996
+          }
+        },
+        {
+          "NodeId": "round/paid-body/trigger-body/free-spins-body/cascades/cascades-body/evaluate/sample-body/no-wilds-body/symbols-body/components/components",
+          "CompletedInvocations": 10091,
+          "ModelLimitCompletions": 0,
+          "ConditionCompletions": 10091,
+          "TotalIterations": 10367,
+          "MinimumIterations": 1,
+          "MaximumIterations": 2,
+          "ExitReasons": {
+            "condition": 10091
+          }
+        },
+        {
+          "NodeId": "round/paid-body/trigger-body/free-spins-body/cascades/cascades-body/evaluate/sample-body/no-wilds-body/symbols-body/components/components-body/expand",
+          "CompletedInvocations": 10367,
+          "ModelLimitCompletions": 0,
+          "ConditionCompletions": 10367,
+          "TotalIterations": 17539,
+          "MinimumIterations": 0,
+          "MaximumIterations": 9,
+          "ExitReasons": {
+            "condition": 10367
+          }
+        },
+        {
+          "NodeId": "round/paid-body/trigger-body/free-spins-body/cascades/cascades-body/evaluate/sample-body/wilds-body/symbols",
+          "CompletedInvocations": 6075,
+          "ModelLimitCompletions": 5324,
+          "ConditionCompletions": 751,
+          "TotalIterations": 29620,
+          "MinimumIterations": 3,
+          "MaximumIterations": 5,
+          "ExitReasons": {
+            "condition": 751,
+            "modelLimit": 5324
+          }
+        },
+        {
+          "NodeId": "round/paid-body/trigger-body/free-spins-body/cascades/cascades-body/evaluate/sample-body/wilds-body/symbols-body/possible-body/possible-body/components",
+          "CompletedInvocations": 9869,
+          "ModelLimitCompletions": 0,
+          "ConditionCompletions": 9869,
+          "TotalIterations": 16147,
+          "MinimumIterations": 0,
+          "MaximumIterations": 5,
+          "ExitReasons": {
+            "condition": 9869
+          }
+        },
+        {
+          "NodeId": "round/paid-body/trigger-body/free-spins-body/cascades/cascades-body/evaluate/sample-body/wilds-body/symbols-body/possible-body/possible-body/components-body/expand",
+          "CompletedInvocations": 16147,
+          "ModelLimitCompletions": 0,
+          "ConditionCompletions": 16147,
+          "TotalIterations": 20942,
+          "MinimumIterations": 0,
+          "MaximumIterations": 10,
+          "ExitReasons": {
+            "condition": 16147
+          }
+        },
+        {
+          "NodeId": "round/paid-body/trigger-body/free-spins-body/cascades/cascades-body/refill/columns",
+          "CompletedInvocations": 22071,
+          "ModelLimitCompletions": 22071,
+          "ConditionCompletions": 0,
+          "TotalIterations": 132426,
+          "MinimumIterations": 6,
+          "MaximumIterations": 6,
+          "ExitReasons": {
+            "modelLimit": 22071
+          }
+        },
+        {
+          "NodeId": "round/paid-body/trigger-body/free-spins-body/cascades/evaluate/sample-body/no-wilds-body/symbols",
+          "CompletedInvocations": 4586,
+          "ModelLimitCompletions": 0,
+          "ConditionCompletions": 4586,
+          "TotalIterations": 2008,
+          "MinimumIterations": 0,
+          "MaximumIterations": 4,
+          "ExitReasons": {
+            "condition": 4586
+          }
+        },
+        {
+          "NodeId": "round/paid-body/trigger-body/free-spins-body/cascades/evaluate/sample-body/no-wilds-body/symbols-body/components/components",
+          "CompletedInvocations": 2008,
+          "ModelLimitCompletions": 0,
+          "ConditionCompletions": 2008,
+          "TotalIterations": 2025,
+          "MinimumIterations": 1,
+          "MaximumIterations": 2,
+          "ExitReasons": {
+            "condition": 2008
+          }
+        },
+        {
+          "NodeId": "round/paid-body/trigger-body/free-spins-body/cascades/evaluate/sample-body/no-wilds-body/symbols-body/components/components-body/expand",
+          "CompletedInvocations": 2025,
+          "ModelLimitCompletions": 0,
+          "ConditionCompletions": 2025,
+          "TotalIterations": 3205,
+          "MinimumIterations": 0,
+          "MaximumIterations": 6,
+          "ExitReasons": {
+            "condition": 2025
+          }
+        },
+        {
+          "NodeId": "round/paid-body/trigger-body/free-spins-body/cascades/evaluate/sample-body/wilds-body/symbols",
+          "CompletedInvocations": 12280,
+          "ModelLimitCompletions": 12076,
+          "ConditionCompletions": 204,
+          "TotalIterations": 61195,
+          "MinimumIterations": 3,
+          "MaximumIterations": 5,
+          "ExitReasons": {
+            "condition": 204,
+            "modelLimit": 12076
+          }
+        },
+        {
+          "NodeId": "round/paid-body/trigger-body/free-spins-body/cascades/evaluate/sample-body/wilds-body/symbols-body/possible-body/possible-body/components",
+          "CompletedInvocations": 19166,
+          "ModelLimitCompletions": 0,
+          "ConditionCompletions": 19166,
+          "TotalIterations": 31882,
+          "MinimumIterations": 0,
+          "MaximumIterations": 6,
+          "ExitReasons": {
+            "condition": 19166
+          }
+        },
+        {
+          "NodeId": "round/paid-body/trigger-body/free-spins-body/cascades/evaluate/sample-body/wilds-body/symbols-body/possible-body/possible-body/components-body/expand",
+          "CompletedInvocations": 31882,
+          "ModelLimitCompletions": 0,
+          "ConditionCompletions": 31882,
+          "TotalIterations": 40621,
+          "MinimumIterations": 0,
+          "MaximumIterations": 10,
+          "ExitReasons": {
+            "condition": 31882
+          }
+        }
       ]
     },
     {
-      "elapsedMs": 29464.8861,
-      "roundsPerSecond": 33938.702379711554,
-      "cpuMs": 32338.368,
-      "gcPauseMs": 189.666,
-      "allocatedBytes": 21437972792,
-      "bytesPerRound": 21437.972792,
+      "elapsedMs": 3219.0622,
+      "roundsPerSecond": 310649.4804604894,
+      "cpuMs": 3215.686,
+      "gcPauseMs": 0,
+      "allocatedBytes": 61711488,
+      "bytesPerRound": 61.711488,
       "gc": [
-        70,
-        1,
+        0,
+        0,
         0
       ],
       "updates": 1008,
@@ -3147,6 +3855,360 @@
           "LowerBound": 6600,
           "UpperBound": 6700,
           "Count": 1
+        }
+      ],
+      "loopTerminations": [
+        {
+          "NodeId": "round/paid-body/spin/cascades/cascades",
+          "CompletedInvocations": 1000000,
+          "ModelLimitCompletions": 0,
+          "ConditionCompletions": 1000000,
+          "TotalIterations": 717467,
+          "MinimumIterations": 0,
+          "MaximumIterations": 21,
+          "ExitReasons": {
+            "condition": 1000000
+          }
+        },
+        {
+          "NodeId": "round/paid-body/spin/cascades/cascades-body/evaluate/sample-body/no-wilds-body/symbols",
+          "CompletedInvocations": 654492,
+          "ModelLimitCompletions": 0,
+          "ConditionCompletions": 654492,
+          "TotalIterations": 356549,
+          "MinimumIterations": 0,
+          "MaximumIterations": 4,
+          "ExitReasons": {
+            "condition": 654492
+          }
+        },
+        {
+          "NodeId": "round/paid-body/spin/cascades/cascades-body/evaluate/sample-body/no-wilds-body/symbols-body/components/components",
+          "CompletedInvocations": 356549,
+          "ModelLimitCompletions": 0,
+          "ConditionCompletions": 356549,
+          "TotalIterations": 364535,
+          "MinimumIterations": 1,
+          "MaximumIterations": 3,
+          "ExitReasons": {
+            "condition": 356549
+          }
+        },
+        {
+          "NodeId": "round/paid-body/spin/cascades/cascades-body/evaluate/sample-body/no-wilds-body/symbols-body/components/components-body/expand",
+          "CompletedInvocations": 364535,
+          "ModelLimitCompletions": 0,
+          "ConditionCompletions": 364535,
+          "TotalIterations": 596926,
+          "MinimumIterations": 0,
+          "MaximumIterations": 12,
+          "ExitReasons": {
+            "condition": 364535
+          }
+        },
+        {
+          "NodeId": "round/paid-body/spin/cascades/cascades-body/evaluate/sample-body/wilds-body/symbols",
+          "CompletedInvocations": 62975,
+          "ModelLimitCompletions": 54853,
+          "ConditionCompletions": 8122,
+          "TotalIterations": 306698,
+          "MinimumIterations": 3,
+          "MaximumIterations": 5,
+          "ExitReasons": {
+            "condition": 8122,
+            "modelLimit": 54853
+          }
+        },
+        {
+          "NodeId": "round/paid-body/spin/cascades/cascades-body/evaluate/sample-body/wilds-body/symbols-body/possible-body/possible-body/components",
+          "CompletedInvocations": 94474,
+          "ModelLimitCompletions": 0,
+          "ConditionCompletions": 94474,
+          "TotalIterations": 149934,
+          "MinimumIterations": 0,
+          "MaximumIterations": 5,
+          "ExitReasons": {
+            "condition": 94474
+          }
+        },
+        {
+          "NodeId": "round/paid-body/spin/cascades/cascades-body/evaluate/sample-body/wilds-body/symbols-body/possible-body/possible-body/components-body/expand",
+          "CompletedInvocations": 149934,
+          "ModelLimitCompletions": 0,
+          "ConditionCompletions": 149934,
+          "TotalIterations": 199360,
+          "MinimumIterations": 0,
+          "MaximumIterations": 13,
+          "ExitReasons": {
+            "condition": 149934
+          }
+        },
+        {
+          "NodeId": "round/paid-body/spin/cascades/cascades-body/refill/columns",
+          "CompletedInvocations": 717467,
+          "ModelLimitCompletions": 717467,
+          "ConditionCompletions": 0,
+          "TotalIterations": 4304802,
+          "MinimumIterations": 6,
+          "MaximumIterations": 6,
+          "ExitReasons": {
+            "modelLimit": 717467
+          }
+        },
+        {
+          "NodeId": "round/paid-body/spin/cascades/evaluate/sample-body/no-wilds-body/symbols",
+          "CompletedInvocations": 884845,
+          "ModelLimitCompletions": 0,
+          "ConditionCompletions": 884845,
+          "TotalIterations": 340852,
+          "MinimumIterations": 0,
+          "MaximumIterations": 4,
+          "ExitReasons": {
+            "condition": 884845
+          }
+        },
+        {
+          "NodeId": "round/paid-body/spin/cascades/evaluate/sample-body/no-wilds-body/symbols-body/components/components",
+          "CompletedInvocations": 340852,
+          "ModelLimitCompletions": 0,
+          "ConditionCompletions": 340852,
+          "TotalIterations": 344405,
+          "MinimumIterations": 1,
+          "MaximumIterations": 3,
+          "ExitReasons": {
+            "condition": 340852
+          }
+        },
+        {
+          "NodeId": "round/paid-body/spin/cascades/evaluate/sample-body/no-wilds-body/symbols-body/components/components-body/expand",
+          "CompletedInvocations": 344405,
+          "ModelLimitCompletions": 0,
+          "ConditionCompletions": 344405,
+          "TotalIterations": 525966,
+          "MinimumIterations": 0,
+          "MaximumIterations": 11,
+          "ExitReasons": {
+            "condition": 344405
+          }
+        },
+        {
+          "NodeId": "round/paid-body/spin/cascades/evaluate/sample-body/wilds-body/symbols",
+          "CompletedInvocations": 115155,
+          "ModelLimitCompletions": 113159,
+          "ConditionCompletions": 1996,
+          "TotalIterations": 573777,
+          "MinimumIterations": 3,
+          "MaximumIterations": 5,
+          "ExitReasons": {
+            "condition": 1996,
+            "modelLimit": 113159
+          }
+        },
+        {
+          "NodeId": "round/paid-body/spin/cascades/evaluate/sample-body/wilds-body/symbols-body/possible-body/possible-body/components",
+          "CompletedInvocations": 139090,
+          "ModelLimitCompletions": 0,
+          "ConditionCompletions": 139090,
+          "TotalIterations": 204253,
+          "MinimumIterations": 0,
+          "MaximumIterations": 5,
+          "ExitReasons": {
+            "condition": 139090
+          }
+        },
+        {
+          "NodeId": "round/paid-body/spin/cascades/evaluate/sample-body/wilds-body/symbols-body/possible-body/possible-body/components-body/expand",
+          "CompletedInvocations": 204253,
+          "ModelLimitCompletions": 0,
+          "ConditionCompletions": 204253,
+          "TotalIterations": 271298,
+          "MinimumIterations": 0,
+          "MaximumIterations": 11,
+          "ExitReasons": {
+            "condition": 204253
+          }
+        },
+        {
+          "NodeId": "round/paid-body/trigger-body/free-spins",
+          "CompletedInvocations": 1874,
+          "ModelLimitCompletions": 1874,
+          "ConditionCompletions": 0,
+          "TotalIterations": 16866,
+          "MinimumIterations": 9,
+          "MaximumIterations": 9,
+          "ExitReasons": {
+            "modelLimit": 1874
+          }
+        },
+        {
+          "NodeId": "round/paid-body/trigger-body/free-spins-body/cascades/cascades",
+          "CompletedInvocations": 16866,
+          "ModelLimitCompletions": 0,
+          "ConditionCompletions": 16866,
+          "TotalIterations": 22071,
+          "MinimumIterations": 0,
+          "MaximumIterations": 24,
+          "ExitReasons": {
+            "condition": 16866
+          }
+        },
+        {
+          "NodeId": "round/paid-body/trigger-body/free-spins-body/cascades/cascades-body/evaluate/sample-body/no-wilds-body/symbols",
+          "CompletedInvocations": 15996,
+          "ModelLimitCompletions": 0,
+          "ConditionCompletions": 15996,
+          "TotalIterations": 10091,
+          "MinimumIterations": 0,
+          "MaximumIterations": 3,
+          "ExitReasons": {
+            "condition": 15996
+          }
+        },
+        {
+          "NodeId": "round/paid-body/trigger-body/free-spins-body/cascades/cascades-body/evaluate/sample-body/no-wilds-body/symbols-body/components/components",
+          "CompletedInvocations": 10091,
+          "ModelLimitCompletions": 0,
+          "ConditionCompletions": 10091,
+          "TotalIterations": 10367,
+          "MinimumIterations": 1,
+          "MaximumIterations": 2,
+          "ExitReasons": {
+            "condition": 10091
+          }
+        },
+        {
+          "NodeId": "round/paid-body/trigger-body/free-spins-body/cascades/cascades-body/evaluate/sample-body/no-wilds-body/symbols-body/components/components-body/expand",
+          "CompletedInvocations": 10367,
+          "ModelLimitCompletions": 0,
+          "ConditionCompletions": 10367,
+          "TotalIterations": 17539,
+          "MinimumIterations": 0,
+          "MaximumIterations": 9,
+          "ExitReasons": {
+            "condition": 10367
+          }
+        },
+        {
+          "NodeId": "round/paid-body/trigger-body/free-spins-body/cascades/cascades-body/evaluate/sample-body/wilds-body/symbols",
+          "CompletedInvocations": 6075,
+          "ModelLimitCompletions": 5324,
+          "ConditionCompletions": 751,
+          "TotalIterations": 29620,
+          "MinimumIterations": 3,
+          "MaximumIterations": 5,
+          "ExitReasons": {
+            "condition": 751,
+            "modelLimit": 5324
+          }
+        },
+        {
+          "NodeId": "round/paid-body/trigger-body/free-spins-body/cascades/cascades-body/evaluate/sample-body/wilds-body/symbols-body/possible-body/possible-body/components",
+          "CompletedInvocations": 9869,
+          "ModelLimitCompletions": 0,
+          "ConditionCompletions": 9869,
+          "TotalIterations": 16147,
+          "MinimumIterations": 0,
+          "MaximumIterations": 5,
+          "ExitReasons": {
+            "condition": 9869
+          }
+        },
+        {
+          "NodeId": "round/paid-body/trigger-body/free-spins-body/cascades/cascades-body/evaluate/sample-body/wilds-body/symbols-body/possible-body/possible-body/components-body/expand",
+          "CompletedInvocations": 16147,
+          "ModelLimitCompletions": 0,
+          "ConditionCompletions": 16147,
+          "TotalIterations": 20942,
+          "MinimumIterations": 0,
+          "MaximumIterations": 10,
+          "ExitReasons": {
+            "condition": 16147
+          }
+        },
+        {
+          "NodeId": "round/paid-body/trigger-body/free-spins-body/cascades/cascades-body/refill/columns",
+          "CompletedInvocations": 22071,
+          "ModelLimitCompletions": 22071,
+          "ConditionCompletions": 0,
+          "TotalIterations": 132426,
+          "MinimumIterations": 6,
+          "MaximumIterations": 6,
+          "ExitReasons": {
+            "modelLimit": 22071
+          }
+        },
+        {
+          "NodeId": "round/paid-body/trigger-body/free-spins-body/cascades/evaluate/sample-body/no-wilds-body/symbols",
+          "CompletedInvocations": 4586,
+          "ModelLimitCompletions": 0,
+          "ConditionCompletions": 4586,
+          "TotalIterations": 2008,
+          "MinimumIterations": 0,
+          "MaximumIterations": 4,
+          "ExitReasons": {
+            "condition": 4586
+          }
+        },
+        {
+          "NodeId": "round/paid-body/trigger-body/free-spins-body/cascades/evaluate/sample-body/no-wilds-body/symbols-body/components/components",
+          "CompletedInvocations": 2008,
+          "ModelLimitCompletions": 0,
+          "ConditionCompletions": 2008,
+          "TotalIterations": 2025,
+          "MinimumIterations": 1,
+          "MaximumIterations": 2,
+          "ExitReasons": {
+            "condition": 2008
+          }
+        },
+        {
+          "NodeId": "round/paid-body/trigger-body/free-spins-body/cascades/evaluate/sample-body/no-wilds-body/symbols-body/components/components-body/expand",
+          "CompletedInvocations": 2025,
+          "ModelLimitCompletions": 0,
+          "ConditionCompletions": 2025,
+          "TotalIterations": 3205,
+          "MinimumIterations": 0,
+          "MaximumIterations": 6,
+          "ExitReasons": {
+            "condition": 2025
+          }
+        },
+        {
+          "NodeId": "round/paid-body/trigger-body/free-spins-body/cascades/evaluate/sample-body/wilds-body/symbols",
+          "CompletedInvocations": 12280,
+          "ModelLimitCompletions": 12076,
+          "ConditionCompletions": 204,
+          "TotalIterations": 61195,
+          "MinimumIterations": 3,
+          "MaximumIterations": 5,
+          "ExitReasons": {
+            "condition": 204,
+            "modelLimit": 12076
+          }
+        },
+        {
+          "NodeId": "round/paid-body/trigger-body/free-spins-body/cascades/evaluate/sample-body/wilds-body/symbols-body/possible-body/possible-body/components",
+          "CompletedInvocations": 19166,
+          "ModelLimitCompletions": 0,
+          "ConditionCompletions": 19166,
+          "TotalIterations": 31882,
+          "MinimumIterations": 0,
+          "MaximumIterations": 6,
+          "ExitReasons": {
+            "condition": 19166
+          }
+        },
+        {
+          "NodeId": "round/paid-body/trigger-body/free-spins-body/cascades/evaluate/sample-body/wilds-body/symbols-body/possible-body/possible-body/components-body/expand",
+          "CompletedInvocations": 31882,
+          "ModelLimitCompletions": 0,
+          "ConditionCompletions": 31882,
+          "TotalIterations": 40621,
+          "MinimumIterations": 0,
+          "MaximumIterations": 10,
+          "ExitReasons": {
+            "condition": 31882
+          }
         }
       ]
     }

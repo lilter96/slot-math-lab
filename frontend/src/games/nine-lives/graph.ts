@@ -9,6 +9,7 @@ const f = (key: string): Expr => ({ exprType: 'fieldAccess', target: 'state', pa
 const binary = (op: string, left: Expr, right: Expr): Expr => ({ exprType: 'binary', op, left, right });
 const compare = (op: string, left: Expr, right: Expr): Expr => ({ exprType: 'compare', op, left, right });
 const call = (fn: string, ...args: Expr[]): Expr => ({ exprType: 'call', function: fn, args });
+const bits = (op: string, ...args: Expr[]): Expr => ({ exprType: 'bitset', op, args });
 const choose = (condition: Expr, thenExpr: Expr, elseExpr: Expr): Expr => ({ exprType: 'if', condition, thenExpr, elseExpr });
 const add = (a: Expr, c: Expr) => binary('Add', a, c);
 const sub = (a: Expr, c: Expr) => binary('Sub', a, c);
@@ -49,12 +50,12 @@ class Graph {
   nodes: Node[] = [];
   edges: Edge[] = [];
   expressions: Record<string, Expr> = {};
-  private tail: [string, string] | undefined;
+  private tail: [string, string][] = [];
   private deferred: Node[] = [];
   private connect(node: Node) {
-    if (this.tail) this.edge(this.tail[0], this.tail[1], node.id);
+    for (const [source, port] of this.tail) this.edge(source, port, node.id);
     this.nodes.push(node);
-    this.tail = [node.id, 'state'];
+    this.tail = [[node.id, 'state']];
   }
   edge(sourceNodeId: string, sourcePort: string, targetNodeId: string) {
     this.edges.push({ id: `e${this.edges.length}`, sourceNodeId, sourcePort, targetNodeId, targetPort: 'state' });
@@ -77,11 +78,7 @@ class Graph {
     const body: Node = { nodeType: 'library', id: `${id}-body`, mechanicName, inputs: statePort, outputs: statePort };
     this.deferred.push(body);
     this.edge(id, 'true', body.id);
-    const merge: Node = { nodeType: 'getState', id: `${id}-end`, inputs: statePort, outputs: statePort };
-    this.edge(id, 'false', merge.id);
-    this.edge(body.id, 'state', merge.id);
-    this.nodes.push(merge);
-    this.tail = [merge.id, 'state'];
+    this.tail = [[id, 'false'], [body.id, 'state']];
   }
   loop(id: string, count: number, mechanicName: string, stop?: Expr, counterKey?: string) {
     if (stop) this.expressions[`${id}-stop`] = stop;
@@ -96,7 +93,7 @@ class Graph {
       this.edge(id, 'body', counterId);
       this.edge(counterId, 'state', body.id);
     } else this.edge(id, 'body', body.id);
-    this.tail = [id, 'exit'];
+    this.tail = [[id, 'exit']];
   }
   finish(name: string, description: string): Mechanic {
     this.write('done', 'graphCursor', f('graphCursor'));
@@ -199,29 +196,191 @@ export function createNineLivesGraph(entry: 'base' | 'buy' = 'base'): Record<str
     choose(and(['1', '2', '3', '4', '5'].map(symbol => eq(f('item'), s(symbol))).reduce(or), not(call('contains', f('acc'), f('item')))), call('append', f('acc'), f('item')), f('acc')) });
   evaluate.loop('symbols', 5, 'symbol-scan-step', compare('Gte', iter('symbols'), len('symbolOrder')), 'symbolIndex');
   evaluate.use('vanish', 'vanish-paying-types');
-  save(evaluate, 'evaluate-components', 'Compose symbol sweeps, bounded connected components and exclusive Wild claiming.');
+  save(evaluate, 'evaluate-ordered-components', 'Preserve ordered breadth-first positions for detailed traces.');
+
+  // Column-major bits preserve first-occurrence and component seed order.
+  // Geometry and flood fill remain ordinary editable expressions/subgraphs.
+  const combine = (...values: Expr[]) => values.reduce((a, c) => bits('Union', a, c));
+  const overlap = (a: Expr, c: Expr) => bits('Intersect', a, c);
+  const difference = (a: Expr, c: Expr) => bits('Except', a, c);
+  const nonempty = (mask: Expr) => compare('Gt', mask, n(0));
+  const shifted = (mask: Expr, distance: number) => bits('Shift', mask, n(distance));
+  const adjacent = (mask: Expr) => combine(
+    shifted(overlap(mask, f('notBottomRowMask')), 1), shifted(overlap(mask, f('notTopRowMask')), -1),
+    shifted(mask, 5), shifted(mask, -5));
+  const neighborPairs = (mask: Expr) => {
+    const up = shifted(overlap(mask, f('notBottomRowMask')), 1);
+    const down = shifted(overlap(mask, f('notTopRowMask')), -1);
+    const left = shifted(mask, 5);
+    const right = shifted(mask, -5);
+    return { vertical: combine(up, down), horizontal: combine(left, right), bothVertical: overlap(up, down), bothHorizontal: overlap(left, right) };
+  };
+  const degreeTwo = (mask: Expr) => {
+    const neighbors = neighborPairs(mask);
+    return overlap(mask, combine(neighbors.bothVertical, neighbors.bothHorizontal, overlap(neighbors.vertical, neighbors.horizontal)));
+  };
+  const degreeThree = (mask: Expr) => {
+    const neighbors = neighborPairs(mask);
+    return overlap(mask, combine(overlap(neighbors.bothVertical, neighbors.horizontal), overlap(neighbors.bothHorizontal, neighbors.vertical)));
+  };
+
+  const expand = new Graph();
+  expand.write('frontier', 'frontierMask', difference(overlap(adjacent(f('frontierMask')), f('allowedMask')), f('componentMask')));
+  expand.write('reached', 'componentMask', combine(f('componentMask'), f('frontierMask')));
+  save(expand, 'expand-frontier', 'Expand an authored four-neighbor frontier using generic finite-set operations.');
+  const maskClaim = new Graph();
+  maskClaim.write('payout', 'evalWin', add(f('evalWin'), f('componentPay')));
+  maskClaim.write('wilds', 'claimedWildMask', combine(f('claimedWildMask'), overlap(f('componentMask'), f('wildMask'))));
+  maskClaim.write('vanish', 'winningMask', combine(f('winningMask'), f('targetMask'), f('claimedWildMask')));
+  save(maskClaim, 'claim-mask-component', 'Claim participating Wilds after awarding; vanish every cell of the paying symbol type.');
+  const maskComponent = new Graph();
+  maskComponent.write('seed', 'frontierMask', bits('Shift', n(1), bits('First', f('seedMask'))));
+  maskComponent.write('initial', 'componentMask', f('frontierMask'));
+  // Start with two authored expansions in the same straight run. Valid seeds
+  // have a neighbor; both steps are required before the frontier can be empty.
+  maskComponent.use('first-expansion', 'expand-frontier');
+  maskComponent.use('second-expansion', 'expand-frontier');
+  maskComponent.loop('expand', 28, 'expand-frontier', eq(f('frontierMask'), n(0)));
+  maskComponent.write('remaining', 'remainingMask', difference(f('remainingMask'), f('componentMask')));
+  maskComponent.write('seeds', 'seedMask', difference(f('seedMask'), f('componentMask')));
+  maskComponent.write('size', 'componentSize', bits('Count', f('componentMask')));
+  maskComponent.write('pay', 'componentPay', choose(compare('Gte', f('componentSize'), n(5)),
+    numeric(at('clusterPaytable', add(mul(sub(numeric(f('targetSymbol')), n(1)), n(26)), sub(f('componentSize'), n(5))))), n(0)));
+  maskComponent.when('paying', compare('Gt', f('componentPay'), n(0)), 'claim-mask-component');
+  save(maskComponent, 'mask-component', 'Discover one component with two initial frontier steps and at most twenty-eight further expansions.');
+  const maskCandidates = new Graph();
+  maskCandidates.write('remaining', 'remainingMask', overlap(f('targetMask'), adjacent(f('allowedMask'))));
+  const narrowSeeds = new Graph();
+  narrowSeeds.write('internal', 'internalMask', degreeTwo(f('allowedMask')));
+  // A connected set of five vertices has a degree-three vertex, or is a
+  // path/cycle with a vertex adjacent to two internal vertices. No Wilds means
+  // discovery order cannot affect exclusive claims or payouts.
+  narrowSeeds.write('seeds', 'seedMask', overlap(f('remainingMask'), combine(degreeThree(f('allowedMask')), degreeTwo(f('internalMask')))));
+  save(narrowSeeds, 'narrow-mask-seeds', 'Use a necessary five-cell condition before untraced component traversal.');
+  const maskTraversal = new Graph();
+  maskTraversal.loop('components', 30, 'mask-component', or(eq(f('seedMask'), n(0)), compare('Lt', add(bits('Count', f('remainingMask')), bits('Count', f('wildMask'))), n(5))));
+  save(maskTraversal, 'visit-mask-components', 'Visit every candidate component and stop when a paying size is impossible.');
+  maskCandidates.write('seeds', 'seedMask', f('remainingMask'));
+  maskCandidates.when('no-wilds', eq(f('wildMask'), n(0)), 'narrow-mask-seeds');
+  maskCandidates.when('possible', nonempty(f('seedMask')), 'visit-mask-components');
+  save(maskCandidates, 'mask-candidates', 'Skip small paths and visit remaining components in column-major order.');
+  const maskSymbol = new Graph();
+  maskSymbol.write('target', 'targetSymbol', at('board', at('scanOrder', bits('First', f('remainingTypesMask')))));
+  maskSymbol.write('mask', 'targetMask', indexedChoice(sub(numeric(f('targetSymbol')), n(1)), Array.from({ length: 5 }, (_, i) => f(`symbolMask${i + 1}`))));
+  maskSymbol.write('types', 'remainingTypesMask', difference(f('remainingTypesMask'), f('targetMask')));
+  maskSymbol.write('allowed', 'allowedMask', combine(f('targetMask'), difference(f('wildMask'), f('claimedWildMask'))));
+  // Any connected five-cell component requires at least four undirected edges.
+  maskSymbol.write('edges', 'edgeCount', add(bits('Count', overlap(f('allowedMask'), shifted(f('allowedMask'), 5))),
+    bits('Count', overlap(f('allowedMask'), shifted(overlap(f('allowedMask'), f('notBottomRowMask')), 1)))));
+  maskSymbol.when('possible', and(compare('Gte', bits('Count', f('allowedMask')), n(5)), compare('Gte', f('edgeCount'), n(4))), 'mask-candidates');
+  save(maskSymbol, 'mask-symbol', 'Sweep all components of one symbol before another symbol can claim Wilds.');
+  // Matching edge masks for every ordinary symbol are computed together.
+  // Wild-free connected components cannot share symbols or claim each other.
+  const allSeeds = new Graph();
+  const sameNeighbor = (distance: number, boundary: number) => overlap(f('remainingTypesMask'), difference(n(boundary), combine(...Array.from({ length: 3 }, (_, bit) => {
+    const plane = f(`plane${bit}`);
+    const neighbor = shifted(plane, distance);
+    return combine(difference(plane, neighbor), difference(neighbor, plane));
+  }))));
+  allSeeds.write('up', 'matchingUpMask', sameNeighbor(1, scanOrder.reduce((mask, p, i) => mask + (p >= 6 ? 2 ** i : 0), 0)));
+  allSeeds.write('left', 'matchingLeftMask', sameNeighbor(5, 2 ** 30 - 32));
+  allSeeds.write('down', 'matchingDownMask', shifted(f('matchingUpMask'), -1));
+  allSeeds.write('right', 'matchingRightMask', shifted(f('matchingLeftMask'), -5));
+  allSeeds.write('matching', 'matchingCellsMask', combine(f('matchingUpMask'), f('matchingDownMask'), f('matchingLeftMask'), f('matchingRightMask')));
+  const pairsFrom = (up: Expr, down: Expr, left: Expr, right: Expr) => ({ vertical: combine(up, down), horizontal: combine(left, right), bothVertical: overlap(up, down), bothHorizontal: overlap(left, right) });
+  const pairs = pairsFrom(f('matchingUpMask'), f('matchingDownMask'), f('matchingLeftMask'), f('matchingRightMask'));
+  allSeeds.write('internal', 'internalMask', combine(pairs.bothVertical, pairs.bothHorizontal, overlap(pairs.vertical, pairs.horizontal)));
+  const internalPairs = pairsFrom(...[1, -1, 5, -5].map((distance, i) => overlap(f(['matchingUpMask', 'matchingDownMask', 'matchingLeftMask', 'matchingRightMask'][i]), shifted(f('internalMask'), distance))) as [Expr, Expr, Expr, Expr]);
+  allSeeds.write('junctions', 'junctionMask', combine(overlap(pairs.bothVertical, pairs.horizontal), overlap(pairs.bothHorizontal, pairs.vertical)));
+  // Degree-three stars and isolated four-cycles are the only four-cell
+  // components admitted by the internal-neighbor bound. Remove both, while
+  // retaining every component of five cells or more.
+  const squareEnd = overlap(overlap(f('matchingUpMask'), f('matchingLeftMask')),
+    overlap(shifted(f('matchingLeftMask'), 1), shifted(f('matchingUpMask'), 5)));
+  allSeeds.write('squares', 'isolatedSquareEndMask', difference(squareEnd,
+    combine(f('junctionMask'), shifted(f('junctionMask'), 1), shifted(f('junctionMask'), 5), shifted(f('junctionMask'), 6))));
+  const squareCells = combine(f('isolatedSquareEndMask'), ...[1, 5, 6].map(distance => shifted(f('isolatedSquareEndMask'), -distance)));
+  allSeeds.write('seeds', 'candidateSeedMask', difference(combine(overlap(pairs.bothVertical, pairs.bothHorizontal),
+    overlap(f('junctionMask'), combine(internalPairs.vertical, internalPairs.horizontal)),
+    internalPairs.bothVertical, internalPairs.bothHorizontal, overlap(internalPairs.vertical, internalPairs.horizontal)), squareCells));
+  allSeeds.write('types', 'remainingTypesMask', f('candidateSeedMask'));
+  save(allSeeds, 'all-symbol-mask-seeds', 'Select only components of five cells or more on a Wild-free board, excluding small stars and isolated squares.');
+  const noWildTraversal = new Graph();
+  noWildTraversal.loop('components', 30, 'mask-component', eq(f('seedMask'), n(0)));
+  save(noWildTraversal, 'visit-mask-components-without-wilds', 'The seed proof guarantees a paying size; stop when all candidate components have been visited.');
+  const noWildSymbol = new Graph();
+  noWildSymbol.write('target', 'targetSymbol', at('board', at('scanOrder', bits('First', f('remainingTypesMask')))));
+  noWildSymbol.write('mask', 'targetMask', indexedChoice(sub(numeric(f('targetSymbol')), n(1)), Array.from({ length: 5 }, (_, i) => f(`symbolMask${i + 1}`))));
+  noWildSymbol.write('types', 'remainingTypesMask', difference(f('remainingTypesMask'), f('targetMask')));
+  noWildSymbol.write('allowed', 'allowedMask', f('targetMask'));
+  noWildSymbol.write('remaining', 'remainingMask', overlap(f('targetMask'), f('matchingCellsMask')));
+  noWildSymbol.write('seeds', 'seedMask', overlap(f('targetMask'), f('candidateSeedMask')));
+  noWildSymbol.use('components', 'visit-mask-components-without-wilds');
+  save(noWildSymbol, 'mask-symbol-without-wilds', 'Sweep only symbol types selected by the board-wide seed bound.');
+  const noWildScan = new Graph();
+  noWildScan.use('seeds', 'all-symbol-mask-seeds');
+  noWildScan.loop('symbols', 5, 'mask-symbol-without-wilds', eq(f('remainingTypesMask'), n(0)));
+  save(noWildScan, 'scan-mask-without-wilds', 'Pay disjoint symbol components after one board-wide seed calculation.');
+  const wildScan = new Graph();
+  wildScan.loop('symbols', 5, 'mask-symbol', eq(f('remainingTypesMask'), n(0)));
+  save(wildScan, 'scan-mask-with-wilds', 'Retain first-occurrence order and exclusive Wild claims.');
+  const masked = new Graph();
+  for (const key of ['evalWin', 'winningMask', 'claimedWildMask']) masked.write(`reset-${key}`, key, n(0));
+  // Each half-board fits three 15-bit planes in one exact integer. Both
+  // folds together read 30 cells; unpacking reconstructs the full planes.
+  for (const half of [0, 1]) {
+    masked.write(`planes-${half}`, `packedMask${half}`, {
+      exprType: 'fold', stateKey: `planePositions${half}`, itemName: 'item', indexName: 'index', itemType: 'Number', accName: 'acc', init: n(0),
+      body: bits('Union', f('acc'), bits('Shift', at('triplePlaneCodes', numeric(at('board', f('item')))), f('index'))),
+    });
+  }
+  for (let bit = 0; bit < 3; bit++) {
+    const halfPlane = (half: number) => overlap(shifted(f(`packedMask${half}`), -15 * bit), n(2 ** 15 - 1));
+    masked.write(`plane-${bit}`, `plane${bit}`, combine(halfPlane(0), shifted(halfPlane(1), 15)));
+  }
+  masked.write('initial-scatter-count', 'scatters', choose(f('captureScatters'),
+    bits('Count', overlap(overlap(f('plane0'), f('plane1')), f('plane2'))), f('scatters')));
+  masked.write('initial-scatter-counted', 'captureScatters', b(false));
+  for (let symbol = 0; symbol < 6; symbol++) {
+    let mask = n(2 ** 30 - 1);
+    for (let bit = 0; bit < 3; bit++) mask = bits(symbol & (2 ** bit) ? 'Intersect' : 'Except', mask, f(`plane${bit}`));
+    masked.write(`mask-${symbol}`, symbol === 0 ? 'wildMask' : `symbolMask${symbol}`, mask);
+  }
+  masked.write('types', 'remainingTypesMask', combine(...Array.from({ length: 5 }, (_, i) => f(`symbolMask${i + 1}`))));
+  masked.when('no-wilds', eq(f('wildMask'), n(0)), 'scan-mask-without-wilds');
+  masked.when('wilds', nonempty(f('wildMask')), 'scan-mask-with-wilds');
+  masked.write('positions', 'winningPositions', choose(nonempty(f('winningMask')), filter('scanOrder', nonempty(overlap(f('winningMask'), at('positionBits', f('item'))))), empty()));
+  save(masked, 'evaluate-mask-components', 'Evaluate untraced rounds with immutable integer sets instead of temporary traversal arrays.');
+  const evaluation = new Graph();
+  evaluation.when('trace', f('traceEnabled'), 'evaluate-ordered-components');
+  evaluation.when('sample', not(f('traceEnabled')), 'evaluate-mask-components');
+  evaluation.write('vanish-mask', 'winningMask', choose(f('traceEnabled'), {
+    exprType: 'fold', stateKey: 'winningPositions', itemName: 'item', itemType: 'Number', accName: 'acc', init: n(0),
+    body: bits('Union', f('acc'), at('positionBits', f('item'))),
+  }, f('winningMask')));
+  save(evaluation, 'evaluate-components', 'Choose authored ordered traces or finite-set traversal with identical payouts and vanished cells.');
+
 
   // Stage column results and reconstruct the complete board in one map.
-  const refill = new Graph();
-  refill.draw('symbol', 'gravityValue', model.refillWeights);
-  save(refill, 'refill-cell', 'Draw one replacement from the original refill weights.');
-  const gravityCell = new Graph();
-  gravityCell.write('survivor', 'gravityValue', choose(compare('Lt', f('gravityRow'), f('survivorCount')),
-    at('gravityOriginal', at('survivors', sub(sub(f('survivorCount'), n(1)), f('gravityRow')))), s('0')));
-  gravityCell.when('needs-refill', compare('Gte', f('gravityRow'), f('survivorCount')), 'refill-cell');
-  save(gravityCell, 'gravity-cell', 'Copy one surviving cell or draw a vacancy, preserving bottom-to-top draw order.');
   const gravityColumn = new Graph();
-  gravityColumn.write('positions', 'columnPositions', at('columnPositionsByIndex', f('gravityColumn')));
-  gravityColumn.write('survivors', 'survivors', filter('columnPositions', not(has('winningPositions', f('item')))));
-  gravityColumn.write('count', 'survivorCount', len('survivors'));
+  gravityColumn.write('survivor-mask', 'columnKeepMask', bits('Except', n(31), overlap(
+    bits('Shift', f('winningMask'), sub(n(0), mul(f('gravityColumn'), n(5)))), n(31))));
+  gravityColumn.write('count', 'survivorCount', bits('Count', f('columnKeepMask')));
+  gravityColumn.write('row-code', 'survivorRows', at('survivorRowCodes', f('columnKeepMask')));
+  // Fill vacancies in the source RNG order. Surviving symbols are read lazily
+  // while constructing the column, so no intermediate per-cell state is needed.
   for (let row = 0; row < 5; row++) {
-    gravityColumn.write(`row-${row}`, 'gravityRow', n(row));
-    gravityColumn.use(`cell-${row}`, 'gravity-cell');
-    gravityColumn.write(`value-${row}`, `columnValue${row}`, f('gravityValue'));
+    const refill = new Graph();
+    refill.draw('symbol', `columnValue${row}`, model.refillWeights);
+    save(refill, `refill-row-${row}`, 'Draw one replacement into an authored column slot.');
+    gravityColumn.when(`refill-${row}`, compare('Gte', n(row), f('survivorCount')), `refill-row-${row}`);
   }
-  gravityColumn.write('values', 'columnValues', array(Array.from({ length: 5 }, (_, row) => f(`columnValue${row}`))));
+  gravityColumn.write('values', 'columnValues', array(Array.from({ length: 5 }, (_, row) => choose(
+    compare('Lt', n(row), f('survivorCount')),
+    at('gravityOriginal', add(f('gravityColumn'), mul(overlap(shifted(f('survivorRows'), -3 * row), n(7)), n(6)))),
+    f(`columnValue${row}`)))));
   gravityColumn.write('columns', 'gravityColumns', append('gravityColumns', f('columnValues')));
-  save(gravityColumn, 'gravity-column', 'Prepare five bottom-to-top values without rebuilding the board for each cell.');
+  save(gravityColumn, 'gravity-column', 'Use the authored 32-entry stable-row table and draw only vacancies, bottom to top.');
   const restoreBoard = new Graph();
   restoreBoard.write('restore', 'board', map('positions', call('index', at('gravityColumns', at('boardColumns', f('index'))), at('bottomRows', f('index'))), 'Number', 'index'));
   save(restoreBoard, 'restore-row-major', 'Transpose staged column values into a row-major board with one existing map.');
@@ -274,7 +433,9 @@ export function createNineLivesGraph(entry: 'base' | 'buy' = 'base'): Record<str
       spin.write('prizes', 'prizes', map('positions', indexedChoice(f('item'), Array.from({ length: 30 }, (_, p) => f(`prize${Math.floor(p / 6) + (p % 6) * 5}`))), 'Number'));
       spin.use('collect', 'collect-coins');
     } else {
-      spin.write('scatters', 'scatters', { exprType: 'aggregate', func: 'Count', stateKey: 'board', itemName: 'item', itemType: 'String', predicate: eq(f('item'), s('7')) });
+      spin.write('capture-scatters', 'captureScatters', not(f('traceEnabled')));
+      spin.write('scatters', 'scatters', choose(f('traceEnabled'),
+        { exprType: 'aggregate', func: 'Count', stateKey: 'board', itemName: 'item', itemType: 'String', predicate: eq(f('item'), s('7')) }, f('scatters')));
     }
     spin.use('cascades', 'cascades');
     if (!free) {
@@ -313,21 +474,35 @@ export function createNineLivesGraph(entry: 'base' | 'buy' = 'base'): Record<str
   const histories = ['boards', 'finalBoards', 'winHistory', 'clusterWinHistory', 'collectionWinHistory', 'coinPositionHistory', 'coinValueHistory', 'multiplierHistory', 'remainingHistory', 'roundWinHistory',
     'stepSpins', 'stepBoardsBefore', 'stepBoardsAfter', 'stepMultipliers', 'stepWins', 'stepHitSymbols', 'stepHitSizes', 'stepHitPayouts', 'stepHitTotals', 'stepHitPositions', 'stepVanished'];
   const initialState: Record<string, unknown> = { emptyArray: [], traceEnabled: false, graphCursor: 0, positions: Array.from({ length: 30 }, (_, i) => i), scanOrder,
+    // Each five-bit occupancy has one stable survivor order. Three bits per
+    // row encode that order bottom to top; unused lanes are zero.
+    survivorRowCodes: Array.from({ length: 32 }, (_, occupancy) => Array.from({ length: 5 }, (_, row) => row)
+      .filter(row => occupancy & (2 ** row)).reverse().reduce((code, row, index) => code + row * 2 ** (3 * index), 0)),
+    columnKeepMask: 0, survivorRows: 0,
     columnPositionsByIndex: Array.from({ length: 6 }, (_, column) => Array.from({ length: 5 }, (_, row) => row * 6 + column)),
     boardColumns: Array.from({ length: 30 }, (_, p) => p % 6), bottomRows: Array.from({ length: 30 }, (_, p) => 4 - Math.floor(p / 6)),
     ...Object.fromEntries(Array.from({ length: 4 }, (_, direction) => [`neighborPositions${direction}`, Array.from({ length: 30 }, (_, p) => [p >= 6 ? p - 6 : -1, p < 24 ? p + 6 : -1, p % 6 > 0 ? p - 1 : -1, p % 6 < 5 ? p + 1 : -1][direction])])),
+    positionBits: Array.from({ length: 30 }, (_, p) => 2 ** (Math.floor(p / 6) + (p % 6) * 5)),
+    notBottomRowMask: scanOrder.reduce((mask, p, i) => mask + (p < 24 ? 2 ** i : 0), 0),
+    notTopRowMask: scanOrder.reduce((mask, p, i) => mask + (p >= 6 ? 2 ** i : 0), 0),
+    triplePlaneCodes: Array.from({ length: 8 }, (_, symbol) => (symbol & 1) + ((symbol >> 1) & 1) * 2 ** 15 + ((symbol >> 2) & 1) * 2 ** 30),
+    planePositions0: scanOrder.slice(0, 15), planePositions1: scanOrder.slice(15),
+    plane0: 0, plane1: 0, plane2: 0, packedMask0: 0, packedMask1: 0, winningMask: 0, wildMask: 0, claimedWildMask: 0, remainingTypesMask: 0, targetMask: 0, allowedMask: 0, edgeCount: 0,
+    remainingMask: 0, seedMask: 0, frontierMask: 0, componentMask: 0, internalMask: 0,
+    matchingUpMask: 0, matchingDownMask: 0, matchingLeftMask: 0, matchingRightMask: 0, matchingCellsMask: 0, candidateSeedMask: 0, junctionMask: 0, isolatedSquareEndMask: 0,
+    ...Object.fromEntries(Array.from({ length: 5 }, (_, i) => [`symbolMask${i + 1}`, 0])),
     neighborDegrees: Array(30).fill(0), wildCount: 0, matchingEdges: 0, potentialPositions: [], directions: [0, 1, 2, 3],
     adjacentPositions: Array.from({ length: 30 }, (_, p) => [p >= 6 ? p - 6 : -1, p < 24 ? p + 6 : -1, p % 6 > 0 ? p - 1 : -1, p % 6 < 5 ? p + 1 : -1]).flat(),
     clusterPaytable: payingSymbols.flatMap(name => Object.values(model.paytable[name])).map(String),
     baseCost: model.baseCost, freeSpins: model.freeSpins, maxCascades: model.maxCascades, maxMultiplier: model.maxMultiplier, targetRTP: model.targetRTP, targetRtpPercent: model.targetRTP * 100,
     roundCoins: 0, capCoins: model.maxWinX * model.baseCost, baseCoins: 0, freeCoins: 0, spinIndex: 0, multiplier: 1, remaining: 0, scatters: 0,
-    bonusTriggered: false, bonusCompleted: false, entryBuy: entry === 'buy', entryCost: entry === 'buy' ? model.buyCost : 1,
+    bonusTriggered: false, bonusCompleted: false, captureScatters: false, entryBuy: entry === 'buy', entryCost: entry === 'buy' ? model.buyCost : 1,
     targetSymbol: '0', gravityValue: '0',
     position: 0, componentStart: 0, componentSize: 0, componentPay: 0, evalWin: 0,
     queueIndex: 0, symbolIndex: 0, componentIndex: 0, gravityColumn: 0, gravityRow: 0, survivorCount: 0,
     ...Object.fromEntries(Array.from({ length: 5 }, (_, row) => [`columnValue${row}`, '0'])),
     spinClusterCoins: 0, spinCollectionCoins: 0, stepWin: 0, winCredits: 0,
-    board: Array(30).fill('0'), initialBoard: [], gravityOriginal: [], queue: [], visited: [], winningPositions: [], usedWilds: [],
+    board: Array(30).fill('0'), initialBoard: [], gravityOriginal: Array(30).fill('0'), queue: [], visited: [], winningPositions: [], usedWilds: [],
     hitSymbols: [], hitSizes: [], hitPayouts: [], hitPositions: [], symbolCells: [], symbolOrder: [], symbolCandidates: [], matchingPositions: [], survivors: [], columnPositions: [], columnValues: Array(5).fill('0'), gravityColumns: Array.from({ length: 6 }, () => Array(5).fill('0')), coinPositions: [], coinValues: [], prizes: [],
     ...Object.fromEntries(histories.map(key => [key, []])) };
   return { schemaVersion: '1.0.0', id: `nine-lives-${entry}`, name: 'Nine Lives', description: authored.description, initialState,

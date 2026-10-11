@@ -14,6 +14,7 @@ namespace SlotMath.Core.Model;
 [JsonDerivedType(typeof(AggregateExpr), "aggregate")]
 [JsonDerivedType(typeof(NotExpr), "not")]
 [JsonDerivedType(typeof(CallExpr), "call")]
+[JsonDerivedType(typeof(BitSetExpr), "bitset")]
 [JsonDerivedType(typeof(FoldExpr), "fold")]
 [JsonDerivedType(typeof(MapExpr), "map")]
 [JsonDerivedType(typeof(FilterExpr), "filter")]
@@ -152,6 +153,19 @@ public sealed record AggregateExpr : Expression
 public sealed record NotExpr : Expression
 {
     public required Expression Expr { get; init; }
+}
+
+[JsonConverter(typeof(JsonStringEnumConverter))]
+public enum BitSetOp
+{
+    Union, Intersect, Except, Shift, Count, First,
+}
+
+/// <summary>Finite sets on positions 0..63. Masks are exact unsigned 64-bit integers.</summary>
+public sealed record BitSetExpr : Expression
+{
+    public required BitSetOp Op { get; init; }
+    public required Expression[] Args { get; init; }
 }
 
 // ── Named function call ────────────────────────────────────────────────

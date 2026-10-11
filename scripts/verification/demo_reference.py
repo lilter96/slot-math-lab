@@ -97,7 +97,7 @@ class Reference:
         self.base = draw('base-spin', 'cell-0')
         self.free = draw('free-spin', 'cell-0')
         self.prize = draw('free-spin', 'prize-0')
-        self.refill = draw('refill-cell', 'symbol')
+        self.refills = [draw(f'refill-row-{row}', 'symbol') for row in range(self.rows)]
 
     def evaluate(self, board):
         swept, claimed = set(), set()
@@ -178,7 +178,7 @@ class Reference:
                 for col in range(self.cols):
                     survivors = [before[row * self.cols + col] for row in range(self.rows) if row * self.cols + col not in vanished]
                     for row in range(self.rows - 1, -1, -1):
-                        board[row * self.cols + col] = survivors.pop() if survivors else self.refill(random)
+                        board[row * self.cols + col] = survivors.pop() if survivors else self.refills[self.rows - 1 - row](random)
                 steps.append({'spin': len(spins), 'before': before, 'after': board.copy(), 'hits': hits, 'multiplier': multiplier, 'win': int(award)})
                 multiplier = min(self.max_multiplier, multiplier + 1)
             if not free:

@@ -1,5 +1,5 @@
 import type { ExpressionAst as Expr } from '../../lib/expressionParser';
-const types = ['constant', 'fieldAccess', 'binary', 'compare', 'if', 'not', 'call', 'aggregate', 'map', 'fold', 'filter'];
+const types = ['constant', 'fieldAccess', 'binary', 'compare', 'if', 'not', 'call', 'aggregate', 'map', 'fold', 'filter', 'bitset'];
 const zero = (): Expr => ({ exprType: 'constant', kind: 'Integer', value: '0' });
 function fresh(type: string): Expr {
   switch (type) {
@@ -8,6 +8,7 @@ function fresh(type: string): Expr {
     case 'compare': return { exprType: type, op: 'Eq', left: zero(), right: zero() };
     case 'if': return { exprType: type, condition: { exprType: 'constant', kind: 'Boolean', value: 'true' }, thenExpr: zero(), elseExpr: zero() };
     case 'not': return { exprType: type, expr: { exprType: 'constant', kind: 'Boolean', value: 'true' } };
+    case 'bitset': return { exprType: type, op: 'Union', args: [zero(), zero()] };
     case 'call': return { exprType: type, function: 'max', args: [zero(), zero()] };
     case 'aggregate': return { exprType: type, func: 'Sum', stateKey: 'board', itemName: 'item', itemType: 'String' };
     case 'map': return { exprType: type, stateKey: 'board', itemName: 'item', indexName: 'i', itemType: 'String', body: { exprType: 'fieldAccess', target: 'state', path: ['item'] } };
@@ -30,6 +31,11 @@ export default function ExpressionTreeEditor({ value, onChange, label = 'Express
     {['binary', 'compare'].includes(value.exprType) && <><label className="ast-field">Operator<select className="inp" aria-label={`${label} operator`} value={String(value.op)} onChange={e => update('op', e.target.value)}>{(value.exprType === 'binary' ? ['Add', 'Sub', 'Mul', 'Div', 'And', 'Or'] : ['Eq', 'Neq', 'Lt', 'Gt', 'Lte', 'Gte']).map(t => <option key={t}>{t}</option>)}</select></label>{child('left', 'Left')}{child('right', 'Right')}</>}
     {value.exprType === 'if' && <>{child('condition', 'Condition')}{child('thenExpr', 'Then')}{child('elseExpr', 'Else')}</>}
     {value.exprType === 'not' && child('expr', 'Operand')}
+    {value.exprType === 'bitset' && <><label className="ast-field">Set operation<select className="inp" aria-label={`${label} set operation`} value={String(value.op)} onChange={e => {
+      const op = e.target.value, count = ['Count', 'First'].includes(op) ? 1 : 2;
+      onChange({ ...value, op, args: Array.from({ length: count }, (_, i) => (value.args as Expr[])[i] ?? zero()) });
+    }}>{['Union', 'Intersect', 'Except', 'Shift', 'Count', 'First'].map(op => <option key={op}>{op}</option>)}</select></label>
+      {(value.args as Expr[]).map((arg, i) => <ExpressionTreeEditor key={i} value={arg} label={`${label} Operand ${i + 1}`} depth={depth + 1} allowSettlement={allowSettlement} onChange={next => update('args', (value.args as Expr[]).map((v, j) => i === j ? next : v))} />)}</>}
     {value.exprType === 'call' && <>{input('function', 'Function')}{(value.args as Expr[]).map((arg, i) => <ExpressionTreeEditor key={i} value={arg} label={`${label} Argument ${i + 1}`} depth={depth + 1} onChange={next => update('args', (value.args as Expr[]).map((v, j) => i === j ? next : v))} />)}<button type="button" className="btn sm" onClick={() => update('args', [...value.args as Expr[], zero()])}>Add argument</button></>}
     {['aggregate', 'map', 'fold', 'filter'].includes(value.exprType) && <>{input('stateKey', 'Array state key')}{input('itemName', 'Item binding')}{input('indexName', 'Index binding')}
       <label className="ast-field">Item type<select className="inp" aria-label={`${label} item type`} value={String(value.itemType ?? 'String')} onChange={e => update('itemType', e.target.value)}>{['String', 'Number', 'Boolean', 'Array', 'Record'].map(t => <option key={t}>{t}</option>)}</select></label>

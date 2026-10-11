@@ -5,6 +5,10 @@ test('Nine Lives is editable as nested atomic subgraphs', { tag: '@critical' }, 
   await page.getByRole('button', { name: 'Build Nine Lives graph', exact: true }).click();
   await expect(page.getByTestId('model-navigation')).toContainText('Nine Lives');
   await page.getByRole('button', { name: 'Open evaluate-components graph', exact: true }).click();
+  await expect(page.getByLabel('Focus graph node')).toContainText('sample');
+  await page.getByRole('button', { name: 'Open evaluate-mask-components graph', exact: true }).click();
+  await expect(page.getByLabel('Focus graph node')).toContainText('no-wilds');
+  await page.getByRole('button', { name: 'Open scan-mask-without-wilds graph', exact: true }).click();
   await expect(page.getByLabel('Focus graph node')).toContainText('symbols');
   await page.getByRole('button', { name: 'Open restore-row-major graph', exact: true }).click();
   await page.getByLabel('Focus graph node').selectOption('restore');

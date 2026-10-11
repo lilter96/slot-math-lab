@@ -44,15 +44,24 @@ outcomes. The raw-credit lookup used by expressions is in `initialState.clusterP
 It is generated from the same source paytable; any future importer must update
 the table and lookup consistently.
 
-All mechanics are editable JSON subgraphs composed from the existing Draw,
-ModifyState, GetState, Branch, Loop and Library atoms. Flood-fill uses bounded
-queues (`append`, `contains`, `index`). Gravity replaces positions with an
-index-aware `map` and `if`, reconstructing the board once after staging columns.
-Four neighbor discoveries use one existing Fold; conservative bounds skip sets
-that cannot pay. Wild-free untraced evaluation can choose an internal seed, while
-traced traversal and exclusive Wild claiming preserve source order.
-There is no mechanic dispatch, plugin, evaluator,
-transform, new expression function or game-specific kernel optimization.
+All mechanics are editable JSON subgraphs composed from Draw, ModifyState,
+GetState, Branch, Loop and Library atoms. The six explicitly approved finite-set
+expressions are Union, Intersect, Except, Shift, Count and First. They operate
+on ordinary exact integers representing positions 0–63; their independent
+contract is documented in [BITSET_PROPOSAL.md](BITSET_PROPOSAL.md).
+
+The untraced graph builds three symbol bit planes with two 15-cell Folds.
+The initial scatter count is captured from those planes once, before any
+paying cascade; traced rounds retain their explicit board count.
+Frontier expansion, geometry, component discovery and exclusive Wild claims are
+authored in JSON. On boards without Wilds, a board-wide seed calculation excludes
+components smaller than five, including four-cell stars and isolated squares.
+Each component begins with two authored frontier expansions, then a bounded Loop
+performs at most twenty-eight further steps. Detailed traces use the original
+ordered queue traversal. A 32-entry table describes stable survivor rows;
+gravity stages six columns and reconstructs the board with one Map. The kernel
+contains no game or mechanic dispatch, authored-pattern recognition or named
+array-update capability.
 
 The graph computes awards in raw credits. `winCredits` divides by 20 to express
 complete-round payout in original stakes. For bonus buy, RTP must additionally
@@ -79,7 +88,10 @@ claiming, nonpaying components, all-Wild boards and a modified-paytable negative
 control. The corpus includes 862 component boards and 22 complete rounds, with untraced
 payouts and final boards also checked. The compiled plan is compared to the
 canonical interpreter. Generic iteration compilation preserves language errors,
-shadowed bindings, lazy reads and cancellation without new expression capabilities.
+shadowed bindings, lazy reads and cancellation. Mask-state range proofs require
+every initial value and every writer to preserve the invariant; caller overrides
+use the general plan. The approved finite-set capability is the only new graph
+capability in this optimization.
 
 Play records `(configHash, seed, index)` and entry mode. Hash mismatch rejects
 replay. Presentation frames are derived from graph traces; replay does not
@@ -94,4 +106,8 @@ python3 scripts/verification/demo_reference.py
 
 Performance evidence is recorded in [PERFORMANCE.md](PERFORMANCE.md).
 Reports belonging to the retired demo were removed, rather than attributed
-to this configuration. Ten million paid rounds produced a Sampled mean of 96.370975%, with a 95% normal-approximation interval of 95.138468%–97.603482%. This is compatible with the authored target and does not establish exact RTP. The throughput floor remains unmet; see the linked performance evidence.
+to this configuration. Ten million paid rounds produced a Sampled mean of 96.370975%, with a 95% normal-approximation interval of 95.138468%–97.603482%. This is compatible with the authored target and does not establish exact RTP. Local one-worker diagnostics exceed the original 39,800 rounds/s floor. The
+active acceptance target is now 2,000,000 complete paid rounds/s on eight workers;
+the current Release build measured 2,061,865 / 2,059,413 / 2,065,394 rounds/s
+with live statistics over three 10M-round repeats (median 2,061,865). See the
+linked measurements and their configuration hashes.

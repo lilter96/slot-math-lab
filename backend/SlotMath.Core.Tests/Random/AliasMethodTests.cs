@@ -6,6 +6,7 @@ namespace SlotMath.Core.Tests.Random;
 
 public sealed class AliasMethodTests
 {
+    private const long ChiSquaredPinnedSalt = 1;
     // ════════════════════════════════════════════════════════════════
     //  Chi-Squared Goodness-of-Fit (Statistical Engine Verification)
     // ════════════════════════════════════════════════════════════════
@@ -48,6 +49,29 @@ public sealed class AliasMethodTests
         50.8921800 // df=30
     ];
 
+    private static readonly Gen<BigInteger> Weight = Gen.OneOf(
+        Gen.Int[0, 20].Select(w => new BigInteger(w)),
+        Gen.Int[0, 1_000_000].Select(w => new BigInteger(w)),
+        Gen.Const(BigInteger.Zero),
+        Gen.Const(BigInteger.One),
+        // Far apart magnitudes: remainders that round to just below zero.
+        Gen.Int[0, 800].Select(bits => BigInteger.One << bits),
+        Gen.Int[60, 800].Select(Gen.Long[1, long.MaxValue]).Select((bits, low) => (BigInteger.One << bits) + low),
+        // Close to the double range: 400 of these, scaled by the outcome count, stay below 2^1024.
+        Gen.Int[801, 1010].Select(bits => BigInteger.One << bits),
+        Gen.Int[801, 1010].Select(Gen.Long[1, long.MaxValue]).Select((bits, low) => (BigInteger.One << bits) + low));
+
+    private static readonly Gen<BigInteger[]> Weights = Gen.OneOf(
+            Weight.Array[2, 12],
+            Weight.Array[2, 64],
+            // Above the stack workspace limit: the pooled path.
+            Weight.Array[257, 400],
+            // Equal weights given explicitly, and one dominant outcome.
+            Gen.Int[2, 40].Select(Gen.Int[1, 1000]).Select((n, w) => Enumerable.Repeat(new BigInteger(w), n).ToArray()),
+            Gen.Int[2, 40].Select(Gen.Int[0, 39]).Select((n, at) =>
+                Enumerable.Range(0, n).Select(i => i == at % n ? BigInteger.One << 200 : BigInteger.One).ToArray()))
+        .Where(w => w.Any(x => !x.IsZero));
+
     private static double GetChi2Critical(int df)
     {
         if (df < 1 || df >= Chi2Critical01.Length)
@@ -81,8 +105,6 @@ public sealed class AliasMethodTests
 
         return chi2 <= GetChi2Critical(df);
     }
-
-    public record WeightProfile(string Name, WeightSet Weights, int Df);
 
     public static TheoryData<WeightProfile> ChiSquaredProfiles()
     {
@@ -138,8 +160,6 @@ public sealed class AliasMethodTests
         Assert.True(pass,
             $"Profile '{profile.Name}' failed chi-squared at α=0.01. Observed: [{string.Join(", ", observed)}]");
     }
-
-    private const long ChiSquaredPinnedSalt = 1;
 
     [Fact]
     public void AliasSampler_ChiSquared_NegativeControl_RejectsPerturbedWeights()
@@ -358,28 +378,6 @@ public sealed class AliasMethodTests
         return (prob, alias);
     }
 
-    private static readonly Gen<BigInteger> Weight = Gen.OneOf(
-        Gen.Int[0, 20].Select(w => new BigInteger(w)),
-        Gen.Int[0, 1_000_000].Select(w => new BigInteger(w)),
-        Gen.Const(BigInteger.Zero),
-        Gen.Const(BigInteger.One),
-        // Far apart magnitudes: remainders that round to just below zero.
-        Gen.Int[0, 800].Select(bits => BigInteger.One << bits),
-        Gen.Select(Gen.Int[60, 800], Gen.Long[1, long.MaxValue]).Select((bits, low) => (BigInteger.One << bits) + low),
-        // Close to the double range: 400 of these, scaled by the outcome count, stay below 2^1024.
-        Gen.Int[801, 1010].Select(bits => BigInteger.One << bits),
-        Gen.Select(Gen.Int[801, 1010], Gen.Long[1, long.MaxValue]).Select((bits, low) => (BigInteger.One << bits) + low));
-
-    private static readonly Gen<BigInteger[]> Weights = Gen.OneOf(
-        Weight.Array[2, 12],
-        Weight.Array[2, 64],
-        // Above the stack workspace limit: the pooled path.
-        Weight.Array[257, 400],
-        // Equal weights given explicitly, and one dominant outcome.
-        Gen.Select(Gen.Int[2, 40], Gen.Int[1, 1000]).Select((n, w) => Enumerable.Repeat(new BigInteger(w), n).ToArray()),
-        Gen.Select(Gen.Int[2, 40], Gen.Int[0, 39]).Select((n, at) => Enumerable.Range(0, n).Select(i => i == at % n ? BigInteger.One << 200 : BigInteger.One).ToArray()))
-        .Where(w => w.Any(x => !x.IsZero));
-
     [Fact]
     public void AliasTable_Pbt_10000_MatchesQueueBuiltReferenceBitForBit()
     {
@@ -390,7 +388,8 @@ public sealed class AliasMethodTests
             for (var i = 0; i < weights.Length; i++)
             {
                 // A threshold below zero never accepts; it is stored as 0.0.
-                if (BitConverter.DoubleToInt64Bits(System.Math.Max(expectedProb[i], 0.0)) != BitConverter.DoubleToInt64Bits(prob[i])
+                if (BitConverter.DoubleToInt64Bits(System.Math.Max(expectedProb[i], 0.0)) !=
+                    BitConverter.DoubleToInt64Bits(prob[i])
                     || expectedAlias[i] != alias[i])
                 {
                     return false;
@@ -399,6 +398,52 @@ public sealed class AliasMethodTests
 
             return true;
         }, seed: "alias-table-replay-v1", iter: 10000, print: w => string.Join(",", w));
+    }
+
+    [Fact]
+    public void SamplingPreservesEveryRngWordWithRejectionsUniformTablesAndAudit()
+    {
+        foreach (var count in new[] { 1, 2, 3, 7, 8, 9, 257, 1025 })
+        foreach (var uniform in new[] { false, true })
+        foreach (var audited in new[] { false, true })
+        foreach (var seed in new[] { 0L, 42L, -1L, long.MinValue })
+        {
+            var weights = Enumerable.Range(0, count)
+                .Select(i => uniform ? 1 : i == count - 1 ? 50 : i % 3 == 0 ? 0 : i + 1).ToArray();
+            AliasMethod table = WeightSet.FromIntegers(weights).AliasTable;
+            var (thresholds, aliases) = table.GetTables();
+            var expected = new SeededRandom(seed);
+            var actual = new SeededRandom(seed);
+            if (audited)
+            {
+                expected.EnableAudit();
+                actual.EnableAudit();
+            }
+
+            try
+            {
+                for (var i = 0; i < 256; i++)
+                {
+                    var bucket = expected.Next(count);
+                    var fraction = expected.NextDouble();
+                    Assert.Equal(fraction < thresholds[bucket] ? bucket : aliases[bucket], table.Sample(actual));
+                    Assert.Equal(expected.NextUInt64(), actual.NextUInt64());
+                    Assert.Equal(expected.Next(19), actual.Next(19));
+                    Assert.Equal(BitConverter.DoubleToInt64Bits(expected.NextDouble()),
+                        BitConverter.DoubleToInt64Bits(actual.NextDouble()));
+                }
+
+                if (audited)
+                {
+                    Assert.Equal(expected.AuditSnapshot(0), actual.AuditSnapshot(0));
+                }
+            }
+            finally
+            {
+                expected.EndAudit();
+                actual.EndAudit();
+            }
+        }
     }
 
     [Fact]
@@ -413,7 +458,7 @@ public sealed class AliasMethodTests
 
         static int[] Draw(int[] weights, int count)
         {
-            var alias = WeightSet.FromIntegers(weights).AliasTable;
+            AliasMethod alias = WeightSet.FromIntegers(weights).AliasTable;
             var rng = new SeededRandom(42);
             return Enumerable.Range(0, count).Select(_ => alias.Sample(rng)).ToArray();
         }
@@ -460,14 +505,16 @@ public sealed class AliasMethodTests
     public void AliasMethod_TinyWeightBeyondDoubleRange_StaysPositiveWhileRepresentable()
     {
         // 2 / (2^1050 + 1): the total is not a finite double, the share is a subnormal one.
-        var (prob, alias) = AliasMethod.Build(WeightSet.FromNumerators([BigInteger.One, BigInteger.One << 1050])).GetTables();
+        var (prob, alias) = AliasMethod.Build(WeightSet.FromNumerators([BigInteger.One, BigInteger.One << 1050]))
+            .GetTables();
 
         Assert.Equal(System.Math.ScaleB(1.0, -1049), prob[0]);
         Assert.Equal(1, alias[0]);
         Assert.Equal(1.0, prob[1]);
 
         // Below the smallest double the share is zero, and nothing is NaN or infinite.
-        var (underflow, _) = AliasMethod.Build(WeightSet.FromNumerators([BigInteger.One, BigInteger.One << 1200])).GetTables();
+        var (underflow, _) = AliasMethod.Build(WeightSet.FromNumerators([BigInteger.One, BigInteger.One << 1200]))
+            .GetTables();
         Assert.Equal([0.0, 1.0], underflow);
     }
 
@@ -514,4 +561,6 @@ public sealed class AliasMethodTests
             Assert.Equal(r1.NextInt64(), r2.NextInt64());
         }
     }
+
+    public record WeightProfile(string Name, WeightSet Weights, int Df);
 }

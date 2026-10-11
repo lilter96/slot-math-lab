@@ -20,6 +20,11 @@ internal struct SamplingCell
     public readonly ExprValue Value => _deferred ? StateValues.Convert(Raw) : _value;
     internal readonly bool Readable => _readable;
     internal readonly ExprValue StoredValue => _value;
+    internal readonly ulong StoredMask
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get => _value.MaskUnchecked;
+    }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static SamplingCell Typed(ExprValue value)
@@ -27,10 +32,26 @@ internal struct SamplingCell
         if (value.ContainsSymbols) value = NormalizeStored(value);
         return new() { Present = true, _value = value, _readable = value.Kind != ExprType.Null };
     }
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public void SetTyped(ExprValue value)
+    {
+        if (value.ContainsSymbols) value = NormalizeStored(value);
+        Present = true; HasRaw = false; Raw = null; _deferred = false;
+        _value = value;
+        _readable = value.Kind != ExprType.Null;
+    }
+
     private static readonly object[] SmallIntegers = Enumerable.Range(0, 256).Select(value => (object)value).ToArray();
 
     // Preserve raw Int32 counter semantics while reusing immutable boxes.
-    public static SamplingCell FromInt(int value) => FromRaw((uint)value < SmallIntegers.Length ? SmallIntegers[value] : value);
+    public static SamplingCell FromInt(int value) => new()
+    {
+        Present = true,
+        HasRaw = true,
+        Raw = (uint)value < SmallIntegers.Length ? SmallIntegers[value] : value,
+        _value = ExprValue.Number(value),
+        _readable = true,
+    };
 
     public static SamplingCell FromRaw(object? raw)
     {
@@ -44,7 +65,14 @@ internal struct SamplingCell
     public readonly bool TryCachedValue(out ExprValue value) { value = _value; return !_deferred; }
     public readonly ExprValue ReadValue(string location) => _deferred ? StateValues.Convert(Raw, location) : _value;
     public readonly bool IsRecord => _value.Kind == ExprType.Record || HasRaw && Raw is IDictionary<string, object?> or IReadOnlyDictionary<string, object?>;
-    public readonly object? Export() => HasRaw ? Raw : Value.ToStateObject();
+    private static readonly object BoxedZero = BigInteger.Zero;
+
+    public readonly object? Export()
+    {
+        if (HasRaw) return Raw;
+        var value = Value;
+        return value.IsInlineInteger && value.InlineInteger == 0 ? BoxedZero : value.ToStateObject();
+    }
 
     // ToStateObject turns symbols into strings, including inside arrays.
     private static ExprValue NormalizeStored(ExprValue value)
@@ -115,8 +143,9 @@ internal sealed class SamplingFrame
     public SlotMath.Core.Measurements.MeasurementCollector? Measurements;
     public CancellationToken CancellationToken;
     private int _operations;
+    private SamplingArrayArena? _arrays;
 
-    public SamplingFrame(IReadOnlyDictionary<string, int> layout, SamplingCell[] defaults, Dictionary<string, object?> initial)
+    public SamplingFrame(IReadOnlyDictionary<string, int> layout, SamplingCell[] defaults, Dictionary<string, object?> initial, bool reuseArrays = false)
     {
         _layout = layout;
         _initial = (SamplingCell[])defaults.Clone();
@@ -125,16 +154,30 @@ internal sealed class SamplingFrame
             if (layout.TryGetValue(key, out var index)) _initial[index] = SamplingCell.FromRaw(value);
             else _extra[key] = value;
         Cells = new SamplingCell[defaults.Length];
+        if (reuseArrays) _arrays = new();
     }
 
     public void Reset(CancellationToken token, bool[]? retained = null)
     {
         token.ThrowIfCancellationRequested();
+        if (retained is not null) _arrays = null;
+        _arrays?.Reset();
         if (retained is null) Array.Copy(_initial, Cells, _initial.Length);
         else for (var i = 0; i < _initial.Length; i++) if (!retained[i]) Cells[i] = _initial[i];
         CancellationToken = token;
         Settlement = null;
         _operations = 0;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal ExprValue[] NewArray(int length) => _arrays is { } arena ? arena.Rent(length) : new ExprValue[length];
+
+    internal ExprValue[] ResizeArray(ExprValue[] values, int count)
+    {
+        if (count == values.Length) return values;
+        var result = NewArray(count);
+        Array.Copy(values, result, count);
+        return result;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -156,7 +199,7 @@ internal sealed class SamplingFrame
     public void Touch(int index, string location)
     {
         ref var cell = ref Cells[index];
-        if (!cell.Readable || cell.HasRaw) cell = SamplingCell.Typed(Read(index, location));
+        if (!cell.Readable || cell.HasRaw) cell.SetTyped(Read(index, location));
     }
 
     private ExprValue ReadChecked(int index, string location)
@@ -184,4 +227,36 @@ internal sealed class SamplingFrame
         List<object?> a => a.Select(Snapshot).ToList(),
         _ => value,
     };
+}
+
+// Arrays remain distinct and immutable throughout a round. No typed value
+// escapes an unmeasured, stateless runner: state export copies recursively.
+// Bound retained memory; large arrays and unusually large rounds allocate.
+internal sealed class SamplingArrayArena
+{
+    private const int MaxLength = 64;
+    private const int MaxBuffers = 256;
+    private readonly List<ExprValue[]>?[] _buffers = new List<ExprValue[]>?[MaxLength + 1];
+    private readonly int[] _cursors = new int[MaxLength + 1];
+    private int _retained;
+
+    internal void Reset() => Array.Clear(_cursors);
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal ExprValue[] Rent(int length)
+    {
+        if (length == 0) return [];
+        if ((uint)length > MaxLength) return new ExprValue[length];
+        var position = _cursors[length]++;
+        var buffers = _buffers[length];
+        if (buffers is not null && position < buffers.Count) return buffers[position];
+        var values = new ExprValue[length];
+        if (_retained < MaxBuffers)
+        {
+            buffers ??= _buffers[length] = new List<ExprValue[]>(4);
+            buffers.Add(values);
+            _retained++;
+        }
+        return values;
+    }
 }
