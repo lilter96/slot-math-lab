@@ -1,0 +1,207 @@
+{
+  "generator": "Built-in imagegen; no CLI/API fallback",
+  "reference": "User supplied cat Reaper casino comic",
+  "encoding": "WebP 94%; alpha preserved where generated; other reel art uses charcoal comic plates",
+  "assets": [
+    {
+      "id": "background",
+      "source": "exec-58ac6e80-8953-42ae-82f3-fba6859ba079.png",
+      "output": "background.webp",
+      "width": 1536,
+      "height": 1024,
+      "bytes": 354420,
+      "cornerRGBA": [
+        2,
+        1,
+        1,
+        255
+      ]
+    },
+    {
+      "id": "coin",
+      "source": "exec-3d3d0603-dd33-4f85-bf60-49f0a12e8be8.png",
+      "output": "coin.webp",
+      "width": 384,
+      "height": 384,
+      "bytes": 50270,
+      "cornerRGBA": [
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "id": "cat",
+      "source": "exec-0fe909c5-c0b2-4d9a-9d3e-b17efa45aac6.png",
+      "output": "cat.webp",
+      "width": 384,
+      "height": 384,
+      "bytes": 47002,
+      "cornerRGBA": [
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "id": "bone",
+      "source": "exec-83a717cb-033a-4d0e-b6e5-689ba573388d.png",
+      "output": "bone.webp",
+      "width": 384,
+      "height": 384,
+      "bytes": 25924,
+      "cornerRGBA": [
+        17,
+        13,
+        12,
+        255
+      ]
+    },
+    {
+      "id": "reaper",
+      "source": "exec-07134b16-2acd-4cc2-9b71-f08ade9730c9.png",
+      "output": "wild.webp",
+      "width": 384,
+      "height": 384,
+      "bytes": 44832,
+      "cornerRGBA": [
+        16,
+        13,
+        11,
+        255
+      ]
+    },
+    {
+      "id": "fish",
+      "source": "exec-ab879941-a11e-494a-9e54-6f5aee5a3e14.png",
+      "output": "fish.webp",
+      "width": 384,
+      "height": 384,
+      "bytes": 37562,
+      "cornerRGBA": [
+        18,
+        15,
+        11,
+        255
+      ]
+    },
+    {
+      "id": "yarn",
+      "source": "exec-db95fc0c-9f9a-4bbc-9f5e-c9cb95878925.png",
+      "output": "yarn.webp",
+      "width": 384,
+      "height": 384,
+      "bytes": 53080,
+      "cornerRGBA": [
+        16,
+        13,
+        11,
+        255
+      ]
+    },
+    {
+      "id": "candle",
+      "source": "exec-507e12ad-356d-420d-9863-d6aae87a244e.png",
+      "output": "candle.webp",
+      "width": 384,
+      "height": 384,
+      "bytes": 23394,
+      "cornerRGBA": [
+        17,
+        14,
+        12,
+        255
+      ]
+    },
+    {
+      "id": "scatter",
+      "source": "exec-1be68655-34c5-41e2-9f34-15ed206da1ea.png",
+      "output": "scatter.webp",
+      "width": 384,
+      "height": 384,
+      "bytes": 32812,
+      "cornerRGBA": [
+        16,
+        13,
+        10,
+        255
+      ]
+    },
+    {
+      "id": "promo",
+      "source": "exec-4b47684f-6056-4fc9-984e-0bd2748438f9.png",
+      "output": "promo.webp",
+      "width": 1536,
+      "height": 1024,
+      "bytes": 546678,
+      "cornerRGBA": [
+        28,
+        28,
+        26,
+        255
+      ]
+    },
+    {
+      "id": "reaper-hero",
+      "source": "exec-07134b16-2acd-4cc2-9b71-f08ade9730c9.png",
+      "output": "reaper-hero.webp",
+      "width": 1024,
+      "height": 1024,
+      "bytes": 236790,
+      "cornerRGBA": [
+        18,
+        14,
+        11,
+        255
+      ]
+    }
+  ],
+  "prompts": [
+    {
+      "asset": "reaper",
+      "prompt": "Use case: stylized-concept. Production asset for an original dark comic casino game called Nine Lives. Match Image 1's hand-inked graphic novel art direction: thick precise black contour ink, warm ivory bone, charcoal cel-shaded silhouettes, ember red/orange rim light, restrained screen-tone paper grain. Strong readable silhouette at small reel size. Never purple/gold glossy 3D art. No text, labels, logos, watermark. Image 1 is a style reference, not an edit target. Create a new single illustration. A large waist-up friendly sinister skeletal CAT GRIM REAPER, ivory skull with cat ears beneath charcoal hood, grinning, one skeletal paw pinches a black casino chip with a red paw-print, other hand extends invitingly. Red ember outline, dramatic ink/cel shading. Subject occupies central 85% square, fully isolated on genuinely transparent background, no cropped hands/ears, no backdrop. Used as hero mascot and WILD symbol."
+    },
+    {
+      "asset": "background",
+      "prompt": "Use case: stylized-concept. Production asset for an original dark comic casino game called Nine Lives. Match Image 1's hand-inked graphic novel art direction: thick precise black contour ink, warm ivory bone, charcoal cel-shaded silhouettes, ember red/orange rim light, restrained screen-tone paper grain. Strong readable silhouette at small reel size. Never purple/gold glossy 3D art. No text, labels, logos, watermark. Image 1 is a style reference, not an edit target. Create a new single illustration. Wide landscape empty haunted casino interior beneath a gigantic blood-red moon outside arched windows, charcoal shadow arches, cracked brick, crimson bulbs, a few black chip stacks at far sides. Clear dark negative space across the center 70% for a slot reel cabinet/UI. Cinematic symmetrical stage composition. No characters, no symbols, no lettering, no slot cabinets in foreground. Detailed hand-inked comic environment, 1536x1024 landscape."
+    },
+    {
+      "asset": "coin",
+      "prompt": "Use case: stylized-concept. Production asset for an original dark comic casino game called Nine Lives. Match Image 1's hand-inked graphic novel art direction: thick precise black contour ink, warm ivory bone, charcoal cel-shaded silhouettes, ember red/orange rim light, restrained screen-tone paper grain. Strong readable silhouette at small reel size. Never purple/gold glossy 3D art. No text, labels, logos, watermark. Image 1 is a style reference, not an edit target. Create a new single illustration. Single black casino prize chip upright face-on, thick charcoal/red alternating edge segments, red paw-print at top of chip, blank deep-charcoal center with space for credit value overlay, strong ivory contour rim, small ember red highlights. Hand-drawn cel-shaded graphic novel asset, not photorealistic. Occupies central 85% square, fully isolated on genuine alpha transparency. No digits or lettering."
+    },
+    {
+      "asset": "fish",
+      "prompt": "Use case: stylized-concept. Production asset for an original dark comic casino game called Nine Lives. Match Image 1's hand-inked graphic novel art direction: thick precise black contour ink, warm ivory bone, charcoal cel-shaded silhouettes, ember red/orange rim light, restrained screen-tone paper grain. Strong readable silhouette at small reel size. Never purple/gold glossy 3D art. No text, labels, logos, watermark. Image 1 is a style reference, not an edit target. Create a new single illustration. A single ivory fish skeleton, head at left and pointed tail at right, arched lively silhouette, strong black contour ink, pale bone cel-shading and ember-red rim glow. Dark comic reel symbol, clean readable silhouette, fully within central 85% square. Genuine alpha transparency, no text, no scene."
+    },
+    {
+      "asset": "yarn",
+      "prompt": "Use case: stylized-concept. Production asset for an original dark comic casino game called Nine Lives. Match Image 1's hand-inked graphic novel art direction: thick precise black contour ink, warm ivory bone, charcoal cel-shaded silhouettes, ember red/orange rim light, restrained screen-tone paper grain. Strong readable silhouette at small reel size. Never purple/gold glossy 3D art. No text, labels, logos, watermark. Image 1 is a style reference, not an edit target. Create a new single illustration. A rich crimson red ball of yarn with a curled loose strand, angular black contour hatching, ember-orange highlights, charcoal shadows. Premium graphic novel comic reel symbol for a cat themed casino. Fully within central 85% square, genuine alpha transparency, no text, no backdrop."
+    },
+    {
+      "asset": "candle",
+      "prompt": "Use case: stylized-concept. Production asset for an original dark comic casino game called Nine Lives. Match Image 1's hand-inked graphic novel art direction: thick precise black contour ink, warm ivory bone, charcoal cel-shaded silhouettes, ember red/orange rim light, restrained screen-tone paper grain. Strong readable silhouette at small reel size. Never purple/gold glossy 3D art. No text, labels, logos, watermark. Image 1 is a style reference, not an edit target. Create a new single illustration. A single chunky ivory candle melting over a small black skull-shaped base, lively orange-red flame above, sharp thick black ink contour, bone cel-shading with subtle red reflected glow. Readable graphic novel comic casino reel symbol, genuine transparent alpha background. Full object within central 85% square, no labels, no backdrop."
+    },
+    {
+      "asset": "scatter",
+      "prompt": "Use case: stylized-concept. Production asset for an original dark comic casino game called Nine Lives. Match Image 1's hand-inked graphic novel art direction: thick precise black contour ink, warm ivory bone, charcoal cel-shaded silhouettes, ember red/orange rim light, restrained screen-tone paper grain. Strong readable silhouette at small reel size. Never purple/gold glossy 3D art. No text, labels, logos, watermark. Image 1 is a style reference, not an edit target. Create a new single illustration. One sinister antique hourglass with black cat-ear finials, deep ember red hourglass sand, ivory skull at top center, dark charcoal frame, warm bone/gold small highlights. Strong hand-inked cel-shaded graphic novel style matching reference. Very bold readable silhouette with black contours and red edge light. Isolated transparent alpha background, centered square, 85% full uncropped object, no text or digits."
+    },
+    {
+      "asset": "bone-final",
+      "prompt": "A premium graphic novel casino game symbol: two crossed ivory bones with bold black ink contours, simple chunky silhouette, ivory cel shading and ember-red rim highlights. One symbol centered in a square, occupies 75% of frame. Flat almost-black charcoal background (#151110). No lettering, no scenery, no other objects, no 3D look. Crisp illustration readable at small size."
+    },
+    {
+      "asset": "candle-final",
+      "prompt": "A premium gothic comic casino reel art plate, square. A chunky ivory candle melting over a small dark skull base, tall vivid ember red-orange flame, thick black ink outlines, warm ivory cel shading, crisp high contrast, restrained paper print grain. Flat charcoal-black (#151110) background, no scenery, no text, no 3D. Full candle and flame uncropped, centered 75% of frame."
+    },
+    {
+      "asset": "scatter-final",
+      "prompt": "A premium gothic comic casino reel art plate, square. One antique black hourglass with pointed cat-ear finials, ember-red glowing sand, ivory cat skull ornament on the top center, sharp thick black ink contours, warm ivory cel shading, strong ember rim highlights, restrained screen-tone grain. Very readable bold silhouette. Flat charcoal-black (#151110) background, no digits, no lettering, no 3D. Entire hourglass fits within central 75% of frame."
+    },
+    {
+      "asset": "promo-final",
+      "prompt": "Wide landscape high quality hand-inked dark comic casino promotional illustration. On the RIGHT half, a large skeletal CAT GRIM REAPER with ivory skull, pointed cat ears beneath black hood, charcoal robe, smiling grin, holds a black poker chip with red paw-print and extends other skeletal hand. Behind him a gothic casino beneath a giant blood-red moon seen through arches, red bulbs and stacks of black/red chips. LEFT half is DARK CHARCOAL negative space for title and play button; no objects or subject across left 45%. Palette charcoal black, ivory bone, ember red/orange. Thick black contour ink, cel shading, refined subtle print grain. No lettering, no logos, no 3D. Full character face and hands in frame. 1536x1024 landscape composition."
+    }
+  ]
+}

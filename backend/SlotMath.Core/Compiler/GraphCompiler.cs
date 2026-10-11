@@ -61,10 +61,10 @@ public sealed class GraphCompiler
         yield return new MeasurementField(string.Join('.', path), field.Type.ToString(), path);
         // Offer record leaves without inventing indices into variable-length arrays.
         foreach (FieldDescriptor child in field.RecordFields)
-            foreach (MeasurementField nested in MeasurementFields(child, [.. path, child.Name]))
-            {
-                yield return nested;
-            }
+        foreach (MeasurementField nested in MeasurementFields(child, [.. path, child.Name]))
+        {
+            yield return nested;
+        }
     }
 
     /// <summary>
@@ -133,8 +133,7 @@ public sealed class GraphCompiler
         {
             return CompileResult.Failure(new CompileError
             {
-                Code = ErrorCodes.PluginNotConformant,
-                Message = "Plugin execution is disabled in this host."
+                Code = ErrorCodes.PluginNotConformant, Message = "Plugin execution is disabled in this host."
             });
         }
 
@@ -202,9 +201,7 @@ public sealed class GraphCompiler
         {
             return CompileResult.Failure(new CompileError
             {
-                NodeId = ex.NodeId,
-                Code = ex.ErrorCode,
-                Message = ex.Message
+                NodeId = ex.NodeId, Code = ex.ErrorCode, Message = ex.Message
             });
         }
         catch (ExpressionEvaluationException ex)
@@ -344,6 +341,9 @@ public sealed class GraphCompiler
 
     private sealed class ProgramBuilder
     {
+        /// <summary>The finest precision a paytable may ask for: 10^18 units to the credit.</summary>
+        private static readonly BigInteger LargestWinScale = BigInteger.Pow(10, 18);
+
         private readonly
             Dictionary<(string NodeId, string? SinkId), Func<object?, Slot<Dictionary<string, object?>, object?>>>
             _chains = new();
@@ -379,51 +379,77 @@ public sealed class GraphCompiler
         public BigInteger WinScale { get; }
 
         /// <summary>
-        ///     Determine the win scale: 10^(max decimal places over all paytable
-        ///     payouts).  Fractional payouts like "2.5" used to be silently
-        ///     truncated at the BigInteger boundary; scaling keeps them exact.
+        ///     Determine the win scale: the number of sub-credit units in one credit that makes every paytable
+        ///     payout whole. A payout is a decimal ("2.5") or an exact fraction ("1/30", for a game whose bet does
+        ///     not divide a power of ten); decimals give 10^(most decimal places), fractions their denominators.
+        ///     Fractional payouts like "2.5" used to be silently truncated at the BigInteger boundary; scaling
+        ///     keeps them exact.
         /// </summary>
         private static BigInteger DetectWinScale(GraphConfig config)
         {
             var quantum = config.Nodes.OfType<MetricsSinkNode>().Single().Settlement?.Validate();
-            var maxDecimals = quantum is { } q ? DecimalPlaces(q) : 0;
+            BigInteger scale = BigInteger.Pow(10, quantum is { } q ? DecimalPlaces(q) : 0);
             foreach (Paytable paytable in config.Paytables ?? Array.Empty<Paytable>())
             {
                 foreach (PaytableEntry entry in paytable.Entries)
                 {
                     foreach (var payout in entry.Payouts)
                     {
-                        if (!decimal.TryParse(payout,
-                                NumberStyles.Number,
-                                CultureInfo.InvariantCulture,
-                                out var value))
+                        BigInteger units = PayoutUnits(payout);
+                        scale = scale / BigInteger.GreatestCommonDivisor(scale, units) * units;
+                        if (scale > LargestWinScale)
                         {
                             throw new CompilationException(null, ErrorCodes.InvalidGraph,
-                                $"Invalid decimal paytable payout '{payout}'.");
-                        }
-
-                        if (value < 0)
-                        {
-                            throw new CompilationException(null, ErrorCodes.InvalidGraph,
-                                "Paytable payouts must be non-negative.");
-                        }
-
-                        var decimals = DecimalPlaces(value);
-                        if (decimals > 9)
-                        {
-                            throw new CompilationException(null, ErrorCodes.InvalidGraph,
-                                $"Paytable payout '{payout}' has more than 9 decimal places.");
-                        }
-
-                        if (decimals > maxDecimals)
-                        {
-                            maxDecimals = decimals;
+                                $"Paytable payouts have no common precision: with '{payout}' one credit would need more than {LargestWinScale} units.");
                         }
                     }
                 }
             }
 
-            return BigInteger.Pow(10, maxDecimals);
+            return scale;
+        }
+
+        /// <summary>The fewest sub-credit units per credit in which one payout is whole.</summary>
+        private static BigInteger PayoutUnits(string payout)
+        {
+            var slash = payout.IndexOf('/');
+            if (slash >= 0)
+            {
+                if (!BigInteger.TryParse(payout.AsSpan(0, slash), NumberStyles.None, CultureInfo.InvariantCulture,
+                        out BigInteger numerator) ||
+                    !BigInteger.TryParse(payout.AsSpan(slash + 1), NumberStyles.None, CultureInfo.InvariantCulture,
+                        out BigInteger denominator) || denominator.IsZero)
+                {
+                    throw new CompilationException(null, ErrorCodes.InvalidGraph,
+                        $"Invalid paytable payout '{payout}': a fraction is written as two whole numbers, 'n/d'.");
+                }
+
+                return denominator / BigInteger.GreatestCommonDivisor(numerator, denominator);
+            }
+
+            if (!decimal.TryParse(payout,
+                    NumberStyles.Number,
+                    CultureInfo.InvariantCulture,
+                    out var value))
+            {
+                throw new CompilationException(null, ErrorCodes.InvalidGraph,
+                    $"Invalid decimal paytable payout '{payout}'.");
+            }
+
+            if (value < 0)
+            {
+                throw new CompilationException(null, ErrorCodes.InvalidGraph,
+                    "Paytable payouts must be non-negative.");
+            }
+
+            var decimals = DecimalPlaces(value);
+            if (decimals > 9)
+            {
+                throw new CompilationException(null, ErrorCodes.InvalidGraph,
+                    $"Paytable payout '{payout}' has more than 9 decimal places.");
+            }
+
+            return BigInteger.Pow(10, decimals);
         }
 
         private static int DecimalPlaces(decimal value)
@@ -1510,6 +1536,14 @@ public sealed class GraphCompiler
             }
 
             Paytable paytable = config.Paytables[0];
+            if (paytable.Entries.SelectMany(entry => entry.Payouts).FirstOrDefault(payout => payout.Contains('/')) is
+                { } fraction)
+            {
+                // The built-in evaluators add payouts up as decimals, which a fraction is not.
+                throw new CompilationException(nodeId, ErrorCodes.InvalidGraph,
+                    $"The built-in '{transformId}' evaluator reads decimal payouts and the paytable has the fraction '{fraction}'. Compute the win in the graph, or write the payouts as decimals.");
+            }
+
             var wild = config.Symbols.SingleOrDefault(s => s.Kind == SymbolKind.Wild)?.Id;
             return transformId switch
             {

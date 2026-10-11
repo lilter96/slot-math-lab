@@ -232,8 +232,7 @@ public static class StructuredExactEvaluator
             {
                 failure = exception;
             }
-        }, StackBytes)
-        { IsBackground = true, Name = "structured-exact" };
+        }, StackBytes) { IsBackground = true, Name = "structured-exact" };
         thread.Start();
         thread.Join();
         if (failure is OperationCanceledException)
@@ -296,7 +295,8 @@ public static class StructuredExactEvaluator
         var inference = new Inference(factory);
         var executor = new SymbolicExecutor(model.Config, winScale, factory, inference,
             new LoopOptions(mode, options.ChainLoopsAbove, options.LoopLawWork, options.PruneLoopMassBelow,
-                options.PruneLoopsAboveBits, options.PruneLoopsAboveWork));
+                options.PruneLoopsAboveBits, options.PruneLoopsAboveWork, options.VarianceWork,
+                options.HitFrequencyWork));
         BigInteger cap = options.Fault == StructuredFault.CapIgnored ? model.Cap * 1_000_000 : model.Cap;
         var limit = budget.Limit;
         try
@@ -331,7 +331,7 @@ public static class StructuredExactEvaluator
 
             // The payout must be a whole non-negative number of sub-credit units; the cap then applies as min(payout, cap).
             Inference.Bound? bound = inference.BoundOf(payout);
-            var proven = bound is { } b && b.Den.IsOne && ExprValue.CompareNumbers(b.Lo, V.Zero) >= 0;
+            var proven = bound is { } b && b.Step.Denominator.IsOne && ExprValue.CompareNumbers(b.Lo, V.Zero) >= 0;
             var capInactive = proven && ExprValue.CompareNumbers(bound!.Value.Hi, ExprValue.Number(cap)) <= 0;
 
             Rational? expected = capInactive ? inference.Expect(payout) : null;

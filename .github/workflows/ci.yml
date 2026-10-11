@@ -59,6 +59,7 @@ jobs:
       - run: npm ci --legacy-peer-deps
         working-directory: frontend
       - run: node frontend/scripts/export-doghouse-fixtures.mjs --check
+      - run: node frontend/scripts/export-game-fixtures.mjs --check
       - run: python3 scripts/verification/doghouse_reference.py --check
       - run: dotnet restore backend/SlotMathLab.slnx
       - run: dotnet build backend/SlotMathLab.slnx -c Release --no-restore

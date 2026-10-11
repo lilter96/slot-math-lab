@@ -1,0 +1,5 @@
+{
+ "recon": {"spin":100,"chance":492,"air-raid":153,"standard":4877,"elite":35065,"super":98185},
+ "assault": {"spin":100,"chance":578,"air-raid":182,"standard":5728,"elite":41502,"super":110697},
+ "siege": {"spin":100,"chance":577,"air-raid":203,"standard":5742,"elite":40922,"super":108839}
+}

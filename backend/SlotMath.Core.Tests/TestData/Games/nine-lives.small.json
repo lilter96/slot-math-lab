@@ -1,0 +1,2850 @@
+{
+ "schemaVersion": "1.0.0",
+ "id": "nine-lives-small",
+ "name": "Nine Lives",
+ "description": "Nine Lives: tgslots packages/games/nine-lives (config/config.json, src/machine.ts, src/samplers.ts).",
+ "initialState": {
+  "traceEnabled": false,
+  "emptyArray": [],
+  "totalBet": 2,
+  "roundCost": 2,
+  "capCoins": 16,
+  "winCredits": 0,
+  "roundCoins": 0,
+  "multiplier": 1,
+  "stepMultiplier": 1,
+  "stepCoins": 0,
+  "freeSpins": 0,
+  "scatterCount": 0,
+  "collectedCoins": 0,
+  "board": ["0","0","0","0"],
+  "cellSymbol": "0",
+  "coins": [0,0,0,0],
+  "coinStake": 2,
+  "coinPrize": "0",
+  "coinCount": 0,
+  "adjacent": [0,1,0,2,0,1,1,3,2,3,0,2,2,3,1,3],
+  "clusterPays": [0,0,0,0,0,0,0,0,1,4,0,0,0,2,6,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+  "clusterMinSize": 3,
+  "payingSymbols": ["1","2"],
+  "noCells": [0,0,0,0],
+  "clusterSymbols": [],
+  "clusterSymbol": "0",
+  "clusterIndex": 0,
+  "clusterCoins": 0,
+  "groups": [0,0,0,0],
+  "groupsBefore": [0,0,0,0],
+  "groupStarts": [0],
+  "groupIndex": 0,
+  "groupStart": 0,
+  "groupSize": 0,
+  "groupPay": 0,
+  "wildTaken": [0,0,0,0],
+  "paidSymbols": [],
+  "removed": [0,0,0,0],
+  "hitSymbols": [],
+  "hitSizes": [],
+  "hitPays": [],
+  "hitCells": [],
+  "cascadeSteps": 0,
+  "survivors": ["0"],
+  "keptThrough": [0],
+  "drops": ["0"],
+  "dropSymbol": "0",
+  "dropChunk": ["0"],
+  "fromZero": [0],
+  "cascadeBoards": [],
+  "cascadeRemoved": [],
+  "cascadeAfter": [],
+  "spinBoards": [],
+  "spinCoins": [],
+  "spinMultipliers": [],
+  "spinCollected": [],
+  "spinFinalBoards": [],
+  "stepSpins": [],
+  "stepMultipliers": [],
+  "stepWins": [],
+  "stepHitSymbols": [],
+  "stepHitSizes": [],
+  "stepHitPays": [],
+  "stepHitCells": []
+ },
+ "nodes": [
+  {
+   "nodeType": "library",
+   "id": "spin",
+   "label": "Paid spin · 4 cells",
+   "mechanicName": "paid-spin",
+   "inputs": {"state":{"name":"state","type":"State"}},
+   "outputs": {"state":{"name":"state","type":"State"}},
+   "parameters": {}
+  },
+  {
+   "nodeType": "branch",
+   "id": "trigger",
+   "label": "3+ SCATTERs start the free spins",
+   "conditionId": "trigger",
+   "inputs": {"state":{"name":"state","type":"State"}},
+   "outputs": {"true":{"name":"true","type":"State"},"false":{"name":"false","type":"State"}}
+  },
+  {
+   "nodeType": "getState",
+   "id": "trigger-join",
+   "label": "Continue",
+   "inputs": {"state":{"name":"state","type":"State"}},
+   "outputs": {"state":{"name":"state","type":"State"}}
+  },
+  {
+   "nodeType": "modifyState",
+   "id": "credits",
+   "label": "A round pays at most 8 bets; its win as a multiple of the total bet",
+   "outputKey": "winCredits",
+   "expressionId": "credits",
+   "inputs": {"state":{"name":"state","type":"State"}},
+   "outputs": {"state":{"name":"state","type":"State"}}
+  },
+  {
+   "nodeType": "metricsSink",
+   "id": "round",
+   "label": "Round payout & RTP · at most 8 bets",
+   "winStateKey": "winCredits",
+   "winCap": 8,
+   "inputs": {"state":{"name":"state","type":"State"}},
+   "outputs": {}
+  },
+  {
+   "nodeType": "library",
+   "id": "trigger-yes",
+   "label": "3+ SCATTERs start the free spins",
+   "mechanicName": "free-spins",
+   "inputs": {"state":{"name":"state","type":"State"}},
+   "outputs": {"state":{"name":"state","type":"State"}},
+   "parameters": {}
+  }
+ ],
+ "edges": [
+  {"id":"spin.state->trigger","sourceNodeId":"spin","sourcePort":"state","targetNodeId":"trigger","targetPort":"state"},
+  {"id":"trigger.true->trigger-yes","sourceNodeId":"trigger","sourcePort":"true","targetNodeId":"trigger-yes","targetPort":"state"},
+  {"id":"trigger.false->trigger-join","sourceNodeId":"trigger","sourcePort":"false","targetNodeId":"trigger-join","targetPort":"state"},
+  {
+   "id": "trigger-yes.state->trigger-join",
+   "sourceNodeId": "trigger-yes",
+   "sourcePort": "state",
+   "targetNodeId": "trigger-join",
+   "targetPort": "state"
+  },
+  {"id":"trigger-join.state->credits","sourceNodeId":"trigger-join","sourcePort":"state","targetNodeId":"credits","targetPort":"state"},
+  {"id":"credits.state->round","sourceNodeId":"credits","sourcePort":"state","targetNodeId":"round","targetPort":"state"}
+ ],
+ "expressions": {
+  "trigger": {
+   "exprType": "binary",
+   "op": "And",
+   "left": {
+    "exprType": "compare",
+    "op": "Gte",
+    "left": {"exprType":"fieldAccess","target":"state","path":["scatterCount"]},
+    "right": {"exprType":"constant","kind":"Integer","value":"3"}
+   },
+   "right": {
+    "exprType": "compare",
+    "op": "Lt",
+    "left": {"exprType":"fieldAccess","target":"state","path":["roundCoins"]},
+    "right": {"exprType":"fieldAccess","target":"state","path":["capCoins"]}
+   }
+  },
+  "credits": {
+   "exprType": "binary",
+   "op": "Div",
+   "left": {
+    "exprType": "call",
+    "function": "min",
+    "args": [{"exprType":"fieldAccess","target":"state","path":["roundCoins"]},{"exprType":"fieldAccess","target":"state","path":["capCoins"]}]
+   },
+   "right": {"exprType":"fieldAccess","target":"state","path":["roundCost"]}
+  }
+ },
+ "mechanics": {
+  "join-groups": {
+   "name": "join-groups",
+   "description": "One pass of joining touching cells: each takes the smallest number among itself and its neighbours.",
+   "nodes": [
+    {
+     "nodeType": "modifyState",
+     "id": "before",
+     "label": "Remember the numbers before this pass",
+     "outputKey": "groupsBefore",
+     "expressionId": "before",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}}
+    },
+    {
+     "nodeType": "modifyState",
+     "id": "join",
+     "label": "Every cell takes the smallest number among itself and its four neighbours",
+     "outputKey": "groups",
+     "expressionId": "join",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}}
+    }
+   ],
+   "edges": [{"id":"before.state->join","sourceNodeId":"before","sourcePort":"state","targetNodeId":"join","targetPort":"state"}],
+   "expressions": {
+    "before": {"exprType":"fieldAccess","target":"state","path":["groups"]},
+    "join": {
+     "exprType": "map",
+     "stateKey": "groups",
+     "itemName": "item",
+     "indexName": "place",
+     "itemType": "Number",
+     "body": {
+      "exprType": "if",
+      "condition": {
+       "exprType": "compare",
+       "op": "Gte",
+       "left": {"exprType":"fieldAccess","target":"state","path":["item"]},
+       "right": {"exprType":"constant","kind":"Integer","value":"8"}
+      },
+      "thenExpr": {"exprType":"fieldAccess","target":"state","path":["item"]},
+      "elseExpr": {
+       "exprType": "call",
+       "function": "min",
+       "args": [
+        {
+         "exprType": "call",
+         "function": "min",
+         "args": [
+          {"exprType":"fieldAccess","target":"state","path":["item"]},
+          {
+           "exprType": "call",
+           "function": "index",
+           "args": [
+            {"exprType":"fieldAccess","target":"state","path":["groups"]},
+            {
+             "exprType": "call",
+             "function": "index",
+             "args": [
+              {"exprType":"fieldAccess","target":"state","path":["adjacent"]},
+              {
+               "exprType": "binary",
+               "op": "Add",
+               "left": {
+                "exprType": "binary",
+                "op": "Mul",
+                "left": {"exprType":"fieldAccess","target":"state","path":["place"]},
+                "right": {"exprType":"constant","kind":"Integer","value":"4"}
+               },
+               "right": {"exprType":"constant","kind":"Integer","value":"0"}
+              }
+             ]
+            }
+           ]
+          }
+         ]
+        },
+        {
+         "exprType": "call",
+         "function": "min",
+         "args": [
+          {
+           "exprType": "call",
+           "function": "min",
+           "args": [
+            {
+             "exprType": "call",
+             "function": "index",
+             "args": [
+              {"exprType":"fieldAccess","target":"state","path":["groups"]},
+              {
+               "exprType": "call",
+               "function": "index",
+               "args": [
+                {"exprType":"fieldAccess","target":"state","path":["adjacent"]},
+                {
+                 "exprType": "binary",
+                 "op": "Add",
+                 "left": {
+                  "exprType": "binary",
+                  "op": "Mul",
+                  "left": {"exprType":"fieldAccess","target":"state","path":["place"]},
+                  "right": {"exprType":"constant","kind":"Integer","value":"4"}
+                 },
+                 "right": {"exprType":"constant","kind":"Integer","value":"1"}
+                }
+               ]
+              }
+             ]
+            },
+            {
+             "exprType": "call",
+             "function": "index",
+             "args": [
+              {"exprType":"fieldAccess","target":"state","path":["groups"]},
+              {
+               "exprType": "call",
+               "function": "index",
+               "args": [
+                {"exprType":"fieldAccess","target":"state","path":["adjacent"]},
+                {
+                 "exprType": "binary",
+                 "op": "Add",
+                 "left": {
+                  "exprType": "binary",
+                  "op": "Mul",
+                  "left": {"exprType":"fieldAccess","target":"state","path":["place"]},
+                  "right": {"exprType":"constant","kind":"Integer","value":"4"}
+                 },
+                 "right": {"exprType":"constant","kind":"Integer","value":"2"}
+                }
+               ]
+              }
+             ]
+            }
+           ]
+          },
+          {
+           "exprType": "call",
+           "function": "index",
+           "args": [
+            {"exprType":"fieldAccess","target":"state","path":["groups"]},
+            {
+             "exprType": "call",
+             "function": "index",
+             "args": [
+              {"exprType":"fieldAccess","target":"state","path":["adjacent"]},
+              {
+               "exprType": "binary",
+               "op": "Add",
+               "left": {
+                "exprType": "binary",
+                "op": "Mul",
+                "left": {"exprType":"fieldAccess","target":"state","path":["place"]},
+                "right": {"exprType":"constant","kind":"Integer","value":"4"}
+               },
+               "right": {"exprType":"constant","kind":"Integer","value":"3"}
+              }
+             ]
+            }
+           ]
+          }
+         ]
+        }
+       ]
+      }
+     }
+    }
+   }
+  },
+  "claim-group": {
+   "name": "claim-group",
+   "description": "A group that pays: its pay is added to the board's, and the wilds in it cannot be used by another symbol.",
+   "nodes": [
+    {
+     "nodeType": "modifyState",
+     "id": "pay",
+     "label": "Add what the group pays",
+     "outputKey": "clusterCoins",
+     "expressionId": "pay",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}}
+    },
+    {
+     "nodeType": "modifyState",
+     "id": "wilds",
+     "label": "Its wilds are used up: no group of another symbol can count them",
+     "outputKey": "wildTaken",
+     "expressionId": "wilds",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}}
+    },
+    {
+     "nodeType": "modifyState",
+     "id": "symbol",
+     "label": "Remember that this symbol has paid",
+     "outputKey": "paidSymbols",
+     "expressionId": "symbol",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}}
+    },
+    {
+     "nodeType": "modifyState",
+     "id": "trace-symbol",
+     "label": "Remember the symbol",
+     "outputKey": "hitSymbols",
+     "expressionId": "trace-symbol",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}}
+    },
+    {
+     "nodeType": "modifyState",
+     "id": "trace-size",
+     "label": "Remember the size",
+     "outputKey": "hitSizes",
+     "expressionId": "trace-size",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}}
+    },
+    {
+     "nodeType": "modifyState",
+     "id": "trace-pay",
+     "label": "Remember the pay",
+     "outputKey": "hitPays",
+     "expressionId": "trace-pay",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}}
+    },
+    {
+     "nodeType": "modifyState",
+     "id": "trace-cells",
+     "label": "Remember the cells",
+     "outputKey": "hitCells",
+     "expressionId": "trace-cells",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}}
+    }
+   ],
+   "edges": [
+    {"id":"pay.state->wilds","sourceNodeId":"pay","sourcePort":"state","targetNodeId":"wilds","targetPort":"state"},
+    {"id":"wilds.state->symbol","sourceNodeId":"wilds","sourcePort":"state","targetNodeId":"symbol","targetPort":"state"},
+    {"id":"symbol.state->trace-symbol","sourceNodeId":"symbol","sourcePort":"state","targetNodeId":"trace-symbol","targetPort":"state"},
+    {"id":"trace-symbol.state->trace-size","sourceNodeId":"trace-symbol","sourcePort":"state","targetNodeId":"trace-size","targetPort":"state"},
+    {"id":"trace-size.state->trace-pay","sourceNodeId":"trace-size","sourcePort":"state","targetNodeId":"trace-pay","targetPort":"state"},
+    {"id":"trace-pay.state->trace-cells","sourceNodeId":"trace-pay","sourcePort":"state","targetNodeId":"trace-cells","targetPort":"state"}
+   ],
+   "expressions": {
+    "pay": {
+     "exprType": "binary",
+     "op": "Add",
+     "left": {"exprType":"fieldAccess","target":"state","path":["clusterCoins"]},
+     "right": {"exprType":"fieldAccess","target":"state","path":["groupPay"]}
+    },
+    "wilds": {
+     "exprType": "map",
+     "stateKey": "wildTaken",
+     "itemName": "item",
+     "indexName": "place",
+     "itemType": "Number",
+     "body": {
+      "exprType": "if",
+      "condition": {
+       "exprType": "binary",
+       "op": "And",
+       "left": {
+        "exprType": "compare",
+        "op": "Eq",
+        "left": {
+         "exprType": "call",
+         "function": "index",
+         "args": [{"exprType":"fieldAccess","target":"state","path":["groups"]},{"exprType":"fieldAccess","target":"state","path":["place"]}]
+        },
+        "right": {"exprType":"fieldAccess","target":"state","path":["groupStart"]}
+       },
+       "right": {
+        "exprType": "compare",
+        "op": "Eq",
+        "left": {
+         "exprType": "call",
+         "function": "index",
+         "args": [{"exprType":"fieldAccess","target":"state","path":["board"]},{"exprType":"fieldAccess","target":"state","path":["place"]}]
+        },
+        "right": {"exprType":"constant","kind":"String","value":"0"}
+       }
+      },
+      "thenExpr": {"exprType":"constant","kind":"Integer","value":"1"},
+      "elseExpr": {"exprType":"fieldAccess","target":"state","path":["item"]}
+     }
+    },
+    "symbol": {
+     "exprType": "if",
+     "condition": {
+      "exprType": "call",
+      "function": "contains",
+      "args": [{"exprType":"fieldAccess","target":"state","path":["paidSymbols"]},{"exprType":"fieldAccess","target":"state","path":["clusterSymbol"]}]
+     },
+     "thenExpr": {"exprType":"fieldAccess","target":"state","path":["paidSymbols"]},
+     "elseExpr": {
+      "exprType": "call",
+      "function": "append",
+      "args": [{"exprType":"fieldAccess","target":"state","path":["paidSymbols"]},{"exprType":"fieldAccess","target":"state","path":["clusterSymbol"]}]
+     }
+    },
+    "trace-symbol": {
+     "exprType": "if",
+     "condition": {"exprType":"fieldAccess","target":"state","path":["traceEnabled"]},
+     "thenExpr": {
+      "exprType": "call",
+      "function": "append",
+      "args": [{"exprType":"fieldAccess","target":"state","path":["hitSymbols"]},{"exprType":"fieldAccess","target":"state","path":["clusterSymbol"]}]
+     },
+     "elseExpr": {"exprType":"fieldAccess","target":"state","path":["hitSymbols"]}
+    },
+    "trace-size": {
+     "exprType": "if",
+     "condition": {"exprType":"fieldAccess","target":"state","path":["traceEnabled"]},
+     "thenExpr": {
+      "exprType": "call",
+      "function": "append",
+      "args": [{"exprType":"fieldAccess","target":"state","path":["hitSizes"]},{"exprType":"fieldAccess","target":"state","path":["groupSize"]}]
+     },
+     "elseExpr": {"exprType":"fieldAccess","target":"state","path":["hitSizes"]}
+    },
+    "trace-pay": {
+     "exprType": "if",
+     "condition": {"exprType":"fieldAccess","target":"state","path":["traceEnabled"]},
+     "thenExpr": {
+      "exprType": "call",
+      "function": "append",
+      "args": [{"exprType":"fieldAccess","target":"state","path":["hitPays"]},{"exprType":"fieldAccess","target":"state","path":["groupPay"]}]
+     },
+     "elseExpr": {"exprType":"fieldAccess","target":"state","path":["hitPays"]}
+    },
+    "trace-cells": {
+     "exprType": "if",
+     "condition": {"exprType":"fieldAccess","target":"state","path":["traceEnabled"]},
+     "thenExpr": {
+      "exprType": "call",
+      "function": "append",
+      "args": [
+       {"exprType":"fieldAccess","target":"state","path":["hitCells"]},
+       {
+        "exprType": "map",
+        "stateKey": "groups",
+        "itemName": "item",
+        "itemType": "Number",
+        "body": {
+         "exprType": "if",
+         "condition": {
+          "exprType": "compare",
+          "op": "Eq",
+          "left": {"exprType":"fieldAccess","target":"state","path":["item"]},
+          "right": {"exprType":"fieldAccess","target":"state","path":["groupStart"]}
+         },
+         "thenExpr": {"exprType":"constant","kind":"Integer","value":"1"},
+         "elseExpr": {"exprType":"constant","kind":"Integer","value":"0"}
+        }
+       }
+      ]
+     },
+     "elseExpr": {"exprType":"fieldAccess","target":"state","path":["hitCells"]}
+    }
+   }
+  },
+  "pay-group": {
+   "name": "pay-group",
+   "description": "One group of touching symbols: its size selects its pay, and a group that pays is claimed.",
+   "nodes": [
+    {
+     "nodeType": "modifyState",
+     "id": "start",
+     "label": "A group is known by its first cell",
+     "outputKey": "groupStart",
+     "expressionId": "start",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}}
+    },
+    {
+     "nodeType": "modifyState",
+     "id": "size",
+     "label": "Count the cells of the group, wilds included",
+     "outputKey": "groupSize",
+     "expressionId": "size",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}}
+    },
+    {
+     "nodeType": "modifyState",
+     "id": "pay",
+     "label": "Look up what a group of this size pays",
+     "outputKey": "groupPay",
+     "expressionId": "pay",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}}
+    },
+    {
+     "nodeType": "branch",
+     "id": "pays",
+     "label": "A group that pays is claimed",
+     "conditionId": "pays",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"true":{"name":"true","type":"State"},"false":{"name":"false","type":"State"}}
+    },
+    {
+     "nodeType": "getState",
+     "id": "pays-join",
+     "label": "Continue",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}}
+    },
+    {
+     "nodeType": "library",
+     "id": "pays-yes",
+     "label": "A group that pays is claimed",
+     "mechanicName": "claim-group",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}},
+     "parameters": {}
+    }
+   ],
+   "edges": [
+    {"id":"start.state->size","sourceNodeId":"start","sourcePort":"state","targetNodeId":"size","targetPort":"state"},
+    {"id":"size.state->pay","sourceNodeId":"size","sourcePort":"state","targetNodeId":"pay","targetPort":"state"},
+    {"id":"pay.state->pays","sourceNodeId":"pay","sourcePort":"state","targetNodeId":"pays","targetPort":"state"},
+    {"id":"pays.true->pays-yes","sourceNodeId":"pays","sourcePort":"true","targetNodeId":"pays-yes","targetPort":"state"},
+    {"id":"pays.false->pays-join","sourceNodeId":"pays","sourcePort":"false","targetNodeId":"pays-join","targetPort":"state"},
+    {"id":"pays-yes.state->pays-join","sourceNodeId":"pays-yes","sourcePort":"state","targetNodeId":"pays-join","targetPort":"state"}
+   ],
+   "expressions": {
+    "start": {
+     "exprType": "call",
+     "function": "index",
+     "args": [{"exprType":"fieldAccess","target":"state","path":["groupStarts"]},{"exprType":"fieldAccess","target":"state","path":["groupIndex"]}]
+    },
+    "size": {
+     "exprType": "aggregate",
+     "func": "Count",
+     "stateKey": "groups",
+     "itemName": "item",
+     "itemType": "Number",
+     "predicate": {
+      "exprType": "compare",
+      "op": "Eq",
+      "left": {"exprType":"fieldAccess","target":"state","path":["item"]},
+      "right": {"exprType":"fieldAccess","target":"state","path":["groupStart"]}
+     }
+    },
+    "pay": {
+     "exprType": "call",
+     "function": "index",
+     "args": [
+      {"exprType":"fieldAccess","target":"state","path":["clusterPays"]},
+      {
+       "exprType": "binary",
+       "op": "Add",
+       "left": {
+        "exprType": "binary",
+        "op": "Mul",
+        "left": {"exprType":"call","function":"toNumber","args":[{"exprType":"fieldAccess","target":"state","path":["clusterSymbol"]}]},
+        "right": {"exprType":"constant","kind":"Integer","value":"5"}
+       },
+       "right": {"exprType":"fieldAccess","target":"state","path":["groupSize"]}
+      }
+     ]
+    },
+    "pays": {
+     "exprType": "compare",
+     "op": "Gt",
+     "left": {"exprType":"fieldAccess","target":"state","path":["groupPay"]},
+     "right": {"exprType":"constant","kind":"Integer","value":"0"}
+    }
+   }
+  },
+  "symbol-groups": {
+   "name": "symbol-groups",
+   "description": "Joins the touching cells of one symbol into groups and pays every group.",
+   "nodes": [
+    {
+     "nodeType": "modifyState",
+     "id": "fresh",
+     "label": "Nothing has been joined yet",
+     "outputKey": "groupsBefore",
+     "expressionId": "fresh",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}}
+    },
+    {
+     "nodeType": "loop",
+     "id": "join",
+     "label": "Join touching cells until a pass changes nothing",
+     "maxIterations": 5,
+     "stopConditionId": "join-until",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"body":{"name":"body","type":"State"},"exit":{"name":"exit","type":"State"}}
+    },
+    {
+     "nodeType": "modifyState",
+     "id": "starts",
+     "label": "Every group now carries the number of its first cell: list the groups",
+     "outputKey": "groupStarts",
+     "expressionId": "starts",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}}
+    },
+    {
+     "nodeType": "loop",
+     "id": "group",
+     "label": "Pay every group",
+     "maxIterations": 3,
+     "stopConditionId": "group-until",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"body":{"name":"body","type":"State"},"exit":{"name":"exit","type":"State"}}
+    },
+    {
+     "nodeType": "getState",
+     "id": "done",
+     "label": "Done",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}}
+    },
+    {
+     "nodeType": "library",
+     "id": "join-pass",
+     "label": "Join",
+     "mechanicName": "join-groups",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}},
+     "parameters": {}
+    },
+    {
+     "nodeType": "modifyState",
+     "id": "group-turn",
+     "label": "Which pass this is, counted from 0",
+     "outputKey": "groupIndex",
+     "expressionId": "group-turn",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}}
+    },
+    {
+     "nodeType": "library",
+     "id": "group-pass",
+     "label": "Pay one group",
+     "mechanicName": "pay-group",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}},
+     "parameters": {}
+    }
+   ],
+   "edges": [
+    {"id":"fresh.state->join","sourceNodeId":"fresh","sourcePort":"state","targetNodeId":"join","targetPort":"state"},
+    {"id":"join.body->join-pass","sourceNodeId":"join","sourcePort":"body","targetNodeId":"join-pass","targetPort":"state"},
+    {"id":"join.exit->starts","sourceNodeId":"join","sourcePort":"exit","targetNodeId":"starts","targetPort":"state"},
+    {"id":"starts.state->group","sourceNodeId":"starts","sourcePort":"state","targetNodeId":"group","targetPort":"state"},
+    {"id":"group.body->group-turn","sourceNodeId":"group","sourcePort":"body","targetNodeId":"group-turn","targetPort":"state"},
+    {"id":"group-turn.state->group-pass","sourceNodeId":"group-turn","sourcePort":"state","targetNodeId":"group-pass","targetPort":"state"},
+    {"id":"group.exit->done","sourceNodeId":"group","sourcePort":"exit","targetNodeId":"done","targetPort":"state"}
+   ],
+   "expressions": {
+    "fresh": {"exprType":"fieldAccess","target":"state","path":["noCells"]},
+    "join-until": {
+     "exprType": "compare",
+     "op": "Eq",
+     "left": {"exprType":"fieldAccess","target":"state","path":["groups"]},
+     "right": {"exprType":"fieldAccess","target":"state","path":["groupsBefore"]}
+    },
+    "starts": {
+     "exprType": "filter",
+     "stateKey": "groups",
+     "itemName": "item",
+     "indexName": "place",
+     "itemType": "Number",
+     "predicate": {
+      "exprType": "compare",
+      "op": "Eq",
+      "left": {"exprType":"fieldAccess","target":"state","path":["item"]},
+      "right": {"exprType":"fieldAccess","target":"state","path":["place"]}
+     }
+    },
+    "group-until": {
+     "exprType": "compare",
+     "op": "Gte",
+     "left": {"exprType":"fieldAccess","target":"state","path":["__iter_group__"]},
+     "right": {"exprType":"call","function":"length","args":[{"exprType":"fieldAccess","target":"state","path":["groupStarts"]}]}
+    },
+    "group-turn": {"exprType":"fieldAccess","target":"state","path":["__iter_group__"]}
+   }
+  },
+  "symbol-clusters": {
+   "name": "symbol-clusters",
+   "description": "The groups of one symbol: touching cells of the symbol, and the wilds between them, form a group.",
+   "nodes": [
+    {
+     "nodeType": "modifyState",
+     "id": "symbol",
+     "label": "The symbol to look at",
+     "outputKey": "clusterSymbol",
+     "expressionId": "symbol",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}}
+    },
+    {
+     "nodeType": "modifyState",
+     "id": "number",
+     "label": "Number the cells of the symbol; a wild no group has used counts as the symbol",
+     "outputKey": "groups",
+     "expressionId": "number",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}}
+    },
+    {
+     "nodeType": "branch",
+     "id": "enough",
+     "label": "With fewer cells than the smallest group that pays, nothing can pay",
+     "conditionId": "enough",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"true":{"name":"true","type":"State"},"false":{"name":"false","type":"State"}}
+    },
+    {
+     "nodeType": "getState",
+     "id": "enough-join",
+     "label": "Continue",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}}
+    },
+    {
+     "nodeType": "library",
+     "id": "enough-yes",
+     "label": "With fewer cells than the smallest group that pays, nothing can pay",
+     "mechanicName": "symbol-groups",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}},
+     "parameters": {}
+    }
+   ],
+   "edges": [
+    {"id":"symbol.state->number","sourceNodeId":"symbol","sourcePort":"state","targetNodeId":"number","targetPort":"state"},
+    {"id":"number.state->enough","sourceNodeId":"number","sourcePort":"state","targetNodeId":"enough","targetPort":"state"},
+    {"id":"enough.true->enough-yes","sourceNodeId":"enough","sourcePort":"true","targetNodeId":"enough-yes","targetPort":"state"},
+    {"id":"enough.false->enough-join","sourceNodeId":"enough","sourcePort":"false","targetNodeId":"enough-join","targetPort":"state"},
+    {"id":"enough-yes.state->enough-join","sourceNodeId":"enough-yes","sourcePort":"state","targetNodeId":"enough-join","targetPort":"state"}
+   ],
+   "expressions": {
+    "symbol": {
+     "exprType": "call",
+     "function": "index",
+     "args": [{"exprType":"fieldAccess","target":"state","path":["clusterSymbols"]},{"exprType":"fieldAccess","target":"state","path":["clusterIndex"]}]
+    },
+    "number": {
+     "exprType": "map",
+     "stateKey": "board",
+     "itemName": "item",
+     "indexName": "place",
+     "itemType": "String",
+     "body": {
+      "exprType": "if",
+      "condition": {
+       "exprType": "compare",
+       "op": "Eq",
+       "left": {"exprType":"fieldAccess","target":"state","path":["item"]},
+       "right": {"exprType":"fieldAccess","target":"state","path":["clusterSymbol"]}
+      },
+      "thenExpr": {"exprType":"fieldAccess","target":"state","path":["place"]},
+      "elseExpr": {
+       "exprType": "if",
+       "condition": {
+        "exprType": "binary",
+        "op": "And",
+        "left": {
+         "exprType": "compare",
+         "op": "Eq",
+         "left": {"exprType":"fieldAccess","target":"state","path":["item"]},
+         "right": {"exprType":"constant","kind":"String","value":"0"}
+        },
+        "right": {
+         "exprType": "compare",
+         "op": "Eq",
+         "left": {
+          "exprType": "call",
+          "function": "index",
+          "args": [{"exprType":"fieldAccess","target":"state","path":["wildTaken"]},{"exprType":"fieldAccess","target":"state","path":["place"]}]
+         },
+         "right": {"exprType":"constant","kind":"Integer","value":"0"}
+        }
+       },
+       "thenExpr": {
+        "exprType": "binary",
+        "op": "Add",
+        "left": {"exprType":"fieldAccess","target":"state","path":["place"]},
+        "right": {"exprType":"constant","kind":"Integer","value":"4"}
+       },
+       "elseExpr": {"exprType":"constant","kind":"Integer","value":"8"}
+      }
+     }
+    },
+    "enough": {
+     "exprType": "compare",
+     "op": "Gte",
+     "left": {
+      "exprType": "aggregate",
+      "func": "Count",
+      "stateKey": "groups",
+      "itemName": "item",
+      "itemType": "Number",
+      "predicate": {
+       "exprType": "compare",
+       "op": "Lt",
+       "left": {"exprType":"fieldAccess","target":"state","path":["item"]},
+       "right": {"exprType":"constant","kind":"Integer","value":"8"}
+      }
+     },
+     "right": {"exprType":"fieldAccess","target":"state","path":["clusterMinSize"]}
+    }
+   }
+  },
+  "cluster-pays": {
+   "name": "cluster-pays",
+   "description": "Cluster pays: touching cells of one symbol form a group that pays by its size; wilds stand in for any symbol, once.",
+   "nodes": [
+    {
+     "nodeType": "modifyState",
+     "id": "reset-pay",
+     "label": "Nothing has paid yet",
+     "outputKey": "clusterCoins",
+     "expressionId": "reset-pay",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}}
+    },
+    {
+     "nodeType": "modifyState",
+     "id": "reset-wilds",
+     "label": "Every wild is free",
+     "outputKey": "wildTaken",
+     "expressionId": "reset-wilds",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}}
+    },
+    {
+     "nodeType": "modifyState",
+     "id": "reset-symbols",
+     "label": "No symbol has paid yet",
+     "outputKey": "paidSymbols",
+     "expressionId": "reset-symbols",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}}
+    },
+    {
+     "nodeType": "modifyState",
+     "id": "reset-hitSymbols",
+     "label": "Start the trace of this board",
+     "outputKey": "hitSymbols",
+     "expressionId": "reset-hitSymbols",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}}
+    },
+    {
+     "nodeType": "modifyState",
+     "id": "reset-hitSizes",
+     "label": "Start the trace of this board",
+     "outputKey": "hitSizes",
+     "expressionId": "reset-hitSizes",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}}
+    },
+    {
+     "nodeType": "modifyState",
+     "id": "reset-hitPays",
+     "label": "Start the trace of this board",
+     "outputKey": "hitPays",
+     "expressionId": "reset-hitPays",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}}
+    },
+    {
+     "nodeType": "modifyState",
+     "id": "reset-hitCells",
+     "label": "Start the trace of this board",
+     "outputKey": "hitCells",
+     "expressionId": "reset-hitCells",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}}
+    },
+    {
+     "nodeType": "modifyState",
+     "id": "order",
+     "label": "List the paying symbols in the order they first appear on the board",
+     "outputKey": "clusterSymbols",
+     "expressionId": "order",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}}
+    },
+    {
+     "nodeType": "loop",
+     "id": "symbol",
+     "label": "Pay the groups of every symbol on the board",
+     "maxIterations": 3,
+     "stopConditionId": "symbol-until",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"body":{"name":"body","type":"State"},"exit":{"name":"exit","type":"State"}}
+    },
+    {
+     "nodeType": "modifyState",
+     "id": "removed",
+     "label": "Every symbol that paid leaves the board, with the wilds its groups used",
+     "outputKey": "removed",
+     "expressionId": "removed",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}}
+    },
+    {
+     "nodeType": "modifyState",
+     "id": "symbol-turn",
+     "label": "Which pass this is, counted from 0",
+     "outputKey": "clusterIndex",
+     "expressionId": "symbol-turn",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}}
+    },
+    {
+     "nodeType": "library",
+     "id": "symbol-pass",
+     "label": "One symbol",
+     "mechanicName": "symbol-clusters",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}},
+     "parameters": {}
+    }
+   ],
+   "edges": [
+    {"id":"reset-pay.state->reset-wilds","sourceNodeId":"reset-pay","sourcePort":"state","targetNodeId":"reset-wilds","targetPort":"state"},
+    {
+     "id": "reset-wilds.state->reset-symbols",
+     "sourceNodeId": "reset-wilds",
+     "sourcePort": "state",
+     "targetNodeId": "reset-symbols",
+     "targetPort": "state"
+    },
+    {
+     "id": "reset-symbols.state->reset-hitSymbols",
+     "sourceNodeId": "reset-symbols",
+     "sourcePort": "state",
+     "targetNodeId": "reset-hitSymbols",
+     "targetPort": "state"
+    },
+    {
+     "id": "reset-hitSymbols.state->reset-hitSizes",
+     "sourceNodeId": "reset-hitSymbols",
+     "sourcePort": "state",
+     "targetNodeId": "reset-hitSizes",
+     "targetPort": "state"
+    },
+    {
+     "id": "reset-hitSizes.state->reset-hitPays",
+     "sourceNodeId": "reset-hitSizes",
+     "sourcePort": "state",
+     "targetNodeId": "reset-hitPays",
+     "targetPort": "state"
+    },
+    {
+     "id": "reset-hitPays.state->reset-hitCells",
+     "sourceNodeId": "reset-hitPays",
+     "sourcePort": "state",
+     "targetNodeId": "reset-hitCells",
+     "targetPort": "state"
+    },
+    {"id":"reset-hitCells.state->order","sourceNodeId":"reset-hitCells","sourcePort":"state","targetNodeId":"order","targetPort":"state"},
+    {"id":"order.state->symbol","sourceNodeId":"order","sourcePort":"state","targetNodeId":"symbol","targetPort":"state"},
+    {"id":"symbol.body->symbol-turn","sourceNodeId":"symbol","sourcePort":"body","targetNodeId":"symbol-turn","targetPort":"state"},
+    {"id":"symbol-turn.state->symbol-pass","sourceNodeId":"symbol-turn","sourcePort":"state","targetNodeId":"symbol-pass","targetPort":"state"},
+    {"id":"symbol.exit->removed","sourceNodeId":"symbol","sourcePort":"exit","targetNodeId":"removed","targetPort":"state"}
+   ],
+   "expressions": {
+    "reset-pay": {"exprType":"constant","kind":"Integer","value":"0"},
+    "reset-wilds": {"exprType":"fieldAccess","target":"state","path":["noCells"]},
+    "reset-symbols": {"exprType":"fieldAccess","target":"state","path":["emptyArray"]},
+    "reset-hitSymbols": {"exprType":"fieldAccess","target":"state","path":["emptyArray"]},
+    "reset-hitSizes": {"exprType":"fieldAccess","target":"state","path":["emptyArray"]},
+    "reset-hitPays": {"exprType":"fieldAccess","target":"state","path":["emptyArray"]},
+    "reset-hitCells": {"exprType":"fieldAccess","target":"state","path":["emptyArray"]},
+    "order": {
+     "exprType": "fold",
+     "stateKey": "board",
+     "accName": "acc",
+     "itemName": "item",
+     "itemType": "String",
+     "init": {"exprType":"fieldAccess","target":"state","path":["emptyArray"]},
+     "body": {
+      "exprType": "if",
+      "condition": {
+       "exprType": "binary",
+       "op": "And",
+       "left": {
+        "exprType": "call",
+        "function": "contains",
+        "args": [{"exprType":"fieldAccess","target":"state","path":["payingSymbols"]},{"exprType":"fieldAccess","target":"state","path":["item"]}]
+       },
+       "right": {
+        "exprType": "not",
+        "expr": {
+         "exprType": "call",
+         "function": "contains",
+         "args": [{"exprType":"fieldAccess","target":"state","path":["acc"]},{"exprType":"fieldAccess","target":"state","path":["item"]}]
+        }
+       }
+      },
+      "thenExpr": {
+       "exprType": "call",
+       "function": "append",
+       "args": [{"exprType":"fieldAccess","target":"state","path":["acc"]},{"exprType":"fieldAccess","target":"state","path":["item"]}]
+      },
+      "elseExpr": {"exprType":"fieldAccess","target":"state","path":["acc"]}
+     }
+    },
+    "symbol-until": {
+     "exprType": "compare",
+     "op": "Gte",
+     "left": {"exprType":"fieldAccess","target":"state","path":["__iter_symbol__"]},
+     "right": {"exprType":"call","function":"length","args":[{"exprType":"fieldAccess","target":"state","path":["clusterSymbols"]}]}
+    },
+    "symbol-turn": {"exprType":"fieldAccess","target":"state","path":["__iter_symbol__"]},
+    "removed": {
+     "exprType": "map",
+     "stateKey": "board",
+     "itemName": "item",
+     "indexName": "place",
+     "itemType": "String",
+     "body": {
+      "exprType": "if",
+      "condition": {
+       "exprType": "binary",
+       "op": "Or",
+       "left": {
+        "exprType": "call",
+        "function": "contains",
+        "args": [{"exprType":"fieldAccess","target":"state","path":["paidSymbols"]},{"exprType":"fieldAccess","target":"state","path":["item"]}]
+       },
+       "right": {
+        "exprType": "compare",
+        "op": "Eq",
+        "left": {
+         "exprType": "call",
+         "function": "index",
+         "args": [{"exprType":"fieldAccess","target":"state","path":["wildTaken"]},{"exprType":"fieldAccess","target":"state","path":["place"]}]
+        },
+        "right": {"exprType":"constant","kind":"Integer","value":"1"}
+       }
+      },
+      "thenExpr": {"exprType":"constant","kind":"Integer","value":"1"},
+      "elseExpr": {"exprType":"constant","kind":"Integer","value":"0"}
+     }
+    }
+   }
+  },
+  "pay-step": {
+   "name": "pay-step",
+   "description": "Pays one step of a cascade: its groups × a multiplier that grows with every step.",
+   "nodes": [
+    {
+     "nodeType": "modifyState",
+     "id": "multiplier",
+     "label": "A step pays × the multiplier of the spin, plus 1 for every step before it, at most × 3",
+     "outputKey": "stepMultiplier",
+     "expressionId": "multiplier",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}}
+    },
+    {
+     "nodeType": "modifyState",
+     "id": "step",
+     "label": "The step pays its groups × the multiplier",
+     "outputKey": "stepCoins",
+     "expressionId": "step",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}}
+    },
+    {
+     "nodeType": "modifyState",
+     "id": "round",
+     "label": "Add it to the round",
+     "outputKey": "roundCoins",
+     "expressionId": "round",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}}
+    },
+    {
+     "nodeType": "modifyState",
+     "id": "trace-spin",
+     "label": "Remember which spin the step belongs to",
+     "outputKey": "stepSpins",
+     "expressionId": "trace-spin",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}}
+    },
+    {
+     "nodeType": "modifyState",
+     "id": "trace-multiplier",
+     "label": "Remember the multiplier",
+     "outputKey": "stepMultipliers",
+     "expressionId": "trace-multiplier",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}}
+    },
+    {
+     "nodeType": "modifyState",
+     "id": "trace-win",
+     "label": "Remember what the step paid",
+     "outputKey": "stepWins",
+     "expressionId": "trace-win",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}}
+    },
+    {
+     "nodeType": "modifyState",
+     "id": "trace-hitSymbols",
+     "label": "Remember the groups that paid",
+     "outputKey": "stepHitSymbols",
+     "expressionId": "trace-hitSymbols",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}}
+    },
+    {
+     "nodeType": "modifyState",
+     "id": "trace-hitSizes",
+     "label": "Remember the groups that paid",
+     "outputKey": "stepHitSizes",
+     "expressionId": "trace-hitSizes",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}}
+    },
+    {
+     "nodeType": "modifyState",
+     "id": "trace-hitPays",
+     "label": "Remember the groups that paid",
+     "outputKey": "stepHitPays",
+     "expressionId": "trace-hitPays",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}}
+    },
+    {
+     "nodeType": "modifyState",
+     "id": "trace-hitCells",
+     "label": "Remember the groups that paid",
+     "outputKey": "stepHitCells",
+     "expressionId": "trace-hitCells",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}}
+    }
+   ],
+   "edges": [
+    {"id":"multiplier.state->step","sourceNodeId":"multiplier","sourcePort":"state","targetNodeId":"step","targetPort":"state"},
+    {"id":"step.state->round","sourceNodeId":"step","sourcePort":"state","targetNodeId":"round","targetPort":"state"},
+    {"id":"round.state->trace-spin","sourceNodeId":"round","sourcePort":"state","targetNodeId":"trace-spin","targetPort":"state"},
+    {
+     "id": "trace-spin.state->trace-multiplier",
+     "sourceNodeId": "trace-spin",
+     "sourcePort": "state",
+     "targetNodeId": "trace-multiplier",
+     "targetPort": "state"
+    },
+    {
+     "id": "trace-multiplier.state->trace-win",
+     "sourceNodeId": "trace-multiplier",
+     "sourcePort": "state",
+     "targetNodeId": "trace-win",
+     "targetPort": "state"
+    },
+    {
+     "id": "trace-win.state->trace-hitSymbols",
+     "sourceNodeId": "trace-win",
+     "sourcePort": "state",
+     "targetNodeId": "trace-hitSymbols",
+     "targetPort": "state"
+    },
+    {
+     "id": "trace-hitSymbols.state->trace-hitSizes",
+     "sourceNodeId": "trace-hitSymbols",
+     "sourcePort": "state",
+     "targetNodeId": "trace-hitSizes",
+     "targetPort": "state"
+    },
+    {
+     "id": "trace-hitSizes.state->trace-hitPays",
+     "sourceNodeId": "trace-hitSizes",
+     "sourcePort": "state",
+     "targetNodeId": "trace-hitPays",
+     "targetPort": "state"
+    },
+    {
+     "id": "trace-hitPays.state->trace-hitCells",
+     "sourceNodeId": "trace-hitPays",
+     "sourcePort": "state",
+     "targetNodeId": "trace-hitCells",
+     "targetPort": "state"
+    }
+   ],
+   "expressions": {
+    "multiplier": {
+     "exprType": "call",
+     "function": "min",
+     "args": [
+      {"exprType":"constant","kind":"Integer","value":"3"},
+      {
+       "exprType": "binary",
+       "op": "Add",
+       "left": {"exprType":"fieldAccess","target":"state","path":["multiplier"]},
+       "right": {"exprType":"fieldAccess","target":"state","path":["cascadeSteps"]}
+      }
+     ]
+    },
+    "step": {
+     "exprType": "binary",
+     "op": "Mul",
+     "left": {"exprType":"fieldAccess","target":"state","path":["clusterCoins"]},
+     "right": {"exprType":"fieldAccess","target":"state","path":["stepMultiplier"]}
+    },
+    "round": {
+     "exprType": "binary",
+     "op": "Add",
+     "left": {"exprType":"fieldAccess","target":"state","path":["roundCoins"]},
+     "right": {"exprType":"fieldAccess","target":"state","path":["stepCoins"]}
+    },
+    "trace-spin": {
+     "exprType": "if",
+     "condition": {"exprType":"fieldAccess","target":"state","path":["traceEnabled"]},
+     "thenExpr": {
+      "exprType": "call",
+      "function": "append",
+      "args": [
+       {"exprType":"fieldAccess","target":"state","path":["stepSpins"]},
+       {
+        "exprType": "binary",
+        "op": "Sub",
+        "left": {"exprType":"call","function":"length","args":[{"exprType":"fieldAccess","target":"state","path":["spinBoards"]}]},
+        "right": {"exprType":"constant","kind":"Integer","value":"1"}
+       }
+      ]
+     },
+     "elseExpr": {"exprType":"fieldAccess","target":"state","path":["stepSpins"]}
+    },
+    "trace-multiplier": {
+     "exprType": "if",
+     "condition": {"exprType":"fieldAccess","target":"state","path":["traceEnabled"]},
+     "thenExpr": {
+      "exprType": "call",
+      "function": "append",
+      "args": [
+       {"exprType":"fieldAccess","target":"state","path":["stepMultipliers"]},
+       {"exprType":"fieldAccess","target":"state","path":["stepMultiplier"]}
+      ]
+     },
+     "elseExpr": {"exprType":"fieldAccess","target":"state","path":["stepMultipliers"]}
+    },
+    "trace-win": {
+     "exprType": "if",
+     "condition": {"exprType":"fieldAccess","target":"state","path":["traceEnabled"]},
+     "thenExpr": {
+      "exprType": "call",
+      "function": "append",
+      "args": [{"exprType":"fieldAccess","target":"state","path":["stepWins"]},{"exprType":"fieldAccess","target":"state","path":["stepCoins"]}]
+     },
+     "elseExpr": {"exprType":"fieldAccess","target":"state","path":["stepWins"]}
+    },
+    "trace-hitSymbols": {
+     "exprType": "if",
+     "condition": {"exprType":"fieldAccess","target":"state","path":["traceEnabled"]},
+     "thenExpr": {
+      "exprType": "call",
+      "function": "append",
+      "args": [{"exprType":"fieldAccess","target":"state","path":["stepHitSymbols"]},{"exprType":"fieldAccess","target":"state","path":["hitSymbols"]}]
+     },
+     "elseExpr": {"exprType":"fieldAccess","target":"state","path":["stepHitSymbols"]}
+    },
+    "trace-hitSizes": {
+     "exprType": "if",
+     "condition": {"exprType":"fieldAccess","target":"state","path":["traceEnabled"]},
+     "thenExpr": {
+      "exprType": "call",
+      "function": "append",
+      "args": [{"exprType":"fieldAccess","target":"state","path":["stepHitSizes"]},{"exprType":"fieldAccess","target":"state","path":["hitSizes"]}]
+     },
+     "elseExpr": {"exprType":"fieldAccess","target":"state","path":["stepHitSizes"]}
+    },
+    "trace-hitPays": {
+     "exprType": "if",
+     "condition": {"exprType":"fieldAccess","target":"state","path":["traceEnabled"]},
+     "thenExpr": {
+      "exprType": "call",
+      "function": "append",
+      "args": [{"exprType":"fieldAccess","target":"state","path":["stepHitPays"]},{"exprType":"fieldAccess","target":"state","path":["hitPays"]}]
+     },
+     "elseExpr": {"exprType":"fieldAccess","target":"state","path":["stepHitPays"]}
+    },
+    "trace-hitCells": {
+     "exprType": "if",
+     "condition": {"exprType":"fieldAccess","target":"state","path":["traceEnabled"]},
+     "thenExpr": {
+      "exprType": "call",
+      "function": "append",
+      "args": [{"exprType":"fieldAccess","target":"state","path":["stepHitCells"]},{"exprType":"fieldAccess","target":"state","path":["hitCells"]}]
+     },
+     "elseExpr": {"exprType":"fieldAccess","target":"state","path":["stepHitCells"]}
+    }
+   }
+  },
+  "drop-symbol": {
+   "name": "drop-symbol",
+   "description": "Draws one new symbol for an empty cell.",
+   "nodes": [
+    {
+     "nodeType": "draw",
+     "id": "symbol",
+     "label": "Draw the symbol that drops in",
+     "stateWriteKey": "dropSymbol",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}},
+     "drawWeights": [{"outcomeId":"1","weight":2,"value":0},{"outcomeId":"2","weight":1,"value":0}]
+    },
+    {
+     "nodeType": "modifyState",
+     "id": "drop",
+     "label": "It waits above the board with the others",
+     "outputKey": "drops",
+     "expressionId": "drop",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}}
+    }
+   ],
+   "edges": [{"id":"symbol.state->drop","sourceNodeId":"symbol","sourcePort":"state","targetNodeId":"drop","targetPort":"state"}],
+   "expressions": {
+    "drop": {
+     "exprType": "call",
+     "function": "append",
+     "args": [{"exprType":"fieldAccess","target":"state","path":["drops"]},{"exprType":"fieldAccess","target":"state","path":["dropSymbol"]}]
+    }
+   }
+  },
+  "tumble": {
+   "name": "tumble",
+   "description": "Removes the marked symbols: the rest fall down their columns and new symbols drop in from the top.",
+   "nodes": [
+    {
+     "nodeType": "modifyState",
+     "id": "survivors",
+     "label": "The symbols that stay, in board order",
+     "outputKey": "survivors",
+     "expressionId": "survivors",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}}
+    },
+    {
+     "nodeType": "modifyState",
+     "id": "count",
+     "label": "Count the symbols that stay, cell by cell",
+     "outputKey": "keptThrough",
+     "expressionId": "count",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}}
+    },
+    {
+     "nodeType": "modifyState",
+     "id": "empty",
+     "label": "No new symbol has dropped yet",
+     "outputKey": "drops",
+     "expressionId": "empty",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}}
+    },
+    {
+     "nodeType": "loop",
+     "id": "refill",
+     "label": "Draw a new symbol for every cell left empty",
+     "maxIterations": 5,
+     "stopConditionId": "refill-until",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"body":{"name":"body","type":"State"},"exit":{"name":"exit","type":"State"}}
+    },
+    {
+     "nodeType": "modifyState",
+     "id": "settle",
+     "label": "The symbols that stay fall to the bottom of their column; the new ones fill it from the top",
+     "outputKey": "board",
+     "expressionId": "settle",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}}
+    },
+    {
+     "nodeType": "library",
+     "id": "refill-pass",
+     "label": "One new symbol",
+     "mechanicName": "drop-symbol",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}},
+     "parameters": {}
+    }
+   ],
+   "edges": [
+    {"id":"survivors.state->count","sourceNodeId":"survivors","sourcePort":"state","targetNodeId":"count","targetPort":"state"},
+    {"id":"count.state->empty","sourceNodeId":"count","sourcePort":"state","targetNodeId":"empty","targetPort":"state"},
+    {"id":"empty.state->refill","sourceNodeId":"empty","sourcePort":"state","targetNodeId":"refill","targetPort":"state"},
+    {"id":"refill.body->refill-pass","sourceNodeId":"refill","sourcePort":"body","targetNodeId":"refill-pass","targetPort":"state"},
+    {"id":"refill.exit->settle","sourceNodeId":"refill","sourcePort":"exit","targetNodeId":"settle","targetPort":"state"}
+   ],
+   "expressions": {
+    "survivors": {
+     "exprType": "filter",
+     "stateKey": "board",
+     "itemName": "item",
+     "indexName": "place",
+     "itemType": "String",
+     "predicate": {
+      "exprType": "compare",
+      "op": "Eq",
+      "left": {
+       "exprType": "call",
+       "function": "index",
+       "args": [{"exprType":"fieldAccess","target":"state","path":["removed"]},{"exprType":"fieldAccess","target":"state","path":["place"]}]
+      },
+      "right": {"exprType":"constant","kind":"Integer","value":"0"}
+     }
+    },
+    "count": {
+     "exprType": "fold",
+     "stateKey": "removed",
+     "accName": "acc",
+     "itemName": "item",
+     "indexName": "place",
+     "itemType": "Number",
+     "init": {"exprType":"fieldAccess","target":"state","path":["fromZero"]},
+     "body": {
+      "exprType": "call",
+      "function": "append",
+      "args": [
+       {"exprType":"fieldAccess","target":"state","path":["acc"]},
+       {
+        "exprType": "binary",
+        "op": "Add",
+        "left": {
+         "exprType": "call",
+         "function": "index",
+         "args": [{"exprType":"fieldAccess","target":"state","path":["acc"]},{"exprType":"fieldAccess","target":"state","path":["place"]}]
+        },
+        "right": {
+         "exprType": "binary",
+         "op": "Sub",
+         "left": {"exprType":"constant","kind":"Integer","value":"1"},
+         "right": {"exprType":"fieldAccess","target":"state","path":["item"]}
+        }
+       }
+      ]
+     }
+    },
+    "empty": {"exprType":"fieldAccess","target":"state","path":["emptyArray"]},
+    "refill-until": {
+     "exprType": "compare",
+     "op": "Gte",
+     "left": {
+      "exprType": "binary",
+      "op": "Add",
+      "left": {"exprType":"call","function":"length","args":[{"exprType":"fieldAccess","target":"state","path":["drops"]}]},
+      "right": {"exprType":"call","function":"length","args":[{"exprType":"fieldAccess","target":"state","path":["survivors"]}]}
+     },
+     "right": {"exprType":"constant","kind":"Integer","value":"4"}
+    },
+    "settle": {
+     "exprType": "map",
+     "stateKey": "board",
+     "itemName": "item",
+     "indexName": "place",
+     "itemType": "String",
+     "body": {
+      "exprType": "if",
+      "condition": {
+       "exprType": "compare",
+       "op": "Gte",
+       "left": {
+        "exprType": "binary",
+        "op": "Sub",
+        "left": {
+         "exprType": "call",
+         "function": "index",
+         "args": [
+          {"exprType":"fieldAccess","target":"state","path":["keptThrough"]},
+          {
+           "exprType": "binary",
+           "op": "Add",
+           "left": {
+            "exprType": "binary",
+            "op": "Mul",
+            "left": {
+             "exprType": "call",
+             "function": "floor",
+             "args": [
+              {
+               "exprType": "binary",
+               "op": "Div",
+               "left": {"exprType":"fieldAccess","target":"state","path":["place"]},
+               "right": {"exprType":"constant","kind":"Integer","value":"2"}
+              }
+             ]
+            },
+            "right": {"exprType":"constant","kind":"Integer","value":"2"}
+           },
+           "right": {"exprType":"constant","kind":"Integer","value":"2"}
+          }
+         ]
+        },
+        "right": {
+         "exprType": "binary",
+         "op": "Sub",
+         "left": {
+          "exprType": "binary",
+          "op": "Add",
+          "left": {
+           "exprType": "binary",
+           "op": "Mul",
+           "left": {
+            "exprType": "call",
+            "function": "floor",
+            "args": [
+             {
+              "exprType": "binary",
+              "op": "Div",
+              "left": {"exprType":"fieldAccess","target":"state","path":["place"]},
+              "right": {"exprType":"constant","kind":"Integer","value":"2"}
+             }
+            ]
+           },
+           "right": {"exprType":"constant","kind":"Integer","value":"2"}
+          },
+          "right": {"exprType":"constant","kind":"Integer","value":"2"}
+         },
+         "right": {"exprType":"fieldAccess","target":"state","path":["place"]}
+        }
+       },
+       "right": {
+        "exprType": "call",
+        "function": "index",
+        "args": [
+         {"exprType":"fieldAccess","target":"state","path":["keptThrough"]},
+         {
+          "exprType": "binary",
+          "op": "Mul",
+          "left": {
+           "exprType": "call",
+           "function": "floor",
+           "args": [
+            {
+             "exprType": "binary",
+             "op": "Div",
+             "left": {"exprType":"fieldAccess","target":"state","path":["place"]},
+             "right": {"exprType":"constant","kind":"Integer","value":"2"}
+            }
+           ]
+          },
+          "right": {"exprType":"constant","kind":"Integer","value":"2"}
+         }
+        ]
+       }
+      },
+      "thenExpr": {
+       "exprType": "call",
+       "function": "index",
+       "args": [
+        {"exprType":"fieldAccess","target":"state","path":["survivors"]},
+        {
+         "exprType": "binary",
+         "op": "Sub",
+         "left": {
+          "exprType": "call",
+          "function": "index",
+          "args": [
+           {"exprType":"fieldAccess","target":"state","path":["keptThrough"]},
+           {
+            "exprType": "binary",
+            "op": "Add",
+            "left": {
+             "exprType": "binary",
+             "op": "Mul",
+             "left": {
+              "exprType": "call",
+              "function": "floor",
+              "args": [
+               {
+                "exprType": "binary",
+                "op": "Div",
+                "left": {"exprType":"fieldAccess","target":"state","path":["place"]},
+                "right": {"exprType":"constant","kind":"Integer","value":"2"}
+               }
+              ]
+             },
+             "right": {"exprType":"constant","kind":"Integer","value":"2"}
+            },
+            "right": {"exprType":"constant","kind":"Integer","value":"2"}
+           }
+          ]
+         },
+         "right": {
+          "exprType": "binary",
+          "op": "Sub",
+          "left": {
+           "exprType": "binary",
+           "op": "Add",
+           "left": {
+            "exprType": "binary",
+            "op": "Mul",
+            "left": {
+             "exprType": "call",
+             "function": "floor",
+             "args": [
+              {
+               "exprType": "binary",
+               "op": "Div",
+               "left": {"exprType":"fieldAccess","target":"state","path":["place"]},
+               "right": {"exprType":"constant","kind":"Integer","value":"2"}
+              }
+             ]
+            },
+            "right": {"exprType":"constant","kind":"Integer","value":"2"}
+           },
+           "right": {"exprType":"constant","kind":"Integer","value":"2"}
+          },
+          "right": {"exprType":"fieldAccess","target":"state","path":["place"]}
+         }
+        }
+       ]
+      },
+      "elseExpr": {
+       "exprType": "call",
+       "function": "index",
+       "args": [
+        {"exprType":"fieldAccess","target":"state","path":["drops"]},
+        {
+         "exprType": "binary",
+         "op": "Sub",
+         "left": {
+          "exprType": "binary",
+          "op": "Sub",
+          "left": {
+           "exprType": "binary",
+           "op": "Add",
+           "left": {
+            "exprType": "binary",
+            "op": "Mul",
+            "left": {
+             "exprType": "call",
+             "function": "floor",
+             "args": [
+              {
+               "exprType": "binary",
+               "op": "Div",
+               "left": {"exprType":"fieldAccess","target":"state","path":["place"]},
+               "right": {"exprType":"constant","kind":"Integer","value":"2"}
+              }
+             ]
+            },
+            "right": {"exprType":"constant","kind":"Integer","value":"2"}
+           },
+           "right": {"exprType":"constant","kind":"Integer","value":"2"}
+          },
+          "right": {
+           "exprType": "call",
+           "function": "index",
+           "args": [
+            {"exprType":"fieldAccess","target":"state","path":["keptThrough"]},
+            {
+             "exprType": "binary",
+             "op": "Add",
+             "left": {
+              "exprType": "binary",
+              "op": "Mul",
+              "left": {
+               "exprType": "call",
+               "function": "floor",
+               "args": [
+                {
+                 "exprType": "binary",
+                 "op": "Div",
+                 "left": {"exprType":"fieldAccess","target":"state","path":["place"]},
+                 "right": {"exprType":"constant","kind":"Integer","value":"2"}
+                }
+               ]
+              },
+              "right": {"exprType":"constant","kind":"Integer","value":"2"}
+             },
+             "right": {"exprType":"constant","kind":"Integer","value":"2"}
+            }
+           ]
+          }
+         },
+         "right": {
+          "exprType": "binary",
+          "op": "Add",
+          "left": {
+           "exprType": "binary",
+           "op": "Sub",
+           "left": {"exprType":"fieldAccess","target":"state","path":["place"]},
+           "right": {
+            "exprType": "binary",
+            "op": "Mul",
+            "left": {
+             "exprType": "call",
+             "function": "floor",
+             "args": [
+              {
+               "exprType": "binary",
+               "op": "Div",
+               "left": {"exprType":"fieldAccess","target":"state","path":["place"]},
+               "right": {"exprType":"constant","kind":"Integer","value":"2"}
+              }
+             ]
+            },
+            "right": {"exprType":"constant","kind":"Integer","value":"2"}
+           }
+          },
+          "right": {"exprType":"constant","kind":"Integer","value":"1"}
+         }
+        }
+       ]
+      }
+     }
+    }
+   }
+  },
+  "cascade-step": {
+   "name": "cascade-step",
+   "description": "One step of a cascade: the board that paid is paid out, its symbols are removed, and the new board is looked at.",
+   "nodes": [
+    {
+     "nodeType": "library",
+     "id": "pay",
+     "label": "Pay the step",
+     "mechanicName": "pay-step",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}},
+     "parameters": {}
+    },
+    {
+     "nodeType": "modifyState",
+     "id": "trace-board",
+     "label": "Remember the board that paid",
+     "outputKey": "cascadeBoards",
+     "expressionId": "trace-board",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}}
+    },
+    {
+     "nodeType": "modifyState",
+     "id": "trace-removed",
+     "label": "Remember the cells removed",
+     "outputKey": "cascadeRemoved",
+     "expressionId": "trace-removed",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}}
+    },
+    {
+     "nodeType": "library",
+     "id": "tumble",
+     "label": "Remove what paid and fill the board",
+     "mechanicName": "tumble",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}},
+     "parameters": {}
+    },
+    {
+     "nodeType": "modifyState",
+     "id": "trace-after",
+     "label": "Remember the board after the fall",
+     "outputKey": "cascadeAfter",
+     "expressionId": "trace-after",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}}
+    },
+    {
+     "nodeType": "modifyState",
+     "id": "count",
+     "label": "Count the step",
+     "outputKey": "cascadeSteps",
+     "expressionId": "count",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}}
+    },
+    {
+     "nodeType": "branch",
+     "id": "pays",
+     "label": "Pay the groups on the board, unless the cascade has used up its steps",
+     "conditionId": "pays",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"true":{"name":"true","type":"State"},"false":{"name":"false","type":"State"}}
+    },
+    {
+     "nodeType": "getState",
+     "id": "pays-join",
+     "label": "Continue",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}}
+    },
+    {
+     "nodeType": "library",
+     "id": "pays-yes",
+     "label": "Pay the groups on the board, unless the cascade has used up its steps",
+     "mechanicName": "cluster-pays",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}},
+     "parameters": {}
+    }
+   ],
+   "edges": [
+    {"id":"pay.state->trace-board","sourceNodeId":"pay","sourcePort":"state","targetNodeId":"trace-board","targetPort":"state"},
+    {
+     "id": "trace-board.state->trace-removed",
+     "sourceNodeId": "trace-board",
+     "sourcePort": "state",
+     "targetNodeId": "trace-removed",
+     "targetPort": "state"
+    },
+    {"id":"trace-removed.state->tumble","sourceNodeId":"trace-removed","sourcePort":"state","targetNodeId":"tumble","targetPort":"state"},
+    {"id":"tumble.state->trace-after","sourceNodeId":"tumble","sourcePort":"state","targetNodeId":"trace-after","targetPort":"state"},
+    {"id":"trace-after.state->count","sourceNodeId":"trace-after","sourcePort":"state","targetNodeId":"count","targetPort":"state"},
+    {"id":"count.state->pays","sourceNodeId":"count","sourcePort":"state","targetNodeId":"pays","targetPort":"state"},
+    {"id":"pays.true->pays-yes","sourceNodeId":"pays","sourcePort":"true","targetNodeId":"pays-yes","targetPort":"state"},
+    {"id":"pays.false->pays-join","sourceNodeId":"pays","sourcePort":"false","targetNodeId":"pays-join","targetPort":"state"},
+    {"id":"pays-yes.state->pays-join","sourceNodeId":"pays-yes","sourcePort":"state","targetNodeId":"pays-join","targetPort":"state"}
+   ],
+   "expressions": {
+    "trace-board": {
+     "exprType": "if",
+     "condition": {"exprType":"fieldAccess","target":"state","path":["traceEnabled"]},
+     "thenExpr": {
+      "exprType": "call",
+      "function": "append",
+      "args": [{"exprType":"fieldAccess","target":"state","path":["cascadeBoards"]},{"exprType":"fieldAccess","target":"state","path":["board"]}]
+     },
+     "elseExpr": {"exprType":"fieldAccess","target":"state","path":["cascadeBoards"]}
+    },
+    "trace-removed": {
+     "exprType": "if",
+     "condition": {"exprType":"fieldAccess","target":"state","path":["traceEnabled"]},
+     "thenExpr": {
+      "exprType": "call",
+      "function": "append",
+      "args": [{"exprType":"fieldAccess","target":"state","path":["cascadeRemoved"]},{"exprType":"fieldAccess","target":"state","path":["removed"]}]
+     },
+     "elseExpr": {"exprType":"fieldAccess","target":"state","path":["cascadeRemoved"]}
+    },
+    "trace-after": {
+     "exprType": "if",
+     "condition": {"exprType":"fieldAccess","target":"state","path":["traceEnabled"]},
+     "thenExpr": {
+      "exprType": "call",
+      "function": "append",
+      "args": [{"exprType":"fieldAccess","target":"state","path":["cascadeAfter"]},{"exprType":"fieldAccess","target":"state","path":["board"]}]
+     },
+     "elseExpr": {"exprType":"fieldAccess","target":"state","path":["cascadeAfter"]}
+    },
+    "count": {
+     "exprType": "binary",
+     "op": "Add",
+     "left": {"exprType":"fieldAccess","target":"state","path":["cascadeSteps"]},
+     "right": {"exprType":"constant","kind":"Integer","value":"1"}
+    },
+    "pays": {
+     "exprType": "compare",
+     "op": "Lt",
+     "left": {"exprType":"fieldAccess","target":"state","path":["cascadeSteps"]},
+     "right": {"exprType":"constant","kind":"Integer","value":"2"}
+    }
+   }
+  },
+  "cascade": {
+   "name": "cascade",
+   "description": "Cascade: every board that pays is paid, its symbols are removed and new ones drop in, until a board pays nothing or 2 steps have paid.",
+   "nodes": [
+    {
+     "nodeType": "modifyState",
+     "id": "fresh",
+     "label": "No step has paid yet",
+     "outputKey": "cascadeSteps",
+     "expressionId": "fresh",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}}
+    },
+    {
+     "nodeType": "library",
+     "id": "pays",
+     "label": "Pay the groups on the board",
+     "mechanicName": "cluster-pays",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}},
+     "parameters": {}
+    },
+    {
+     "nodeType": "loop",
+     "id": "step",
+     "label": "Cascade while the board pays, for at most 2 steps",
+     "maxIterations": 3,
+     "stopConditionId": "step-until",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"body":{"name":"body","type":"State"},"exit":{"name":"exit","type":"State"}}
+    },
+    {
+     "nodeType": "getState",
+     "id": "done",
+     "label": "Done",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}}
+    },
+    {
+     "nodeType": "library",
+     "id": "step-pass",
+     "label": "One step",
+     "mechanicName": "cascade-step",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}},
+     "parameters": {}
+    }
+   ],
+   "edges": [
+    {"id":"fresh.state->pays","sourceNodeId":"fresh","sourcePort":"state","targetNodeId":"pays","targetPort":"state"},
+    {"id":"pays.state->step","sourceNodeId":"pays","sourcePort":"state","targetNodeId":"step","targetPort":"state"},
+    {"id":"step.body->step-pass","sourceNodeId":"step","sourcePort":"body","targetNodeId":"step-pass","targetPort":"state"},
+    {"id":"step.exit->done","sourceNodeId":"step","sourcePort":"exit","targetNodeId":"done","targetPort":"state"}
+   ],
+   "expressions": {
+    "fresh": {"exprType":"constant","kind":"Integer","value":"0"},
+    "step-until": {
+     "exprType": "binary",
+     "op": "Or",
+     "left": {
+      "exprType": "compare",
+      "op": "Eq",
+      "left": {"exprType":"fieldAccess","target":"state","path":["clusterCoins"]},
+      "right": {"exprType":"constant","kind":"Integer","value":"0"}
+     },
+     "right": {
+      "exprType": "compare",
+      "op": "Gte",
+      "left": {"exprType":"fieldAccess","target":"state","path":["cascadeSteps"]},
+      "right": {"exprType":"constant","kind":"Integer","value":"2"}
+     }
+    }
+   }
+  },
+  "free-board-cell": {
+   "name": "free-board-cell",
+   "description": "One cell of the board: its symbol is drawn and takes the next place on the board.",
+   "nodes": [
+    {
+     "nodeType": "draw",
+     "id": "symbol",
+     "label": "Draw the symbol the cell shows",
+     "stateWriteKey": "cellSymbol",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}},
+     "drawWeights": [{"outcomeId":"1","weight":10,"value":0},{"outcomeId":"2","weight":9,"value":0},{"outcomeId":"6","weight":1,"value":0}]
+    },
+    {
+     "nodeType": "modifyState",
+     "id": "place",
+     "label": "Put it on the board",
+     "outputKey": "board",
+     "expressionId": "place",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}}
+    }
+   ],
+   "edges": [{"id":"symbol.state->place","sourceNodeId":"symbol","sourcePort":"state","targetNodeId":"place","targetPort":"state"}],
+   "expressions": {
+    "place": {
+     "exprType": "call",
+     "function": "append",
+     "args": [{"exprType":"fieldAccess","target":"state","path":["board"]},{"exprType":"fieldAccess","target":"state","path":["cellSymbol"]}]
+    }
+   }
+  },
+  "free-board": {
+   "name": "free-board",
+   "description": "Draws a symbol for each of the 4 cells, every cell on its own, and puts them on the board.",
+   "nodes": [
+    {
+     "nodeType": "modifyState",
+     "id": "clear",
+     "label": "Start with an empty board",
+     "outputKey": "board",
+     "expressionId": "clear",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}}
+    },
+    {
+     "nodeType": "library",
+     "id": "cell-1",
+     "label": "Cell 1",
+     "mechanicName": "free-board-cell",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}},
+     "parameters": {}
+    },
+    {
+     "nodeType": "library",
+     "id": "cell-2",
+     "label": "Cell 2",
+     "mechanicName": "free-board-cell",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}},
+     "parameters": {}
+    },
+    {
+     "nodeType": "library",
+     "id": "cell-3",
+     "label": "Cell 3",
+     "mechanicName": "free-board-cell",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}},
+     "parameters": {}
+    },
+    {
+     "nodeType": "library",
+     "id": "cell-4",
+     "label": "Cell 4",
+     "mechanicName": "free-board-cell",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}},
+     "parameters": {}
+    }
+   ],
+   "edges": [
+    {"id":"clear.state->cell-1","sourceNodeId":"clear","sourcePort":"state","targetNodeId":"cell-1","targetPort":"state"},
+    {"id":"cell-1.state->cell-2","sourceNodeId":"cell-1","sourcePort":"state","targetNodeId":"cell-2","targetPort":"state"},
+    {"id":"cell-2.state->cell-3","sourceNodeId":"cell-2","sourcePort":"state","targetNodeId":"cell-3","targetPort":"state"},
+    {"id":"cell-3.state->cell-4","sourceNodeId":"cell-3","sourcePort":"state","targetNodeId":"cell-4","targetPort":"state"}
+   ],
+   "expressions": {"clear":{"exprType":"fieldAccess","target":"state","path":["emptyArray"]}}
+  },
+  "coin-prize": {
+   "name": "coin-prize",
+   "description": "Gives one cell its coin value: the drawn prize × the stake if the cell shows a coin, nothing otherwise.",
+   "nodes": [
+    {
+     "nodeType": "draw",
+     "id": "prize",
+     "label": "Draw the prize a coin on this cell carries",
+     "stateWriteKey": "coinPrize",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}},
+     "drawWeights": [{"outcomeId":"1","weight":1,"value":0}]
+    },
+    {
+     "nodeType": "modifyState",
+     "id": "value",
+     "label": "A coin is worth its prize × the stake; any other symbol is worth nothing",
+     "outputKey": "coins",
+     "expressionId": "value",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}}
+    }
+   ],
+   "edges": [{"id":"prize.state->value","sourceNodeId":"prize","sourcePort":"state","targetNodeId":"value","targetPort":"state"}],
+   "expressions": {
+    "value": {
+     "exprType": "map",
+     "stateKey": "coins",
+     "itemName": "item",
+     "indexName": "place",
+     "itemType": "Number",
+     "body": {
+      "exprType": "if",
+      "condition": {
+       "exprType": "compare",
+       "op": "Eq",
+       "left": {"exprType":"fieldAccess","target":"state","path":["place"]},
+       "right": {"exprType":"fieldAccess","target":"state","path":["expressions","cell"]}
+      },
+      "thenExpr": {
+       "exprType": "if",
+       "condition": {
+        "exprType": "compare",
+        "op": "Eq",
+        "left": {
+         "exprType": "call",
+         "function": "index",
+         "args": [{"exprType":"fieldAccess","target":"state","path":["board"]},{"exprType":"fieldAccess","target":"state","path":["expressions","cell"]}]
+        },
+        "right": {"exprType":"call","function":"toString","args":[{"exprType":"fieldAccess","target":"state","path":["expressions","symbol"]}]}
+       },
+       "thenExpr": {
+        "exprType": "binary",
+        "op": "Mul",
+        "left": {"exprType":"call","function":"toNumber","args":[{"exprType":"fieldAccess","target":"state","path":["coinPrize"]}]},
+        "right": {"exprType":"fieldAccess","target":"state","path":["coinStake"]}
+       },
+       "elseExpr": {"exprType":"constant","kind":"Integer","value":"0"}
+      },
+      "elseExpr": {"exprType":"fieldAccess","target":"state","path":["item"]}
+     }
+    }
+   }
+  },
+  "coin-prizes": {
+   "name": "coin-prizes",
+   "description": "Every coin on the board carries a prize: one prize is drawn per cell, and the 4 cells are valued one after another.",
+   "nodes": [
+    {
+     "nodeType": "library",
+     "id": "cell-1",
+     "label": "Cell 1",
+     "mechanicName": "coin-prize",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}},
+     "parameters": {"cell":"0","symbol":"6"}
+    },
+    {
+     "nodeType": "library",
+     "id": "cell-2",
+     "label": "Cell 2",
+     "mechanicName": "coin-prize",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}},
+     "parameters": {"cell":"1","symbol":"6"}
+    },
+    {
+     "nodeType": "library",
+     "id": "cell-3",
+     "label": "Cell 3",
+     "mechanicName": "coin-prize",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}},
+     "parameters": {"cell":"2","symbol":"6"}
+    },
+    {
+     "nodeType": "library",
+     "id": "cell-4",
+     "label": "Cell 4",
+     "mechanicName": "coin-prize",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}},
+     "parameters": {"cell":"3","symbol":"6"}
+    },
+    {
+     "nodeType": "modifyState",
+     "id": "count",
+     "label": "Count the coins on the board",
+     "outputKey": "coinCount",
+     "expressionId": "count",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}}
+    }
+   ],
+   "edges": [
+    {"id":"cell-1.state->cell-2","sourceNodeId":"cell-1","sourcePort":"state","targetNodeId":"cell-2","targetPort":"state"},
+    {"id":"cell-2.state->cell-3","sourceNodeId":"cell-2","sourcePort":"state","targetNodeId":"cell-3","targetPort":"state"},
+    {"id":"cell-3.state->cell-4","sourceNodeId":"cell-3","sourcePort":"state","targetNodeId":"cell-4","targetPort":"state"},
+    {"id":"cell-4.state->count","sourceNodeId":"cell-4","sourcePort":"state","targetNodeId":"count","targetPort":"state"}
+   ],
+   "expressions": {
+    "count": {
+     "exprType": "aggregate",
+     "func": "Count",
+     "stateKey": "coins",
+     "itemName": "item",
+     "itemType": "Number",
+     "predicate": {
+      "exprType": "compare",
+      "op": "Gt",
+      "left": {"exprType":"fieldAccess","target":"state","path":["item"]},
+      "right": {"exprType":"constant","kind":"Integer","value":"0"}
+     }
+    }
+   }
+  },
+  "free-spin": {
+   "name": "free-spin",
+   "description": "One free spin: every COIN is collected and leaves a WILD, the board cascades, and the multiplier grows by the steps that paid.",
+   "nodes": [
+    {
+     "nodeType": "modifyState",
+     "id": "use",
+     "label": "Use up one free spin",
+     "outputKey": "freeSpins",
+     "expressionId": "use",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}}
+    },
+    {
+     "nodeType": "library",
+     "id": "cells",
+     "label": "Every cell shows a symbol",
+     "mechanicName": "free-board",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}},
+     "parameters": {}
+    },
+    {
+     "nodeType": "library",
+     "id": "prizes",
+     "label": "Every COIN carries a prize",
+     "mechanicName": "coin-prizes",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}},
+     "parameters": {}
+    },
+    {
+     "nodeType": "modifyState",
+     "id": "trace-board",
+     "label": "Remember the board",
+     "outputKey": "spinBoards",
+     "expressionId": "trace-board",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}}
+    },
+    {
+     "nodeType": "modifyState",
+     "id": "trace-coins",
+     "label": "Remember the coins",
+     "outputKey": "spinCoins",
+     "expressionId": "trace-coins",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}}
+    },
+    {
+     "nodeType": "modifyState",
+     "id": "trace-multiplier",
+     "label": "Remember the multiplier the spin starts with",
+     "outputKey": "spinMultipliers",
+     "expressionId": "trace-multiplier",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}}
+    },
+    {
+     "nodeType": "modifyState",
+     "id": "collect",
+     "label": "Every COIN is collected once: its prize × the multiplier of the spin",
+     "outputKey": "collectedCoins",
+     "expressionId": "collect",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}}
+    },
+    {
+     "nodeType": "modifyState",
+     "id": "round",
+     "label": "Add it to the round",
+     "outputKey": "roundCoins",
+     "expressionId": "round",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}}
+    },
+    {
+     "nodeType": "modifyState",
+     "id": "trace-collected",
+     "label": "Remember what was collected",
+     "outputKey": "spinCollected",
+     "expressionId": "trace-collected",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}}
+    },
+    {
+     "nodeType": "modifyState",
+     "id": "wilds",
+     "label": "A collected COIN leaves a WILD",
+     "outputKey": "board",
+     "expressionId": "wilds",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}}
+    },
+    {
+     "nodeType": "library",
+     "id": "cascade",
+     "label": "Cascade",
+     "mechanicName": "cascade",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}},
+     "parameters": {}
+    },
+    {
+     "nodeType": "modifyState",
+     "id": "trace-final",
+     "label": "Remember the board the spin ends on",
+     "outputKey": "spinFinalBoards",
+     "expressionId": "trace-final",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}}
+    },
+    {
+     "nodeType": "modifyState",
+     "id": "multiplier",
+     "label": "Every step that paid raises the multiplier of the spins to come, to at most × 3",
+     "outputKey": "multiplier",
+     "expressionId": "multiplier",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}}
+    }
+   ],
+   "edges": [
+    {"id":"use.state->cells","sourceNodeId":"use","sourcePort":"state","targetNodeId":"cells","targetPort":"state"},
+    {"id":"cells.state->prizes","sourceNodeId":"cells","sourcePort":"state","targetNodeId":"prizes","targetPort":"state"},
+    {"id":"prizes.state->trace-board","sourceNodeId":"prizes","sourcePort":"state","targetNodeId":"trace-board","targetPort":"state"},
+    {"id":"trace-board.state->trace-coins","sourceNodeId":"trace-board","sourcePort":"state","targetNodeId":"trace-coins","targetPort":"state"},
+    {
+     "id": "trace-coins.state->trace-multiplier",
+     "sourceNodeId": "trace-coins",
+     "sourcePort": "state",
+     "targetNodeId": "trace-multiplier",
+     "targetPort": "state"
+    },
+    {
+     "id": "trace-multiplier.state->collect",
+     "sourceNodeId": "trace-multiplier",
+     "sourcePort": "state",
+     "targetNodeId": "collect",
+     "targetPort": "state"
+    },
+    {"id":"collect.state->round","sourceNodeId":"collect","sourcePort":"state","targetNodeId":"round","targetPort":"state"},
+    {"id":"round.state->trace-collected","sourceNodeId":"round","sourcePort":"state","targetNodeId":"trace-collected","targetPort":"state"},
+    {"id":"trace-collected.state->wilds","sourceNodeId":"trace-collected","sourcePort":"state","targetNodeId":"wilds","targetPort":"state"},
+    {"id":"wilds.state->cascade","sourceNodeId":"wilds","sourcePort":"state","targetNodeId":"cascade","targetPort":"state"},
+    {"id":"cascade.state->trace-final","sourceNodeId":"cascade","sourcePort":"state","targetNodeId":"trace-final","targetPort":"state"},
+    {"id":"trace-final.state->multiplier","sourceNodeId":"trace-final","sourcePort":"state","targetNodeId":"multiplier","targetPort":"state"}
+   ],
+   "expressions": {
+    "use": {
+     "exprType": "binary",
+     "op": "Sub",
+     "left": {"exprType":"fieldAccess","target":"state","path":["freeSpins"]},
+     "right": {"exprType":"constant","kind":"Integer","value":"1"}
+    },
+    "trace-board": {
+     "exprType": "if",
+     "condition": {"exprType":"fieldAccess","target":"state","path":["traceEnabled"]},
+     "thenExpr": {
+      "exprType": "call",
+      "function": "append",
+      "args": [{"exprType":"fieldAccess","target":"state","path":["spinBoards"]},{"exprType":"fieldAccess","target":"state","path":["board"]}]
+     },
+     "elseExpr": {"exprType":"fieldAccess","target":"state","path":["spinBoards"]}
+    },
+    "trace-coins": {
+     "exprType": "if",
+     "condition": {"exprType":"fieldAccess","target":"state","path":["traceEnabled"]},
+     "thenExpr": {
+      "exprType": "call",
+      "function": "append",
+      "args": [{"exprType":"fieldAccess","target":"state","path":["spinCoins"]},{"exprType":"fieldAccess","target":"state","path":["coins"]}]
+     },
+     "elseExpr": {"exprType":"fieldAccess","target":"state","path":["spinCoins"]}
+    },
+    "trace-multiplier": {
+     "exprType": "if",
+     "condition": {"exprType":"fieldAccess","target":"state","path":["traceEnabled"]},
+     "thenExpr": {
+      "exprType": "call",
+      "function": "append",
+      "args": [{"exprType":"fieldAccess","target":"state","path":["spinMultipliers"]},{"exprType":"fieldAccess","target":"state","path":["multiplier"]}]
+     },
+     "elseExpr": {"exprType":"fieldAccess","target":"state","path":["spinMultipliers"]}
+    },
+    "collect": {
+     "exprType": "binary",
+     "op": "Mul",
+     "left": {
+      "exprType": "aggregate",
+      "func": "Sum",
+      "stateKey": "coins",
+      "itemName": "item",
+      "itemType": "Number",
+      "valueExpr": {"exprType":"fieldAccess","target":"state","path":["item"]}
+     },
+     "right": {"exprType":"fieldAccess","target":"state","path":["multiplier"]}
+    },
+    "round": {
+     "exprType": "binary",
+     "op": "Add",
+     "left": {"exprType":"fieldAccess","target":"state","path":["roundCoins"]},
+     "right": {"exprType":"fieldAccess","target":"state","path":["collectedCoins"]}
+    },
+    "trace-collected": {
+     "exprType": "if",
+     "condition": {"exprType":"fieldAccess","target":"state","path":["traceEnabled"]},
+     "thenExpr": {
+      "exprType": "call",
+      "function": "append",
+      "args": [{"exprType":"fieldAccess","target":"state","path":["spinCollected"]},{"exprType":"fieldAccess","target":"state","path":["collectedCoins"]}]
+     },
+     "elseExpr": {"exprType":"fieldAccess","target":"state","path":["spinCollected"]}
+    },
+    "wilds": {
+     "exprType": "map",
+     "stateKey": "board",
+     "itemName": "item",
+     "itemType": "String",
+     "body": {
+      "exprType": "if",
+      "condition": {
+       "exprType": "compare",
+       "op": "Eq",
+       "left": {"exprType":"fieldAccess","target":"state","path":["item"]},
+       "right": {"exprType":"constant","kind":"String","value":"6"}
+      },
+      "thenExpr": {"exprType":"constant","kind":"String","value":"0"},
+      "elseExpr": {"exprType":"fieldAccess","target":"state","path":["item"]}
+     }
+    },
+    "trace-final": {
+     "exprType": "if",
+     "condition": {"exprType":"fieldAccess","target":"state","path":["traceEnabled"]},
+     "thenExpr": {
+      "exprType": "call",
+      "function": "append",
+      "args": [{"exprType":"fieldAccess","target":"state","path":["spinFinalBoards"]},{"exprType":"fieldAccess","target":"state","path":["board"]}]
+     },
+     "elseExpr": {"exprType":"fieldAccess","target":"state","path":["spinFinalBoards"]}
+    },
+    "multiplier": {
+     "exprType": "call",
+     "function": "min",
+     "args": [
+      {"exprType":"constant","kind":"Integer","value":"3"},
+      {
+       "exprType": "binary",
+       "op": "Add",
+       "left": {"exprType":"fieldAccess","target":"state","path":["multiplier"]},
+       "right": {"exprType":"fieldAccess","target":"state","path":["cascadeSteps"]}
+      }
+     ]
+    }
+   }
+  },
+  "free-spins": {
+   "name": "free-spins",
+   "description": "1 free spins whose multiplier is kept from spin to spin. They end early only when the round reaches the most it may pay.",
+   "nodes": [
+    {
+     "nodeType": "modifyState",
+     "id": "award",
+     "label": "1 free spins",
+     "outputKey": "freeSpins",
+     "expressionId": "award",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}}
+    },
+    {
+     "nodeType": "modifyState",
+     "id": "multiplier",
+     "label": "The free spins start at × 1",
+     "outputKey": "multiplier",
+     "expressionId": "multiplier",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}}
+    },
+    {
+     "nodeType": "loop",
+     "id": "free-spin",
+     "label": "Free spins until none are left or the round has reached its limit",
+     "maxIterations": 2,
+     "stopConditionId": "free-spin-until",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"body":{"name":"body","type":"State"},"exit":{"name":"exit","type":"State"}}
+    },
+    {
+     "nodeType": "getState",
+     "id": "done",
+     "label": "Done",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}}
+    },
+    {
+     "nodeType": "library",
+     "id": "free-spin-pass",
+     "label": "Free spin",
+     "mechanicName": "free-spin",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}},
+     "parameters": {}
+    }
+   ],
+   "edges": [
+    {"id":"award.state->multiplier","sourceNodeId":"award","sourcePort":"state","targetNodeId":"multiplier","targetPort":"state"},
+    {"id":"multiplier.state->free-spin","sourceNodeId":"multiplier","sourcePort":"state","targetNodeId":"free-spin","targetPort":"state"},
+    {"id":"free-spin.body->free-spin-pass","sourceNodeId":"free-spin","sourcePort":"body","targetNodeId":"free-spin-pass","targetPort":"state"},
+    {"id":"free-spin.exit->done","sourceNodeId":"free-spin","sourcePort":"exit","targetNodeId":"done","targetPort":"state"}
+   ],
+   "expressions": {
+    "award": {"exprType":"constant","kind":"Integer","value":"1"},
+    "multiplier": {"exprType":"constant","kind":"Integer","value":"1"},
+    "free-spin-until": {
+     "exprType": "binary",
+     "op": "Or",
+     "left": {
+      "exprType": "compare",
+      "op": "Lte",
+      "left": {"exprType":"fieldAccess","target":"state","path":["freeSpins"]},
+      "right": {"exprType":"constant","kind":"Integer","value":"0"}
+     },
+     "right": {
+      "exprType": "compare",
+      "op": "Gte",
+      "left": {"exprType":"fieldAccess","target":"state","path":["roundCoins"]},
+      "right": {"exprType":"fieldAccess","target":"state","path":["capCoins"]}
+     }
+    }
+   }
+  },
+  "paid-board-cell": {
+   "name": "paid-board-cell",
+   "description": "One cell of the board: its symbol is drawn and takes the next place on the board.",
+   "nodes": [
+    {
+     "nodeType": "draw",
+     "id": "symbol",
+     "label": "Draw the symbol the cell shows",
+     "stateWriteKey": "cellSymbol",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}},
+     "drawWeights": [
+      {"outcomeId":"0","weight":1,"value":0},
+      {"outcomeId":"1","weight":4,"value":0},
+      {"outcomeId":"2","weight":3,"value":0},
+      {"outcomeId":"7","weight":2,"value":0}
+     ]
+    },
+    {
+     "nodeType": "modifyState",
+     "id": "place",
+     "label": "Put it on the board",
+     "outputKey": "board",
+     "expressionId": "place",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}}
+    }
+   ],
+   "edges": [{"id":"symbol.state->place","sourceNodeId":"symbol","sourcePort":"state","targetNodeId":"place","targetPort":"state"}],
+   "expressions": {
+    "place": {
+     "exprType": "call",
+     "function": "append",
+     "args": [{"exprType":"fieldAccess","target":"state","path":["board"]},{"exprType":"fieldAccess","target":"state","path":["cellSymbol"]}]
+    }
+   }
+  },
+  "paid-board": {
+   "name": "paid-board",
+   "description": "Draws a symbol for each of the 4 cells, every cell on its own, and puts them on the board.",
+   "nodes": [
+    {
+     "nodeType": "modifyState",
+     "id": "clear",
+     "label": "Start with an empty board",
+     "outputKey": "board",
+     "expressionId": "clear",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}}
+    },
+    {
+     "nodeType": "library",
+     "id": "cell-1",
+     "label": "Cell 1",
+     "mechanicName": "paid-board-cell",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}},
+     "parameters": {}
+    },
+    {
+     "nodeType": "library",
+     "id": "cell-2",
+     "label": "Cell 2",
+     "mechanicName": "paid-board-cell",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}},
+     "parameters": {}
+    },
+    {
+     "nodeType": "library",
+     "id": "cell-3",
+     "label": "Cell 3",
+     "mechanicName": "paid-board-cell",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}},
+     "parameters": {}
+    },
+    {
+     "nodeType": "library",
+     "id": "cell-4",
+     "label": "Cell 4",
+     "mechanicName": "paid-board-cell",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}},
+     "parameters": {}
+    }
+   ],
+   "edges": [
+    {"id":"clear.state->cell-1","sourceNodeId":"clear","sourcePort":"state","targetNodeId":"cell-1","targetPort":"state"},
+    {"id":"cell-1.state->cell-2","sourceNodeId":"cell-1","sourcePort":"state","targetNodeId":"cell-2","targetPort":"state"},
+    {"id":"cell-2.state->cell-3","sourceNodeId":"cell-2","sourcePort":"state","targetNodeId":"cell-3","targetPort":"state"},
+    {"id":"cell-3.state->cell-4","sourceNodeId":"cell-3","sourcePort":"state","targetNodeId":"cell-4","targetPort":"state"}
+   ],
+   "expressions": {"clear":{"exprType":"fieldAccess","target":"state","path":["emptyArray"]}}
+  },
+  "paid-spin": {
+   "name": "paid-spin",
+   "description": "One paid spin: the cells are drawn and the board cascades, every step paying more than the one before.",
+   "nodes": [
+    {
+     "nodeType": "library",
+     "id": "cells",
+     "label": "Every cell shows a symbol",
+     "mechanicName": "paid-board",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}},
+     "parameters": {}
+    },
+    {
+     "nodeType": "modifyState",
+     "id": "trace-board",
+     "label": "Remember the board",
+     "outputKey": "spinBoards",
+     "expressionId": "trace-board",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}}
+    },
+    {
+     "nodeType": "modifyState",
+     "id": "trace-coins",
+     "label": "Remember the coins",
+     "outputKey": "spinCoins",
+     "expressionId": "trace-coins",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}}
+    },
+    {
+     "nodeType": "modifyState",
+     "id": "trace-multiplier",
+     "label": "Remember the multiplier the spin starts with",
+     "outputKey": "spinMultipliers",
+     "expressionId": "trace-multiplier",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}}
+    },
+    {
+     "nodeType": "modifyState",
+     "id": "trace-collected",
+     "label": "Nothing is collected in a paid spin",
+     "outputKey": "spinCollected",
+     "expressionId": "trace-collected",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}}
+    },
+    {
+     "nodeType": "modifyState",
+     "id": "scatters",
+     "label": "Count the SCATTERs the spin landed with",
+     "outputKey": "scatterCount",
+     "expressionId": "scatters",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}}
+    },
+    {
+     "nodeType": "library",
+     "id": "cascade",
+     "label": "Cascade",
+     "mechanicName": "cascade",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}},
+     "parameters": {}
+    },
+    {
+     "nodeType": "modifyState",
+     "id": "trace-final",
+     "label": "Remember the board the spin ends on",
+     "outputKey": "spinFinalBoards",
+     "expressionId": "trace-final",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}}
+    }
+   ],
+   "edges": [
+    {"id":"cells.state->trace-board","sourceNodeId":"cells","sourcePort":"state","targetNodeId":"trace-board","targetPort":"state"},
+    {"id":"trace-board.state->trace-coins","sourceNodeId":"trace-board","sourcePort":"state","targetNodeId":"trace-coins","targetPort":"state"},
+    {
+     "id": "trace-coins.state->trace-multiplier",
+     "sourceNodeId": "trace-coins",
+     "sourcePort": "state",
+     "targetNodeId": "trace-multiplier",
+     "targetPort": "state"
+    },
+    {
+     "id": "trace-multiplier.state->trace-collected",
+     "sourceNodeId": "trace-multiplier",
+     "sourcePort": "state",
+     "targetNodeId": "trace-collected",
+     "targetPort": "state"
+    },
+    {
+     "id": "trace-collected.state->scatters",
+     "sourceNodeId": "trace-collected",
+     "sourcePort": "state",
+     "targetNodeId": "scatters",
+     "targetPort": "state"
+    },
+    {"id":"scatters.state->cascade","sourceNodeId":"scatters","sourcePort":"state","targetNodeId":"cascade","targetPort":"state"},
+    {"id":"cascade.state->trace-final","sourceNodeId":"cascade","sourcePort":"state","targetNodeId":"trace-final","targetPort":"state"}
+   ],
+   "expressions": {
+    "trace-board": {
+     "exprType": "if",
+     "condition": {"exprType":"fieldAccess","target":"state","path":["traceEnabled"]},
+     "thenExpr": {
+      "exprType": "call",
+      "function": "append",
+      "args": [{"exprType":"fieldAccess","target":"state","path":["spinBoards"]},{"exprType":"fieldAccess","target":"state","path":["board"]}]
+     },
+     "elseExpr": {"exprType":"fieldAccess","target":"state","path":["spinBoards"]}
+    },
+    "trace-coins": {
+     "exprType": "if",
+     "condition": {"exprType":"fieldAccess","target":"state","path":["traceEnabled"]},
+     "thenExpr": {
+      "exprType": "call",
+      "function": "append",
+      "args": [{"exprType":"fieldAccess","target":"state","path":["spinCoins"]},{"exprType":"fieldAccess","target":"state","path":["coins"]}]
+     },
+     "elseExpr": {"exprType":"fieldAccess","target":"state","path":["spinCoins"]}
+    },
+    "trace-multiplier": {
+     "exprType": "if",
+     "condition": {"exprType":"fieldAccess","target":"state","path":["traceEnabled"]},
+     "thenExpr": {
+      "exprType": "call",
+      "function": "append",
+      "args": [{"exprType":"fieldAccess","target":"state","path":["spinMultipliers"]},{"exprType":"fieldAccess","target":"state","path":["multiplier"]}]
+     },
+     "elseExpr": {"exprType":"fieldAccess","target":"state","path":["spinMultipliers"]}
+    },
+    "trace-collected": {
+     "exprType": "if",
+     "condition": {"exprType":"fieldAccess","target":"state","path":["traceEnabled"]},
+     "thenExpr": {
+      "exprType": "call",
+      "function": "append",
+      "args": [{"exprType":"fieldAccess","target":"state","path":["spinCollected"]},{"exprType":"constant","kind":"Integer","value":"0"}]
+     },
+     "elseExpr": {"exprType":"fieldAccess","target":"state","path":["spinCollected"]}
+    },
+    "scatters": {
+     "exprType": "aggregate",
+     "func": "Count",
+     "stateKey": "board",
+     "itemName": "item",
+     "itemType": "String",
+     "predicate": {
+      "exprType": "compare",
+      "op": "Eq",
+      "left": {"exprType":"fieldAccess","target":"state","path":["item"]},
+      "right": {"exprType":"constant","kind":"String","value":"7"}
+     }
+    },
+    "trace-final": {
+     "exprType": "if",
+     "condition": {"exprType":"fieldAccess","target":"state","path":["traceEnabled"]},
+     "thenExpr": {
+      "exprType": "call",
+      "function": "append",
+      "args": [{"exprType":"fieldAccess","target":"state","path":["spinFinalBoards"]},{"exprType":"fieldAccess","target":"state","path":["board"]}]
+     },
+     "elseExpr": {"exprType":"fieldAccess","target":"state","path":["spinFinalBoards"]}
+    }
+   }
+  }
+ },
+ "symbols": [
+  {"id":"0","name":"WILD","kind":"Wild"},
+  {"id":"1","name":"BONE","kind":"Standard"},
+  {"id":"2","name":"FISH","kind":"Standard"},
+  {"id":"3","name":"YARN","kind":"Standard"},
+  {"id":"4","name":"CANDLE","kind":"Standard"},
+  {"id":"5","name":"CAT","kind":"Standard"},
+  {"id":"6","name":"COIN","kind":"Money"},
+  {"id":"7","name":"SCATTER","kind":"Scatter"}
+ ],
+ "paytables": [
+  {
+   "id": "clusters",
+   "entries": [{"symbolId":"1","counts":[3,4],"payouts":["0.5","2.0"]},{"symbolId":"2","counts":[3,4],"payouts":["1.0","3.0"]}]
+  },
+  {"id":"coin-prizes","entries":[{"symbolId":"6","counts":[1],"payouts":["1.0"]}]}
+ ],
+ "boardConfig": {"rows":2,"columns":2}
+}

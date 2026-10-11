@@ -1,0 +1,26 @@
+{
+  "WILD": {
+    "x": 44,
+    "y": 62,
+    "width": 550,
+    "height": 525
+  },
+  "BULLET": {
+    "x": 878,
+    "y": 32,
+    "width": 118,
+    "height": 564
+  },
+  "GRENADE": {
+    "x": 122,
+    "y": 639,
+    "width": 372,
+    "height": 571
+  },
+  "HELMET": {
+    "x": 622,
+    "y": 690,
+    "width": 606,
+    "height": 503
+  }
+}

@@ -1,0 +1,26 @@
+{
+  "FEATURE_GUARDIAN_0": {
+    "x": 0,
+    "y": 0,
+    "width": 481,
+    "height": 724
+  },
+  "FEATURE_GUARDIAN_1": {
+    "x": 481,
+    "y": 0,
+    "width": 527,
+    "height": 724
+  },
+  "FEATURE_GUARDIAN_2": {
+    "x": 1008,
+    "y": 0,
+    "width": 640,
+    "height": 724
+  },
+  "FEATURE_GUARDIAN_3": {
+    "x": 1648,
+    "y": 0,
+    "width": 524,
+    "height": 724
+  }
+}

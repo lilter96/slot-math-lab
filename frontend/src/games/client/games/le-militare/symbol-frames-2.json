@@ -1,0 +1,26 @@
+{
+  "MEDAL": {
+    "x": 160,
+    "y": 23,
+    "width": 331,
+    "height": 583
+  },
+  "RIFLE": {
+    "x": 672,
+    "y": 47,
+    "width": 618,
+    "height": 548
+  },
+  "TANK": {
+    "x": 23,
+    "y": 665,
+    "width": 679,
+    "height": 486
+  },
+  "SOLDIER": {
+    "x": 753,
+    "y": 611,
+    "width": 537,
+    "height": 566
+  }
+}

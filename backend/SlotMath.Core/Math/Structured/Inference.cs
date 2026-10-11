@@ -97,6 +97,7 @@ internal sealed class Inference(TermFactory f)
 {
     // Most laws are small: one table collects their masses, and larger ones get a table of their own.
     private const int SmallLaw = 1024;
+    private const int JointOutcomes = 1 << 16;
 
     // ── Laws as values ───────────────────────────────────────────────────
 
@@ -266,13 +267,13 @@ internal sealed class Inference(TermFactory f)
         f.Budget.Tick((long)a.Values.Length * b.Values.Length * (Words(a.Total) + Words(b.Total) - 1));
         Masses masses = NewMasses(a.Values.Length + b.Values.Length);
         for (var i = 0; i < a.Values.Length; i++)
-            for (var j = 0; j < b.Values.Length; j++)
-            {
-                ExprValue value = V.IsErr(a.Values[i]) || V.IsErr(b.Values[j])
-                    ? V.Err
-                    : ExprValue.Add(a.Values[i], b.Values[j]);
-                masses.Add(value, V.Hash(value), a.Mass[i] * b.Mass[j]);
-            }
+        for (var j = 0; j < b.Values.Length; j++)
+        {
+            ExprValue value = V.IsErr(a.Values[i]) || V.IsErr(b.Values[j])
+                ? V.Err
+                : ExprValue.Add(a.Values[i], b.Values[j]);
+            masses.Add(value, V.Hash(value), a.Mass[i] * b.Mass[j]);
+        }
 
         return Build(masses, a.Total * b.Total);
     }
@@ -307,12 +308,52 @@ internal sealed class Inference(TermFactory f)
             case LinTerm lin:
                 law = Independent(lin) ?? Decomposed(term);
                 break;
+            case OpTerm { Code: Op.Tuple } tuple when Tabulated(tuple) is { } joint:
+                law = joint;
+                break;
             default:
                 law = Decomposed(term);
                 break;
         }
 
         return _laws[term.Id] = law;
+    }
+
+    /// <summary>
+    ///     The joint law of tables of one variable, read off its outcomes. The factory leaves such a tuple unfolded
+    ///     when the variable has too many outcomes to tabulate, and taking it apart only finds the same tables again.
+    /// </summary>
+    private Law? Tabulated(OpTerm tuple)
+    {
+        Rv? variable = null;
+        foreach (Term element in tuple.Args)
+        {
+            if (element is not TableTerm table || (variable ??= table.Rv) != table.Rv)
+            {
+                return null;
+            }
+        }
+
+        if (variable is null)
+        {
+            return null;
+        }
+
+        f.Budget.Tick(variable.Count);
+        Masses masses = NewMasses(variable.Count);
+        for (var outcome = 0; outcome < variable.Count; outcome++)
+        {
+            var elements = new ExprValue[tuple.Args.Length];
+            for (var k = 0; k < elements.Length; k++)
+            {
+                elements[k] = ((TableTerm)tuple.Args[k]).Values[outcome];
+            }
+
+            ExprValue value = ExprValue.ArrayOwned(elements, false);
+            masses.Add(value, V.Hash(value), variable.Weights[outcome]);
+        }
+
+        return Build(masses, variable.Total);
     }
 
     /// <summary>Refuse a term that has no law: one over a loop's moments, a poisoned field or an open parameter.</summary>
@@ -512,41 +553,64 @@ internal sealed class Inference(TermFactory f)
         var ordinals = new Dictionary<int, int>();
         List<List<int>> groups = Components(ordered);
 
-        // Every group is already the tables of one variable that stands for its law, none of whose outcomes merge:
-        // nothing structural is left, so condition. Naming the variables again could only exchange two of equal
-        // law, and a term in which two such variables do not appear alike would be renamed back and forth for ever.
-        var named = true;
-        foreach (List<int> group in groups)
+        // A group that is already the tables of one variable standing for its law, none of whose outcomes merge, has
+        // nothing structural left. A group of several terms over several variables whose joint law could be as large
+        // as the product of theirs is left alone as well: a pay chained along the reels next to a count summed over
+        // them is such a group, and conditioning walks it reel by reel where the joint law would hold every reel
+        // at once.
+        var parts = new Term[groups.Count][];
+        var settled = new bool[groups.Count];
+        var lumped = new bool[groups.Count];
+        var open = false;
+        var wide = false;
+        for (var g = 0; g < groups.Count; g++)
         {
-            Rv? variable = null;
-            foreach (var index in group)
-            {
-                named = named && ordered[index] is TableTerm { Rv.Lumped: true } table &&
-                        (variable ??= table.Rv) == table.Rv;
-            }
-
-            if (!named)
-            {
-                break;
-            }
-
-            Term[] tables = group.Select(index => ordered[index]).ToArray();
-            named = LawOf(tables.Length == 1 ? tables[0] : f.Tuple(tables)).Values.Length == variable!.Count;
+            parts[g] = groups[g].Select(index => ordered[index]).ToArray();
+            settled[g] = Named(parts[g]);
+            lumped[g] = !settled[g] && Lumpable(parts[g]);
+            open |= !settled[g];
+            wide |= !settled[g] && !lumped[g];
         }
 
-        if (named)
+        // Naming settled variables again could only exchange two of equal law, and a term in which two such
+        // variables do not appear alike would be renamed back and forth for ever.
+        if (!open)
         {
             return Expanded(term);
         }
 
-        foreach (List<int> group in groups)
+        var taken = new HashSet<Rv>();
+        for (var g = 0; g < groups.Count; g++)
         {
-            Term[] elements = group.Select(index => ordered[index]).ToArray();
+            Term[] elements = parts[g];
+            if (wide && !lumped[g])
+            {
+                continue;
+            }
+
             Term joint = elements.Length == 1 ? elements[0] : f.Tuple(elements);
             Law law = LawOf(joint);
-            var ordinal = f.Fault == StructuredFault.PseudoVariablesShared ? 0 : ordinals.GetValueOrDefault(law.Id);
-            ordinals[law.Id] = ordinal + 1;
-            Rv variable = Pseudo(law, ordinal);
+            Rv variable;
+            if (f.Fault == StructuredFault.PseudoVariablesShared)
+            {
+                variable = Pseudo(law, 0);
+            }
+            else if (wide)
+            {
+                // Some variables keep their names here, so a new one takes the first name of its law not in use.
+                var ordinal = 0;
+                while (Bits.Has(term.Support, (variable = Pseudo(law, ordinal)).Id) || !taken.Add(variable))
+                {
+                    ordinal++;
+                }
+            }
+            else
+            {
+                var ordinal = ordinals.GetValueOrDefault(law.Id);
+                ordinals[law.Id] = ordinal + 1;
+                variable = Pseudo(law, ordinal);
+            }
+
             for (var k = 0; k < elements.Length; k++)
             {
                 ExprValue[] column = f.Rent(law.Values.Length);
@@ -567,10 +631,69 @@ internal sealed class Inference(TermFactory f)
             }
         }
 
+        if (replace.Count == 0)
+        {
+            return Expanded(term);
+        }
+
         Term renamed = Rebuild(term,
             new Context(null, 0, replace, affected, new Dictionary<Term, Term>(ReferenceEqualityComparer.Instance)));
         // Already written over variables named by their laws: nothing structural is left, so condition.
         return renamed == term ? Expanded(term) : LawOf(renamed);
+    }
+
+    /// <summary>The terms are tables of one variable that stands for their joint law, none of whose outcomes merge.</summary>
+    private bool Named(Term[] elements)
+    {
+        Rv? variable = null;
+        foreach (Term element in elements)
+        {
+            if (element is not TableTerm { Rv.Lumped: true } table || (variable ??= table.Rv) != table.Rv)
+            {
+                return false;
+            }
+        }
+
+        return LawOf(elements.Length == 1 ? elements[0] : f.Tuple(elements)).Values.Length == variable!.Count;
+    }
+
+    /// <summary>
+    ///     Whether the joint law of a group is worth one variable: always for one term or for tables of one variable,
+    ///     otherwise only when neither its variables' outcomes nor its terms' values can combine into too many.
+    /// </summary>
+    private bool Lumpable(Term[] elements)
+    {
+        if (elements.Length == 1)
+        {
+            return true;
+        }
+
+        var support = Bits.Empty;
+        var single = true;
+        double values = 1;
+        foreach (Term element in elements)
+        {
+            single = single && element is TableTerm table && Bits.IsSubset(support, table.Support);
+            support = Bits.Union(support, element.Support);
+            values *= element.Vals?.Length ??
+                      (element is TableTerm tabulated ? tabulated.Rv.Count : double.PositiveInfinity);
+        }
+
+        if (single || values <= JointOutcomes)
+        {
+            return true;
+        }
+
+        double outcomes = 1;
+        foreach (var id in Bits.Enumerate(support))
+        {
+            if ((outcomes *= f.Rvs[id].Count) > JointOutcomes)
+            {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     private Rv Pseudo(Law law, int ordinal)
@@ -708,75 +831,75 @@ internal sealed class Inference(TermFactory f)
         switch (term)
         {
             case LinTerm lin:
+            {
+                var parts = new (ExprValue, Term)[lin.Terms.Length];
+                for (var i = 0; i < parts.Length; i++)
                 {
-                    var parts = new (ExprValue, Term)[lin.Terms.Length];
-                    for (var i = 0; i < parts.Length; i++)
-                    {
-                        parts[i] = (lin.Coefs[i], Rebuild(lin.Terms[i], context));
-                    }
-
-                    result = f.Lin(lin.C0, parts);
-                    break;
+                    parts[i] = (lin.Coefs[i], Rebuild(lin.Terms[i], context));
                 }
+
+                result = f.Lin(lin.C0, parts);
+                break;
+            }
             case IfTerm conditional:
-                {
-                    // Lazy: once the condition is known only the branch it takes is rebuilt.
-                    Term condition = Rebuild(conditional.C, context);
-                    result = condition is ConstTerm known
-                        ? known.Value.Kind == ExprType.Boolean
-                            ? Rebuild(known.Value.BoolValue ? conditional.A : conditional.B, context)
-                            : f.ErrT
-                        : f.If(condition, Rebuild(conditional.A, context), Rebuild(conditional.B, context));
-                    break;
-                }
+            {
+                // Lazy: once the condition is known only the branch it takes is rebuilt.
+                Term condition = Rebuild(conditional.C, context);
+                result = condition is ConstTerm known
+                    ? known.Value.Kind == ExprType.Boolean
+                        ? Rebuild(known.Value.BoolValue ? conditional.A : conditional.B, context)
+                        : f.ErrT
+                    : f.If(condition, Rebuild(conditional.A, context), Rebuild(conditional.B, context));
+                break;
+            }
             case LogicTerm logic:
-                {
-                    Term left = Rebuild(logic.A, context);
-                    result = left is ConstTerm known && (known.IsErr ||
-                                                         (known.Value.Kind == ExprType.Boolean &&
-                                                          known.Value.BoolValue == logic.IsOr))
-                        ? left
-                        : f.Logic(logic.IsOr, left, Rebuild(logic.B, context));
-                    break;
-                }
+            {
+                Term left = Rebuild(logic.A, context);
+                result = left is ConstTerm known && (known.IsErr ||
+                                                     (known.Value.Kind == ExprType.Boolean &&
+                                                      known.Value.BoolValue == logic.IsOr))
+                    ? left
+                    : f.Logic(logic.IsOr, left, Rebuild(logic.B, context));
+                break;
+            }
             case SelTerm select:
+            {
+                Term selector = Rebuild(select.Selector, context);
+                if (selector is ConstTerm chosen)
                 {
-                    Term selector = Rebuild(select.Selector, context);
-                    if (selector is ConstTerm chosen)
-                    {
-                        result = chosen.Value.IsInlineInteger &&
-                                 (ulong)chosen.Value.InlineInteger < (ulong)select.Children.Length
-                            ? Rebuild(select.Children[chosen.Value.InlineInteger], context)
-                            : f.ErrT;
-                        break;
-                    }
-
-                    var children = new Term[select.Children.Length];
-                    for (var i = 0; i < children.Length; i++)
-                    {
-                        children[i] = Rebuild(select.Children[i], context);
-                    }
-
-                    result = f.Sel(selector, children);
+                    result = chosen.Value.IsInlineInteger &&
+                             (ulong)chosen.Value.InlineInteger < (ulong)select.Children.Length
+                        ? Rebuild(select.Children[chosen.Value.InlineInteger], context)
+                        : f.ErrT;
                     break;
                 }
+
+                var children = new Term[select.Children.Length];
+                for (var i = 0; i < children.Length; i++)
+                {
+                    children[i] = Rebuild(select.Children[i], context);
+                }
+
+                result = f.Sel(selector, children);
+                break;
+            }
             default:
+            {
+                var op = (OpTerm)term;
+                var args = new Term[op.Args.Length];
+                for (var i = 0; i < args.Length; i++)
                 {
-                    var op = (OpTerm)term;
-                    var args = new Term[op.Args.Length];
-                    for (var i = 0; i < args.Length; i++)
-                    {
-                        args[i] = Rebuild(op.Args[i], context);
-                    }
-
-                    result = op.Code switch
-                    {
-                        Op.Arith => f.Arith((BinaryOp)op.Aux, args[0], args[1]),
-                        Op.Call => f.Call((string)op.Payload!, args),
-                        _ => f.MakeOp(op.Code, op.Aux, op.Payload, op.Names, args)
-                    };
-                    break;
+                    args[i] = Rebuild(op.Args[i], context);
                 }
+
+                result = op.Code switch
+                {
+                    Op.Arith => f.Arith((BinaryOp)op.Aux, args[0], args[1]),
+                    Op.Call => f.Call((string)op.Payload!, args),
+                    _ => f.MakeOp(op.Code, op.Aux, op.Payload, op.Names, args)
+                };
+                break;
+            }
         }
 
         return context.Memo[term] = result;
@@ -1095,6 +1218,12 @@ internal sealed class Inference(TermFactory f)
             Term other = ReferenceEquals(moment, x) ? y : x;
             if (other is MomentTerm partner && partner.Loop == moment.Loop)
             {
+                if (moment.Second.Length == 0)
+                {
+                    throw new StructuredLawUnavailableException(
+                        "the second moment of an amount accumulated by a long loop was not computed within its work allowance");
+                }
+
                 result = Expect(guard, guardKey, moment.Second[partner.Index]);
             }
             else if (Bits.Has(other.Support, moment.Loop))
@@ -1279,7 +1408,20 @@ internal sealed class Inference(TermFactory f)
 
     private static ExprValue Min(ExprValue a, ExprValue b) => ExprValue.CompareNumbers(a, b) <= 0 ? a : b;
     private static ExprValue Max(ExprValue a, ExprValue b) => ExprValue.CompareNumbers(a, b) >= 0 ? a : b;
-    private static Bound Hull(Bound a, Bound b) => new(Min(a.Lo, b.Lo), Max(a.Hi, b.Hi), Rational.Lcm(a.Den, b.Den));
+    private static Bound Hull(Bound a, Bound b) => new(Min(a.Lo, b.Lo), Max(a.Hi, b.Hi), Common(a.Step, b.Step));
+
+    /// <summary>The step of a value, as a positive number: the value is a whole multiple of it, and of nothing larger.</summary>
+    private static Rational StepOf(ExprValue value) =>
+        new(BigInteger.Abs(value.NumberNumerator), value.NumberDenominator);
+
+    /// <summary>
+    ///     The largest step that whole multiples of <paramref name="a" /> and of <paramref name="b" /> are both whole
+    ///     multiples of: their greatest common divisor as rationals. Zero is the step of the value zero alone.
+    /// </summary>
+    internal static Rational Common(Rational a, Rational b) => a.IsZero ? b :
+        b.IsZero ? a :
+        new Rational(BigInteger.GreatestCommonDivisor(a.Numerator * b.Denominator, b.Numerator * a.Denominator),
+            a.Denominator * b.Denominator);
 
     private static Bound? OfValues(IEnumerable<ExprValue> values)
     {
@@ -1296,7 +1438,7 @@ internal sealed class Inference(TermFactory f)
                 return null;
             }
 
-            var point = new Bound(value, value, value.NumberDenominator);
+            var point = new Bound(value, value, StepOf(value));
             bound = bound is { } so ? Hull(so, point) : point;
         }
 
@@ -1320,29 +1462,29 @@ internal sealed class Inference(TermFactory f)
         {
             switch (term)
             {
-                case MomentTerm { Bounded: true } moment: bound = new Bound(moment.Lo, moment.Hi, moment.Den); break;
+                case MomentTerm { Bounded: true } moment: bound = new Bound(moment.Lo, moment.Hi, moment.Step); break;
                 case TableTerm table: bound = OfValues(table.Values); break;
                 case LinTerm lin:
+                {
+                    var sum = new Bound(lin.C0, lin.C0, StepOf(lin.C0));
+                    for (var i = 0; i < lin.Terms.Length && sum is { } so; i++)
                     {
-                        var sum = new Bound(lin.C0, lin.C0, lin.C0.NumberDenominator);
-                        for (var i = 0; i < lin.Terms.Length && sum is { } so; i++)
+                        if (BoundOf(lin.Terms[i]) is not { } part)
                         {
-                            if (BoundOf(lin.Terms[i]) is not { } part)
-                            {
-                                bound = null;
-                                goto done;
-                            }
-
-                            ExprValue coef = lin.Coefs[i];
-                            (ExprValue x, ExprValue y) = (ExprValue.Mul(coef, part.Lo), ExprValue.Mul(coef, part.Hi));
-                            sum = new Bound(ExprValue.Add(so.Lo, Min(x, y)), ExprValue.Add(so.Hi, Max(x, y)),
-                                Rational.Lcm(so.Den, part.Den * coef.NumberDenominator));
-                            bound = sum;
+                            bound = null;
+                            goto done;
                         }
 
+                        ExprValue coef = lin.Coefs[i];
+                        (ExprValue x, ExprValue y) = (ExprValue.Mul(coef, part.Lo), ExprValue.Mul(coef, part.Hi));
+                        sum = new Bound(ExprValue.Add(so.Lo, Min(x, y)), ExprValue.Add(so.Hi, Max(x, y)),
+                            Common(so.Step, StepOf(coef) * part.Step));
                         bound = sum;
-                        break;
                     }
+
+                    bound = sum;
+                    break;
+                }
                 case IfTerm conditional:
                     bound = BoundOf(conditional.A) is { } a && BoundOf(conditional.B) is { } b ? Hull(a, b) : null;
                     break;
@@ -1360,11 +1502,11 @@ internal sealed class Inference(TermFactory f)
 
                     break;
                 case OpTerm { Code: Op.Native, Payload: NativeFunction { Most: { } most } }:
-                    bound = new Bound(V.Zero, ExprValue.Number(most), BigInteger.One);
+                    bound = new Bound(V.Zero, ExprValue.Number(most), Rational.One);
                     break;
                 case OpTerm { Code: Op.Extract } extract:
                     bound = BoundOf(extract.Args[0]) is { } inner && extract.Args[0].IsNum
-                        ? new Bound(Min(inner.Lo, V.Zero), Max(inner.Hi, V.Zero), BigInteger.One)
+                        ? new Bound(Min(inner.Lo, V.Zero), Max(inner.Hi, V.Zero), Rational.One)
                         : null;
                     break;
                 case OpTerm { Code: Op.Arith } arithmetic when BoundOf(arithmetic.Args[0]) is { } l &&
@@ -1374,17 +1516,17 @@ internal sealed class Inference(TermFactory f)
                     {
                         case BinaryOp.Add:
                             bound = new Bound(ExprValue.Add(l.Lo, r.Lo), ExprValue.Add(l.Hi, r.Hi),
-                                Rational.Lcm(l.Den, r.Den)); break;
+                                Common(l.Step, r.Step)); break;
                         case BinaryOp.Sub:
                             bound = new Bound(ExprValue.Sub(l.Lo, r.Hi), ExprValue.Sub(l.Hi, r.Lo),
-                                Rational.Lcm(l.Den, r.Den)); break;
+                                Common(l.Step, r.Step)); break;
                         case BinaryOp.Mul:
                             ExprValue[] corners =
                             [
                                 ExprValue.Mul(l.Lo, r.Lo), ExprValue.Mul(l.Lo, r.Hi), ExprValue.Mul(l.Hi, r.Lo),
                                 ExprValue.Mul(l.Hi, r.Hi)
                             ];
-                            bound = new Bound(corners.Aggregate(Min), corners.Aggregate(Max), l.Den * r.Den);
+                            bound = new Bound(corners.Aggregate(Min), corners.Aggregate(Max), l.Step * r.Step);
                             break;
                     }
 
@@ -1393,13 +1535,13 @@ internal sealed class Inference(TermFactory f)
                     when BoundOf(extreme.Args[0]) is { } l && BoundOf(extreme.Args[1]) is { } r &&
                          extreme.Args[0].IsNum && extreme.Args[1].IsNum:
                     bound = (string)extreme.Payload == "min"
-                        ? new Bound(Min(l.Lo, r.Lo), Min(l.Hi, r.Hi), Rational.Lcm(l.Den, r.Den))
-                        : new Bound(Max(l.Lo, r.Lo), Max(l.Hi, r.Hi), Rational.Lcm(l.Den, r.Den));
+                        ? new Bound(Min(l.Lo, r.Lo), Min(l.Hi, r.Hi), Common(l.Step, r.Step))
+                        : new Bound(Max(l.Lo, r.Lo), Max(l.Hi, r.Hi), Common(l.Step, r.Step));
                     break;
             }
         }
 
-    done:
+        done:
         return _bounds[term.Id] = bound;
     }
 
@@ -1510,7 +1652,9 @@ internal sealed class Inference(TermFactory f)
     // ── Bounds ───────────────────────────────────────────────────────────
 
     /// <summary>
-    ///     For the numeric values of a term: a range that contains them and a denominator they all divide into.
+    ///     For the numeric values of a term: a range that contains them and a step they are all whole multiples of
+    ///     (zero when they are all zero). Payouts of 5, 20 and 135 credits have a step of 5, so a thirtieth of
+    ///     their sum is known to be a whole number of sixths.
     /// </summary>
-    internal readonly record struct Bound(ExprValue Lo, ExprValue Hi, BigInteger Den);
+    internal readonly record struct Bound(ExprValue Lo, ExprValue Hi, Rational Step);
 }

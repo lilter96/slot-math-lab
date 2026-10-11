@@ -108,10 +108,10 @@ internal sealed class LoopChain
 
     public readonly bool[] Bounded, Signed;
 
-    public readonly BigInteger[] Den;
-
     /// <summary>Proven range of what the loop adds to each accumulator, and a denominator the amounts divide into.</summary>
     public readonly ExprValue[] Lo, Hi;
+
+    public readonly Rational[] Step;
 
     private readonly int _accumulators;
     private readonly TermFactory _f;
@@ -127,23 +127,29 @@ internal sealed class LoopChain
     private readonly Term?[] _transitionIs;
     private readonly Law? _transitions;
     private BigInteger _denominator = BigInteger.One;
+
+    // Work still allowed for the second moments and for the zero masses of an iteration's amounts. Both are extras:
+    // the loop's expected amounts stand without them, so running out leaves the variance or the hit frequency unknown.
+    private long _secondWork, _zeroWork;
     private int _version;
 
-    public LoopChain(LoopTemplate template, TermFactory factory, Inference inference)
+    public LoopChain(LoopTemplate template, TermFactory factory, Inference inference, LoopOptions options)
     {
         _template = template;
+        _secondWork = options.SecondWork;
+        _zeroWork = options.ZeroWork;
         _f = factory;
         _inference = inference;
         _accumulators = template.Deltas.Length;
         _pairs = _accumulators * (_accumulators + 1) / 2;
         Lo = new ExprValue[_accumulators];
         Hi = new ExprValue[_accumulators];
-        Den = new BigInteger[_accumulators];
+        Step = new Rational[_accumulators];
         Bounded = new bool[_accumulators];
         Signed = new bool[_accumulators];
         Array.Fill(Lo, V.Zero);
         Array.Fill(Hi, V.Zero);
-        Array.Fill(Den, BigInteger.One);
+        Array.Fill(Step, Rational.Zero);
         Array.Fill(Bounded, true);
         Array.Fill(Signed, true);
 
@@ -189,6 +195,9 @@ internal sealed class LoopChain
             _transitionIs[i] = factory.Cmp(CompareOp.Eq, position, factory.Const(ExprValue.Number(i)));
         }
     }
+
+    /// <summary>The second moments of the amounts were computed; false once their work allowance ran out.</summary>
+    public bool SecondKnown { get; private set; } = true;
 
     private int Classes => _transitionIs.Length;
 
@@ -359,12 +368,54 @@ internal sealed class LoopChain
         }
 
         for (var a = 0; a < _accumulators; a++)
-            for (var b = a; b < _accumulators; b++)
-            {
-                kernel.Second[PairIndex(a, b)] = SecondOf(deltas[a], deltas[b]);
-            }
+        for (var b = a; b < _accumulators; b++)
+        {
+            (Term x, Term y) = (deltas[a], deltas[b]);
+            kernel.Second[PairIndex(a, b)] =
+                (SecondKnown ? Within(ref _secondWork, () => SecondOf(x, y)) : null) ?? Unknown();
+            SecondKnown = SecondKnown && _secondWork > 0;
+        }
 
         return _kernels[state] = kernel;
+    }
+
+    /// <summary>A placeholder row for moments that are not carried any further.</summary>
+    private Rational[] Unknown()
+    {
+        var row = new Rational[Classes];
+        Array.Fill(row, Rational.Zero);
+        return row;
+    }
+
+    /// <summary>
+    ///     Compute an extra within what is left of its allowance; null when that runs out. Running out of the whole
+    ///     evaluation's budget is not caught here.
+    /// </summary>
+    private T? Within<T>(ref long allowance, Func<T> compute) where T : class
+    {
+        if (allowance <= 0)
+        {
+            return null;
+        }
+
+        var limit = _f.Budget.Limit;
+        var start = _f.Budget.Used;
+        _f.Budget.Limit = System.Math.Min(limit, start + allowance);
+        try
+        {
+            T result = compute();
+            allowance = System.Math.Max(1, allowance - (_f.Budget.Used - start));
+            return result;
+        }
+        catch (StructuredBudgetException exhausted) when (exhausted.Work && _f.Budget.Used <= limit)
+        {
+            allowance = 0;
+            return null;
+        }
+        finally
+        {
+            _f.Budget.Limit = limit;
+        }
     }
 
     /// <summary>E[delta; transition z] for every z. A delta that reads no parameter is the same term in every state.</summary>
@@ -424,28 +475,35 @@ internal sealed class LoopChain
         Rational[]? zero = null;
         if (bound is { } proven && ExprValue.CompareNumbers(proven.Lo, V.Zero) >= 0)
         {
-            zero = new Rational[Classes];
-            Term positive = _inference.Positive(delta);
-            if (_f.Fault == StructuredFault.ChainZeroMassUnconditional)
-            {
-                Rational none = Rational.One - _inference.Probability(positive);
-                for (var z = 0; z < Classes; z++)
-                {
-                    zero[z] = none * (_transitions is null ? Rational.One : AsRational(_transitions, z));
-                }
-            }
-            else
-            {
-                for (var z = 0; z < Classes; z++)
-                {
-                    zero[z] = _transitionIs[z] is { } at
-                        ? _inference.Probability(_f.And(at, _f.Not(positive)))
-                        : Rational.One - _inference.Probability(positive);
-                }
-            }
+            zero = Within(ref _zeroWork, () => ZeroOf(delta));
         }
 
         return _signs[delta.Id] = (zero, bound);
+    }
+
+    private Rational[] ZeroOf(Term delta)
+    {
+        var zero = new Rational[Classes];
+        Term positive = _inference.Positive(delta);
+        if (_f.Fault == StructuredFault.ChainZeroMassUnconditional)
+        {
+            Rational none = Rational.One - _inference.Probability(positive);
+            for (var z = 0; z < Classes; z++)
+            {
+                zero[z] = none * (_transitions is null ? Rational.One : AsRational(_transitions, z));
+            }
+        }
+        else
+        {
+            for (var z = 0; z < Classes; z++)
+            {
+                zero[z] = _transitionIs[z] is { } at
+                    ? _inference.Probability(_f.And(at, _f.Not(positive)))
+                    : Rational.One - _inference.Probability(positive);
+            }
+        }
+
+        return zero;
     }
 
     // ── Integers over one denominator ────────────────────────────────────
@@ -472,16 +530,16 @@ internal sealed class LoopChain
         }
 
         foreach (Rational[] row in kernel.First)
-            foreach (Rational value in row)
-            {
-                Widen(value);
-            }
+        foreach (Rational value in row)
+        {
+            Widen(value);
+        }
 
         foreach (Rational[] row in kernel.Second)
-            foreach (Rational value in row)
-            {
-                Widen(value);
-            }
+        foreach (Rational value in row)
+        {
+            Widen(value);
+        }
 
         foreach (Rational[]? row in kernel.Zero)
         {
@@ -630,7 +688,7 @@ internal sealed class LoopChain
                     {
                         lo[a] = ExprValue.Add(cell.Lo[a], bound.Lo);
                         hi[a] = ExprValue.Add(cell.Hi[a], bound.Hi);
-                        Den[a] = Rational.Lcm(Den[a], bound.Den);
+                        Step[a] = Inference.Common(Step[a], bound.Step);
                     }
                     else
                     {
@@ -867,7 +925,7 @@ internal sealed class LoopChain
             var index = a;
             Term mean = Column((exit, c) => Number(exit.Mean[c][index]));
             // An amount with no variance left given entry and exit is that conditional mean itself, an ordinary term.
-            var settled = exits.All(exit => Enumerable.Range(0, exit.Mass.Length).All(c =>
+            var settled = SecondKnown && exits.All(exit => Enumerable.Range(0, exit.Mass.Length).All(c =>
                 exit.Second[c][PairIndex(index, index)] == exit.Mean[c][index] * exit.Mean[c][index]));
             if (settled)
             {
@@ -877,7 +935,7 @@ internal sealed class LoopChain
 
             MomentTerm moment = _f.NewMoment(slot, a, mean);
             moment.Bounded = Bounded[a];
-            (moment.Lo, moment.Hi, moment.Den) = (Lo[a], Hi[a], Den[a]);
+            (moment.Lo, moment.Hi, moment.Step) = (Lo[a], Hi[a], Step[a]);
             if (Signed[a])
             {
                 moment.Positive = () => Positive(position, variables, exits, index, name);
@@ -889,7 +947,7 @@ internal sealed class LoopChain
 
         for (var a = 0; a < _accumulators; a++)
         {
-            if (moments[a] is not { } moment)
+            if (moments[a] is not { } moment || !SecondKnown)
             {
                 continue;
             }
