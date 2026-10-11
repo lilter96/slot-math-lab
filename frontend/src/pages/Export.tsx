@@ -3,7 +3,7 @@ import { useAppStore } from '../store';
 import { useSaveConfig } from '../api/hooks';
 import { useModelProjection } from '../hooks/useModelProjection';
 import { metricProvenance } from '../lib/metricEvidence';
-import { loadProject } from '../lib/projectFiles';
+import { switchProject } from '../lib/projectFiles';
 import { useLiveMetrics } from '../hooks/useLiveMetrics';
 import { configHash } from '../lib/hash';
 import { Ic } from '../components/Icons';
@@ -86,7 +86,6 @@ export default function Export() {
   const [importError, setImportError] = useState<string | null>(null);
   const [importHash, setImportHash] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
-  const [shareUrl, setShareUrl] = useState<string | null>(null);
   const [savedConfigId, setSavedConfigId] = useState<string | null>(null);
   const { overall, loading, error } = useLiveMetrics();
   const metrics = useMemo(() => !loading && !error && overall?.rtp != null && Number.isFinite(overall.rtp) && metricProvenance(overall) ? { rtp: overall.rtp, hitFreq: overall.provenance === 'ExactInterval' ? undefined : overall.hitFrequency, volatility: overall.provenance === 'ExactInterval' ? undefined : overall.volatility, provenance: overall.provenance, sampleCount: overall.sampleCount, ci95: overall.ci95, lo: overall.lo, hi: overall.hi } : undefined, [overall, loading, error]);
@@ -114,13 +113,6 @@ export default function Export() {
     setTimeout(() => setCopied(false), 2000);
   }, [exportJson]);
 
-  const handleShareLink = useCallback(() => {
-    const encoded = btoa(encodeURIComponent(exportJson));
-    const url = `${window.location.origin}/build?load=${encoded}`;
-    setShareUrl(url);
-    navigator.clipboard.writeText(url).catch(() => {});
-  }, [exportJson]);
-
   const handleImport = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -133,7 +125,7 @@ export default function Export() {
           setImported(null);
           return;
         }
-        loadProject(data);
+        switchProject(data);
         setImported(data);
         setImportError(null);
         setImportHash(await configHash(data));
@@ -207,9 +199,6 @@ export default function Export() {
               <button className="btn" onClick={handleCopy}>
                 <Ic.copy style={{ width: 14, height: 14 }} /> {copied ? 'Copied!' : 'Copy to clipboard'}
               </button>
-              <button className="btn" onClick={handleShareLink}>
-                <Ic.target style={{ width: 14, height: 14 }} /> Shareable link
-              </button>
               <button
                 className="btn"
                 disabled={saveConfig.isPending}
@@ -236,12 +225,7 @@ export default function Export() {
                 {saveConfig.error instanceof Error ? saveConfig.error.message : 'Save failed'}
               </div>
             )}
-            {shareUrl && (
-              <div style={{ marginTop: 10, padding: '8px 12px', background: 'var(--bg-2)', border: '1px solid var(--line)', borderRadius: 7 }}>
-                <div className="mono" style={{ fontSize: 10, color: 'var(--faint)', wordBreak: 'break-all' }}>{shareUrl}</div>
-                <div className="hint">Link copied to clipboard. Share it to reopen this exact graph.</div>
-              </div>
-            )}
+
           </div>
 
           <div className="par-section">

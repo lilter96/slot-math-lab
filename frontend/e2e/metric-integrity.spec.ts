@@ -9,7 +9,7 @@ test('Pending, absent and failed metrics withhold proof; computed zero survives'
     await responseGate;
     await route.fulfill({ status, json: response });
   });
-  await page.goto('/build', { waitUntil: 'domcontentloaded' });
+  await page.goto('/build?project=nine-lives', { waitUntil: 'domcontentloaded' });
   const metrics = page.getByLabel('Model evaluation');
   await expect(metrics).toContainText('Calculating');
   await expect(metrics.locator('.prov')).toHaveCount(0);
@@ -25,7 +25,7 @@ test('Pending, absent and failed metrics withhold proof; computed zero survives'
   await expect(metrics).toContainText('Not evaluated');
   await expect(metrics).not.toContainText('0.00');
   status = 503;
-  await page.getByRole('button', { name: 'Build Nine Lives graph' }).click();
+  await page.getByRole('button', { name: 'Choose a project or template' }).click(); await page.getByRole('button', { name: 'Create Nine Lives · reference project', exact: true }).click(); await page.getByRole('tab', { name: 'Build', exact: true }).click();
   await expect(metrics).toContainText('Unavailable');
   await expect(metrics.locator('.prov')).toHaveCount(0);
   status = 200;
@@ -40,7 +40,7 @@ test('Pending, absent and failed metrics withhold proof; computed zero survives'
 test('Missing interval bounds withhold proof and PAR exports keep absent fields unlabelled', { tag: '@critical' }, async ({ page }) => {
   let response = { strategy: 'Exact', provenance: 'ExactInterval', rtp: 0.9 } as Record<string, unknown>;
   await page.route('**/api/evaluate/light', route => route.fulfill({ json: response }));
-  await page.goto('/build'); const metrics = page.getByLabel('Model evaluation'); await expect(metrics).toContainText('Not evaluated'); await expect(metrics.locator('.prov')).toHaveCount(0);
+  await page.goto('/build?project=nine-lives'); const metrics = page.getByLabel('Model evaluation'); await expect(metrics).toContainText('Not evaluated'); await expect(metrics.locator('.prov')).toHaveCount(0);
   response = { strategy: 'Exact', provenance: 'ExactInterval', rtp: 0.9, lo: 0.8, hi: 1, hitFrequency: 0.2 };
   await page.getByRole('button', { name: 'Load coin example' }).click(); await expect(metrics.locator('.prov')).toHaveCount(1); await expect(metrics).toContainText('RTP ratio bounds: 0.8 to 1');
   response = { strategy: 'Exact', provenance: 'Exact', rtp: 0.5 };

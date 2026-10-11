@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { browserStorageKey } from '../lib/browserIdentity';
 import { LIMITS } from '../lib/limits';
 import {
   applyNodeChanges,
@@ -12,7 +13,7 @@ import {
   type EdgeChange,
 } from '@xyflow/react';
 
-export type TabId = 'overview' | 'data' | 'features' | 'build' | 'simulate' | 'results' | 'export' | 'debug' | 'play';
+export type TabId = 'projects' | 'overview' | 'data' | 'features' | 'build' | 'simulate' | 'results' | 'export' | 'debug' | 'play';
 export type Mood = 'slate' | 'ocean' | 'violet' | 'steel';
 export type Density = 'compact' | 'regular';
 
@@ -187,9 +188,12 @@ export interface MechanicsSyncState {
 
 // ── Store ──────────────────────────────────────────────────────────
 
+export type ProjectDraft = Pick<AppState, 'nodes' | 'edges' | 'tables' | 'graphTrail' | 'verificationSource' | 'configName' | 'authoringDraft' | 'resultsDraft'> & { updatedAt: string };
 export interface AppState extends GraphState, MechanicsState, PluginsState, MechanicsSyncState {
-  authoringDraft: Pick<AppState, 'nodes' | 'edges' | 'tables' | 'graphTrail' | 'verificationSource' | 'configName' | 'selectedNodeId'> | null;
-  resultsDraft: Pick<AppState, 'nodes' | 'edges' | 'tables' | 'graphTrail' | 'verificationSource' | 'configName'> | null;
+  projectId: string | null;
+  projects: Record<string, ProjectDraft>;
+  authoringDraft: Pick<AppState, 'nodes' | 'edges' | 'tables' | 'graphTrail' | 'verificationSource' | 'configName' | 'selectedNodeId'> & { projectId?: string | null } | null;
+  resultsDraft: Pick<AppState, 'nodes' | 'edges' | 'tables' | 'graphTrail' | 'verificationSource' | 'configName'> & { projectId?: string | null } | null;
   graphTrail: { graph: Record<string, unknown>; mechanic: string }[];
   verificationSource: Record<string, unknown> | null;
   tab: TabId;
@@ -212,6 +216,8 @@ export const MOOD_HUE: Record<Mood, number> = {
 };
 
 export const useAppStore = create<AppState>((set, get) => ({
+  projectId: null,
+  projects: {},
   authoringDraft: null,
   resultsDraft: null,
   graphTrail: [],
@@ -399,8 +405,32 @@ export function withoutSelection<T extends { selected?: boolean }>(items: T[] | 
   });
 }
 
+/** Preserve editor positions and an open mechanic as well as the canonical model. */
+export function captureProjectDraft(s = useAppStore.getState()): ProjectDraft {
+  const { nodes, edges, tables, graphTrail, verificationSource, configName, authoringDraft, resultsDraft } = s;
+  return { nodes: withoutSelection(nodes) ?? [], edges, tables, graphTrail, verificationSource, configName, authoringDraft, resultsDraft, updatedAt: new Date().toISOString() };
+}
+export function retainCurrentProject() {
+  const s = useAppStore.getState();
+  if (s.projectId) useAppStore.setState({ projects: { ...s.projects, [s.projectId]: captureProjectDraft(s) } });
+}
+export function activateProject(id: string) {
+  retainCurrentProject();
+  const project = useAppStore.getState().projects[id];
+  if (!project) throw new Error('Project not found in this workspace');
+  useAppStore.setState({ ...project, projectId: id, selectedNodeId: null, inspectorOpen: false, liveRtp: null, liveProvenance: null });
+}
+
+let draftStorageError: string | null = null;
+export function getDraftStorageError() { return draftStorageError; }
+function reportDraftStorageError(message: string | null) {
+  if (draftStorageError === message) return;
+  draftStorageError = message;
+  window.dispatchEvent(new CustomEvent('slotmath:draft-storage', { detail: message }));
+}
+
 if (typeof window !== 'undefined') {
-  const DRAFT_KEY = 'slotmath-draft-v1';
+  const DRAFT_KEY = browserStorageKey('slotmath-draft-v1');
   const SAVE_DEBOUNCE_MS = 400;
   let saveTimer: number | undefined;
 
@@ -408,6 +438,8 @@ if (typeof window !== 'undefined') {
     const s = useAppStore.getState();
     try {
       localStorage.setItem(DRAFT_KEY, JSON.stringify({
+        projectId: s.projectId,
+        projects: s.projectId ? { ...s.projects, [s.projectId]: captureProjectDraft(s) } : s.projects,
         nodes: withoutSelection(s.nodes),
         edges: s.edges,
         tables: s.tables,
@@ -421,10 +453,13 @@ if (typeof window !== 'undefined') {
           ? { ...s.resultsDraft, nodes: withoutSelection(s.resultsDraft.nodes) }
           : s.resultsDraft,
       }));
-    } catch { /* export remains available when browser storage is full */ }
+      reportDraftStorageError(null);
+    } catch { reportDraftStorageError('Browser storage could not save the latest edits. Keep this page open and download JSON or save a server version from Export.'); }
   };
 
   const schedulePersist = () => {
+    const s = useAppStore.getState();
+    if (!s.projectId && s.nodes.length) { useAppStore.setState({ projectId: crypto.randomUUID() }); return; }
     if (saveTimer !== undefined) clearTimeout(saveTimer);
     saveTimer = window.setTimeout(() => {
       saveTimer = undefined;
@@ -434,7 +469,7 @@ if (typeof window !== 'undefined') {
 
   try {
     const draft = JSON.parse(localStorage.getItem(DRAFT_KEY) ?? 'null');
-    if (draft && Array.isArray(draft.nodes) && Array.isArray(draft.edges)) useAppStore.setState({ nodes: withoutSelection(draft.nodes) ?? [], edges: draft.edges, tables: draft.tables ?? {}, graphTrail: draft.graphTrail ?? [], verificationSource: draft.verificationSource ?? null, configName: draft.configName ?? 'Untitled', resultsDraft: draft.resultsDraft ?? null, authoringDraft: draft.authoringDraft ?? null });
+    if (draft && Array.isArray(draft.nodes) && Array.isArray(draft.edges)) useAppStore.setState({ projectId: draft.projectId ?? (draft.nodes.length ? crypto.randomUUID() : null), projects: draft.projects ?? {}, nodes: withoutSelection(draft.nodes) ?? [], edges: draft.edges, tables: draft.tables ?? {}, graphTrail: draft.graphTrail ?? [], verificationSource: draft.verificationSource ?? null, configName: draft.configName ?? 'Untitled', resultsDraft: draft.resultsDraft ?? null, authoringDraft: draft.authoringDraft ?? null });
   } catch { /* a corrupt draft never prevents opening the editor */ }
 
   useAppStore.subscribe(schedulePersist);

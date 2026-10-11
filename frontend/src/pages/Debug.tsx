@@ -1,3 +1,4 @@
+import { useAppStore } from '../store';
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useModelProjection } from '../hooks/useModelProjection';
@@ -7,23 +8,25 @@ import { canonicalJson } from '../lib/hash';
 import { cascadeTrace, boardCells } from '../lib/roundTrace';
 import { assets } from '../games/nine-lives/manifest';
 interface Receipt { config: ModelGraph; round: GraphRound }
-let savedReceipt: Receipt | null = null;
+const savedReceipts = new Map<string, Receipt>();
 export default function Debug() {
   const graph = useModelProjection();
+  const projectId = useAppStore(s => s.projectId) ?? 'unselected';
   const [seed, setSeed] = useState('42'), [index, setIndex] = useState('0');
-  const [receipt, setReceipt] = useState<Receipt | null>(savedReceipt);
+  const [receipt, setReceipt] = useState<Receipt | null>(() => savedReceipts.get(projectId) ?? null);
   const [busy, setBusy] = useState(false), [error, setError] = useState(''), [replay, setReplay] = useState('');
   const [stepIndex, setStepIndex] = useState(0), [hitIndex, setHitIndex] = useState<number | null>(null), [after, setAfter] = useState(false);
   const config = receipt?.config;
   const geometry = config?.boardConfig as { rows?: number; columns?: number } | undefined;
   const rows = geometry?.rows ?? 0, columns = geometry?.columns ?? 0;
   const size = Number.isInteger(rows) && Number.isInteger(columns) && rows > 0 && columns > 0 && rows * columns <= 120 ? rows * columns : 0;
-  const steps = receipt && size ? cascadeTrace(receipt.round, size) : null;
+  const referenceTrace = ['nine-lives-base', 'nine-lives-buy'].includes(String(config?.id));
+  const steps = receipt && size && referenceTrace ? cascadeTrace(receipt.round, size) : null;
   const step = steps?.[stepIndex];
-  const initial = receipt && size ? boardCells((receipt.round.state.boards as unknown[] | undefined)?.[0], size) : null;
+  const initial = receipt && size && referenceTrace ? boardCells((receipt.round.state.boards as unknown[] | undefined)?.[0], size) : null;
   const cells = step ? after ? step.after : step.before : initial;
   const symbols = (config?.symbols ?? []) as { id: string; name: string }[];
-  const nineLives = String(config?.id ?? '').startsWith('nine-lives');
+  const nineLives = ['nine-lives-base', 'nine-lives-buy'].includes(String(config?.id));
   const changed = receipt && graph && canonicalJson(receipt.config) !== canonicalJson(graph);
   const execute = async (isReplay: boolean) => {
     setBusy(true); setError(''); setReplay('');
@@ -34,7 +37,7 @@ export default function Debug() {
       if (!pinned) throw new Error('Open a model before running a round.');
       const round = await graphRequest<GraphRound>('play/round', { config: pinned, seed: seedValue, roundIndex, trace: true });
       if (isReplay) setReplay(canonicalJson(round) === canonicalJson(receipt!.round) ? 'Replay matches the stored payout, hash and full returned state.' : 'Replay differs from the stored response. Inspect both receipts; no determinism claim is made.');
-      else { const next = { config: pinned, round }; savedReceipt = next; setReceipt(next); setStepIndex(0); setHitIndex(null); setAfter(false); }
+      else { const next = { config: pinned, round }; savedReceipts.set(projectId, next); setReceipt(next); setStepIndex(0); setHitIndex(null); setAfter(false); }
     } catch (reason) { setError(reason instanceof Error ? reason.message : String(reason)); } finally { setBusy(false); }
   };
   return <section className="debug-page"><header className="page-heading"><div><h1>Spin & trace</h1><p>Execute the current model and inspect the state returned by the math engine.</p></div><Link className="btn" to="/build">Open current logic</Link></header>

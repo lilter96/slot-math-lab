@@ -2,14 +2,16 @@ import Login from './Login';
 import TweaksPanel from './TweaksPanel';
 import { useProjectInitialization } from '../hooks/useProjectInitialization';
 import AiGenerateModal from './AiGenerateModal';
+import { getBrowserIdentity } from '../lib/browserIdentity';
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
 import { useEffect, useState } from 'react';
-import { useAppStore, MOOD_HUE, type Mood } from '../store';
+import { useAppStore, getDraftStorageError, MOOD_HUE, type Mood } from '../store';
 import { Ic } from './Icons';
 import { useSimulationConnection } from '../hooks/useSimulation';
 import { DEFAULT_FEATURES, useFeaturesQuery } from '../api/hooks';
 
 const TABS = [
+  { id: 'projects' as const, label: 'My projects', Icon: Ic.build },
   { id: 'overview' as const, label: 'Overview', Icon: Ic.build },
   { id: 'data' as const, path: 'model/data', label: 'Model data', Icon: Ic.draw },
   { id: 'features' as const, path: 'model/features', label: 'Features', Icon: Ic.loop },
@@ -18,7 +20,7 @@ const TABS = [
   { id: 'results' as const, label: 'Results', Icon: Ic.results },
   { id: 'export' as const, label: 'Export', Icon: Ic.export },
   { id: 'debug' as const, label: 'Debug', Icon: Ic.sim },
-  { id: 'play' as const, label: 'Play', Icon: Ic.sim },
+  { id: 'play' as const, label: 'Reference demo', Icon: Ic.sim },
 ];
 
 export default function Layout() {
@@ -27,10 +29,12 @@ export default function Layout() {
   const location = useLocation();
   const tab = useAppStore((s) => s.tab);
   const setTab = useAppStore((s) => s.setTab);
-  const configName = useAppStore(s => s.graphTrail.length ? String(s.graphTrail[0].graph.name ?? s.configName ?? 'Untitled') : s.configName);
+  const configName = useAppStore(s => !s.projectId ? null : s.graphTrail.length ? String(s.graphTrail[0].graph.name ?? s.configName ?? 'Untitled') : s.configName);
   const tweaks = useAppStore((s) => s.tweaks);
   const features = useFeaturesQuery().data ?? DEFAULT_FEATURES;
 
+  const [storageError, setStorageError] = useState(getDraftStorageError);
+  useEffect(() => { const update = (event: Event) => setStorageError((event as CustomEvent<string | null>).detail); window.addEventListener('slotmath:draft-storage', update); return () => window.removeEventListener('slotmath:draft-storage', update); }, []);
   const [showAi, setShowAi] = useState(false);
   const [collapsed, setCollapsed] = useState(() => sessionStorage.getItem('slotmath-nav-collapsed') === 'true');
   const toggleNav = () => setCollapsed(value => { sessionStorage.setItem('slotmath-nav-collapsed', String(!value)); return !value; });
@@ -72,12 +76,12 @@ export default function Layout() {
           </div>
         </div>
 
-        <div className="project-pill">
+        <NavLink to="/projects" className="project-pill" aria-label="Choose project">
           <span className="dot" />
-          {configName}
-        </div>
+          {configName ?? 'Choose a project'}
+        </NavLink>
 
-        <div className="topbar-right"><NavLink className="btn primary" to="/simulate">Run analysis</NavLink>
+        <div className="topbar-right">{configName && <NavLink className="btn primary" to="/simulate">Run analysis</NavLink>}
           {features.ai && <button className="btn" onClick={() => setShowAi(true)}>AI assist</button>}
           {/* The ported games are a page of their own: they play their graphs through the same endpoint as /play. */}
           {features.play && (
@@ -86,14 +90,16 @@ export default function Layout() {
               Games
             </a>
           )}
+          {getBrowserIdentity().authenticated && <button className="btn" onClick={async () => { const response = await fetch('/api/auth/logout', { method: 'POST' }); if (response.ok) window.location.reload(); }}>Sign out</button>}
           <TweaksPanel />
         </div>
       </div>
 
+      {storageError && <div className="draft-storage-warning" role="alert">{storageError} <NavLink className="btn" to="/export">Back up this project</NavLink></div>}
       <div className={'workspace-shell' + (collapsed ? ' nav-collapsed' : '')}>
         <aside className="workspace-nav" aria-label="Workspace">
           <button className="btn nav-toggle" aria-label={collapsed ? 'Expand navigation' : 'Collapse navigation'} aria-expanded={!collapsed} onClick={toggleNav}>{collapsed ? '☰' : 'Collapse navigation'}</button>
-          <span className="nav-project">{configName ?? 'Untitled'}</span>
+          <span className="nav-project">{configName ?? 'Choose a project'}</span>
         <div className="tabs" role="tablist" aria-label="Main navigation" onKeyDown={event => {
           if (!['ArrowDown', 'ArrowUp', 'ArrowRight', 'ArrowLeft', 'Home', 'End'].includes(event.key)) return;
           const items = Array.from(event.currentTarget.querySelectorAll<HTMLAnchorElement>('[role=tab]'));

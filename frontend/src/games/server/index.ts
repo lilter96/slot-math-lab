@@ -1,3 +1,4 @@
+import { browserStorageKey } from '../../lib/browserIdentity';
 import { ancientDragon } from './ancient-dragon';
 import { leMilitare } from './le-militare';
 import { nineLives } from './nine-lives';
@@ -11,8 +12,9 @@ function sessionStore(): SessionStore {
   try {
     // Without cross-tab locking, keep the session in this page rather than share an unsafe wallet.
     if (!navigator.locks) throw new Error('Cross-tab session locking is unavailable');
-    localStorage.setItem('slot-math-lab:game-session', '');
-    return localStorage;
+    const probe = browserStorageKey('slot-math-lab:game-session');
+    localStorage.setItem(probe, ''); localStorage.removeItem(probe);
+    return { getItem: key => localStorage.getItem(browserStorageKey(key)), setItem: (key, value) => localStorage.setItem(browserStorageKey(key), value), removeItem: key => localStorage.removeItem(browserStorageKey(key)) };
   } catch {
     const kept = new Map<string, string>();
     return { getItem: key => kept.get(key) ?? null, setItem: (key, value) => void kept.set(key, value), removeItem: key => void kept.delete(key) };

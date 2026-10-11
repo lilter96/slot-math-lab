@@ -592,6 +592,7 @@ body { font-size: 14px; line-height: 1.5; }
 .symbol-reference > div { display: flex; align-items: center; flex-direction: column; gap: 4px; font-size: 10px; min-width: 0; }
 .symbol-reference img { object-fit: contain; max-width: 100%; }
 .symbol-reference small { color: var(--muted); }
+.symbol-reference > div > span { max-width: 100%; overflow-wrap: anywhere; text-align: center; line-height: 1.4; }
 .model-summary dl { margin: 0; }
 .model-summary dl > div { display: flex; justify-content: space-between; gap: 16px; border-bottom: 1px solid var(--line); padding: 12px 0; }
 .model-summary dt { color: var(--muted); }
@@ -748,3 +749,28 @@ body { font-size: 14px; line-height: 1.5; }
 .graph-validation li { margin: 8px 0; }
 .graph-validation li small { display: block; color: var(--muted); }
 @media (max-width: 767px) { .btn, .trace-hit { min-height: 44px; } }
+
+/* Personal library: compact rows keep large collections easy to scan. */
+.projects-page { padding: 28px; max-width: 1280px; margin: 0 auto; width: 100%; overflow: auto; }
+.project-pill { text-decoration: none; color: var(--text); }
+.project-search { display: block; max-width: 420px; margin: 24px 0 16px; }
+.project-search input { margin-top: 8px; width: 100%; }
+.project-list { border-top: 1px solid var(--line); }
+.project-row { display: flex; align-items: center; gap: 12px; padding: 18px 0; border-bottom: 1px solid var(--line); }
+.project-row > div { flex: 1; min-width: 0; }
+.project-row h2 { margin: 0 0 6px; font-size: 17px; overflow-wrap: anywhere; }
+.project-row p, .project-templates p { margin: 0; color: var(--muted); font-size: 13px; }
+.projects-empty { padding: 28px 0; }
+.project-templates, .project-import { margin-top: 32px; }
+.template-list { margin-top: 16px; border-top: 1px solid var(--line); }
+.template-row { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 12px 0; border-bottom: 1px solid var(--line); }
+.project-import input { max-width: 240px; margin-left: 12px; }
+@media (max-width: 700px) {
+  .projects-page { padding: 20px 16px; }
+  .project-row { flex-wrap: wrap; }
+  .project-row > div { flex-basis: 100%; }
+  .template-row { align-items: flex-start; flex-direction: column; }
+  .template-row .btn { max-width: 100%; white-space: normal; text-align: left; }
+}
+
+.draft-storage-warning { padding: 12px 16px; color: var(--text); background: var(--bg-2); border-bottom: 1px solid var(--danger); display: flex; align-items: center; flex-wrap: wrap; gap: 12px; flex: 0 0 auto; }

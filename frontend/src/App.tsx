@@ -2,6 +2,8 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import Layout from './components/Layout';
 import Build from './pages/Build';
 import Overview from './pages/Overview';
+import Projects from './pages/Projects';
+import { useAppStore } from './store';
 import ModelData from './pages/ModelData';
 import Features from './pages/Features';
 
@@ -27,11 +29,13 @@ function RequirePlay({ children }: { children: ReactNode }) {
 }
 
 export default function App() {
+  const projectId = useAppStore(s => s.projectId);
   return (
     <BrowserRouter>
       <Routes>
         <Route element={<Layout />}>
-          <Route index element={<Navigate to="/overview" replace />} />
+          <Route index element={<Navigate to="/projects" replace />} />
+          <Route path="projects" element={<Projects />} />
           <Route path="overview" element={<Overview />} />
           <Route path="model/features" element={<Features />} />
           <Route path="model/data" element={<ModelData />} />
@@ -39,7 +43,7 @@ export default function App() {
           <Route path="simulate" element={<Suspense fallback={<p>Loading simulation lab…</p>}><Simulate /></Suspense>} />
           <Route path="results" element={<Suspense fallback={<p role="status">Loading run evidence…</p>}><Results /></Suspense>} />
           <Route path="export" element={<Export />} />
-          <Route path="debug" element={<RequirePlay><Suspense fallback={<p>Loading debugger…</p>}><Debug /></Suspense></RequirePlay>} />
+          <Route path="debug" element={<RequirePlay><Suspense fallback={<p>Loading debugger…</p>}><Debug key={projectId} /></Suspense></RequirePlay>} />
           <Route
             path="play"
             element={<RequirePlay><Suspense fallback={<p>Loading game…</p>}><NineLives /></Suspense></RequirePlay>}

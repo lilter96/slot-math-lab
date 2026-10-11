@@ -12,6 +12,7 @@ namespace SlotMath.Api.Infrastructure;
 /// </summary>
 public sealed record ConfigEntry
 {
+    public string OwnerId { get; init; } = "";
     public required string Id { get; init; }
     public required int Version { get; init; }
     public required GraphConfig Config { get; init; }
@@ -31,15 +32,21 @@ public sealed class InMemoryConfigStore
     private readonly Dictionary<string, List<ConfigEntry>> _configs = new();
 
     private readonly EncryptedSnapshots? _snapshots;
-    public InMemoryConfigStore(EncryptedSnapshots? snapshots = null)
+    private readonly RequestOwnership? _ownership;
+    private bool Visible(ConfigEntry entry) => _ownership?.CanAccess(entry.OwnerId) ?? true;
+    public InMemoryConfigStore(EncryptedSnapshots? snapshots = null, RequestOwnership? ownership = null)
     {
         _snapshots = snapshots;
+        _ownership = ownership;
         _configs = snapshots?.Read<Dictionary<string, List<ConfigEntry>>>("configs") ?? new();
+        foreach (var id in _configs.Keys.ToArray())
+            _configs[id] = _configs[id].Select(e => string.IsNullOrEmpty(e.OwnerId) ? e with { OwnerId = ownership?.LegacyOwner ?? "anonymous" } : e).ToList();
     }
 
     public string Create(GraphConfig config)
     {
-        var id = config.Id ?? Guid.NewGuid().ToString("N");
+        // Project identity is independent of the authored model/template identity.
+        var id = Guid.NewGuid().ToString("N");
         lock (_gate)
         {
             if (!_configs.TryGetValue(id, out var entries))
@@ -51,8 +58,9 @@ public sealed class InMemoryConfigStore
             entries.Add(new ConfigEntry
             {
                 Id = id,
+                OwnerId = _ownership?.CurrentOwner ?? "anonymous",
                 Version = entries.Count == 0 ? 1 : entries[^1].Version + 1,
-                Config = config with { Id = id },
+                Config = config with { Id = config.Id ?? id },
                 CreatedAt = DateTimeOffset.UtcNow,
             });
             _snapshots?.Write("configs", _configs);
@@ -67,7 +75,7 @@ public sealed class InMemoryConfigStore
         {
             if (!_configs.TryGetValue(id, out var entries) || entries.Count == 0)
                 return null;
-            return entries[^1];
+            return Visible(entries[^1]) ? entries[^1] : null;
         }
     }
 
@@ -77,7 +85,7 @@ public sealed class InMemoryConfigStore
         {
             if (!_configs.TryGetValue(id, out var entries))
                 return null;
-            return entries.FirstOrDefault(e => e.Version == version);
+            return entries.FirstOrDefault(e => e.Version == version && Visible(e));
         }
     }
 
@@ -85,14 +93,15 @@ public sealed class InMemoryConfigStore
     {
         lock (_gate)
         {
-            if (!_configs.TryGetValue(id, out var entries) || entries.Count == 0)
+            if (!_configs.TryGetValue(id, out var entries) || entries.Count == 0 || !Visible(entries[^1]))
                 throw new KeyNotFoundException($"Config '{id}' not found.");
 
             entries.Add(new ConfigEntry
             {
                 Id = id,
+                OwnerId = entries[^1].OwnerId,
                 Version = entries[^1].Version + 1,
-                Config = config with { Id = id },
+                Config = config with { Id = config.Id ?? id },
                 CreatedAt = DateTimeOffset.UtcNow,
             });
             _snapshots?.Write("configs", _configs);
@@ -106,7 +115,7 @@ public sealed class InMemoryConfigStore
         {
             if (!_configs.TryGetValue(id, out var entries))
                 return Array.Empty<ConfigEntry>();
-            return entries.ToArray();
+            return entries.Where(Visible).ToArray();
         }
     }
 
@@ -117,6 +126,7 @@ public sealed class InMemoryConfigStore
             return _configs.Values
                 .Where(v => v.Count > 0)
                 .Select(v => v[^1])
+                .Where(Visible)
                 .ToList()
                 .AsReadOnly();
         }
@@ -128,7 +138,7 @@ public sealed class InMemoryConfigStore
         lock (_gate)
         {
             var entry = _configs.GetValueOrDefault(id)?.FirstOrDefault(e => e.Version == version);
-            return entry is null ? null : action(entry);
+            return entry is null || !Visible(entry) ? null : action(entry);
         }
     }
 
@@ -136,6 +146,7 @@ public sealed class InMemoryConfigStore
     {
         lock (_gate)
         {
+            if (!_configs.TryGetValue(id, out var entries) || entries.Count == 0 || !Visible(entries[^1])) return false;
             if (canDelete is not null && !canDelete()) throw new InvalidOperationException("This config is pinned by saved runs and cannot be deleted.");
             var removed = _configs.Remove(id);
             if (removed) _snapshots?.Write("configs", _configs);
@@ -149,6 +160,7 @@ public sealed class InMemoryConfigStore
 /// </summary>
 public sealed record RunEntry
 {
+    public string OwnerId { get; init; } = "";
     public EvidenceInput[]? ExternalEvidence { get; init; }
     public string? CancellationReason { get; init; }
     public SlotMath.Core.Measurements.VerificationProfile? VerificationProfile { get; init; }
@@ -195,16 +207,22 @@ public sealed class InMemoryRunStore
     private readonly TimeProvider _clock;
     private readonly string _streamEpoch = Guid.NewGuid().ToString("N");
     private long _lastCheckpoint;
-    public InMemoryRunStore(EncryptedSnapshots? snapshots = null, TimeProvider? clock = null)
+    private readonly RequestOwnership? _ownership;
+    private readonly InMemoryConfigStore? _configs;
+    private bool Visible(RunEntry entry) => _ownership?.CanAccess(entry.OwnerId) ?? true;
+    public InMemoryRunStore(EncryptedSnapshots? snapshots = null, TimeProvider? clock = null, RequestOwnership? ownership = null, InMemoryConfigStore? configs = null)
     {
         _snapshots = snapshots;
         _clock = clock ?? TimeProvider.System;
+        _ownership = ownership;
+        _configs = configs;
         _runs = snapshots?.Read<Dictionary<string, RunEntry>>("runs") ?? new();
         var interrupted = false;
         foreach (var (id, run) in _runs.ToArray())
         {
             var restored = run with
             {
+                OwnerId = string.IsNullOrEmpty(run.OwnerId) ? ownership?.LegacyOwner ?? "anonymous" : run.OwnerId,
                 Sequence = Math.Max(run.Sequence, run.Progress?.Sequence ?? 0),
                 StreamEpoch = string.IsNullOrEmpty(run.StreamEpoch) ? _streamEpoch : run.StreamEpoch
             };
@@ -239,6 +257,7 @@ public sealed class InMemoryRunStore
         var entry = new RunEntry
         {
             Id = id,
+            OwnerId = _configs?.GetVersion(configId, configVersion)?.OwnerId ?? _ownership?.CurrentOwner ?? "anonymous",
             ExternalEvidence = externalEvidence?.ToArray(),
             VerificationProfile = verificationProfile,
             VerificationProfileHash = verificationProfile is null ? null : SlotMath.Core.Measurements.ProfileVerification.Hash(verificationProfile),
@@ -269,8 +288,13 @@ public sealed class InMemoryRunStore
         lock (_gate)
         {
             _runs.TryGetValue(id, out var entry);
-            return entry;
+            return entry is not null && Visible(entry) ? entry : null;
         }
+    }
+
+    public RunEntry? GetForOwner(string id, string owner)
+    {
+        lock (_gate) return _runs.TryGetValue(id, out var entry) && entry.OwnerId == owner ? entry : null;
     }
 
     public DiagnosticRetention RetainDiagnostic(string id, string kind, object input, object output)
@@ -283,7 +307,7 @@ public sealed class InMemoryRunStore
             System.Text.Json.JsonSerializer.SerializeToElement(output, SlotMath.Core.JsonOptions.Default));
         lock (_gate)
         {
-            if (!_runs.TryGetValue(id, out var run)) return new(null, false, "Run no longer available. Export this calculation to retain it.");
+            if (!_runs.TryGetValue(id, out var run) || !Visible(run)) return new(null, false, "Run no longer available. Export this calculation to retain it.");
             if (run.Diagnostics.Any(d => d.Id == artifactId)) return new(artifactId, true, "Identical server evidence is already retained.");
             artifact = artifact with { ConfigHash = run.ConfigHash, MeasurementHash = run.MeasurementHash };
             var next = run.Diagnostics.Append(artifact).ToArray();
@@ -301,7 +325,7 @@ public sealed class InMemoryRunStore
     {
         lock (_gate)
         {
-            if (!_runs.TryGetValue(id, out var entry))
+            if (!_runs.TryGetValue(id, out var entry) || !Visible(entry))
                 throw new KeyNotFoundException($"Run '{id}' not found.");
             if (Terminal(entry.Status)) return entry;
             if (status == entry.Status && (resultJson is null || resultJson == entry.ResultJson)) return entry;
@@ -332,7 +356,7 @@ public sealed class InMemoryRunStore
     {
         lock (_gate)
         {
-            if (!_runs.TryGetValue(id, out var entry))
+            if (!_runs.TryGetValue(id, out var entry) || !Visible(entry))
                 return;
             if (entry.Status is "completed" or "failed" or "cancelled" || sampleCount < (entry.SampleCount ?? 0))
                 return;
@@ -353,7 +377,7 @@ public sealed class InMemoryRunStore
     {
         lock (_gate)
         {
-            if (!_runs.TryGetValue(id, out var entry) || entry.Status is "completed" or "failed" or "cancelled") return null;
+            if (!_runs.TryGetValue(id, out var entry) || !Visible(entry) || entry.Status is "completed" or "failed" or "cancelled") return null;
             if (progress.SampleCount < (entry.SampleCount ?? 0)) return null;
             var next = progress with
             {
@@ -426,7 +450,7 @@ public sealed class InMemoryRunStore
     {
         lock (_gate)
         {
-            if (_cts.TryGetValue(runId, out var cts) && _runs.TryGetValue(runId, out var run) && !Terminal(run.Status))
+            if (_cts.TryGetValue(runId, out var cts) && _runs.TryGetValue(runId, out var run) && Visible(run) && !Terminal(run.Status))
             {
                 if (run.Status != "cancelling")
                 {
@@ -461,7 +485,7 @@ public sealed class InMemoryRunStore
     {
         RunEntry[] snapshot;
         lock (_gate) snapshot = _runs.Values.ToArray();
-        return snapshot.Where(r => configId is null || r.ConfigId == configId)
+        return snapshot.Where(r => Visible(r) && (configId is null || r.ConfigId == configId))
             .OrderByDescending(r => r.CreatedAt).ThenByDescending(r => r.Id, StringComparer.Ordinal).ToArray();
     }
 }

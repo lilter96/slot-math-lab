@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { loadProject } from '../../lib/projectFiles';
+import { switchProject } from '../../lib/projectFiles';
 import { createNineLivesGraph } from './graph';
 import type { launchNineLives } from './launch';
 
@@ -40,8 +40,9 @@ export default function NineLives() {
     };
   }, []);
   return <section className="nl-play">
+    <p className="hint">Nine Lives reference demo · this demo uses its own authored model. Test your current project in Debug.</p>
     <div className="nl-graph-tools">
-      <button className="btn" onClick={() => { loadProject(createNineLivesGraph(buy ? 'buy' : 'base')); navigate('/build'); }}>Open Nine Lives graph</button>
+      <button className="btn" onClick={() => { switchProject(createNineLivesGraph(buy ? 'buy' : 'base')); navigate('/build'); }}>Open Nine Lives graph</button>
       <label>Config hash<input aria-label="Replay config hash" value={hash} onChange={event => setHash(event.target.value)} /></label>
       <label>Seed<input aria-label="Replay seed" type="number" value={seed} onChange={event => setSeed(Number(event.target.value))} /></label>
       <label>Index<input aria-label="Replay index" type="number" value={index} onChange={event => setIndex(Number(event.target.value))} /></label>

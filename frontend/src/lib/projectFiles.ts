@@ -1,4 +1,4 @@
-import { useAppStore, type GraphNode, type GraphEdge } from '../store';
+import { useAppStore, type GraphNode, type GraphEdge, retainCurrentProject } from '../store';
 import { buildConfigPayload } from './configPayload';
 export function loadProject(config: Record<string, unknown>) {
   if (!Array.isArray(config.nodes) || !Array.isArray(config.edges)) throw new Error('Project must contain nodes and edges');
@@ -73,13 +73,14 @@ export function exportProject() {
 }
 /** Switch examples/imports while retaining a restorable canonical editor draft. */
 export function switchProject(config: Record<string, unknown>) {
+  retainCurrentProject();
   const current = useAppStore.getState();
   if (!current.authoringDraft && current.nodes.length) {
-    const { nodes, edges, tables, graphTrail, verificationSource, configName, selectedNodeId } = current;
-    useAppStore.setState({ authoringDraft: { nodes, edges, tables, graphTrail, verificationSource, configName, selectedNodeId } });
+    const { nodes, edges, tables, graphTrail, verificationSource, configName, selectedNodeId, projectId } = current;
+    useAppStore.setState({ authoringDraft: { nodes, edges, tables, graphTrail, verificationSource, configName, selectedNodeId, projectId } });
   }
   loadProject(config);
-  useAppStore.setState({ graphTrail: [], verificationSource: null, liveRtp: null, liveProvenance: null });
+  useAppStore.setState({ projectId: crypto.randomUUID(), graphTrail: [], verificationSource: null, resultsDraft: null, liveRtp: null, liveProvenance: null });
 }
 export function loadCoinExample() {
   switchProject({ schemaVersion: '1.0.0', name: 'REF-A Coin', nodes: [

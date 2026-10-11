@@ -6,9 +6,9 @@ import { ExecutionReport } from '../components/simulate/ExecutionConfiguration';
 import { GraphMeasurementReference } from '../components/simulate/GraphMeasurementReference';
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-import { useSimulation, terminal } from '../hooks/useSimulation';
+import { useSimulation, openSimulation, terminal } from '../hooks/useSimulation';
 import { useAppStore } from '../store';
-import { loadProject } from '../lib/projectFiles';
+import { switchProject } from '../lib/projectFiles';
 import { useRunArchive, useRunEvidence, useResultSnapshot, usePinnedReference } from '../lib/results/api';
 import { assess, compareRuns, inspectRun, interval, mergeRunEvidenceSnapshot, number, percent, planSamples, pp, wilson, type RunEvidence, type RunSummary } from '../lib/results/model';
 import { downloadReport, evidenceBundle, reportCsv, reportHtml } from '../lib/results/export';
@@ -87,18 +87,21 @@ function RunReport({ evidence, baseline, candidates, snapshotError, comparisonEr
     const config = proof ? reference?.proof : evidence.pinnedConfig;
     if (!config) return;
     const editor = useAppStore.getState();
-    if (!editor.resultsDraft) useAppStore.setState({ resultsDraft: structuredClone({ nodes: editor.nodes, edges: editor.edges,
-      tables: editor.tables, graphTrail: editor.graphTrail, verificationSource: editor.verificationSource, configName: editor.configName }) });
-    loadProject(config); useAppStore.setState({ graphTrail: [], verificationSource: proof ? evidence.pinnedConfig : null }); navigate('/build');
+    const resultsDraft = editor.resultsDraft ?? structuredClone({ projectId: editor.projectId, nodes: editor.nodes, edges: editor.edges,
+      tables: editor.tables, graphTrail: editor.graphTrail, verificationSource: editor.verificationSource, configName: editor.configName });
+    switchProject(config);
+    useAppStore.setState({ resultsDraft, verificationSource: proof ? evidence.pinnedConfig : null });
+    if (!activeElsewhere || session.run?.id === run.id) void openSimulation(run, { model: model.name, target: model.targetRtp });
+    navigate('/build');
   }
   async function copyLink() {
     const url = new URL(location.href); url.searchParams.set('run', run.id);
-    try { await navigator.clipboard.writeText(url.toString()); setNotice('Run link copied. The recipient must have access to this server.'); }
-    catch { setNotice(`Copy this run link: ${url}`); }
+    try { await navigator.clipboard.writeText(url.toString()); setNotice('Private run link copied. Access stays limited to your workspace.'); }
+    catch { setNotice(`Copy this private run link: ${url}`); }
   }
   const exportBundle = () => downloadReport(`run-${run.id}-evidence.json`, JSON.stringify(evidenceBundle(evidence, reference, toleranceValue, baseline), null, 2), 'application/json');
   return <>
-    <header className="results-report-heading"><div><p className="results-eyebrow">SAVED INPUT / VERSION {run.configVersion}</p><h2>{model.name}</h2><p><time>{date(run.createdAt)}</time><span>·</span><code>{run.id.slice(0, 12)}</code><span className={`results-status ${run.status}`}>{run.status === 'cancelled' ? 'cancelled · partial' : run.status}</span></p></div><div className="results-report-actions"><button className="btn" onClick={() => void copyLink()}>↗ Copy run link</button><button className="btn primary" onClick={exportBundle}>↓ Evidence JSON</button></div></header>
+    <header className="results-report-heading"><div><p className="results-eyebrow">SAVED INPUT / VERSION {run.configVersion}</p><h2>{model.name}</h2><p><time>{date(run.createdAt)}</time><span>·</span><code>{run.id.slice(0, 12)}</code><span className={`results-status ${run.status}`}>{run.status === 'cancelled' ? 'cancelled · partial' : run.status}</span></p></div><div className="results-report-actions"><button className="btn" onClick={() => void copyLink()}>↗ Copy private run link</button><button className="btn primary" onClick={exportBundle}>↓ Evidence JSON</button></div></header>
     {notice && <p className="results-notice" role="status">{notice}<button aria-label="Dismiss message" onClick={() => setNotice('')}>✕</button></p>}
     {snapshotError && <p className="results-error" role="alert">Status refresh failed: {snapshotError}. The last retrieved observation is retained.</p>}
     {check.error && <div className="results-error" role="alert"><strong>{run.status === 'failed' ? 'Run interrupted or failed' : 'Run diagnostic'}</strong><p>{check.error}</p></div>}

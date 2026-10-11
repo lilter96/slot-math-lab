@@ -1,3 +1,4 @@
+import { browserStorageKey } from '../../lib/browserIdentity';
 import { createNineLivesGraph } from './graph';
 import { peekRootProject } from '../../lib/projectFiles';
 import { config, SYMBOLS, type LivesResult, type Response } from './types';
@@ -17,7 +18,7 @@ interface Saved {
   cursor: number;
   pending?: Pending;
 }
-const key = 'slot-math-lab:nine-lives:v1';
+const sessionKey = 'slot-math-lab:nine-lives:v1';
 const initialGrid = () => Array.from({ length: 6 }, () => [1, 2, 3, 4, 5]);
 export class GraphApiError extends Error {
   readonly status: number;
@@ -81,11 +82,12 @@ export function framesFromTrace(raw: GraphRound, multiplier: number, buy: boolea
 }
 
 export class GraphGameApi {
+  private readonly key = browserStorageKey(sessionKey);
   private saved: Saved;
   private replaying = false;
   private controller: AbortController | undefined;
   constructor() {
-    const stored = localStorage.getItem(key);
+    const stored = localStorage.getItem(this.key);
     this.saved = stored ? JSON.parse(stored) as Saved : {
       version: 1, nextIndex: 0, frames: [], cursor: 0,
       response: { balance: 100000, revision: 0, state: { phase: 'BASE', triggeringMultiplier: 1, remaining: 0, multiplier: 1, roundWin: 0, bonusWin: 0, lastGrid: initialGrid() } },
@@ -94,10 +96,10 @@ export class GraphGameApi {
   }
   get hasPending() { return this.saved.pending !== undefined; }
   get response() { return this.saved.response; }
-  private persist() { if (!this.replaying) localStorage.setItem(key, JSON.stringify(this.saved)); }
+  private persist() { if (!this.replaying) localStorage.setItem(this.key, JSON.stringify(this.saved)); }
   async restore(): Promise<Response> { return this.response; }
   resetExpiredSession() {
-    localStorage.removeItem(key);
+    localStorage.removeItem(this.key);
     this.saved = new GraphGameApi().saved;
     this.replaying = false;
   }

@@ -49,10 +49,10 @@ var localMode = builder.Environment.IsDevelopment() || builder.Environment.IsEnv
 var jwtSecret = builder.Configuration["JWT:Secret"] ?? (localMode ? JwtAuth.DefaultSecret : throw new InvalidOperationException("JWT:Secret is required in production."));
 if (!localMode && (Encoding.UTF8.GetByteCount(jwtSecret) < 32 || jwtSecret == JwtAuth.DefaultSecret))
     throw new InvalidOperationException("JWT:Secret must be at least 32 bytes and unique in production.");
-if (!localMode && string.IsNullOrWhiteSpace(builder.Configuration["Auth:User"]))
-    throw new InvalidOperationException("Auth:User is required in production.");
-if (!localMode && string.IsNullOrWhiteSpace(builder.Configuration["Auth:PasswordHash"]))
-    throw new InvalidOperationException("Auth:PasswordHash is required in production.");
+var accounts = new AuthAccounts(builder.Configuration);
+if (!localMode && !accounts.HasAccounts)
+    throw new InvalidOperationException("Auth:Users or Auth:User / Auth:PasswordHash is required in production.");
+builder.Services.AddSingleton(accounts);
 if (!localMode)
     builder.Services.AddSingleton(new EncryptedSnapshots(
         builder.Configuration["Storage:Directory"] ?? "/data",
@@ -108,6 +108,8 @@ builder.Services.AddRateLimiter(options =>
 builder.Services.AddSingleton<SimpleRateLimiter>();
 
 // In-memory stores (fast path, always available)
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddSingleton<RequestOwnership>();
 builder.Services.AddSingleton<InMemoryConfigStore>();
 builder.Services.AddSingleton<InMemoryRunStore>();
 builder.Services.AddSingleton<SlotMath.Api.Features.Runs.ExperimentStore>();

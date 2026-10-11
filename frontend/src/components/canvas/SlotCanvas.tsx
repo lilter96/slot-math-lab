@@ -19,7 +19,7 @@ const cameras = new Map<string, Viewport>();
 function FitLoadedGraph() {
   const initialized = useNodesInitialized();
   const { fitView, setViewport } = useReactFlow();
-  const graphKey = useAppStore(s => `${s.tables.id ?? s.configName}:${s.graphTrail.map(x => x.mechanic).join('/')}`);
+  const graphKey = useAppStore(s => `${s.projectId ?? s.tables.id ?? s.configName}:${s.graphTrail.map(x => x.mechanic).join('/')}`);
   useEffect(() => {
     if (!initialized) return;
     const frame = requestAnimationFrame(() => { const saved = cameras.get(graphKey); if (saved) void setViewport(saved); else void fitView({ padding: 0.15, maxZoom: 1 }); });
@@ -40,7 +40,7 @@ function CanvasSurface() {
   const { screenToFlowPosition } = useReactFlow();
   const [smallScreen, setSmallScreen] = useState(() => window.matchMedia('(max-width: 767px)').matches);
   const interactive = useAppStore(s => s.canvasInteractive);
-  const graphKey = useAppStore(s => `${s.tables.id ?? s.configName}:${s.graphTrail.map(x => x.mechanic).join('/')}`);
+  const graphKey = useAppStore(s => `${s.projectId ?? s.tables.id ?? s.configName}:${s.graphTrail.map(x => x.mechanic).join('/')}`);
   useEffect(() => { const query = window.matchMedia('(max-width: 767px)'); const update = () => setSmallScreen(query.matches); query.addEventListener('change', update); return () => query.removeEventListener('change', update); }, []);
   const nodes = useAppStore((s) => s.nodes);
   const edges = useAppStore((s) => s.edges);

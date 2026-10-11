@@ -1,3 +1,4 @@
+import { useAppStore } from '../../store';
 import { useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { weightedSources, validateWeights, changeWeights, type DrawSource } from '../../lib/modelCommands';
@@ -11,7 +12,7 @@ import { importWeightsCsv, weightsCsv } from '../../lib/weightCsv';
 const staged = new Map<string, { base: ModelGraph; weights: string[] }>();
 
 function DrawTransaction({ graph, source }: { graph: ModelGraph; source: DrawSource }) {
-  const draftKey = `${graph.id ?? graph.name}:${source.key}`;
+  const draftKey = `${useAppStore(s => s.projectId)}:${graph.id ?? graph.name}:${source.key}`;
   const [weights, setWeights] = useState(() => staged.get(draftKey)?.weights ?? source.rows.map(row => String(row.weight)));
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
@@ -25,11 +26,13 @@ function DrawTransaction({ graph, source }: { graph: ModelGraph; source: DrawSou
   const [base, setBase] = useState(() => staged.get(draftKey)?.base ?? graph);
   const [undo, setUndo] = useState<{ previous: ModelGraph; committed: string } | null>(null);
   const commit = async () => {
+    const projectId = useAppStore.getState().projectId;
     setBusy(true); setError('');
     try {
       const next = changeWeights(base, source.key, weights);
       const checked = await graphRequest<{ isValid: boolean; errors: { message: string }[] }>('validate', { config: next });
       if (!checked.isValid) throw new Error(checked.errors.map(item => item.message).join('; '));
+      if (useAppStore.getState().projectId !== projectId) throw new Error('The active project changed during validation. Open the original project before applying.');
       if (canonicalJson(peekRootProject()) !== canonicalJson(base)) throw new Error('The model changed while this table was open. Reset the table before applying.');
       rootProject(); loadProject(next);
       const committed = peekRootProject() as ModelGraph;
@@ -56,9 +59,10 @@ function DrawTransaction({ graph, source }: { graph: ModelGraph; source: DrawSou
 
 export default function WeightedDrawEditor() {
   const graph = useModelProjection();
+  const projectId = useAppStore(s => s.projectId);
   const [sourceKey, setSourceKey] = useState('');
   const sources = graph ? weightedSources(graph) : [];
   const source = sources.find(item => item.key === sourceKey) ?? sources[0];
   if (!graph || !source) return <div className="model-notice"><h2>No supported weighted table</h2><p>This model has no finite inline draw weights. Dynamic expressions and other structures remain editable in the logic graph.</p><Link className="btn" to="/build">Open logic graph</Link></div>;
-  return <><label className="draw-source-select">Weighted draw<select className="inp" aria-label="Weighted draw source" value={source.key} onChange={event => setSourceKey(event.target.value)}>{sources.map(item => <option key={item.key} value={item.key}>{item.label}</option>)}</select></label><DrawTransaction key={source.key} graph={graph} source={source} /></>;
+  return <><label className="draw-source-select">Weighted draw<select className="inp" aria-label="Weighted draw source" value={source.key} onChange={event => setSourceKey(event.target.value)}>{sources.map(item => <option key={item.key} value={item.key}>{item.label}</option>)}</select></label><DrawTransaction key={`${projectId}:${source.key}`} graph={graph} source={source} /></>;
 }

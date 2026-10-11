@@ -1,3 +1,4 @@
+import { useAppStore } from '../../store';
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useModelProjection } from '../../hooks/useModelProjection';
@@ -8,7 +9,7 @@ import { canonicalJson } from '../../lib/hash';
 import { peekRootProject, rootProject, loadProject } from '../../lib/projectFiles';
 const staged = new Map<string, { base: ModelGraph; values: string[] }>();
 function PayoutTransaction({ graph, symbolId }: { graph: ModelGraph; symbolId: string }) {
-  const key = `${graph.id}:${symbolId}`;
+  const key = `${useAppStore(s => s.projectId)}:${graph.id}:${symbolId}`;
   const coins = (graph.initialState as { clusterPaytable: string[] }).clusterPaytable.slice((Number(symbolId) - 1) * 26, Number(symbolId) * 26);
   const [base, setBase] = useState(() => staged.get(key)?.base ?? graph);
   const [values, setValues] = useState(() => staged.get(key)?.values ?? coins);
@@ -24,9 +25,10 @@ function PayoutTransaction({ graph, symbolId }: { graph: ModelGraph; symbolId: s
 }
 export default function ClusterPayoutEditor() {
   const graph = useModelProjection();
+  const projectId = useAppStore(s => s.projectId);
   const table = graph ? clusterPayoutCapability(graph) : null;
   const [symbolId, setSymbolId] = useState('1');
   const symbols = (graph?.symbols ?? []) as { id: string; name: string }[];
   if (!graph || !table) return <div className="model-notice"><h2>No supported cluster payout mapping</h2><p>The executable lookup, unit conversion and metadata must match the guarded source pattern. Payout rules remain editable in the logic graph.</p><Link className="btn" to="/build">Inspect logic graph</Link></div>;
-  return <><label className="draw-source-select">Paying symbol<select className="inp" aria-label="Payout symbol" value={symbolId} onChange={event => setSymbolId(event.target.value)}>{table.entries.map(entry => <option key={entry.symbolId} value={entry.symbolId}>{symbols.find(symbol => symbol.id === entry.symbolId)?.name ?? entry.symbolId} (ID {entry.symbolId})</option>)}</select></label><PayoutTransaction key={symbolId} graph={graph} symbolId={symbolId} /></>;
+  return <><label className="draw-source-select">Paying symbol<select className="inp" aria-label="Payout symbol" value={symbolId} onChange={event => setSymbolId(event.target.value)}>{table.entries.map(entry => <option key={entry.symbolId} value={entry.symbolId}>{symbols.find(symbol => symbol.id === entry.symbolId)?.name ?? entry.symbolId} (ID {entry.symbolId})</option>)}</select></label><PayoutTransaction key={`${projectId}:${symbolId}`} graph={graph} symbolId={symbolId} /></>;
 }

@@ -88,7 +88,7 @@ test('Free-spin form keeps source counts synchronized and one purchased graph li
   config.initialState.entryBuy = true;
   const played = await postWithQuota(request, '/api/play/round', { config, seed: 42, roundIndex: 0, trace: true });
   expect(played.ok(), await played.text()).toBe(true); const round = await played.json(); expect(round.state.boards).toHaveLength(1);
-  await page.getByRole('tab', { name: 'Play', exact: true }).click();
+  await page.getByRole('tab', { name: 'Reference demo', exact: true }).click();
   await expect(page.getByRole('button', { name: 'SPIN', exact: true })).toBeEnabled({ timeout: 30000 });
   await page.getByRole('button', { name: 'TURBO OFF', exact: true }).click();
   await page.getByRole('button', { name: /BUY NINE LIVES/ }).click(); await page.getByRole('button', { name: 'DEAL.', exact: true }).click();
@@ -172,4 +172,25 @@ test('Legacy frontend share links retain edges and named definitions in canonica
   const downloaded = page.waitForEvent('download'); await page.getByRole('button', { name: 'Download JSON', exact: true }).click(); const { readFile } = await import('node:fs/promises'); const config = JSON.parse(await readFile((await (await downloaded).path())!, 'utf8'));
   expect(config.reviewerMetadata).toEqual({ retained: true }); expect(config.edges).toEqual([{ id: 'edge', sourceNodeId: 'draw', sourcePort: 'out', targetNodeId: 'sink', targetPort: 'in' }]); expect(config.mechanics['legacy-definition'].nodes).toHaveLength(2); expect(config.mechanics['legacy-definition'].edges).toEqual(config.edges);
   const evaluated = await postWithQuota(request, '/api/evaluate/light', { config }); expect(evaluated.ok()).toBe(true); expect((await evaluated.json()).rtp).toBe(1.5); // (3×2 + 1×0)/4
+});
+
+test('State inspector preserves boolean, null and nested values and appends numeric rows as numbers', { tag: '@critical' }, async ({ page }) => {
+  const initialState = { flags: [true, false], empty: null, mixed: ['a', null], nested: { enabled: true }, counts: [1, 2] };
+  const config = { schemaVersion: '1.0.0', name: 'Typed state preservation', initialState, nodes: [{ id: 'sink', nodeType: 'metricsSink', winCap: 10 }], edges: [] };
+  await page.goto('/model/data?load=' + encodeURIComponent(Buffer.from(encodeURIComponent(JSON.stringify(config))).toString('base64')));
+  await page.getByRole('button', { name: 'State & expressions', exact: true }).click();
+  const dialog = page.getByRole('dialog');
+  for (const key of ['flags', 'empty', 'mixed', 'nested']) {
+    await page.getByLabel('Data table', { exact: true }).selectOption(key);
+    await expect(dialog).toContainText('read only here to preserve their types');
+    await expect(dialog.getByLabel('Data row 1', { exact: true })).toHaveCount(0);
+    await expect(dialog.locator('pre')).toHaveText(JSON.stringify(initialState[key as keyof typeof initialState], null, 2));
+  }
+  await page.getByLabel('Data table', { exact: true }).selectOption('counts');
+  await dialog.getByRole('button', { name: 'Add data row', exact: true }).click();
+  await expect(dialog.getByLabel('Data row 3', { exact: true })).toHaveValue('0');
+  await page.keyboard.press('Escape'); await page.getByRole('tab', { name: 'Export', exact: true }).click();
+  const pending = page.waitForEvent('download'); await page.getByRole('button', { name: 'Download JSON', exact: true }).click();
+  const { readFile } = await import('node:fs/promises'); const exported = JSON.parse(await readFile((await (await pending).path())!, 'utf8'));
+  expect(exported.initialState).toEqual({ ...initialState, counts: [1, 2, 0] });
 });

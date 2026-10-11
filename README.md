@@ -111,3 +111,7 @@ slot-math-lab/
 └── .github/workflows/
     └── ci.yml
 ```
+
+### Personal workspaces
+
+The workbench starts with **My projects**. Create independent game/template copies, switch without losing editor drafts, and open saved private server versions. Signed-in accounts have separate project/run/experiment archives and browser workspaces. Sharing is not available. See [personal workspace behavior and account configuration](docs/design/PRIVATE_WORKSPACES.md) for persistence, legacy ownership and deployment limits.

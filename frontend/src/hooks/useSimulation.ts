@@ -1,3 +1,4 @@
+import { browserStorageKey } from '../lib/browserIdentity';
 import { validateExecution, sameExecution } from '../lib/measurements/execution';
 import { LIMITS, progressBatchSize } from '../lib/limits';
 import { chartMeasurements, serializeCheckpoint } from '../lib/measurements/checkpoints';
@@ -11,7 +12,6 @@ export { terminal };
 export type { LiveProgress, RunSnapshot };
 import { useAppStore } from '../store';
 import { rootProject, loadProject } from '../lib/projectFiles';
-import { createNineLivesGraph } from '../games/nine-lives/graph';
 import { graphRequest } from '../lib/graphApi';
 
 import { samePlan, definition, type MeasurementDefinition } from '../lib/measurements/model';
@@ -25,7 +25,7 @@ interface Session {
   connection: ConnectionPhase; health: ConnectionHealth; receivedAt: number; events: { time: string; text: string }[];
   history: RunSnapshot[]; launchNote: string;
 }
-const key = 'slotmath-simulation-v2';
+const key = browserStorageKey('slotmath-simulation-v2');
 const initialHealth: ConnectionHealth = { phase: 'idle', reconnects: 0, attempts: 0, lastConfirmedAt: 0, lastSocketAt: 0, roundTripMs: null, nextRetryAt: null };
 const defaults: Session = { run: null, progress: null, points: [], reference: null, target: null,
   referenceNote: 'Run the model to calculate its exact reference.', model: '', error: '', starting: false,
@@ -162,7 +162,6 @@ export async function startSimulation(seed: number, samples: number, workers: nu
       loadProject(useAppStore.getState().verificationSource!);
       useAppStore.setState({ verificationSource: null, graphTrail: [] });
     }
-    if (!useAppStore.getState().nodes.length) loadProject(createNineLivesGraph());
     const config = rootProject();
     if (!config) throw new Error('Build a valid model before running.');
     const measurements = useMeasurementWorkspace.getState().metrics.map(definition);

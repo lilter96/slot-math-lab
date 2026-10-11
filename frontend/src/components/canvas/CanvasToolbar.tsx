@@ -1,3 +1,4 @@
+import { useNavigate } from 'react-router-dom';
 import { useEffect, useRef, useState } from 'react';
 import { useReactFlow, useViewport } from '@xyflow/react';
 import { Ic } from '../Icons';
@@ -6,7 +7,6 @@ import AiGenerateModal from '../AiGenerateModal';
 import { useAppStore } from '../../store';
 import { DEFAULT_FEATURES, useFeaturesQuery } from '../../api/hooks';
 import { closeMechanic } from '../../lib/projectFiles';
-import { createNineLivesGraph } from '../../games/nine-lives/graph';
 import ProjectDataEditor from '../editor/ProjectDataEditor';
 
 /** Live zoom readout (e.g. "100%") driven by the React Flow viewport. */
@@ -16,6 +16,7 @@ function ZoomLevel() {
 }
 
 export default function CanvasToolbar() {
+  const navigate = useNavigate();
   const { zoomIn, zoomOut, fitView, setViewport, getViewport } = useReactFlow();
   const fileRef = useRef<HTMLInputElement>(null);
   const [fileError, setFileError] = useState<string | null>(null);
@@ -35,7 +36,7 @@ export default function CanvasToolbar() {
       <div className="canvas-toolbar" onMouseDown={(e) => e.stopPropagation()}>
         {verificationSource && <button onClick={() => { loadProject(verificationSource); useAppStore.setState({ verificationSource: null, graphTrail: [] }); }}>Return to game graph</button>}
         {trail.length > 0 && <button aria-label="Save subgraph and return" onClick={closeMechanic}>← Save & return</button>}
-        <button aria-label="Build Nine Lives graph" onClick={() => { switchProject(createNineLivesGraph()); }}>Nine Lives</button>
+        <button aria-label="Choose a project or template" onClick={() => navigate('/projects')}>Projects</button>
         <button aria-label="Edit project data and expressions" onClick={() => setShowData(true)}>Data / AST</button>
         <select aria-label="Focus graph node" value="" onChange={e => { const id = e.target.value; if (!id) return; useAppStore.getState().selectNode(id); requestAnimationFrame(() => requestAnimationFrame(() => void fitView({ nodes: [{ id }], padding: 1, maxZoom: 1 })));  }}>
           <option value="">Find node…</option>{nodes.map(node => <option key={node.id} value={node.id}>{node.data.label}</option>)}

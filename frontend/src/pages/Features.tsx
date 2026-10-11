@@ -1,3 +1,4 @@
+import { useAppStore } from '../store';
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useModelProjection } from '../hooks/useModelProjection';
@@ -8,7 +9,7 @@ import { canonicalJson } from '../lib/hash';
 import { rootProject, openMechanic, peekRootProject, loadProject } from '../lib/projectFiles';
 const staged = new Map<string, { base: ModelGraph; value: string }>();
 function FreeSpinForm({ graph, count }: { graph: ModelGraph; count: number }) {
-  const draftKey = String(graph.id ?? graph.name);
+  const draftKey = `${useAppStore(s => s.projectId)}:${graph.id ?? graph.name}`;
   const [value, setValue] = useState(() => staged.get(draftKey)?.value ?? String(count));
   const [base, setBase] = useState(() => staged.get(draftKey)?.base ?? graph);
   const [busy, setBusy] = useState(false), [error, setError] = useState('');
@@ -24,6 +25,7 @@ function FreeSpinForm({ graph, count }: { graph: ModelGraph; count: number }) {
 }
 export default function Features() {
   const graph = useModelProjection();
+  const projectId = useAppStore(s => s.projectId);
   const [selected, setSelected] = useState('');
   const definitions = graph?.mechanics ?? {};
   const definitionIds = [...new Set(['bonus', 'base-spin', 'cascade-step', 'round-entry', ...Object.keys(definitions)])].filter(key => key in definitions);
@@ -33,6 +35,6 @@ export default function Features() {
   return <section className="features-page"><header className="page-heading"><div><h1>Features & rules</h1><p>Read source definitions and edit only supported parameter mappings.</p></div><Link className="btn" to="/build">Explore logic graph</Link></header>
     <label className="draw-source-select">Mechanic definition<select className="inp" aria-label="Feature definition" value={id ?? ''} onChange={event => setSelected(event.target.value)}>{definitionIds.map(key => <option key={key} value={key}>{mechanicLabel(key)} ({key})</option>)}</select></label>
     {definition ? <section className="feature-summary"><h2>{mechanicLabel(id)}</h2><p>{definition.description ?? 'No description in this definition.'}</p><p>{definition.nodes.length} authored nodes. Uses {referencedMechanics(definition.nodes).map(mechanicLabel).join(', ') || 'atomic nodes only'}.</p><Link className="btn" to="/build" onClick={() => { rootProject(); openMechanic(id); }}>Open underlying graph</Link></section> : <p>No named feature definitions. Open the graph to author a mechanic.</p>}
-    {graph && count != null ? <FreeSpinForm key={String(graph.id ?? graph.name)} graph={graph} count={count} /> : <div className="model-notice"><h2>No supported feature form</h2><p>This graph does not match the guarded free-spin source mapping. Its mechanics remain editable in the graph; no inferred rules will overwrite its expressions.</p></div>}
+    {graph && count != null ? <FreeSpinForm key={`${projectId}:${graph.id ?? graph.name}`} graph={graph} count={count} /> : <div className="model-notice"><h2>No supported feature form</h2><p>This graph does not match the guarded free-spin source mapping. Its mechanics remain editable in the graph; no inferred rules will overwrite its expressions.</p></div>}
   </section>;
 }

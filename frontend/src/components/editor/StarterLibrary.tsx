@@ -1,5 +1,5 @@
-import { useAppStore } from '../../store';
-import { loadProject, openMechanic } from '../../lib/projectFiles';
+import { retainCurrentProject, useAppStore } from '../../store';
+import { switchProject, openMechanic } from '../../lib/projectFiles';
 import { gameModelLibrary, starterLibrary } from '../../lib/starterLibrary';
 
 export default function StarterLibrary() {
@@ -7,10 +7,10 @@ export default function StarterLibrary() {
   const open = (example: { create: () => Record<string, unknown>; mechanic?: string }, inspect: boolean) => {
     const current = useAppStore.getState();
     if (!current.authoringDraft) {
-      const { nodes, edges, tables, graphTrail, verificationSource, configName, selectedNodeId } = current;
-      useAppStore.setState({ authoringDraft: { nodes, edges, tables, graphTrail, verificationSource, configName, selectedNodeId } });
+      const { nodes, edges, tables, graphTrail, verificationSource, configName, selectedNodeId, projectId } = current;
+      useAppStore.setState({ authoringDraft: { nodes, edges, tables, graphTrail, verificationSource, configName, selectedNodeId, projectId } });
     }
-    loadProject(example.create());
+    switchProject(example.create());
     useAppStore.setState({ graphTrail: [], verificationSource: null });
     if (inspect && example.mechanic) openMechanic(example.mechanic);
   };
@@ -25,7 +25,7 @@ export default function StarterLibrary() {
     <p className="section-label">Complete game models</p>
     <p className="hint">Open a migrated game's paid-round model, including its triggered features and shared definitions.</p>
     {gameModelLibrary.map(example => <button key={example.name} className="btn sm" onClick={() => open(example, false)}>Open {example.name} model</button>)}
-    {draft && <button className="btn sm" onClick={() => useAppStore.setState({ ...draft, authoringDraft: null })}>Restore my model</button>}
+    {draft && <button className="btn sm" onClick={() => { retainCurrentProject(); useAppStore.setState({ ...draft, authoringDraft: null }); }}>Restore my model</button>}
     <p className="hint">Example RTP is uncalibrated. Edit the weights and payouts in Data tables. Use “Reuse this subgraph” to add another instance.</p>
   </details>;
 }

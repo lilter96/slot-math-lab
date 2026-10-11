@@ -14,7 +14,8 @@ public sealed record ExperimentRequest(string ConfigId, int ConfigVersion, Exper
     double Confidence = .95, double Precision = .005, string[]? MetricIds = null, double[]? TailThresholds = null);
 public sealed record ExperimentMember(string Name, string RunId, string ConfigId, string ConfigHash, long Seed, ExperimentVariant? Perturbation) { public double? ParameterStep { get; init; } }
 public sealed record ExperimentEntry(string Id, string Status, DateTimeOffset CreatedAt, string ManifestSha256,
-    ExperimentRequest Request, ExperimentMember[] Members, string? Error = null);
+    ExperimentRequest Request, ExperimentMember[] Members, string? Error = null)
+{ public string OwnerId { get; init; } = ""; }
 public sealed record ExperimentDelta(string Variant, string Metric, double? Baseline, double? Observed, double? Difference,
     double? Derivative, NumericInterval? Interval, double? SuggestedSamplesPerArm, string Assumptions);
 public sealed record ExperimentReport(ExperimentEntry Experiment, RunResponse[] Runs, ExperimentDelta[] Deltas, int HypothesisFamilySize);
@@ -25,23 +26,30 @@ public sealed class ExperimentStore
 {
     private readonly object _gate = new(); private readonly EncryptedSnapshots? _snapshots;
     private readonly Dictionary<string, ExperimentEntry> _entries;
-    public ExperimentStore(EncryptedSnapshots? snapshots = null)
+    private readonly RequestOwnership? _ownership;
+    private bool Visible(ExperimentEntry entry) => _ownership?.CanAccess(entry.OwnerId) ?? true;
+    public ExperimentStore(EncryptedSnapshots? snapshots = null, RequestOwnership? ownership = null)
     {
-        _snapshots = snapshots; _entries = snapshots?.Read<Dictionary<string, ExperimentEntry>>("experiments") ?? new();
-        foreach (var (id, e) in _entries.ToArray()) if (e.Status is "preparing" or "pending" or "running")
-            _entries[id] = e with { Status = "interrupted", Error = "Server restarted; pinned child results are retained. Explicitly replay the manifest." };
+        _ownership = ownership; _snapshots = snapshots; _entries = snapshots?.Read<Dictionary<string, ExperimentEntry>>("experiments") ?? new();
+        foreach (var (id, entry) in _entries.ToArray())
+        {
+            var e = entry with { OwnerId = string.IsNullOrEmpty(entry.OwnerId) ? ownership?.LegacyOwner ?? "anonymous" : entry.OwnerId };
+            _entries[id] = e;
+            if (e.Status is "preparing" or "pending" or "running")
+                _entries[id] = e with { Status = "interrupted", Error = "Server restarted; pinned child results are retained. Explicitly replay the manifest." };
+        }
         if (_entries.Count > 0) Persist();
     }
-    public ExperimentEntry? Get(string id) { lock (_gate) return _entries.GetValueOrDefault(id); }
-    public ExperimentEntry[] List() { lock (_gate) return _entries.Values.OrderByDescending(e => e.CreatedAt).Take(100).ToArray(); }
+    public ExperimentEntry? Get(string id) { lock (_gate) return _entries.TryGetValue(id, out var e) && Visible(e) ? e : null; }
+    public ExperimentEntry[] List() { lock (_gate) return _entries.Values.Where(Visible).OrderByDescending(e => e.CreatedAt).Take(100).ToArray(); }
     public bool CanAdmit() { lock (_gate) return _entries.Count < 1000 && _entries.Values.Count(e => e.Status is "preparing" or "pending" or "running") < 2; }
-    public void Create(ExperimentEntry e) { lock (_gate) { if (!CanAdmit()) throw new ArgumentException("Experiment capacity is full."); _entries.Add(e.Id, e); Persist(); } }
-    public void Status(string id, string status, string? error = null) { lock (_gate) { if (_entries.TryGetValue(id, out var e) && e.Status is "preparing" or "pending" or "running") { _entries[id] = e with { Status = status, Error = error }; Persist(); } } }
+    public void Create(ExperimentEntry e) { lock (_gate) { if (!CanAdmit()) throw new ArgumentException("Experiment capacity is full."); _entries.Add(e.Id, e with { OwnerId = _ownership?.CurrentOwner ?? "anonymous" }); Persist(); } }
+    public void Status(string id, string status, string? error = null) { lock (_gate) { if (_entries.TryGetValue(id, out var e) && Visible(e) && (e.Status is "preparing" or "pending" or "running")) { _entries[id] = e with { Status = status, Error = error }; Persist(); } } }
     public ExperimentEntry CompleteAdmission(string id, ExperimentMember[] members)
     {
         lock (_gate)
         {
-            var current = _entries[id]; if (current.Status != "preparing") throw new InvalidOperationException("Experiment admission was interrupted.");
+            var current = Get(id) ?? throw new KeyNotFoundException("Experiment not found."); if (current.Status != "preparing") throw new InvalidOperationException("Experiment admission was interrupted.");
             var admitted = current with { Members = members, ManifestSha256 = RuntimeProvenance.AuthoredInputHash(new { request = current.Request, members }), Status = "pending" };
             _entries[id] = admitted; Persist(); return admitted;
         }
@@ -142,46 +150,46 @@ public static class ExperimentAnalysis
         var z = StatisticalInference.NormalCritical((1 - request.Confidence) / family);
         if (runs.FirstOrDefault() is { Status: "completed", Progress: { } baseline })
             for (var i = 1; i < runs.Length; i++) if (runs[i] is { Status: "completed", Progress: { } other } variant)
-            {
-                var member = experiment.Members[i];
-                var independent = variant.Execution is not { PersistentKeys.Length: > 0 } && variant.Execution is not { SessionStop: not "fixedHorizon" } && runs[0]!.Execution is not { PersistentKeys.Length: > 0 } && runs[0]!.Execution is not { SessionStop: not "fixedHorizon" };
-                void Add(string metric, double? b, double? v, double? bVariance, double? vVariance, long bn, long vn, bool allowed)
                 {
-                    double? difference = b is { } bval && v is { } vval ? vval - bval : null;
-                    var se = allowed && bVariance is >= 0 && vVariance is >= 0 && bn > 1 && vn > 1 ? Math.Sqrt(bVariance.Value / bn + vVariance.Value / vn) : (double?)null;
-                    NumericInterval? interval = difference is { } d && se is > 0 ? new(d - z * se.Value, d + z * se.Value, "Independent-arm fixed-count normal approximation", "Prespecified variants and family allocation; no paired common-random-number claim.") : null;
-                    double? derivative = member.ParameterStep is { } step && step != 0 && difference is { } delta ? delta / step : null;
-                    deltas.Add(new(member.Name, metric, b, v, difference, derivative, interval,
-                        bVariance is { } bv && vVariance is { } vv && bv + vv > 0 && allowed ? Math.Ceiling(z * z * (bv + vv) / (request.Precision * request.Precision)) : null,
-                        allowed ? "Independent seed per arm; sample planning is approximate and based on observed variance. Zero observed variance does not certify precision." : "Descriptive delta only: this population does not establish independent fixed-count subject inference."));
-                }
-                Add("round.return", baseline.RunningRtp, other.RunningRtp, baseline.Volatility * baseline.Volatility, other.Volatility * other.Volatility, baseline.SampleCount, other.SampleCount, independent);
-                Add("round.hit", baseline.HitFrequency, other.HitFrequency, baseline.HitFrequency * (1 - baseline.HitFrequency), other.HitFrequency * (1 - other.HitFrequency), baseline.SampleCount, other.SampleCount, independent);
-                foreach (var id in ids)
-                {
-                    var sessionMetric = id.StartsWith("session.", StringComparison.Ordinal);
-                    var b = (sessionMetric ? baseline.Execution?.SessionMetrics : baseline.Measurements)?.FirstOrDefault(m => m.Id == id); var v = (sessionMetric ? other.Execution?.SessionMetrics : other.Measurements)?.FirstOrDefault(m => m.Id == id);
-                    var definition = variant.Measurements.FirstOrDefault(m => m.Id == id);
-                    var allowed = sessionMetric ? baseline.Execution?.Regime == "sessions" && other.Execution?.Regime == "sessions" : independent && definition?.Options is { IndependentSubjects: true, Weight: null };
-                    if (id == "session.payoutPerTurnover")
+                    var member = experiment.Members[i];
+                    var independent = variant.Execution is not { PersistentKeys.Length: > 0 } && variant.Execution is not { SessionStop: not "fixedHorizon" } && runs[0]!.Execution is not { PersistentKeys.Length: > 0 } && runs[0]!.Execution is not { SessionStop: not "fixedHorizon" };
+                    void Add(string metric, double? b, double? v, double? bVariance, double? vVariance, long bn, long vn, bool allowed)
                     {
-                        double? RatioVariance(MeasurementSnapshot? metric)
+                        double? difference = b is { } bval && v is { } vval ? vval - bval : null;
+                        var se = allowed && bVariance is >= 0 && vVariance is >= 0 && bn > 1 && vn > 1 ? Math.Sqrt(bVariance.Value / bn + vVariance.Value / vn) : (double?)null;
+                        NumericInterval? interval = difference is { } d && se is > 0 ? new(d - z * se.Value, d + z * se.Value, "Independent-arm fixed-count normal approximation", "Prespecified variants and family allocation; no paired common-random-number claim.") : null;
+                        double? derivative = member.ParameterStep is { } step && step != 0 && difference is { } delta ? delta / step : null;
+                        deltas.Add(new(member.Name, metric, b, v, difference, derivative, interval,
+                            bVariance is { } bv && vVariance is { } vv && bv + vv > 0 && allowed ? Math.Ceiling(z * z * (bv + vv) / (request.Precision * request.Precision)) : null,
+                            allowed ? "Independent seed per arm; sample planning is approximate and based on observed variance. Zero observed variance does not certify precision." : "Descriptive delta only: this population does not establish independent fixed-count subject inference."));
+                    }
+                    Add("round.return", baseline.RunningRtp, other.RunningRtp, baseline.Volatility * baseline.Volatility, other.Volatility * other.Volatility, baseline.SampleCount, other.SampleCount, independent);
+                    Add("round.hit", baseline.HitFrequency, other.HitFrequency, baseline.HitFrequency * (1 - baseline.HitFrequency), other.HitFrequency * (1 - other.HitFrequency), baseline.SampleCount, other.SampleCount, independent);
+                    foreach (var id in ids)
+                    {
+                        var sessionMetric = id.StartsWith("session.", StringComparison.Ordinal);
+                        var b = (sessionMetric ? baseline.Execution?.SessionMetrics : baseline.Measurements)?.FirstOrDefault(m => m.Id == id); var v = (sessionMetric ? other.Execution?.SessionMetrics : other.Measurements)?.FirstOrDefault(m => m.Id == id);
+                        var definition = variant.Measurements.FirstOrDefault(m => m.Id == id);
+                        var allowed = sessionMetric ? baseline.Execution?.Regime == "sessions" && other.Execution?.Regime == "sessions" : independent && definition?.Options is { IndependentSubjects: true, Weight: null };
+                        if (id == "session.payoutPerTurnover")
                         {
-                            var a = metric?.Analysis; var pair = a?.Pair;
-                            if (pair?.Ratio is not { } ratio || pair.MeanY is not > 0 || pair.SampleVarianceY is null || pair.Covariance is null || a?.Moments.SampleVariance is null) return null;
-                            var variance = (a.Moments.SampleVariance.Value + ratio * ratio * pair.SampleVarianceY.Value - 2 * ratio * pair.Covariance.Value) / (pair.MeanY.Value * pair.MeanY.Value);
-                            return double.IsFinite(variance) ? Math.Max(0, variance) : null;
+                            double? RatioVariance(MeasurementSnapshot? metric)
+                            {
+                                var a = metric?.Analysis; var pair = a?.Pair;
+                                if (pair?.Ratio is not { } ratio || pair.MeanY is not > 0 || pair.SampleVarianceY is null || pair.Covariance is null || a?.Moments.SampleVariance is null) return null;
+                                var variance = (a.Moments.SampleVariance.Value + ratio * ratio * pair.SampleVarianceY.Value - 2 * ratio * pair.Covariance.Value) / (pair.MeanY.Value * pair.MeanY.Value);
+                                return double.IsFinite(variance) ? Math.Max(0, variance) : null;
+                            }
+                            Add(id + ".ratio", b?.Analysis?.Pair?.Ratio, v?.Analysis?.Pair?.Ratio, RatioVariance(b), RatioVariance(v), b?.Count ?? 0, v?.Count ?? 0, allowed);
                         }
-                        Add(id + ".ratio", b?.Analysis?.Pair?.Ratio, v?.Analysis?.Pair?.Ratio, RatioVariance(b), RatioVariance(v), b?.Count ?? 0, v?.Count ?? 0, allowed);
-                    }
-                    else Add(id + ".mean", b?.Mean, v?.Mean, b?.Analysis?.Moments.SampleVariance, v?.Analysis?.Moments.SampleVariance, b?.Count ?? 0, v?.Count ?? 0, allowed);
-                    foreach (var t in tails)
-                    {
-                        var bp = b?.Analysis?.Tails.FirstOrDefault(x => x.Threshold == t)?.Probability; var vp = v?.Analysis?.Tails.FirstOrDefault(x => x.Threshold == t)?.Probability;
-                        Add(id + $".tail[{t:R}]", bp, vp, bp * (1 - bp), vp * (1 - vp), b?.Count ?? 0, v?.Count ?? 0, allowed);
+                        else Add(id + ".mean", b?.Mean, v?.Mean, b?.Analysis?.Moments.SampleVariance, v?.Analysis?.Moments.SampleVariance, b?.Count ?? 0, v?.Count ?? 0, allowed);
+                        foreach (var t in tails)
+                        {
+                            var bp = b?.Analysis?.Tails.FirstOrDefault(x => x.Threshold == t)?.Probability; var vp = v?.Analysis?.Tails.FirstOrDefault(x => x.Threshold == t)?.Probability;
+                            Add(id + $".tail[{t:R}]", bp, vp, bp * (1 - bp), vp * (1 - vp), b?.Count ?? 0, v?.Count ?? 0, allowed);
+                        }
                     }
                 }
-            }
         return new(experiment, runs.Where(r => r is not null).Select(r => RunResponse.From(r!)).ToArray(), deltas.ToArray(), family);
     }
 }
