@@ -90,3 +90,6 @@ Overview source 51fe9ad/81af758 now shows actual owner-scoped matching saved-run
 
 
 Visible graph source 1973c4d enables native viewport filtering, with complete model/edge/expression export equality and retained offscreen search/cameras. Four initial affected Chromium checks and the corrected failed deletion scenario pass; Firefox/WebKit 4/4 pass. The actual 84-node model renders five nodes at the focused desktop viewport; no mathematical/FPS improvement is inferred. [GRAPH_VISIBILITY_REVIEW.md](qa/GRAPH_VISIBILITY_REVIEW.md) records the scope and remaining cleanup/legibility gates. No complete suite was rerun.
+
+
+Source b752c03 improves working-text/field legibility, compact unsupported-board states and modal keyboard/focus behavior. Scoped Chromium 6/6 and Firefox/WebKit 4/4 pass; 20 actual viewport/AX observations have no overflow/unnamed audited controls, and the new link has 8.9245:1 contrast. [WORKBENCH_ACCESSIBILITY_REVIEW.md](qa/WORKBENCH_ACCESSIBILITY_REVIEW.md) states precise coverage and remaining acceptance limits. No complete suite was repeated or WCAG/practitioner acceptance claimed.

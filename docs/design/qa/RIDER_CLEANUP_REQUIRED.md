@@ -111,3 +111,13 @@ Overview evidence follow-up: both scoped backend Reformat and Full Cleanup timed
 - `frontend/e2e/graph-visibility.spec.ts`
 
 Viewport filtering follow-up: scoped Reformat for SlotCanvas/new visibility test and the corrected subgraph test again exits 3; frontend Full Cleanup remains unavailable. See `graph-visibility-rider.log` / `graph-visibility-test-rider.log`.
+
+- `frontend/src/components/Inspector.tsx`
+
+- `frontend/src/components/editor/GraphDialog.tsx`
+
+- `frontend/src/components/editor/GraphDialog.css`
+
+- `frontend/e2e/workbench-accessibility.spec.ts`
+
+Legibility/access follow-up: scoped Reformat for changed inspector/dialog/Overview/CSS/test files again exits 3. Frontend Full Cleanup remains unavailable; no required-pass success claimed. Logs: `workbench-legibility-rider.log`, `workbench-inspector-target-rider.log`, `workbench-legibility-layout-rider.log`.
