@@ -4,6 +4,7 @@ import Inspector from './Inspector';
 import MechanicManager from './mechanics/MechanicManager';
 import PluginManager from './mechanics/PluginManager';
 import AutoTunePanel from './ai/AutoTunePanel';
+import { DEFAULT_FEATURES, useFeaturesQuery } from '../api/hooks';
 
 type MainTab = 'inspector' | 'mechanics' | 'ai';
 type MechanicsTab = 'mechanics' | 'plugins';
@@ -12,6 +13,7 @@ export default function RightPanel() {
   const selectedNodeId = useAppStore((s) => s.selectedNodeId);
   const [preferredTab, setPreferredTab] = useState<MainTab>('inspector');
   const [mechanicsTab, setMechanicsTab] = useState<MechanicsTab>('mechanics');
+  const features = useFeaturesQuery().data ?? DEFAULT_FEATURES;
 
   const mainTab: MainTab = selectedNodeId ? 'inspector' : preferredTab;
   const openTab = (next: MainTab) => { useAppStore.getState().selectNode(null); setPreferredTab(next); };
@@ -33,13 +35,15 @@ export default function RightPanel() {
         >
           Mechanics
         </button>
-        <button
-          className={'tab' + (mainTab === 'ai' ? ' active' : '')}
-          onClick={() => openTab('ai')}
-          style={{ fontSize: 11 }}
-        >
-          AI
-        </button>
+        {features.autoTune && (
+          <button
+            className={'tab' + (mainTab === 'ai' ? ' active' : '')}
+            onClick={() => openTab('ai')}
+            style={{ fontSize: 11 }}
+          >
+            AI
+          </button>
+        )}
       </div>
 
       {mainTab === 'inspector' && (
@@ -58,22 +62,24 @@ export default function RightPanel() {
             >
               Custom Mechanics
             </button>
-            <button
-              className={'tab' + (mechanicsTab === 'plugins' ? ' active' : '')}
-              onClick={() => setMechanicsTab('plugins')}
-              style={{ fontSize: 11 }}
-            >
-              Plugins
-            </button>
+            {features.plugins && (
+              <button
+                className={'tab' + (mechanicsTab === 'plugins' ? ' active' : '')}
+                onClick={() => setMechanicsTab('plugins')}
+                style={{ fontSize: 11 }}
+              >
+                Plugins
+              </button>
+            )}
           </div>
           <div style={{ flex: 1, overflowY: 'auto' }}>
             {mechanicsTab === 'mechanics' && <MechanicManager />}
-            {mechanicsTab === 'plugins' && <PluginManager />}
+            {features.plugins && mechanicsTab === 'plugins' && <PluginManager />}
           </div>
         </div>
       )}
 
-      {mainTab === 'ai' && (
+      {features.autoTune && mainTab === 'ai' && (
         <div style={{ flex: 1, overflowY: 'auto' }}>
           <AutoTunePanel />
         </div>

@@ -1,8 +1,11 @@
 using SlotMath.Core.Measurements;
 namespace SlotMath.Core.Tests.Math;
+
 public class DiscreteCalibrationTests
 {
-    [Theory][InlineData("cdf")][InlineData("pearson")]
+    [Theory]
+    [InlineData("cdf")]
+    [InlineData("pearson")]
     public void InclusiveEnumeratedCoinTailEqualsTheIndependentHandCalculation(string statistic)
     {
         // Two tosses: extreme all-zero/all-one laws each have mass 1/4.

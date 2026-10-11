@@ -3,6 +3,7 @@ using System.Text.Json;
 using SlotMath.Core.Measurements;
 
 namespace SlotMath.Api.Infrastructure;
+
 public static class MeasurementHash
 {
     public static string Compute(IReadOnlyList<MeasurementDefinition> definitions) => Convert.ToHexStringLower(

@@ -4,9 +4,9 @@ using SlotMath.Core.Compiler;
 using SlotMath.Core.Expressions;
 using SlotMath.Core.Math;
 using SlotMath.Core.Measurements;
+using SlotMath.Core.Model;
 using SlotMath.Core.Monad;
 using SlotMath.Core.Random;
-using SlotMath.Core.Model;
 using Dict = System.Collections.Generic.Dictionary<string, object?>;
 
 namespace SlotMath.Core.Tests.Math;
@@ -54,7 +54,7 @@ public class DogHouseUiGraphTests
         var config = Fixture("dog-house-mini-ui.json"); var compiled = Compile(config);
         var dist = ExactInterpreter.Evaluate(compiled.Program!, new Dict(), StateHasher.CanonicalHash).ValueDistribution();
         var expected = new Dictionary<BigInteger, int>();
-        var strips = new[] { new[] {3,13}, new[] {2,3}, new[] {3,13}, new[] {2,13}, new[] {3,13} };
+        var strips = new[] { new[] { 3, 13 }, new[] { 2, 3 }, new[] { 3, 13 }, new[] { 2, 13 }, new[] { 3, 13 } };
         var payout = config.InitialState!["linePaytable"].EnumerateArray().Select(x => int.Parse(x.GetString()!)).ToArray();
         for (var stops = 0; stops < 32; stops++) for (var mult = 0; mult < 8; mult++)
         {
@@ -148,7 +148,9 @@ public class DogHouseUiGraphTests
         Assert.Equal(serial.Stats.HitFrequency, parallel.Stats.HitFrequency);
     }
 
-    [Theory][InlineData(false)][InlineData(true)]
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
     public void WholeBonusEpisodeMatchesManualRevealLedgerAndPreservesLegacyPayouts(bool optimize)
     {
         var config = Fixture("dog-house-ui.json");
@@ -180,12 +182,14 @@ public class DogHouseUiGraphTests
         Assert.Equal(new ParentExposure(bonuses, bonuses), metric.Analysis!.ParentExposure);
         Assert.Equal(bonuses, metric.Analysis.Entries); Assert.Equal(bonuses, metric.Analysis.Exits); Assert.Equal(0, metric.Analysis.UnclosedEpisodes);
         Assert.Equal(bonuses, metric.Analysis.Groups.Values.Sum(g => g.ParentExposure!.EpisodesWithMatchingChildren!.Value));
-        var legacy = config with {
+        var legacy = config with
+        {
             InitialState = config.InitialState.Where(p => p.Key != "bonusCompleted").ToDictionary(),
             Expressions = config.Expressions!.Where(p => p.Key != "bonus-completed").ToDictionary(),
             Nodes = config.Nodes.Where(n => n.Id != "bonus-completed").ToArray(),
             Edges = [.. config.Edges.Where(e => e.SourceNodeId != "bonus-completed" && e.TargetNodeId != "bonus-completed"),
-                new() { Id = "legacy-exit", SourceNodeId = "free-spins", SourcePort = "exit", TargetNodeId = "credits", TargetPort = "state" }] };
+                new() { Id = "legacy-exit", SourceNodeId = "free-spins", SourcePort = "exit", TargetNodeId = "credits", TargetPort = "state" }]
+        };
         var old = new GraphCompiler(optimizeSampling: optimize).Compile(legacy); Assert.True(old.IsValid);
         var unmeasured = SampledInterpreter.Evaluate(old.Program!, new Dict(), new() { Seed = 42, MaxSpins = rounds, WinScale = (double)old.WinScale });
         Assert.Equal(unmeasured.Stats.Mean, result.Stats.Mean); Assert.Equal(unmeasured.Stats.Variance, result.Stats.Variance);
@@ -196,10 +200,13 @@ public class DogHouseUiGraphTests
     [Fact]
     public void FractionalStatePayout_IsPreservedInAllInterpreters()
     {
-        var config = Fixture("dog-house-ui.json") with { Nodes = [new ModifyStateNode { Id = "payout", OutputKey = "win", ExpressionId = "quarter", Outputs = new() { ["state"] = new() { Name = "state", Type = PortType.State } } },
+        var config = Fixture("dog-house-ui.json") with
+        {
+            Nodes = [new ModifyStateNode { Id = "payout", OutputKey = "win", ExpressionId = "quarter", Outputs = new() { ["state"] = new() { Name = "state", Type = PortType.State } } },
             new MetricsSinkNode { Id = "sink", WinStateKey = "win", WinCap = 10, Inputs = new() { ["state"] = new() { Name = "state", Type = PortType.State } } }],
             Expressions = new() { ["quarter"] = new ConstantExpr { Kind = ConstantKind.Rational, Value = "1/4" } },
-            Edges = [new Edge { Id = "edge", SourceNodeId = "payout", SourcePort = "state", TargetNodeId = "sink", TargetPort = "state" }] };
+            Edges = [new Edge { Id = "edge", SourceNodeId = "payout", SourcePort = "state", TargetNodeId = "sink", TargetPort = "state" }]
+        };
         var compiled = Compile(config); var run = SampledInterpreter.RunSingle(compiled.Program!, new Dict(), 42);
         Assert.Equal(new Rational(1, 4), new Rational(run.Value, compiled.WinScale));
         var exact = ExactInterpreter.Evaluate(compiled.Program!, new Dict(), StateHasher.CanonicalHash).ValueDistribution();

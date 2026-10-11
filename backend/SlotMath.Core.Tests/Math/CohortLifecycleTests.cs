@@ -9,9 +9,18 @@ public sealed class CohortLifecycleTests
     private sealed record Event(string Group, long Value = 1, bool Entry = true, bool Exit = true);
     private static MeasurementDefinition Definition(string subject = "episode", int limit = 32) => new()
     {
-        Id = "cohort", Name = "Entry-selected feature", NodeId = "reveal",
-        Options = new() { Subject = subject, EntryNodeId = "enter", ExitNodeId = "exit", Reduction = "average", GroupLimit = limit,
-            Group = new ConstantExpr { Kind = ConstantKind.String, Value = "binding" } },
+        Id = "cohort",
+        Name = "Entry-selected feature",
+        NodeId = "reveal",
+        Options = new()
+        {
+            Subject = subject,
+            EntryNodeId = "enter",
+            ExitNodeId = "exit",
+            Reduction = "average",
+            GroupLimit = limit,
+            Group = new ConstantExpr { Kind = ConstantKind.String, Value = "binding" }
+        },
     };
     private static readonly MeasurementBinding<Event> Binding = new(
         e => ExprValue.Number(e.Value), null, Group: e => ExprValue.String(e.Group),
@@ -50,7 +59,9 @@ public sealed class CohortLifecycleTests
         Assert.All(a.Tails.Concat(a.Groups.Values.SelectMany(g => g.Tails)), t => { Assert.Equal(0, t.Count); Assert.Equal(0, t.Sum); Assert.Null(t.Probability); Assert.Null(t.SecondMoment); });
     }
 
-    [Theory][InlineData("episode")][InlineData("transition")]
+    [Theory]
+    [InlineData("episode")]
+    [InlineData("transition")]
     public void OpenInstancesReconcileInTheEntryCohort(string subject)
     {
         var collector = new MeasurementCollector([Definition(subject)]); collector.Begin();

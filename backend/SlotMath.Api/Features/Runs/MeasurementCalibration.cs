@@ -1,6 +1,7 @@
 using SlotMath.Api.Infrastructure;
 using SlotMath.Core.Measurements;
 namespace SlotMath.Api.Features.Runs;
+
 public sealed record MeasurementCalibrationRequest(string MeasurementId, string Statistic = "cdf", int Replicates = 2000, long Seed = 42);
 public sealed record MeasurementCalibrationReport(string RunId, string? MeasurementHash, string MeasurementId, NullCalibrationReport Report)
 { public DiagnosticRetention? Retention { get; init; } }

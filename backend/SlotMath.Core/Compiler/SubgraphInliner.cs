@@ -383,8 +383,11 @@ public static class SubgraphInliner
                 ElseExpr = RewriteExprRefs(i.ElseExpr, prefix),
             },
             NotExpr n => n with { Expr = RewriteExprRefs(n.Expr, prefix) },
-            AggregateExpr a => a with { Predicate = a.Predicate is null ? null : RewriteExprRefs(a.Predicate, prefix),
-                ValueExpr = a.ValueExpr is null ? null : RewriteExprRefs(a.ValueExpr, prefix) },
+            AggregateExpr a => a with
+            {
+                Predicate = a.Predicate is null ? null : RewriteExprRefs(a.Predicate, prefix),
+                ValueExpr = a.ValueExpr is null ? null : RewriteExprRefs(a.ValueExpr, prefix)
+            },
             CallExpr call => call with
             {
                 Args = call.Args.Select(arg => RewriteExprRefs(arg, prefix)).ToArray(),

@@ -1,6 +1,6 @@
+using System.Text.Json;
 using SlotMath.Core.Model;
 using SlotMath.Core.Serialization;
-using System.Text.Json;
 
 namespace SlotMath.Core.Tests.Serialization;
 

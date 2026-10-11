@@ -250,7 +250,7 @@ public static class ExpressionTypeChecker
             {
                 ExpectedType = ExprType.Number,
                 BoardFields = ctx.BoardFields,
-            MeasurementFields = ctx.MeasurementFields,
+                MeasurementFields = ctx.MeasurementFields,
                 StateFields = lambdaFields,
                 CellFields = ctx.CellFields,
                 DecorationTypes = ctx.DecorationTypes,

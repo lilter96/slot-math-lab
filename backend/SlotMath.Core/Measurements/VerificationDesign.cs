@@ -3,6 +3,7 @@ using SlotMath.Core.Math;
 using SlotMath.Core.Random;
 
 namespace SlotMath.Core.Measurements;
+
 public sealed record ResourceImpactRequest(MarkovModelRequest Reference, int Horizon);
 public sealed record ResourceImpactReport(string StopProbability, string RetainedReward, string? ReferenceReward,
     string? OmittedReward, string RetainedDuration, string ReferenceStatus, int Horizon, string Assumptions);

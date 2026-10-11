@@ -225,9 +225,12 @@ internal sealed class MeasurementCollector(IReadOnlyList<MeasurementDefinition> 
         if (subject.Excluded) { _round[index].Excluded++; return; }
         if (subject.Count == 0 && options.Reduction is "first" or "last" or "min" or "max" or "average" or "delta")
         { _round[index].Excluded++; return; }
-        try { Add(index, subject.Value(options.Reduction), subject.Cost ?? (subject.PairCount > 0 ? subject.PairValue(options.Reduction) : options.Pair is null ? null : 0),
+        try
+        {
+            Add(index, subject.Value(options.Reduction), subject.Cost ?? (subject.PairCount > 0 ? subject.PairValue(options.Reduction) : options.Pair is null ? null : 0),
             subject.WeightCount > 0 ? subject.WeightSum / subject.WeightCount : null, subject.Group);
-            if (options.Subject == "episode") _staging[index]!.Episode(subject.Depth, subject.Values, subject.Count, subject.ExitReason, subject.Group); }
+            if (options.Subject == "episode") _staging[index]!.Episode(subject.Depth, subject.Values, subject.Count, subject.ExitReason, subject.Group);
+        }
         catch (Exception ex) when (IsMeasurementError(ex)) { Error(index, ex.Message); }
     }
     private void Add(int index, double value, double? pair, double? weight, string? group, bool assertionViolation = false)

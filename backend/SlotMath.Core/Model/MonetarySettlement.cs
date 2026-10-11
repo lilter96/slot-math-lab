@@ -30,7 +30,8 @@ public sealed record MonetarySettlement
         var denominator = BigInteger.Pow(10, decimals);
         var units = BigInteger.DivRem(before.NumberNumerator * denominator, before.NumberDenominator * numerator, out var remainder);
         var divisor = before.NumberDenominator * numerator;
-        var up = Mode switch {
+        var up = Mode switch
+        {
             "ceiling" => !remainder.IsZero,
             "nearestAway" => remainder * 2 >= divisor,
             "nearestEven" => remainder * 2 > divisor || remainder * 2 == divisor && !units.IsEven,

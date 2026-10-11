@@ -1,12 +1,19 @@
 import { useRef, useState } from 'react';
-import { useReactFlow } from '@xyflow/react';
+import { useReactFlow, useViewport } from '@xyflow/react';
 import { Ic } from '../Icons';
 import { exportProject, loadProject, loadCoinExample, catalogExamples } from '../../lib/projectFiles';
 import AiGenerateModal from '../AiGenerateModal';
 import { useAppStore } from '../../store';
+import { DEFAULT_FEATURES, useFeaturesQuery } from '../../api/hooks';
 import { closeMechanic } from '../../lib/projectFiles';
 import { createDogHouseGraph } from '../../games/doghouse/graph';
 import ProjectDataEditor from '../editor/ProjectDataEditor';
+
+/** Live zoom readout (e.g. "100%") driven by the React Flow viewport. */
+function ZoomLevel() {
+  const { zoom } = useViewport();
+  return <>{Math.round(zoom * 100)}%</>;
+}
 
 export default function CanvasToolbar() {
   const { zoomIn, zoomOut, fitView } = useReactFlow();
@@ -17,6 +24,7 @@ export default function CanvasToolbar() {
   const trail = useAppStore(s => s.graphTrail);
   const nodes = useAppStore(s => s.nodes);
   const verificationSource = useAppStore(s => s.verificationSource);
+  const features = useFeaturesQuery().data ?? DEFAULT_FEATURES;
 
   return (
     <>
@@ -45,22 +53,29 @@ export default function CanvasToolbar() {
           catch (err) { setFileError(err instanceof Error ? err.message : 'Invalid project'); }
         }}>Save</button>
         {fileError && <span role="alert">{fileError}</span>}
-        <button onClick={() => zoomOut()} title="Zoom out" aria-label="Zoom out"><Ic.minus /></button>
-        <span className="zoom-label" />
-        <button onClick={() => zoomIn()} title="Zoom in" aria-label="Zoom in"><Ic.plus /></button>
-        <button onClick={() => fitView({ padding: 0.2 })} title="Reset view" aria-label="Reset view"><Ic.fit /></button>
-        <div style={{ width: 1, height: 20, background: 'var(--line)', margin: '0 2px' }} />
-        <button
-          onClick={() => setShowAi(true)}
-          title="AI Generate — describe your game in plain English"
-          aria-label="AI Generate graph"
-          style={{ color: 'var(--exact)' }}
-        >
-          <Ic.ai />
-        </button>
+        {features.ai && (
+          <>
+            <div style={{ width: 1, height: 20, background: 'var(--line)', margin: '0 2px' }} />
+            <button
+              onClick={() => setShowAi(true)}
+              title="AI Generate — describe your game in plain English"
+              aria-label="AI Generate graph"
+              style={{ color: 'var(--exact)' }}
+            >
+              <Ic.ai />
+            </button>
+          </>
+        )}
       </div>
 
-      {showAi && <AiGenerateModal onClose={() => setShowAi(false)} />}
+      <div className="canvas-zoom" onMouseDown={(e) => e.stopPropagation()}>
+        <button onClick={() => zoomOut()} title="Zoom out" aria-label="Zoom out"><Ic.minus /></button>
+        <span className="zoom-label"><ZoomLevel /></span>
+        <button onClick={() => zoomIn()} title="Zoom in" aria-label="Zoom in"><Ic.plus /></button>
+        <button onClick={() => fitView({ padding: 0.2 })} title="Reset view" aria-label="Reset view"><Ic.fit /></button>
+      </div>
+
+      {showAi && features.ai && <AiGenerateModal onClose={() => setShowAi(false)} />}
       {showData && <ProjectDataEditor onClose={() => setShowData(false)} />}
     </>
   );

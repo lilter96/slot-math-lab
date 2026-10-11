@@ -16,7 +16,12 @@ public sealed class ComponentAccountingApiTests(WebApplicationFactory<Program> f
     private static Expression Field(string name) => new FieldAccessExpr { Target = "state", Path = [name] };
     private static MeasurementDefinition D(string id, Expression value, Expression? pair = null, bool assertion = false) => new()
     {
-        Id = id, Name = id, NodeId = "sink", Value = value, Unit = "coins", Options = new() { Pair = pair, Assertion = assertion ? "zero" : "none", Group = Field("cohort"), Stake = 2, SupportLimit = 32, GroupLimit = 1 }
+        Id = id,
+        Name = id,
+        NodeId = "sink",
+        Value = value,
+        Unit = "coins",
+        Options = new() { Pair = pair, Assertion = assertion ? "zero" : "none", Group = Field("cohort"), Stake = 2, SupportLimit = 32, GroupLimit = 1 }
     };
     private static MeasurementDefinition[] Plan() => [D("total", Field("total")), D("x", Field("x")), D("y", Field("y")), D("z", Field("z")),
         D("xy", Field("x"), Field("y")), D("xz", Field("x"), Field("z")), D("yz", Field("y"), Field("z")),

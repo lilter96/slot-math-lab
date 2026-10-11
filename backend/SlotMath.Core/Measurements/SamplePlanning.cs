@@ -1,4 +1,5 @@
 namespace SlotMath.Core.Measurements;
+
 public sealed record SamplePlanRequest(double Confidence = 0.95, int ErrorFamilySize = 1, double Precision = 0.001,
     double? Variance = null, double? LowerBound = null, double? UpperBound = null,
     double? EventProbability = null, double DetectionPower = 0.95, long RoundBudget = 100000);

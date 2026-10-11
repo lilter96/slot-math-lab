@@ -52,7 +52,9 @@ public class DiagnosticEvidenceTests
         collector.Begin(2); collector.Observe(0, 0, _ => ExprValue.Number(0), null); collector.Commit();
         Assert.Equal(1, collector.Total[0].Snapshot("residual").Analysis!.Assertion!.Violations);
     }
-    [Theory][InlineData(true)][InlineData(false)]
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
     public void RuleFailureCountsAndWitnessesMatchManualSpecInBothEngines(bool native)
     {
         // Each paid round visits values 2,3,4. The authored failure predicate x != 3
@@ -77,7 +79,9 @@ public class DiagnosticEvidenceTests
         var compiled = new GraphCompiler().Compile(MeasurementTests.Model, [plan]);
         Assert.False(compiled.IsValid); Assert.Contains(compiled.Errors, e => e.Message.Contains("reducing away failures"));
     }
-    [Theory][InlineData(false)][InlineData(true)]
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
     public void SparseCohortClusterInferenceIncludesParentsBeforeAndAfterItsFirstObservation(bool split)
     {
         var options = new MeasurementOptions { IndependentParents = true, Group = new ConstantExpr { Kind = ConstantKind.String, Value = "A" } };
@@ -150,7 +154,9 @@ public class DiagnosticEvidenceTests
         Assert.Equal("reference-interpreter", b.Execution!.SamplingEngine); Assert.Equal("compiled-sampling-plan", a.Execution!.SamplingEngine);
         Assert.Equal(a.Stats.Mean, b.Stats.Mean); Assert.Equal(JsonSerializer.Serialize(a.Measurements), JsonSerializer.Serialize(b.Measurements));
     }
-    [Theory][InlineData(true)][InlineData(false)]
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
     public void BoundedWitnessesReplayTheSameRoundAcrossLogicalChunkBoundaries(bool native)
     {
         var plan = new MeasurementDefinition[] { new() { Id = "law", Name = "Coin law", Options = new() { ReferenceDistribution = [new(0, 1)] } } };

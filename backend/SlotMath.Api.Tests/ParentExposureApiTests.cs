@@ -12,7 +12,9 @@ namespace SlotMath.Api.Tests;
 [Collection("SerialTests")]
 public sealed class ParentExposureApiTests(WebApplicationFactory<Program> factory) : IClassFixture<WebApplicationFactory<Program>>
 {
-    [Theory][InlineData("auto")][InlineData("reference")]
+    [Theory]
+    [InlineData("auto")]
+    [InlineData("reference")]
     public async Task LiveFinalRetainedAndEnumeratedParentsUseTheSameAuthoredChildPopulation(string engine)
     {
         // Three children inside one feature per paid round. The empty round

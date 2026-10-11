@@ -72,8 +72,10 @@ internal static class StateValues
             null => ExprValue.Null,
             ExprValue typed => typed,
             BigInteger n => ExprValue.Number(n),
-            int n => ExprValue.Number(n), long n => ExprValue.Number(n),
-            string text => ExprValue.String(text), bool boolean => ExprValue.Bool(boolean),
+            int n => ExprValue.Number(n),
+            long n => ExprValue.Number(n),
+            string text => ExprValue.String(text),
+            bool boolean => ExprValue.Bool(boolean),
             _ => ConvertOther(value, location, depth),
         };
     }
@@ -83,9 +85,15 @@ internal static class StateValues
         ExprValue Child(object? child) => Convert(child, location, depth + 1);
         return value switch
         {
-            byte n => ExprValue.Number(n), sbyte n => ExprValue.Number(n), short n => ExprValue.Number(n), ushort n => ExprValue.Number(n),
-            uint n => ExprValue.Number(n), ulong n => ExprValue.Number(n),
-            double n => NumericValues.FromDouble(n), float n => NumericValues.FromDouble(n), decimal n => NumericValues.FromDecimal(n),
+            byte n => ExprValue.Number(n),
+            sbyte n => ExprValue.Number(n),
+            short n => ExprValue.Number(n),
+            ushort n => ExprValue.Number(n),
+            uint n => ExprValue.Number(n),
+            ulong n => ExprValue.Number(n),
+            double n => NumericValues.FromDouble(n),
+            float n => NumericValues.FromDouble(n),
+            decimal n => NumericValues.FromDecimal(n),
             IDictionary<string, object?> record => ExprValue.Record(record.ToDictionary(p => p.Key, p => Child(p.Value), StringComparer.Ordinal)),
             IReadOnlyDictionary<string, object?> record => ExprValue.Record(record.ToDictionary(p => p.Key, p => Child(p.Value), StringComparer.Ordinal)),
             IDictionary => throw Unsupported(location),

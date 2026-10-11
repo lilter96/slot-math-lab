@@ -64,8 +64,11 @@ public static class GraphValidator
         // References are compile-time syntax, never permissive state paths.
         foreach (var (name, expression) in config.Expressions ?? new())
             if (!ExpressionCost.WithinBudget(expression, out var cost))
-                errors.Add(new CompileError { Code = ErrorCodes.ExpressionBudgetExceeded,
-                    Message = $"Expression '{name}' has static cost {cost}, exceeding {SlotMathConstants.Expression.MaxOps} operations." });
+                errors.Add(new CompileError
+                {
+                    Code = ErrorCodes.ExpressionBudgetExceeded,
+                    Message = $"Expression '{name}' has static cost {cost}, exceeding {SlotMathConstants.Expression.MaxOps} operations."
+                });
         if (errors.Any(e => e.Code == ErrorCodes.ExpressionBudgetExceeded)) return errors;
         try { config = ExpressionResolver.Resolve(config); }
         catch (CompilationException ex)
@@ -75,8 +78,11 @@ public static class GraphValidator
         }
         catch (System.Text.Json.JsonException)
         {
-            errors.Add(new CompileError { Code = ErrorCodes.ExpressionTypeError,
-                Message = "An expression exceeds the supported serialization depth or contains invalid reference data." });
+            errors.Add(new CompileError
+            {
+                Code = ErrorCodes.ExpressionTypeError,
+                Message = "An expression exceeds the supported serialization depth or contains invalid reference data."
+            });
             return errors;
         }
         // 4. Expression type-checking
@@ -617,8 +623,12 @@ public static class GraphValidator
                 _ => null,
             };
             if (reference is not null && (config.Expressions is null || !config.Expressions.ContainsKey(reference)))
-                errors.Add(new CompileError { NodeId = node.Id, Code = ErrorCodes.ExpressionTypeError,
-                    Message = $"Expression '{reference}' does not exist." });
+                errors.Add(new CompileError
+                {
+                    NodeId = node.Id,
+                    Code = ErrorCodes.ExpressionTypeError,
+                    Message = $"Expression '{reference}' does not exist."
+                });
         }
         if (config.Expressions == null || config.Expressions.Count == 0) return;
 

@@ -16,10 +16,24 @@ public sealed record MeasurementInput
     public string Unit { get; init; } = "";
     private static Expression? Parse(JsonElement? value) => value is null || value.Value.ValueKind == JsonValueKind.Null
         ? null : JsonSerializer.Deserialize<Expression>(value.Value.GetRawText(), SlotMath.Core.JsonOptions.Default);
-    public MeasurementDefinition ToCore() => new() { Id = Id, Name = Name, NodeId = NodeId, Value = Parse(Value), Filter = Parse(Filter), Unit = Unit,
-        Options = Options is null || Options.Value.ValueKind == JsonValueKind.Null ? null : JsonSerializer.Deserialize<MeasurementOptions>(Options.Value.GetRawText(), SlotMath.Core.JsonOptions.Default) };
-    public static MeasurementInput FromCore(MeasurementDefinition value) => new() { Id = value.Id, Name = value.Name, NodeId = value.NodeId, Unit = value.Unit,
+    public MeasurementDefinition ToCore() => new()
+    {
+        Id = Id,
+        Name = Name,
+        NodeId = NodeId,
+        Value = Parse(Value),
+        Filter = Parse(Filter),
+        Unit = Unit,
+        Options = Options is null || Options.Value.ValueKind == JsonValueKind.Null ? null : JsonSerializer.Deserialize<MeasurementOptions>(Options.Value.GetRawText(), SlotMath.Core.JsonOptions.Default)
+    };
+    public static MeasurementInput FromCore(MeasurementDefinition value) => new()
+    {
+        Id = value.Id,
+        Name = value.Name,
+        NodeId = value.NodeId,
+        Unit = value.Unit,
         Value = value.Value is null ? null : JsonSerializer.SerializeToElement(value.Value, SlotMath.Core.JsonOptions.Default),
         Filter = value.Filter is null ? null : JsonSerializer.SerializeToElement(value.Filter, SlotMath.Core.JsonOptions.Default),
-        Options = value.Options is null ? null : JsonSerializer.SerializeToElement(value.Options, SlotMath.Core.JsonOptions.Default) };
+        Options = value.Options is null ? null : JsonSerializer.SerializeToElement(value.Options, SlotMath.Core.JsonOptions.Default)
+    };
 }

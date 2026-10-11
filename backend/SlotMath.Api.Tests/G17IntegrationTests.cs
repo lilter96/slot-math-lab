@@ -1,9 +1,9 @@
 using System.Diagnostics;
 using System.Net.Http.Json;
-using Microsoft.Extensions.DependencyInjection;
 using System.Text.Json;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.SignalR.Client;
+using Microsoft.Extensions.DependencyInjection;
 using SlotMath.Api.Infrastructure;
 using SlotMath.Core.Mechanics;
 using SlotMath.Core.Mechanics.Evaluators;
@@ -727,7 +727,10 @@ public class G17IntegrationTests : IClassFixture<WebApplicationFactory<Program>>
         var configId = await CreateConfigAsync();
         var response = await _client.PostAsJsonAsync("/api/runs", new
         {
-            configId, sampleSize = ValidationLimits.MaxRunRounds, degreeOfParallelism = ValidationLimits.MaxRunWorkers, progressBatchSize = 65_536,
+            configId,
+            sampleSize = ValidationLimits.MaxRunRounds,
+            degreeOfParallelism = ValidationLimits.MaxRunWorkers,
+            progressBatchSize = 65_536,
         });
         Assert.Equal(System.Net.HttpStatusCode.Accepted, response.StatusCode);
         var run = await response.Content.ReadFromJsonAsync<JsonElement>();

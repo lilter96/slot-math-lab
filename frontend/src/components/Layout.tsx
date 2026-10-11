@@ -4,6 +4,7 @@ import { useEffect } from 'react';
 import { useAppStore, MOOD_HUE, type Mood } from '../store';
 import { Ic } from './Icons';
 import { useSimulationConnection } from '../hooks/useSimulation';
+import { DEFAULT_FEATURES, useFeaturesQuery } from '../api/hooks';
 
 const TABS = [
   { id: 'build' as const, label: 'Build', Icon: Ic.build },
@@ -20,6 +21,10 @@ export default function Layout() {
   const setTab = useAppStore((s) => s.setTab);
   const configName = useAppStore((s) => s.configName);
   const tweaks = useAppStore((s) => s.tweaks);
+  const features = useFeaturesQuery().data ?? DEFAULT_FEATURES;
+
+  // Fail-closed: without a confirmed `play` flag the Play entry is dropped.
+  const tabs = TABS.filter(({ id }) => id !== 'play' || features.play);
 
   // Sync tab from URL
   useEffect(() => {
@@ -60,7 +65,7 @@ export default function Layout() {
         </div>
 
         <div className="tabs" role="tablist" aria-label="Main navigation">
-          {TABS.map(({ id, label, Icon }) => (
+          {tabs.map(({ id, label, Icon }) => (
             <NavLink
               key={id}
               to={`/${id}`}
@@ -89,15 +94,17 @@ export default function Layout() {
               Sampled
             </span>
           </div>
-          <button
-            className="btn"
-            style={{ borderColor: 'oklch(0.78 0.15 305 / 0.4)' }}
-          >
-            <span style={{ color: 'var(--n-loop)' }}>
-              <Ic.ai style={{ width: 15, height: 15 }} />
-            </span>
-            AI assist
-          </button>
+          {features.ai && (
+            <button
+              className="btn"
+              style={{ borderColor: 'oklch(0.78 0.15 305 / 0.4)' }}
+            >
+              <span style={{ color: 'var(--n-loop)' }}>
+                <Ic.ai style={{ width: 15, height: 15 }} />
+              </span>
+              AI assist
+            </button>
+          )}
         </div>
       </div>
 

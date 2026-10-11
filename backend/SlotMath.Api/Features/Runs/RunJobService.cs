@@ -33,12 +33,21 @@ public class RunJobService(InMemoryConfigStore configStore, InMemoryRunStore run
             var s = progress.Stats;
             var message = runStore.PublishProgress(runId, new RunProgressMessage
             {
-                MeasurementHash = runStore.Get(runId)?.MeasurementHash, Measurements = progress.Measurements,
+                MeasurementHash = runStore.Get(runId)?.MeasurementHash,
+                Measurements = progress.Measurements,
                 Execution = progress.Execution,
-                RunId = runId, Status = "running", SampleCount = s.Count, TotalSamples = sampleSize,
-                RunningRtp = s.Mean, StdErr = s.StdErr, ElapsedMs = (long)progress.Elapsed.TotalMilliseconds,
-                HitFrequency = s.HitFrequency, NonZeroCount = s.NonZeroCount, Volatility = s.StdDev,
-                MaxWin = s.Count > 0 && double.IsFinite(s.MaxObserved) ? s.MaxObserved : 0, CapHits = s.CapHits,
+                RunId = runId,
+                Status = "running",
+                SampleCount = s.Count,
+                TotalSamples = sampleSize,
+                RunningRtp = s.Mean,
+                StdErr = s.StdErr,
+                ElapsedMs = (long)progress.Elapsed.TotalMilliseconds,
+                HitFrequency = s.HitFrequency,
+                NonZeroCount = s.NonZeroCount,
+                Volatility = s.StdDev,
+                MaxWin = s.Count > 0 && double.IsFinite(s.MaxObserved) ? s.MaxObserved : 0,
+                CapHits = s.CapHits,
                 Histogram = (s.AdaptiveHistogram ?? Array.Empty<AdaptiveHistogramBin>())
                     .Select(b => new RunHistogramBin(b.LowerBound, double.IsFinite(b.UpperBound) ? b.UpperBound : null, b.Count)).ToArray(),
             });
@@ -63,37 +72,64 @@ public class RunJobService(InMemoryConfigStore configStore, InMemoryRunStore run
             if (started is not null) delivery.Publish(started);
             var sampled = SampledInterpreter.Evaluate(compiled.Program!, new Dictionary<string, object?>(), new SampledConfig
             {
-                Execution = run.Execution, Measurements = run.Measurements, Seed = run.Seed, MaxSpins = sampleSize, DegreeOfParallelism = run.DegreeOfParallelism,
+                Execution = run.Execution,
+                Measurements = run.Measurements,
+                Seed = run.Seed,
+                MaxSpins = sampleSize,
+                DegreeOfParallelism = run.DegreeOfParallelism,
                 WinScale = (double)compiled.WinScale,
                 MaxWinCap = entry.Config.Nodes.OfType<SlotMath.Core.Model.MetricsSinkNode>().Single().WinCap,
-                CancellationToken = operation.Token, CancellationCheckInterval = 1,
+                CancellationToken = operation.Token,
+                CancellationCheckInterval = 1,
                 ResourceBudgetExpired = () => runStore.Get(runId)?.CancellationReason == "resourceExpiry" || operation.IsCancellationRequested && !cts.IsCancellationRequested && !lifetime.ApplicationStopping.IsCancellationRequested,
                 // A worker also reports after 250 ms without one, so a long run can use
                 // a larger batch without the display going stale.
-                ProgressReportInterval = Math.Clamp(progressBatchSize, 16, sampleSize > 10_000_000 ? MaxProgressBatch : 1000), ProgressCallback = Publish,
+                ProgressReportInterval = Math.Clamp(progressBatchSize, 16, sampleSize > 10_000_000 ? MaxProgressBatch : 1000),
+                ProgressCallback = Publish,
             });
             if (sampled.WasCancelled && sampled.SpinsCompleted == 0) throw new OperationCanceledException(operation.Token);
             // Final statistics use deterministic chunk-order reduction, including
             // partial results. A cancelled run is never reported as completed.
-            Publish(new SampledProgress { SpinsCompleted = sampled.SpinsCompleted, TotalSpins = sampleSize,
-                Stats = sampled.Stats.Snapshot(), Measurements = sampled.Measurements, Execution = sampled.Execution, Elapsed = sampled.Elapsed });
+            Publish(new SampledProgress
+            {
+                SpinsCompleted = sampled.SpinsCompleted,
+                TotalSpins = sampleSize,
+                Stats = sampled.Stats.Snapshot(),
+                Measurements = sampled.Measurements,
+                Execution = sampled.Execution,
+                Elapsed = sampled.Elapsed
+            });
             var report = SampledMetrics.ComputeFromResult(sampled);
             var status = sampled.WasCancelled || sampled.SpinsCompleted < sampleSize && run.Execution is not { Regime: "sessions", SessionStop: not "fixedHorizon" } ? "cancelled" : "completed";
             var result = JsonSerializer.Serialize(new
             {
-                seed = run.Seed, configHash = run.ConfigHash, configVersion = run.ConfigVersion,
-                degreeOfParallelism = run.DegreeOfParallelism, streamScheme = run.Execution?.StreamScheme ?? "splitmix64-chunk-65536",
-                execution = run.Execution, executionSummary = sampled.Execution,
-                runtimeProvenance = run.RuntimeProvenance, externalEvidence = run.ExternalEvidence,
-                verificationProfile = run.VerificationProfile, verificationProfileHash = run.VerificationProfileHash,
-                measurementHash = run.MeasurementHash, measurements = sampled.Measurements,
+                seed = run.Seed,
+                configHash = run.ConfigHash,
+                configVersion = run.ConfigVersion,
+                degreeOfParallelism = run.DegreeOfParallelism,
+                streamScheme = run.Execution?.StreamScheme ?? "splitmix64-chunk-65536",
+                execution = run.Execution,
+                executionSummary = sampled.Execution,
+                runtimeProvenance = run.RuntimeProvenance,
+                externalEvidence = run.ExternalEvidence,
+                verificationProfile = run.VerificationProfile,
+                verificationProfileHash = run.VerificationProfileHash,
+                measurementHash = run.MeasurementHash,
+                measurements = sampled.Measurements,
                 samplingEngine = sampled.Execution?.SamplingEngine ?? compiled.SamplingEngine,
-                rtp = report.Rtp.DisplayValue, runningRtp = report.Rtp.DisplayValue,
-                stdErr = sampled.Stats.StdErr, ci95 = sampled.SpinsCompleted > 1 && sampled.Stats.StdErr > 0 && run.Execution is not { PersistentKeys.Length: > 0 } && run.Execution is not { SessionStop: not "fixedHorizon" } ? new[] { sampled.Stats.Mean - sampled.Stats.Ci95Half, sampled.Stats.Mean + sampled.Stats.Ci95Half } : null,
-                hitFrequency = report.HitFrequency.DisplayValue, volatility = sampled.SpinsCompleted > 1 ? report.Volatility.StdDev : (double?)null,
-                volatilityIndex = report.Volatility.VolatilityIndex, maxWin = sampled.SpinsCompleted > 0 ? report.MaxWin.MaxWin : 0,
-                sampleCount = sampled.SpinsCompleted, totalSamples = sampleSize, status,
-                provenance = "Sampled", elapsedMs = (long)sampled.Elapsed.TotalMilliseconds,
+                rtp = report.Rtp.DisplayValue,
+                runningRtp = report.Rtp.DisplayValue,
+                stdErr = sampled.Stats.StdErr,
+                ci95 = sampled.SpinsCompleted > 1 && sampled.Stats.StdErr > 0 && run.Execution is not { PersistentKeys.Length: > 0 } && run.Execution is not { SessionStop: not "fixedHorizon" } ? new[] { sampled.Stats.Mean - sampled.Stats.Ci95Half, sampled.Stats.Mean + sampled.Stats.Ci95Half } : null,
+                hitFrequency = report.HitFrequency.DisplayValue,
+                volatility = sampled.SpinsCompleted > 1 ? report.Volatility.StdDev : (double?)null,
+                volatilityIndex = report.Volatility.VolatilityIndex,
+                maxWin = sampled.SpinsCompleted > 0 ? report.MaxWin.MaxWin : 0,
+                sampleCount = sampled.SpinsCompleted,
+                totalSamples = sampleSize,
+                status,
+                provenance = "Sampled",
+                elapsedMs = (long)sampled.Elapsed.TotalMilliseconds,
                 histogram = sampled.Stats.Histogram.Select(b => new { lo = b.LowerBound, hi = b.UpperBound, count = b.Count }),
                 adaptiveHistogram = runStore.Get(runId)?.Progress?.Histogram.Select(b => new { lo = b.Lo, hi = b.Hi, count = b.Count }),
             }, new JsonSerializerOptions(JsonSerializerDefaults.Web));
@@ -102,8 +138,13 @@ public class RunJobService(InMemoryConfigStore configStore, InMemoryRunStore run
         catch (OperationCanceledException)
         {
             var run = runStore.Get(runId);
-            runStore.Update(runId, "cancelled", JsonSerializer.Serialize(new { sampleCount = run?.SampleCount ?? 0,
-                rtp = run?.RunningRtp ?? 0, stdErr = run?.StdErr ?? 0, status = "cancelled" }));
+            runStore.Update(runId, "cancelled", JsonSerializer.Serialize(new
+            {
+                sampleCount = run?.SampleCount ?? 0,
+                rtp = run?.RunningRtp ?? 0,
+                stdErr = run?.StdErr ?? 0,
+                status = "cancelled"
+            }));
         }
         catch (Exception ex)
         {

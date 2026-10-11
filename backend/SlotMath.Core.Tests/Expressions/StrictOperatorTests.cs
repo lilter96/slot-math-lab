@@ -22,25 +22,32 @@ public class StrictOperatorTests
         var frame = new SamplingFrame(new Dictionary<string, int>(), [], new()); frame.Reset(CancellationToken.None);
         return new SamplingExpressions(_ => throw new InvalidOperationException("No field binding in this oracle.")).Compile(expression)(frame);
     }
-    [Theory][MemberData(nameof(InvalidOperators))]
+    [Theory]
+    [MemberData(nameof(InvalidOperators))]
     public void WrongOperandTypesAreErrorsRatherThanZeroOrFalse(bool native, Expression expression)
     {
         var error = Assert.Throws<ExpressionEvaluationException>(() => Evaluate(expression, native)); Assert.Equal("EVAL_TYPE_ERROR", error.Code);
     }
-    [Theory][InlineData(true)][InlineData(false)]
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
     public void UnknownNumericOperatorCannotManufactureAZeroResult(bool native)
     {
         var expression = new BinaryExpr { Op = (BinaryOp)999, Left = N(1), Right = N(2) };
         Assert.Equal("EVAL_INVALID_OPERATOR", Assert.Throws<ExpressionEvaluationException>(() => Evaluate(expression, native)).Code);
     }
-    [Theory][InlineData(true)][InlineData(false)]
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
     public void ShortCircuitDoesNotEvaluateAnUnneededInvalidOperandOrBranch(bool native)
     {
         Assert.False(Evaluate(new BinaryExpr { Op = BinaryOp.And, Left = B(false), Right = WrongNumber }, native).BoolValue);
         Assert.True(Evaluate(new BinaryExpr { Op = BinaryOp.Or, Left = B(true), Right = WrongNumber }, native).BoolValue);
         Assert.Equal(1, Evaluate(new IfExpr { Condition = B(true), ThenExpr = N(1), ElseExpr = WrongNumber }, native).AsInteger());
     }
-    [Theory][InlineData(true)][InlineData(false)]
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
     public void AnInvalidNestedOperatorCannotPassAnExactZeroAssertion(bool native)
     {
         var collector = new MeasurementCollector([new() { Id = "rule", Name = "Typed rule", Options = new() { Assertion = "zero" } }]);

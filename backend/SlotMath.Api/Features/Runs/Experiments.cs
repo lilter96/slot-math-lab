@@ -7,6 +7,7 @@ using SlotMath.Core.Measurements;
 using SlotMath.Core.Model;
 
 namespace SlotMath.Api.Features.Runs;
+
 public sealed record ExperimentVariant(string Name, string Kind, string Key, double Value, string? NodeId = null);
 public sealed record ExperimentRequest(string ConfigId, int ConfigVersion, ExperimentVariant[] Variants,
     MeasurementInput[] Measurements, ExecutionOptions? Execution = null, int Samples = 10000, long Seed = 42,
@@ -104,10 +105,12 @@ public static class ExperimentAnalysis
         }
         if (variant.Kind is "execution" or "sessionPolicy") return graph;
         var found = false;
-        var nodes = graph.Nodes.Select(node => {
+        var nodes = graph.Nodes.Select(node =>
+        {
             if (node.Id != variant.NodeId) return node; found = true;
             if (variant.Value < 0 || variant.Value != Math.Truncate(variant.Value) || variant.Value > 9007199254740991d) throw new ArgumentException("Graph limits and weights require nonnegative safe integers.");
-            return variant.Kind switch {
+            return variant.Kind switch
+            {
                 "winCap" when node is MetricsSinkNode sink && variant.Value >= 1 => sink with { WinCap = (long)variant.Value },
                 "loopCap" when node is LoopNode loop && variant.Value is >= 1 and <= 100000 => loop with { MaxIterations = (int)variant.Value },
                 "drawWeight" when node is DrawNode draw && draw.DrawWeights?.Any(w => w.OutcomeId == variant.Key) == true && variant.Value <= int.MaxValue => draw with { DrawWeights = draw.DrawWeights.Select(w => w.OutcomeId == variant.Key ? w with { Weight = (int)variant.Value } : w).ToArray() },
@@ -122,8 +125,10 @@ public static class ExperimentAnalysis
         var execution = value ?? new();
         if (variant?.Kind == "sessionPolicy") { if (execution.Regime != "sessions") throw new ArgumentException("Policy experiments require session execution."); return execution with { SessionStop = variant.Key, StopThreshold = variant.Value }; }
         if (variant?.Kind != "execution") return execution;
-        return variant.Key switch {
-            "initialBankroll" => execution with { InitialBankroll = variant.Value }, "wager" => execution with { Wager = variant.Value },
+        return variant.Key switch
+        {
+            "initialBankroll" => execution with { InitialBankroll = variant.Value },
+            "wager" => execution with { Wager = variant.Value },
             "stopThreshold" => execution with { StopThreshold = variant.Value },
             "sessionLength" when variant.Value == Math.Truncate(variant.Value) && variant.Value is >= 1 and <= 65536 => execution with { SessionLength = (int)variant.Value },
             _ => throw new ArgumentException("Execution parameter must be initialBankroll, wager, stopThreshold or sessionLength.")
@@ -187,13 +192,15 @@ public static class ExperimentEndpoints
     {
         group.MapGet("/experiments", (ExperimentStore experiments) => Results.Ok(experiments.List()));
         group.MapGet("/experiments/{id}", (string id, ExperimentStore experiments, InMemoryRunStore runs) => experiments.Get(id) is { } e ? Results.Ok(ExperimentAnalysis.Report(e, runs)) : Results.NotFound()).Produces<ExperimentReport>();
-        group.MapDelete("/experiments/{id}", (string id, ExperimentStore experiments, InMemoryRunStore runs) => {
+        group.MapDelete("/experiments/{id}", (string id, ExperimentStore experiments, InMemoryRunStore runs) =>
+        {
             var e = experiments.Get(id); if (e is null) return Results.NotFound();
             if (e.Status is not ("pending" or "running")) return Results.Conflict(new { error = "Experiment is terminal." });
             experiments.Status(id, "cancelled"); ExperimentJobService.CancelMembers(e, runs); return Results.Ok(experiments.Get(id));
         });
         group.MapPost("/experiments", (ExperimentRequest request, ExperimentStore experiments, InMemoryConfigStore configs, InMemoryRunStore runs,
-            CompiledGraphCache compiler, IBackgroundJobClient jobs, IWebHostEnvironment environment) => {
+            CompiledGraphCache compiler, IBackgroundJobClient jobs, IWebHostEnvironment environment) =>
+        {
             string? admissionId = null; var members = new List<ExperimentMember>();
             try
             {
@@ -223,7 +230,8 @@ public static class ExperimentEndpoints
                 }
                 admissionId = Guid.NewGuid().ToString("N");
                 experiments.Create(new(admissionId, "preparing", DateTimeOffset.UtcNow, RuntimeProvenance.AuthoredInputHash(request), request, []));
-                double Original(ExperimentVariant v) => v.Kind switch {
+                double Original(ExperimentVariant v) => v.Kind switch
+                {
                     "initialState" => baseline.Config.InitialState![v.Key].GetDouble(),
                     "winCap" => baseline.Config.Nodes.OfType<MetricsSinkNode>().Single(n => n.Id == v.NodeId).WinCap!.Value,
                     "loopCap" => baseline.Config.Nodes.OfType<LoopNode>().Single(n => n.Id == v.NodeId).MaxIterations,

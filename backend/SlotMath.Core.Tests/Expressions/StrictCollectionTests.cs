@@ -28,14 +28,17 @@ public class StrictCollectionTests
         foreach (var compiled in new[] { false, true }) foreach (var name in new[] { "map", "filter", "fold", "index", "sum", "count", "min" })
             foreach (var kind in new[] { "missing", "null", "number", "string" }) yield return [compiled, name, kind];
     }
-    [Theory][MemberData(nameof(InvalidSources))]
+    [Theory]
+    [MemberData(nameof(InvalidSources))]
     public void AbsentAndWronglyTypedArraysCannotBeMistakenForAnEmptyFeature(bool compiled, string name, string kind)
     {
         Dictionary<string, object?> state = kind == "missing" ? new() : new() { ["items"] = kind switch { "null" => null, "number" => 0, _ => "" } };
         var error = Assert.Throws<ExpressionEvaluationException>(() => Evaluate(Operation(name), compiled, state));
         Assert.Equal(kind == "missing" ? "EVAL_MISSING_STATE" : kind == "null" ? "EVAL_NULL_VALUE" : "EVAL_TYPE_ERROR", error.Code);
     }
-    [Theory][InlineData(false)][InlineData(true)]
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
     public void ExplicitEmptyArraysKeepTheirDefinedIdentitiesAndUndefinedExtrema(bool compiled)
     {
         var state = new Dictionary<string, object?> { ["items"] = Array.Empty<object>() };
@@ -47,7 +50,9 @@ public class StrictCollectionTests
         Assert.Empty(Evaluate(Operation("filter"), compiled, state).ArrayValue!);
         foreach (var name in new[] { "min", "max" }) Assert.Equal(EvalErrorCodes.EmptyMinMax, Assert.Throws<ExpressionEvaluationException>(() => Evaluate(Operation(name), compiled, state)).Code);
     }
-    [Theory][InlineData(false)][InlineData(true)]
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
     public void FractionalArrayElementsSurviveIndexingIterationAndFilter(bool compiled)
     {
         var expected = ExprValue.Rational(3, 4);
@@ -60,7 +65,9 @@ public class StrictCollectionTests
             Assert.Equal(expected, Assert.Single(Evaluate(Operation("filter"), compiled, state).ArrayValue!));
         }
     }
-    [Theory][InlineData(false)][InlineData(true)]
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
     public void WronglyTypedPredicatesCannotManufactureAZeroCount(bool compiled)
     {
         var state = new Dictionary<string, object?> { ["items"] = new object[] { 1 } };

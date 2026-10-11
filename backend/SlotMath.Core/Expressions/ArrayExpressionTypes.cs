@@ -19,7 +19,9 @@ internal static class ArrayExpressionTypes
     }
     internal static TypeCheckContext Bind(TypeCheckContext context, params FieldDescriptor[] bindings) => new()
     {
-        BoardFields = context.BoardFields, MeasurementFields = context.MeasurementFields, CellFields = context.CellFields,
+        BoardFields = context.BoardFields,
+        MeasurementFields = context.MeasurementFields,
+        CellFields = context.CellFields,
         DecorationTypes = context.DecorationTypes,
         StateFields = context.StateFields.Where(field => !bindings.Any(binding => binding.Name == field.Name)).Concat(bindings).ToArray(),
     };

@@ -29,7 +29,11 @@ public static class AuthEndpoints
 
             http.Response.Cookies.Append("slotmath_session", token, new CookieOptions
             {
-                HttpOnly = true, Secure = !local, SameSite = SameSiteMode.Strict, MaxAge = TimeSpan.FromHours(24), Path = "/",
+                HttpOnly = true,
+                Secure = !local,
+                SameSite = SameSiteMode.Strict,
+                MaxAge = TimeSpan.FromHours(24),
+                Path = "/",
             });
             return Results.Ok(new TokenResponse(token, req.UserId));
         });

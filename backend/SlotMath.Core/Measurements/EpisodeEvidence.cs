@@ -1,4 +1,5 @@
 namespace SlotMath.Core.Measurements;
+
 public sealed record OrdinalMoment(int Depth, int Ordinal, long Count, double Minimum, double Maximum, double Mean, double? SampleVariance);
 public sealed record CrossOrdinalMoment(int Depth, int First, int Second, long PairedEpisodes, double? Covariance, double? Correlation);
 public sealed record EpisodeProfile(long IncludedEpisodes, long OverflowEpisodes, OrdinalMoment[] Ordinals, CrossOrdinalMoment[] CrossOrdinals, IReadOnlyDictionary<string, long> ExitReasons, string Population);

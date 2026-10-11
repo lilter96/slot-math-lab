@@ -12,8 +12,11 @@ public class ExecutionPopulationTests
     [Fact]
     public void DecimalBankrollFundsEveryEqualWagerBeforeRuinAndReportsExactLoss()
     {
-        var result = SampledInterpreter.Evaluate(Slot.Pure<Dict, BigInteger>(0), new Dict(), new() { MaxSpins = 6,
-            Execution = new() { Regime = "sessions", SessionLength = 3, InitialBankroll = .3, Wager = .1 } });
+        var result = SampledInterpreter.Evaluate(Slot.Pure<Dict, BigInteger>(0), new Dict(), new()
+        {
+            MaxSpins = 6,
+            Execution = new() { Regime = "sessions", SessionLength = 3, InitialBankroll = .3, Wager = .1 }
+        });
         var metrics = result.Execution!.SessionMetrics.ToDictionary(m => m.Id);
         Assert.Equal("decimal-roundtrip-v1", result.Execution.MonetaryAccounting);
         Assert.Equal(3, metrics["session.ruinTime"].Mean);
@@ -46,11 +49,23 @@ public class ExecutionPopulationTests
         Assert.Equal(-1e-300, tiny.Profit); Assert.Equal(0, tiny.EndingBankroll);
         Assert.Throws<ArithmeticException>(() => large.Add(double.NaN));
     }
-    [Theory][InlineData(true)][InlineData(false)]
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
     public void SessionFeatureWaitingUsesPinnedRoundActivationAndCensorsAbsentFeatures(bool native)
     {
-        var activation = new SlotMath.Core.Measurements.MeasurementDefinition { Id = "feature", Name = "Counter feature", Value = new CompareExpr { Op = CompareOp.Gte,
-            Left = new FieldAccessExpr { Target = "measurement", Path = ["payout"] }, Right = new ConstantExpr { Kind = ConstantKind.Integer, Value = "2" } }, Options = new() { Source = "event" } };
+        var activation = new SlotMath.Core.Measurements.MeasurementDefinition
+        {
+            Id = "feature",
+            Name = "Counter feature",
+            Value = new CompareExpr
+            {
+                Op = CompareOp.Gte,
+                Left = new FieldAccessExpr { Target = "measurement", Path = ["payout"] },
+                Right = new ConstantExpr { Kind = ConstantKind.Integer, Value = "2" }
+            },
+            Options = new() { Source = "event" }
+        };
         var compiled = new GraphCompiler(optimizeSampling: native).Compile(Counter, [activation]); Assert.True(compiled.IsValid);
         var result = SampledInterpreter.Evaluate(compiled.Program!, new Dict(), new() { MaxSpins = 6, Measurements = [activation], Execution = new() { Regime = "sessions", SessionLength = 2, PersistentKeys = ["counter"], FeatureMetricId = "feature" } });
         Assert.Equal(2, result.Execution!.SessionMetrics.Single(m => m.Id == "session.featureWait").Mean);
@@ -66,7 +81,9 @@ public class ExecutionPopulationTests
       "edges":[{"id":"e","sourceNodeId":"advance","sourcePort":"out","targetNodeId":"sink","targetPort":"in"}],
       "expressions":{"next":{"exprType":"binary","op":"Add","left":{"exprType":"fieldAccess","target":"state","path":["counter"]},"right":{"exprType":"constant","kind":"Integer","value":"1"}}}}
     """, JsonOptions.Default)!;
-    [Theory][InlineData(true)][InlineData(false)]
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
     public void PersistentTrajectoryRetainsOnlyDeclaredState_AndSessionsResetAtTheirBoundary(bool native)
     {
         var compiled = new GraphCompiler(optimizeSampling: native).Compile(Counter); Assert.True(compiled.IsValid, string.Join(';', compiled.Errors.Select(e => e.Message)));

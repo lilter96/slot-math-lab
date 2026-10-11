@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAppStore } from '../../store';
 import { loadProject, openMechanic, rootProject } from '../../lib/projectFiles';
 import { createExpectationGraph } from '../../games/doghouse/expectationGraph';
+import { DEFAULT_FEATURES, useFeaturesQuery } from '../../api/hooks';
 import ProjectDataEditor from './ProjectDataEditor';
 
 export default function ModelNavigation() {
@@ -11,6 +12,7 @@ export default function ModelNavigation() {
   const activeNodeCount = useAppStore(s => s.nodes.length);
   const [showData, setShowData] = useState(false), [error, setError] = useState('');
   const navigate = useNavigate();
+  const features = useFeaturesQuery().data ?? DEFAULT_FEATURES;
   const proof = tables.uiAnalysisKind === 'expectationProof';
   const source = proof ? verificationSource : trail[0]?.graph;
   const mechanics = (source?.mechanics ?? tables.mechanics) as Record<string, { nodes: unknown[] }> | undefined;
@@ -38,7 +40,7 @@ export default function ModelNavigation() {
             useAppStore.setState({ verificationSource: game, graphTrail: [] }); loadProject(reference); useAppStore.getState().selectNode('rtp-total'); setError('');
           } catch (e) { setError(e instanceof Error ? e.message : 'Cannot construct the expectation proof'); }
         }}>Exact RTP / calibration</button>
-        <button className="btn primary" onClick={() => { openGame(); navigate('/play'); }}>Play this model</button>
+        {features.play && <button className="btn primary" onClick={() => { openGame(); navigate('/play'); }}>Play this model</button>}
       </div>
       {error && <p role="alert">{error}</p>}
     </div>

@@ -1,9 +1,9 @@
 using System.Text.Json;
+using SlotMath.Core.Compiler;
 using SlotMath.Core.Expressions;
+using SlotMath.Core.Math;
 using SlotMath.Core.Measurements;
 using SlotMath.Core.Model;
-using SlotMath.Core.Compiler;
-using SlotMath.Core.Math;
 using Dict = System.Collections.Generic.Dictionary<string, object?>;
 namespace SlotMath.Core.Tests.Math;
 
@@ -33,7 +33,10 @@ public class AdvancedMeasurementTests
         collector.Begin(); collector.Observe(0, 9_007_199_254_740_992L, binding); collector.Observe(0, 9_007_199_254_740_993L, binding); collector.Commit();
         var analysis = Finish(collector).Analysis!; Assert.Equal(2, analysis.UniqueAwards); Assert.Equal(0, analysis.DuplicateAwards); Assert.Equal(2, analysis.Groups.Count);
     }
-    [Theory][InlineData(2, 5.991464547107979)][InlineData(1, 3.841458820694124)][InlineData(10, 18.307038053275146)]
+    [Theory]
+    [InlineData(2, 5.991464547107979)]
+    [InlineData(1, 3.841458820694124)]
+    [InlineData(10, 18.307038053275146)]
     public void ChiSquareTailMatchesIndependentPublishedCriticalValues(int df, double critical)
         => Assert.Equal(0.05, StatisticalInference.ChiSquareSurvival(critical, df), 11);
     [Fact]
@@ -49,11 +52,23 @@ public class AdvancedMeasurementTests
         Assert.Null(Run(false, 20, false).Analysis!.Comparison!.PValue); Assert.Null(Run(true, 4, false).Analysis!.Comparison!.PValue);
         Assert.Null(Run(true, 20, true).Analysis!.Comparison!.PValue);
     }
-    [Theory][InlineData(true)][InlineData(false)]
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
     public void SettlementNamespaceSupportsMoneyPredicatesWithoutAddingOrMutatingGameState(bool native)
     {
-        var eventPlan = new MeasurementDefinition { Id = "zero", Name = "Zero payout", Value = new CompareExpr { Op = CompareOp.Eq,
-            Left = new FieldAccessExpr { Target = "measurement", Path = ["payout"] }, Right = new ConstantExpr { Kind = ConstantKind.Integer, Value = "0" } }, Options = new() { Source = "event", IndependentSubjects = true } };
+        var eventPlan = new MeasurementDefinition
+        {
+            Id = "zero",
+            Name = "Zero payout",
+            Value = new CompareExpr
+            {
+                Op = CompareOp.Eq,
+                Left = new FieldAccessExpr { Target = "measurement", Path = ["payout"] },
+                Right = new ConstantExpr { Kind = ConstantKind.Integer, Value = "0" }
+            },
+            Options = new() { Source = "event", IndependentSubjects = true }
+        };
         var compiled = new GraphCompiler(optimizeSampling: native).Compile(MeasurementTests.Model, [eventPlan]); Assert.True(compiled.IsValid);
         var result = SampledInterpreter.Evaluate(compiled.Program!, new Dict(), new SampledConfig { MaxSpins = 10, Measurements = [eventPlan] });
         Assert.Equal(1, Assert.Single(result.Measurements).Mean); Assert.Equal(0, result.Stats.Mean);
@@ -101,7 +116,9 @@ public class AdvancedMeasurementTests
         // Individual round ratios {4/1,0/3} average to 2, while true return is 4/(1+3)=1.
         Assert.NotEqual(2, a.Pair.Ratio);
     }
-    [Theory][InlineData(true)][InlineData(false)]
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
     public void CompilerAndInterpreter_PublishAuthoredEpisodesAndRawSettlement(bool optimized)
     {
         var defs = new MeasurementDefinition[] {
@@ -182,8 +199,11 @@ public class AdvancedMeasurementTests
     {
         var opts = new MeasurementOptions { Group = new ConstantExpr { Kind = ConstantKind.String, Value = "group" }, Weight = new ConstantExpr { Kind = ConstantKind.Integer, Value = "1" } };
         var collector = new MeasurementCollector([Metric(opts)]); double[] xs = [0, 2, 2, 4], weights = [1, 1, 2, 2];
-        for (var i = 0; i < 4; i++) { collector.Begin(); collector.Observe(0, i, new MeasurementBinding<int>(j => ExprValue.Number((long)xs[j]), null,
-            Group: j => ExprValue.String(j < 2 ? "base" : "sticky"), Weight: j => ExprValue.Number((long)weights[j]))); collector.Commit(); }
+        for (var i = 0; i < 4; i++)
+        {
+            collector.Begin(); collector.Observe(0, i, new MeasurementBinding<int>(j => ExprValue.Number((long)xs[j]), null,
+            Group: j => ExprValue.String(j < 2 ? "base" : "sticky"), Weight: j => ExprValue.Number((long)weights[j]))); collector.Commit();
+        }
         var a = Finish(collector).Analysis!;
         Assert.Equal(1, a.Groups["base"].Moments.SecondMoment / 2); Assert.Equal(2, a.Groups["sticky"].DistinctParents);
         Assert.Equal(3.5, a.Weights!.OrdinaryEstimate); Assert.Equal(7d / 3, a.Weights.SelfNormalizedEstimate!.Value, 12); Assert.Equal(3.6, a.Weights.EffectiveSampleSize!.Value, 12);
@@ -231,7 +251,10 @@ public class AdvancedMeasurementTests
         foreach (var value in new[] { 1d, 1d }) { collector.Begin(); collector.Observe(0, value, Numeric); collector.Commit(); }
         var a = Finish(collector).Analysis!; Assert.Equal(1, a.Comparison!.TotalVariation); Assert.Equal(0.5, a.Comparison.CdfDistance); Assert.Equal(2, a.Comparison.UnexpectedObservations); Assert.Null(a.Comparison.ChiSquare);
     }
-    [Theory][InlineData(0, 10, 0, 0.3084971078187608)][InlineData(10, 10, 0.6915028921812392, 1)][InlineData(5, 10, 0.1870860284473985, 0.8129139715526015)]
+    [Theory]
+    [InlineData(0, 10, 0, 0.3084971078187608)]
+    [InlineData(10, 10, 0.6915028921812392, 1)]
+    [InlineData(5, 10, 0.1870860284473985, 0.8129139715526015)]
     public void ExactBinomial_MatchesPublishedBetaQuantileReferences(long successes, long n, double lower, double upper)
     { var interval = StatisticalInference.ExactBinomial(successes, n); Assert.Equal(lower, interval.Lower, 10); Assert.Equal(upper, interval.Upper, 10); }
     [Fact]

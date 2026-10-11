@@ -7,9 +7,11 @@ public readonly record struct SettlementContext(double Payout, double? RawPayout
 {
     public ExprValue Read(string key) => FromDouble(key switch
     {
-        "payout" => Payout, "rawPayout" => RawPayout ?? throw new InvalidOperationException("Raw payout is unavailable."),
+        "payout" => Payout,
+        "rawPayout" => RawPayout ?? throw new InvalidOperationException("Raw payout is unavailable."),
         "capDeduction" => (RawPayout ?? throw new InvalidOperationException("Raw payout is unavailable.")) - Payout,
-        "cost" => Cost, "net" => Payout - Cost,
+        "cost" => Cost,
+        "net" => Payout - Cost,
         _ => throw new InvalidOperationException($"Unknown settlement field '{key}'.")
     });
     // Preserve the supplied finite double exactly, with no arbitrary decimal truncation.

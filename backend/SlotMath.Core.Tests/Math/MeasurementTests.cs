@@ -7,6 +7,7 @@ using SlotMath.Core.Model;
 using SlotMath.Core.Monad;
 using Dict = System.Collections.Generic.Dictionary<string, object?>;
 namespace SlotMath.Core.Tests.Math;
+
 public class MeasurementTests
 {
     private static ConstantExpr N(int value) => new() { Kind = ConstantKind.Integer, Value = value.ToString() };
@@ -33,7 +34,9 @@ public class MeasurementTests
         Assert.True(compiled.IsValid, string.Join(';', compiled.Errors.Select(e => e.Message)));
         return SampledInterpreter.Evaluate(compiled.Program!, new Dict(), new SampledConfig { Seed = 42, MaxSpins = n, DegreeOfParallelism = workers, Measurements = plan, ProgressReportInterval = 16, ProgressCallback = progress });
     }
-    [Theory][InlineData(true)][InlineData(false)]
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
     public void OneFsType_IndependentOracleHasTwoValuesPerRound(bool optimized)
     {
         // Manual specification: iterations 0 and 2 are sticky, payouts i+2 => {2,4}.
@@ -56,7 +59,8 @@ public class MeasurementTests
     public void ChunkReduction_IsBitIdenticalAcrossWorkers_AndObservationsDoNotChangeGame()
     {
         var plan = new[] { Sticky, new MeasurementDefinition { Id = "round", Name = "Settled payout" } };
-        var a = Run(plan, 131073, workers: 1); var b = Run(plan, 131073, workers: 4, progress: p => {
+        var a = Run(plan, 131073, workers: 1); var b = Run(plan, 131073, workers: 4, progress: p =>
+        {
             Assert.Equal(p.SpinsCompleted * 2, p.Measurements[0].Count); Assert.Equal(p.SpinsCompleted, p.Measurements[1].Count);
         });
         Assert.Equal(System.Text.Json.JsonSerializer.Serialize(a.Measurements), System.Text.Json.JsonSerializer.Serialize(b.Measurements)); Assert.Equal(a.Stats.Mean, b.Stats.Mean);
@@ -67,7 +71,8 @@ public class MeasurementTests
     {
         using var cts = new CancellationTokenSource();
         var definition = new MeasurementDefinition { Id = "node", Name = "Node", NodeId = "point", Value = N(7) };
-        var program = new ObservationSlot<Dict, BigInteger>("point", Slot.Modify<Dict>(state => {
+        var program = new ObservationSlot<Dict, BigInteger>("point", Slot.Modify<Dict>(state =>
+        {
             cts.Cancel(); throw new OperationCanceledException(cts.Token);
         }).Select(_ => BigInteger.Zero));
         var result = SampledInterpreter.Evaluate(program, new Dict(), new SampledConfig { MaxSpins = 1, Measurements = [definition], CancellationToken = cts.Token });
@@ -83,7 +88,9 @@ public class MeasurementTests
         var empty = SampledInterpreter.Evaluate(Slot.Pure<Dict, BigInteger>(BigInteger.One), new Dict(), new SampledConfig { MaxSpins = 0, Measurements = plan });
         Assert.Equal(0, Assert.Single(empty.Measurements).Count); Assert.Null(empty.Measurements[0].Mean);
     }
-    [Theory][InlineData(true)][InlineData(false)]
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
     public void RuntimeDivisionError_IsCountedAndNeverTurnsIntoZero(bool optimized)
     {
         var metric = Sticky with { Filter = null, Value = new BinaryExpr { Op = BinaryOp.Div, Left = F("spinWin"), Right = N(0) } };
@@ -100,7 +107,9 @@ public class MeasurementTests
         Assert.False(new GraphCompiler().Compile(Model, Enumerable.Repeat(Sticky, 33).ToArray()).IsValid);
         Assert.False(new GraphCompiler().Compile(Model, [Sticky, Sticky]).IsValid);
     }
-    [Theory][InlineData(true)][InlineData(false)]
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
     public void RoundPayout_UsesActualWinScaleCapAndFilter(bool optimized)
     {
         var model = JsonSerializer.Deserialize<GraphConfig>("""

@@ -1,0 +1,53 @@
+# Gitleaks configuration for Slot Math Lab.
+# Extends the built-in rules and allowlists specific files whose "api key" matches are
+# content hashes / test fixtures, not secrets (verified: sha256 fingerprints in generated
+# verification reports and DogHouse expectation fixtures).
+#
+# Allowlisting is scoped to exact committed files rather than whole directories so that a
+# real credential dropped into docs/verification/ or the DogHouse TestData folder under a new
+# name is still scanned and reported. When you add a new generated verification report, add
+# its path here.
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Verification report fingerprints and DogHouse test fixtures"
+paths = [
+  # ── Verification reports (sha256 evidence/binary fingerprints) ──
+  '''^docs/verification/advanced-measurements-production\.json$''',
+  '''^docs/verification/cohort-collection-benchmark\.json$''',
+  '''^docs/verification/component-accounting-production\.json$''',
+  '''^docs/verification/doghouse-ui-report\.json$''',
+  '''^docs/verification/interrupted-lifecycle-doghouse-production\.json$''',
+  '''^docs/verification/interrupted-lifecycle-production\.json$''',
+  '''^docs/verification/measurements-checks\.json$''',
+  '''^docs/verification/measurements-local\.json$''',
+  '''^docs/verification/measurements-production\.json$''',
+  '''^docs/verification/metrics-coverage\.json$''',
+  '''^docs/verification/metrics-research\.json$''',
+  '''^docs/verification/native-experiments-production\.json$''',
+  '''^docs/verification/numeric-input-doghouse-production\.json$''',
+  '''^docs/verification/numeric-input-production\.json$''',
+  '''^docs/verification/performance-benchmark\.json$''',
+  '''^docs/verification/performance-local\.json$''',
+  '''^docs/verification/performance-production\.json$''',
+  '''^docs/verification/realtime-production\.json$''',
+  '''^docs/verification/record-values-doghouse-production\.json$''',
+  '''^docs/verification/record-values-production\.json$''',
+  '''^docs/verification/results-checks\.json$''',
+  '''^docs/verification/results-production\.json$''',
+  '''^docs/verification/simulation-production-report\.json$''',
+  '''^docs/verification/strict-expressions-doghouse-production\.json$''',
+  '''^docs/verification/strict-expressions-production\.json$''',
+  '''^docs/verification/validation-save-production\.json$''',
+  '''^docs/verification/verification-profile-production\.json$''',
+  '''^docs/verification/ws-negotiation-production\.json$''',
+  '''^docs/verification/METRICS_IMPLEMENTATION\.md$''',
+  # ── DogHouse expectation fixtures (high-entropy rational values, not credentials) ──
+  '''^backend/SlotMath\.Core\.Tests/TestData/DogHouse/dog-house-expectation-ui\.json$''',
+  '''^backend/SlotMath\.Core\.Tests/TestData/DogHouse/dog-house-independent-expectation\.json$''',
+  '''^backend/SlotMath\.Core\.Tests/TestData/DogHouse/dog-house-mini-expectation-ui\.json$''',
+  '''^backend/SlotMath\.Core\.Tests/TestData/DogHouse/dog-house-mini-ui\.json$''',
+  '''^backend/SlotMath\.Core\.Tests/TestData/DogHouse/dog-house-ui\.json$''',
+]

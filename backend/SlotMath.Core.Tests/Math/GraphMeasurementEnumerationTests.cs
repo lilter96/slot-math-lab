@@ -3,12 +3,21 @@ using SlotMath.Core.Compiler;
 using SlotMath.Core.Measurements;
 using SlotMath.Core.Model;
 namespace SlotMath.Core.Tests.Math;
+
 public class GraphMeasurementEnumerationTests
 {
-    private static MeasurementDefinition PairedCoin(int supportLimit = 256, int groupLimit = 32) => new() { Id = "paired", Name = "Paid payout and raw payout",
-        Options = new() { SupportLimit = supportLimit, GroupLimit = groupLimit,
+    private static MeasurementDefinition PairedCoin(int supportLimit = 256, int groupLimit = 32) => new()
+    {
+        Id = "paired",
+        Name = "Paid payout and raw payout",
+        Options = new()
+        {
+            SupportLimit = supportLimit,
+            GroupLimit = groupLimit,
             Group = new CompareExpr { Op = CompareOp.Gt, Left = new FieldAccessExpr { Target = "measurement", Path = ["payout"] }, Right = new ConstantExpr { Kind = ConstantKind.Integer, Value = "0" } },
-            Pair = new FieldAccessExpr { Target = "measurement", Path = ["rawPayout"] } } };
+            Pair = new FieldAccessExpr { Target = "measurement", Path = ["rawPayout"] }
+        }
+    };
     [Fact]
     public void GroupedJointLawMatchesIndependentTwoOutcomeCovarianceAndVarianceIdentity()
     {

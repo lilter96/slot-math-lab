@@ -23,9 +23,17 @@ public class LiveRunStoreTests
         var store = new InMemoryRunStore();
         var run = store.Create("graph", totalSamples: 1000);
         var first = store.PublishProgress(run.Id, new RunProgressMessage
-        { RunId = run.Id, SampleCount = 500, TotalSamples = 1000, RunningRtp = 0.98,
-            StdErr = .01, ElapsedMs = 250, Status = "running", NonZeroCount = 200,
-            Histogram = [new RunHistogramBin(0, 1, 400), new RunHistogramBin(1, 5, 100)] })!;
+        {
+            RunId = run.Id,
+            SampleCount = 500,
+            TotalSamples = 1000,
+            RunningRtp = 0.98,
+            StdErr = .01,
+            ElapsedMs = 250,
+            Status = "running",
+            NonZeroCount = 200,
+            Histogram = [new RunHistogramBin(0, 1, 400), new RunHistogramBin(1, 5, 100)]
+        })!;
         Assert.Null(store.PublishProgress(run.Id, first with { SampleCount = 499 }));
         var cancelled = store.Update(run.Id, "cancelled", "{\"sampleCount\":500}");
         Assert.Equal("cancelled", InMemoryRunStore.Snapshot(cancelled).Status);

@@ -1,9 +1,9 @@
 using System.Text;
 using System.Threading.RateLimiting;
-using Microsoft.AspNetCore.RateLimiting;
 using Hangfire;
 using Hangfire.MemoryStorage;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.IdentityModel.Tokens;
@@ -14,8 +14,8 @@ using SlotMath.Api.Features.Ai;
 using SlotMath.Api.Features.Auth;
 using SlotMath.Api.Features.Configs;
 using SlotMath.Api.Features.Evaluate;
-using SlotMath.Api.Features.Play;
 using SlotMath.Api.Features.PersistedConfigs;
+using SlotMath.Api.Features.Play;
 using SlotMath.Api.Features.Plugins;
 using SlotMath.Api.Features.Runs;
 using SlotMath.Api.Features.Validate;
@@ -48,13 +48,19 @@ builder.Services.AddOpenTelemetry()
 var localMode = builder.Environment.IsDevelopment() || builder.Environment.IsEnvironment("CI") || builder.Environment.IsEnvironment("Testing");
 var jwtSecret = builder.Configuration["JWT:Secret"] ?? (localMode ? JwtAuth.DefaultSecret : throw new InvalidOperationException("JWT:Secret is required in production."));
 if (!localMode && (Encoding.UTF8.GetByteCount(jwtSecret) < 32 || jwtSecret == JwtAuth.DefaultSecret))
-    throw new InvalidOperationException("Production JWT secret must be at least 32 bytes and unique.");
-if (!localMode && (string.IsNullOrWhiteSpace(builder.Configuration["Auth:User"]) || string.IsNullOrWhiteSpace(builder.Configuration["Auth:PasswordHash"])))
-    throw new InvalidOperationException("Auth:User and Auth:PasswordHash are required in production.");
+    throw new InvalidOperationException("JWT:Secret must be at least 32 bytes and unique in production.");
+if (!localMode && string.IsNullOrWhiteSpace(builder.Configuration["Auth:User"]))
+    throw new InvalidOperationException("Auth:User is required in production.");
+if (!localMode && string.IsNullOrWhiteSpace(builder.Configuration["Auth:PasswordHash"]))
+    throw new InvalidOperationException("Auth:PasswordHash is required in production.");
 if (!localMode)
     builder.Services.AddSingleton(new EncryptedSnapshots(
         builder.Configuration["Storage:Directory"] ?? "/data",
         builder.Configuration["Storage:Key"] ?? throw new InvalidOperationException("Storage:Key is required in production.")));
+
+// ── Feature flags (read once at startup; a flag change requires a restart) ──
+var features = FeatureFlags.Read(builder.Configuration, localMode);
+builder.Services.AddSingleton(features);
 var jwtIssuer = builder.Configuration["JWT:Issuer"] ?? JwtAuth.DefaultIssuer;
 var jwtKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSecret));
 
@@ -196,7 +202,7 @@ if (!localMode)
     app.Use(async (context, next) =>
     {
         var path = context.Request.Path;
-        if ((path.StartsWithSegments("/api") && !path.StartsWithSegments("/api/auth")) || path.StartsWithSegments("/hubs"))
+        if ((path.StartsWithSegments("/api") && !path.StartsWithSegments("/api/auth") && !path.StartsWithSegments("/api/features")) || path.StartsWithSegments("/hubs"))
         {
             if (!JwtAuth.IsAuthenticated(context.User)) { context.Response.StatusCode = 401; return; }
             if (context.Request.Method != "GET" && path.StartsWithSegments("/api/plugins"))
@@ -283,17 +289,32 @@ app.MapConfigs();
 app.MapValidate();
 app.MapEvaluate().RequireRateLimiting("compute");
 app.MapGraphEvaluation();
-app.MapPlay();
+if (features.Play) app.MapPlay();
 app.MapRuns(configStore, runStore, pluginHost);
-app.MapPlugins(pluginHost);
+// Plugins are never loaded from disk at startup; with the flag off the plugin
+// endpoints are not registered at all and answer 404.
+if (features.Plugins) app.MapPlugins(pluginHost);
 
 // Persistence-backed config endpoints (auth required for save/load, G29)
 if (localMode) app.MapPersistedConfigs();
 
-// AI gateway (G26) + auto-tune, lint, explain (G27/G28)
-app.MapAi();
-app.MapAutoTune();
-app.MapLint();
-app.MapExplain();
+// AI gateway (G26) + lint/explain; auto-tune (G27/G28) has its own flag.
+if (features.Ai)
+{
+    app.MapAi();
+    app.MapLint();
+    app.MapExplain();
+}
+if (features.AutoTune) app.MapAutoTune();
+
+// Flags are public product metadata: the UI reads them to hide disabled
+// features, so this endpoint stays reachable without a login.
+app.MapGet("/api/features", () => Results.Ok(new
+{
+    ai = features.Ai,
+    autoTune = features.AutoTune,
+    plugins = features.Plugins,
+    play = features.Play,
+}));
 
 app.Run();

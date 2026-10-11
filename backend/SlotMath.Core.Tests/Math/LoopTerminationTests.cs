@@ -23,7 +23,9 @@ public class LoopTerminationTests
         if (conditional) json = json.Replace("\"maxIterations\":3", "\"maxIterations\":3,\"stopConditionId\":\"stop\"");
         return JsonSerializer.Deserialize<GraphConfig>(json, JsonOptions.Default)!;
     }
-    [Theory][InlineData(true)][InlineData(false)]
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
     public void CompletionReasonAndIterationExposureAgreeAcrossEnginesAndWorkers(bool conditional)
     {
         var results = new List<SampledResult<Dict>>();

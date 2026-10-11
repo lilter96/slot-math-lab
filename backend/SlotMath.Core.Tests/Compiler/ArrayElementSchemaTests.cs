@@ -44,13 +44,19 @@ public sealed class ArrayElementSchemaTests
     {
         var graph = new GraphConfig
         {
-            SchemaVersion = "1.0.0", InitialState = new() { ["raw"] = JsonSerializer.Deserialize<JsonElement>("[-6,8,15]") },
+            SchemaVersion = "1.0.0",
+            InitialState = new() { ["raw"] = JsonSerializer.Deserialize<JsonElement>("[-6,8,15]") },
             Nodes = [new ModifyStateNode { Id = "map", OutputKey = "fractions", ExpressionId = "map" },
                 new ModifyStateNode { Id = "filter", OutputKey = "positive", ExpressionId = "filter" }],
             Expressions = new()
             {
-                ["map"] = new MapExpr { StateKey = "raw", ItemName = "item", ItemType = ExprType.Number,
-                    Body = new BinaryExpr { Op = BinaryOp.Div, Left = new FieldAccessExpr { Target = "state", Path = ["item"] }, Right = new ConstantExpr { Kind = ConstantKind.Integer, Value = "12" } } },
+                ["map"] = new MapExpr
+                {
+                    StateKey = "raw",
+                    ItemName = "item",
+                    ItemType = ExprType.Number,
+                    Body = new BinaryExpr { Op = BinaryOp.Div, Left = new FieldAccessExpr { Target = "state", Path = ["item"] }, Right = new ConstantExpr { Kind = ConstantKind.Integer, Value = "12" } }
+                },
                 ["filter"] = new FilterExpr { StateKey = "fractions", ItemName = "item", ItemType = ExprType.Number, Predicate = new ConstantExpr { Kind = ConstantKind.Boolean, Value = "true" } },
             },
         };
@@ -72,7 +78,8 @@ public sealed class ArrayElementSchemaTests
     {
         var graph = new GraphConfig
         {
-            SchemaVersion = "1.0.0", InitialState = new() { ["v0"] = JsonSerializer.Deserialize<JsonElement>("[1,2]") },
+            SchemaVersion = "1.0.0",
+            InitialState = new() { ["v0"] = JsonSerializer.Deserialize<JsonElement>("[1,2]") },
             Nodes = Enumerable.Range(1, 7).Reverse().Select(i => (Node)new ModifyStateNode { Id = $"n{i}", OutputKey = $"v{i}", ExpressionId = $"e{i}" }).ToArray(),
             Expressions = Enumerable.Range(1, 7).ToDictionary(i => $"e{i}", i => (Expression)new FieldAccessExpr { Target = "state", Path = [$"v{i - 1}"] }),
         };
@@ -85,7 +92,8 @@ public sealed class ArrayElementSchemaTests
     {
         var graph = new GraphConfig
         {
-            SchemaVersion = "1.0.0", InitialState = new() { ["numbers"] = JsonSerializer.Deserialize<JsonElement>("[1]"), ["strings"] = JsonSerializer.Deserialize<JsonElement>("[\"A\"]") },
+            SchemaVersion = "1.0.0",
+            InitialState = new() { ["numbers"] = JsonSerializer.Deserialize<JsonElement>("[1]"), ["strings"] = JsonSerializer.Deserialize<JsonElement>("[\"A\"]") },
             Nodes = [new ModifyStateNode { Id = "a", OutputKey = "mixed", ExpressionId = "a" }, new ModifyStateNode { Id = "b", OutputKey = "mixed", ExpressionId = "b" }],
             Expressions = new() { ["a"] = new FieldAccessExpr { Target = "state", Path = ["numbers"] }, ["b"] = new FieldAccessExpr { Target = "state", Path = ["strings"] } },
         };

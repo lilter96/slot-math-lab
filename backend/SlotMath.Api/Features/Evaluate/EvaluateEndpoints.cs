@@ -95,14 +95,15 @@ public static class EvaluateEndpoints
                     {
                         Budget = new Budget { MaxBranches = maxBranches, MaxTime = TimeSpan.FromSeconds(1) },
                         ForceSampled = false,
-                        CancellationToken = deadline.Token, ProgressCallback = _ => { },
+                        CancellationToken = deadline.Token,
+                        ProgressCallback = _ => { },
                         // If the exact attempt blows the budget mid-flight,
                         // the hybrid evaluator falls back internally — that
                         // fallback must use the light sample size, not the
                         // heavy-run default.
                         SampledSpins = request.SampleSize ?? 10_000,
                         WinScale = compileResult.WinScale,
-                    MaxWinCap = config.Nodes.OfType<SlotMath.Core.Model.MetricsSinkNode>().Single().WinCap,
+                        MaxWinCap = config.Nodes.OfType<SlotMath.Core.Model.MetricsSinkNode>().Single().WinCap,
                         SampledSeed = request.Seed,
                     };
 
@@ -120,7 +121,9 @@ public static class EvaluateEndpoints
                     {
                         Strategy = ranExact ? "Exact" : "Sampled",
                         Rtp = report.Rtp.DisplayValue,
-                        Lo = report.Rtp.LoDisplay, Hi = report.Rtp.HiDisplay, PrunedMass = report.Rtp.PrunedMass,
+                        Lo = report.Rtp.LoDisplay,
+                        Hi = report.Rtp.HiDisplay,
+                        PrunedMass = report.Rtp.PrunedMass,
                         HitFrequency = report.HitFrequency.DisplayValue,
                         Volatility = report.Volatility.VolatilityIndex,
                         SampleCount = (int?)report.Rtp.SampleCount,
@@ -134,8 +137,13 @@ public static class EvaluateEndpoints
                 }
                 catch (SlotMath.Core.Expressions.ExpressionEvaluationException error)
                 {
-                    return Results.BadRequest(new EvaluateLightResponse { Seed = request.Seed, Strategy = "Error", Provenance = "EvaluationFailed",
-                        Errors = [new ValidateErrorItem { Code = error.Code, Message = error.Message }] });
+                    return Results.BadRequest(new EvaluateLightResponse
+                    {
+                        Seed = request.Seed,
+                        Strategy = "Error",
+                        Provenance = "EvaluationFailed",
+                        Errors = [new ValidateErrorItem { Code = error.Code, Message = error.Message }]
+                    });
                 }
             }
 
@@ -147,7 +155,8 @@ public static class EvaluateEndpoints
                 {
                     SampledSpins = sampleSize,
                     ForceSampled = true,
-                    CancellationToken = deadline.Token, ProgressCallback = _ => { },
+                    CancellationToken = deadline.Token,
+                    ProgressCallback = _ => { },
                     SampledSeed = request.Seed,
                     WinScale = compileResult.WinScale,
                     MaxWinCap = config.Nodes.OfType<SlotMath.Core.Model.MetricsSinkNode>().Single().WinCap,
@@ -179,13 +188,23 @@ public static class EvaluateEndpoints
             }
             catch (SlotMath.Core.Expressions.ExpressionEvaluationException error)
             {
-                return Results.BadRequest(new EvaluateLightResponse { Seed = request.Seed, Strategy = "Error", Provenance = "EvaluationFailed",
-                    Errors = [new ValidateErrorItem { Code = error.Code, Message = error.Message }] });
+                return Results.BadRequest(new EvaluateLightResponse
+                {
+                    Seed = request.Seed,
+                    Strategy = "Error",
+                    Provenance = "EvaluationFailed",
+                    Errors = [new ValidateErrorItem { Code = error.Code, Message = error.Message }]
+                });
             }
             catch (Exception error) when (error is InvalidOperationException or ArgumentException or FormatException)
             {
-                return Results.BadRequest(new EvaluateLightResponse { Seed = request.Seed, Strategy = "Error", Provenance = "EvaluationFailed",
-                    Errors = [new ValidateErrorItem { Code = "EVALUATION_FAILED", Message = error.Message }] });
+                return Results.BadRequest(new EvaluateLightResponse
+                {
+                    Seed = request.Seed,
+                    Strategy = "Error",
+                    Provenance = "EvaluationFailed",
+                    Errors = [new ValidateErrorItem { Code = "EVALUATION_FAILED", Message = error.Message }]
+                });
             }
             catch (BudgetExceededException)
             {

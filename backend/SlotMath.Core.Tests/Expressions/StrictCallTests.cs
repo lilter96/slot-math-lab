@@ -22,10 +22,14 @@ public sealed class StrictCallTests
     }
 
     [Theory]
-    [InlineData(false, "0.1", "1", "10")][InlineData(true, "0.1", "1", "10")]
-    [InlineData(false, "-2.5e-7", "-1", "4000000")][InlineData(true, "-2.5e-7", "-1", "4000000")]
-    [InlineData(false, " 6/-8 ", "-3", "4")][InlineData(true, " 6/-8 ", "-3", "4")]
-    [InlineData(false, "+0042", "42", "1")][InlineData(true, "+0042", "42", "1")]
+    [InlineData(false, "0.1", "1", "10")]
+    [InlineData(true, "0.1", "1", "10")]
+    [InlineData(false, "-2.5e-7", "-1", "4000000")]
+    [InlineData(true, "-2.5e-7", "-1", "4000000")]
+    [InlineData(false, " 6/-8 ", "-3", "4")]
+    [InlineData(true, " 6/-8 ", "-3", "4")]
+    [InlineData(false, "+0042", "42", "1")]
+    [InlineData(true, "+0042", "42", "1")]
     public void ExplicitTextConversionRetainsItsExactValue(bool compiled, string text, string numerator, string denominator)
     {
         var expected = ExprValue.Rational(BigInteger.Parse(numerator), BigInteger.Parse(denominator));
@@ -33,7 +37,9 @@ public sealed class StrictCallTests
         Assert.Equal(expected, Evaluate(Call("tonumber", Call("tostring", Call("tonumber", Text(text)))), compiled));
     }
 
-    [Theory][InlineData(false)][InlineData(true)]
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
     public void InvalidConversionsDoNotManufactureAZeroObservation(bool compiled)
     {
         foreach (var value in new[] { "H", "", "NaN", "Infinity", "1/0", "1/2/3", "1,25", "1.2.3", "0x10", "1e", "1/" })
@@ -41,11 +47,17 @@ public sealed class StrictCallTests
         Assert.Equal("EVAL_NUMERIC_BUDGET", Assert.Throws<ExpressionEvaluationException>(() => Evaluate(Call("tonumber", Text("1e4097")), compiled)).Code);
         Assert.Equal("EVAL_NUMERIC_BUDGET", Assert.Throws<ExpressionEvaluationException>(() => Evaluate(Call("tonumber", Text(new string('1', 4097))), compiled)).Code);
         // An invalid conversion in an unevaluated branch remains unevaluated.
-        Assert.Equal(ExprValue.Number(7), Evaluate(new IfExpr { Condition = new ConstantExpr { Kind = ConstantKind.Boolean, Value = "false" },
-            ThenExpr = Call("tonumber", Text("H")), ElseExpr = Number("7") }, compiled));
+        Assert.Equal(ExprValue.Number(7), Evaluate(new IfExpr
+        {
+            Condition = new ConstantExpr { Kind = ConstantKind.Boolean, Value = "false" },
+            ThenExpr = Call("tonumber", Text("H")),
+            ElseExpr = Number("7")
+        }, compiled));
     }
 
-    [Theory][InlineData(false)][InlineData(true)]
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
     public void BuiltinsEnforceArityAndRuntimeTypesOnBothEngines(bool compiled)
     {
         foreach (var name in new[] { "length", "contains", "append", "index", "tonumber", "tostring" })
@@ -79,16 +91,28 @@ public sealed class StrictCallTests
     public void EmptyAccumulatorAndTypedAppendPropagateThroughConditionalFoldAndNumericWriter()
     {
         var accumulator = new FieldAccessExpr { Target = "state", Path = ["acc"] };
-        var fold = new FoldExpr { StateKey = "input", ItemName = "item", ItemType = ExprType.Number, AccName = "acc",
-            Init = new FieldAccessExpr { Target = "state", Path = ["empty"] }, Body = new IfExpr
+        var fold = new FoldExpr
+        {
+            StateKey = "input",
+            ItemName = "item",
+            ItemType = ExprType.Number,
+            AccName = "acc",
+            Init = new FieldAccessExpr { Target = "state", Path = ["empty"] },
+            Body = new IfExpr
             {
                 Condition = new ConstantExpr { Kind = ConstantKind.Boolean, Value = "true" },
-                ThenExpr = Call("append", accumulator, new FieldAccessExpr { Target = "state", Path = ["item"] }), ElseExpr = accumulator,
-            } };
-        var graph = new GraphConfig { SchemaVersion = "1.0.0", InitialState = new()
+                ThenExpr = Call("append", accumulator, new FieldAccessExpr { Target = "state", Path = ["item"] }),
+                ElseExpr = accumulator,
+            }
+        };
+        var graph = new GraphConfig
+        {
+            SchemaVersion = "1.0.0",
+            InitialState = new()
             { ["empty"] = JsonSerializer.Deserialize<JsonElement>("[]"), ["input"] = JsonSerializer.Deserialize<JsonElement>("[1,2]") },
             Nodes = [new ModifyStateNode { Id = "fold", OutputKey = "values", ExpressionId = "fold" }, new ModifyStateNode { Id = "first", OutputKey = "first", ExpressionId = "first" }],
-            Expressions = new() { ["fold"] = fold, ["first"] = Call("index", Array, Number("0")) } };
+            Expressions = new() { ["fold"] = fold, ["first"] = Call("index", Array, Number("0")) }
+        };
         var fields = StateSchemaDeriver.Derive(graph);
         Assert.Equal(ExprType.Number, Assert.Single(fields, field => field.Name == "values").ArrayItemType);
         Assert.Equal(ExprType.Number, Assert.Single(fields, field => field.Name == "first").Type);
