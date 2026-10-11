@@ -1,0 +1,70 @@
+{
+  "conditions": "Local production preview 4186, real validated QA owner and actual completed 100-round REF-A calculation. Failure-state requests aborted, no substitute evidence.",
+  "audit": [
+    {
+      "state": "saved",
+      "width": 1440,
+      "height": 900,
+      "overflow": false,
+      "proofBadges": 1,
+      "text": "Analysis evidenceLast verified saved runMatching pinned model \u00b7 completed Monte Carlo calculation.Return to player75.000% Sampled n=100Paid rounds100Seed42Completed10/12/2026, 2:25:20 AMApproximate 95% RTP interval: 56.865% to 93.135%.Run a499863cb6044153a2bd1fed73f4422b \u00b7 Input v1 \u00b7 529b4fc6088e6162c03d7fae83b5430b180d4313ffa9520bcc5b981809946a57This verifies the saved input and observations; sampling does not certify the model.Inspect saved runReview results"
+    },
+    {
+      "state": "saved",
+      "width": 1280,
+      "height": 800,
+      "overflow": false,
+      "proofBadges": 1,
+      "text": "Analysis evidenceLast verified saved runMatching pinned model \u00b7 completed Monte Carlo calculation.Return to player75.000% Sampled n=100Paid rounds100Seed42Completed10/12/2026, 2:25:20 AMApproximate 95% RTP interval: 56.865% to 93.135%.Run a499863cb6044153a2bd1fed73f4422b \u00b7 Input v1 \u00b7 529b4fc6088e6162c03d7fae83b5430b180d4313ffa9520bcc5b981809946a57This verifies the saved input and observations; sampling does not certify the model.Inspect saved runReview results"
+    },
+    {
+      "state": "saved",
+      "width": 1024,
+      "height": 768,
+      "overflow": false,
+      "proofBadges": 1,
+      "text": "Analysis evidenceLast verified saved runMatching pinned model \u00b7 completed Monte Carlo calculation.Return to player75.000% Sampled n=100Paid rounds100Seed42Completed10/12/2026, 2:25:20 AMApproximate 95% RTP interval: 56.865% to 93.135%.Run a499863cb6044153a2bd1fed73f4422b \u00b7 Input v1 \u00b7 529b4fc6088e6162c03d7fae83b5430b180d4313ffa9520bcc5b981809946a57This verifies the saved input and observations; sampling does not certify the model.Inspect saved runReview results"
+    },
+    {
+      "state": "saved",
+      "width": 390,
+      "height": 844,
+      "overflow": false,
+      "proofBadges": 1,
+      "text": "Analysis evidenceLast verified saved runMatching pinned model \u00b7 completed Monte Carlo calculation.Return to player75.000% Sampled n=100Paid rounds100Seed42Completed10/12/2026, 2:25:20 AMApproximate 95% RTP interval: 56.865% to 93.135%.Run a499863cb6044153a2bd1fed73f4422b \u00b7 Input v1 \u00b7 529b4fc6088e6162c03d7fae83b5430b180d4313ffa9520bcc5b981809946a57This verifies the saved input and observations; sampling does not certify the model.Inspect saved runReview results"
+    },
+    {
+      "state": "unavailable",
+      "width": 1440,
+      "height": 900,
+      "overflow": false,
+      "proofBadges": 0,
+      "text": "Analysis evidenceSaved results could not be loaded. Check the connection and retry. Retry saved evidenceReview results"
+    },
+    {
+      "state": "unavailable",
+      "width": 1280,
+      "height": 800,
+      "overflow": false,
+      "proofBadges": 0,
+      "text": "Analysis evidenceSaved results could not be loaded. Check the connection and retry. Retry saved evidenceReview results"
+    },
+    {
+      "state": "unavailable",
+      "width": 1024,
+      "height": 768,
+      "overflow": false,
+      "proofBadges": 0,
+      "text": "Analysis evidenceSaved results could not be loaded. Check the connection and retry. Retry saved evidenceReview results"
+    },
+    {
+      "state": "unavailable",
+      "width": 390,
+      "height": 844,
+      "overflow": false,
+      "proofBadges": 0,
+      "text": "Analysis evidenceSaved results could not be loaded. Check the connection and retry. Retry saved evidenceReview results"
+    }
+  ],
+  "sourceCommit": "81af758"
+}

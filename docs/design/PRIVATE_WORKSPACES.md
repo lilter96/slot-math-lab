@@ -41,6 +41,8 @@ No public registration, password-reset flow, OIDC provider, teams, roles, invita
 
 Inspector pinning is a presentation preference scoped to the verified user, independent of model JSON. It can remain open without selection; switching projects clears the previous node. Close/Escape clear the pin, while reload restores an explicit pin.
 
+Overview reads the latest completed owned run matching the current model’s canonical server fingerprint. The original saved config/hash and result integrity are checked before showing numbers. The existing comparison convention excludes document ID but includes every other serialized model field; an identical owned copy may reference an immutable matching run, clearly labelled with its original ID/version. It does not copy mutable simulation state into that project. Changed inputs, another user, late responses and unavailable reads cannot inherit its displayed proof. This read creates no calculation or server version.
+
 ## Migration and review
 
 The main [UX plan](UX_MASTERPLAN.md), [design system](DESIGN_SYSTEM.md), [design reference](../../design-system/MASTER.md) and [Codex handoff](CODEX_HANDOFF.md) now use this multi-project scope. The [migration/rollback plan](MIGRATION_ROLLBACK.md) describes a future coordinated upgrade, legacy ownership mapping and downgrade constraints; no hosted migration has been performed.

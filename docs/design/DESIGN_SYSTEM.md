@@ -15,7 +15,7 @@
 
 - The starting surface is **My projects**, with the verified user's personal collection or a useful empty state. A user can own many games/models; many users have independent workspaces.
 - Show the selected project's name in the switcher and headings. Create/import/template-copy actions produce separate private drafts; switching preserves edits and nested context.
-- Treat project identity separately from model/template ID. Same-template copies must not share staged edits, layout, Debug receipts or mathematical evidence.
+- Treat project identity separately from model/template ID. Same-template copies must not share staged edits, layout, Debug receipts or mutable analysis state. Saved evidence must match the current source; an owned immutable run for identical serialized input may be referenced explicitly with its original ID/version, following the archive fingerprint contract.
 - Use the selected model's geometry, symbols and capability mappings. Nine Lives reference is one 6×5 fixture, not a global layout or default game.
 - Public templates become private copies. No sharing, invitations, teams or publication controls now. Saved server versions and run bookmarks remain owner-only.
 - Distinguish browser autosave from explicit server saving. Show truthful recovery/backup actions on storage failure; do not imply automatic cross-device synchronization.

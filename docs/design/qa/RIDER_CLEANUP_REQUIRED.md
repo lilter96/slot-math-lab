@@ -89,3 +89,21 @@ AGENTS.md requires Reformat Code followed by Built-in: Full Cleanup on every tou
 - `frontend/e2e/context-inspector.spec.ts`
 
 Inspector-pin follow-up: scoped standalone Reformat attempts again exit 3 (`solution can't be null`), including the changed source above. Full Cleanup still cannot execute for these frontend files outside the .NET solution. This is an unresolved required pass, not successful cleanup; new logs are `inspector-pin-*-rider.log` and `inspector-pin-rider-reformat.log`.
+
+- `backend/SlotMath.Api/Features/Runs/RunArchive.cs`
+
+- `backend/SlotMath.Api/Features/Runs/RunsEndpoints.cs`
+
+- `backend/SlotMath.Api.Tests/RunArchiveTests.cs`
+
+- `frontend/src/components/OverviewEvidence.tsx`
+
+- `frontend/src/lib/overviewEvidence.ts`
+
+- `frontend/src/api/generated-types.ts`
+
+- `frontend/unit/overview-evidence.spec.ts`
+
+- `frontend/e2e/overview-evidence.spec.ts`
+
+Overview evidence follow-up: both scoped backend Reformat and Full Cleanup timed out at 22 seconds; Full Cleanup again reports missing System.Composition.AttributedModel 10.0.0.12. The task-owned process groups were terminated to avoid orphaned cleanup workers. Scoped frontend/generated/CSS Reformat attempts exit 3 with the same missing-solution failure. No successful required cleanup is claimed; `overview-evidence-*-rider.log` and `overview-evidence-rider-*.log` retain the local attempts.
