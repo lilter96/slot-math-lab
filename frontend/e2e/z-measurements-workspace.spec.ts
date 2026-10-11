@@ -74,6 +74,7 @@ test('Editor rejects unknown fields through compiler, and valid empty scopes rem
 });
 test('Metric editor and customizable workspace fit mobile, preserve draft across reload, and include nested FS points', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 }); await page.goto('/build?project=nine-lives');
+  await page.getByLabel('Find subgraph').fill('free-spin');
   await page.getByRole('button', { name: 'Open free-spin graph', exact: true }).click(); await page.getByRole('tab', { name: 'Simulate', exact: true }).click();
   await page.getByRole('button', { name: '＋ Track metric', exact: true }).click(); await page.getByLabel('Metric name').fill('Free spin payout');
   await page.getByLabel('Metric observation level').selectOption('node'); await page.getByLabel('Find measurement node').fill('free-spins-body/record');

@@ -16,7 +16,7 @@ Branch: `feat/precision-workbench-redesign`. Isolated worktree based on fetched 
 |---|---|---|---|
 | 0 baseline | verified (Core/full critical still running) | required documents and actual editing/state/API code read | QA logs/screenshots pending |
 | 1 trust and shell | implemented; critical sweep pending | suppress absent/stale proof; responsive semantic nav | build/lint/unit/critical/browser |
-| 2 overview/tree | todo | manifest-derived 6×5, source-linked mechanic hierarchy | round-trip/browser |
+| 2 overview/tree | verified for primary workflows; extended tests pending | manifest-derived 6×5, source-linked mechanic hierarchy | round-trip/browser |
 | 3 graph workspace | todo | contextual inspector, palette/library separation, camera/search | nested editing/browser |
 | 4 data editing | todo | capability-detected weighted draws; transaction/undo | unit/export/reload |
 | 5 features | todo | readable summaries; safe mapped parameters only | form/graph preservation |
@@ -26,3 +26,5 @@ Branch: `feat/precision-workbench-redesign`. Isolated worktree based on fetched 
 Next exact task: finish baseline build/lint/unit/critical + before screenshots; implement trust-state correction and responsive shell.
 
 Slice 1: build/lint pass; 117 units pass; metric/feature-gate targeted browser checks 3/3 pass. Initial critical sweep exposed removed AI assist; fixed by wiring it to actual generation dialog and targeted control passed. Remaining sweep pending. Screenshot slice1-build-{1440,1280,1024,390}.png. Rider frontend passes unavailable (see qa/BASELINE.md); no cleanup success claimed. Next: Overview and searchable mechanic hierarchy using canonical projections.
+
+Slice 2: new /overview (default entry), preserved project/share routes via shared initialization; source-derived searchable mechanic tree. Build/lint, 117 units, all-viewport Overview/browser, nested editing and real seeded replay pass. Screenshot review qa/SLICE_2_REVIEW.md. Next exact task: contextual graph inspector, separate library/palette, toolbar and camera controls, mobile read-only graph.

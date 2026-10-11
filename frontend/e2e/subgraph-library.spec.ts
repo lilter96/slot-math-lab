@@ -27,6 +27,7 @@ test('Ready subgraphs are editable, reusable and preserve the previous model', a
   await page.getByRole('button', { name: 'Reuse this subgraph', exact: true }).click();
   await expect(page.getByLabel('Subgraph name')).toHaveValue('cluster-pays');
   await expect(page.getByRole('button', { name: 'Open full game graph', exact: true })).toBeVisible();
+  await page.getByLabel('Find subgraph').fill('cluster-candidates');
   await page.getByRole('button', { name: 'Open cluster-candidates graph', exact: true }).click();
   await page.getByLabel('Focus graph node').selectOption('candidates');
   await expect(page.locator('.react-flow__node[data-id="candidates"]')).toBeVisible();
@@ -44,6 +45,7 @@ test('Cascade starter exposes shared evaluation, refill and award subgraphs', as
   for (const name of ['cluster-pays', 'cluster-candidates', 'tumble', 'award-step', 'cascade']) {
     await expect(page.getByRole('button', { name: `Open ${name} graph`, exact: true })).toBeVisible();
   }
+  await page.getByLabel('Find subgraph').fill('cascade');
   await page.getByRole('button', { name: 'Open cascade graph', exact: true }).click();
   await expect(page.getByLabel('Focus graph node')).toContainText('step');
   await page.getByRole('button', { name: 'Open full game graph', exact: true }).click();
@@ -64,6 +66,7 @@ test('An emptied subgraph remains editable and can return to its parent', async 
   }
   await page.getByRole('button', { name: 'Open full game graph', exact: true }).click();
   await expect(page.locator('.react-flow__node[data-id="draw"]')).toBeVisible();
+  await page.getByLabel('Find subgraph').fill('cluster-pays');
   await page.getByRole('button', { name: 'Open cluster-pays graph', exact: true }).click();
   await expect(nodes).toHaveCount(0);
   await page.getByRole('button', { name: 'Open full game graph', exact: true }).click();
@@ -80,6 +83,7 @@ test('Own atoms can be extracted into a definition and reused', async ({ page })
   await page.getByRole('button', { name: 'Extract selection', exact: true }).click();
   await expect(page.getByRole('button', { name: 'Open my-board graph', exact: true })).toBeVisible();
   await expect(page.locator('.react-flow__node[data-id="draw"]')).toHaveCount(0);
+  await page.getByLabel('Find subgraph').fill('my-board');
   await page.getByRole('button', { name: 'Open my-board graph', exact: true }).click();
   await expect(page.locator('.react-flow__node[data-id="draw"]')).toBeVisible();
   await page.getByRole('button', { name: 'Reuse this subgraph', exact: true }).click();

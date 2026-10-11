@@ -14,6 +14,7 @@ test('Real WebSocket updates during execution, reload restores run, cancellation
     });
   });
   await page.goto('/build?project=nine-lives');
+  await page.getByLabel('Find subgraph').fill('base-spin');
   await page.getByRole('button', { name: 'Open base-spin graph', exact: true }).click();
   await page.getByRole('tab', { name: 'Simulate', exact: true }).click();
   // Keep the job alive through quota recovery/reload/cancellation. The Core

@@ -576,3 +576,61 @@ body { font-size: 14px; line-height: 1.5; }
   .metric-cell { flex: 1 1 45%; min-width: 0; }
   .inp { font-size: 16px; min-height: 44px; }
 }
+
+/* Model overview and source-derived mechanic explorer. */
+.overview-page { flex: 1; min-width: 0; padding: 28px; overflow-y: auto; }
+.page-heading { display: flex; justify-content: space-between; align-items: center; gap: 16px; margin-bottom: 28px; }
+.page-heading h1 { font-size: 27px; margin: 0 0 6px; line-height: 1.25; }
+.page-heading p { margin: 0; color: var(--muted); }
+.overview-page h2 { font-size: 17px; margin: 0 0 12px; }
+.overview-model { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(260px, 1fr); gap: 32px; }
+.model-board-region { background: var(--bg-canvas); padding: 20px; border-radius: 11px; }
+.board-heading { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 8px; color: var(--muted); }
+.structure-board { display: grid; gap: 6px; margin: 12px 0; }
+.structure-board span { display: grid; place-items: center; aspect-ratio: 1.5; border: 1px solid var(--line); background: var(--bg-1); border-radius: 5px; font: 12px var(--mono); color: var(--muted); }
+.symbol-reference { display: grid; grid-template-columns: repeat(8, minmax(0,1fr)); gap: 4px; margin-top: 20px; }
+.symbol-reference > div { display: flex; align-items: center; flex-direction: column; gap: 4px; font-size: 10px; min-width: 0; }
+.symbol-reference img { object-fit: contain; max-width: 100%; }
+.symbol-reference small { color: var(--muted); }
+.model-summary dl { margin: 0; }
+.model-summary dl > div { display: flex; justify-content: space-between; gap: 16px; border-bottom: 1px solid var(--line); padding: 12px 0; }
+.model-summary dt { color: var(--muted); }
+.model-summary dd { margin: 0; text-align: right; }
+.model-summary .btn { margin-right: 8px; }
+.model-notice { padding: 12px; border-left: 3px solid var(--epsilon); color: var(--muted); background: var(--bg-1); }
+.overview-mechanics { margin-top: 32px; }
+.overview-mechanics > p { color: var(--muted); }
+.feature-list { border-top: 1px solid var(--line); }
+.feature-list button { display: grid; grid-template-columns: 160px 1fr 72px; gap: 16px; text-align: left; width: 100%; padding: 14px 0; background: transparent; border: 0; border-bottom: 1px solid var(--line); }
+.feature-list button:hover { background: var(--bg-1); }
+.feature-list span, .feature-list small { color: var(--muted); }
+.overview-evidence { display: flex; align-items: center; gap: 24px; border-top: 1px solid var(--line); margin-top: 32px; padding: 24px 0; }
+.overview-evidence p { color: var(--muted); max-width: 75ch; margin: 0; }
+.overview-library { border-top: 1px solid var(--line); padding-top: 24px; }
+.mechanic-explorer { width: 232px; padding: 12px; flex-shrink: 0; overflow-y: auto; border-right: 1px solid var(--line); border-bottom: 0; }
+.mechanic-explorer .model-navigation-heading { display: block; }
+.mechanic-explorer .model-navigation-heading b { color: var(--text); font-size: 14px; }
+.mechanic-explorer .model-navigation-heading span { display: block; font-size: 13px; }
+.mechanic-explorer .model-navigation-actions .btn { font-size: 13px; }
+.mechanic-search { display: block; margin: 16px 0; color: var(--muted); font-size: 12px; }
+.mechanic-search .inp { width: 100%; margin-top: 6px; }
+.mechanic-tree, .mechanic-tree ul { list-style: none; margin: 0; padding: 0; }
+.mechanic-tree ul { margin-left: 10px; border-left: 1px solid var(--line); padding-left: 6px; }
+.mechanic-tree summary, .extract-disclosure summary { padding: 8px 0; cursor: pointer; font-size: 13px; }
+.mechanic-link { display: flex; flex-direction: column; text-align: left; width: 100%; padding: 8px; border: 0; border-radius: 5px; background: transparent; }
+.mechanic-link:hover, .mechanic-link:focus-visible { background: var(--bg-2); }
+.mechanic-link span { font-size: 13px; }
+.mechanic-link small { font-size: 12px; color: var(--muted); overflow-wrap: anywhere; }
+.mechanic-context { font-size: 12px; overflow-wrap: anywhere; }
+.mechanic-explorer .model-navigation-extract { flex-direction: column; align-items: stretch; }
+@media (max-width: 1100px) { .mechanic-explorer { width: 200px; } .overview-page { padding: 20px; } }
+@media (max-width: 767px) {
+  .overview-page { padding: 16px; }
+  .page-heading { flex-direction: column; align-items: flex-start; }
+  .overview-model { grid-template-columns: minmax(0,1fr); gap: 20px; }
+  .symbol-reference { grid-template-columns: repeat(4,minmax(0,1fr)); gap: 12px; }
+  .symbol-reference > div { font-size: 12px; }
+  .feature-list button { grid-template-columns: minmax(0,1fr); gap: 6px; }
+  .overview-evidence { flex-direction: column; align-items: flex-start; }
+  .mechanic-explorer { width: 100%; max-height: 260px; border-right: 0; border-bottom: 1px solid var(--line); }
+}

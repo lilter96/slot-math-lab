@@ -12,7 +12,7 @@ import {
   type EdgeChange,
 } from '@xyflow/react';
 
-export type TabId = 'build' | 'simulate' | 'results' | 'export' | 'play';
+export type TabId = 'overview' | 'build' | 'simulate' | 'results' | 'export' | 'play';
 export type Mood = 'slate' | 'ocean' | 'violet' | 'steel';
 export type Density = 'compact' | 'regular';
 

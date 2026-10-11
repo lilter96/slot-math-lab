@@ -1,5 +1,4 @@
-import { useMemo, useEffect, useRef } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useMemo, useEffect } from 'react';
 import { useAppStore, withoutSelection } from '../store';
 import Palette from '../components/Palette';
 import MetricStrip from '../components/MetricStrip';
@@ -7,58 +6,12 @@ import SlotCanvas from '../components/canvas/SlotCanvas';
 import RightPanel from '../components/RightPanel';
 import { useLiveMetrics } from '../hooks/useLiveMetrics';
 import ErrorBoundary from '../components/ErrorBoundary';
-import { loadProject, rootProject } from '../lib/projectFiles';
-import { createNineLivesGraph } from '../games/nine-lives/graph';
 import ModelNavigation from '../components/editor/ModelNavigation';
 
 export default function Build() {
-  const addNode = useAppStore((s) => s.addNode);
   const nodes = useAppStore((s) => s.nodes);
   const setLiveMetrics = useAppStore((s) => s.setLiveMetrics);
   const savedDraft = useAppStore(s => s.resultsDraft);
-  const [searchParams, setSearchParams] = useSearchParams();
-  const initialized = useRef(false);
-
-  // Load shared config from URL (?load=...)
-  useEffect(() => {
-    if (initialized.current) return;
-    initialized.current = true;
-    const state = useAppStore.getState();
-    if (searchParams.get('project') === 'nine-lives') {
-      if ((state.tables.mechanics as Record<string, unknown>)?.['base-spin']) rootProject();
-      else if ((state.verificationSource?.mechanics as Record<string, unknown>)?.['base-spin']) {
-        loadProject(state.verificationSource!);
-        useAppStore.setState({ graphTrail: [], verificationSource: null });
-      } else {
-        useAppStore.setState({ graphTrail: [], verificationSource: null });
-        loadProject(createNineLivesGraph());
-      }
-      useAppStore.getState().selectNode('round');
-      setSearchParams(previous => { const next = new URLSearchParams(previous); next.delete('project'); return next; }, { replace: true });
-      return;
-    }
-    const encoded = searchParams.get('load');
-    if (!encoded) {
-      if (!state.nodes.length && !state.graphTrail.length) {
-        loadProject(createNineLivesGraph());
-        useAppStore.getState().selectNode('round');
-      }
-      return;
-    }
-    if (state.nodes.length > 0) return;
-    try {
-      const json = decodeURIComponent(atob(encoded));
-      const data = JSON.parse(json);
-      if (data.nodes) {
-        for (const n of data.nodes) {
-          addNode({ ...n, position: n.position || { x: 100, y: 100 } });
-        }
-      }
-    } catch {
-      // Invalid share link — ignore
-    }
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
-
   // Collect expressions from branch/map nodes
   const expressions = useMemo(() => {
     const exprMap: Record<string, string> = {};
@@ -90,9 +43,9 @@ export default function Build() {
   return (
     <>
       <Palette />
+      <ModelNavigation />
       <div className="workspace">
         {savedDraft && <div className="model-navigation"><div className="model-navigation-heading"><b>Saved model opened from Results</b><span>Your earlier editor draft is preserved, including open subgraphs.</span></div><div className="model-navigation-actions"><button className="btn" onClick={() => useAppStore.setState({ ...savedDraft, nodes: withoutSelection(savedDraft.nodes) ?? [], selectedNodeId: null, resultsDraft: null })}>Restore previous editor draft</button></div></div>}
-        <ModelNavigation />
         <ErrorBoundary>
           <SlotCanvas />
         </ErrorBoundary>

@@ -1,4 +1,5 @@
 import Login from './Login';
+import { useProjectInitialization } from '../hooks/useProjectInitialization';
 import AiGenerateModal from './AiGenerateModal';
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
 import { useEffect, useState } from 'react';
@@ -8,6 +9,7 @@ import { useSimulationConnection } from '../hooks/useSimulation';
 import { DEFAULT_FEATURES, useFeaturesQuery } from '../api/hooks';
 
 const TABS = [
+  { id: 'overview' as const, label: 'Overview', Icon: Ic.build },
   { id: 'build' as const, label: 'Build', Icon: Ic.build },
   { id: 'simulate' as const, label: 'Simulate', Icon: Ic.sim },
   { id: 'results' as const, label: 'Results', Icon: Ic.results },
@@ -16,6 +18,7 @@ const TABS = [
 ];
 
 export default function Layout() {
+  useProjectInitialization();
   useSimulationConnection();
   const location = useLocation();
   const tab = useAppStore((s) => s.tab);
