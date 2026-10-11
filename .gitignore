@@ -42,3 +42,6 @@ production-secrets/
 frontend/test-results/
 frontend/playwright-report/
 __pycache__/
+# Local redesign tool output; summary reports are versioned.
+docs/design/qa/*.log
+frontend/.workbench-playwright.config.ts
