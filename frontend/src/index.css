@@ -634,3 +634,40 @@ body { font-size: 14px; line-height: 1.5; }
   .overview-evidence { flex-direction: column; align-items: flex-start; }
   .mechanic-explorer { width: 100%; max-height: 260px; border-right: 0; border-bottom: 1px solid var(--line); }
 }
+
+/* Graph workspace reserves chrome space; selection controls the inspector. */
+.graph-heading { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; padding: 10px 14px; border-bottom: 1px solid var(--line); background: var(--bg-1); flex-shrink: 0; }
+.graph-heading nav, .graph-actions { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.graph-heading nav { font-size: 13px; }
+.graph-heading nav .btn { font-size: 12px; }
+.canvas-wrap { display: flex; flex-direction: column; min-height: 240px; }
+.canvas-wrap > .react-flow { flex: 1; min-height: 0; height: auto; }
+.canvas-wrap > .canvas-toolbar { order: -1; position: static; border: 0; border-bottom: 1px solid var(--line); border-radius: 0; padding: 8px 12px; flex-wrap: wrap; box-shadow: none; flex-shrink: 0; }
+.canvas-toolbar button { width: auto; min-width: 36px; height: 36px; padding: 0 10px; font-size: 13px; white-space: nowrap; }
+.canvas-toolbar select { min-width: 0; max-width: 210px; min-height: 36px; border: 1px solid var(--line); border-radius: 5px; color: var(--text); background: var(--bg-2); font: 13px var(--sans); padding: 6px; }
+.canvas-wrap > .canvas-zoom { top: auto; right: 12px; bottom: 12px; }
+.canvas-zoom button { min-width: 36px; min-height: 36px; }
+.canvas-hint { left: 12px; right: auto; font-size: 12px; }
+.context-inspector { max-height: none; border-left: 1px solid var(--line); border-top: 0; }
+.inspector-close { margin: 8px; flex-shrink: 0; }
+.palette { width: 200px; max-height: none; flex-direction: column; flex-wrap: nowrap; }
+.palette .grp { display: block; }
+.pal-item { text-align: left; border: 0; flex-shrink: 0; background: transparent; }
+.node-title, .node-body .mini-row, .node-body .expr-peek { font-size: 12px; }
+.mechanic-explorer .grp { padding: 12px 0; }
+.mechanic-explorer .grp .btn { max-width: 100%; white-space: normal; }
+.mobile-graph-notice { order: -2; padding: 10px; margin: 0; background: var(--bg-2); font-size: 13px; color: var(--muted); }
+@media (max-width: 1439px) {
+  .workspace-shell .context-inspector { position: absolute; z-index: 30; top: 0; bottom: 0; right: 0; max-height: none; width: min(344px,100%) !important; background: var(--bg-1); box-shadow: var(--shadow-pop); }
+}
+@media (max-width: 767px) {
+  .workspace-shell .workspace:has(.canvas-wrap) { min-height: 600px; flex: none; width: 100%; }
+  .workspace-shell .palette, .add-nodes { display: none; }
+  .graph-heading { padding: 10px; }
+  .canvas-toolbar select { max-width: 100%; }
+  .canvas-toolbar button, .graph-actions .btn { min-height: 44px; }
+  .canvas-hint { display: none; }
+  .context-inspector { position: fixed !important; top: 100px !important; }
+}
+@media (min-width: 768px) and (max-width: 1439px) { .workspace-shell .context-inspector { top: 56px; } }
+

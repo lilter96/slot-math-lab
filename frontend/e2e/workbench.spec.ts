@@ -14,3 +14,20 @@ test('Overview derives Nine Lives geometry and opens source logic at every suppo
   await page.getByRole('button', { name: 'Open full game graph' }).click();
   await expect(page.locator('.react-flow__node[data-id="round"]')).toBeVisible();
 });
+test('Graph selection opens a contextual inspector and closing preserves the selected model', { tag: '@critical' }, async ({ page }) => {
+  await page.goto('/build?project=nine-lives');
+  await expect(page.getByRole('complementary', { name: 'Context inspector' })).toHaveCount(0);
+  await page.getByLabel('Focus graph node').selectOption('round');
+  await expect(page.getByRole('complementary', { name: 'Context inspector' })).toBeVisible();
+  await page.getByRole('button', { name: 'Close inspector' }).click();
+  await expect(page.getByRole('complementary', { name: 'Context inspector' })).toHaveCount(0);
+  await page.getByRole('button', { name: 'Show inspector' }).click();
+  await expect(page.getByLabel('Subgraph name')).toHaveValue('round-entry');
+  await page.keyboard.press('Escape');
+  await expect(page.getByRole('complementary', { name: 'Context inspector' })).toHaveCount(0);
+  const canvas = await page.locator('.canvas-wrap').boundingBox();
+  expect(canvas!.width).toBeGreaterThan(800);
+  await page.setViewportSize({ width: 390, height: 844 });
+  await expect(page.getByText('Graph movement and connections are read only on this screen.', { exact: false })).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+});

@@ -74,6 +74,8 @@ export interface GraphState {
   selectedNodeId: string | null;
   /** Canvas interactivity lock — false freezes dragging/connecting/selection. */
   canvasInteractive: boolean;
+  inspectorOpen: boolean;
+  setInspectorOpen: (value: boolean) => void;
   setCanvasInteractive: (value: boolean) => void;
   selectNode: (id: string | null) => void;
   onNodesChange: OnNodesChange<GraphNode>;
@@ -242,6 +244,8 @@ export const useAppStore = create<AppState>((set, get) => ({
   // gets nodesDraggable/nodesConnectable/elementsSelectable = false, which
   // lets the user pan and inspect without disturbing the layout.
   canvasInteractive: true,
+  inspectorOpen: false,
+  setInspectorOpen: (value) => set({ inspectorOpen: value }),
   setCanvasInteractive: (value) => set({ canvasInteractive: value }),
   // NOTE: `selectedNodeId` drives the inspector and is deliberately
   // single-valued, while React Flow's `node.selected` flags are N-valued
@@ -249,7 +253,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   // earlier code rewrote every node's flag on programmatic selection, which
   // destroyed Shift multi-selection because onNodeClick fires after React
   // Flow has already applied the additive selection changes.
-  selectNode: (id) => set({ selectedNodeId: id }),
+  selectNode: (id) => set({ selectedNodeId: id, inspectorOpen: !!id }),
   edgeValidationError: null,
   setEdgeValidationError: (err) => set({ edgeValidationError: err }),
   limitError: null,
@@ -293,7 +297,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       if (removedIds.length && selectedNodeId !== null && removedIds.includes(selectedNodeId)) {
         selectedNodeId = null;
       }
-      return { nodes, edges, selectedNodeId };
+      return { nodes, edges, selectedNodeId, ...(hasSelectChange ? { inspectorOpen: !!selectedNodeId } : {}) };
     }),
 
   onEdgesChange: (changes: EdgeChange<GraphEdge>[]) =>
@@ -412,6 +416,7 @@ if (typeof window !== 'undefined') {
         configName: s.configName,
         // `resultsDraft` embeds a second copy of the editor graph, so it needs
         // the same sanitisation as the top-level nodes.
+        authoringDraft: s.authoringDraft ? { ...s.authoringDraft, nodes: withoutSelection(s.authoringDraft.nodes), selectedNodeId: null } : null,
         resultsDraft: s.resultsDraft
           ? { ...s.resultsDraft, nodes: withoutSelection(s.resultsDraft.nodes) }
           : s.resultsDraft,
@@ -429,7 +434,7 @@ if (typeof window !== 'undefined') {
 
   try {
     const draft = JSON.parse(localStorage.getItem(DRAFT_KEY) ?? 'null');
-    if (draft && Array.isArray(draft.nodes) && Array.isArray(draft.edges)) useAppStore.setState({ nodes: withoutSelection(draft.nodes) ?? [], edges: draft.edges, tables: draft.tables ?? {}, graphTrail: draft.graphTrail ?? [], verificationSource: draft.verificationSource ?? null, configName: draft.configName ?? 'Untitled', resultsDraft: draft.resultsDraft ?? null });
+    if (draft && Array.isArray(draft.nodes) && Array.isArray(draft.edges)) useAppStore.setState({ nodes: withoutSelection(draft.nodes) ?? [], edges: draft.edges, tables: draft.tables ?? {}, graphTrail: draft.graphTrail ?? [], verificationSource: draft.verificationSource ?? null, configName: draft.configName ?? 'Untitled', resultsDraft: draft.resultsDraft ?? null, authoringDraft: draft.authoringDraft ?? null });
   } catch { /* a corrupt draft never prevents opening the editor */ }
 
   useAppStore.subscribe(schedulePersist);

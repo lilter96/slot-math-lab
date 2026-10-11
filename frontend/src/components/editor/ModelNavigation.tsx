@@ -3,6 +3,7 @@ import { useAppStore } from '../../store';
 import { exportProject, loadProject, reuseMechanic, rootProject } from '../../lib/projectFiles';
 import { extractSubgraph, type ComposableGraph } from '../../lib/subgraphComposition';
 import ProjectDataEditor from './ProjectDataEditor';
+import StarterLibrary from './StarterLibrary';
 import MechanicTree from './MechanicTree';
 import { closeMechanic } from '../../lib/projectFiles';
 import { useModelProjection } from '../../hooks/useModelProjection';
@@ -40,6 +41,7 @@ export default function ModelNavigation() {
       {trail.length > 0 && <div className="mechanic-context"><p>{trail.map(item => item.mechanic).join(' / ')}</p><button className="btn" onClick={closeMechanic}>Save & return</button><button className="btn" title="Connect a new reference to the full game" onClick={() => reuseMechanic(trail.at(-1)!.mechanic)}>Reuse this subgraph</button></div>}
       <label className="mechanic-search">Find mechanic<input className="inp" type="search" aria-label="Find subgraph" placeholder="Name or description" value={search} onChange={event => setSearch(event.target.value)} /></label>
       {graph && <MechanicTree graph={graph} search={search} />}
+      <StarterLibrary />
       <details className="extract-disclosure"><summary>Extract selected atoms</summary>
       <div className="model-navigation-actions model-navigation-extract">
         <input className="inp" aria-label="Name for extraction" placeholder="Name for selected atoms" value={subgraphName} onChange={event => setSubgraphName(event.target.value)} />

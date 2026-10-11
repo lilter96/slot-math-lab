@@ -17,6 +17,7 @@ test.describe('Golden path', () => {
     await expect(page.getByRole('tab', { name: /build/i })).toBeVisible();
     await page.getByRole('tab', { name: /build/i }).click();
 
+    await page.getByRole('button', { name: 'Add nodes', exact: true }).click();
     // Palette is visible
     await expect(page.getByText('Primitives')).toBeVisible();
     await expect(page.getByText('Standard Catalog')).toBeVisible();

@@ -17,7 +17,7 @@ export function loadProject(config: Record<string, unknown>) {
     sourceHandle: e.sourcePort, targetHandle: e.targetPort }));
   const { nodes: _nodes, edges: _edges, name, ...tables } = config;
   void _nodes; void _edges;
-  useAppStore.setState({ nodes, edges, tables, configName: typeof name === 'string' ? name : 'Imported project', selectedNodeId: null });
+  useAppStore.setState({ nodes, edges, tables, configName: typeof name === 'string' ? name : 'Imported project', selectedNodeId: null, inspectorOpen: false, liveRtp: null, liveProvenance: null });
 }
 export function openMechanic(name: string) {
   const graph = exportProject(); if (!graph) return;
@@ -71,8 +71,18 @@ export function exportProject() {
   // parent; otherwise rootProject repeatedly tries to close the same empty graph.
   return config ?? (state.graphTrail.length ? { ...state.tables, schemaVersion: '1.0.0', name, nodes: [], edges: [] } : null);
 }
+/** Switch examples/imports while retaining a restorable canonical editor draft. */
+export function switchProject(config: Record<string, unknown>) {
+  const current = useAppStore.getState();
+  if (!current.authoringDraft && current.nodes.length) {
+    const { nodes, edges, tables, graphTrail, verificationSource, configName, selectedNodeId } = current;
+    useAppStore.setState({ authoringDraft: { nodes, edges, tables, graphTrail, verificationSource, configName, selectedNodeId } });
+  }
+  loadProject(config);
+  useAppStore.setState({ graphTrail: [], verificationSource: null, liveRtp: null, liveProvenance: null });
+}
 export function loadCoinExample() {
-  loadProject({ schemaVersion: '1.0.0', name: 'REF-A Coin', nodes: [
+  switchProject({ schemaVersion: '1.0.0', name: 'REF-A Coin', nodes: [
     { nodeType: 'draw', id: 'coin-draw', label: 'Coin draw', drawWeights: [
       { outcomeId: 'three', weight: 1, value: 3 }, { outcomeId: 'one', weight: 3, value: 1 }, { outcomeId: 'zero', weight: 4, value: 0 }],
       outputs: { out: { name: 'out', type: 'Wins' } } },

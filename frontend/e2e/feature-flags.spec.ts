@@ -23,10 +23,10 @@ test('disabled feature flags hide every non-1.0 surface', { tag: '@critical' }, 
   await expect(page.getByRole('tab', { name: 'Build', exact: true })).toBeVisible();
   await expect(page.getByRole('button', { name: 'AI Generate graph' })).toHaveCount(0);
   await expect(page.getByRole('button', { name: 'AI assist' })).toHaveCount(0);
-  await expect(page.getByRole('button', { name: 'AI', exact: true })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Open AI tuning panel', exact: true })).toHaveCount(0);
   await expect(page.getByRole('tab', { name: 'Play', exact: true })).toHaveCount(0);
   // The Plugins sub-tab only exists inside the right panel's Mechanics section.
-  await page.getByRole('button', { name: 'Mechanics', exact: true }).click();
+  await page.getByRole('button', { name: 'Open mechanic manager', exact: true }).click();
   await expect(page.getByRole('button', { name: 'Custom Mechanics', exact: true })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Plugins', exact: true })).toHaveCount(0);
   // A bookmarked /play URL must be redirected away, not just hidden from the nav.
@@ -37,10 +37,10 @@ test('disabled feature flags hide every non-1.0 surface', { tag: '@critical' }, 
 test('enabled feature flags keep the default UI visible', { tag: '@critical' }, async ({ page }) => {
   await openBuildWithFeatures(page, ALL_ON);
   await expect(page.getByRole('tab', { name: 'Play', exact: true })).toBeVisible();
-  await expect(page.getByRole('button', { name: 'AI', exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Open AI tuning panel', exact: true })).toBeVisible();
   await expect(page.getByRole('button', { name: 'AI Generate graph' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'AI assist' })).toBeVisible();
-  await page.getByRole('button', { name: 'Mechanics', exact: true }).click();
+  await page.getByRole('button', { name: 'Open mechanic manager', exact: true }).click();
   await expect(page.getByRole('button', { name: 'Plugins', exact: true })).toBeVisible();
   // The guard must not block /play when the flag is on.
   await page.goto('/play');

@@ -9,9 +9,9 @@ import { DEFAULT_FEATURES, useFeaturesQuery } from '../api/hooks';
 type MainTab = 'inspector' | 'mechanics' | 'ai';
 type MechanicsTab = 'mechanics' | 'plugins';
 
-export default function RightPanel() {
+export default function RightPanel({ onClose, initialTab = 'inspector' }: { onClose: () => void; initialTab?: MainTab }) {
   const selectedNodeId = useAppStore((s) => s.selectedNodeId);
-  const [preferredTab, setPreferredTab] = useState<MainTab>('inspector');
+  const [preferredTab, setPreferredTab] = useState<MainTab>(initialTab);
   const [mechanicsTab, setMechanicsTab] = useState<MechanicsTab>('mechanics');
   const features = useFeaturesQuery().data ?? DEFAULT_FEATURES;
 
@@ -19,19 +19,19 @@ export default function RightPanel() {
   const openTab = (next: MainTab) => { useAppStore.getState().selectNode(null); setPreferredTab(next); };
 
   return (
-    <div className="panel" style={{ width: 360, flexShrink: 0, display: 'flex', flexDirection: 'column' }}>
+    <aside aria-label="Context inspector" className="panel context-inspector" style={{ width: 344, flexShrink: 0, display: 'flex', flexDirection: 'column' }}>
       <div className="panel-h" style={{ padding: '6px 8px', gap: 2 }}>
         <button
           className={'tab' + (mainTab === 'inspector' ? ' active' : '')}
           onClick={() => openTab('inspector')}
-          style={{ fontSize: 11 }}
+          style={{ fontSize: 13 }}
         >
           Inspector
         </button>
         <button
           className={'tab' + (mainTab === 'mechanics' ? ' active' : '')}
           onClick={() => openTab('mechanics')}
-          style={{ fontSize: 11 }}
+          style={{ fontSize: 13 }}
         >
           Mechanics
         </button>
@@ -39,13 +39,14 @@ export default function RightPanel() {
           <button
             className={'tab' + (mainTab === 'ai' ? ' active' : '')}
             onClick={() => openTab('ai')}
-            style={{ fontSize: 11 }}
+            style={{ fontSize: 13 }}
           >
             AI
           </button>
         )}
       </div>
 
+      <button className="btn inspector-close" aria-label="Close inspector" onClick={onClose}>Close inspector</button>
       {mainTab === 'inspector' && (
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
           <Inspector />
@@ -58,7 +59,7 @@ export default function RightPanel() {
             <button
               className={'tab' + (mechanicsTab === 'mechanics' ? ' active' : '')}
               onClick={() => setMechanicsTab('mechanics')}
-              style={{ fontSize: 11 }}
+              style={{ fontSize: 13 }}
             >
               Custom Mechanics
             </button>
@@ -66,7 +67,7 @@ export default function RightPanel() {
               <button
                 className={'tab' + (mechanicsTab === 'plugins' ? ' active' : '')}
                 onClick={() => setMechanicsTab('plugins')}
-                style={{ fontSize: 11 }}
+                style={{ fontSize: 13 }}
               >
                 Plugins
               </button>
@@ -84,6 +85,6 @@ export default function RightPanel() {
           <AutoTunePanel />
         </div>
       )}
-    </div>
+    </aside>
   );
 }
