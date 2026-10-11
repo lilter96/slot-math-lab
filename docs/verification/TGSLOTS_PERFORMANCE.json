@@ -9504,7 +9504,8 @@
     "frontendRiderCleanup": "blocked; see TGSLOTS_OPTIMIZATION.md",
     "affectedBackendCasesPassed": 204,
     "backendFormatVerification": "passed",
-    "releaseSolutionBuild": "passed; 0 errors"
+    "releaseSolutionBuild": "passed; 0 errors",
+    "gitleaks": "local CI-version history scan passed; field/value/path exception verified against Release binary; three negative controls retained detection"
   },
   "finalGraph": {
     "path": "backend/SlotMath.Core.Tests/TestData/Games/nine-lives.json",

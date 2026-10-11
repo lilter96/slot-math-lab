@@ -133,6 +133,12 @@ mutation. See [OPTIMIZED_SUBGRAPHS.md](../OPTIMIZED_SUBGRAPHS.md).
   Whole-solution formatting verification and the Release build passed. All three
   long Release UI measurements exceeded the target and retained live observations. Rejected integer range lowering was removed.
 
+The first remote gitleaks scan matched `apiBinarySha256` in the persisted UI
+report. Its value equals the SHA-256 of the Release API binary. The exception
+requires that exact reviewed value, field and report path together. A local scan
+with CI's gitleaks 8.24.3 reports no findings over the PR history; negative
+controls still detect a changed hash, another file and another field.
+
 ## Cleanup evidence
 
 Backend touched files run the pinned Rider Reformat Code and Built-in: Full Cleanup

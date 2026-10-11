@@ -48,3 +48,10 @@ condition = "AND"
 regexTarget = "line"
 paths = [ '''^docs/verification/lab-demo-ui-performance\.json$''' ]
 regexes = [ '''"apiBinarySha256": "c4a5959fd960e364dba8ea1df74a02d4fecd85cf8c96c00cb7202d3e5d6f3598"''' ]
+
+[[rules.allowlists]]
+description = "Reviewed Release API binary SHA-256 in the TGSlots UI performance evidence"
+condition = "AND"
+regexTarget = "line"
+paths = [ '''^docs/verification/TGSLOTS_RELEASE_UI\.json$''' ]
+regexes = [ '''"apiBinarySha256": "2644a4b98a5a03437a631ab303748a4b3749ae736eaeaa3caacf4870843bdf94"''' ]
