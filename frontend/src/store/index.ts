@@ -13,6 +13,12 @@ import {
   type EdgeChange,
 } from '@xyflow/react';
 
+const INSPECTOR_PIN_KEY = browserStorageKey('slotmath-inspector-pinned');
+const initialInspectorPinned = (() => {
+  try { return typeof window !== 'undefined' && localStorage.getItem(INSPECTOR_PIN_KEY) === 'true'; }
+  catch { return false; }
+})();
+
 export type TabId = 'projects' | 'overview' | 'data' | 'features' | 'build' | 'simulate' | 'results' | 'export' | 'debug' | 'play';
 export type Mood = 'slate' | 'ocean' | 'violet' | 'steel';
 export type Density = 'compact' | 'regular';
@@ -76,7 +82,9 @@ export interface GraphState {
   /** Canvas interactivity lock — false freezes dragging/connecting/selection. */
   canvasInteractive: boolean;
   inspectorOpen: boolean;
+  inspectorPinned: boolean;
   setInspectorOpen: (value: boolean) => void;
+  setInspectorPinned: (value: boolean) => void;
   setCanvasInteractive: (value: boolean) => void;
   selectNode: (id: string | null) => void;
   onNodesChange: OnNodesChange<GraphNode>;
@@ -250,8 +258,13 @@ export const useAppStore = create<AppState>((set, get) => ({
   // gets nodesDraggable/nodesConnectable/elementsSelectable = false, which
   // lets the user pan and inspect without disturbing the layout.
   canvasInteractive: true,
-  inspectorOpen: false,
+  inspectorOpen: initialInspectorPinned,
+  inspectorPinned: initialInspectorPinned,
   setInspectorOpen: (value) => set({ inspectorOpen: value }),
+  setInspectorPinned: (value) => {
+    try { localStorage.setItem(INSPECTOR_PIN_KEY, String(value)); } catch { /* Preferences remain usable without browser storage. */ }
+    set({ inspectorPinned: value, inspectorOpen: value || !!get().selectedNodeId });
+  },
   setCanvasInteractive: (value) => set({ canvasInteractive: value }),
   // NOTE: `selectedNodeId` drives the inspector and is deliberately
   // single-valued, while React Flow's `node.selected` flags are N-valued
@@ -259,7 +272,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   // earlier code rewrote every node's flag on programmatic selection, which
   // destroyed Shift multi-selection because onNodeClick fires after React
   // Flow has already applied the additive selection changes.
-  selectNode: (id) => set({ selectedNodeId: id, inspectorOpen: !!id }),
+  selectNode: (id) => set({ selectedNodeId: id, inspectorOpen: get().inspectorPinned || !!id }),
   edgeValidationError: null,
   setEdgeValidationError: (err) => set({ edgeValidationError: err }),
   limitError: null,
@@ -303,7 +316,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       if (removedIds.length && selectedNodeId !== null && removedIds.includes(selectedNodeId)) {
         selectedNodeId = null;
       }
-      return { nodes, edges, selectedNodeId, ...(hasSelectChange ? { inspectorOpen: !!selectedNodeId } : {}) };
+      return { nodes, edges, selectedNodeId, ...(hasSelectChange || removedIds.length ? { inspectorOpen: s.inspectorPinned || !!selectedNodeId } : {}) };
     }),
 
   onEdgesChange: (changes: EdgeChange<GraphEdge>[]) =>
@@ -323,6 +336,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       nodes: s.nodes.filter((n) => n.id !== id),
       edges: s.edges.filter((e) => e.source !== id && e.target !== id),
       selectedNodeId: s.selectedNodeId === id ? null : s.selectedNodeId,
+      inspectorOpen: s.selectedNodeId === id ? s.inspectorPinned : s.inspectorOpen,
     })),
 
   onConnect: (connection) => {
@@ -418,7 +432,7 @@ export function activateProject(id: string) {
   retainCurrentProject();
   const project = useAppStore.getState().projects[id];
   if (!project) throw new Error('Project not found in this workspace');
-  useAppStore.setState({ ...project, projectId: id, selectedNodeId: null, inspectorOpen: false, liveRtp: null, liveProvenance: null });
+  useAppStore.setState({ ...project, projectId: id, selectedNodeId: null, inspectorOpen: useAppStore.getState().inspectorPinned, liveRtp: null, liveProvenance: null });
 }
 
 let draftStorageError: string | null = null;

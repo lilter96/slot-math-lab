@@ -29,7 +29,7 @@ export function useProjectInitialization() {
           const definitions = Object.fromEntries(custom.map(mechanic => [mechanic.id, { ...mechanic, ...buildConfigPayload(mechanic.nodes, mechanic.edges, { name: mechanic.name, tables: { ...mechanic } }) }]));
           const tables: Record<string, unknown> = { ...config, ...config.tables, mechanics: { ...(config.tables?.mechanics ?? {}), ...definitions } };
           for (const key of ['nodes', 'edges', 'tables', 'name']) delete tables[key];
-          useAppStore.setState({ nodes: withoutSelection(config.nodes as GraphNode[]) ?? [], edges: (config.edges ?? []) as GraphEdge[], mechanics: custom, tables, configName: config.name ?? 'Imported model', graphTrail: [], projectId: crypto.randomUUID(), selectedNodeId: null, inspectorOpen: false, liveRtp: null, liveProvenance: null });
+          useAppStore.setState({ nodes: withoutSelection(config.nodes as GraphNode[]) ?? [], edges: (config.edges ?? []) as GraphEdge[], mechanics: custom, tables, configName: config.name ?? 'Imported model', graphTrail: [], projectId: crypto.randomUUID(), selectedNodeId: null, inspectorOpen: state.inspectorPinned, liveRtp: null, liveProvenance: null });
         } else { switchProject(config); }
         setParams(previous => { const next = new URLSearchParams(previous); next.delete('load'); return next; }, { replace: true });
       } catch { /* A malformed link leaves the existing draft intact. */ }

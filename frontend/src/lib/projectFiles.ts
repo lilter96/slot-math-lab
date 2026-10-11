@@ -17,7 +17,7 @@ export function loadProject(config: Record<string, unknown>) {
     sourceHandle: e.sourcePort, targetHandle: e.targetPort }));
   const { nodes: _nodes, edges: _edges, name, ...tables } = config;
   void _nodes; void _edges;
-  useAppStore.setState({ nodes, edges, tables, configName: typeof name === 'string' ? name : 'Imported project', selectedNodeId: null, inspectorOpen: false, liveRtp: null, liveProvenance: null });
+  useAppStore.setState({ nodes, edges, tables, configName: typeof name === 'string' ? name : 'Imported project', selectedNodeId: null, inspectorOpen: useAppStore.getState().inspectorPinned, liveRtp: null, liveProvenance: null });
 }
 export function openMechanic(name: string) {
   const graph = exportProject(); if (!graph) return;

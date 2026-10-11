@@ -1,4 +1,4 @@
-import { useMemo, useEffect, useState } from 'react';
+import { useCallback, useMemo, useEffect, useState } from 'react';
 import { useAppStore, withoutSelection } from '../store';
 import Palette from '../components/Palette';
 import MetricStrip from '../components/MetricStrip';
@@ -18,14 +18,19 @@ export default function Build() {
   const selected = useAppStore(s => s.selectedNodeId);
   const inspectorOpen = useAppStore(s => s.inspectorOpen);
   const features = useFeaturesQuery().data ?? DEFAULT_FEATURES;
-  const closeInspector = () => {
-    useAppStore.getState().setInspectorOpen(false); setPanelMode(null);
-    if (selected) document.querySelector<HTMLElement>(`.react-flow__node[data-id="${CSS.escape(selected)}"]`)?.focus();
-  };
+  const closeInspector = useCallback(() => {
+    useAppStore.getState().setInspectorPinned(false);
+    useAppStore.getState().setInspectorOpen(false);
+    setPanelMode(null);
+    requestAnimationFrame(() => {
+      const node = selected ? document.querySelector<HTMLElement>(`.react-flow__node[data-id="${CSS.escape(selected)}"]`) : null;
+      (node ?? document.querySelector<HTMLElement>('[aria-label="Show inspector"]'))?.focus();
+    });
+  }, [selected]);
   useEffect(() => {
-    const escape = (event: KeyboardEvent) => { if (event.key === 'Escape' && !document.querySelector('dialog[open]')) { useAppStore.getState().setInspectorOpen(false); setPanelMode(null); } };
+    const escape = (event: KeyboardEvent) => { if (event.key === 'Escape' && (inspectorOpen || panelMode) && !document.querySelector('dialog[open]')) closeInspector(); };
     document.addEventListener('keydown', escape); return () => document.removeEventListener('keydown', escape);
-  }, []);
+  }, [closeInspector, inspectorOpen, panelMode]);
   const nodes = useAppStore((s) => s.nodes);
   const setLiveMetrics = useAppStore((s) => s.setLiveMetrics);
   const savedDraft = useAppStore(s => s.resultsDraft);
@@ -68,7 +73,7 @@ export default function Build() {
           <div className="graph-actions"><button className="btn add-nodes" aria-expanded={showPalette} onClick={() => setShowPalette(value => !value)}>Add nodes</button>
             <button className="btn" aria-label="Open mechanic manager" onClick={() => { useAppStore.getState().selectNode(null); setPanelMode('mechanics'); }}>Mechanics</button>
             {features.autoTune && <button className="btn" aria-label="Open AI tuning panel" onClick={() => { useAppStore.getState().selectNode(null); setPanelMode('ai'); }}>AI</button>}
-            {selected && !inspectorOpen && <button className="btn" onClick={() => useAppStore.getState().setInspectorOpen(true)}>Show inspector</button>}
+            {!inspectorOpen && !panelMode && <button className="btn" aria-label="Show inspector" onClick={() => useAppStore.getState().setInspectorOpen(true)}>Show inspector</button>}
           </div>
         </header>
         <GraphValidation />
@@ -77,7 +82,7 @@ export default function Build() {
         </ErrorBoundary>
         {proof || trail.length ? <div className="metric-strip" role="status" style={{ padding: 16 }}>{proof ? 'Expectation proof · Data / AST → Execute & inspect → expectedRtp. This graph calculates expectation; it does not represent a payout distribution.' : 'Editing subgraph · Save & return to evaluate the complete model.'}</div> : <MetricStrip liveMetrics={liveMetrics} />}
       </div>
-      {((selected && inspectorOpen) || panelMode) && <RightPanel key={panelMode ?? 'inspector'} initialTab={panelMode ?? 'inspector'} onClose={closeInspector} />}
+      {(inspectorOpen || panelMode) && <RightPanel key={panelMode ?? 'inspector'} initialTab={panelMode ?? 'inspector'} onClose={closeInspector} />}
     </>
   );
 }
