@@ -1,0 +1,59 @@
+{
+  "measuredAt": "2026-10-11T22:50:26.436Z",
+  "conditions": "Local production preview 4186, real JWT session API 5166, headless Chromium 1440x900, reduced motion, 3 fresh browser contexts. Mathematical evaluation endpoints aborted to isolate UI; no fabricated data. Graph samples use real pointer drag and wheel input; changed viewport transforms verify motion. RAF cadence during active interaction is not compositor FPS or a guarantee on other devices. Browser wire/control overhead is included in click-to-nodes timing.",
+  "environment": {
+    "platform": "linux",
+    "logicalCpus": 20,
+    "cpuModel": "13th Gen Intel(R) Core(TM) i5-13600KF",
+    "memoryGiB": 62.636173248291016
+  },
+  "overview": [
+    {
+      "navigationToReadyMs": 309.20000000298023,
+      "domContentLoadedMs": 116.70000000298023,
+      "cells": 30
+    },
+    {
+      "navigationToReadyMs": 217.09999999403954,
+      "domContentLoadedMs": 111.29999999701977,
+      "cells": 30
+    },
+    {
+      "navigationToReadyMs": 227.3999999910593,
+      "domContentLoadedMs": 118.79999999701977,
+      "cells": 30
+    }
+  ],
+  "graphs": [
+    {
+      "name": "Nine Lives full root graph",
+      "frameIntervals": 231,
+      "durationMs": 3849.868,
+      "observedRafHz": 60.002057213390174,
+      "medianIntervalMs": 16.699999999999818,
+      "p95IntervalMs": 16.700000000000728,
+      "intervalsOver20Ms": 0,
+      "changedViewportFrames": 120,
+      "distinctViewportTransforms": 105,
+      "renderedNodes": 4,
+      "renderedEdges": 3
+    },
+    {
+      "name": "Largest authored definition: Open free-spin graph",
+      "frameIntervals": 284,
+      "durationMs": 4733.050000000001,
+      "observedRafHz": 60.003591764295734,
+      "medianIntervalMs": 16.699999999999818,
+      "p95IntervalMs": 16.700000000000728,
+      "intervalsOver20Ms": 0,
+      "changedViewportFrames": 120,
+      "distinctViewportTransforms": 105,
+      "renderedNodes": 84,
+      "renderedEdges": 83,
+      "clickToNodesMs": 132,
+      "canvasWidthFraction": 0.8129032258064516
+    }
+  ],
+  "scope": "Bounded local development-hardware observation; not production load or practitioner acceptance.",
+  "sourceCommit": "e6c404c"
+}

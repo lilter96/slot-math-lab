@@ -1,0 +1,43 @@
+{
+  "conditions": "Final production preview with reduced motion, actual empty pinned inspector; live API and real current model, four viewport sizes.",
+  "captures": 5,
+  "audit": [
+    {
+      "width": 1440,
+      "height": 900,
+      "overflow": false,
+      "emptyCurrentSelection": true,
+      "pinned": "Unpin inspector",
+      "closeVisible": true,
+      "reducedMotion": true
+    },
+    {
+      "width": 1280,
+      "height": 800,
+      "overflow": false,
+      "emptyCurrentSelection": true,
+      "pinned": "Unpin inspector",
+      "closeVisible": true,
+      "reducedMotion": true
+    },
+    {
+      "width": 1024,
+      "height": 768,
+      "overflow": false,
+      "emptyCurrentSelection": true,
+      "pinned": "Unpin inspector",
+      "closeVisible": true,
+      "reducedMotion": true
+    },
+    {
+      "width": 390,
+      "height": 844,
+      "overflow": false,
+      "emptyCurrentSelection": true,
+      "pinned": "Unpin inspector",
+      "closeVisible": true,
+      "reducedMotion": true
+    }
+  ],
+  "sourceCommit": "e6c404c"
+}

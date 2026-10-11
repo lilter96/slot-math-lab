@@ -85,3 +85,7 @@ AGENTS.md requires Reformat Code followed by Built-in: Full Cleanup on every tou
 - `frontend/unit/weight-csv.spec.ts`
 
 - `frontend/src/pages/Simulate.tsx`
+
+- `frontend/e2e/context-inspector.spec.ts`
+
+Inspector-pin follow-up: scoped standalone Reformat attempts again exit 3 (`solution can't be null`), including the changed source above. Full Cleanup still cannot execute for these frontend files outside the .NET solution. This is an unresolved required pass, not successful cleanup; new logs are `inspector-pin-*-rider.log` and `inspector-pin-rider-reformat.log`.

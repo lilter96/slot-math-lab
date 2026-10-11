@@ -36,7 +36,7 @@ Actual method/state labels accompany color. A valid numeric payload and current 
 
 - My projects: search and useful create/import actions, independent private copies, explicit server archive status and recovery.
 - Overview: selected-model geometry/symbols/mechanics, meaningful next actions and honest empty evidence. Coordinate diagrams are labelled; a reference demo is not a universal project preview.
-- Graph: searchable mechanic hierarchy, breadcrumbs, separate node palette, readable focus/fit controls and project/mechanic cameras. Inspector stays hidden without selection or explicit pin. Pinning is a design requirement whose implementation remains pending at this checkpoint.
+- Graph: searchable mechanic hierarchy, breadcrumbs, separate node palette, readable focus/fit controls and project/mechanic cameras. Inspector stays hidden without selection or explicit pin. Explicit pinning is implemented with a verified-user preference; Close/Escape clear it and project switching clears prior node selection.
 - Forms: capability-gated source mappings, validation, explicit commit/diff and Undo. Preserve unknown fields and unsupported state; route advanced edits to the graph.
 - Results/Debug: actual pinned calculations and returned state; source links only when the engine supplies a verified mapping.
 - Desktop: contextual panels; 1024–1439 uses inspector overlay. Mobile provides useful project/overview/results/forms and a labelled graph movement/connection limitation. Internal scrolling must not cause document overflow.
@@ -46,4 +46,4 @@ Actual method/state labels accompany color. A valid numeric payload and current 
 
 The recorded bundle passed 64 viewport overflow checks at four sizes; targeted token contrast is at least 5.0069:1. These observations do not establish complete accessibility certification, graph-interaction performance or practitioner acceptance. See [visual review](../docs/design/qa/FINAL_VISUAL_REVIEW.md).
 
-Outstanding design acceptance includes inspector pinning, actual graph pan/zoom performance measurement, further accessibility interaction checks, and practitioner review. Required Rider cleanup and full Core release verification remain unresolved; do not claim complete roadmap acceptance.
+Inspector pinning and scoped cross-browser/focus checks are recorded in [the follow-up review](../docs/design/qa/INSPECTOR_PIN_REVIEW.md). Actual pointer/wheel measurements now exist; their RAF cadence is a local observation, not certified compositor FPS. Outstanding design acceptance includes Overview’s last matching verified result, visible-node rendering, further accessibility interaction checks and practitioner review. Required Rider cleanup and full Core release verification remain unresolved; do not claim complete roadmap acceptance.
