@@ -11,6 +11,7 @@ import { DEFAULT_FEATURES, useFeaturesQuery } from '../api/hooks';
 const TABS = [
   { id: 'overview' as const, label: 'Overview', Icon: Ic.build },
   { id: 'data' as const, path: 'model/data', label: 'Model data', Icon: Ic.draw },
+  { id: 'features' as const, path: 'model/features', label: 'Features', Icon: Ic.loop },
   { id: 'build' as const, label: 'Build', Icon: Ic.build },
   { id: 'simulate' as const, label: 'Simulate', Icon: Ic.sim },
   { id: 'results' as const, label: 'Results', Icon: Ic.results },

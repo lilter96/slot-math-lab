@@ -693,3 +693,12 @@ body { font-size: 14px; line-height: 1.5; }
 .data-capability-notice { margin-top: 28px; border-top: 1px solid var(--line); padding-top: 16px; color: var(--muted); }
 .data-capability-notice summary { cursor: pointer; }
 @media (max-width: 767px) { .model-data-page { padding: 16px; } .math-data-table th, .math-data-table td { padding: 10px; } }
+.features-page { flex: 1; min-width: 0; padding: 28px; overflow-y: auto; }
+.feature-summary { border-top: 1px solid var(--line); padding: 20px 0; }
+.feature-summary h2, .feature-form h2 { font-size: 17px; }
+.feature-summary p, .feature-form p { color: var(--muted); max-width: 80ch; }
+.feature-form { margin-top: 24px; padding: 20px; background: var(--bg-1); border-left: 3px solid var(--sampled); }
+.feature-form label { display: block; max-width: 280px; }
+.feature-form input { display: block; width: 100%; margin-top: 8px; }
+.feature-form .hint { overflow-wrap: anywhere; font-size: 13px; }
+@media (max-width: 767px) { .features-page { padding: 16px; } }

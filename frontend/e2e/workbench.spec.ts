@@ -61,3 +61,22 @@ test('Weighted edits validate, undo, survive mode switches and export/import wit
   await expect.poll(async () => JSON.parse(await page.evaluate(() => localStorage.getItem('slotmath-draft-v1') ?? '{}')).nodes?.[0]?.data?.drawWeights?.[0]?.weight).toBe(2);
   await page.reload(); await page.getByRole('tab', { name: 'Model data', exact: true }).click(); await expect(weight).toHaveValue('2');
 });
+test('Free-spin form keeps source counts synchronized and one purchased graph life executes', { tag: '@critical' }, async ({ page, request }) => {
+  await page.goto('/model/features?project=nine-lives');
+  await expect(page.getByLabel('Awarded free spins')).toHaveValue('9');
+  await page.getByLabel('Awarded free spins').fill('1'); await page.getByRole('button', { name: 'Validate & apply free spins' }).click();
+  await expect(page.getByRole('button', { name: 'Undo free-spin change' })).toBeVisible();
+  await page.getByRole('button', { name: 'Undo free-spin change' }).click(); await expect(page.getByLabel('Awarded free spins')).toHaveValue('9');
+  await page.getByLabel('Awarded free spins').fill('1'); await page.getByRole('button', { name: 'Validate & apply free spins' }).click();
+  await expect(page.getByRole('button', { name: 'Undo free-spin change' })).toBeVisible();
+  await page.getByRole('tab', { name: 'Build', exact: true }).click();
+  const downloaded = page.waitForEvent('download'); await page.getByRole('button', { name: 'Export project', exact: true }).click();
+  const { readFile } = await import('node:fs/promises'); const config = JSON.parse(await readFile((await (await downloaded).path())!, 'utf8'));
+  expect(config.initialState.freeSpins).toBe(1); expect(config.mechanics.bonus.expressions.lives.value).toBe('1');
+  expect(config.mechanics.bonus.nodes.find((node: { id: string }) => node.id === 'free-spins').maxIterations).toBe(1);
+  expect(config.mechanics['base-spin'].expressions['initial-lives'].thenExpr.value).toBe('1');
+  config.initialState.entryBuy = true;
+  const played = await request.post('/api/play/round', { data: { config, seed: 42, roundIndex: 0, trace: true } });
+  expect(played.ok(), await played.text()).toBe(true); const round = await played.json(); expect(round.state.boards).toHaveLength(1);
+  await page.getByRole('tab', { name: 'Features', exact: true }).click(); await expect(page.getByLabel('Awarded free spins')).toHaveValue('1');
+});

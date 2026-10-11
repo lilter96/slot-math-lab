@@ -4,6 +4,7 @@ import TweaksPanel from './components/TweaksPanel';
 import Build from './pages/Build';
 import Overview from './pages/Overview';
 import ModelData from './pages/ModelData';
+import Features from './pages/Features';
 
 import Export from './pages/Export';
 import { lazy, Suspense, type ReactNode } from 'react';
@@ -32,6 +33,7 @@ export default function App() {
         <Route element={<Layout />}>
           <Route index element={<Navigate to="/overview" replace />} />
           <Route path="overview" element={<Overview />} />
+          <Route path="model/features" element={<Features />} />
           <Route path="model/data" element={<ModelData />} />
           <Route path="build" element={<Build />} />
           <Route path="simulate" element={<Suspense fallback={<p>Loading simulation lab…</p>}><Simulate /></Suspense>} />

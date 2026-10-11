@@ -19,7 +19,7 @@ Branch: `feat/precision-workbench-redesign`. Isolated worktree based on fetched 
 | 2 overview/tree | verified after interaction test adaptations | manifest-derived 6×5, source-linked mechanic hierarchy | round-trip/browser |
 | 3 graph workspace | verified (cleanup limitation) | contextual inspector, palette/library separation, camera/search | nested editing/browser |
 | 4 data editing | verified weighted draws; strip/CSV/payout mappings deferred | capability-detected weighted draws; transaction/undo | unit/export/reload |
-| 5 features | todo | readable summaries; safe mapped parameters only | form/graph preservation |
+| 5 features | verified | readable summaries; safe mapped parameters only | form/graph preservation |
 | 6 evidence/debug | todo | existing evidence and actual traces only | no invented attribution |
 | 7 hardening/report | todo | viewports/accessibility/regression/manual review | FINAL_QA_REPORT.md |
 
@@ -36,3 +36,5 @@ Slice 3: build/lint, 117 units pass; feature gates/metric checks pass. Graph scr
 Phase 3 final: clean build/lint, 117 units, feature/metric tests and 9/9 graph/library/Overview interactions pass on restarted API. Source-preserving payout test passes through actual /play/round. Next exact task: weighted-data transactions, canonical round-trip tests, export/reload/browser proof.
 
 Slice 4: 119 units and 3 workbench browser tests pass; actual API independently proves changed coin expectation 1. Undo bug from JSON key ordering fixed using canonical comparison. Screenshots slice4-data-*.png; qa/SLICE_4_REVIEW.md. Next: safe feature form with complete known source mapping, then trace/evidence and final comprehensive regression.
+
+Slice 5: build/lint, 121 units, 4/4 workbench browser tests pass. Guarded free-spin form updates all executable count sources together; actual purchased round with one life returns one board. Screenshots slice5-features-{1440,1280,1024,390}.png. No universal form conversion or bonus-price inference. Next exact task: current-model Debug round, source-backed board/cascade trace and replay verification, then final evidence and viewport audit.
