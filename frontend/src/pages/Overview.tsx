@@ -6,6 +6,7 @@ import { manifest, assets } from '../games/nine-lives/manifest';
 import { DEFAULT_FEATURES, useFeaturesQuery } from '../api/hooks';
 import { useModelProjection } from '../hooks/useModelProjection';
 import StarterLibrary from '../components/editor/StarterLibrary';
+import OverviewEvidence from '../components/OverviewEvidence';
 
 export default function Overview() {
   // Subscribe to the actual draft, including nested edits. Projection never mutates it.
@@ -38,7 +39,7 @@ export default function Overview() {
       </div>
     </div>
     <section className="overview-mechanics"><h2>Explore mechanics</h2><p>Open the definition that implements each part of the game.</p><div className="feature-list">{Object.keys(mechanics).filter(id => nineLives ? ['base-spin', 'cascade-step', 'bonus', 'free-spin', 'round-entry'].includes(id) : true).slice(0, 8).map(id => <button key={id} onClick={() => open(id)}><strong>{mechanicLabel(id)}</strong><span>{mechanics[id].description ?? `${mechanics[id].nodes.length} nodes`}</span><small>Open logic</small></button>)}</div>{nineLives && <p className="hint">Presentation features: {manifest.features.join(', ')}. Definitions above come from the editable graph.</p>}</section>
-    <section className="overview-evidence"><div><h2>Analysis evidence</h2><p>This view has no verified result for the current model. Review saved runs with their model hashes, seeds and calculation methods.</p></div><Link className="btn" to="/results">Review results</Link></section>
+    <OverviewEvidence graph={graph} />
     <section className="overview-library"><h2>Personal workspace</h2><Link className="btn" to="/projects">All my projects and templates</Link><StarterLibrary /></section>
   </section>;
 }

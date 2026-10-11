@@ -88,6 +88,16 @@ public class PrivateWorkspaceTests : IClassFixture<WebApplicationFactory<Program
         // The hosted worker still completes an owned run outside HTTP request context.
         for (var attempt = 0; attempt < 100 && store.Get(runId)?.Status is "pending" or "running"; attempt++) await Task.Delay(50);
         Assert.Equal("completed", store.Get(runId)!.Status);
+        var latestBody = new { config = JsonSerializer.SerializeToElement(Model(), SlotMath.Core.JsonOptions.Default) };
+        var latest = await alice.PostAsJsonAsync("/api/runs/latest-model", latestBody);
+        latest.EnsureSuccessStatusCode();
+        Assert.Equal(runId, (await latest.Content.ReadFromJsonAsync<LatestModelRunResponse>())!.Evidence!.Run.Id);
+        foreach (var stranger in new[] { bob, anonymous })
+        {
+            var response = await stranger.PostAsJsonAsync("/api/runs/latest-model", latestBody);
+            response.EnsureSuccessStatusCode();
+            Assert.Null((await response.Content.ReadFromJsonAsync<LatestModelRunResponse>())!.Evidence);
+        }
     }
     private HubConnection Hub(HttpClient client) => new HubConnectionBuilder().WithUrl("http://localhost/hubs/runs", options =>
     {

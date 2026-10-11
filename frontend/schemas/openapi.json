@@ -6,7 +6,7 @@
   },
   "servers": [
     {
-      "url": "http://localhost:5152/"
+      "url": "http://localhost:5166/"
     }
   ],
   "paths": {
@@ -69,6 +69,18 @@
                 }
               }
             }
+          }
+        }
+      }
+    },
+    "/api/features": {
+      "get": {
+        "tags": [
+          "SlotMath.Api"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
           }
         }
       }
@@ -985,6 +997,35 @@
         }
       }
     },
+    "/api/runs/latest-model": {
+      "post": {
+        "tags": [
+          "SlotMath.Api"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateConfigRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LatestModelRunResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/runs/{id}/evidence": {
       "get": {
         "tags": [
@@ -1203,7 +1244,7 @@
         "requestBody": {
           "content": {
             "application/json": {
-              "schema": {}
+              "schema": { }
             }
           },
           "required": true
@@ -1306,7 +1347,7 @@
         "requestBody": {
           "content": {
             "application/json": {
-              "schema": {}
+              "schema": { }
             }
           },
           "required": true
@@ -1382,28 +1423,6 @@
         }
       }
     },
-    "/api/ai/auto-tune": {
-      "post": {
-        "tags": [
-          "SlotMath.Api"
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/AutoTuneRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "OK"
-          }
-        }
-      }
-    },
     "/api/ai/lint": {
       "post": {
         "tags": [
@@ -1436,6 +1455,28 @@
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/ExplainRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/ai/auto-tune": {
+      "post": {
+        "tags": [
+          "SlotMath.Api"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AutoTuneRequest"
               }
             }
           },
@@ -1603,7 +1644,7 @@
         ],
         "type": "object",
         "properties": {
-          "config": {},
+          "config": { },
           "targetRtp": {
             "type": "number",
             "format": "double"
@@ -1832,7 +1873,7 @@
             "type": "integer",
             "format": "int32"
           },
-          "config": {},
+          "config": { },
           "createdAt": {
             "type": "string",
             "format": "date-time"
@@ -1894,7 +1935,7 @@
         ],
         "type": "object",
         "properties": {
-          "config": {}
+          "config": { }
         }
       },
       "CreateConfigResponse": {
@@ -2657,7 +2698,7 @@
             "type": "integer",
             "format": "int64"
           },
-          "config": {},
+          "config": { },
           "maxBranches": {
             "type": [
               "null",
@@ -3154,6 +3195,9 @@
               "null",
               "string"
             ]
+          },
+          "ownerId": {
+            "type": "string"
           }
         }
       },
@@ -3345,7 +3389,7 @@
       "ExplainRequest": {
         "type": "object",
         "properties": {
-          "config": {},
+          "config": { },
           "rtp": {
             "type": "number",
             "format": "double"
@@ -3620,7 +3664,7 @@
           "epsilon": {
             "type": "number",
             "format": "double",
-            "default": 0.00001
+            "default": 1E-05
           },
           "maxBranches": {
             "type": "integer",
@@ -3764,7 +3808,29 @@
           }
         }
       },
-      "JsonElement": {},
+      "JsonElement": { },
+      "LatestModelRunResponse": {
+        "required": [
+          "modelHash",
+          "evidence"
+        ],
+        "type": "object",
+        "properties": {
+          "modelHash": {
+            "type": "string"
+          },
+          "evidence": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/RunEvidence"
+              }
+            ]
+          }
+        }
+      },
       "LikelihoodAtom": {
         "required": [
           "id",
@@ -3811,7 +3877,7 @@
         ],
         "type": "object",
         "properties": {
-          "config": {},
+          "config": { },
           "rtp": {
             "type": [
               "null",
@@ -5208,7 +5274,7 @@
           "configHash": {
             "type": "string"
           },
-          "state": {}
+          "state": { }
         }
       },
       "QuantileEstimate": {
@@ -6641,7 +6707,7 @@
         ],
         "type": "object",
         "properties": {
-          "config": {}
+          "config": { }
         }
       },
       "UpperTailEstimate": {
@@ -6738,7 +6804,7 @@
         ],
         "type": "object",
         "properties": {
-          "config": {}
+          "config": { }
         }
       },
       "ValidateResponse": {

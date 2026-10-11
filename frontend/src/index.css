@@ -607,6 +607,13 @@ body { font-size: 14px; line-height: 1.5; }
 .feature-list span, .feature-list small { color: var(--muted); }
 .overview-evidence { display: flex; align-items: center; gap: 24px; border-top: 1px solid var(--line); margin-top: 32px; padding: 24px 0; }
 .overview-evidence p { color: var(--muted); max-width: 75ch; margin: 0; }
+.overview-evidence > div { min-width: 0; }
+.overview-evidence-actions { display: flex; flex-wrap: wrap; gap: 8px; flex-shrink: 0; }
+.overview-run-metrics { display: flex; flex-wrap: wrap; gap: 20px; margin: 16px 0; }
+.overview-run-metrics dt { font-size: 12px; color: var(--muted); }
+.overview-run-metrics dd { margin: 4px 0 0; font-variant-numeric: tabular-nums; }
+.overview-run-metrics > div:first-child dd { font: 500 25px/1.3 var(--mono); }
+.overview-run-source { overflow-wrap: anywhere; }
 .overview-library { border-top: 1px solid var(--line); padding-top: 24px; }
 .mechanic-explorer { width: 232px; padding: 12px; flex-shrink: 0; overflow-y: auto; border-right: 1px solid var(--line); border-bottom: 0; }
 .mechanic-explorer .model-navigation-heading { display: block; }
