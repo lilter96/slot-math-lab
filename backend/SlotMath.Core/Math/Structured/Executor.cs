@@ -208,9 +208,11 @@ internal sealed partial class SymbolicExecutor
                                         _config.Expressions?.ContainsKey(draw.WeightExpressionId) == true:
                     throw Declined($"draw '{node.Id}' computes its weights");
                 case DrawNode draw
-                    when Reserved(draw.StateWriteKey): throw Declined($"node '{node.Id}' writes a loop counter");
+                    when Reserved(draw.StateWriteKey):
+                    throw Declined($"node '{node.Id}' writes a loop counter");
                 case DataNode data
-                    when Reserved(data.StateKey): throw Declined($"node '{node.Id}' writes a loop counter");
+                    when Reserved(data.StateKey):
+                    throw Declined($"node '{node.Id}' writes a loop counter");
                 case PutStateNode put
                     when put.StateKey is null || Reserved(put.StateKey):
                     throw Declined($"node '{node.Id}' writes a loop counter");
@@ -218,7 +220,8 @@ internal sealed partial class SymbolicExecutor
                     when get.StateKey?.StartsWith("__iter_", StringComparison.Ordinal) == true:
                     throw Declined($"node '{node.Id}' reads a loop counter as data");
                 case ModifyStateNode modify
-                    when Reserved(modify.OutputKey): throw Declined($"node '{node.Id}' writes a loop counter");
+                    when Reserved(modify.OutputKey):
+                    throw Declined($"node '{node.Id}' writes a loop counter");
                 case ModifyStateNode modify
                     when modify.OutputKey is null && Expression(modify.ExpressionId) is not null:
                     throw Declined($"node '{node.Id}' uses the legacy numeric write");
@@ -536,7 +539,8 @@ internal sealed partial class SymbolicExecutor
         Term outer = _guard;
         state = new Dictionary<string, Field>(state, StringComparer.Ordinal)
         {
-            [iterKey] = new(_f.ZeroT, false), [winsKey] = new(_f.ZeroT, false)
+            [iterKey] = new(_f.ZeroT, false),
+            [winsKey] = new(_f.ZeroT, false)
         };
 
         var exits = new List<(Term Condition, Dictionary<string, Field> State)>();
@@ -684,7 +688,8 @@ internal sealed partial class SymbolicExecutor
         var winsKey = $"__wins_{loop.Id}__";
         var entry = new Dictionary<string, Field>(state, StringComparer.Ordinal)
         {
-            [iterKey] = new(_f.ZeroT, false), [winsKey] = new(_f.ZeroT, false)
+            [iterKey] = new(_f.ZeroT, false),
+            [winsKey] = new(_f.ZeroT, false)
         };
 
         // Fields that are constants on entry stay constants until a pass shows the body changing them: a paytable
@@ -699,7 +704,7 @@ internal sealed partial class SymbolicExecutor
         }
 
         Pass pass;
-        for (var round = 0;; round++)
+        for (var round = 0; ; round++)
         {
             if (round == MaxTemplatePasses)
             {
@@ -1088,58 +1093,58 @@ internal sealed partial class SymbolicExecutor
             case DrawNode draw when draw.DrawWeights is not { Length: > 0 }: return Spin(draw, ref state);
             case MapNode map: return Map(map, input, state);
             case DrawNode draw:
-            {
-                DrawWeight[] weights = draw.DrawWeights!;
-                if (weights.Any(w => w.Weight < 0))
                 {
-                    throw Declined($"draw '{draw.Id}' has a negative weight");
-                }
+                    DrawWeight[] weights = draw.DrawWeights!;
+                    if (weights.Any(w => w.Weight < 0))
+                    {
+                        throw Declined($"draw '{draw.Id}' has a negative weight");
+                    }
 
-                // The exact interpreter never visits an outcome of weight zero.
-                DrawWeight[] live = weights.Where(w => w.Weight > 0).ToArray();
-                if (live.Length == 0)
-                {
-                    throw Declined($"draw '{draw.Id}' has no outcome of positive weight");
-                }
+                    // The exact interpreter never visits an outcome of weight zero.
+                    DrawWeight[] live = weights.Where(w => w.Weight > 0).ToArray();
+                    if (live.Length == 0)
+                    {
+                        throw Declined($"draw '{draw.Id}' has no outcome of positive weight");
+                    }
 
-                var occurrence = _drawCount[draw.Id] = _drawCount.GetValueOrDefault(draw.Id) + 1;
-                Rv rv = _f.NewRv($"{_scope}{draw.Id}#{occurrence}",
-                    live.Select(w => new BigInteger(w.Weight)).ToArray());
-                _f.Budget.Tick(live.Length);
-                if (draw.StateWriteKey is { } key)
+                    var occurrence = _drawCount[draw.Id] = _drawCount.GetValueOrDefault(draw.Id) + 1;
+                    Rv rv = _f.NewRv($"{_scope}{draw.Id}#{occurrence}",
+                        live.Select(w => new BigInteger(w.Weight)).ToArray());
+                    _f.Budget.Tick(live.Length);
+                    if (draw.StateWriteKey is { } key)
+                    {
+                        state = new Dictionary<string, Field>(state, StringComparer.Ordinal)
+                        {
+                            [key] = new(_f.Table(rv, live.Select(w => ExprValue.String(w.OutcomeId)).ToArray()), false)
+                        };
+                    }
+
+                    return _f.Table(rv, live.Select(w => ExprValue.Number(new BigInteger(w.Value) * _winScale)).ToArray());
+                }
+            case DataNode data:
                 {
+                    ExprValue[] parsed = data.Values.Select(text => BigInteger.TryParse(text, NumberStyles.Integer,
+                        CultureInfo.InvariantCulture, out BigInteger number)
+                        ? ExprValue.Number(number)
+                        : ExprValue.String(text)).ToArray();
                     state = new Dictionary<string, Field>(state, StringComparer.Ordinal)
                     {
-                        [key] = new(_f.Table(rv, live.Select(w => ExprValue.String(w.OutcomeId)).ToArray()), false)
+                        [data.StateKey] = new(_f.Const(ExprValue.Array(parsed)), false)
                     };
+                    // With a successor the node is compiled once on a null input; as a chain end it returns its input.
+                    return deadEnd ? input : _f.NullT;
                 }
-
-                return _f.Table(rv, live.Select(w => ExprValue.Number(new BigInteger(w.Value) * _winScale)).ToArray());
-            }
-            case DataNode data:
-            {
-                ExprValue[] parsed = data.Values.Select(text => BigInteger.TryParse(text, NumberStyles.Integer,
-                    CultureInfo.InvariantCulture, out BigInteger number)
-                    ? ExprValue.Number(number)
-                    : ExprValue.String(text)).ToArray();
-                state = new Dictionary<string, Field>(state, StringComparer.Ordinal)
-                {
-                    [data.StateKey] = new(_f.Const(ExprValue.Array(parsed)), false)
-                };
-                // With a successor the node is compiled once on a null input; as a chain end it returns its input.
-                return deadEnd ? input : _f.NullT;
-            }
             case GetStateNode get:
-            {
-                if (!state.TryGetValue(get.StateKey ?? "__default__", out Field field))
                 {
-                    return _f.NullT;
-                }
+                    if (!state.TryGetValue(get.StateKey ?? "__default__", out Field field))
+                    {
+                        return _f.NullT;
+                    }
 
-                return field.MaybeAbsent
-                    ? throw Declined($"node '{get.Id}' reads a field that is not written on every path")
-                    : field.Value;
-            }
+                    return field.MaybeAbsent
+                        ? throw Declined($"node '{get.Id}' reads a field that is not written on every path")
+                        : field.Value;
+                }
             case PutStateNode put:
                 state = new Dictionary<string, Field>(state, StringComparer.Ordinal)
                 {
@@ -1147,29 +1152,29 @@ internal sealed partial class SymbolicExecutor
                 };
                 return input;
             case ModifyStateNode modify:
-            {
-                if (Expression(modify.ExpressionId) is not { } expression)
                 {
+                    if (Expression(modify.ExpressionId) is not { } expression)
+                    {
+                        return _f.NullT;
+                    }
+
+                    Term result = Statement(expression, state, $"node '{modify.Id}'");
+                    state = new Dictionary<string, Field>(state, StringComparer.Ordinal)
+                    {
+                        [modify.OutputKey!] = new(result, false)
+                    };
                     return _f.NullT;
                 }
-
-                Term result = Statement(expression, state, $"node '{modify.Id}'");
-                state = new Dictionary<string, Field>(state, StringComparer.Ordinal)
-                {
-                    [modify.OutputKey!] = new(result, false)
-                };
-                return _f.NullT;
-            }
             case BranchNode branch:
-            {
-                if (Expression(branch.ConditionId) is not { } test)
                 {
-                    return input;
-                }
+                    if (Expression(branch.ConditionId) is not { } test)
+                    {
+                        return input;
+                    }
 
-                Term result = MergeValue(Condition(test, state, $"branch '{branch.Id}'", out _), input, _f.ZeroT);
-                return result;
-            }
+                    Term result = MergeValue(Condition(test, state, $"branch '{branch.Id}'", out _), input, _f.ZeroT);
+                    return result;
+                }
             case MetricsSinkNode: return input;
             default: return _f.NullT;
         }

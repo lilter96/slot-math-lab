@@ -1281,7 +1281,9 @@ public class StructuredEquivalenceTests(ITestOutputHelper output)
             Symbols =
                 pool.Select(id => new Symbol
                 {
-                    Id = id, Name = id, Kind = id == "W" && c[56] % 4 != 0 ? SymbolKind.Wild : SymbolKind.Standard
+                    Id = id,
+                    Name = id,
+                    Kind = id == "W" && c[56] % 4 != 0 ? SymbolKind.Wild : SymbolKind.Standard
                 }).ToArray(),
             Paytables = [new Paytable { Id = "pt", Entries = entries }],
             PaylineSets = [new PaylineSet { Id = "ps", Paylines = lines }],
@@ -1359,7 +1361,9 @@ public class StructuredEquivalenceTests(ITestOutputHelper output)
             SchemaVersion = "1.0",
             Symbols = Faces.Select(id => new Symbol
             {
-                Id = id, Name = id, Kind = id == "W" ? SymbolKind.Wild : SymbolKind.Standard
+                Id = id,
+                Name = id,
+                Kind = id == "W" ? SymbolKind.Wild : SymbolKind.Standard
             }).ToArray(),
             Paytables =
             [
@@ -1663,146 +1667,151 @@ public class StructuredEquivalenceTests(ITestOutputHelper output)
             switch (statement)
             {
                 case DrawStmt draw:
-                {
-                    var id = Id("draw");
-                    Nodes.Add(new DrawNode
                     {
-                        Id = id,
-                        StateWriteKey = draw.Key,
-                        Inputs = In(),
-                        Outputs = Ports("out"),
-                        DrawWeights = draw.Outcomes.Select(o =>
-                            new DrawWeight { OutcomeId = o.Id, Weight = o.Weight, Value = o.Value }).ToArray()
-                    });
-                    Link(id, "out", next);
-                    return id;
-                }
-                case ModifyStmt modify:
-                {
-                    var id = Id("set");
-                    Nodes.Add(new ModifyStateNode
-                    {
-                        Id = id,
-                        OutputKey = modify.Key,
-                        ExpressionId = Expr(modify.Expr),
-                        Inputs = In(),
-                        Outputs = Ports("out")
-                    });
-                    Link(id, "out", next);
-                    return id;
-                }
-                case DataStmt data:
-                {
-                    var id = Id("data");
-                    Nodes.Add(new DataNode
-                    {
-                        Id = id,
-                        StateKey = data.Key,
-                        Values = data.Values,
-                        Inputs = In(),
-                        Outputs = Ports("out")
-                    });
-                    Link(id, "out", next);
-                    return id;
-                }
-                case GetStmt get:
-                {
-                    var id = Id("get");
-                    Nodes.Add(new GetStateNode { Id = id, StateKey = get.Key, Inputs = In(), Outputs = Ports("out") });
-                    Link(id, "out", next);
-                    return id;
-                }
-                case PutStmt put:
-                {
-                    var id = Id("put");
-                    Nodes.Add(new PutStateNode { Id = id, StateKey = put.Key, Inputs = In(), Outputs = Ports("out") });
-                    Link(id, "out", next);
-                    return id;
-                }
-                case BranchStmt branch:
-                {
-                    var id = Id("if");
-                    Nodes.Add(new BranchNode
-                    {
-                        Id = id, ConditionId = Expr(branch.Cond), Inputs = In(), Outputs = Ports("true", "false")
-                    });
-                    Link(id, "true", branch.Then is null ? null : Emit(branch.Then, next));
-                    Link(id, "false", branch.Else is null ? null : Emit(branch.Else, next));
-                    return id;
-                }
-                case LoopStmt loop:
-                {
-                    var id = Id("loop");
-                    Expression? stop = loop.IterBound switch
-                    {
-                        0 => loop.Stop,
-                        _ when loop.Stop is null => Cmp(CompareOp.Gte, F($"__iter_{id}__"), N(loop.IterBound)),
-                        _ => Bin(BinaryOp.Or, Cmp(CompareOp.Gte, F($"__iter_{id}__"), Call("tonumber", F("s"))),
-                            loop.Stop)
-                    };
-                    Nodes.Add(new LoopNode
-                    {
-                        Id = id,
-                        MaxIterations = loop.Max,
-                        StopConditionId = stop is null ? null : Expr(stop),
-                        Inputs = In(),
-                        Outputs = Ports("body", "exit")
-                    });
-                    Link(id, "body", Emit(loop.Body, null));
-                    Link(id, "exit", next);
-                    return id;
-                }
-                case SpinStmt:
-                {
-                    var id = Id("spin");
-                    Nodes.Add(new DrawNode
-                    {
-                        Id = id,
-                        Inputs = In(),
-                        Outputs = new Dictionary<string, Port>
+                        var id = Id("draw");
+                        Nodes.Add(new DrawNode
                         {
-                            ["board"] = new() { Name = "board", Type = PortType.Board }
-                        }
-                    });
-                    Link(id, "board", next);
-                    return id;
-                }
-                case EvalStmt eval:
-                {
-                    var id = Id("eval");
-                    Dictionary<string, Port> inputs = In();
-                    if (eval.Multiplier is not null)
-                    {
-                        inputs["multiplier"] = new Port
-                        {
-                            Name = "multiplier", Type = PortType.Number, DefaultValue = eval.Multiplier
-                        };
+                            Id = id,
+                            StateWriteKey = draw.Key,
+                            Inputs = In(),
+                            Outputs = Ports("out"),
+                            DrawWeights = draw.Outcomes.Select(o =>
+                                new DrawWeight { OutcomeId = o.Id, Weight = o.Weight, Value = o.Value }).ToArray()
+                        });
+                        Link(id, "out", next);
+                        return id;
                     }
-
-                    Nodes.Add(new MapNode
+                case ModifyStmt modify:
                     {
-                        Id = id,
-                        TransformId = eval.Transform,
-                        ShareWildAcrossSymbols = eval.Share,
-                        Inputs = inputs,
-                        Outputs = new Dictionary<string, Port>
+                        var id = Id("set");
+                        Nodes.Add(new ModifyStateNode
                         {
-                            ["wins"] = new() { Name = "wins", Type = PortType.Wins }
+                            Id = id,
+                            OutputKey = modify.Key,
+                            ExpressionId = Expr(modify.Expr),
+                            Inputs = In(),
+                            Outputs = Ports("out")
+                        });
+                        Link(id, "out", next);
+                        return id;
+                    }
+                case DataStmt data:
+                    {
+                        var id = Id("data");
+                        Nodes.Add(new DataNode
+                        {
+                            Id = id,
+                            StateKey = data.Key,
+                            Values = data.Values,
+                            Inputs = In(),
+                            Outputs = Ports("out")
+                        });
+                        Link(id, "out", next);
+                        return id;
+                    }
+                case GetStmt get:
+                    {
+                        var id = Id("get");
+                        Nodes.Add(new GetStateNode { Id = id, StateKey = get.Key, Inputs = In(), Outputs = Ports("out") });
+                        Link(id, "out", next);
+                        return id;
+                    }
+                case PutStmt put:
+                    {
+                        var id = Id("put");
+                        Nodes.Add(new PutStateNode { Id = id, StateKey = put.Key, Inputs = In(), Outputs = Ports("out") });
+                        Link(id, "out", next);
+                        return id;
+                    }
+                case BranchStmt branch:
+                    {
+                        var id = Id("if");
+                        Nodes.Add(new BranchNode
+                        {
+                            Id = id,
+                            ConditionId = Expr(branch.Cond),
+                            Inputs = In(),
+                            Outputs = Ports("true", "false")
+                        });
+                        Link(id, "true", branch.Then is null ? null : Emit(branch.Then, next));
+                        Link(id, "false", branch.Else is null ? null : Emit(branch.Else, next));
+                        return id;
+                    }
+                case LoopStmt loop:
+                    {
+                        var id = Id("loop");
+                        Expression? stop = loop.IterBound switch
+                        {
+                            0 => loop.Stop,
+                            _ when loop.Stop is null => Cmp(CompareOp.Gte, F($"__iter_{id}__"), N(loop.IterBound)),
+                            _ => Bin(BinaryOp.Or, Cmp(CompareOp.Gte, F($"__iter_{id}__"), Call("tonumber", F("s"))),
+                                loop.Stop)
+                        };
+                        Nodes.Add(new LoopNode
+                        {
+                            Id = id,
+                            MaxIterations = loop.Max,
+                            StopConditionId = stop is null ? null : Expr(stop),
+                            Inputs = In(),
+                            Outputs = Ports("body", "exit")
+                        });
+                        Link(id, "body", Emit(loop.Body, null));
+                        Link(id, "exit", next);
+                        return id;
+                    }
+                case SpinStmt:
+                    {
+                        var id = Id("spin");
+                        Nodes.Add(new DrawNode
+                        {
+                            Id = id,
+                            Inputs = In(),
+                            Outputs = new Dictionary<string, Port>
+                            {
+                                ["board"] = new() { Name = "board", Type = PortType.Board }
+                            }
+                        });
+                        Link(id, "board", next);
+                        return id;
+                    }
+                case EvalStmt eval:
+                    {
+                        var id = Id("eval");
+                        Dictionary<string, Port> inputs = In();
+                        if (eval.Multiplier is not null)
+                        {
+                            inputs["multiplier"] = new Port
+                            {
+                                Name = "multiplier",
+                                Type = PortType.Number,
+                                DefaultValue = eval.Multiplier
+                            };
                         }
-                    });
-                    Link(id, "wins", next);
-                    return id;
-                }
+
+                        Nodes.Add(new MapNode
+                        {
+                            Id = id,
+                            TransformId = eval.Transform,
+                            ShareWildAcrossSymbols = eval.Share,
+                            Inputs = inputs,
+                            Outputs = new Dictionary<string, Port>
+                            {
+                                ["wins"] = new() { Name = "wins", Type = PortType.Wins }
+                            }
+                        });
+                        Link(id, "wins", next);
+                        return id;
+                    }
                 case SeqStmt sequence: return Emit(sequence.Parts, next)!;
                 default:
-                {
-                    var fan = (FanStmt)statement;
-                    var id = Id("fan");
-                    Nodes.Add(new PutStateNode { Id = id, StateKey = "fan", Inputs = In(), Outputs = Ports("out") });
-                    Link(id, "out", Emit(fan.First, next) ?? next);
-                    Link(id, "out", Emit(fan.Second, next) ?? next);
-                    return id;
-                }
+                    {
+                        var fan = (FanStmt)statement;
+                        var id = Id("fan");
+                        Nodes.Add(new PutStateNode { Id = id, StateKey = "fan", Inputs = In(), Outputs = Ports("out") });
+                        Link(id, "out", Emit(fan.First, next) ?? next);
+                        Link(id, "out", Emit(fan.Second, next) ?? next);
+                        return id;
+                    }
             }
         }
     }

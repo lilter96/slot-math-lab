@@ -308,9 +308,11 @@ internal sealed partial class SymbolicExecutor
 
                     return Amount(alone.Evaluate(new Dictionary<string, object?>(2, StringComparer.Ordinal)
                     {
-                        [GridState.CellsKey] = row, [GridState.ColsKey] = length
+                        [GridState.CellsKey] = row,
+                        [GridState.ColsKey] = length
                     }));
-                }) { Most = most };
+                })
+                { Most = most };
             });
 
             var on = new Term[length];
@@ -386,7 +388,8 @@ internal sealed partial class SymbolicExecutor
                     }
 
                     return ExprValue.Number(matches);
-                }) { Most = rows });
+                })
+            { Most = rows });
             NativeFunction pays = Native(map.Id, "ways", ordinal, () =>
             {
                 // The evaluator looks a symbol's payouts up in the first entry that names it.
@@ -412,9 +415,12 @@ internal sealed partial class SymbolicExecutor
 
                     return Amount(alone.Evaluate(new Dictionary<string, object?>(3, StringComparer.Ordinal)
                     {
-                        [GridState.CellsKey] = counted, [GridState.RowsKey] = rows, [GridState.ColsKey] = cols
+                        [GridState.CellsKey] = counted,
+                        [GridState.RowsKey] = rows,
+                        [GridState.ColsKey] = cols
                     }));
-                }) { Most = most };
+                })
+                { Most = most };
             });
 
             var counts = new Term[cols];

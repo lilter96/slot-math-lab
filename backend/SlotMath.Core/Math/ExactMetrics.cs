@@ -102,7 +102,8 @@ public static class ExactMetrics
 
         VolatilityMetric volatility = report.Volatility with
         {
-            Variance = report.Volatility.Variance / (s * s), StdDev = report.Volatility.StdDev / s
+            Variance = report.Volatility.Variance / (s * s),
+            StdDev = report.Volatility.StdDev / s
             // VolatilityIndex = StdDev / Mean is scale-invariant.
         };
 
@@ -225,7 +226,9 @@ public static class ExactMetrics
 
         return new HitFrequencyMetric(provenance)
         {
-            RationalNumerator = nonZeroNum, RationalDenominator = den, DisplayValue = display
+            RationalNumerator = nonZeroNum,
+            RationalDenominator = den,
+            DisplayValue = display
         };
     }
 
@@ -297,7 +300,9 @@ public static class ExactMetrics
 
         var metric = new MaxWinMetric(provenance)
         {
-            MaxWin = (double)maxWin, MaxWinExact = maxWin, Cap = cap.HasValue ? (double)cap.Value : null
+            MaxWin = (double)maxWin,
+            MaxWinExact = maxWin,
+            Cap = cap.HasValue ? (double)cap.Value : null
         };
 
         if (cap.HasValue)
@@ -315,7 +320,9 @@ public static class ExactMetrics
             BigInteger den = dist.Denominator;
             metric = metric with
             {
-                PCapReached = Ratio(capNum, den), PCapRationalNumerator = capNum, PCapRationalDenominator = den
+                PCapReached = Ratio(capNum, den),
+                PCapRationalNumerator = capNum,
+                PCapRationalDenominator = den
             };
         }
 

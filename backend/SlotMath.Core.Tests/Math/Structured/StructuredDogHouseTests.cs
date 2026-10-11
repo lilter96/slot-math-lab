@@ -68,7 +68,10 @@ public class StructuredDogHouseTests(ITestOutputHelper output)
         SampledResult<Dict> sampled = SampledInterpreter.Evaluate(compiled.Program!, new Dict(),
             new SampledConfig
             {
-                Seed = 20260410, MaxSpins = rounds, DegreeOfParallelism = 4, WinScale = (double)compiled.WinScale
+                Seed = 20260410,
+                MaxSpins = rounds,
+                DegreeOfParallelism = 4,
+                WinScale = (double)compiled.WinScale
             });
         Assert.Equal(rounds, sampled.SpinsCompleted);
         var p = exact.ToDouble();

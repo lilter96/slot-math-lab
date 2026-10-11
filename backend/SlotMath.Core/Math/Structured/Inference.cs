@@ -266,13 +266,13 @@ internal sealed class Inference(TermFactory f)
         f.Budget.Tick((long)a.Values.Length * b.Values.Length * (Words(a.Total) + Words(b.Total) - 1));
         Masses masses = NewMasses(a.Values.Length + b.Values.Length);
         for (var i = 0; i < a.Values.Length; i++)
-        for (var j = 0; j < b.Values.Length; j++)
-        {
-            ExprValue value = V.IsErr(a.Values[i]) || V.IsErr(b.Values[j])
-                ? V.Err
-                : ExprValue.Add(a.Values[i], b.Values[j]);
-            masses.Add(value, V.Hash(value), a.Mass[i] * b.Mass[j]);
-        }
+            for (var j = 0; j < b.Values.Length; j++)
+            {
+                ExprValue value = V.IsErr(a.Values[i]) || V.IsErr(b.Values[j])
+                    ? V.Err
+                    : ExprValue.Add(a.Values[i], b.Values[j]);
+                masses.Add(value, V.Hash(value), a.Mass[i] * b.Mass[j]);
+            }
 
         return Build(masses, a.Total * b.Total);
     }
@@ -708,75 +708,75 @@ internal sealed class Inference(TermFactory f)
         switch (term)
         {
             case LinTerm lin:
-            {
-                var parts = new (ExprValue, Term)[lin.Terms.Length];
-                for (var i = 0; i < parts.Length; i++)
                 {
-                    parts[i] = (lin.Coefs[i], Rebuild(lin.Terms[i], context));
-                }
+                    var parts = new (ExprValue, Term)[lin.Terms.Length];
+                    for (var i = 0; i < parts.Length; i++)
+                    {
+                        parts[i] = (lin.Coefs[i], Rebuild(lin.Terms[i], context));
+                    }
 
-                result = f.Lin(lin.C0, parts);
-                break;
-            }
-            case IfTerm conditional:
-            {
-                // Lazy: once the condition is known only the branch it takes is rebuilt.
-                Term condition = Rebuild(conditional.C, context);
-                result = condition is ConstTerm known
-                    ? known.Value.Kind == ExprType.Boolean
-                        ? Rebuild(known.Value.BoolValue ? conditional.A : conditional.B, context)
-                        : f.ErrT
-                    : f.If(condition, Rebuild(conditional.A, context), Rebuild(conditional.B, context));
-                break;
-            }
-            case LogicTerm logic:
-            {
-                Term left = Rebuild(logic.A, context);
-                result = left is ConstTerm known && (known.IsErr ||
-                                                     (known.Value.Kind == ExprType.Boolean &&
-                                                      known.Value.BoolValue == logic.IsOr))
-                    ? left
-                    : f.Logic(logic.IsOr, left, Rebuild(logic.B, context));
-                break;
-            }
-            case SelTerm select:
-            {
-                Term selector = Rebuild(select.Selector, context);
-                if (selector is ConstTerm chosen)
-                {
-                    result = chosen.Value.IsInlineInteger &&
-                             (ulong)chosen.Value.InlineInteger < (ulong)select.Children.Length
-                        ? Rebuild(select.Children[chosen.Value.InlineInteger], context)
-                        : f.ErrT;
+                    result = f.Lin(lin.C0, parts);
                     break;
                 }
-
-                var children = new Term[select.Children.Length];
-                for (var i = 0; i < children.Length; i++)
+            case IfTerm conditional:
                 {
-                    children[i] = Rebuild(select.Children[i], context);
+                    // Lazy: once the condition is known only the branch it takes is rebuilt.
+                    Term condition = Rebuild(conditional.C, context);
+                    result = condition is ConstTerm known
+                        ? known.Value.Kind == ExprType.Boolean
+                            ? Rebuild(known.Value.BoolValue ? conditional.A : conditional.B, context)
+                            : f.ErrT
+                        : f.If(condition, Rebuild(conditional.A, context), Rebuild(conditional.B, context));
+                    break;
                 }
+            case LogicTerm logic:
+                {
+                    Term left = Rebuild(logic.A, context);
+                    result = left is ConstTerm known && (known.IsErr ||
+                                                         (known.Value.Kind == ExprType.Boolean &&
+                                                          known.Value.BoolValue == logic.IsOr))
+                        ? left
+                        : f.Logic(logic.IsOr, left, Rebuild(logic.B, context));
+                    break;
+                }
+            case SelTerm select:
+                {
+                    Term selector = Rebuild(select.Selector, context);
+                    if (selector is ConstTerm chosen)
+                    {
+                        result = chosen.Value.IsInlineInteger &&
+                                 (ulong)chosen.Value.InlineInteger < (ulong)select.Children.Length
+                            ? Rebuild(select.Children[chosen.Value.InlineInteger], context)
+                            : f.ErrT;
+                        break;
+                    }
 
-                result = f.Sel(selector, children);
-                break;
-            }
+                    var children = new Term[select.Children.Length];
+                    for (var i = 0; i < children.Length; i++)
+                    {
+                        children[i] = Rebuild(select.Children[i], context);
+                    }
+
+                    result = f.Sel(selector, children);
+                    break;
+                }
             default:
-            {
-                var op = (OpTerm)term;
-                var args = new Term[op.Args.Length];
-                for (var i = 0; i < args.Length; i++)
                 {
-                    args[i] = Rebuild(op.Args[i], context);
-                }
+                    var op = (OpTerm)term;
+                    var args = new Term[op.Args.Length];
+                    for (var i = 0; i < args.Length; i++)
+                    {
+                        args[i] = Rebuild(op.Args[i], context);
+                    }
 
-                result = op.Code switch
-                {
-                    Op.Arith => f.Arith((BinaryOp)op.Aux, args[0], args[1]),
-                    Op.Call => f.Call((string)op.Payload!, args),
-                    _ => f.MakeOp(op.Code, op.Aux, op.Payload, op.Names, args)
-                };
-                break;
-            }
+                    result = op.Code switch
+                    {
+                        Op.Arith => f.Arith((BinaryOp)op.Aux, args[0], args[1]),
+                        Op.Call => f.Call((string)op.Payload!, args),
+                        _ => f.MakeOp(op.Code, op.Aux, op.Payload, op.Names, args)
+                    };
+                    break;
+                }
         }
 
         return context.Memo[term] = result;
@@ -881,7 +881,8 @@ internal sealed class Inference(TermFactory f)
             case ConstTerm constant:
                 return constant.Value.Kind == ExprType.Boolean && constant.Value.BoolValue != negate;
             case LogicTerm logic
-                when logic.IsOr == negate: return Flatten(logic.A, negate, into) && Flatten(logic.B, negate, into);
+                when logic.IsOr == negate:
+                return Flatten(logic.A, negate, into) && Flatten(logic.B, negate, into);
             case OpTerm { Code: Op.Not } not when not.Args[0].IsBool: return Flatten(not.Args[0], !negate, into);
             default:
                 Term literal = negate ? f.Not(condition) : condition;
@@ -1322,26 +1323,26 @@ internal sealed class Inference(TermFactory f)
                 case MomentTerm { Bounded: true } moment: bound = new Bound(moment.Lo, moment.Hi, moment.Den); break;
                 case TableTerm table: bound = OfValues(table.Values); break;
                 case LinTerm lin:
-                {
-                    var sum = new Bound(lin.C0, lin.C0, lin.C0.NumberDenominator);
-                    for (var i = 0; i < lin.Terms.Length && sum is { } so; i++)
                     {
-                        if (BoundOf(lin.Terms[i]) is not { } part)
+                        var sum = new Bound(lin.C0, lin.C0, lin.C0.NumberDenominator);
+                        for (var i = 0; i < lin.Terms.Length && sum is { } so; i++)
                         {
-                            bound = null;
-                            goto done;
+                            if (BoundOf(lin.Terms[i]) is not { } part)
+                            {
+                                bound = null;
+                                goto done;
+                            }
+
+                            ExprValue coef = lin.Coefs[i];
+                            (ExprValue x, ExprValue y) = (ExprValue.Mul(coef, part.Lo), ExprValue.Mul(coef, part.Hi));
+                            sum = new Bound(ExprValue.Add(so.Lo, Min(x, y)), ExprValue.Add(so.Hi, Max(x, y)),
+                                Rational.Lcm(so.Den, part.Den * coef.NumberDenominator));
+                            bound = sum;
                         }
 
-                        ExprValue coef = lin.Coefs[i];
-                        (ExprValue x, ExprValue y) = (ExprValue.Mul(coef, part.Lo), ExprValue.Mul(coef, part.Hi));
-                        sum = new Bound(ExprValue.Add(so.Lo, Min(x, y)), ExprValue.Add(so.Hi, Max(x, y)),
-                            Rational.Lcm(so.Den, part.Den * coef.NumberDenominator));
                         bound = sum;
+                        break;
                     }
-
-                    bound = sum;
-                    break;
-                }
                 case IfTerm conditional:
                     bound = BoundOf(conditional.A) is { } a && BoundOf(conditional.B) is { } b ? Hull(a, b) : null;
                     break;
@@ -1398,7 +1399,7 @@ internal sealed class Inference(TermFactory f)
             }
         }
 
-        done:
+    done:
         return _bounds[term.Id] = bound;
     }
 

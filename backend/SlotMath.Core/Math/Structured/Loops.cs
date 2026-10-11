@@ -359,10 +359,10 @@ internal sealed class LoopChain
         }
 
         for (var a = 0; a < _accumulators; a++)
-        for (var b = a; b < _accumulators; b++)
-        {
-            kernel.Second[PairIndex(a, b)] = SecondOf(deltas[a], deltas[b]);
-        }
+            for (var b = a; b < _accumulators; b++)
+            {
+                kernel.Second[PairIndex(a, b)] = SecondOf(deltas[a], deltas[b]);
+            }
 
         return _kernels[state] = kernel;
     }
@@ -472,16 +472,16 @@ internal sealed class LoopChain
         }
 
         foreach (Rational[] row in kernel.First)
-        foreach (Rational value in row)
-        {
-            Widen(value);
-        }
+            foreach (Rational value in row)
+            {
+                Widen(value);
+            }
 
         foreach (Rational[] row in kernel.Second)
-        foreach (Rational value in row)
-        {
-            Widen(value);
-        }
+            foreach (Rational value in row)
+            {
+                Widen(value);
+            }
 
         foreach (Rational[]? row in kernel.Zero)
         {

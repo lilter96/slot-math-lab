@@ -424,7 +424,8 @@ public static class ExactExpressionEvaluator
         {
             var iterState = new Dictionary<string, object?>(baseState)
             {
-                [f.AccName] = ExprValueToStateObject(acc), [f.ItemName] = item
+                [f.AccName] = ExprValueToStateObject(acc),
+                [f.ItemName] = item
             };
             if (f.IndexName != null)
             {

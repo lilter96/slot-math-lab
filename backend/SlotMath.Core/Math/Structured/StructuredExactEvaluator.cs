@@ -232,7 +232,8 @@ public static class StructuredExactEvaluator
             {
                 failure = exception;
             }
-        }, StackBytes) { IsBackground = true, Name = "structured-exact" };
+        }, StackBytes)
+        { IsBackground = true, Name = "structured-exact" };
         thread.Start();
         thread.Join();
         if (failure is OperationCanceledException)

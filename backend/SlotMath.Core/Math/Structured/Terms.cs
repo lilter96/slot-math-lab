@@ -137,8 +137,13 @@ internal static class V
 
     public static byte KindBit(in ExprValue v) => v.Kind switch
     {
-        ExprType.Number => Num, ExprType.Boolean => Bool, ExprType.String => Str,
-        ExprType.Array => Arr, ExprType.Record => Rec, ExprType.Null => Null, _ => 0
+        ExprType.Number => Num,
+        ExprType.Boolean => Bool,
+        ExprType.String => Str,
+        ExprType.Array => Arr,
+        ExprType.Record => Rec,
+        ExprType.Null => Null,
+        _ => 0
     };
 
     /// <summary>
@@ -173,39 +178,39 @@ internal static class V
             switch (v.Kind)
             {
                 case ExprType.Array:
-                {
-                    IReadOnlyList<ExprValue>? items = v.ArrayValue!;
-                    var hash = 0x7a3f1c29 + items.Count;
-                    if (items is ExprValue[] array)
                     {
-                        foreach (ref readonly ExprValue item in array.AsSpan())
+                        IReadOnlyList<ExprValue>? items = v.ArrayValue!;
+                        var hash = 0x7a3f1c29 + items.Count;
+                        if (items is ExprValue[] array)
                         {
-                            hash = (BitOperations.RotateLeft((uint)hash, 5).GetHashCode() ^ Hash(item)) * 16777619;
+                            foreach (ref readonly ExprValue item in array.AsSpan())
+                            {
+                                hash = (BitOperations.RotateLeft((uint)hash, 5).GetHashCode() ^ Hash(item)) * 16777619;
+                            }
                         }
-                    }
-                    else
-                    {
-                        for (var i = 0; i < items.Count; i++)
+                        else
                         {
-                            hash = (BitOperations.RotateLeft((uint)hash, 5).GetHashCode() ^ Hash(items[i])) * 16777619;
+                            for (var i = 0; i < items.Count; i++)
+                            {
+                                hash = (BitOperations.RotateLeft((uint)hash, 5).GetHashCode() ^ Hash(items[i])) * 16777619;
+                            }
                         }
-                    }
 
-                    return hash;
-                }
+                        return hash;
+                    }
                 case ExprType.Number:
                     return Fold(v.NumberNumerator) * 31 + Fold(v.NumberDenominator);
                 case ExprType.Record:
-                {
-                    // Field order is not part of a record's identity, so the fields are combined commutatively.
-                    var hash = 0x1b873593;
-                    foreach ((var name, ExprValue value) in v.RecordValue!)
                     {
-                        hash += (Hash(ExprValue.String(name)) * 31) ^ Hash(value);
-                    }
+                        // Field order is not part of a record's identity, so the fields are combined commutatively.
+                        var hash = 0x1b873593;
+                        foreach ((var name, ExprValue value) in v.RecordValue!)
+                        {
+                            hash += (Hash(ExprValue.String(name)) * 31) ^ Hash(value);
+                        }
 
-                    return hash;
-                }
+                        return hash;
+                    }
                 default: return 0x5bd1e995 + (int)v.Kind;
             }
         }
@@ -356,10 +361,10 @@ internal static class Bits
     public static IEnumerable<int> Enumerate(ulong[] set)
     {
         for (var i = 0; i < set.Length; i++)
-        for (var word = set[i]; word != 0; word &= word - 1)
-        {
-            yield return (i << 6) + BitOperations.TrailingZeroCount(word);
-        }
+            for (var word = set[i]; word != 0; word &= word - 1)
+            {
+                yield return (i << 6) + BitOperations.TrailingZeroCount(word);
+            }
     }
 }
 
@@ -1495,10 +1500,10 @@ internal sealed class TermFactory
 
             var next = new HashSet<ExprValue>(V.ValueComparer.Instance);
             foreach (ExprValue sum in sums)
-            foreach (ExprValue value in term.Vals)
-            {
-                next.Add(ExprValue.Add(sum, ExprValue.Mul(result.Coefs[i], value)));
-            }
+                foreach (ExprValue value in term.Vals)
+                {
+                    next.Add(ExprValue.Add(sum, ExprValue.Mul(result.Coefs[i], value)));
+                }
 
             sums = next.Count <= MaxVals ? next : null;
         }

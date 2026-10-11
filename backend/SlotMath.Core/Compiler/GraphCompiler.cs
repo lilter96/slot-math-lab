@@ -61,10 +61,10 @@ public sealed class GraphCompiler
         yield return new MeasurementField(string.Join('.', path), field.Type.ToString(), path);
         // Offer record leaves without inventing indices into variable-length arrays.
         foreach (FieldDescriptor child in field.RecordFields)
-        foreach (MeasurementField nested in MeasurementFields(child, [.. path, child.Name]))
-        {
-            yield return nested;
-        }
+            foreach (MeasurementField nested in MeasurementFields(child, [.. path, child.Name]))
+            {
+                yield return nested;
+            }
     }
 
     /// <summary>
@@ -133,7 +133,8 @@ public sealed class GraphCompiler
         {
             return CompileResult.Failure(new CompileError
             {
-                Code = ErrorCodes.PluginNotConformant, Message = "Plugin execution is disabled in this host."
+                Code = ErrorCodes.PluginNotConformant,
+                Message = "Plugin execution is disabled in this host."
             });
         }
 
@@ -201,7 +202,9 @@ public sealed class GraphCompiler
         {
             return CompileResult.Failure(new CompileError
             {
-                NodeId = ex.NodeId, Code = ex.ErrorCode, Message = ex.Message
+                NodeId = ex.NodeId,
+                Code = ex.ErrorCode,
+                Message = ex.Message
             });
         }
         catch (ExpressionEvaluationException ex)
@@ -538,7 +541,9 @@ public sealed class GraphCompiler
             ExprValue value = raw switch
             {
                 ExprValue e when e.Kind == ExprType.Number => e,
-                BigInteger b => ExprValue.Number(b), int i => ExprValue.Number(i), long l => ExprValue.Number(l),
+                BigInteger b => ExprValue.Number(b),
+                int i => ExprValue.Number(i),
+                long l => ExprValue.Number(l),
                 _ => throw new ExpressionEvaluationException("EVAL_TYPE_ERROR", "Payout must be an exact number.", key)
             };
             return SettleAmount(state, value, policy);
