@@ -90,6 +90,11 @@ export function usePinnedReference(evidence: RunEvidence | undefined) {
       }
       const result = await resultsRequest<GraphAnalysis>('evaluate/graph', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ config: evidence.pinnedConfig, mode: 'Exact', maxBranches: 10000, samples: 1 }) }, signal, 16000);
       if (result.configHash !== sourceHash) throw new Error('Reference input fingerprint differs from the pinned run.');
+      if (result.provenance === 'Exact' && result.status === 'Complete' && Number.isFinite(result.rtp) && result.method === 'structured')
+        return { sourceHash, calculatedAt, kind: result.distribution === 'NotBuilt' ? 'ExactExpectation' : 'ExactDistribution', rtp: result.rtp, rational: result.rationalRtp,
+          note: (result.distribution === 'NotBuilt'
+            ? 'Exact rational expectation of the pinned payout model, computed from the graph structure without enumerating outcomes. The payout distribution remains sampled.'
+            : 'Exact payout distribution of the pinned model, computed from the graph structure using rational arithmetic.') + ' This engine calculation is not an independent external certification.' };
       if (result.provenance === 'Exact' && result.status === 'Complete' && Number.isFinite(result.rtp))
         return { sourceHash, calculatedAt, kind: 'ExactDistribution', rtp: result.rtp, rational: result.rationalRtp,
           note: 'Full enumeration of the pinned payout model using rational arithmetic. This engine calculation is not an independent external certification.' };

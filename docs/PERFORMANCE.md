@@ -15,6 +15,8 @@ Programs using plugins, transform/evaluator Map nodes, reel-product Draw nodes,
 or legacy loops retain the general interpreter. Composing further monadic effects
 over an optimized program also retains the canonical interpreter's semantics.
 This optimization does not claim to accelerate every graph or exact enumeration.
+Exact results for games too large to enumerate come from a separate evaluator,
+described under [Structured exact evaluation](#structured-exact-evaluation).
 
 The API caches eligible compiled plans by canonical graph SHA-256, with one
 compilation for simultaneous requests, ten-minute idle expiration and a 32 MiB
@@ -153,6 +155,141 @@ Measurements depend on hardware, graph and warmup.
 Evidence: [controlled benchmark](verification/performance-benchmark.json),
 [production browser run](verification/performance-production.json),
 [dashboard capture](verification/performance-production.png).
+
+## Structured exact evaluation
+
+Enumeration of the full Dog House round exceeds any budget: five reels of base
+stops, then up to 27 free spins whose sticky Wilds make every spin depend on the
+ones before. `StructuredExactEvaluator` computes the exact rational RTP and the
+exact hit frequency of that graph from its structure
+([method](architecture.md#structured-exact-evaluator-structuredexactevaluator)).
+
+Measured on the workstation above (i5-13600KF), one thread, full `dog-house-ui.json`,
+default options:
+
+| | Before tuning | Now |
+| --- | --- | --- |
+| Whole evaluation, warm | 3,985 ms | 1,596 ms |
+| Whole evaluation, first run in the process | 5,768 ms | 3,204 ms |
+| Allocated per evaluation | 2,262 MiB | 1,778 MiB |
+
+The evaluation covers 233 random variables and builds 102,525 terms and 49,269
+laws in 27,991,118 units of deterministic work; the counts are identical before
+and after, because the tuning changed no decision of the algorithm. The phases
+are the expectation (4.5M work), an attempt at the full payout distribution that
+is abandoned at its 4M allowance, and the hit frequency (19.3M work).
+
+Since then the evaluation also attempts the variance by second moments, which is
+abandoned at its own 4M allowance on this game. With that attempt the whole
+evaluation is 32,073,846 units of work, 112,125 terms and 58,131 laws: 1.9 to
+2.0 s warm, 3.9 s on the first run in the process, 2,272 MiB allocated.
+
+What the profile showed and what changed:
+
+- Law values were sorted by a recursive comparison of tuples for every law built
+  (19% of samples). A law is now listed by the hash of its values, and the total
+  order is consulted only among values whose hashes collide.
+- `ExprValue.GetHashCode` combines five fields for every element of a tuple (15%).
+  The evaluator has its own hash, a function of the value alone, so the listing
+  order, and with it the work counted, is the same in every process.
+- Every new table allocated a `HashSet` to collect its distinct values (12% in
+  resizing). They are collected in a 65-entry buffer by hash, in first-seen order.
+- Masses were accumulated in a `Dictionary` per law, hashing every value again
+  at every mixture. An open-addressing accumulator takes the hash kept by the
+  source law; a value is hashed once however many mixtures it passes through.
+- Arrays of tables that turn out to exist already are reused for the next table.
+
+EventPipe thread-time samples land on GC safepoints, so allocation sites are
+over-represented; `--allocations` and the collector's own pause counters
+(reported by `--exact`) were used to tell allocation from computation.
+
+Limits, stated plainly: the payout distribution of the full round, and with it
+maximum win, is not computed (the distribution attempt does not finish within
+400M work), and the variance by second moments does not fit its 4M allowance
+either; those metrics come from Sampled. Plugins, evaluators and transforms
+outside the built-in `lines`, `ways` and `cluster`, and wins stored as state
+data are declined.
+
+```sh
+dotnet backend/SlotMath.Benchmarks/bin/Release/net10.0/SlotMath.Benchmarks.dll \
+  --graph backend/SlotMath.Core.Tests/TestData/DogHouse/dog-house-ui.json \
+  --warmup 1 --exact --repeats 4
+# --exact --allocations prints allocated bytes by type for one evaluation.
+```
+
+### Correctness gates of the structured evaluator
+
+`StructuredEquivalenceTests` generates 10,000 graphs (CsCheck, pinned seed,
+shrinking) with draws, dependent state, loops, conditionals, folds, failing
+expressions and win caps, and compares the structured result with the classic
+exact interpreter: the whole payout distribution by rational equality, and the
+hit frequency derived without the distribution against the distribution's. A
+case the classic interpreter cannot finish, or where the reference fails, must
+be declined, never answered. Seven deliberately seeded defects (a merge keeping
+the wrong arm, dependent sums convolved, pseudo-variables shared between
+dependent parts, errors ignored, the cap ignored, hit frequency taken from the
+first part, the second moment of dependent factors taken as a product) each fail
+the gate. Recorded
+counts: 7,157 graphs equal distribution for distribution, 6,733 of them with the
+structural hit frequency checked as well; 2,338 declined where the reference
+fails; 504 not compared because the reference exceeds its 10,000-branch limit;
+one declined on its work budget. No case answered differently from the reference,
+or answered where the reference fails. The seeded defects fail 19 to 85 of
+their 2,000 cases each.
+
+The D9 fixtures, authored as graphs: REF-A gives RTP 3/4, variance 15/16 and hit
+frequency 1/2 by both derivations; REF-C equals the classic interpreter and the
+closed form 94/1000 · (1 − (35/1000)^10) / (1 − 35/1000), within 10⁻¹² of 94/965,
+and the same closed form at a cap of 4,000. REF-B, whose retrigger loop is solved
+as a Markov reward chain, equals the classic distribution at caps 1, 3 and 6 and
+at its cap of 1,000 is `Exact` in 2 to 3 s: the RTP equals an independent
+recurrence over the number of spins left, rational for rational, and lies in
+(15/17 − 10⁻⁹, 15/17]. At the largest cap the schema allows, 100,000, both
+fixtures end as `ExactInterval` with `boundSource = DeclaredWinCap`, enclosed
+within 10⁻²⁴: REF-B in 4 to 6 s with 2.4·10⁻²¹⁸ of pruned mass, REF-C in 0.1 s
+without pruning. With pruning forced early, the pruned mass reported equals the
+mass an independent recurrence leaves running at that iteration, and the exact
+value lies inside the interval.
+
+Loops solved as chains have their own gates on generated feature games (a
+trigger, then a loop of free spins with retriggers, counters, sticky state and
+multipliers), each run once with the loop's full law and once with its moments
+only. Of 10,000 games, the law run equals the reference distribution for
+distribution in 9,815 and declines 7; the moments run equals it in 8,023 (1,496
+of them with every metric, 6,527 on the mean, where the reference has no cheaper
+second moment to compare), with 178 not compared and 1,799 declined where the
+reference answers. The gates kept in the suite run 5,000 games per mode. Five
+seeded chain defects (rewards taken unconditionally, the cross term of the
+second moment dropped, the zero-payout mass taken unconditionally, the cap off
+by one, products of dependent factors taken as independent) fail 84 to 576 of
+1,000 games each. With pruning forced on 3,000 games, every result that was
+pruned must enclose the reference's value in the interval it reports, and at
+least 300 must be pruned for the gate to count; reporting the interval without
+its pruned mass fails the gate.
+
+Reel strips and the built-in evaluators have a gate of 5,000 generated reel
+games: two to four reels of two to five stops, one to three rows, payouts that
+are and are not whole win units, paylines that are short or leave the board,
+`lines`, `ways` and `cluster`, multiplier ports, respin loops, two spins in a
+round, a branch between two evaluators. 4,716 equal the reference distribution
+for distribution, 2,586 of them with the structural hit frequency and second
+moment checked as well; 284 are not compared because the reference exceeds its
+branch limit; none is declined and none differs. Dropping one payline or one
+paytable symbol from the split fails 333 of 1,000 games.
+
+At the usual size, five reels of fifteen stops with three rows and twenty
+paylines, the structured RTP equals the reference's over all 759,375 boards:
+0.75 s against 3.3 s for `lines`, 0.1 s against 2.9 s for `ways`. Fifteen cells
+drawn one by one from ten faces of unequal weight make 10¹⁵ boards, which nothing
+lists; there the result equals formulas written out from the rules (a sum over
+the 10⁵ face combinations of each payline; a closed form in each reel's expected
+match count for `ways`), in 21 s and 11 s.
+
+`StructuredDogHouseTests` holds the full game against the independent
+Fraction-based rational, the reduced model's whole distribution against the
+classic interpreter, and the exact hit frequency 9743/35280 against two million
+pinned sampled rounds within four standard errors; a single weight unit moved in
+the graph, and the hit frequency moved by one percent, are each rejected.
 
 ## Reproduce
 

@@ -1,7 +1,7 @@
+using System.Collections;
 using System.Globalization;
 using System.Numerics;
-using SlotMath.Core.Math;
-using SlotMath.Core.Mechanics;
+using SlotMath.Core.Measurements;
 using SlotMath.Core.Model;
 using SlotMath.Core.Random;
 
@@ -21,11 +21,12 @@ namespace SlotMath.Core.Expressions;
 // ═══════════════════════════════════════════════════════════════════════════
 
 /// <summary>
-/// Evaluation context carrying the runtime board and game state.
+///     Evaluation context carrying the runtime board and game state.
 /// </summary>
 public sealed class EvalContext
 {
-    public SlotMath.Core.Measurements.SettlementContext? Measurement { get; init; }
+    public SettlementContext? Measurement { get; init; }
+
     /// <summary>The current recurrence state (nullable).</summary>
     public object? State { get; init; }
 
@@ -39,39 +40,39 @@ public sealed class EvalContext
 }
 
 /// <summary>
-/// Evaluates expression ASTs in exact (rational) mode.
-/// Pure, total, deterministic.
+///     Evaluates expression ASTs in exact (rational) mode.
+///     Pure, total, deterministic.
 /// </summary>
 public static class ExactExpressionEvaluator
 {
     /// <summary>Evaluate to an ExprValue (exact rational).</summary>
-    public static ExprValue Evaluate(Expression expr, EvalContext ctx)
-    {
-        return Eval(expr, ctx);
-    }
+    public static ExprValue Evaluate(Expression expr, EvalContext ctx) => Eval(expr, ctx);
 
     /// <summary>Evaluate and return as BigInteger (truncating rational division).</summary>
     public static BigInteger EvaluateAsInteger(Expression expr, EvalContext ctx)
     {
-        var v = Eval(expr, ctx);
+        ExprValue v = Eval(expr, ctx);
         return v.AsInteger();
     }
 
     /// <summary>Evaluate as boolean.</summary>
     public static bool EvaluateAsBool(Expression expr, EvalContext ctx)
     {
-        var v = Eval(expr, ctx);
-        return v.Kind == ExprType.Boolean ? v.BoolValue : throw new ExpressionEvaluationException("EVAL_TYPE_ERROR", "Boolean expression required.");
+        ExprValue v = Eval(expr, ctx);
+        return v.Kind == ExprType.Boolean
+            ? v.BoolValue
+            : throw new ExpressionEvaluationException("EVAL_TYPE_ERROR", "Boolean expression required.");
     }
 
     /// <summary>Evaluate as a WeightSet (for Draw weight expressions).</summary>
     public static WeightSet EvaluateAsWeights(Expression expr, EvalContext ctx)
     {
-        var v = Eval(expr, ctx);
+        ExprValue v = Eval(expr, ctx);
         if (v.Kind == ExprType.Number)
         {
             return WeightSet.FromNumerators([v.AsInteger()]);
         }
+
         throw new ExpressionEvaluationException("EVAL_TYPE_ERROR", "Numeric weight expression required.");
     }
 
@@ -92,7 +93,7 @@ public static class ExactExpressionEvaluator
             FoldExpr f => EvalFold(f, ctx),
             MapExpr m => EvalMap(m, ctx),
             FilterExpr fi => EvalFilter(fi, ctx),
-            _ => throw new InvalidOperationException($"Unknown expression type: {expr.GetType().Name}"),
+            _ => throw new InvalidOperationException($"Unknown expression type: {expr.GetType().Name}")
         };
     }
 
@@ -105,7 +106,7 @@ public static class ExactExpressionEvaluator
                 ParseRational(c.Value),
             ConstantKind.Boolean => ExprValue.Bool(bool.Parse(c.Value)),
             ConstantKind.String => ExprValue.String(c.Value),
-            _ => throw new ExpressionEvaluationException("EVAL_INVALID_CONSTANT", "Unknown constant kind."),
+            _ => throw new ExpressionEvaluationException("EVAL_INVALID_CONSTANT", "Unknown constant kind.")
         };
     }
 
@@ -114,22 +115,35 @@ public static class ExactExpressionEvaluator
         // Format: "num/den" or "num"
         var parts = value.Split('/');
         if (parts.Length == 2
-            && BigInteger.TryParse(parts[0], NumberStyles.Integer, CultureInfo.InvariantCulture, out var num)
-            && BigInteger.TryParse(parts[1], NumberStyles.Integer, CultureInfo.InvariantCulture, out var den))
+            && BigInteger.TryParse(parts[0], NumberStyles.Integer, CultureInfo.InvariantCulture, out BigInteger num)
+            && BigInteger.TryParse(parts[1], NumberStyles.Integer, CultureInfo.InvariantCulture, out BigInteger den))
         {
             return ExprValue.Rational(num, den);
         }
-        if (BigInteger.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out var n))
+
+        if (BigInteger.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out BigInteger n))
+        {
             return ExprValue.Number(n);
+        }
+
         throw new ExpressionEvaluationException("EVAL_INVALID_CONSTANT", $"Invalid rational '{value}'.");
     }
 
     private static ExprValue EvalFieldAccess(FieldAccessExpr f, EvalContext ctx)
     {
-        if (f.Target == "measurement") return f.Path.Length == 1 && ctx.Measurement is { } settlement ? settlement.Read(f.Path[0])
-            : throw new ExpressionEvaluationException("EVAL_MISSING_SETTLEMENT", "Settlement fields exist only at completed-round measurement points.");
+        if (f.Target == "measurement")
+        {
+            return f.Path.Length == 1 && ctx.Measurement is { } settlement
+                ? settlement.Read(f.Path[0])
+                : throw new ExpressionEvaluationException("EVAL_MISSING_SETTLEMENT",
+                    "Settlement fields exist only at completed-round measurement points.");
+        }
+
         if (f.Target is not (null or "state" or "board"))
+        {
             throw new ExpressionEvaluationException("EVAL_INVALID_TARGET", "Unknown field namespace.", f.Target);
+        }
+
         return StateValues.Read(ctx.State, f.Path);
     }
 
@@ -137,64 +151,83 @@ public static class ExactExpressionEvaluator
     {
         return b.Op switch
         {
-            BinaryOp.Add => EvalArithmetic(b.Left, b.Right, ctx, "+",
-                (a, bl) => ExprValue.Add(a, bl)),
-            BinaryOp.Sub => EvalArithmetic(b.Left, b.Right, ctx, "-",
-                (a, bl) => ExprValue.Sub(a, bl)),
-            BinaryOp.Mul => EvalArithmetic(b.Left, b.Right, ctx, "*",
-                (a, bl) => ExprValue.Mul(a, bl)),
-            BinaryOp.Div => EvalArithmetic(b.Left, b.Right, ctx, "/",
-                (a, bl) => ExprValue.Div(a, bl)),
+            BinaryOp.Add or BinaryOp.Sub or BinaryOp.Mul or BinaryOp.Div => Arithmetic(b.Op, Eval(b.Left, ctx),
+                Eval(b.Right, ctx)),
             BinaryOp.And => EvalLogical(b.Left, b.Right, ctx, false),
             BinaryOp.Or => EvalLogical(b.Left, b.Right, ctx, true),
-            _ => throw new ExpressionEvaluationException("EVAL_INVALID_OPERATOR", "Unknown binary operator."),
+            _ => throw new ExpressionEvaluationException("EVAL_INVALID_OPERATOR", "Unknown binary operator.")
         };
     }
 
-    private static ExprValue EvalArithmetic(
-        Expression left, Expression right, EvalContext ctx,
-        string op, Func<ExprValue, ExprValue, ExprValue> combine)
+    // Operator semantics on evaluated operands. The structured exact evaluator
+    // applies the same two functions, so the operators have one definition.
+    internal static ExprValue Arithmetic(BinaryOp op, ExprValue l, ExprValue r)
     {
-        var l = Eval(left, ctx);
-        var r = Eval(right, ctx);
         if (l.Kind != ExprType.Number || r.Kind != ExprType.Number)
-            throw new ExpressionEvaluationException("EVAL_TYPE_ERROR", $"Operator {op} requires numeric operands.");
-        return combine(l, r);
+        {
+            throw new ExpressionEvaluationException("EVAL_TYPE_ERROR",
+                $"Operator {op switch { BinaryOp.Add => "+", BinaryOp.Sub => "-", BinaryOp.Mul => "*", _ => "/" }} requires numeric operands.");
+        }
+
+        return op switch
+        {
+            BinaryOp.Add => ExprValue.Add(l, r),
+            BinaryOp.Sub => ExprValue.Sub(l, r),
+            BinaryOp.Mul => ExprValue.Mul(l, r),
+            _ => ExprValue.Div(l, r)
+        };
     }
 
     private static ExprValue EvalLogical(
         Expression left, Expression right, EvalContext ctx, bool isOr)
     {
-        var l = Eval(left, ctx);
-        if (l.Kind != ExprType.Boolean) throw new ExpressionEvaluationException("EVAL_TYPE_ERROR", "Logical operators require Boolean operands.");
+        ExprValue l = Eval(left, ctx);
+        if (l.Kind != ExprType.Boolean)
+        {
+            throw new ExpressionEvaluationException("EVAL_TYPE_ERROR", "Logical operators require Boolean operands.");
+        }
+
         // Short-circuit
         if (isOr && l.Kind == ExprType.Boolean && l.BoolValue)
+        {
             return ExprValue.Bool(true);
-        if (!isOr && l.Kind == ExprType.Boolean && !l.BoolValue)
-            return ExprValue.Bool(false);
+        }
 
-        var r = Eval(right, ctx);
-        if (r.Kind != ExprType.Boolean) throw new ExpressionEvaluationException("EVAL_TYPE_ERROR", "Logical operators require Boolean operands.");
+        if (!isOr && l.Kind == ExprType.Boolean && !l.BoolValue)
+        {
+            return ExprValue.Bool(false);
+        }
+
+        ExprValue r = Eval(right, ctx);
+        if (r.Kind != ExprType.Boolean)
+        {
+            throw new ExpressionEvaluationException("EVAL_TYPE_ERROR", "Logical operators require Boolean operands.");
+        }
+
         var lb = l.BoolValue;
         var rb = r.BoolValue;
         return ExprValue.Bool(isOr ? lb || rb : lb && rb);
     }
 
-    private static ExprValue EvalCompare(CompareExpr c, EvalContext ctx)
+    private static ExprValue EvalCompare(CompareExpr c, EvalContext ctx) =>
+        Compare(c.Op, Eval(c.Left, ctx), Eval(c.Right, ctx));
+
+    internal static ExprValue Compare(CompareOp op, ExprValue l, ExprValue r)
     {
-        var l = Eval(c.Left, ctx);
-        var r = Eval(c.Right, ctx);
-        if (c.Op is CompareOp.Eq or CompareOp.Neq && l.Kind == r.Kind && l.Kind is ExprType.Record or ExprType.Array or ExprType.Null)
-            return ExprValue.Bool(c.Op == CompareOp.Eq ? l.Equals(r) : !l.Equals(r));
+        if (op is CompareOp.Eq or CompareOp.Neq && l.Kind == r.Kind &&
+            l.Kind is ExprType.Record or ExprType.Array or ExprType.Null)
+        {
+            return ExprValue.Bool(op == CompareOp.Eq ? l.Equals(r) : !l.Equals(r));
+        }
 
         if (l.Kind == ExprType.Number && r.Kind == ExprType.Number)
         {
             // Compare as rationals: a/b vs c/d  =>  a*d vs c*b
-            var leftProd = l.NumberNumerator * r.NumberDenominator;
-            var rightProd = r.NumberNumerator * l.NumberDenominator;
+            BigInteger leftProd = l.NumberNumerator * r.NumberDenominator;
+            BigInteger rightProd = r.NumberNumerator * l.NumberDenominator;
             var cmp = leftProd.CompareTo(rightProd);
 
-            return ExprValue.Bool(c.Op switch
+            return ExprValue.Bool(op switch
             {
                 CompareOp.Eq => cmp == 0,
                 CompareOp.Neq => cmp != 0,
@@ -202,17 +235,17 @@ public static class ExactExpressionEvaluator
                 CompareOp.Gt => cmp > 0,
                 CompareOp.Lte => cmp <= 0,
                 CompareOp.Gte => cmp >= 0,
-                _ => false,
+                _ => false
             });
         }
 
         if (l.Kind == ExprType.Boolean && r.Kind == ExprType.Boolean)
         {
-            return ExprValue.Bool(c.Op switch
+            return ExprValue.Bool(op switch
             {
                 CompareOp.Eq => l.BoolValue == r.BoolValue,
                 CompareOp.Neq => l.BoolValue != r.BoolValue,
-                _ => false,
+                _ => false
             });
         }
 
@@ -221,7 +254,7 @@ public static class ExactExpressionEvaluator
         var rs = r.Kind == ExprType.String ? r.StringValue : r.ToString();
         var strCmp = string.Compare(ls, rs, StringComparison.Ordinal);
 
-        return ExprValue.Bool(c.Op switch
+        return ExprValue.Bool(op switch
         {
             CompareOp.Eq => strCmp == 0,
             CompareOp.Neq => strCmp != 0,
@@ -229,14 +262,18 @@ public static class ExactExpressionEvaluator
             CompareOp.Gt => strCmp > 0,
             CompareOp.Lte => strCmp <= 0,
             CompareOp.Gte => strCmp >= 0,
-            _ => false,
+            _ => false
         });
     }
 
     private static ExprValue EvalIf(IfExpr i, EvalContext ctx)
     {
-        var cond = Eval(i.Condition, ctx);
-        if (cond.Kind != ExprType.Boolean) throw new ExpressionEvaluationException("EVAL_TYPE_ERROR", "If requires a Boolean condition.");
+        ExprValue cond = Eval(i.Condition, ctx);
+        if (cond.Kind != ExprType.Boolean)
+        {
+            throw new ExpressionEvaluationException("EVAL_TYPE_ERROR", "If requires a Boolean condition.");
+        }
+
         var isTrue = cond.BoolValue;
         return isTrue ? Eval(i.ThenExpr, ctx) : Eval(i.ElseExpr, ctx);
     }
@@ -245,20 +282,24 @@ public static class ExactExpressionEvaluator
 
     private static ExprValue EvalAggregate(AggregateExpr a, EvalContext ctx)
     {
-        if (a.Func is not (AggregateFunc.Sum or AggregateFunc.Product or AggregateFunc.Min or AggregateFunc.Max or AggregateFunc.Count))
+        if (a.Func is not (AggregateFunc.Sum or AggregateFunc.Product or AggregateFunc.Min or AggregateFunc.Max
+            or AggregateFunc.Count))
+        {
             throw new ExpressionEvaluationException("EVAL_INVALID_OPERATOR", "Unknown aggregate operator.");
+        }
+
         // Aggregate over the state array named by StateKey.  Each element is
         // bound under ItemName so the optional Predicate (filter) and ValueExpr
         // (selector) can reference it — exactly like fold/map/filter.  Elements
         // may be plain symbols or cell records; ValueExpr extracts the numeric
         // value to aggregate.  No engine Board type (invariant 4).
-        var arr = ExtractStateArray(a.StateKey, ctx.State);
+        IEnumerable<object?>? arr = ExtractStateArray(a.StateKey, ctx.State);
 
         var values = new List<ExprValue>();
         if (arr != null)
         {
-            var baseState = ctx.State as IDictionary<string, object?>
-                ?? new Dictionary<string, object?>();
+            IDictionary<string, object?> baseState = ctx.State as IDictionary<string, object?>
+                                                     ?? new Dictionary<string, object?>();
 
             foreach (var item in arr)
             {
@@ -267,15 +308,22 @@ public static class ExactExpressionEvaluator
                     State = new Dictionary<string, object?>(baseState) { [a.ItemName] = item },
                     DecorationParser = ctx.DecorationParser,
                     Measurement = ctx.Measurement,
-                    SymbolToNumericValue = ctx.SymbolToNumericValue,
+                    SymbolToNumericValue = ctx.SymbolToNumericValue
                 };
 
                 if (a.Predicate != null)
                 {
-                    var predResult = Eval(a.Predicate, iterCtx);
-                    if (predResult.Kind != ExprType.Boolean) throw new ExpressionEvaluationException("EVAL_TYPE_ERROR", "Aggregate predicate requires Boolean.");
+                    ExprValue predResult = Eval(a.Predicate, iterCtx);
+                    if (predResult.Kind != ExprType.Boolean)
+                    {
+                        throw new ExpressionEvaluationException("EVAL_TYPE_ERROR",
+                            "Aggregate predicate requires Boolean.");
+                    }
+
                     if (!predResult.BoolValue)
+                    {
                         continue;
+                    }
                 }
 
                 // ValueExpr selects the value to aggregate; absent → the element itself.
@@ -295,30 +343,37 @@ public static class ExactExpressionEvaluator
                     EvalErrorCodes.EmptyMinMax,
                     $"{a.Func} over an empty array is undefined (D1).",
                     a.Func.ToString().ToLowerInvariant()),
-                _ => ExprValue.Number(0),
+                _ => ExprValue.Number(0)
             };
         }
 
         // Count is independent of element numeric value.
         if (a.Func == AggregateFunc.Count)
+        {
             return ExprValue.Number(values.Count);
+        }
 
-        var total = ExprValue.Number(a.Func == AggregateFunc.Product ? 1 : 0);
+        ExprValue total = ExprValue.Number(a.Func == AggregateFunc.Product ? 1 : 0);
         for (var index = 0; index < values.Count; index++)
         {
-            var value = values[index];
+            ExprValue value = values[index];
             // Preserve the documented implicit symbol-score convention when
             // no selector is authored. Explicit numeric selectors are strict.
-            if (a.ValueExpr is null && value.Kind != ExprType.Number) value = ExprValue.Number(0);
+            if (a.ValueExpr is null && value.Kind != ExprType.Number)
+            {
+                value = ExprValue.Number(0);
+            }
+
             total = NumericFunctions.Aggregate(a.Func, total, value, index == 0);
         }
+
         return total;
     }
 
     /// <summary>
-    /// Convert a raw state-array element into an ExprValue for aggregation.
-    /// Numeric strings parse to numbers; non-numeric strings aggregate as 0
-    /// (use Count for symbol matching).
+    ///     Convert a raw state-array element into an ExprValue for aggregation.
+    ///     Numeric strings parse to numbers; non-numeric strings aggregate as 0
+    ///     (use Count for symbol matching).
     /// </summary>
     private static ExprValue ItemToValue(object? item) => item switch
     {
@@ -330,18 +385,22 @@ public static class ExactExpressionEvaluator
         decimal n => NumericValues.FromDecimal(n),
         bool b => ExprValue.Bool(b),
         ExprValue ev => ev,
-        string s when BigInteger.TryParse(s, NumberStyles.Integer, CultureInfo.InvariantCulture, out var n)
+        string s when BigInteger.TryParse(s, NumberStyles.Integer, CultureInfo.InvariantCulture, out BigInteger n)
             => ExprValue.Number(n),
         string s => ExprValue.String(s),
-        _ => ExprValue.Number(0),
+        _ => ExprValue.Number(0)
     };
 
     // ── Not ──────────────────────────────────────────────────────────────
 
     private static ExprValue EvalNot(NotExpr n, EvalContext ctx)
     {
-        var inner = Eval(n.Expr, ctx);
-        if (inner.Kind != ExprType.Boolean) throw new ExpressionEvaluationException("EVAL_TYPE_ERROR", "Not requires a Boolean operand.");
+        ExprValue inner = Eval(n.Expr, ctx);
+        if (inner.Kind != ExprType.Boolean)
+        {
+            throw new ExpressionEvaluationException("EVAL_TYPE_ERROR", "Not requires a Boolean operand.");
+        }
+
         return ExprValue.Bool(!inner.BoolValue);
     }
 
@@ -349,30 +408,37 @@ public static class ExactExpressionEvaluator
 
     private static ExprValue EvalFold(FoldExpr f, EvalContext ctx)
     {
-        var acc = Eval(f.Init, ctx);
+        ExprValue acc = Eval(f.Init, ctx);
 
-        var arr = ExtractStateArray(f.StateKey, ctx.State);
-        if (arr == null) return acc;
+        IEnumerable<object?>? arr = ExtractStateArray(f.StateKey, ctx.State);
+        if (arr == null)
+        {
+            return acc;
+        }
 
-        var baseState = ctx.State as IDictionary<string, object?>
-            ?? new Dictionary<string, object?>();
+        IDictionary<string, object?> baseState = ctx.State as IDictionary<string, object?>
+                                                 ?? new Dictionary<string, object?>();
 
         var index = 0;
         foreach (var item in arr)
         {
             var iterState = new Dictionary<string, object?>(baseState)
             {
-                [f.AccName] = ExprValueToStateObject(acc),
-                [f.ItemName] = item,
+                [f.AccName] = ExprValueToStateObject(acc), [f.ItemName] = item
             };
-            if (f.IndexName != null) iterState[f.IndexName] = index;
-            acc = Eval(f.Body, new EvalContext
+            if (f.IndexName != null)
             {
-                State = iterState,
-                DecorationParser = ctx.DecorationParser,
+                iterState[f.IndexName] = index;
+            }
+
+            acc = Eval(f.Body,
+                new EvalContext
+                {
+                    State = iterState,
+                    DecorationParser = ctx.DecorationParser,
                     Measurement = ctx.Measurement,
-                SymbolToNumericValue = ctx.SymbolToNumericValue,
-            });
+                    SymbolToNumericValue = ctx.SymbolToNumericValue
+                });
             index++;
         }
 
@@ -385,14 +451,17 @@ public static class ExactExpressionEvaluator
         {
             return val switch
             {
-                null => throw new ExpressionEvaluationException("EVAL_NULL_VALUE", $"State field '{key}' is null; supply an explicit array.", key),
+                null => throw new ExpressionEvaluationException("EVAL_NULL_VALUE",
+                    $"State field '{key}' is null; supply an explicit array.", key),
                 string[] sarr => sarr.Cast<object?>(),
                 object[] oarr => oarr,
                 ExprValue { Kind: ExprType.Array } typed => typed.ArrayValue!.Cast<object?>(),
-                System.Collections.IEnumerable en when val is not string && val is not System.Collections.IDictionary => en.Cast<object?>(),
-                _ => throw new ExpressionEvaluationException("EVAL_TYPE_ERROR", $"State field '{key}' must be an array.", key),
+                IEnumerable en when val is not string && val is not IDictionary => en.Cast<object?>(),
+                _ => throw new ExpressionEvaluationException("EVAL_TYPE_ERROR",
+                    $"State field '{key}' must be an array.", key)
             };
         }
+
         throw new ExpressionEvaluationException("EVAL_MISSING_STATE", $"State array '{key}' is absent.", key);
     }
 
@@ -402,27 +471,33 @@ public static class ExactExpressionEvaluator
 
     private static ExprValue EvalMap(MapExpr m, EvalContext ctx)
     {
-        var arr = ExtractStateArray(m.StateKey, ctx.State);
-        if (arr == null) return ExprValue.Array([]);
+        IEnumerable<object?>? arr = ExtractStateArray(m.StateKey, ctx.State);
+        if (arr == null)
+        {
+            return ExprValue.Array([]);
+        }
 
-        var baseState = ctx.State as IDictionary<string, object?> ?? new Dictionary<string, object?>();
+        IDictionary<string, object?> baseState =
+            ctx.State as IDictionary<string, object?> ?? new Dictionary<string, object?>();
         var result = new List<ExprValue>();
 
         var index = 0;
         foreach (var item in arr)
         {
-            var iterState = new Dictionary<string, object?>(baseState)
+            var iterState = new Dictionary<string, object?>(baseState) { [m.ItemName] = item };
+            if (m.IndexName != null)
             {
-                [m.ItemName] = item,
-            };
-            if (m.IndexName != null) iterState[m.IndexName] = index;
-            result.Add(Eval(m.Body, new EvalContext
-            {
-                State = iterState,
-                DecorationParser = ctx.DecorationParser,
+                iterState[m.IndexName] = index;
+            }
+
+            result.Add(Eval(m.Body,
+                new EvalContext
+                {
+                    State = iterState,
+                    DecorationParser = ctx.DecorationParser,
                     Measurement = ctx.Measurement,
-                SymbolToNumericValue = ctx.SymbolToNumericValue,
-            }));
+                    SymbolToNumericValue = ctx.SymbolToNumericValue
+                }));
             index++;
         }
 
@@ -433,30 +508,43 @@ public static class ExactExpressionEvaluator
 
     private static ExprValue EvalFilter(FilterExpr f, EvalContext ctx)
     {
-        var arr = ExtractStateArray(f.StateKey, ctx.State);
-        if (arr == null) return ExprValue.Array([]);
+        IEnumerable<object?>? arr = ExtractStateArray(f.StateKey, ctx.State);
+        if (arr == null)
+        {
+            return ExprValue.Array([]);
+        }
 
-        var baseState = ctx.State as IDictionary<string, object?> ?? new Dictionary<string, object?>();
+        IDictionary<string, object?> baseState =
+            ctx.State as IDictionary<string, object?> ?? new Dictionary<string, object?>();
         var result = new List<ExprValue>();
 
         var index = 0;
         foreach (var item in arr)
         {
-            var iterState = new Dictionary<string, object?>(baseState)
+            var iterState = new Dictionary<string, object?>(baseState) { [f.ItemName] = item };
+            if (f.IndexName != null)
             {
-                [f.ItemName] = item,
-            };
-            if (f.IndexName != null) iterState[f.IndexName] = index;
-            var pred = Eval(f.Predicate, new EvalContext
-            {
-                State = iterState,
-                DecorationParser = ctx.DecorationParser,
+                iterState[f.IndexName] = index;
+            }
+
+            ExprValue pred = Eval(f.Predicate,
+                new EvalContext
+                {
+                    State = iterState,
+                    DecorationParser = ctx.DecorationParser,
                     Measurement = ctx.Measurement,
-                SymbolToNumericValue = ctx.SymbolToNumericValue,
-            });
-            if (pred.Kind != ExprType.Boolean) throw new ExpressionEvaluationException("EVAL_TYPE_ERROR", "Filter predicate requires Boolean.");
+                    SymbolToNumericValue = ctx.SymbolToNumericValue
+                });
+            if (pred.Kind != ExprType.Boolean)
+            {
+                throw new ExpressionEvaluationException("EVAL_TYPE_ERROR", "Filter predicate requires Boolean.");
+            }
+
             if (pred.BoolValue)
+            {
                 result.Add(ObjectToExprValue(item));
+            }
+
             index++;
         }
 
@@ -469,7 +557,7 @@ public static class ExactExpressionEvaluator
 
     private static ExprValue EvalCall(CallExpr c, EvalContext ctx)
     {
-        var args = c.Args.Select(a => Eval(a, ctx)).ToArray();
+        ExprValue[] args = c.Args.Select(a => Eval(a, ctx)).ToArray();
 
         return CollectionFunctions.Call(c.Function.ToLowerInvariant(), args.Length > 0 ? args[0] : default,
             args.Length > 1 ? args[1] : default, args.Length);
@@ -481,39 +569,37 @@ public static class ExactExpressionEvaluator
 // ═══════════════════════════════════════════════════════════════════════════
 
 /// <summary>
-/// Evaluates expression ASTs in sampled (double) mode for the Monte Carlo path.
-/// Pure, total, deterministic (no randomness or I/O).
+///     Evaluates expression ASTs in sampled (double) mode for the Monte Carlo path.
+///     Pure, total, deterministic (no randomness or I/O).
 /// </summary>
 public static class SampledExpressionEvaluator
 {
     /// <summary>Evaluate to a double (number expressions) or the natural value.</summary>
     public static double Evaluate(Expression expr, EvalContext ctx)
     {
-        var v = ExactExpressionEvaluator.Evaluate(expr, ctx);
+        ExprValue v = ExactExpressionEvaluator.Evaluate(expr, ctx);
         return v.Kind switch
         {
             ExprType.Number => v.AsDouble(),
             ExprType.Boolean => v.BoolValue ? 1.0 : 0.0,
-            _ => throw new ExpressionEvaluationException("EVAL_TYPE_ERROR", "Numeric or Boolean expression required."),
+            _ => throw new ExpressionEvaluationException("EVAL_TYPE_ERROR", "Numeric or Boolean expression required.")
         };
     }
 
     /// <summary>Evaluate as boolean.</summary>
     public static bool EvaluateAsBool(Expression expr, EvalContext ctx)
     {
-        var v = ExactExpressionEvaluator.Evaluate(expr, ctx);
-        return v.Kind == ExprType.Boolean ? v.BoolValue : throw new ExpressionEvaluationException("EVAL_TYPE_ERROR", "Boolean expression required.");
+        ExprValue v = ExactExpressionEvaluator.Evaluate(expr, ctx);
+        return v.Kind == ExprType.Boolean
+            ? v.BoolValue
+            : throw new ExpressionEvaluationException("EVAL_TYPE_ERROR", "Boolean expression required.");
     }
 
     /// <summary>Evaluate and return as BigInteger (via the exact evaluator).</summary>
-    public static BigInteger EvaluateAsInteger(Expression expr, EvalContext ctx)
-    {
-        return ExactExpressionEvaluator.EvaluateAsInteger(expr, ctx);
-    }
+    public static BigInteger EvaluateAsInteger(Expression expr, EvalContext ctx) =>
+        ExactExpressionEvaluator.EvaluateAsInteger(expr, ctx);
 
     /// <summary>Evaluate as WeightSet.</summary>
-    public static WeightSet EvaluateAsWeights(Expression expr, EvalContext ctx)
-    {
-        return ExactExpressionEvaluator.EvaluateAsWeights(expr, ctx);
-    }
+    public static WeightSet EvaluateAsWeights(Expression expr, EvalContext ctx) =>
+        ExactExpressionEvaluator.EvaluateAsWeights(expr, ctx);
 }
