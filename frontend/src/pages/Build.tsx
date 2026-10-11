@@ -9,6 +9,8 @@ import ErrorBoundary from '../components/ErrorBoundary';
 import { closeMechanic } from '../lib/projectFiles';
 import { DEFAULT_FEATURES, useFeaturesQuery } from '../api/hooks';
 import ModelNavigation from '../components/editor/ModelNavigation';
+import { metricProvenance } from '../lib/metricEvidence';
+import GraphValidation from '../components/editor/GraphValidation';
 
 export default function Build() {
   const [showPalette, setShowPalette] = useState(false);
@@ -49,11 +51,11 @@ export default function Build() {
 
   // Sync live metrics into store so sink node and other consumers can read it
   useEffect(() => {
-    const prov = liveMetrics?.overall?.provenance;
+    const prov = liveMetrics?.overall && metricProvenance(liveMetrics.overall) ? liveMetrics.overall.provenance : undefined;
     const validProv: 'Exact' | 'ExactInterval' | 'ExactWithMassLoss' | 'Sampled' | 'NeedsFullRun' | null =
       prov === 'Exact' || prov === 'ExactInterval' || prov === 'ExactWithMassLoss' || prov === 'Sampled' || prov === 'NeedsFullRun' ? prov : null;
-    setLiveMetrics(liveMetrics?.overall?.rtp ?? null, validProv);
-  }, [liveMetrics?.overall?.rtp, liveMetrics?.overall?.provenance]); // eslint-disable-line react-hooks/exhaustive-deps
+    setLiveMetrics(validProv ? liveMetrics.overall?.rtp ?? null : null, validProv);
+  }, [liveMetrics.overall, setLiveMetrics]);
 
   return (
     <>
@@ -69,6 +71,7 @@ export default function Build() {
             {selected && !inspectorOpen && <button className="btn" onClick={() => useAppStore.getState().setInspectorOpen(true)}>Show inspector</button>}
           </div>
         </header>
+        <GraphValidation />
         <ErrorBoundary>
           <SlotCanvas />
         </ErrorBoundary>

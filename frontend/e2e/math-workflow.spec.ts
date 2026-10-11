@@ -1,7 +1,7 @@
 import { test, expect, waitForRunLaunch } from './fixtures';
 
 test('Real UI → API → compiler → exact → sampled workflow', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('/build');
   const evaluation = page.waitForResponse(r => r.url().includes('/api/evaluate/light') && r.request().method() === 'POST');
   await page.getByRole('button', { name: 'Load coin example' }).click();
   const response = await evaluation;
@@ -31,7 +31,7 @@ test('Real UI → API → compiler → exact → sampled workflow', async ({ pag
 
 for (const [mechanic, expected] of Object.entries({ lines: 5, ways: 5, cluster: 5, scatter: 5, 'sticky-wild': 5, 'hold-and-win': 35, cascade: 2 })) {
   test(`Catalog ${mechanic}: UI serialized graph matches manual payout`, async ({ page }) => {
-    await page.goto('/');
+    await page.goto('/build');
     const response = page.waitForResponse(r => r.url().includes('/api/evaluate/light') && r.request().method() === 'POST');
     await page.getByLabel('Load catalog example').selectOption(mechanic);
     const metrics = await (await response).json();
@@ -41,7 +41,7 @@ for (const [mechanic, expected] of Object.entries({ lines: 5, ways: 5, cluster: 
 }
 
 test('PAR export contains measured RTP and actual provenance', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('/build');
   await page.getByRole('button', { name: 'Load coin example' }).click();
   await page.getByRole('tab', { name: 'Export', exact: true }).click();
   const htmlButton = page.getByRole('button', { name: /html/i }).first();

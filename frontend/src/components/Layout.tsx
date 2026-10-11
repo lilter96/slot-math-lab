@@ -1,4 +1,5 @@
 import Login from './Login';
+import TweaksPanel from './TweaksPanel';
 import { useProjectInitialization } from '../hooks/useProjectInitialization';
 import AiGenerateModal from './AiGenerateModal';
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
@@ -26,7 +27,7 @@ export default function Layout() {
   const location = useLocation();
   const tab = useAppStore((s) => s.tab);
   const setTab = useAppStore((s) => s.setTab);
-  const configName = useAppStore((s) => s.configName);
+  const configName = useAppStore(s => s.graphTrail.length ? String(s.graphTrail[0].graph.name ?? s.configName ?? 'Untitled') : s.configName);
   const tweaks = useAppStore((s) => s.tweaks);
   const features = useFeaturesQuery().data ?? DEFAULT_FEATURES;
 
@@ -85,6 +86,7 @@ export default function Layout() {
               Games
             </a>
           )}
+          <TweaksPanel />
         </div>
       </div>
 
@@ -92,7 +94,13 @@ export default function Layout() {
         <aside className="workspace-nav" aria-label="Workspace">
           <button className="btn nav-toggle" aria-label={collapsed ? 'Expand navigation' : 'Collapse navigation'} aria-expanded={!collapsed} onClick={toggleNav}>{collapsed ? '☰' : 'Collapse navigation'}</button>
           <span className="nav-project">{configName ?? 'Untitled'}</span>
-        <div className="tabs" role="tablist" aria-label="Main navigation">
+        <div className="tabs" role="tablist" aria-label="Main navigation" onKeyDown={event => {
+          if (!['ArrowDown', 'ArrowUp', 'ArrowRight', 'ArrowLeft', 'Home', 'End'].includes(event.key)) return;
+          const items = Array.from(event.currentTarget.querySelectorAll<HTMLAnchorElement>('[role=tab]'));
+          const current = items.indexOf(document.activeElement as HTMLAnchorElement);
+          const next = event.key === 'Home' ? 0 : event.key === 'End' ? items.length - 1 : (current + (['ArrowDown', 'ArrowRight'].includes(event.key) ? 1 : -1) + items.length) % items.length;
+          event.preventDefault(); items[next]?.focus(); items[next]?.click();
+        }}>
           {tabs.map((item) => (
             <NavLink
               key={item.id}

@@ -1,0 +1,63 @@
+# Required Rider cleanup
+
+AGENTS.md requires Reformat Code followed by Built-in: Full Cleanup on every touched source. These frontend files are outside the .NET solution. Standalone Rider format still fails with `solution can't be null`; the pinned cleanup CLI cannot perform Full Cleanup on this unsupported frontend scope (and its Roslyn worker has a missing composition assembly). No successful cleanup is claimed. Run both passes on this exact file set in the owner's Rider workspace, review changes, then repeat build/lint and relevant browser checks before release.
+
+
+- `frontend/e2e/feature-flags.spec.ts`
+- `frontend/e2e/golden-path.spec.ts`
+- `frontend/e2e/math-workflow.spec.ts`
+- `frontend/e2e/metric-integrity.spec.ts`
+- `frontend/e2e/nine-lives.spec.ts`
+- `frontend/e2e/results-workspace.spec.ts`
+- `frontend/e2e/simulation-live.spec.ts`
+- `frontend/e2e/subgraph-library.spec.ts`
+- `frontend/e2e/workbench.spec.ts`
+- `frontend/e2e/z-component-accounting.spec.ts`
+- `frontend/e2e/z-measurements-workspace.spec.ts`
+- `frontend/src/App.tsx`
+- `frontend/src/api/hooks.ts`
+- `frontend/src/components/Layout.tsx`
+- `frontend/src/components/MetricStrip.tsx`
+- `frontend/src/components/Palette.tsx`
+- `frontend/src/components/ProvBadge.tsx`
+- `frontend/src/components/RightPanel.tsx`
+- `frontend/src/components/TweaksPanel.tsx`
+- `frontend/src/components/canvas/CanvasToolbar.tsx`
+- `frontend/src/components/canvas/SlotCanvas.tsx`
+- `frontend/src/components/canvas/nodes/BaseNodeCard.tsx`
+- `frontend/src/components/editor/ClusterPayoutEditor.tsx`
+- `frontend/src/components/editor/GraphValidation.tsx`
+- `frontend/src/components/editor/MechanicTree.tsx`
+- `frontend/src/components/editor/ModelNavigation.tsx`
+- `frontend/src/components/editor/ProjectDataEditor.tsx`
+- `frontend/src/components/editor/WeightedDrawEditor.tsx`
+- `frontend/src/games/nine-lives/launch.ts`
+- `frontend/src/games/nine-lives/play-api.ts`
+- `frontend/src/hooks/useLiveMetrics.ts`
+- `frontend/src/hooks/useModelProjection.ts`
+- `frontend/src/hooks/useProjectInitialization.ts`
+- `frontend/src/index.css`
+- `frontend/src/lib/featureCommands.ts`
+- `frontend/src/lib/graphApi.ts`
+- `frontend/src/lib/metricEvidence.ts`
+- `frontend/src/lib/modelCommands.ts`
+- `frontend/src/lib/modelProjection.ts`
+- `frontend/src/lib/payoutCommands.ts`
+- `frontend/src/lib/projectFiles.ts`
+- `frontend/src/lib/roundTrace.ts`
+- `frontend/src/lib/validatedModelEdit.ts`
+- `frontend/src/lib/weightCsv.ts`
+- `frontend/src/pages/Build.tsx`
+- `frontend/src/pages/Debug.tsx`
+- `frontend/src/pages/Export.tsx`
+- `frontend/src/pages/Features.tsx`
+- `frontend/src/pages/ModelData.tsx`
+- `frontend/src/pages/Overview.tsx`
+- `frontend/src/pages/results.css`
+- `frontend/src/store/index.ts`
+- `frontend/unit/feature-commands.spec.ts`
+- `frontend/unit/metric-integrity.spec.ts`
+- `frontend/unit/model-commands.spec.ts`
+- `frontend/unit/payout-commands.spec.ts`
+- `frontend/unit/round-trace.spec.ts`
+- `frontend/unit/weight-csv.spec.ts`

@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { useAppStore } from '../store';
+import { calculationRequest } from '../lib/measurements/requests';
 import { buildConfigPayload } from '../lib/configPayload';
 
 // ═══════════════════════════════════════════════════════════════════
@@ -7,12 +8,16 @@ import { buildConfigPayload } from '../lib/configPayload';
 // ═══════════════════════════════════════════════════════════════════
 
 
+interface LightResponse { rtp?: number; hitFrequency?: number; volatility?: number; stdErr?: number; sampleCount?: number; elapsedMs?: number; strategy?: string; ci95?: string; lo?: number; hi?: number; prunedMass?: number; provenance?: string; errors?: { message: string }[] }
 export interface LiveMetric {
   rtp?: number;
   hitFrequency?: number;
   volatility?: number;
   stdErr?: number;
   ci95?: string;
+  lo?: number;
+  hi?: number;
+  prunedMass?: number;
   provenance: 'Exact' | 'ExactInterval' | 'ExactWithMassLoss' | 'Sampled' | 'NeedsFullRun' | 'Error';
   sampleCount?: number;
   elapsedMs?: number;
@@ -30,6 +35,7 @@ export interface LiveMetricsState {
   error: string | null;
   /** Timestamp of last update */
   lastUpdated: number | null;
+  statusMessage?: string;
 }
 
 const EMPTY: LiveMetricsState = {
@@ -83,16 +89,9 @@ export function useLiveMetrics(
     setState({ ...EMPTY, loading: true, configJson });
 
     try {
-      const res = await fetch('/api/evaluate/light', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: `{"config":${configJson},"maxBranches":10000,"sampleSize":5000}`,
-        signal: controller.signal,
-      });
-
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-
-      const data = await res.json();
+      const data = await calculationRequest<LightResponse>('/api/evaluate/light', { config: JSON.parse(configJson), maxBranches: 10000, sampleSize: 5000 }, controller.signal, message => {
+        if (seq === seqRef.current) setState(current => ({ ...current, statusMessage: message.replace('Cancel to stop waiting.', 'Switch views to stop waiting.') }));
+      }, 10000);
 
       // Stale response guard
       if (seq !== seqRef.current) return;
@@ -108,10 +107,13 @@ export function useLiveMetrics(
         rtp: typeof data.rtp === 'number' && Number.isFinite(data.rtp) ? data.rtp : undefined,
         hitFrequency: typeof data.hitFrequency === 'number' && Number.isFinite(data.hitFrequency) ? data.hitFrequency : undefined,
         volatility: typeof data.volatility === 'number' && Number.isFinite(data.volatility) ? data.volatility : undefined,
-        stdErr: data.stdErr,
-        ci95: data.ci95,
+        stdErr: (data.sampleCount ?? 0) >= 2 && typeof data.stdErr === 'number' && Number.isFinite(data.stdErr) && data.stdErr >= 0 ? data.stdErr : undefined,
+        ci95: (data.sampleCount ?? 0) >= 2 && typeof data.ci95 === 'string' ? data.ci95 : undefined,
+        lo: typeof data.lo === 'number' && Number.isFinite(data.lo) ? data.lo : undefined,
+        hi: typeof data.hi === 'number' && Number.isFinite(data.hi) ? data.hi : undefined,
+        prunedMass: typeof data.prunedMass === 'number' && Number.isFinite(data.prunedMass) ? data.prunedMass : undefined,
         provenance,
-        sampleCount: data.sampleCount,
+        sampleCount: Number.isSafeInteger(data.sampleCount) && (data.sampleCount ?? 0) > 0 ? data.sampleCount : undefined,
         elapsedMs: data.elapsedMs,
         strategy: data.strategy,
       };

@@ -24,7 +24,7 @@ function provTitle(p: Provenance): string {
   if (p.kind === 'ExactWithinEpsilon')
     return `Exact up to ε-pruning · ${p.note || ''} · ${p.bound != null ? `bound ±${p.bound}` : 'bound unavailable'}`;
   if (p.kind === 'ExactWithMassLoss') return 'Pruned probability mass has no certified bound; non-regulatory';
-  if (p.kind === 'ExactInterval') return 'Bounded exact RTP interval';
+  if (p.kind === 'ExactInterval') return p.note ?? 'Bounded exact RTP interval';
   return 'Exact rational — closed form, no sampling';
 }
 

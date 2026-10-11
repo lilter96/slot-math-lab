@@ -14,16 +14,16 @@ Branch: `feat/precision-workbench-redesign`. Isolated worktree based on fetched 
 
 | Slice | Status | Files / decisions | Evidence |
 |---|---|---|---|
-| 0 baseline | verified (Core/full critical still running) | required documents and actual editing/state/API code read | QA logs/screenshots pending |
-| 1 trust and shell | implemented; critical sweep pending | suppress absent/stale proof; responsive semantic nav | build/lint/unit/critical/browser |
+| 0 baseline | baseline captured; full Core incomplete | required documents and actual editing/state/API code read | QA logs/screenshots pending |
+| 1 trust and shell | verified targeted; final sweep underway | suppress absent/stale proof; responsive semantic nav | build/lint/unit/critical/browser |
 | 2 overview/tree | verified after interaction test adaptations | manifest-derived 6×5, source-linked mechanic hierarchy | round-trip/browser |
 | 3 graph workspace | verified (cleanup limitation) | contextual inspector, palette/library separation, camera/search | nested editing/browser |
-| 4 data editing | verified weighted draws and guarded cluster payouts; strip/CSV deferred | capability-detected weighted draws; transaction/undo | unit/export/reload |
+| 4 data editing | verified weighted draws and guarded cluster payouts; CSV preview implemented; physical strips unsupported | capability-detected weighted draws; transaction/undo | unit/export/reload |
 | 5 features | verified | readable summaries; safe mapped parameters only | form/graph preservation |
 | 6 evidence/debug | verified supported trace | existing evidence and actual traces only | no invented attribution |
-| 7 hardening/report | todo | viewports/accessibility/regression/manual review | FINAL_QA_REPORT.md |
+| 7 hardening/report | in progress | viewports/accessibility/regression/manual review | FINAL_QA_REPORT.md |
 
-Next exact task: finish baseline build/lint/unit/critical + before screenshots; implement trust-state correction and responsive shell.
+Next exact task: finish the running full Chromium suite (99 cases; session 65841); inspect final-browser.log / final-browser-results.json; resolve any failure without weakening assertions; capture framed mobile saved evidence if useful; finalize FINAL_QA_REPORT.md and commit documentation.
 
 Slice 1: build/lint pass; 117 units pass; metric/feature-gate targeted browser checks 3/3 pass. Initial critical sweep exposed removed AI assist; fixed by wiring it to actual generation dialog and targeted control passed. Remaining sweep pending. Screenshot slice1-build-{1440,1280,1024,390}.png. Rider frontend passes unavailable (see qa/BASELINE.md); no cleanup success claimed. Next: Overview and searchable mechanic hierarchy using canonical projections.
 
@@ -42,3 +42,9 @@ Slice 5: build/lint, 121 units, 4/4 workbench browser tests pass. Guarded free-s
 Slice 6: build/lint, 123 units, 7 browser checks pass. Debug executes the canonical current graph, renders returned boards/cascade hit positions, downloads pinned receipts and verifies replay against full actual response even after draft edits. Play/Debug remain fail-closed behind play flag. No node IDs or version pinning exist in API; no fabricated mapping or cross-version replay assurance. Actual screenshots slice6-debug-*.png. Existing saved-run evidence remains authoritative. Next: guarded cluster payout mapping (metadata alone is not executable), final export/root/provenance audit and comprehensive checks.
 
 Slice 4b: executable cluster payout editor added after proving its flat coin array, both authored lookup expressions and metadata unit mapping. Build/lint, 125 units, 6/6 workbench tests pass. Seed 1 independently demonstrates the same initial board and five-cell symbol-1 hit paying 1 → 2 coins after edit; metadata changes 0.05 → 0.1 model units. Undo/inverse preserves all other graph data. Screenshots slice4b-payouts-*.png. Next: export the root rather than open subgraph, per-field PAR evidence, keyboard/appearance polish and full browser regressions.
+
+Hardening: fixed full-root JSON/server exports from nested context and absent-field PAR proof; CSV preview validates IDs/weights before staging; free-spin drafts persist across modes; compiler validation and keyboard nav added; Appearance moved out of the content overlay. First broad critical sweep encountered actual 429 quota rejection in new edits and feature fetch (captured hardening-first-critical.log); first sweep completed with 20 pass / 3 quota failures before the latest rebuild. Reuse existing bounded Retry-After helper for explicit rejected calculations and feature GET. No quota bypass, no ambiguous mutation retry. Dedicated Core full run stopped after over 40 minutes without completion; 191 focused compiler/serialization/RNG/Nine Lives checks pass in 72 seconds. API 135 pass. Full Core remains unverified.
+
+Final hardening checkpoint: latest build/lint/128 units and eight corrected Chromium checks pass. 48 fresh viewport captures have zero document overflow. Supporting text contrast minimum is now 5.0069:1; actual offline proof count is zero. Keyboard skip-to-main and Appearance Escape/focus return pass. First cross-browser run: 23 pass / 3 Firefox timing failures; all nine new workbench workflows pass in both browsers. Tests now control pending responses explicitly; final rerun pending. Source review also corrected unsupported sink numeric placeholders and proof refresh dependencies; final build/tests must cover this last change. Rider remains unsupported; a 180-second Full Cleanup attempt timed out with composition errors. FINAL_QA_REPORT.md is drafted with pending final browser results and explicit release gates.
+
+Stable final build checkpoint: build/lint/128 units pass after the sink correction. Firefox/WebKit 26/26 pass in 1.3 minutes, including deterministic pending evidence checks and all real edit/round/replay/round-trip workflows. 52 refreshed captures have zero document overflow and five actual Debug hit cells; contrast minimum 5.0069:1. Full Chromium now runs on unchanged dist; no rebuild while it runs. Post-cross Reformat exited 3; three-file Full Cleanup timed out at 60 seconds with the same composition errors. Cleanup is still a release blocker.

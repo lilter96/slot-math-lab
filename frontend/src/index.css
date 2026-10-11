@@ -515,7 +515,7 @@ canvas.chart { width:100%; height:100%; display:block; }
   --sl-line: #344454;
   --sl-text: #edf4fb;
   --sl-muted: #afc0d0;
-  --sl-subtle: #7f94aa;
+  --sl-subtle: #8ba0b6;
   --sl-exact: #44d6ad;
   --sl-sampled: #75b9ff;
   --sl-bounded: #f3be68;
@@ -733,3 +733,18 @@ body { font-size: 14px; line-height: 1.5; }
 @media (max-width: 767px) { .debug-page { padding: 16px; } .debug-inputs label { width: 140px; } .trace-cell { aspect-ratio: 1; } .trace-cell small { font-size: 10px; } .round-receipt dl > div { display: block; } }
 .data-view-switch { display: flex; flex-wrap: wrap; gap: 8px; padding-bottom: 20px; margin-bottom: 20px; border-bottom: 1px solid var(--line); }
 .data-view-switch [aria-selected=true] { border-color: var(--sampled); background: var(--bg-2); }
+/* Appearance belongs to the header and never obstructs workspace actions. */
+.appearance-menu { position: relative; }
+.appearance-menu > .btn { min-width: 36px; }
+.appearance-controls { position: absolute; top: calc(100% + 12px); right: 0; z-index: 100; width: 280px; background: var(--bg-1); border: 1px solid var(--line-2); border-radius: 8px; box-shadow: var(--shadow-pop); }
+.appearance-controls button { min-height: 36px; }
+.structure-board span { aspect-ratio: 2.2; }
+.symbol-reference > div { font-size: 12px; }
+@media (max-width: 767px) { .topbar-right { gap: 6px; } .topbar-right .btn { padding: 6px 8px; font-size: 12px; } .appearance-controls { width: min(280px, calc(100vw - 24px)); } .structure-board span { aspect-ratio: 1.5; } .doc { padding: 20px 16px; } }
+.graph-validation { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; border-bottom: 1px solid var(--line); padding: 6px 14px; flex-shrink: 0; font-size: 13px; }
+.graph-validation > span { color: var(--muted); }
+.graph-validation details { width: 100%; max-height: 180px; overflow: auto; }
+.graph-validation summary { cursor: pointer; color: var(--danger); }
+.graph-validation li { margin: 8px 0; }
+.graph-validation li small { display: block; color: var(--muted); }
+@media (max-width: 767px) { .btn, .trace-hit { min-height: 44px; } }

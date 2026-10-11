@@ -1,6 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import Layout from './components/Layout';
-import TweaksPanel from './components/TweaksPanel';
 import Build from './pages/Build';
 import Overview from './pages/Overview';
 import ModelData from './pages/ModelData';
@@ -47,7 +46,6 @@ export default function App() {
           />
         </Route>
       </Routes>
-      <TweaksPanel />
     </BrowserRouter>
   );
 }

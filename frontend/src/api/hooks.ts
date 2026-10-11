@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useEffect } from 'react';
 import { apiClient, BASE_URL } from './client';
 import { useAppStore, type PluginEntry, type CustomMechanic, type GraphNode, type GraphEdge } from '../store';
+import { HttpFailure, retryAfterMilliseconds } from '../lib/realtime/httpFailure';
 import { buildConfigPayload, mapNodeToBackend } from '../lib/configPayload';
 
 // ═══════════════════════════════════════════════════════════════════
@@ -32,7 +33,7 @@ export function useFeaturesQuery() {
       // Honor the configured API origin (VITE_API_URL); fall back to same-origin.
       const base = BASE_URL.replace(/\/+$/, '');
       const res = await fetch(`${base}/api/features`);
-      if (!res.ok) throw new Error(`Failed to load feature flags: HTTP ${res.status}`);
+      if (!res.ok) throw new HttpFailure(`Failed to load feature flags: HTTP ${res.status}`, res.status, retryAfterMilliseconds(res.headers.get('Retry-After')));
       const data = (await res.json()) as Partial<FeatureFlags>;
       // Only explicit `true` enables a surface — anything else collapses to off.
       return {
@@ -43,6 +44,8 @@ export function useFeaturesQuery() {
       } satisfies FeatureFlags;
     },
     staleTime: Infinity,
+    retry: (attempt, error) => error instanceof HttpFailure && error.status === 429 && error.retryAfterMs <= 60000 && attempt < 2,
+    retryDelay: (_attempt, error) => error instanceof HttpFailure ? Math.max(1000, error.retryAfterMs) : 1000,
   });
 }
 
@@ -174,12 +177,12 @@ export function useSaveConfig() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (config: { id?: string; name: string; mechanics?: CustomMechanic[]; nodes?: GraphNode[]; edges?: GraphEdge[] }) => {
+    mutationFn: async (config: { id?: string; name: string; payload?: Record<string, unknown>; mechanics?: CustomMechanic[]; nodes?: GraphNode[]; edges?: GraphEdge[] }) => {
       // The backend deserializes nodes/edges into strongly-typed polymorphic
       // models — raw React Flow shapes are rejected, so everything must go
       // through the canonical mapping.
       const body = {
-        config: {
+        config: config.payload ?? {
           ...buildConfigPayload(config.nodes ?? [], config.edges ?? [], { name: config.name, tables: useAppStore.getState().tables }),
           mechanics: config.mechanics ? Object.fromEntries(
             config.mechanics.map((m) => [m.id, {

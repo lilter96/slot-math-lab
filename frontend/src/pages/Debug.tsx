@@ -29,7 +29,7 @@ export default function Debug() {
     setBusy(true); setError(''); setReplay('');
     try {
       const seedValue = isReplay ? receipt!.round.seed : Number(seed), roundIndex = isReplay ? receipt!.round.roundIndex : Number(index);
-      if (!/^-?\d+$/.test(seed) || !/^\d+$/.test(index) || !Number.isInteger(seedValue) || seedValue < -2147483648 || seedValue > 2147483647 || !Number.isSafeInteger(roundIndex) || roundIndex < 0 || roundIndex > 2147483647) throw new Error('Use a 32-bit integer seed and a non-negative 32-bit round index.');
+      if ((!isReplay && (!/^-?\d+$/.test(seed) || !/^\d+$/.test(index))) || !Number.isSafeInteger(seedValue) || !Number.isSafeInteger(roundIndex) || roundIndex < 0) throw new Error('Use a safe integer seed and a non-negative safe integer round index.');
       const pinned = structuredClone(isReplay ? receipt!.config : graph);
       if (!pinned) throw new Error('Open a model before running a round.');
       const round = await graphRequest<GraphRound>('play/round', { config: pinned, seed: seedValue, roundIndex, trace: true });

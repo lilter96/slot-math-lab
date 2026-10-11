@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { weightedSources, validateWeights, changeWeights, type DrawSource } from '../../lib/modelCommands';
 import { useModelProjection } from '../../hooks/useModelProjection';
@@ -6,6 +6,7 @@ import { peekRootProject, rootProject, loadProject, openMechanic } from '../../l
 import { canonicalJson } from '../../lib/hash';
 import { graphRequest } from '../../lib/graphApi';
 import type { ModelGraph } from '../../lib/modelProjection';
+import { importWeightsCsv, weightsCsv } from '../../lib/weightCsv';
 
 const staged = new Map<string, { base: ModelGraph; weights: string[] }>();
 
@@ -14,6 +15,8 @@ function DrawTransaction({ graph, source }: { graph: ModelGraph; source: DrawSou
   const [weights, setWeights] = useState(() => staged.get(draftKey)?.weights ?? source.rows.map(row => String(row.weight)));
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
+  const file = useRef<HTMLInputElement>(null);
+  const [csvPreview, setCsvPreview] = useState(false);
   const invalid = validateWeights(weights);
   const changed = source.rows.some((row, index) => String(row.weight) !== weights[index]);
   const sum = invalid ? 0 : weights.reduce((total, weight) => total + Number(weight), 0);
@@ -30,17 +33,19 @@ function DrawTransaction({ graph, source }: { graph: ModelGraph; source: DrawSou
       if (canonicalJson(peekRootProject()) !== canonicalJson(base)) throw new Error('The model changed while this table was open. Reset the table before applying.');
       rootProject(); loadProject(next);
       const committed = peekRootProject() as ModelGraph;
-      setUndo({ previous: base, committed: canonicalJson(committed) }); setBase(committed); staged.delete(draftKey);
+      setUndo({ previous: base, committed: canonicalJson(committed) }); setBase(committed); staged.delete(draftKey); setCsvPreview(false);
     } catch (reason) { setError(reason instanceof Error ? reason.message : String(reason)); }
     finally { setBusy(false); }
   };
   return <section className="weighted-editor" aria-label="Weighted outcome editor">
     <p className="source-path"><strong>Source</strong> {source.scope ? `mechanics[${JSON.stringify(source.scope)}]` : 'Full graph'}.nodes[{source.nodeId}].drawWeights</p>
     <p className="hint">Edit relative weights for this draw only. The probability preview is weight / total weight; it is not game RTP. Outcome IDs and payloads stay attached to their original rows.</p>
+    <div className="data-view-switch"><button className="btn" disabled={busy || !!invalid} onClick={() => { const url = URL.createObjectURL(new Blob([weightsCsv(source.rows, weights)], { type: 'text/csv' })); const link = document.createElement('a'); link.href = url; link.download = 'draw-weights.csv'; link.click(); setTimeout(() => URL.revokeObjectURL(url), 1000); }}>Download weights CSV</button><button className="btn" disabled={busy} onClick={() => file.current?.click()}>Preview weights CSV</button><input ref={file} aria-label="Weights CSV file" type="file" accept=".csv,text/csv" hidden onChange={async event => { const selected = event.target.files?.[0]; if (!selected) return; try { const next = importWeightsCsv(await selected.text(), source.rows); setWeights(next); staged.set(draftKey, { base, weights: next }); setCsvPreview(true); setError(''); } catch (reason) { setError(reason instanceof Error ? reason.message : String(reason)); } event.target.value = ''; }} /></div>
+    {csvPreview && <p role="status">CSV preview staged. Review the table and change summary, then Validate & apply weights to confirm. The model is unchanged until you apply.</p>}
     <div className="math-table-scroll"><table className="math-data-table"><thead><tr><th>Outcome</th><th>Payload</th><th>Weight</th><th>Probability preview</th></tr></thead><tbody>{source.rows.map((row, index) => <tr key={row.outcomeId}><th scope="row">{symbols?.find(symbol => symbol.id === row.outcomeId)?.name ?? row.outcomeId}<small>ID {row.outcomeId}</small></th><td>{row.value}</td><td><input className="inp" inputMode="numeric" aria-label={`Weight for ${row.outcomeId}`} aria-invalid={!!invalid} value={weights[index]} disabled={busy} onChange={event => { const value = event.target.value; const next = weights.map((weight, i) => i === index ? value : weight); setWeights(next); staged.set(draftKey, { base, weights: next }); }} /></td><td>{invalid ? '—' : `${(Number(weights[index]) / sum * 100).toFixed(4)}%`}<small>{invalid ? 'Fix weights to calculate' : `${Number(weights[index])} / ${sum}`}</small></td></tr>)}</tbody><tfoot><tr><th colSpan={2}>Total weight</th><td>{invalid ? '—' : sum.toLocaleString()}</td><td>{invalid ? '—' : '100%'}</td></tr></tfoot></table></div>
     {changed && !invalid && <p className="hint">Unapplied changes: {source.rows.flatMap((row, index) => String(row.weight) !== weights[index] ? [`${row.outcomeId}: ${row.weight} → ${weights[index]}`] : []).join(', ')}. They are retained when you switch workspaces.</p>}
     {invalid && <p className="inline-validation" role="alert">{invalid}</p>}{error && <p className="inline-validation" role="alert">{error}</p>}
-    <div className="editor-actions"><button className="btn primary" disabled={!changed || !!invalid || busy} onClick={() => void commit()}>{busy ? 'Validating…' : 'Validate & apply weights'}</button><button className="btn" disabled={busy} onClick={() => { setWeights(source.rows.map(row => String(row.weight))); setBase(graph); setError(''); staged.delete(draftKey); }}>Reset weights</button>{undo && <button className="btn" disabled={busy} onClick={() => {
+    <div className="editor-actions"><button className="btn primary" disabled={!changed || !!invalid || busy} onClick={() => void commit()}>{busy ? 'Validating…' : 'Validate & apply weights'}</button><button className="btn" disabled={busy} onClick={() => { setWeights(source.rows.map(row => String(row.weight))); setBase(graph); setError(''); staged.delete(draftKey); setCsvPreview(false); }}>Reset weights</button>{undo && <button className="btn" disabled={busy} onClick={() => {
       if (canonicalJson(peekRootProject()) !== undo.committed) { setError('The model changed after applying. Undo would overwrite newer edits.'); return; }
       rootProject(); loadProject(undo.previous); setBase(peekRootProject() as ModelGraph); staged.delete(draftKey); setWeights(undo.previous ? weightedSources(undo.previous).find(item => item.key === source.key)!.rows.map(row => String(row.weight)) : []); setUndo(null);
     }}>Undo weight change</button>}

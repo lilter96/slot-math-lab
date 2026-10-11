@@ -75,7 +75,7 @@ export function framesFromTrace(raw: GraphRound, multiplier: number, buy: boolea
     const dummy = initialGrid();
     for (const p of [0, 9, 20, 29]) dummy[Math.floor(p / 5)][p % 5] = 7;
     frames.unshift({ type: 'BUY', grid: dummy, finalGrid: dummy, steps: [], coins: [], win: 0, collectionWin: 0, clusterWin: 0,
-      scatters: 4, bonusTriggered: true, bonusEnded: false, remaining: config.freeSpins, multiplier: 1, roundWin: 0, capped: false });
+      scatters: 4, bonusTriggered: true, bonusEnded: false, remaining: number(state.freeSpins), multiplier: 1, roundWin: 0, capped: false });
   }
   return frames;
 }

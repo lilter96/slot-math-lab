@@ -111,11 +111,11 @@ test('Nine Lives reports sampled evidence and unavailable exact RTP with distrib
   await expect(page.getByRole('tab', { name: 'Reproducibility', exact: true })).toHaveAttribute('aria-selected', 'true');
   await page.setViewportSize({ width: 390, height: 844 });
   for (const section of ['Overview', 'Distribution', 'Compare', 'Reproducibility']) {
-    await page.getByRole('tab', { name: section, exact: true }).click();
+    await page.getByLabel('Result sections').getByRole('tab', { name: section, exact: true }).click();
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
     await page.getByRole('tabpanel').scrollIntoViewIfNeeded(); await expect(page.getByRole('tabpanel')).toBeInViewport();
   }
-  await page.getByRole('tab', { name: 'Overview', exact: true }).click();
+  await page.getByLabel('Result sections').getByRole('tab', { name: 'Overview', exact: true }).click();
   await page.screenshot({ path: '../docs/verification/results-mobile.png', fullPage: true });
   await expect(page.getByRole('button', { name: 'Open proof in constructor ↗', exact: true })).toHaveCount(0);
   expect(errors).toEqual([]);

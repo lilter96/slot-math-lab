@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useReactFlow, useViewport } from '@xyflow/react';
 import { Ic } from '../Icons';
 import { peekRootProject, loadProject, loadCoinExample, catalogExamples, switchProject } from '../../lib/projectFiles';
@@ -25,6 +25,10 @@ export default function CanvasToolbar() {
   const nodes = useAppStore(s => s.nodes);
   const verificationSource = useAppStore(s => s.verificationSource);
   const features = useFeaturesQuery().data ?? DEFAULT_FEATURES;
+  useEffect(() => {
+    const focus = (event: Event) => { const id = (event as CustomEvent<string>).detail; requestAnimationFrame(() => requestAnimationFrame(() => { if (useAppStore.getState().nodes.some(node => node.id === id)) void fitView({ nodes: [{ id }], padding: 1, maxZoom: 1 }); })); };
+    window.addEventListener('slotmath:focus-node', focus); return () => window.removeEventListener('slotmath:focus-node', focus);
+  }, [fitView]);
 
   return (
     <>
@@ -33,7 +37,7 @@ export default function CanvasToolbar() {
         {trail.length > 0 && <button aria-label="Save subgraph and return" onClick={closeMechanic}>← Save & return</button>}
         <button aria-label="Build Nine Lives graph" onClick={() => { switchProject(createNineLivesGraph()); }}>Nine Lives</button>
         <button aria-label="Edit project data and expressions" onClick={() => setShowData(true)}>Data / AST</button>
-        <select aria-label="Focus graph node" value="" onChange={e => { if (!e.target.value) return; useAppStore.getState().selectNode(e.target.value); void fitView({ nodes: [{ id: e.target.value }], padding: 1, maxZoom: 1 }); }}>
+        <select aria-label="Focus graph node" value="" onChange={e => { const id = e.target.value; if (!id) return; useAppStore.getState().selectNode(id); requestAnimationFrame(() => requestAnimationFrame(() => void fitView({ nodes: [{ id }], padding: 1, maxZoom: 1 })));  }}>
           <option value="">Find node…</option>{nodes.map(node => <option key={node.id} value={node.id}>{node.data.label}</option>)}
         </select>
         <input ref={fileRef} type="file" accept="application/json,.json" aria-label="Import project file" style={{ display: 'none' }} onChange={async e => {
