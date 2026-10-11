@@ -1,0 +1,9 @@
+{
+  "conditions": "Final production preview; real session verification; math/feature APIs aborted; reduced motion.",
+  "skipFirst": true,
+  "mainFocus": true,
+  "opened": true,
+  "escapeClosed": true,
+  "restoredFocus": true,
+  "navigation": true
+}
