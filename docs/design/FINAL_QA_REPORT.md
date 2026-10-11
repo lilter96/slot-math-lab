@@ -87,3 +87,6 @@ Source e6c404c adds persisted inspector pinning without changing mathematical in
 
 
 Overview source 51fe9ad/81af758 now shows actual owner-scoped matching saved-run evidence, with failed/pending refreshes withholding stale proof. Scoped checks passed (API 3, new units 3, Chromium 3, Firefox/WebKit 4); eight real viewport captures have no overflow. No full suite was rerun. [OVERVIEW_EVIDENCE_REVIEW.md](qa/OVERVIEW_EVIDENCE_REVIEW.md) records fingerprints, uncertainty rules, failures, source scope and remaining gates.
+
+
+Visible graph source 1973c4d enables native viewport filtering, with complete model/edge/expression export equality and retained offscreen search/cameras. Four initial affected Chromium checks and the corrected failed deletion scenario pass; Firefox/WebKit 4/4 pass. The actual 84-node model renders five nodes at the focused desktop viewport; no mathematical/FPS improvement is inferred. [GRAPH_VISIBILITY_REVIEW.md](qa/GRAPH_VISIBILITY_REVIEW.md) records the scope and remaining cleanup/legibility gates. No complete suite was rerun.

@@ -1,0 +1,41 @@
+{
+  "conditions": "Actual Nine Lives reference free-spin definition, production preview, reduced motion. Model count comes from the full source-backed node picker; rendered counts measure viewport DOM only. No math/performance improvement claim.",
+  "full": {
+    "modelNodes": 84,
+    "renderedNodes": 84,
+    "renderedEdges": 83
+  },
+  "focused": {
+    "modelNodes": 84,
+    "renderedNodes": 5,
+    "renderedEdges": 7,
+    "target": "done"
+  },
+  "viewports": [
+    {
+      "width": 1440,
+      "height": 900,
+      "overflow": false,
+      "renderedNodes": 5
+    },
+    {
+      "width": 1280,
+      "height": 800,
+      "overflow": false,
+      "renderedNodes": 5
+    },
+    {
+      "width": 1024,
+      "height": 768,
+      "overflow": false,
+      "renderedNodes": 5
+    },
+    {
+      "width": 390,
+      "height": 844,
+      "overflow": false,
+      "renderedNodes": 2
+    }
+  ],
+  "sourceCommit": "1973c4d"
+}

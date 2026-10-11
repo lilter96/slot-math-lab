@@ -107,3 +107,7 @@ Inspector-pin follow-up: scoped standalone Reformat attempts again exit 3 (`solu
 - `frontend/e2e/overview-evidence.spec.ts`
 
 Overview evidence follow-up: both scoped backend Reformat and Full Cleanup timed out at 22 seconds; Full Cleanup again reports missing System.Composition.AttributedModel 10.0.0.12. The task-owned process groups were terminated to avoid orphaned cleanup workers. Scoped frontend/generated/CSS Reformat attempts exit 3 with the same missing-solution failure. No successful required cleanup is claimed; `overview-evidence-*-rider.log` and `overview-evidence-rider-*.log` retain the local attempts.
+
+- `frontend/e2e/graph-visibility.spec.ts`
+
+Viewport filtering follow-up: scoped Reformat for SlotCanvas/new visibility test and the corrected subgraph test again exits 3; frontend Full Cleanup remains unavailable. See `graph-visibility-rider.log` / `graph-visibility-test-rider.log`.
