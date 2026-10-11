@@ -12,11 +12,39 @@
   "holdTrigger": 6,
   "coins": [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
   "coinStake": 20,
-  "coinPrize": "0",
   "coinCount": 0,
+  "prize1": "0",
+  "prize2": "0",
+  "prize3": "0",
+  "prize4": "0",
+  "prize5": "0",
+  "prize6": "0",
+  "prize7": "0",
+  "prize8": "0",
+  "prize9": "0",
+  "prize10": "0",
+  "prize11": "0",
+  "prize12": "0",
+  "prize13": "0",
+  "prize14": "0",
+  "prize15": "0",
   "respins": 0,
-  "landHit": "0",
   "bonusCoins": 0,
+  "landed1": "0",
+  "landed2": "0",
+  "landed3": "0",
+  "landed4": "0",
+  "landed5": "0",
+  "landed6": "0",
+  "landed7": "0",
+  "landed8": "0",
+  "landed9": "0",
+  "landed10": "0",
+  "landed11": "0",
+  "landed12": "0",
+  "landed13": "0",
+  "landed14": "0",
+  "landed15": "0",
   "holdEvents": [],
   "holdColumns": [],
   "holdCoins": [],
@@ -446,26 +474,12 @@
      "outputs": {"true":{"name":"true","type":"State"},"false":{"name":"false","type":"State"}}
     },
     {
-     "nodeType": "getState",
-     "id": "column-1-join",
-     "label": "Continue",
-     "inputs": {"state":{"name":"state","type":"State"}},
-     "outputs": {"state":{"name":"state","type":"State"}}
-    },
-    {
      "nodeType": "branch",
      "id": "column-2",
      "label": "Column 2 is full and not boosted yet: boost it",
      "conditionId": "column-2",
      "inputs": {"state":{"name":"state","type":"State"}},
      "outputs": {"true":{"name":"true","type":"State"},"false":{"name":"false","type":"State"}}
-    },
-    {
-     "nodeType": "getState",
-     "id": "column-2-join",
-     "label": "Continue",
-     "inputs": {"state":{"name":"state","type":"State"}},
-     "outputs": {"state":{"name":"state","type":"State"}}
     },
     {
      "nodeType": "branch",
@@ -476,26 +490,12 @@
      "outputs": {"true":{"name":"true","type":"State"},"false":{"name":"false","type":"State"}}
     },
     {
-     "nodeType": "getState",
-     "id": "column-3-join",
-     "label": "Continue",
-     "inputs": {"state":{"name":"state","type":"State"}},
-     "outputs": {"state":{"name":"state","type":"State"}}
-    },
-    {
      "nodeType": "branch",
      "id": "column-4",
      "label": "Column 4 is full and not boosted yet: boost it",
      "conditionId": "column-4",
      "inputs": {"state":{"name":"state","type":"State"}},
      "outputs": {"true":{"name":"true","type":"State"},"false":{"name":"false","type":"State"}}
-    },
-    {
-     "nodeType": "getState",
-     "id": "column-4-join",
-     "label": "Continue",
-     "inputs": {"state":{"name":"state","type":"State"}},
-     "outputs": {"state":{"name":"state","type":"State"}}
     },
     {
      "nodeType": "branch",
@@ -507,8 +507,8 @@
     },
     {
      "nodeType": "getState",
-     "id": "column-5-join",
-     "label": "Continue",
+     "id": "done",
+     "label": "Done",
      "inputs": {"state":{"name":"state","type":"State"}},
      "outputs": {"state":{"name":"state","type":"State"}}
     },
@@ -560,54 +560,20 @@
    ],
    "edges": [
     {"id":"column-1.true->column-1-yes","sourceNodeId":"column-1","sourcePort":"true","targetNodeId":"column-1-yes","targetPort":"state"},
-    {"id":"column-1.false->column-1-join","sourceNodeId":"column-1","sourcePort":"false","targetNodeId":"column-1-join","targetPort":"state"},
-    {
-     "id": "column-1-yes.state->column-1-join",
-     "sourceNodeId": "column-1-yes",
-     "sourcePort": "state",
-     "targetNodeId": "column-1-join",
-     "targetPort": "state"
-    },
-    {"id":"column-1-join.state->column-2","sourceNodeId":"column-1-join","sourcePort":"state","targetNodeId":"column-2","targetPort":"state"},
+    {"id":"column-1.false->column-2","sourceNodeId":"column-1","sourcePort":"false","targetNodeId":"column-2","targetPort":"state"},
+    {"id":"column-1-yes.state->column-2","sourceNodeId":"column-1-yes","sourcePort":"state","targetNodeId":"column-2","targetPort":"state"},
     {"id":"column-2.true->column-2-yes","sourceNodeId":"column-2","sourcePort":"true","targetNodeId":"column-2-yes","targetPort":"state"},
-    {"id":"column-2.false->column-2-join","sourceNodeId":"column-2","sourcePort":"false","targetNodeId":"column-2-join","targetPort":"state"},
-    {
-     "id": "column-2-yes.state->column-2-join",
-     "sourceNodeId": "column-2-yes",
-     "sourcePort": "state",
-     "targetNodeId": "column-2-join",
-     "targetPort": "state"
-    },
-    {"id":"column-2-join.state->column-3","sourceNodeId":"column-2-join","sourcePort":"state","targetNodeId":"column-3","targetPort":"state"},
+    {"id":"column-2.false->column-3","sourceNodeId":"column-2","sourcePort":"false","targetNodeId":"column-3","targetPort":"state"},
+    {"id":"column-2-yes.state->column-3","sourceNodeId":"column-2-yes","sourcePort":"state","targetNodeId":"column-3","targetPort":"state"},
     {"id":"column-3.true->column-3-yes","sourceNodeId":"column-3","sourcePort":"true","targetNodeId":"column-3-yes","targetPort":"state"},
-    {"id":"column-3.false->column-3-join","sourceNodeId":"column-3","sourcePort":"false","targetNodeId":"column-3-join","targetPort":"state"},
-    {
-     "id": "column-3-yes.state->column-3-join",
-     "sourceNodeId": "column-3-yes",
-     "sourcePort": "state",
-     "targetNodeId": "column-3-join",
-     "targetPort": "state"
-    },
-    {"id":"column-3-join.state->column-4","sourceNodeId":"column-3-join","sourcePort":"state","targetNodeId":"column-4","targetPort":"state"},
+    {"id":"column-3.false->column-4","sourceNodeId":"column-3","sourcePort":"false","targetNodeId":"column-4","targetPort":"state"},
+    {"id":"column-3-yes.state->column-4","sourceNodeId":"column-3-yes","sourcePort":"state","targetNodeId":"column-4","targetPort":"state"},
     {"id":"column-4.true->column-4-yes","sourceNodeId":"column-4","sourcePort":"true","targetNodeId":"column-4-yes","targetPort":"state"},
-    {"id":"column-4.false->column-4-join","sourceNodeId":"column-4","sourcePort":"false","targetNodeId":"column-4-join","targetPort":"state"},
-    {
-     "id": "column-4-yes.state->column-4-join",
-     "sourceNodeId": "column-4-yes",
-     "sourcePort": "state",
-     "targetNodeId": "column-4-join",
-     "targetPort": "state"
-    },
-    {"id":"column-4-join.state->column-5","sourceNodeId":"column-4-join","sourcePort":"state","targetNodeId":"column-5","targetPort":"state"},
+    {"id":"column-4.false->column-5","sourceNodeId":"column-4","sourcePort":"false","targetNodeId":"column-5","targetPort":"state"},
+    {"id":"column-4-yes.state->column-5","sourceNodeId":"column-4-yes","sourcePort":"state","targetNodeId":"column-5","targetPort":"state"},
     {"id":"column-5.true->column-5-yes","sourceNodeId":"column-5","sourcePort":"true","targetNodeId":"column-5-yes","targetPort":"state"},
-    {"id":"column-5.false->column-5-join","sourceNodeId":"column-5","sourcePort":"false","targetNodeId":"column-5-join","targetPort":"state"},
-    {
-     "id": "column-5-yes.state->column-5-join",
-     "sourceNodeId": "column-5-yes",
-     "sourcePort": "state",
-     "targetNodeId": "column-5-join",
-     "targetPort": "state"
-    }
+    {"id":"column-5.false->done","sourceNodeId":"column-5","sourcePort":"false","targetNodeId":"done","targetPort":"state"},
+    {"id":"column-5-yes.state->done","sourceNodeId":"column-5-yes","sourcePort":"state","targetNodeId":"done","targetPort":"state"}
    ],
    "expressions": {
     "column-1": {
@@ -872,24 +838,402 @@
     }
    }
   },
-  "land-coin": {
-   "name": "land-coin",
-   "description": "One cell of a respin: a coin lands with a fixed chance and, if the cell was empty, stays there with a drawn prize.",
+  "respin": {
+   "name": "respin",
+   "description": "One respin: each of the 15 cells may receive a coin, and the respins are restored or used up.",
    "nodes": [
     {
      "nodeType": "draw",
-     "id": "hit",
-     "label": "Does a coin land on this cell?",
-     "stateWriteKey": "landHit",
+     "id": "land-1",
+     "label": "Does a coin land on cell 1?",
+     "stateWriteKey": "landed1",
      "inputs": {"state":{"name":"state","type":"State"}},
      "outputs": {"state":{"name":"state","type":"State"}},
      "drawWeights": [{"outcomeId":"1","weight":85,"value":0},{"outcomeId":"0","weight":915,"value":0}]
     },
     {
      "nodeType": "draw",
-     "id": "prize",
+     "id": "prize-1",
      "label": "Draw the prize it would carry",
-     "stateWriteKey": "coinPrize",
+     "stateWriteKey": "prize1",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}},
+     "drawWeights": [
+      {"outcomeId":"1","weight":6500,"value":0},
+      {"outcomeId":"2","weight":2000,"value":0},
+      {"outcomeId":"3","weight":800,"value":0},
+      {"outcomeId":"5","weight":400,"value":0},
+      {"outcomeId":"7","weight":200,"value":0},
+      {"outcomeId":"10","weight":100,"value":0},
+      {"outcomeId":"50","weight":10,"value":0},
+      {"outcomeId":"250","weight":1,"value":0}
+     ]
+    },
+    {
+     "nodeType": "draw",
+     "id": "land-2",
+     "label": "Does a coin land on cell 2?",
+     "stateWriteKey": "landed2",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}},
+     "drawWeights": [{"outcomeId":"1","weight":85,"value":0},{"outcomeId":"0","weight":915,"value":0}]
+    },
+    {
+     "nodeType": "draw",
+     "id": "prize-2",
+     "label": "Draw the prize it would carry",
+     "stateWriteKey": "prize2",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}},
+     "drawWeights": [
+      {"outcomeId":"1","weight":6500,"value":0},
+      {"outcomeId":"2","weight":2000,"value":0},
+      {"outcomeId":"3","weight":800,"value":0},
+      {"outcomeId":"5","weight":400,"value":0},
+      {"outcomeId":"7","weight":200,"value":0},
+      {"outcomeId":"10","weight":100,"value":0},
+      {"outcomeId":"50","weight":10,"value":0},
+      {"outcomeId":"250","weight":1,"value":0}
+     ]
+    },
+    {
+     "nodeType": "draw",
+     "id": "land-3",
+     "label": "Does a coin land on cell 3?",
+     "stateWriteKey": "landed3",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}},
+     "drawWeights": [{"outcomeId":"1","weight":85,"value":0},{"outcomeId":"0","weight":915,"value":0}]
+    },
+    {
+     "nodeType": "draw",
+     "id": "prize-3",
+     "label": "Draw the prize it would carry",
+     "stateWriteKey": "prize3",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}},
+     "drawWeights": [
+      {"outcomeId":"1","weight":6500,"value":0},
+      {"outcomeId":"2","weight":2000,"value":0},
+      {"outcomeId":"3","weight":800,"value":0},
+      {"outcomeId":"5","weight":400,"value":0},
+      {"outcomeId":"7","weight":200,"value":0},
+      {"outcomeId":"10","weight":100,"value":0},
+      {"outcomeId":"50","weight":10,"value":0},
+      {"outcomeId":"250","weight":1,"value":0}
+     ]
+    },
+    {
+     "nodeType": "draw",
+     "id": "land-4",
+     "label": "Does a coin land on cell 4?",
+     "stateWriteKey": "landed4",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}},
+     "drawWeights": [{"outcomeId":"1","weight":85,"value":0},{"outcomeId":"0","weight":915,"value":0}]
+    },
+    {
+     "nodeType": "draw",
+     "id": "prize-4",
+     "label": "Draw the prize it would carry",
+     "stateWriteKey": "prize4",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}},
+     "drawWeights": [
+      {"outcomeId":"1","weight":6500,"value":0},
+      {"outcomeId":"2","weight":2000,"value":0},
+      {"outcomeId":"3","weight":800,"value":0},
+      {"outcomeId":"5","weight":400,"value":0},
+      {"outcomeId":"7","weight":200,"value":0},
+      {"outcomeId":"10","weight":100,"value":0},
+      {"outcomeId":"50","weight":10,"value":0},
+      {"outcomeId":"250","weight":1,"value":0}
+     ]
+    },
+    {
+     "nodeType": "draw",
+     "id": "land-5",
+     "label": "Does a coin land on cell 5?",
+     "stateWriteKey": "landed5",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}},
+     "drawWeights": [{"outcomeId":"1","weight":85,"value":0},{"outcomeId":"0","weight":915,"value":0}]
+    },
+    {
+     "nodeType": "draw",
+     "id": "prize-5",
+     "label": "Draw the prize it would carry",
+     "stateWriteKey": "prize5",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}},
+     "drawWeights": [
+      {"outcomeId":"1","weight":6500,"value":0},
+      {"outcomeId":"2","weight":2000,"value":0},
+      {"outcomeId":"3","weight":800,"value":0},
+      {"outcomeId":"5","weight":400,"value":0},
+      {"outcomeId":"7","weight":200,"value":0},
+      {"outcomeId":"10","weight":100,"value":0},
+      {"outcomeId":"50","weight":10,"value":0},
+      {"outcomeId":"250","weight":1,"value":0}
+     ]
+    },
+    {
+     "nodeType": "draw",
+     "id": "land-6",
+     "label": "Does a coin land on cell 6?",
+     "stateWriteKey": "landed6",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}},
+     "drawWeights": [{"outcomeId":"1","weight":85,"value":0},{"outcomeId":"0","weight":915,"value":0}]
+    },
+    {
+     "nodeType": "draw",
+     "id": "prize-6",
+     "label": "Draw the prize it would carry",
+     "stateWriteKey": "prize6",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}},
+     "drawWeights": [
+      {"outcomeId":"1","weight":6500,"value":0},
+      {"outcomeId":"2","weight":2000,"value":0},
+      {"outcomeId":"3","weight":800,"value":0},
+      {"outcomeId":"5","weight":400,"value":0},
+      {"outcomeId":"7","weight":200,"value":0},
+      {"outcomeId":"10","weight":100,"value":0},
+      {"outcomeId":"50","weight":10,"value":0},
+      {"outcomeId":"250","weight":1,"value":0}
+     ]
+    },
+    {
+     "nodeType": "draw",
+     "id": "land-7",
+     "label": "Does a coin land on cell 7?",
+     "stateWriteKey": "landed7",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}},
+     "drawWeights": [{"outcomeId":"1","weight":85,"value":0},{"outcomeId":"0","weight":915,"value":0}]
+    },
+    {
+     "nodeType": "draw",
+     "id": "prize-7",
+     "label": "Draw the prize it would carry",
+     "stateWriteKey": "prize7",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}},
+     "drawWeights": [
+      {"outcomeId":"1","weight":6500,"value":0},
+      {"outcomeId":"2","weight":2000,"value":0},
+      {"outcomeId":"3","weight":800,"value":0},
+      {"outcomeId":"5","weight":400,"value":0},
+      {"outcomeId":"7","weight":200,"value":0},
+      {"outcomeId":"10","weight":100,"value":0},
+      {"outcomeId":"50","weight":10,"value":0},
+      {"outcomeId":"250","weight":1,"value":0}
+     ]
+    },
+    {
+     "nodeType": "draw",
+     "id": "land-8",
+     "label": "Does a coin land on cell 8?",
+     "stateWriteKey": "landed8",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}},
+     "drawWeights": [{"outcomeId":"1","weight":85,"value":0},{"outcomeId":"0","weight":915,"value":0}]
+    },
+    {
+     "nodeType": "draw",
+     "id": "prize-8",
+     "label": "Draw the prize it would carry",
+     "stateWriteKey": "prize8",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}},
+     "drawWeights": [
+      {"outcomeId":"1","weight":6500,"value":0},
+      {"outcomeId":"2","weight":2000,"value":0},
+      {"outcomeId":"3","weight":800,"value":0},
+      {"outcomeId":"5","weight":400,"value":0},
+      {"outcomeId":"7","weight":200,"value":0},
+      {"outcomeId":"10","weight":100,"value":0},
+      {"outcomeId":"50","weight":10,"value":0},
+      {"outcomeId":"250","weight":1,"value":0}
+     ]
+    },
+    {
+     "nodeType": "draw",
+     "id": "land-9",
+     "label": "Does a coin land on cell 9?",
+     "stateWriteKey": "landed9",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}},
+     "drawWeights": [{"outcomeId":"1","weight":85,"value":0},{"outcomeId":"0","weight":915,"value":0}]
+    },
+    {
+     "nodeType": "draw",
+     "id": "prize-9",
+     "label": "Draw the prize it would carry",
+     "stateWriteKey": "prize9",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}},
+     "drawWeights": [
+      {"outcomeId":"1","weight":6500,"value":0},
+      {"outcomeId":"2","weight":2000,"value":0},
+      {"outcomeId":"3","weight":800,"value":0},
+      {"outcomeId":"5","weight":400,"value":0},
+      {"outcomeId":"7","weight":200,"value":0},
+      {"outcomeId":"10","weight":100,"value":0},
+      {"outcomeId":"50","weight":10,"value":0},
+      {"outcomeId":"250","weight":1,"value":0}
+     ]
+    },
+    {
+     "nodeType": "draw",
+     "id": "land-10",
+     "label": "Does a coin land on cell 10?",
+     "stateWriteKey": "landed10",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}},
+     "drawWeights": [{"outcomeId":"1","weight":85,"value":0},{"outcomeId":"0","weight":915,"value":0}]
+    },
+    {
+     "nodeType": "draw",
+     "id": "prize-10",
+     "label": "Draw the prize it would carry",
+     "stateWriteKey": "prize10",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}},
+     "drawWeights": [
+      {"outcomeId":"1","weight":6500,"value":0},
+      {"outcomeId":"2","weight":2000,"value":0},
+      {"outcomeId":"3","weight":800,"value":0},
+      {"outcomeId":"5","weight":400,"value":0},
+      {"outcomeId":"7","weight":200,"value":0},
+      {"outcomeId":"10","weight":100,"value":0},
+      {"outcomeId":"50","weight":10,"value":0},
+      {"outcomeId":"250","weight":1,"value":0}
+     ]
+    },
+    {
+     "nodeType": "draw",
+     "id": "land-11",
+     "label": "Does a coin land on cell 11?",
+     "stateWriteKey": "landed11",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}},
+     "drawWeights": [{"outcomeId":"1","weight":85,"value":0},{"outcomeId":"0","weight":915,"value":0}]
+    },
+    {
+     "nodeType": "draw",
+     "id": "prize-11",
+     "label": "Draw the prize it would carry",
+     "stateWriteKey": "prize11",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}},
+     "drawWeights": [
+      {"outcomeId":"1","weight":6500,"value":0},
+      {"outcomeId":"2","weight":2000,"value":0},
+      {"outcomeId":"3","weight":800,"value":0},
+      {"outcomeId":"5","weight":400,"value":0},
+      {"outcomeId":"7","weight":200,"value":0},
+      {"outcomeId":"10","weight":100,"value":0},
+      {"outcomeId":"50","weight":10,"value":0},
+      {"outcomeId":"250","weight":1,"value":0}
+     ]
+    },
+    {
+     "nodeType": "draw",
+     "id": "land-12",
+     "label": "Does a coin land on cell 12?",
+     "stateWriteKey": "landed12",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}},
+     "drawWeights": [{"outcomeId":"1","weight":85,"value":0},{"outcomeId":"0","weight":915,"value":0}]
+    },
+    {
+     "nodeType": "draw",
+     "id": "prize-12",
+     "label": "Draw the prize it would carry",
+     "stateWriteKey": "prize12",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}},
+     "drawWeights": [
+      {"outcomeId":"1","weight":6500,"value":0},
+      {"outcomeId":"2","weight":2000,"value":0},
+      {"outcomeId":"3","weight":800,"value":0},
+      {"outcomeId":"5","weight":400,"value":0},
+      {"outcomeId":"7","weight":200,"value":0},
+      {"outcomeId":"10","weight":100,"value":0},
+      {"outcomeId":"50","weight":10,"value":0},
+      {"outcomeId":"250","weight":1,"value":0}
+     ]
+    },
+    {
+     "nodeType": "draw",
+     "id": "land-13",
+     "label": "Does a coin land on cell 13?",
+     "stateWriteKey": "landed13",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}},
+     "drawWeights": [{"outcomeId":"1","weight":85,"value":0},{"outcomeId":"0","weight":915,"value":0}]
+    },
+    {
+     "nodeType": "draw",
+     "id": "prize-13",
+     "label": "Draw the prize it would carry",
+     "stateWriteKey": "prize13",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}},
+     "drawWeights": [
+      {"outcomeId":"1","weight":6500,"value":0},
+      {"outcomeId":"2","weight":2000,"value":0},
+      {"outcomeId":"3","weight":800,"value":0},
+      {"outcomeId":"5","weight":400,"value":0},
+      {"outcomeId":"7","weight":200,"value":0},
+      {"outcomeId":"10","weight":100,"value":0},
+      {"outcomeId":"50","weight":10,"value":0},
+      {"outcomeId":"250","weight":1,"value":0}
+     ]
+    },
+    {
+     "nodeType": "draw",
+     "id": "land-14",
+     "label": "Does a coin land on cell 14?",
+     "stateWriteKey": "landed14",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}},
+     "drawWeights": [{"outcomeId":"1","weight":85,"value":0},{"outcomeId":"0","weight":915,"value":0}]
+    },
+    {
+     "nodeType": "draw",
+     "id": "prize-14",
+     "label": "Draw the prize it would carry",
+     "stateWriteKey": "prize14",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}},
+     "drawWeights": [
+      {"outcomeId":"1","weight":6500,"value":0},
+      {"outcomeId":"2","weight":2000,"value":0},
+      {"outcomeId":"3","weight":800,"value":0},
+      {"outcomeId":"5","weight":400,"value":0},
+      {"outcomeId":"7","weight":200,"value":0},
+      {"outcomeId":"10","weight":100,"value":0},
+      {"outcomeId":"50","weight":10,"value":0},
+      {"outcomeId":"250","weight":1,"value":0}
+     ]
+    },
+    {
+     "nodeType": "draw",
+     "id": "land-15",
+     "label": "Does a coin land on cell 15?",
+     "stateWriteKey": "landed15",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}},
+     "drawWeights": [{"outcomeId":"1","weight":85,"value":0},{"outcomeId":"0","weight":915,"value":0}]
+    },
+    {
+     "nodeType": "draw",
+     "id": "prize-15",
+     "label": "Draw the prize it would carry",
+     "stateWriteKey": "prize15",
      "inputs": {"state":{"name":"state","type":"State"}},
      "outputs": {"state":{"name":"state","type":"State"}},
      "drawWeights": [
@@ -911,196 +1255,6 @@
      "expressionId": "hold",
      "inputs": {"state":{"name":"state","type":"State"}},
      "outputs": {"state":{"name":"state","type":"State"}}
-    }
-   ],
-   "edges": [
-    {"id":"hit.state->prize","sourceNodeId":"hit","sourcePort":"state","targetNodeId":"prize","targetPort":"state"},
-    {"id":"prize.state->hold","sourceNodeId":"prize","sourcePort":"state","targetNodeId":"hold","targetPort":"state"}
-   ],
-   "expressions": {
-    "hold": {
-     "exprType": "map",
-     "stateKey": "coins",
-     "itemName": "item",
-     "indexName": "place",
-     "itemType": "Number",
-     "body": {
-      "exprType": "if",
-      "condition": {
-       "exprType": "compare",
-       "op": "Eq",
-       "left": {"exprType":"fieldAccess","target":"state","path":["place"]},
-       "right": {"exprType":"fieldAccess","target":"state","path":["expressions","cell"]}
-      },
-      "thenExpr": {
-       "exprType": "if",
-       "condition": {
-        "exprType": "binary",
-        "op": "And",
-        "left": {
-         "exprType": "compare",
-         "op": "Eq",
-         "left": {"exprType":"fieldAccess","target":"state","path":["landHit"]},
-         "right": {"exprType":"constant","kind":"String","value":"1"}
-        },
-        "right": {
-         "exprType": "compare",
-         "op": "Eq",
-         "left": {"exprType":"fieldAccess","target":"state","path":["item"]},
-         "right": {"exprType":"constant","kind":"Integer","value":"0"}
-        }
-       },
-       "thenExpr": {
-        "exprType": "binary",
-        "op": "Mul",
-        "left": {"exprType":"call","function":"toNumber","args":[{"exprType":"fieldAccess","target":"state","path":["coinPrize"]}]},
-        "right": {"exprType":"fieldAccess","target":"state","path":["coinStake"]}
-       },
-       "elseExpr": {"exprType":"fieldAccess","target":"state","path":["item"]}
-      },
-      "elseExpr": {"exprType":"fieldAccess","target":"state","path":["item"]}
-     }
-    }
-   }
-  },
-  "respin": {
-   "name": "respin",
-   "description": "One respin: each of the 15 cells may receive a coin, and the respins are restored or used up.",
-   "nodes": [
-    {
-     "nodeType": "library",
-     "id": "cell-1",
-     "label": "Cell 1",
-     "mechanicName": "land-coin",
-     "inputs": {"state":{"name":"state","type":"State"}},
-     "outputs": {"state":{"name":"state","type":"State"}},
-     "parameters": {"cell":"0"}
-    },
-    {
-     "nodeType": "library",
-     "id": "cell-2",
-     "label": "Cell 2",
-     "mechanicName": "land-coin",
-     "inputs": {"state":{"name":"state","type":"State"}},
-     "outputs": {"state":{"name":"state","type":"State"}},
-     "parameters": {"cell":"1"}
-    },
-    {
-     "nodeType": "library",
-     "id": "cell-3",
-     "label": "Cell 3",
-     "mechanicName": "land-coin",
-     "inputs": {"state":{"name":"state","type":"State"}},
-     "outputs": {"state":{"name":"state","type":"State"}},
-     "parameters": {"cell":"2"}
-    },
-    {
-     "nodeType": "library",
-     "id": "cell-4",
-     "label": "Cell 4",
-     "mechanicName": "land-coin",
-     "inputs": {"state":{"name":"state","type":"State"}},
-     "outputs": {"state":{"name":"state","type":"State"}},
-     "parameters": {"cell":"3"}
-    },
-    {
-     "nodeType": "library",
-     "id": "cell-5",
-     "label": "Cell 5",
-     "mechanicName": "land-coin",
-     "inputs": {"state":{"name":"state","type":"State"}},
-     "outputs": {"state":{"name":"state","type":"State"}},
-     "parameters": {"cell":"4"}
-    },
-    {
-     "nodeType": "library",
-     "id": "cell-6",
-     "label": "Cell 6",
-     "mechanicName": "land-coin",
-     "inputs": {"state":{"name":"state","type":"State"}},
-     "outputs": {"state":{"name":"state","type":"State"}},
-     "parameters": {"cell":"5"}
-    },
-    {
-     "nodeType": "library",
-     "id": "cell-7",
-     "label": "Cell 7",
-     "mechanicName": "land-coin",
-     "inputs": {"state":{"name":"state","type":"State"}},
-     "outputs": {"state":{"name":"state","type":"State"}},
-     "parameters": {"cell":"6"}
-    },
-    {
-     "nodeType": "library",
-     "id": "cell-8",
-     "label": "Cell 8",
-     "mechanicName": "land-coin",
-     "inputs": {"state":{"name":"state","type":"State"}},
-     "outputs": {"state":{"name":"state","type":"State"}},
-     "parameters": {"cell":"7"}
-    },
-    {
-     "nodeType": "library",
-     "id": "cell-9",
-     "label": "Cell 9",
-     "mechanicName": "land-coin",
-     "inputs": {"state":{"name":"state","type":"State"}},
-     "outputs": {"state":{"name":"state","type":"State"}},
-     "parameters": {"cell":"8"}
-    },
-    {
-     "nodeType": "library",
-     "id": "cell-10",
-     "label": "Cell 10",
-     "mechanicName": "land-coin",
-     "inputs": {"state":{"name":"state","type":"State"}},
-     "outputs": {"state":{"name":"state","type":"State"}},
-     "parameters": {"cell":"9"}
-    },
-    {
-     "nodeType": "library",
-     "id": "cell-11",
-     "label": "Cell 11",
-     "mechanicName": "land-coin",
-     "inputs": {"state":{"name":"state","type":"State"}},
-     "outputs": {"state":{"name":"state","type":"State"}},
-     "parameters": {"cell":"10"}
-    },
-    {
-     "nodeType": "library",
-     "id": "cell-12",
-     "label": "Cell 12",
-     "mechanicName": "land-coin",
-     "inputs": {"state":{"name":"state","type":"State"}},
-     "outputs": {"state":{"name":"state","type":"State"}},
-     "parameters": {"cell":"11"}
-    },
-    {
-     "nodeType": "library",
-     "id": "cell-13",
-     "label": "Cell 13",
-     "mechanicName": "land-coin",
-     "inputs": {"state":{"name":"state","type":"State"}},
-     "outputs": {"state":{"name":"state","type":"State"}},
-     "parameters": {"cell":"12"}
-    },
-    {
-     "nodeType": "library",
-     "id": "cell-14",
-     "label": "Cell 14",
-     "mechanicName": "land-coin",
-     "inputs": {"state":{"name":"state","type":"State"}},
-     "outputs": {"state":{"name":"state","type":"State"}},
-     "parameters": {"cell":"13"}
-    },
-    {
-     "nodeType": "library",
-     "id": "cell-15",
-     "label": "Cell 15",
-     "mechanicName": "land-coin",
-     "inputs": {"state":{"name":"state","type":"State"}},
-     "outputs": {"state":{"name":"state","type":"State"}},
-     "parameters": {"cell":"14"}
     },
     {
      "nodeType": "modifyState",
@@ -1167,21 +1321,37 @@
     }
    ],
    "edges": [
-    {"id":"cell-1.state->cell-2","sourceNodeId":"cell-1","sourcePort":"state","targetNodeId":"cell-2","targetPort":"state"},
-    {"id":"cell-2.state->cell-3","sourceNodeId":"cell-2","sourcePort":"state","targetNodeId":"cell-3","targetPort":"state"},
-    {"id":"cell-3.state->cell-4","sourceNodeId":"cell-3","sourcePort":"state","targetNodeId":"cell-4","targetPort":"state"},
-    {"id":"cell-4.state->cell-5","sourceNodeId":"cell-4","sourcePort":"state","targetNodeId":"cell-5","targetPort":"state"},
-    {"id":"cell-5.state->cell-6","sourceNodeId":"cell-5","sourcePort":"state","targetNodeId":"cell-6","targetPort":"state"},
-    {"id":"cell-6.state->cell-7","sourceNodeId":"cell-6","sourcePort":"state","targetNodeId":"cell-7","targetPort":"state"},
-    {"id":"cell-7.state->cell-8","sourceNodeId":"cell-7","sourcePort":"state","targetNodeId":"cell-8","targetPort":"state"},
-    {"id":"cell-8.state->cell-9","sourceNodeId":"cell-8","sourcePort":"state","targetNodeId":"cell-9","targetPort":"state"},
-    {"id":"cell-9.state->cell-10","sourceNodeId":"cell-9","sourcePort":"state","targetNodeId":"cell-10","targetPort":"state"},
-    {"id":"cell-10.state->cell-11","sourceNodeId":"cell-10","sourcePort":"state","targetNodeId":"cell-11","targetPort":"state"},
-    {"id":"cell-11.state->cell-12","sourceNodeId":"cell-11","sourcePort":"state","targetNodeId":"cell-12","targetPort":"state"},
-    {"id":"cell-12.state->cell-13","sourceNodeId":"cell-12","sourcePort":"state","targetNodeId":"cell-13","targetPort":"state"},
-    {"id":"cell-13.state->cell-14","sourceNodeId":"cell-13","sourcePort":"state","targetNodeId":"cell-14","targetPort":"state"},
-    {"id":"cell-14.state->cell-15","sourceNodeId":"cell-14","sourcePort":"state","targetNodeId":"cell-15","targetPort":"state"},
-    {"id":"cell-15.state->respins","sourceNodeId":"cell-15","sourcePort":"state","targetNodeId":"respins","targetPort":"state"},
+    {"id":"land-1.state->prize-1","sourceNodeId":"land-1","sourcePort":"state","targetNodeId":"prize-1","targetPort":"state"},
+    {"id":"prize-1.state->land-2","sourceNodeId":"prize-1","sourcePort":"state","targetNodeId":"land-2","targetPort":"state"},
+    {"id":"land-2.state->prize-2","sourceNodeId":"land-2","sourcePort":"state","targetNodeId":"prize-2","targetPort":"state"},
+    {"id":"prize-2.state->land-3","sourceNodeId":"prize-2","sourcePort":"state","targetNodeId":"land-3","targetPort":"state"},
+    {"id":"land-3.state->prize-3","sourceNodeId":"land-3","sourcePort":"state","targetNodeId":"prize-3","targetPort":"state"},
+    {"id":"prize-3.state->land-4","sourceNodeId":"prize-3","sourcePort":"state","targetNodeId":"land-4","targetPort":"state"},
+    {"id":"land-4.state->prize-4","sourceNodeId":"land-4","sourcePort":"state","targetNodeId":"prize-4","targetPort":"state"},
+    {"id":"prize-4.state->land-5","sourceNodeId":"prize-4","sourcePort":"state","targetNodeId":"land-5","targetPort":"state"},
+    {"id":"land-5.state->prize-5","sourceNodeId":"land-5","sourcePort":"state","targetNodeId":"prize-5","targetPort":"state"},
+    {"id":"prize-5.state->land-6","sourceNodeId":"prize-5","sourcePort":"state","targetNodeId":"land-6","targetPort":"state"},
+    {"id":"land-6.state->prize-6","sourceNodeId":"land-6","sourcePort":"state","targetNodeId":"prize-6","targetPort":"state"},
+    {"id":"prize-6.state->land-7","sourceNodeId":"prize-6","sourcePort":"state","targetNodeId":"land-7","targetPort":"state"},
+    {"id":"land-7.state->prize-7","sourceNodeId":"land-7","sourcePort":"state","targetNodeId":"prize-7","targetPort":"state"},
+    {"id":"prize-7.state->land-8","sourceNodeId":"prize-7","sourcePort":"state","targetNodeId":"land-8","targetPort":"state"},
+    {"id":"land-8.state->prize-8","sourceNodeId":"land-8","sourcePort":"state","targetNodeId":"prize-8","targetPort":"state"},
+    {"id":"prize-8.state->land-9","sourceNodeId":"prize-8","sourcePort":"state","targetNodeId":"land-9","targetPort":"state"},
+    {"id":"land-9.state->prize-9","sourceNodeId":"land-9","sourcePort":"state","targetNodeId":"prize-9","targetPort":"state"},
+    {"id":"prize-9.state->land-10","sourceNodeId":"prize-9","sourcePort":"state","targetNodeId":"land-10","targetPort":"state"},
+    {"id":"land-10.state->prize-10","sourceNodeId":"land-10","sourcePort":"state","targetNodeId":"prize-10","targetPort":"state"},
+    {"id":"prize-10.state->land-11","sourceNodeId":"prize-10","sourcePort":"state","targetNodeId":"land-11","targetPort":"state"},
+    {"id":"land-11.state->prize-11","sourceNodeId":"land-11","sourcePort":"state","targetNodeId":"prize-11","targetPort":"state"},
+    {"id":"prize-11.state->land-12","sourceNodeId":"prize-11","sourcePort":"state","targetNodeId":"land-12","targetPort":"state"},
+    {"id":"land-12.state->prize-12","sourceNodeId":"land-12","sourcePort":"state","targetNodeId":"prize-12","targetPort":"state"},
+    {"id":"prize-12.state->land-13","sourceNodeId":"prize-12","sourcePort":"state","targetNodeId":"land-13","targetPort":"state"},
+    {"id":"land-13.state->prize-13","sourceNodeId":"land-13","sourcePort":"state","targetNodeId":"prize-13","targetPort":"state"},
+    {"id":"prize-13.state->land-14","sourceNodeId":"prize-13","sourcePort":"state","targetNodeId":"land-14","targetPort":"state"},
+    {"id":"land-14.state->prize-14","sourceNodeId":"land-14","sourcePort":"state","targetNodeId":"prize-14","targetPort":"state"},
+    {"id":"prize-14.state->land-15","sourceNodeId":"prize-14","sourcePort":"state","targetNodeId":"land-15","targetPort":"state"},
+    {"id":"land-15.state->prize-15","sourceNodeId":"land-15","sourcePort":"state","targetNodeId":"prize-15","targetPort":"state"},
+    {"id":"prize-15.state->hold","sourceNodeId":"prize-15","sourcePort":"state","targetNodeId":"hold","targetPort":"state"},
+    {"id":"hold.state->respins","sourceNodeId":"hold","sourcePort":"state","targetNodeId":"respins","targetPort":"state"},
     {"id":"respins.state->count","sourceNodeId":"respins","sourcePort":"state","targetNodeId":"count","targetPort":"state"},
     {"id":"count.state->trace-event","sourceNodeId":"count","sourcePort":"state","targetNodeId":"trace-event","targetPort":"state"},
     {
@@ -1208,6 +1378,325 @@
     {"id":"trace-respins.state->after","sourceNodeId":"trace-respins","sourcePort":"state","targetNodeId":"after","targetPort":"state"}
    ],
    "expressions": {
+    "hold": {
+     "exprType": "map",
+     "stateKey": "coins",
+     "itemName": "item",
+     "indexName": "place",
+     "itemType": "Number",
+     "body": {
+      "exprType": "if",
+      "condition": {
+       "exprType": "binary",
+       "op": "And",
+       "left": {
+        "exprType": "compare",
+        "op": "Eq",
+        "left": {
+         "exprType": "if",
+         "condition": {
+          "exprType": "compare",
+          "op": "Lt",
+          "left": {"exprType":"fieldAccess","target":"state","path":["place"]},
+          "right": {"exprType":"constant","kind":"Integer","value":"7"}
+         },
+         "thenExpr": {
+          "exprType": "if",
+          "condition": {
+           "exprType": "compare",
+           "op": "Lt",
+           "left": {"exprType":"fieldAccess","target":"state","path":["place"]},
+           "right": {"exprType":"constant","kind":"Integer","value":"3"}
+          },
+          "thenExpr": {
+           "exprType": "if",
+           "condition": {
+            "exprType": "compare",
+            "op": "Lt",
+            "left": {"exprType":"fieldAccess","target":"state","path":["place"]},
+            "right": {"exprType":"constant","kind":"Integer","value":"1"}
+           },
+           "thenExpr": {"exprType":"fieldAccess","target":"state","path":["landed1"]},
+           "elseExpr": {
+            "exprType": "if",
+            "condition": {
+             "exprType": "compare",
+             "op": "Lt",
+             "left": {"exprType":"fieldAccess","target":"state","path":["place"]},
+             "right": {"exprType":"constant","kind":"Integer","value":"2"}
+            },
+            "thenExpr": {"exprType":"fieldAccess","target":"state","path":["landed2"]},
+            "elseExpr": {"exprType":"fieldAccess","target":"state","path":["landed3"]}
+           }
+          },
+          "elseExpr": {
+           "exprType": "if",
+           "condition": {
+            "exprType": "compare",
+            "op": "Lt",
+            "left": {"exprType":"fieldAccess","target":"state","path":["place"]},
+            "right": {"exprType":"constant","kind":"Integer","value":"5"}
+           },
+           "thenExpr": {
+            "exprType": "if",
+            "condition": {
+             "exprType": "compare",
+             "op": "Lt",
+             "left": {"exprType":"fieldAccess","target":"state","path":["place"]},
+             "right": {"exprType":"constant","kind":"Integer","value":"4"}
+            },
+            "thenExpr": {"exprType":"fieldAccess","target":"state","path":["landed4"]},
+            "elseExpr": {"exprType":"fieldAccess","target":"state","path":["landed5"]}
+           },
+           "elseExpr": {
+            "exprType": "if",
+            "condition": {
+             "exprType": "compare",
+             "op": "Lt",
+             "left": {"exprType":"fieldAccess","target":"state","path":["place"]},
+             "right": {"exprType":"constant","kind":"Integer","value":"6"}
+            },
+            "thenExpr": {"exprType":"fieldAccess","target":"state","path":["landed6"]},
+            "elseExpr": {"exprType":"fieldAccess","target":"state","path":["landed7"]}
+           }
+          }
+         },
+         "elseExpr": {
+          "exprType": "if",
+          "condition": {
+           "exprType": "compare",
+           "op": "Lt",
+           "left": {"exprType":"fieldAccess","target":"state","path":["place"]},
+           "right": {"exprType":"constant","kind":"Integer","value":"11"}
+          },
+          "thenExpr": {
+           "exprType": "if",
+           "condition": {
+            "exprType": "compare",
+            "op": "Lt",
+            "left": {"exprType":"fieldAccess","target":"state","path":["place"]},
+            "right": {"exprType":"constant","kind":"Integer","value":"9"}
+           },
+           "thenExpr": {
+            "exprType": "if",
+            "condition": {
+             "exprType": "compare",
+             "op": "Lt",
+             "left": {"exprType":"fieldAccess","target":"state","path":["place"]},
+             "right": {"exprType":"constant","kind":"Integer","value":"8"}
+            },
+            "thenExpr": {"exprType":"fieldAccess","target":"state","path":["landed8"]},
+            "elseExpr": {"exprType":"fieldAccess","target":"state","path":["landed9"]}
+           },
+           "elseExpr": {
+            "exprType": "if",
+            "condition": {
+             "exprType": "compare",
+             "op": "Lt",
+             "left": {"exprType":"fieldAccess","target":"state","path":["place"]},
+             "right": {"exprType":"constant","kind":"Integer","value":"10"}
+            },
+            "thenExpr": {"exprType":"fieldAccess","target":"state","path":["landed10"]},
+            "elseExpr": {"exprType":"fieldAccess","target":"state","path":["landed11"]}
+           }
+          },
+          "elseExpr": {
+           "exprType": "if",
+           "condition": {
+            "exprType": "compare",
+            "op": "Lt",
+            "left": {"exprType":"fieldAccess","target":"state","path":["place"]},
+            "right": {"exprType":"constant","kind":"Integer","value":"13"}
+           },
+           "thenExpr": {
+            "exprType": "if",
+            "condition": {
+             "exprType": "compare",
+             "op": "Lt",
+             "left": {"exprType":"fieldAccess","target":"state","path":["place"]},
+             "right": {"exprType":"constant","kind":"Integer","value":"12"}
+            },
+            "thenExpr": {"exprType":"fieldAccess","target":"state","path":["landed12"]},
+            "elseExpr": {"exprType":"fieldAccess","target":"state","path":["landed13"]}
+           },
+           "elseExpr": {
+            "exprType": "if",
+            "condition": {
+             "exprType": "compare",
+             "op": "Lt",
+             "left": {"exprType":"fieldAccess","target":"state","path":["place"]},
+             "right": {"exprType":"constant","kind":"Integer","value":"14"}
+            },
+            "thenExpr": {"exprType":"fieldAccess","target":"state","path":["landed14"]},
+            "elseExpr": {"exprType":"fieldAccess","target":"state","path":["landed15"]}
+           }
+          }
+         }
+        },
+        "right": {"exprType":"constant","kind":"String","value":"1"}
+       },
+       "right": {
+        "exprType": "compare",
+        "op": "Eq",
+        "left": {"exprType":"fieldAccess","target":"state","path":["item"]},
+        "right": {"exprType":"constant","kind":"Integer","value":"0"}
+       }
+      },
+      "thenExpr": {
+       "exprType": "binary",
+       "op": "Mul",
+       "left": {
+        "exprType": "call",
+        "function": "toNumber",
+        "args": [
+         {
+          "exprType": "if",
+          "condition": {
+           "exprType": "compare",
+           "op": "Lt",
+           "left": {"exprType":"fieldAccess","target":"state","path":["place"]},
+           "right": {"exprType":"constant","kind":"Integer","value":"7"}
+          },
+          "thenExpr": {
+           "exprType": "if",
+           "condition": {
+            "exprType": "compare",
+            "op": "Lt",
+            "left": {"exprType":"fieldAccess","target":"state","path":["place"]},
+            "right": {"exprType":"constant","kind":"Integer","value":"3"}
+           },
+           "thenExpr": {
+            "exprType": "if",
+            "condition": {
+             "exprType": "compare",
+             "op": "Lt",
+             "left": {"exprType":"fieldAccess","target":"state","path":["place"]},
+             "right": {"exprType":"constant","kind":"Integer","value":"1"}
+            },
+            "thenExpr": {"exprType":"fieldAccess","target":"state","path":["prize1"]},
+            "elseExpr": {
+             "exprType": "if",
+             "condition": {
+              "exprType": "compare",
+              "op": "Lt",
+              "left": {"exprType":"fieldAccess","target":"state","path":["place"]},
+              "right": {"exprType":"constant","kind":"Integer","value":"2"}
+             },
+             "thenExpr": {"exprType":"fieldAccess","target":"state","path":["prize2"]},
+             "elseExpr": {"exprType":"fieldAccess","target":"state","path":["prize3"]}
+            }
+           },
+           "elseExpr": {
+            "exprType": "if",
+            "condition": {
+             "exprType": "compare",
+             "op": "Lt",
+             "left": {"exprType":"fieldAccess","target":"state","path":["place"]},
+             "right": {"exprType":"constant","kind":"Integer","value":"5"}
+            },
+            "thenExpr": {
+             "exprType": "if",
+             "condition": {
+              "exprType": "compare",
+              "op": "Lt",
+              "left": {"exprType":"fieldAccess","target":"state","path":["place"]},
+              "right": {"exprType":"constant","kind":"Integer","value":"4"}
+             },
+             "thenExpr": {"exprType":"fieldAccess","target":"state","path":["prize4"]},
+             "elseExpr": {"exprType":"fieldAccess","target":"state","path":["prize5"]}
+            },
+            "elseExpr": {
+             "exprType": "if",
+             "condition": {
+              "exprType": "compare",
+              "op": "Lt",
+              "left": {"exprType":"fieldAccess","target":"state","path":["place"]},
+              "right": {"exprType":"constant","kind":"Integer","value":"6"}
+             },
+             "thenExpr": {"exprType":"fieldAccess","target":"state","path":["prize6"]},
+             "elseExpr": {"exprType":"fieldAccess","target":"state","path":["prize7"]}
+            }
+           }
+          },
+          "elseExpr": {
+           "exprType": "if",
+           "condition": {
+            "exprType": "compare",
+            "op": "Lt",
+            "left": {"exprType":"fieldAccess","target":"state","path":["place"]},
+            "right": {"exprType":"constant","kind":"Integer","value":"11"}
+           },
+           "thenExpr": {
+            "exprType": "if",
+            "condition": {
+             "exprType": "compare",
+             "op": "Lt",
+             "left": {"exprType":"fieldAccess","target":"state","path":["place"]},
+             "right": {"exprType":"constant","kind":"Integer","value":"9"}
+            },
+            "thenExpr": {
+             "exprType": "if",
+             "condition": {
+              "exprType": "compare",
+              "op": "Lt",
+              "left": {"exprType":"fieldAccess","target":"state","path":["place"]},
+              "right": {"exprType":"constant","kind":"Integer","value":"8"}
+             },
+             "thenExpr": {"exprType":"fieldAccess","target":"state","path":["prize8"]},
+             "elseExpr": {"exprType":"fieldAccess","target":"state","path":["prize9"]}
+            },
+            "elseExpr": {
+             "exprType": "if",
+             "condition": {
+              "exprType": "compare",
+              "op": "Lt",
+              "left": {"exprType":"fieldAccess","target":"state","path":["place"]},
+              "right": {"exprType":"constant","kind":"Integer","value":"10"}
+             },
+             "thenExpr": {"exprType":"fieldAccess","target":"state","path":["prize10"]},
+             "elseExpr": {"exprType":"fieldAccess","target":"state","path":["prize11"]}
+            }
+           },
+           "elseExpr": {
+            "exprType": "if",
+            "condition": {
+             "exprType": "compare",
+             "op": "Lt",
+             "left": {"exprType":"fieldAccess","target":"state","path":["place"]},
+             "right": {"exprType":"constant","kind":"Integer","value":"13"}
+            },
+            "thenExpr": {
+             "exprType": "if",
+             "condition": {
+              "exprType": "compare",
+              "op": "Lt",
+              "left": {"exprType":"fieldAccess","target":"state","path":["place"]},
+              "right": {"exprType":"constant","kind":"Integer","value":"12"}
+             },
+             "thenExpr": {"exprType":"fieldAccess","target":"state","path":["prize12"]},
+             "elseExpr": {"exprType":"fieldAccess","target":"state","path":["prize13"]}
+            },
+            "elseExpr": {
+             "exprType": "if",
+             "condition": {
+              "exprType": "compare",
+              "op": "Lt",
+              "left": {"exprType":"fieldAccess","target":"state","path":["place"]},
+              "right": {"exprType":"constant","kind":"Integer","value":"14"}
+             },
+             "thenExpr": {"exprType":"fieldAccess","target":"state","path":["prize14"]},
+             "elseExpr": {"exprType":"fieldAccess","target":"state","path":["prize15"]}
+            }
+           }
+          }
+         }
+        ]
+       },
+       "right": {"exprType":"fieldAccess","target":"state","path":["coinStake"]}
+      },
+      "elseExpr": {"exprType":"fieldAccess","target":"state","path":["item"]}
+     }
+    },
     "respins": {
      "exprType": "if",
      "condition": {

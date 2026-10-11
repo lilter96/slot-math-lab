@@ -96,7 +96,10 @@ public class AncientDragonGraphTests(ITestOutputHelper output)
     public void SmallGame_EveryExactInterpreterGivesTheSameRationals()
     {
         GameGraph game = Small.Value;
-        SlotMathReport classic = game.Enumerate();
+        // Within its branch budget the hybrid evaluator is the classic interpreter: every outcome is visited.
+        RegimeResult hybrid = game.Hybrid(2_000_000, 10_000, Seed);
+        Assert.Equal(EvaluationStrategy.Exact, hybrid.OverallStrategy);
+        SlotMathReport classic = hybrid.Report;
         Assert.Equal(Provenance.Exact, classic.Rtp.Provenance.Provenance);
         Rational rtp = GameGraph.Exact(classic.Rtp);
         Assert.Equal(SmallRtp, rtp);
@@ -107,10 +110,6 @@ public class AncientDragonGraphTests(ITestOutputHelper output)
         Assert.True(structured.PrunedMass.IsZero);
         Assert.Equal(rtp, GameGraph.Exact(structured.Rtp(game.WinScale)));
         Assert.Equal(new Rational(15, 16), structured.HitFrequency);
-
-        RegimeResult hybrid = game.Hybrid(2_000_000, 10_000, Seed);
-        Assert.Equal(EvaluationStrategy.Exact, hybrid.OverallStrategy);
-        Assert.Equal(rtp, GameGraph.Exact(hybrid.Report.Rtp));
 
         // Pruning drops, at every draw, the branches rarer than epsilon and has to say how much it dropped. Only the
         // rare mystery symbol (1 in 10) is rarer than 1 in 5, and it is dropped on every spin that is reached: the
@@ -125,15 +124,13 @@ public class AncientDragonGraphTests(ITestOutputHelper output)
         Assert.True(enclosure.Lo < rtp.ToDouble() && rtp.ToDouble() < enclosure.Hi);
     }
 
-    [Theory]
-    [InlineData(true)]
-    [InlineData(false)]
-    public void SmallGame_SamplingAgreesWithTheExactValue_AndRejectsItShiftedByOnePercent(bool compiledTier)
+    [Fact]
+    public void SmallGame_SamplingAgreesWithTheExactValue_AndRejectsItShiftedByOnePercent()
     {
         const long rounds = 500_000;
         GameGraph game = Small.Value;
         var exact = SmallRtp.ToDouble();
-        SampledResult<Dict> sampled = game.Sample(rounds, Seed, 4, compiledTier);
+        SampledResult<Dict> sampled = game.Sample(rounds, Seed);
         Assert.Equal(rounds, sampled.SpinsCompleted);
         output.WriteLine($"exact {exact} sampled {sampled.Stats.Mean} ± {sampled.Stats.StdErr}");
         Assert.True(FourSigma.Accepts(exact, sampled.Stats.Mean, sampled.Stats.StdErr));
@@ -191,23 +188,14 @@ public class AncientDragonGraphTests(ITestOutputHelper output)
     {
         const long rounds = 300_000;
         GameGraph game = Full.Value;
-        SampledResult<Dict> one = game.Sample(rounds, Seed, 1);
-        SampledResult<Dict> eight = game.Sample(rounds, Seed, 8);
-        SampledResult<Dict> reference = game.Sample(rounds, Seed, 4, false);
-        foreach (SampledResult<Dict> other in new[] { eight, reference })
-        {
-            Assert.Equal(one.Stats.Mean, other.Stats.Mean);
-            Assert.Equal(one.Stats.Variance, other.Stats.Variance);
-            Assert.Equal(one.Stats.NonZeroCount, other.Stats.NonZeroCount);
-            Assert.Equal(one.Stats.MaxObserved, other.Stats.MaxObserved);
-        }
+        game.AssertSamplingIsBitIdentical(rounds, Seed);
     }
 
     // Beyond its branch budget the hybrid evaluator has to fall back to sampling and say so in the provenance.
     [Fact]
     public void FullGame_Hybrid_FallsBackToSampling_AndSaysSo()
     {
-        RegimeResult hybrid = Full.Value.Hybrid(100_000, 500_000, Seed);
+        RegimeResult hybrid = Full.Value.Hybrid(GameGraph.FallbackBranches, 500_000, Seed);
         Assert.Equal(EvaluationStrategy.Sampled, hybrid.OverallStrategy);
         Assert.Equal(Provenance.Sampled, hybrid.Report.Rtp.Provenance.Provenance);
         Assert.Equal(500_000, hybrid.Report.Rtp.SampleCount);

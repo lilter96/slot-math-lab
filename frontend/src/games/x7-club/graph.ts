@@ -56,8 +56,8 @@ export function createX7ClubGraph(model: X7ClubModel = fullModel,
       .use('bonus', 'Hold & Spin', bonus);
   else
     root.use('spin', `Paid spin · ${CELLS} cells, ${model.paylines.length} lines`, mechanics.add(new Flow()
-      .use('cells', 'Every cell shows a symbol', mechanics.add(spinCells(mechanics, board)))
-      .use('prizes', `Every ${model.symbols.coin} carries a prize`, mechanics.add(coinPrizes(mechanics, { cells: CELLS, symbol: COIN, prizes })))
+      .use('cells', 'Every cell shows a symbol', mechanics.add(spinCells(board)))
+      .use('prizes', `Every ${model.symbols.coin} carries a prize`, mechanics.add(coinPrizes({ cells: CELLS, symbol: COIN, prizes })))
       .use('lines', 'Pay the lines', mechanics.add(paylines(mechanics, model.paylines, ROWS)))
       .record('trace-board', 'Remember the board', 'spinBoards', state('board'))
       .record('trace-coins', 'Remember the coins', 'spinCoins', state('coins'))
@@ -73,7 +73,7 @@ export function createX7ClubGraph(model: X7ClubModel = fullModel,
     root, mechanics,
     initialState: {
       totalBet: TOTAL_BET, roundCost: ROUND_COST, winCredits: 0, holdTrigger: model.hold.trigger,
-      ...coinState(CELLS, TOTAL_BET), ...holdAndSpinState(), ...columnBoostState(boost),
+      ...coinState(CELLS, TOTAL_BET), ...holdAndSpinState(CELLS), ...columnBoostState(boost),
       ...(buy ? { boughtCoins } : { spinBoards: [], spinCoins: [], ...cellState(board), ...paylineState(WILD, linePayTable({ symbolCount: names.length, wild: WILD, pays, reels: COLUMNS })) }),
     },
     tables: gameTables({

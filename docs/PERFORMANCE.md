@@ -6,6 +6,12 @@ Union, Intersect, Except, Shift, Count and First. The compiler optimizes generic
 expressions, storage and control flow; game names, mechanic identifiers and
 authored graph patterns do not select kernel implementations.
 
+The original `TestData/LabDemo/lab-demo.json` measurements below and the ported
+`TestData/Games/nine-lives.json` shared-subgraph model are different workloads.
+The shared graph measured 2.49–2.53M complete paid rounds/s through the Release
+UI in three 100M-round runs on eight workers. Its separate evidence is recorded in
+[TGSlots optimization evidence](verification/TGSLOTS_OPTIMIZATION.md).
+
 Exact results for games too large to enumerate come from a separate evaluator,
 described under [Structured exact evaluation](#structured-exact-evaluation).
 
@@ -284,6 +290,23 @@ dotnet backend/SlotMath.Benchmarks/bin/Release/net10.0/SlotMath.Benchmarks.dll \
   --warmup 2000000 --rounds 10000000 --repeats 3 --workers 8 --live \
   --report /tmp/nine-lives-performance-eight-workers.json
 ```
+
+For the shared graph port, select **Ready subgraphs → Open Nine Lives model** in
+Build, then Simulate with eight workers. The corresponding standalone command is:
+
+```sh
+dotnet backend/SlotMath.Benchmarks/bin/Release/net10.0/SlotMath.Benchmarks.dll \
+  --graph backend/SlotMath.Core.Tests/TestData/Games/nine-lives.json \
+  --warmup 2000000 --rounds 100000000 --repeats 3 --workers 8 --live \
+  --report /tmp/tgslots-nine-lives-performance.json
+```
+
+Its exported model hash is
+`32d8a2b32e09c55e97cb14d2bd613c619f45d1331822d5553eb0c484bc471b6c`.
+The comparison between old and table-driven settling in
+[TGSLOTS_OPTIMIZATION.md](verification/TGSLOTS_OPTIMIZATION.md) uses five million
+rounds per observation. The standalone timing excludes HTTP, queueing and SignalR;
+use a Release API run to verify the full application path.
 
 For the per-worker observation, use `--workers 1 --rounds 1000000`.
 Record the model hash, runtime, warmup, worker count and host load with the

@@ -186,6 +186,7 @@ export interface MechanicsSyncState {
 // ── Store ──────────────────────────────────────────────────────────
 
 export interface AppState extends GraphState, MechanicsState, PluginsState, MechanicsSyncState {
+  authoringDraft: Pick<AppState, 'nodes' | 'edges' | 'tables' | 'graphTrail' | 'verificationSource' | 'configName' | 'selectedNodeId'> | null;
   resultsDraft: Pick<AppState, 'nodes' | 'edges' | 'tables' | 'graphTrail' | 'verificationSource' | 'configName'> | null;
   graphTrail: { graph: Record<string, unknown>; mechanic: string }[];
   verificationSource: Record<string, unknown> | null;
@@ -209,6 +210,7 @@ export const MOOD_HUE: Record<Mood, number> = {
 };
 
 export const useAppStore = create<AppState>((set, get) => ({
+  authoringDraft: null,
   resultsDraft: null,
   graphTrail: [],
   verificationSource: null,

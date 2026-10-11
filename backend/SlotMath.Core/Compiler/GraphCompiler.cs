@@ -61,9 +61,11 @@ public sealed class GraphCompiler
         yield return new MeasurementField(string.Join('.', path), field.Type.ToString(), path);
         // Offer record leaves without inventing indices into variable-length arrays.
         foreach (FieldDescriptor child in field.RecordFields)
-        foreach (MeasurementField nested in MeasurementFields(child, [.. path, child.Name]))
         {
-            yield return nested;
+            foreach (MeasurementField nested in MeasurementFields(child, [.. path, child.Name]))
+            {
+                yield return nested;
+            }
         }
     }
 
@@ -76,7 +78,10 @@ public sealed class GraphCompiler
         // LibraryNode references resolve to the standard catalog without
         // requiring callers to manually supply the built-in subgraphs.
         Dictionary<string, CustomMechanic> mergedMechanics = MechanicCatalog.Default.Merge(config.Mechanics);
-        config = config with { Mechanics = mergedMechanics };
+        config = config with
+        {
+            Mechanics = mergedMechanics
+        };
 
         var initial = new Dictionary<string, JsonElement>();
 
@@ -91,7 +96,10 @@ public sealed class GraphCompiler
             {
                 if (mergedMechanics.TryGetValue(library.MechanicName, out CustomMechanic? mechanic))
                 {
-                    AddDefaults(graph with { Nodes = mechanic.Nodes }, depth + 1);
+                    AddDefaults(graph with
+                    {
+                        Nodes = mechanic.Nodes
+                    }, depth + 1);
                     foreach (KeyValuePair<string, JsonElement> pair in mechanic.InitialState ??
                                                                        new Dictionary<string, JsonElement>())
                     {
@@ -107,7 +115,10 @@ public sealed class GraphCompiler
             initial[pair.Key] = pair.Value;
         }
 
-        config = config with { InitialState = initial };
+        config = config with
+        {
+            InitialState = initial
+        };
 
         // Phase 0a': Static subgraph-reference check BEFORE inlining — reject
         // circular references and over-deep nesting with a precise coded error
@@ -133,7 +144,8 @@ public sealed class GraphCompiler
         {
             return CompileResult.Failure(new CompileError
             {
-                Code = ErrorCodes.PluginNotConformant, Message = "Plugin execution is disabled in this host."
+                Code = ErrorCodes.PluginNotConformant,
+                Message = "Plugin execution is disabled in this host."
             });
         }
 
@@ -201,12 +213,18 @@ public sealed class GraphCompiler
         {
             return CompileResult.Failure(new CompileError
             {
-                NodeId = ex.NodeId, Code = ex.ErrorCode, Message = ex.Message
+                NodeId = ex.NodeId,
+                Code = ex.ErrorCode,
+                Message = ex.Message
             });
         }
         catch (ExpressionEvaluationException ex)
         {
-            return CompileResult.Failure(new CompileError { Code = ex.Code, Message = ex.Message });
+            return CompileResult.Failure(new CompileError
+            {
+                Code = ex.Code,
+                Message = ex.Message
+            });
         }
     }
 
@@ -217,7 +235,11 @@ public sealed class GraphCompiler
 
         void Error(string message)
         {
-            errors.Add(new CompileError { Code = "INVALID_MEASUREMENT", Message = message });
+            errors.Add(new CompileError
+            {
+                Code = "INVALID_MEASUREMENT",
+                Message = message
+            });
         }
 
         if (definitions.Count > 32)
@@ -926,8 +948,14 @@ public sealed class GraphCompiler
                     var reason = iterations >= maxIter ? "modelLimit" :
                         node.ExitReason is null ? "condition" :
                         ExitClassification.Read(ExactExpressionEvaluator.Evaluate(node.ExitReason,
-                            new EvalContext { State = state }));
-                    return new Dictionary<string, object?>(state) { [$"__exitReason_{node.Id}__"] = reason };
+                            new EvalContext
+                            {
+                                State = state
+                            }));
+                    return new Dictionary<string, object?>(state)
+                    {
+                        [$"__exitReason_{node.Id}__"] = reason
+                    };
                 }))
                 .SelectMany(_ =>
                     new LoopCompletionSlot<Dictionary<string, object?>, object?>(node.Id, iterKey, maxIter, readWins));
@@ -1384,7 +1412,10 @@ public sealed class GraphCompiler
         private static object? EvaluateToStateObject(
             Expression expr, Dictionary<string, object?> state)
         {
-            ExprValue v = ExactExpressionEvaluator.Evaluate(expr, new EvalContext { State = state });
+            ExprValue v = ExactExpressionEvaluator.Evaluate(expr, new EvalContext
+            {
+                State = state
+            });
             return v.ToStateObject();
         }
 

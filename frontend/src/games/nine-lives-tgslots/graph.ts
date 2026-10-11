@@ -1,11 +1,12 @@
 import fullModel from './model.json' with { type: 'json' };
-import { add, and, countOver, div, eq, gte, length, lt, lte, mapOver, min, mul, num, or, state, str, sub, sumOver, when } from '../shared/graph/expr';
+import { add, and, bool, div, eq, gte, length, lt, lte, mapOver, min, mul, num, or, sizeOf, state, str, sub, sumOver, when } from '../shared/graph/expr';
 import { Flow, gameGraph, Mechanics, type Outcome } from '../shared/graph/flow';
 import { cascade, cascadeState, tumble } from '../shared/graph/mechanics/cascade';
 import { cellState, spinCells, type CellBoard } from '../shared/graph/mechanics/cells';
 import { clusterPays, clusterState, clusterTrace, type ClusterBoard } from '../shared/graph/mechanics/clusters';
 import { coinPrizes, coinState } from '../shared/graph/mechanics/hold-and-spin';
 import { gameTables } from '../shared/graph/tables';
+import { cellsShowing } from '../shared/graph/mechanics/symbol-cells';
 
 type Weights = Record<string, number>;
 export type NineLivesModel = Omit<typeof fullModel, 'cell_weights' | 'cluster_paytable'> & {
@@ -64,11 +65,17 @@ export function createNineLivesGraph(model: NineLivesModel = fullModel,
     .record('trace-multiplier', 'Remember the multiplier', 'stepMultipliers', state('stepMultiplier'))
     .record('trace-win', 'Remember what the step paid', 'stepWins', state('stepCoins'));
   for (const key of clusterTrace) payStep.record(`trace-${key}`, 'Remember the groups that paid', stepHits(key), state(key));
+  const captureScatters = mechanics.add(new Flow()
+    .onlyIf('capture', 'Count scatters only on the initial paid board', state('captureScatters'), mechanics.add(new Flow()
+      .write('count', 'Count the prepared scatter set', 'scatterCount', sizeOf(cellsShowing({ cells: CELLS, symbolCount: names.length }, SCATTER)))
+      .write('captured', 'Later cascade boards do not change the trigger', 'captureScatters', bool(false))
+      .mechanic('capture-scatters', 'Use the already prepared symbol set for the paid-spin trigger.')))
+    .mechanic('observe-initial-board', 'An observation hook after reading the board; no extra cell scan.'));
   const cascading = mechanics.add(cascade(mechanics, {
     maxSteps: model.cascade.max_steps,
-    pays: { mechanic: mechanics.add(clusterPays(mechanics, clusters)), label: 'Pay the groups on the board', coins: 'clusterCoins' },
+    pays: { mechanic: mechanics.add(clusterPays(mechanics, clusters, { mechanic: captureScatters, label: 'Observe the initial board' })), label: 'Pay the groups on the board', coins: 'clusterCoins' },
     onStep: { mechanic: mechanics.add(payStep.mechanic('pay-step', 'Pays one step of a cascade: its groups × a multiplier that grows with every step.')), label: 'Pay the step' },
-    tumble: { mechanic: mechanics.add(tumble(mechanics, { columns: COLUMNS, rows: ROWS, refill: { cells: outcomes(model.cell_weights.refill) } })), label: 'Remove what paid and fill the board' },
+    tumble: { mechanic: mechanics.add(tumble(mechanics, { columns: COLUMNS, rows: ROWS, retainSurvivors: false, refill: { cells: outcomes(model.cell_weights.refill) } })), label: 'Remove what paid and fill the board' },
   }));
   /** Adds the steps that remember a spin as it landed. */
   const rememberSpin = (flow: Flow) => flow
@@ -78,8 +85,8 @@ export function createNineLivesGraph(model: NineLivesModel = fullModel,
 
   const freeSpin = rememberSpin(new Flow()
     .write('use', 'Use up one free spin', 'freeSpins', sub(state('freeSpins'), num(1)))
-    .use('cells', 'Every cell shows a symbol', mechanics.add(spinCells(mechanics, freeCells)))
-    .use('prizes', `Every ${model.symbols.coin} carries a prize`, mechanics.add(coinPrizes(mechanics, { cells: CELLS, symbol: COIN,
+    .use('cells', 'Every cell shows a symbol', mechanics.add(spinCells(freeCells)))
+    .use('prizes', `Every ${model.symbols.coin} carries a prize`, mechanics.add(coinPrizes({ cells: CELLS, symbol: COIN,
       prizes: model.prizes.map(({ bets, weight }) => [bets, weight]) }))))
     .write('collect', `Every ${model.symbols.coin} is collected once: its prize × the multiplier of the spin`, 'collectedCoins',
       mul(sumOver('coins', state('item'), { itemType: 'Number' }), state('multiplier')))
@@ -105,9 +112,9 @@ export function createNineLivesGraph(model: NineLivesModel = fullModel,
   if (buy) root.use('bonus', `Bought bonus · ${SPINS} free spins`, freeSpins);
   else
     root.use('spin', `Paid spin · ${CELLS} cells`, mechanics.add(rememberSpin(new Flow()
-      .use('cells', 'Every cell shows a symbol', mechanics.add(spinCells(mechanics, paidCells))))
+      .use('cells', 'Every cell shows a symbol', mechanics.add(spinCells(paidCells))))
       .record('trace-collected', 'Nothing is collected in a paid spin', 'spinCollected', num(0))
-      .write('scatters', `Count the ${model.symbols.scatter}s the spin landed with`, 'scatterCount', countOver('board', eq(state('item'), str(SCATTER))))
+      .write('scatters', `Capture the initial ${model.symbols.scatter} set when the board is read`, 'captureScatters', bool(true))
       .use('cascade', 'Cascade', cascading)
       .record('trace-final', 'Remember the board the spin ends on', 'spinFinalBoards', state('board'))
       .mechanic('paid-spin', 'One paid spin: the cells are drawn and the board cascades, every step paying more than the one before.')))
@@ -122,8 +129,8 @@ export function createNineLivesGraph(model: NineLivesModel = fullModel,
     root, mechanics,
     initialState: {
       totalBet: TOTAL_BET, roundCost: ROUND_COST, capCoins: CAP_COINS, winCredits: 0, roundCoins: 0,
-      multiplier: 1, stepMultiplier: 1, stepCoins: 0, freeSpins: 0, scatterCount: 0, collectedCoins: 0,
-      ...cellState(paidCells), ...coinState(CELLS, TOTAL_BET), ...clusterState(clusters), ...cascadeState(),
+      multiplier: 1, stepMultiplier: 1, stepCoins: 0, freeSpins: 0, scatterCount: 0, captureScatters: false, collectedCoins: 0,
+      ...cellState(paidCells), ...coinState(CELLS, TOTAL_BET), ...clusterState(clusters), ...cascadeState({ columns: COLUMNS, rows: ROWS }),
       ...Object.fromEntries([...spinTrace, ...stepTrace, ...clusterTrace.map(stepHits)].map(key => [key, []])),
     },
     tables: gameTables({

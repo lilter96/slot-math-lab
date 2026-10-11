@@ -1,4 +1,4 @@
-import { add, appended, arrayOf, at, emptyArray, eq, itemAt, num, state, toNumber } from '../expr';
+import { add, arrayOf, at, choose, eq, itemAt, mapOver, num, state, sub, toNumber, type Expr } from '../expr';
 import { Flow, type Mechanic, type Mechanics } from '../flow';
 
 export interface ReelSet {
@@ -11,27 +11,35 @@ export interface ReelSet {
   rows: number;
 }
 
-/** The reel strips as state data. Each strip runs on into its own start for `rows - 1` more symbols, so a window never wraps. */
-export function reelState({ stripKey, strips, rows }: ReelSet): Record<string, string[]> {
-  return Object.fromEntries(strips.map((strip, reel) =>
-    [`${stripKey}${reel}`, Array.from({ length: strip.length + rows - 1 }, (_, place) => String(strip[place % strip.length]))]));
+/** A graph file nests at most 64 levels, and a window listed cell by cell nests one level per cell. */
+const LISTED_WINDOW = 20;
+const cellsOf = (reels: ReelSet) => reels.strips.length * reels.rows;
+const windowReels = (reels: ReelSet) => `windowReels${reels.strips.length}x${reels.rows}`;
+
+/**
+ * The reel strips as state data. Each strip runs on into its own start for `rows - 1` more symbols, so a window
+ * never wraps. A large window also keeps, for every cell, the reel it belongs to: it is read by that.
+ */
+export function reelState(reels: ReelSet): Record<string, (string | number)[]> {
+  const { stripKey, strips, rows } = reels;
+  return {
+    ...Object.fromEntries(strips.map((strip, reel) =>
+      [`${stripKey}${reel}`, Array.from({ length: strip.length + rows - 1 }, (_, place) => String(strip[place % strip.length]))])),
+    ...(cellsOf(reels) > LISTED_WINDOW ? { [windowReels(reels)]: Array.from({ length: cellsOf(reels) }, (_, cell) => Math.floor(cell / rows)) } : {}),
+  };
 }
 
-/** The symbols showing in the window, read off the strips at the drawn stops. */
-const window = (reels: ReelSet) => arrayOf(reels.strips.flatMap((_, reel) =>
-  Array.from({ length: reels.rows }, (_, row) => at(`${reels.stripKey}${reel}`, add(toNumber(state(`stop${reel}`)), num(row))))));
+/** The symbol `below` places below the stop of a reel. */
+export const reelSymbol = (reels: ReelSet, reel: number, below: Expr) => at(`${reels.stripKey}${reel}`, add(toNumber(state(`stop${reel}`)), below));
 
-/** A graph file nests at most 64 levels and a window read in one expression nests one per cell. */
-const WINDOW_IN_ONE_STEP = 20;
-
-/** Adds the steps that read the window off the strips into `board`: in one step, or reel by reel for a large board. */
+/** Adds the step that reads the window off the strips into `board`, at the drawn stops. */
 function readWindow(flow: Flow, reels: ReelSet): Flow {
-  if (reels.strips.length * reels.rows <= WINDOW_IN_ONE_STEP) return flow.write('window', 'Symbols showing in the window', 'board', window(reels));
-  flow.write('window', 'Start with an empty window', 'board', emptyArray());
-  reels.strips.forEach((_, reel) => flow.write(`window-${reel}`, `Reel ${reel + 1} shows its symbols`, 'board',
-    Array.from({ length: reels.rows }, (_, row) => at(`${reels.stripKey}${reel}`, add(toNumber(state(`stop${reel}`)), num(row))))
-      .reduce((shown, symbol) => appended(shown, symbol), state('board'))));
-  return flow;
+  const { strips, rows } = reels;
+  return flow.write('window', 'Symbols showing in the window', 'board', cellsOf(reels) <= LISTED_WINDOW
+    ? arrayOf(strips.flatMap((_, reel) => Array.from({ length: rows }, (_, row) => reelSymbol(reels, reel, num(row)))))
+    // Every cell reads its own reel, as many places below the stop as the cell lies below the top of the reel.
+    : mapOver(windowReels(reels), choose(state('item'), strips.map((_, reel) => reelSymbol(reels, reel, sub(state('place'), num(reel * rows))))),
+      { index: 'place', itemType: 'Number' }));
 }
 
 /** One reel of the set stops at a uniformly drawn position, kept in `stop<reel>`: the subgraph `paid-reels-stop-3`. */

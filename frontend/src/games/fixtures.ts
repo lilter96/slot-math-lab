@@ -3,6 +3,26 @@ import { createLeMilitareGraph, leMilitareFeatures, leMilitareModel, type LeMili
 import { createNineLivesGraph, nineLivesModel } from './nine-lives-tgslots/graph';
 import { createWoodlandWhisperGraph, woodlandWhisperModel } from './woodland-whisper/graph';
 import { createX7ClubGraph, x7ClubModel } from './x7-club/graph';
+import { createClusterStarter } from '../lib/starterLibrary';
+import { Flow, Mechanics, gameGraph } from './shared/graph/flow';
+import { cascadeState, tumble } from './shared/graph/mechanics/cascade';
+import { reelState } from './shared/graph/mechanics/reels';
+
+/** Tumble contracts: small tables, their boundary and the general tall-column composition. */
+const tumbleContract = (rows: number, useReels = false) => {
+  const columns = 3, mechanics = new Mechanics();
+  const reels = { name: 'refill', stripKey: 'strip', rows,
+    strips: Array.from({ length: columns }, (_, column) => Array.from({ length: rows + 2 }, (_, row) => String(100 + column * 20 + row))) };
+  const spec = { columns, rows, retainSurvivors: rows !== 5, carried: [{ key: 'held', label: 'held markers', fresh: -1 }],
+    refill: useReels ? { reels } : { cells: [[100, 1]] as const } };
+  return gameGraph({ id: `tumble-${rows}-${useReels ? 'reels' : 'cells'}`, name: 'Tumble contract',
+    description: 'Deterministic data for independent gravity contract checks.',
+    root: new Flow().use('fall', 'Fall and refill', mechanics.add(tumble(mechanics, spec))).sink('end', 'Payout', 'coins', 1),
+    mechanics, initialState: { coins: 0, board: Array.from({ length: columns * rows }, (_, cell) => String(cell)),
+      held: Array.from({ length: columns * rows }, (_, cell) => cell + 10), removed: 0, emptyArray: [],
+      ...cascadeState(spec), ...(useReels ? reelState(reels) : {}) },
+  });
+};
 
 /**
  * Ancient Dragon cut down to five lines, tiny reels and at most two free spins. It has few enough outcomes for
@@ -128,6 +148,10 @@ const smallLeMilitare = (feature: LeMilitareFeature) => createLeMilitareGraph({
  * frontend code: `scripts/export-game-fixtures.mjs` writes these as JSON and CI checks they are current.
  */
 export const gameFixtures: Record<string, () => Record<string, unknown>> = {
+  ...Object.fromEntries([1, 3, 5, 8, 9].map(rows => [`authoring.tumble.${rows}.cells.json`, () => tumbleContract(rows)])),
+  ...Object.fromEntries([5, 9].map(rows => [`authoring.tumble.${rows}.reels.json`, () => tumbleContract(rows, true)])),
+  'authoring.clusters.json': () => createClusterStarter(),
+  'authoring.cascade.json': () => createClusterStarter(true),
   'ancient-dragon.json': () => createAncientDragonGraph(),
   'ancient-dragon.small.json': smallAncientDragon,
   'woodland-whisper.json': () => createWoodlandWhisperGraph(),

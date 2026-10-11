@@ -62,53 +62,53 @@ internal sealed class Translator(TermFactory f)
             case ConstantExpr constant: return Constant(constant);
             case FieldAccessExpr access: return Access(access, state, bound);
             case BinaryExpr { Op: BinaryOp.And or BinaryOp.Or } logical:
+            {
+                var isOr = logical.Op == BinaryOp.Or;
+                Term left = Go(logical.Left, state, bound);
+                // A constant left operand that decides the result leaves the right one unevaluated.
+                if (left is ConstTerm { IsErr: false, Value.Kind: ExprType.Boolean } decided &&
+                    decided.Value.BoolValue == isOr)
                 {
-                    var isOr = logical.Op == BinaryOp.Or;
-                    Term left = Go(logical.Left, state, bound);
-                    // A constant left operand that decides the result leaves the right one unevaluated.
-                    if (left is ConstTerm { IsErr: false, Value.Kind: ExprType.Boolean } decided &&
-                        decided.Value.BoolValue == isOr)
-                    {
-                        return left;
-                    }
-
-                    if (left is ConstTerm { IsErr: true })
-                    {
-                        return left;
-                    }
-
-                    return f.Logic(isOr, left, Go(logical.Right, state, bound));
+                    return left;
                 }
+
+                if (left is ConstTerm { IsErr: true })
+                {
+                    return left;
+                }
+
+                return f.Logic(isOr, left, Go(logical.Right, state, bound));
+            }
             case BinaryExpr { Op: BinaryOp.Add or BinaryOp.Sub or BinaryOp.Mul or BinaryOp.Div } arithmetic:
                 return f.Arith(arithmetic.Op, Go(arithmetic.Left, state, bound), Go(arithmetic.Right, state, bound));
             case CompareExpr compare:
                 return f.Cmp(compare.Op, Go(compare.Left, state, bound), Go(compare.Right, state, bound));
             case IfExpr conditional:
+            {
+                Term condition = Go(conditional.Condition, state, bound);
+                if (condition is ConstTerm { Value.Kind: ExprType.Boolean } known)
                 {
-                    Term condition = Go(conditional.Condition, state, bound);
-                    if (condition is ConstTerm { Value.Kind: ExprType.Boolean } known)
-                    {
-                        return Go(known.Value.BoolValue ? conditional.ThenExpr : conditional.ElseExpr, state, bound);
-                    }
-
-                    if (condition is ConstTerm)
-                    {
-                        return f.If(condition, f.ZeroT, f.ZeroT);
-                    }
-
-                    return f.If(condition, Go(conditional.ThenExpr, state, bound), Go(conditional.ElseExpr, state, bound));
+                    return Go(known.Value.BoolValue ? conditional.ThenExpr : conditional.ElseExpr, state, bound);
                 }
+
+                if (condition is ConstTerm)
+                {
+                    return f.If(condition, f.ZeroT, f.ZeroT);
+                }
+
+                return f.If(condition, Go(conditional.ThenExpr, state, bound), Go(conditional.ElseExpr, state, bound));
+            }
             case NotExpr not: return f.Not(Go(not.Expr, state, bound));
             case CallExpr call:
+            {
+                var args = new Term[call.Args.Length];
+                for (var i = 0; i < args.Length; i++)
                 {
-                    var args = new Term[call.Args.Length];
-                    for (var i = 0; i < args.Length; i++)
-                    {
-                        args[i] = Go(call.Args[i], state, bound);
-                    }
-
-                    return f.Call(call.Function.ToLowerInvariant(), args);
+                    args[i] = Go(call.Args[i], state, bound);
                 }
+
+                return f.Call(call.Function.ToLowerInvariant(), args);
+            }
             case AggregateExpr aggregate: return Aggregate(aggregate, state, bound);
             case MapExpr map: return Map(map, state, bound);
             case FoldExpr fold: return Fold(fold, state, bound);

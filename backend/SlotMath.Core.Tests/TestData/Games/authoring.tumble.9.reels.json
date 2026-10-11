@@ -1,0 +1,764 @@
+{
+ "schemaVersion": "1.0.0",
+ "id": "tumble-9-reels",
+ "name": "Tumble contract",
+ "description": "Deterministic data for independent gravity contract checks.",
+ "initialState": {
+  "traceEnabled": false,
+  "emptyArray": [],
+  "coins": 0,
+  "board": ["0","1","2","3","4","5","6","7","8","9","10","11","12","13","14","15","16","17","18","19","20","21","22","23","24","25","26"],
+  "held": [10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36],
+  "removed": 0,
+  "cascadeSteps": 0,
+  "survivors": ["0"],
+  "drops": ["0"],
+  "dropSymbol": "0",
+  "columnStart": [0,0,0,0,0,0,0,0,0,9,9,9,9,9,9,9,9,9,18,18,18,18,18,18,18,18,18],
+  "cellColumn": [0,0,0,0,0,0,0,0,0,1,1,1,1,1,1,1,1,1,2,2,2,2,2,2,2,2,2],
+  "columnsBefore": [0,511,262143,134217727],
+  "emptyBefore": [0,0,0,0],
+  "topDrop0": 0,
+  "topDrop1": 0,
+  "topDrop2": 0,
+  "heldSurvivors": [0],
+  "cascadeBoards": [],
+  "cascadeRemoved": [],
+  "cascadeAfter": [],
+  "strip0": ["100","101","102","103","104","105","106","107","108","109","110","100","101","102","103","104","105","106","107"],
+  "strip1": ["120","121","122","123","124","125","126","127","128","129","130","120","121","122","123","124","125","126","127"],
+  "strip2": ["140","141","142","143","144","145","146","147","148","149","150","140","141","142","143","144","145","146","147"],
+  "windowReels3x9": [0,0,0,0,0,0,0,0,0,1,1,1,1,1,1,1,1,1,2,2,2,2,2,2,2,2,2]
+ },
+ "nodes": [
+  {
+   "nodeType": "library",
+   "id": "fall",
+   "label": "Fall and refill",
+   "mechanicName": "tumble",
+   "inputs": {"state":{"name":"state","type":"State"}},
+   "outputs": {"state":{"name":"state","type":"State"}},
+   "parameters": {}
+  },
+  {
+   "nodeType": "metricsSink",
+   "id": "end",
+   "label": "Payout",
+   "winStateKey": "coins",
+   "winCap": 1,
+   "inputs": {"state":{"name":"state","type":"State"}},
+   "outputs": {}
+  }
+ ],
+ "edges": [{"id":"fall.state->end","sourceNodeId":"fall","sourcePort":"state","targetNodeId":"end","targetPort":"state"}],
+ "expressions": {},
+ "mechanics": {
+  "refill-stop-1": {
+   "name": "refill-stop-1",
+   "description": "Reel 1 stops at a random position of its strip.",
+   "nodes": [
+    {
+     "nodeType": "draw",
+     "id": "stop",
+     "label": "Reel 1 stops",
+     "stateWriteKey": "stop0",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}},
+     "drawWeights": [
+      {"outcomeId":"0","weight":1,"value":0},
+      {"outcomeId":"1","weight":1,"value":0},
+      {"outcomeId":"2","weight":1,"value":0},
+      {"outcomeId":"3","weight":1,"value":0},
+      {"outcomeId":"4","weight":1,"value":0},
+      {"outcomeId":"5","weight":1,"value":0},
+      {"outcomeId":"6","weight":1,"value":0},
+      {"outcomeId":"7","weight":1,"value":0},
+      {"outcomeId":"8","weight":1,"value":0},
+      {"outcomeId":"9","weight":1,"value":0},
+      {"outcomeId":"10","weight":1,"value":0}
+     ]
+    }
+   ],
+   "edges": [],
+   "expressions": {}
+  },
+  "refill-stop-2": {
+   "name": "refill-stop-2",
+   "description": "Reel 2 stops at a random position of its strip.",
+   "nodes": [
+    {
+     "nodeType": "draw",
+     "id": "stop",
+     "label": "Reel 2 stops",
+     "stateWriteKey": "stop1",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}},
+     "drawWeights": [
+      {"outcomeId":"0","weight":1,"value":0},
+      {"outcomeId":"1","weight":1,"value":0},
+      {"outcomeId":"2","weight":1,"value":0},
+      {"outcomeId":"3","weight":1,"value":0},
+      {"outcomeId":"4","weight":1,"value":0},
+      {"outcomeId":"5","weight":1,"value":0},
+      {"outcomeId":"6","weight":1,"value":0},
+      {"outcomeId":"7","weight":1,"value":0},
+      {"outcomeId":"8","weight":1,"value":0},
+      {"outcomeId":"9","weight":1,"value":0},
+      {"outcomeId":"10","weight":1,"value":0}
+     ]
+    }
+   ],
+   "edges": [],
+   "expressions": {}
+  },
+  "refill-stop-3": {
+   "name": "refill-stop-3",
+   "description": "Reel 3 stops at a random position of its strip.",
+   "nodes": [
+    {
+     "nodeType": "draw",
+     "id": "stop",
+     "label": "Reel 3 stops",
+     "stateWriteKey": "stop2",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}},
+     "drawWeights": [
+      {"outcomeId":"0","weight":1,"value":0},
+      {"outcomeId":"1","weight":1,"value":0},
+      {"outcomeId":"2","weight":1,"value":0},
+      {"outcomeId":"3","weight":1,"value":0},
+      {"outcomeId":"4","weight":1,"value":0},
+      {"outcomeId":"5","weight":1,"value":0},
+      {"outcomeId":"6","weight":1,"value":0},
+      {"outcomeId":"7","weight":1,"value":0},
+      {"outcomeId":"8","weight":1,"value":0},
+      {"outcomeId":"9","weight":1,"value":0},
+      {"outcomeId":"10","weight":1,"value":0}
+     ]
+    }
+   ],
+   "edges": [],
+   "expressions": {}
+  },
+  "tumble": {
+   "name": "tumble",
+   "description": "Removes the marked symbols: the rest fall down their columns and new symbols drop in from the top.",
+   "nodes": [
+    {
+     "nodeType": "modifyState",
+     "id": "empty-cells",
+     "label": "Count the empty cells in the columns before each column",
+     "outputKey": "emptyBefore",
+     "expressionId": "empty-cells",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}}
+    },
+    {
+     "nodeType": "modifyState",
+     "id": "survivors",
+     "label": "The symbols that stay, in board order",
+     "outputKey": "survivors",
+     "expressionId": "survivors",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}}
+    },
+    {
+     "nodeType": "modifyState",
+     "id": "survivors-held",
+     "label": "The held markers that stay with them",
+     "outputKey": "heldSurvivors",
+     "expressionId": "survivors-held",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}}
+    },
+    {
+     "nodeType": "branch",
+     "id": "reel-0",
+     "label": "Does reel 1 have empty cells?",
+     "conditionId": "reel-0",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"true":{"name":"true","type":"State"},"false":{"name":"false","type":"State"}}
+    },
+    {
+     "nodeType": "branch",
+     "id": "reel-1",
+     "label": "Does reel 2 have empty cells?",
+     "conditionId": "reel-1",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"true":{"name":"true","type":"State"},"false":{"name":"false","type":"State"}}
+    },
+    {
+     "nodeType": "branch",
+     "id": "reel-2",
+     "label": "Does reel 3 have empty cells?",
+     "conditionId": "reel-2",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"true":{"name":"true","type":"State"},"false":{"name":"false","type":"State"}}
+    },
+    {
+     "nodeType": "modifyState",
+     "id": "settle",
+     "label": "The symbols that stay fall to the bottom of their column; the new ones fill it from the top",
+     "outputKey": "board",
+     "expressionId": "settle",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}}
+    },
+    {
+     "nodeType": "modifyState",
+     "id": "settle-held",
+     "label": "The held markers fall with their symbols",
+     "outputKey": "held",
+     "expressionId": "settle-held",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}}
+    },
+    {
+     "nodeType": "library",
+     "id": "stop-0",
+     "label": "Reel 1 stops for its new symbols",
+     "mechanicName": "refill-stop-1",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}},
+     "parameters": {}
+    },
+    {
+     "nodeType": "modifyState",
+     "id": "top-0",
+     "label": "How far below the stop the symbol for the top cell is",
+     "outputKey": "topDrop0",
+     "expressionId": "top-0",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}}
+    },
+    {
+     "nodeType": "library",
+     "id": "stop-1",
+     "label": "Reel 2 stops for its new symbols",
+     "mechanicName": "refill-stop-2",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}},
+     "parameters": {}
+    },
+    {
+     "nodeType": "modifyState",
+     "id": "top-1",
+     "label": "How far below the stop the symbol for the top cell is",
+     "outputKey": "topDrop1",
+     "expressionId": "top-1",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}}
+    },
+    {
+     "nodeType": "library",
+     "id": "stop-2",
+     "label": "Reel 3 stops for its new symbols",
+     "mechanicName": "refill-stop-3",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}},
+     "parameters": {}
+    },
+    {
+     "nodeType": "modifyState",
+     "id": "top-2",
+     "label": "How far below the stop the symbol for the top cell is",
+     "outputKey": "topDrop2",
+     "expressionId": "top-2",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}}
+    }
+   ],
+   "edges": [
+    {"id":"empty-cells.state->survivors","sourceNodeId":"empty-cells","sourcePort":"state","targetNodeId":"survivors","targetPort":"state"},
+    {
+     "id": "survivors.state->survivors-held",
+     "sourceNodeId": "survivors",
+     "sourcePort": "state",
+     "targetNodeId": "survivors-held",
+     "targetPort": "state"
+    },
+    {"id":"survivors-held.state->reel-0","sourceNodeId":"survivors-held","sourcePort":"state","targetNodeId":"reel-0","targetPort":"state"},
+    {"id":"stop-0.state->top-0","sourceNodeId":"stop-0","sourcePort":"state","targetNodeId":"top-0","targetPort":"state"},
+    {"id":"reel-0.true->stop-0","sourceNodeId":"reel-0","sourcePort":"true","targetNodeId":"stop-0","targetPort":"state"},
+    {"id":"top-0.state->reel-1","sourceNodeId":"top-0","sourcePort":"state","targetNodeId":"reel-1","targetPort":"state"},
+    {"id":"reel-0.false->reel-1","sourceNodeId":"reel-0","sourcePort":"false","targetNodeId":"reel-1","targetPort":"state"},
+    {"id":"stop-1.state->top-1","sourceNodeId":"stop-1","sourcePort":"state","targetNodeId":"top-1","targetPort":"state"},
+    {"id":"reel-1.true->stop-1","sourceNodeId":"reel-1","sourcePort":"true","targetNodeId":"stop-1","targetPort":"state"},
+    {"id":"top-1.state->reel-2","sourceNodeId":"top-1","sourcePort":"state","targetNodeId":"reel-2","targetPort":"state"},
+    {"id":"reel-1.false->reel-2","sourceNodeId":"reel-1","sourcePort":"false","targetNodeId":"reel-2","targetPort":"state"},
+    {"id":"stop-2.state->top-2","sourceNodeId":"stop-2","sourcePort":"state","targetNodeId":"top-2","targetPort":"state"},
+    {"id":"reel-2.true->stop-2","sourceNodeId":"reel-2","sourcePort":"true","targetNodeId":"stop-2","targetPort":"state"},
+    {"id":"top-2.state->settle","sourceNodeId":"top-2","sourcePort":"state","targetNodeId":"settle","targetPort":"state"},
+    {"id":"reel-2.false->settle","sourceNodeId":"reel-2","sourcePort":"false","targetNodeId":"settle","targetPort":"state"},
+    {"id":"settle.state->settle-held","sourceNodeId":"settle","sourcePort":"state","targetNodeId":"settle-held","targetPort":"state"}
+   ],
+   "expressions": {
+    "empty-cells": {
+     "exprType": "map",
+     "stateKey": "columnsBefore",
+     "itemName": "item",
+     "itemType": "Number",
+     "body": {
+      "exprType": "bitset",
+      "op": "Count",
+      "args": [
+       {
+        "exprType": "bitset",
+        "op": "Intersect",
+        "args": [{"exprType":"fieldAccess","target":"state","path":["removed"]},{"exprType":"fieldAccess","target":"state","path":["item"]}]
+       }
+      ]
+     }
+    },
+    "survivors": {
+     "exprType": "filter",
+     "stateKey": "board",
+     "itemName": "item",
+     "indexName": "place",
+     "itemType": "String",
+     "predicate": {
+      "exprType": "not",
+      "expr": {
+       "exprType": "compare",
+       "op": "Gt",
+       "left": {
+        "exprType": "bitset",
+        "op": "Intersect",
+        "args": [
+         {"exprType":"fieldAccess","target":"state","path":["removed"]},
+         {
+          "exprType": "bitset",
+          "op": "Shift",
+          "args": [{"exprType":"constant","kind":"Integer","value":"1"},{"exprType":"fieldAccess","target":"state","path":["place"]}]
+         }
+        ]
+       },
+       "right": {"exprType":"constant","kind":"Integer","value":"0"}
+      }
+     }
+    },
+    "survivors-held": {
+     "exprType": "filter",
+     "stateKey": "held",
+     "itemName": "item",
+     "indexName": "place",
+     "itemType": "Number",
+     "predicate": {
+      "exprType": "not",
+      "expr": {
+       "exprType": "compare",
+       "op": "Gt",
+       "left": {
+        "exprType": "bitset",
+        "op": "Intersect",
+        "args": [
+         {"exprType":"fieldAccess","target":"state","path":["removed"]},
+         {
+          "exprType": "bitset",
+          "op": "Shift",
+          "args": [{"exprType":"constant","kind":"Integer","value":"1"},{"exprType":"fieldAccess","target":"state","path":["place"]}]
+         }
+        ]
+       },
+       "right": {"exprType":"constant","kind":"Integer","value":"0"}
+      }
+     }
+    },
+    "reel-0": {
+     "exprType": "compare",
+     "op": "Gt",
+     "left": {
+      "exprType": "binary",
+      "op": "Sub",
+      "left": {
+       "exprType": "call",
+       "function": "index",
+       "args": [{"exprType":"fieldAccess","target":"state","path":["emptyBefore"]},{"exprType":"constant","kind":"Integer","value":"1"}]
+      },
+      "right": {
+       "exprType": "call",
+       "function": "index",
+       "args": [{"exprType":"fieldAccess","target":"state","path":["emptyBefore"]},{"exprType":"constant","kind":"Integer","value":"0"}]
+      }
+     },
+     "right": {"exprType":"constant","kind":"Integer","value":"0"}
+    },
+    "top-0": {
+     "exprType": "binary",
+     "op": "Sub",
+     "left": {
+      "exprType": "binary",
+      "op": "Sub",
+      "left": {
+       "exprType": "call",
+       "function": "index",
+       "args": [{"exprType":"fieldAccess","target":"state","path":["emptyBefore"]},{"exprType":"constant","kind":"Integer","value":"1"}]
+      },
+      "right": {
+       "exprType": "call",
+       "function": "index",
+       "args": [{"exprType":"fieldAccess","target":"state","path":["emptyBefore"]},{"exprType":"constant","kind":"Integer","value":"0"}]
+      }
+     },
+     "right": {"exprType":"constant","kind":"Integer","value":"1"}
+    },
+    "reel-1": {
+     "exprType": "compare",
+     "op": "Gt",
+     "left": {
+      "exprType": "binary",
+      "op": "Sub",
+      "left": {
+       "exprType": "call",
+       "function": "index",
+       "args": [{"exprType":"fieldAccess","target":"state","path":["emptyBefore"]},{"exprType":"constant","kind":"Integer","value":"2"}]
+      },
+      "right": {
+       "exprType": "call",
+       "function": "index",
+       "args": [{"exprType":"fieldAccess","target":"state","path":["emptyBefore"]},{"exprType":"constant","kind":"Integer","value":"1"}]
+      }
+     },
+     "right": {"exprType":"constant","kind":"Integer","value":"0"}
+    },
+    "top-1": {
+     "exprType": "binary",
+     "op": "Sub",
+     "left": {
+      "exprType": "binary",
+      "op": "Sub",
+      "left": {
+       "exprType": "call",
+       "function": "index",
+       "args": [{"exprType":"fieldAccess","target":"state","path":["emptyBefore"]},{"exprType":"constant","kind":"Integer","value":"2"}]
+      },
+      "right": {
+       "exprType": "call",
+       "function": "index",
+       "args": [{"exprType":"fieldAccess","target":"state","path":["emptyBefore"]},{"exprType":"constant","kind":"Integer","value":"1"}]
+      }
+     },
+     "right": {"exprType":"constant","kind":"Integer","value":"1"}
+    },
+    "reel-2": {
+     "exprType": "compare",
+     "op": "Gt",
+     "left": {
+      "exprType": "binary",
+      "op": "Sub",
+      "left": {
+       "exprType": "call",
+       "function": "index",
+       "args": [{"exprType":"fieldAccess","target":"state","path":["emptyBefore"]},{"exprType":"constant","kind":"Integer","value":"3"}]
+      },
+      "right": {
+       "exprType": "call",
+       "function": "index",
+       "args": [{"exprType":"fieldAccess","target":"state","path":["emptyBefore"]},{"exprType":"constant","kind":"Integer","value":"2"}]
+      }
+     },
+     "right": {"exprType":"constant","kind":"Integer","value":"0"}
+    },
+    "top-2": {
+     "exprType": "binary",
+     "op": "Sub",
+     "left": {
+      "exprType": "binary",
+      "op": "Sub",
+      "left": {
+       "exprType": "call",
+       "function": "index",
+       "args": [{"exprType":"fieldAccess","target":"state","path":["emptyBefore"]},{"exprType":"constant","kind":"Integer","value":"3"}]
+      },
+      "right": {
+       "exprType": "call",
+       "function": "index",
+       "args": [{"exprType":"fieldAccess","target":"state","path":["emptyBefore"]},{"exprType":"constant","kind":"Integer","value":"2"}]
+      }
+     },
+     "right": {"exprType":"constant","kind":"Integer","value":"1"}
+    },
+    "settle": {
+     "exprType": "map",
+     "stateKey": "board",
+     "itemName": "item",
+     "indexName": "place",
+     "itemType": "String",
+     "body": {
+      "exprType": "if",
+      "condition": {
+       "exprType": "compare",
+       "op": "Gte",
+       "left": {
+        "exprType": "binary",
+        "op": "Sub",
+        "left": {"exprType":"fieldAccess","target":"state","path":["place"]},
+        "right": {
+         "exprType": "call",
+         "function": "index",
+         "args": [{"exprType":"fieldAccess","target":"state","path":["columnStart"]},{"exprType":"fieldAccess","target":"state","path":["place"]}]
+        }
+       },
+       "right": {
+        "exprType": "binary",
+        "op": "Sub",
+        "left": {
+         "exprType": "call",
+         "function": "index",
+         "args": [
+          {"exprType":"fieldAccess","target":"state","path":["emptyBefore"]},
+          {
+           "exprType": "binary",
+           "op": "Add",
+           "left": {
+            "exprType": "call",
+            "function": "index",
+            "args": [{"exprType":"fieldAccess","target":"state","path":["cellColumn"]},{"exprType":"fieldAccess","target":"state","path":["place"]}]
+           },
+           "right": {"exprType":"constant","kind":"Integer","value":"1"}
+          }
+         ]
+        },
+        "right": {
+         "exprType": "call",
+         "function": "index",
+         "args": [
+          {"exprType":"fieldAccess","target":"state","path":["emptyBefore"]},
+          {
+           "exprType": "call",
+           "function": "index",
+           "args": [{"exprType":"fieldAccess","target":"state","path":["cellColumn"]},{"exprType":"fieldAccess","target":"state","path":["place"]}]
+          }
+         ]
+        }
+       }
+      },
+      "thenExpr": {
+       "exprType": "call",
+       "function": "index",
+       "args": [
+        {"exprType":"fieldAccess","target":"state","path":["survivors"]},
+        {
+         "exprType": "binary",
+         "op": "Sub",
+         "left": {"exprType":"fieldAccess","target":"state","path":["place"]},
+         "right": {
+          "exprType": "call",
+          "function": "index",
+          "args": [
+           {"exprType":"fieldAccess","target":"state","path":["emptyBefore"]},
+           {
+            "exprType": "binary",
+            "op": "Add",
+            "left": {
+             "exprType": "call",
+             "function": "index",
+             "args": [{"exprType":"fieldAccess","target":"state","path":["cellColumn"]},{"exprType":"fieldAccess","target":"state","path":["place"]}]
+            },
+            "right": {"exprType":"constant","kind":"Integer","value":"1"}
+           }
+          ]
+         }
+        }
+       ]
+      },
+      "elseExpr": {
+       "exprType": "if",
+       "condition": {
+        "exprType": "compare",
+        "op": "Lt",
+        "left": {
+         "exprType": "call",
+         "function": "index",
+         "args": [{"exprType":"fieldAccess","target":"state","path":["cellColumn"]},{"exprType":"fieldAccess","target":"state","path":["place"]}]
+        },
+        "right": {"exprType":"constant","kind":"Integer","value":"1"}
+       },
+       "thenExpr": {
+        "exprType": "call",
+        "function": "index",
+        "args": [
+         {"exprType":"fieldAccess","target":"state","path":["strip0"]},
+         {
+          "exprType": "binary",
+          "op": "Add",
+          "left": {"exprType":"call","function":"toNumber","args":[{"exprType":"fieldAccess","target":"state","path":["stop0"]}]},
+          "right": {
+           "exprType": "binary",
+           "op": "Sub",
+           "left": {"exprType":"fieldAccess","target":"state","path":["topDrop0"]},
+           "right": {
+            "exprType": "binary",
+            "op": "Sub",
+            "left": {"exprType":"fieldAccess","target":"state","path":["place"]},
+            "right": {
+             "exprType": "call",
+             "function": "index",
+             "args": [{"exprType":"fieldAccess","target":"state","path":["columnStart"]},{"exprType":"fieldAccess","target":"state","path":["place"]}]
+            }
+           }
+          }
+         }
+        ]
+       },
+       "elseExpr": {
+        "exprType": "if",
+        "condition": {
+         "exprType": "compare",
+         "op": "Lt",
+         "left": {
+          "exprType": "call",
+          "function": "index",
+          "args": [{"exprType":"fieldAccess","target":"state","path":["cellColumn"]},{"exprType":"fieldAccess","target":"state","path":["place"]}]
+         },
+         "right": {"exprType":"constant","kind":"Integer","value":"2"}
+        },
+        "thenExpr": {
+         "exprType": "call",
+         "function": "index",
+         "args": [
+          {"exprType":"fieldAccess","target":"state","path":["strip1"]},
+          {
+           "exprType": "binary",
+           "op": "Add",
+           "left": {"exprType":"call","function":"toNumber","args":[{"exprType":"fieldAccess","target":"state","path":["stop1"]}]},
+           "right": {
+            "exprType": "binary",
+            "op": "Sub",
+            "left": {"exprType":"fieldAccess","target":"state","path":["topDrop1"]},
+            "right": {
+             "exprType": "binary",
+             "op": "Sub",
+             "left": {"exprType":"fieldAccess","target":"state","path":["place"]},
+             "right": {
+              "exprType": "call",
+              "function": "index",
+              "args": [{"exprType":"fieldAccess","target":"state","path":["columnStart"]},{"exprType":"fieldAccess","target":"state","path":["place"]}]
+             }
+            }
+           }
+          }
+         ]
+        },
+        "elseExpr": {
+         "exprType": "call",
+         "function": "index",
+         "args": [
+          {"exprType":"fieldAccess","target":"state","path":["strip2"]},
+          {
+           "exprType": "binary",
+           "op": "Add",
+           "left": {"exprType":"call","function":"toNumber","args":[{"exprType":"fieldAccess","target":"state","path":["stop2"]}]},
+           "right": {
+            "exprType": "binary",
+            "op": "Sub",
+            "left": {"exprType":"fieldAccess","target":"state","path":["topDrop2"]},
+            "right": {
+             "exprType": "binary",
+             "op": "Sub",
+             "left": {"exprType":"fieldAccess","target":"state","path":["place"]},
+             "right": {
+              "exprType": "call",
+              "function": "index",
+              "args": [{"exprType":"fieldAccess","target":"state","path":["columnStart"]},{"exprType":"fieldAccess","target":"state","path":["place"]}]
+             }
+            }
+           }
+          }
+         ]
+        }
+       }
+      }
+     }
+    },
+    "settle-held": {
+     "exprType": "map",
+     "stateKey": "held",
+     "itemName": "item",
+     "indexName": "place",
+     "itemType": "Number",
+     "body": {
+      "exprType": "if",
+      "condition": {
+       "exprType": "compare",
+       "op": "Gte",
+       "left": {
+        "exprType": "binary",
+        "op": "Sub",
+        "left": {"exprType":"fieldAccess","target":"state","path":["place"]},
+        "right": {
+         "exprType": "call",
+         "function": "index",
+         "args": [{"exprType":"fieldAccess","target":"state","path":["columnStart"]},{"exprType":"fieldAccess","target":"state","path":["place"]}]
+        }
+       },
+       "right": {
+        "exprType": "binary",
+        "op": "Sub",
+        "left": {
+         "exprType": "call",
+         "function": "index",
+         "args": [
+          {"exprType":"fieldAccess","target":"state","path":["emptyBefore"]},
+          {
+           "exprType": "binary",
+           "op": "Add",
+           "left": {
+            "exprType": "call",
+            "function": "index",
+            "args": [{"exprType":"fieldAccess","target":"state","path":["cellColumn"]},{"exprType":"fieldAccess","target":"state","path":["place"]}]
+           },
+           "right": {"exprType":"constant","kind":"Integer","value":"1"}
+          }
+         ]
+        },
+        "right": {
+         "exprType": "call",
+         "function": "index",
+         "args": [
+          {"exprType":"fieldAccess","target":"state","path":["emptyBefore"]},
+          {
+           "exprType": "call",
+           "function": "index",
+           "args": [{"exprType":"fieldAccess","target":"state","path":["cellColumn"]},{"exprType":"fieldAccess","target":"state","path":["place"]}]
+          }
+         ]
+        }
+       }
+      },
+      "thenExpr": {
+       "exprType": "call",
+       "function": "index",
+       "args": [
+        {"exprType":"fieldAccess","target":"state","path":["heldSurvivors"]},
+        {
+         "exprType": "binary",
+         "op": "Sub",
+         "left": {"exprType":"fieldAccess","target":"state","path":["place"]},
+         "right": {
+          "exprType": "call",
+          "function": "index",
+          "args": [
+           {"exprType":"fieldAccess","target":"state","path":["emptyBefore"]},
+           {
+            "exprType": "binary",
+            "op": "Add",
+            "left": {
+             "exprType": "call",
+             "function": "index",
+             "args": [{"exprType":"fieldAccess","target":"state","path":["cellColumn"]},{"exprType":"fieldAccess","target":"state","path":["place"]}]
+            },
+            "right": {"exprType":"constant","kind":"Integer","value":"1"}
+           }
+          ]
+         }
+        }
+       ]
+      },
+      "elseExpr": {"exprType":"constant","kind":"Integer","value":"-1"}
+     }
+    }
+   }
+  }
+ }
+}

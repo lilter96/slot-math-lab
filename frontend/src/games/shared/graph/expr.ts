@@ -50,6 +50,27 @@ export const append = (key: string, value: Expr) => appended(state(key), value);
 export const emptyArray = () => state('emptyArray');
 export const arrayOf = (values: Expr[]): Expr => values.reduce((a, c) => appended(a, c), emptyArray());
 
+// Sets of cells. A set of up to 64 cells is kept as one whole number: cell 0 is its lowest binary digit.
+const cellSets = (op: string, ...args: Expr[]): Expr => ({ exprType: 'bitset', op, args });
+/** The set of the given cells, written into the graph as a constant. */
+export const cellSet = (cells: readonly number[]): Expr => num(cells.reduce((set, cell) => set + 2 ** cell, 0));
+/** The cells that are in any of the sets. */
+export const union = (...sets: Expr[]): Expr => sets.reduce((a, c) => cellSets('Union', a, c));
+/** The cells that are in both sets. */
+export const intersect = (a: Expr, c: Expr) => cellSets('Intersect', a, c);
+/** The cells of `a` that are not in `c`. */
+export const except = (a: Expr, c: Expr) => cellSets('Except', a, c);
+/** Every cell of the set moved `distance` cells on, or back when `distance` is negative. */
+export const moved = (set: Expr, distance: number | Expr) => cellSets('Shift', set, typeof distance === 'number' ? num(distance) : distance);
+/** The set that holds one cell. */
+export const only = (cell: Expr) => cellSets('Shift', num(1), cell);
+/** How many cells the set holds. */
+export const sizeOf = (set: Expr) => cellSets('Count', set);
+/** The first cell of the set. */
+export const firstOf = (set: Expr) => cellSets('First', set);
+/** Whether `cell` is in the set. */
+export const inSet = (set: Expr, cell: Expr) => gt(intersect(set, only(cell)), num(0));
+
 /** A balanced conditional that picks `values[index - first]`; used where the picked value is itself an expression. */
 export function choose(index: Expr, values: Expr[], first = 0): Expr {
   if (values.length === 1) return values[0];

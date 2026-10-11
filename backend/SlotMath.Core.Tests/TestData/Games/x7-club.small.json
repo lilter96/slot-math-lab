@@ -12,11 +12,15 @@
   "holdTrigger": 2,
   "coins": [0,0,0],
   "coinStake": 1,
-  "coinPrize": "0",
   "coinCount": 0,
+  "prize1": "0",
+  "prize2": "0",
+  "prize3": "0",
   "respins": 0,
-  "landHit": "0",
   "bonusCoins": 0,
+  "landed1": "0",
+  "landed2": "0",
+  "landed3": "0",
   "holdEvents": [],
   "holdColumns": [],
   "holdCoins": [],
@@ -32,8 +36,11 @@
   "boostDone": false,
   "spinBoards": [],
   "spinCoins": [],
+  "boardPositions": [0,1,2],
   "board": ["0","0","0"],
-  "cellSymbol": "0",
+  "cell1": "0",
+  "cell2": "0",
+  "cell3": "0",
   "wildSymbol": "5",
   "linePays": [[0,0,0,2],[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,2],[0,0,0,0]],
   "lineSymbol": "",
@@ -61,13 +68,6 @@
    "conditionId": "trigger",
    "inputs": {"state":{"name":"state","type":"State"}},
    "outputs": {"true":{"name":"true","type":"State"},"false":{"name":"false","type":"State"}}
-  },
-  {
-   "nodeType": "getState",
-   "id": "trigger-join",
-   "label": "Continue",
-   "inputs": {"state":{"name":"state","type":"State"}},
-   "outputs": {"state":{"name":"state","type":"State"}}
   },
   {
    "nodeType": "modifyState",
@@ -100,15 +100,8 @@
  "edges": [
   {"id":"spin.state->trigger","sourceNodeId":"spin","sourcePort":"state","targetNodeId":"trigger","targetPort":"state"},
   {"id":"trigger.true->trigger-yes","sourceNodeId":"trigger","sourcePort":"true","targetNodeId":"trigger-yes","targetPort":"state"},
-  {"id":"trigger.false->trigger-join","sourceNodeId":"trigger","sourcePort":"false","targetNodeId":"trigger-join","targetPort":"state"},
-  {
-   "id": "trigger-yes.state->trigger-join",
-   "sourceNodeId": "trigger-yes",
-   "sourcePort": "state",
-   "targetNodeId": "trigger-join",
-   "targetPort": "state"
-  },
-  {"id":"trigger-join.state->credits","sourceNodeId":"trigger-join","sourcePort":"state","targetNodeId":"credits","targetPort":"state"},
+  {"id":"trigger.false->credits","sourceNodeId":"trigger","sourcePort":"false","targetNodeId":"credits","targetPort":"state"},
+  {"id":"trigger-yes.state->credits","sourceNodeId":"trigger-yes","sourcePort":"state","targetNodeId":"credits","targetPort":"state"},
   {"id":"credits.state->round","sourceNodeId":"credits","sourcePort":"state","targetNodeId":"round","targetPort":"state"}
  ],
  "expressions": {
@@ -487,26 +480,12 @@
      "outputs": {"true":{"name":"true","type":"State"},"false":{"name":"false","type":"State"}}
     },
     {
-     "nodeType": "getState",
-     "id": "column-1-join",
-     "label": "Continue",
-     "inputs": {"state":{"name":"state","type":"State"}},
-     "outputs": {"state":{"name":"state","type":"State"}}
-    },
-    {
      "nodeType": "branch",
      "id": "column-2",
      "label": "Column 2 is full and not boosted yet: boost it",
      "conditionId": "column-2",
      "inputs": {"state":{"name":"state","type":"State"}},
      "outputs": {"true":{"name":"true","type":"State"},"false":{"name":"false","type":"State"}}
-    },
-    {
-     "nodeType": "getState",
-     "id": "column-2-join",
-     "label": "Continue",
-     "inputs": {"state":{"name":"state","type":"State"}},
-     "outputs": {"state":{"name":"state","type":"State"}}
     },
     {
      "nodeType": "branch",
@@ -518,8 +497,8 @@
     },
     {
      "nodeType": "getState",
-     "id": "column-3-join",
-     "label": "Continue",
+     "id": "done",
+     "label": "Done",
      "inputs": {"state":{"name":"state","type":"State"}},
      "outputs": {"state":{"name":"state","type":"State"}}
     },
@@ -553,34 +532,14 @@
    ],
    "edges": [
     {"id":"column-1.true->column-1-yes","sourceNodeId":"column-1","sourcePort":"true","targetNodeId":"column-1-yes","targetPort":"state"},
-    {"id":"column-1.false->column-1-join","sourceNodeId":"column-1","sourcePort":"false","targetNodeId":"column-1-join","targetPort":"state"},
-    {
-     "id": "column-1-yes.state->column-1-join",
-     "sourceNodeId": "column-1-yes",
-     "sourcePort": "state",
-     "targetNodeId": "column-1-join",
-     "targetPort": "state"
-    },
-    {"id":"column-1-join.state->column-2","sourceNodeId":"column-1-join","sourcePort":"state","targetNodeId":"column-2","targetPort":"state"},
+    {"id":"column-1.false->column-2","sourceNodeId":"column-1","sourcePort":"false","targetNodeId":"column-2","targetPort":"state"},
+    {"id":"column-1-yes.state->column-2","sourceNodeId":"column-1-yes","sourcePort":"state","targetNodeId":"column-2","targetPort":"state"},
     {"id":"column-2.true->column-2-yes","sourceNodeId":"column-2","sourcePort":"true","targetNodeId":"column-2-yes","targetPort":"state"},
-    {"id":"column-2.false->column-2-join","sourceNodeId":"column-2","sourcePort":"false","targetNodeId":"column-2-join","targetPort":"state"},
-    {
-     "id": "column-2-yes.state->column-2-join",
-     "sourceNodeId": "column-2-yes",
-     "sourcePort": "state",
-     "targetNodeId": "column-2-join",
-     "targetPort": "state"
-    },
-    {"id":"column-2-join.state->column-3","sourceNodeId":"column-2-join","sourcePort":"state","targetNodeId":"column-3","targetPort":"state"},
+    {"id":"column-2.false->column-3","sourceNodeId":"column-2","sourcePort":"false","targetNodeId":"column-3","targetPort":"state"},
+    {"id":"column-2-yes.state->column-3","sourceNodeId":"column-2-yes","sourcePort":"state","targetNodeId":"column-3","targetPort":"state"},
     {"id":"column-3.true->column-3-yes","sourceNodeId":"column-3","sourcePort":"true","targetNodeId":"column-3-yes","targetPort":"state"},
-    {"id":"column-3.false->column-3-join","sourceNodeId":"column-3","sourcePort":"false","targetNodeId":"column-3-join","targetPort":"state"},
-    {
-     "id": "column-3-yes.state->column-3-join",
-     "sourceNodeId": "column-3-yes",
-     "sourcePort": "state",
-     "targetNodeId": "column-3-join",
-     "targetPort": "state"
-    }
+    {"id":"column-3.false->done","sourceNodeId":"column-3","sourcePort":"false","targetNodeId":"done","targetPort":"state"},
+    {"id":"column-3-yes.state->done","sourceNodeId":"column-3-yes","sourcePort":"state","targetNodeId":"done","targetPort":"state"}
    ],
    "expressions": {
     "column-1": {
@@ -657,24 +616,60 @@
     }
    }
   },
-  "land-coin": {
-   "name": "land-coin",
-   "description": "One cell of a respin: a coin lands with a fixed chance and, if the cell was empty, stays there with a drawn prize.",
+  "respin": {
+   "name": "respin",
+   "description": "One respin: each of the 3 cells may receive a coin, and the respins are restored or used up.",
    "nodes": [
     {
      "nodeType": "draw",
-     "id": "hit",
-     "label": "Does a coin land on this cell?",
-     "stateWriteKey": "landHit",
+     "id": "land-1",
+     "label": "Does a coin land on cell 1?",
+     "stateWriteKey": "landed1",
      "inputs": {"state":{"name":"state","type":"State"}},
      "outputs": {"state":{"name":"state","type":"State"}},
      "drawWeights": [{"outcomeId":"1","weight":1,"value":0},{"outcomeId":"0","weight":3,"value":0}]
     },
     {
      "nodeType": "draw",
-     "id": "prize",
+     "id": "prize-1",
      "label": "Draw the prize it would carry",
-     "stateWriteKey": "coinPrize",
+     "stateWriteKey": "prize1",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}},
+     "drawWeights": [{"outcomeId":"1","weight":3,"value":0},{"outcomeId":"4","weight":1,"value":0}]
+    },
+    {
+     "nodeType": "draw",
+     "id": "land-2",
+     "label": "Does a coin land on cell 2?",
+     "stateWriteKey": "landed2",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}},
+     "drawWeights": [{"outcomeId":"1","weight":1,"value":0},{"outcomeId":"0","weight":3,"value":0}]
+    },
+    {
+     "nodeType": "draw",
+     "id": "prize-2",
+     "label": "Draw the prize it would carry",
+     "stateWriteKey": "prize2",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}},
+     "drawWeights": [{"outcomeId":"1","weight":3,"value":0},{"outcomeId":"4","weight":1,"value":0}]
+    },
+    {
+     "nodeType": "draw",
+     "id": "land-3",
+     "label": "Does a coin land on cell 3?",
+     "stateWriteKey": "landed3",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}},
+     "drawWeights": [{"outcomeId":"1","weight":1,"value":0},{"outcomeId":"0","weight":3,"value":0}]
+    },
+    {
+     "nodeType": "draw",
+     "id": "prize-3",
+     "label": "Draw the prize it would carry",
+     "stateWriteKey": "prize3",
      "inputs": {"state":{"name":"state","type":"State"}},
      "outputs": {"state":{"name":"state","type":"State"}},
      "drawWeights": [{"outcomeId":"1","weight":3,"value":0},{"outcomeId":"4","weight":1,"value":0}]
@@ -687,88 +682,6 @@
      "expressionId": "hold",
      "inputs": {"state":{"name":"state","type":"State"}},
      "outputs": {"state":{"name":"state","type":"State"}}
-    }
-   ],
-   "edges": [
-    {"id":"hit.state->prize","sourceNodeId":"hit","sourcePort":"state","targetNodeId":"prize","targetPort":"state"},
-    {"id":"prize.state->hold","sourceNodeId":"prize","sourcePort":"state","targetNodeId":"hold","targetPort":"state"}
-   ],
-   "expressions": {
-    "hold": {
-     "exprType": "map",
-     "stateKey": "coins",
-     "itemName": "item",
-     "indexName": "place",
-     "itemType": "Number",
-     "body": {
-      "exprType": "if",
-      "condition": {
-       "exprType": "compare",
-       "op": "Eq",
-       "left": {"exprType":"fieldAccess","target":"state","path":["place"]},
-       "right": {"exprType":"fieldAccess","target":"state","path":["expressions","cell"]}
-      },
-      "thenExpr": {
-       "exprType": "if",
-       "condition": {
-        "exprType": "binary",
-        "op": "And",
-        "left": {
-         "exprType": "compare",
-         "op": "Eq",
-         "left": {"exprType":"fieldAccess","target":"state","path":["landHit"]},
-         "right": {"exprType":"constant","kind":"String","value":"1"}
-        },
-        "right": {
-         "exprType": "compare",
-         "op": "Eq",
-         "left": {"exprType":"fieldAccess","target":"state","path":["item"]},
-         "right": {"exprType":"constant","kind":"Integer","value":"0"}
-        }
-       },
-       "thenExpr": {
-        "exprType": "binary",
-        "op": "Mul",
-        "left": {"exprType":"call","function":"toNumber","args":[{"exprType":"fieldAccess","target":"state","path":["coinPrize"]}]},
-        "right": {"exprType":"fieldAccess","target":"state","path":["coinStake"]}
-       },
-       "elseExpr": {"exprType":"fieldAccess","target":"state","path":["item"]}
-      },
-      "elseExpr": {"exprType":"fieldAccess","target":"state","path":["item"]}
-     }
-    }
-   }
-  },
-  "respin": {
-   "name": "respin",
-   "description": "One respin: each of the 3 cells may receive a coin, and the respins are restored or used up.",
-   "nodes": [
-    {
-     "nodeType": "library",
-     "id": "cell-1",
-     "label": "Cell 1",
-     "mechanicName": "land-coin",
-     "inputs": {"state":{"name":"state","type":"State"}},
-     "outputs": {"state":{"name":"state","type":"State"}},
-     "parameters": {"cell":"0"}
-    },
-    {
-     "nodeType": "library",
-     "id": "cell-2",
-     "label": "Cell 2",
-     "mechanicName": "land-coin",
-     "inputs": {"state":{"name":"state","type":"State"}},
-     "outputs": {"state":{"name":"state","type":"State"}},
-     "parameters": {"cell":"1"}
-    },
-    {
-     "nodeType": "library",
-     "id": "cell-3",
-     "label": "Cell 3",
-     "mechanicName": "land-coin",
-     "inputs": {"state":{"name":"state","type":"State"}},
-     "outputs": {"state":{"name":"state","type":"State"}},
-     "parameters": {"cell":"2"}
     },
     {
      "nodeType": "modifyState",
@@ -835,9 +748,13 @@
     }
    ],
    "edges": [
-    {"id":"cell-1.state->cell-2","sourceNodeId":"cell-1","sourcePort":"state","targetNodeId":"cell-2","targetPort":"state"},
-    {"id":"cell-2.state->cell-3","sourceNodeId":"cell-2","sourcePort":"state","targetNodeId":"cell-3","targetPort":"state"},
-    {"id":"cell-3.state->respins","sourceNodeId":"cell-3","sourcePort":"state","targetNodeId":"respins","targetPort":"state"},
+    {"id":"land-1.state->prize-1","sourceNodeId":"land-1","sourcePort":"state","targetNodeId":"prize-1","targetPort":"state"},
+    {"id":"prize-1.state->land-2","sourceNodeId":"prize-1","sourcePort":"state","targetNodeId":"land-2","targetPort":"state"},
+    {"id":"land-2.state->prize-2","sourceNodeId":"land-2","sourcePort":"state","targetNodeId":"prize-2","targetPort":"state"},
+    {"id":"prize-2.state->land-3","sourceNodeId":"prize-2","sourcePort":"state","targetNodeId":"land-3","targetPort":"state"},
+    {"id":"land-3.state->prize-3","sourceNodeId":"land-3","sourcePort":"state","targetNodeId":"prize-3","targetPort":"state"},
+    {"id":"prize-3.state->hold","sourceNodeId":"prize-3","sourcePort":"state","targetNodeId":"hold","targetPort":"state"},
+    {"id":"hold.state->respins","sourceNodeId":"hold","sourcePort":"state","targetNodeId":"respins","targetPort":"state"},
     {"id":"respins.state->count","sourceNodeId":"respins","sourcePort":"state","targetNodeId":"count","targetPort":"state"},
     {"id":"count.state->trace-event","sourceNodeId":"count","sourcePort":"state","targetNodeId":"trace-event","targetPort":"state"},
     {
@@ -864,6 +781,85 @@
     {"id":"trace-respins.state->after","sourceNodeId":"trace-respins","sourcePort":"state","targetNodeId":"after","targetPort":"state"}
    ],
    "expressions": {
+    "hold": {
+     "exprType": "map",
+     "stateKey": "coins",
+     "itemName": "item",
+     "indexName": "place",
+     "itemType": "Number",
+     "body": {
+      "exprType": "if",
+      "condition": {
+       "exprType": "binary",
+       "op": "And",
+       "left": {
+        "exprType": "compare",
+        "op": "Eq",
+        "left": {
+         "exprType": "if",
+         "condition": {
+          "exprType": "compare",
+          "op": "Lt",
+          "left": {"exprType":"fieldAccess","target":"state","path":["place"]},
+          "right": {"exprType":"constant","kind":"Integer","value":"1"}
+         },
+         "thenExpr": {"exprType":"fieldAccess","target":"state","path":["landed1"]},
+         "elseExpr": {
+          "exprType": "if",
+          "condition": {
+           "exprType": "compare",
+           "op": "Lt",
+           "left": {"exprType":"fieldAccess","target":"state","path":["place"]},
+           "right": {"exprType":"constant","kind":"Integer","value":"2"}
+          },
+          "thenExpr": {"exprType":"fieldAccess","target":"state","path":["landed2"]},
+          "elseExpr": {"exprType":"fieldAccess","target":"state","path":["landed3"]}
+         }
+        },
+        "right": {"exprType":"constant","kind":"String","value":"1"}
+       },
+       "right": {
+        "exprType": "compare",
+        "op": "Eq",
+        "left": {"exprType":"fieldAccess","target":"state","path":["item"]},
+        "right": {"exprType":"constant","kind":"Integer","value":"0"}
+       }
+      },
+      "thenExpr": {
+       "exprType": "binary",
+       "op": "Mul",
+       "left": {
+        "exprType": "call",
+        "function": "toNumber",
+        "args": [
+         {
+          "exprType": "if",
+          "condition": {
+           "exprType": "compare",
+           "op": "Lt",
+           "left": {"exprType":"fieldAccess","target":"state","path":["place"]},
+           "right": {"exprType":"constant","kind":"Integer","value":"1"}
+          },
+          "thenExpr": {"exprType":"fieldAccess","target":"state","path":["prize1"]},
+          "elseExpr": {
+           "exprType": "if",
+           "condition": {
+            "exprType": "compare",
+            "op": "Lt",
+            "left": {"exprType":"fieldAccess","target":"state","path":["place"]},
+            "right": {"exprType":"constant","kind":"Integer","value":"2"}
+           },
+           "thenExpr": {"exprType":"fieldAccess","target":"state","path":["prize2"]},
+           "elseExpr": {"exprType":"fieldAccess","target":"state","path":["prize3"]}
+          }
+         }
+        ]
+       },
+       "right": {"exprType":"fieldAccess","target":"state","path":["coinStake"]}
+      },
+      "elseExpr": {"exprType":"fieldAccess","target":"state","path":["item"]}
+     }
+    },
     "respins": {
      "exprType": "if",
      "condition": {
@@ -1152,180 +1148,121 @@
     }
    }
   },
-  "board-cell": {
-   "name": "board-cell",
-   "description": "One cell of the board: its symbol is drawn and takes the next place on the board.",
+  "board": {
+   "name": "board",
+   "description": "Draws a symbol for each of the 3 cells, every cell on its own, and puts them on the board.",
    "nodes": [
     {
      "nodeType": "draw",
-     "id": "symbol",
-     "label": "Draw the symbol the cell shows",
-     "stateWriteKey": "cellSymbol",
+     "id": "cell-1",
+     "label": "Draw the symbol of cell 1",
+     "stateWriteKey": "cell1",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}},
+     "drawWeights": [{"outcomeId":"0","weight":5,"value":0},{"outcomeId":"5","weight":1,"value":0},{"outcomeId":"6","weight":4,"value":0}]
+    },
+    {
+     "nodeType": "draw",
+     "id": "cell-2",
+     "label": "Draw the symbol of cell 2",
+     "stateWriteKey": "cell2",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}},
+     "drawWeights": [{"outcomeId":"0","weight":5,"value":0},{"outcomeId":"5","weight":1,"value":0},{"outcomeId":"6","weight":4,"value":0}]
+    },
+    {
+     "nodeType": "draw",
+     "id": "cell-3",
+     "label": "Draw the symbol of cell 3",
+     "stateWriteKey": "cell3",
      "inputs": {"state":{"name":"state","type":"State"}},
      "outputs": {"state":{"name":"state","type":"State"}},
      "drawWeights": [{"outcomeId":"0","weight":5,"value":0},{"outcomeId":"5","weight":1,"value":0},{"outcomeId":"6","weight":4,"value":0}]
     },
     {
      "nodeType": "modifyState",
-     "id": "place",
-     "label": "Put it on the board",
+     "id": "board",
+     "label": "The symbols drawn are the board",
      "outputKey": "board",
-     "expressionId": "place",
+     "expressionId": "board",
      "inputs": {"state":{"name":"state","type":"State"}},
      "outputs": {"state":{"name":"state","type":"State"}}
-    }
-   ],
-   "edges": [{"id":"symbol.state->place","sourceNodeId":"symbol","sourcePort":"state","targetNodeId":"place","targetPort":"state"}],
-   "expressions": {
-    "place": {
-     "exprType": "call",
-     "function": "append",
-     "args": [{"exprType":"fieldAccess","target":"state","path":["board"]},{"exprType":"fieldAccess","target":"state","path":["cellSymbol"]}]
-    }
-   }
-  },
-  "board": {
-   "name": "board",
-   "description": "Draws a symbol for each of the 3 cells, every cell on its own, and puts them on the board.",
-   "nodes": [
-    {
-     "nodeType": "modifyState",
-     "id": "clear",
-     "label": "Start with an empty board",
-     "outputKey": "board",
-     "expressionId": "clear",
-     "inputs": {"state":{"name":"state","type":"State"}},
-     "outputs": {"state":{"name":"state","type":"State"}}
-    },
-    {
-     "nodeType": "library",
-     "id": "cell-1",
-     "label": "Cell 1",
-     "mechanicName": "board-cell",
-     "inputs": {"state":{"name":"state","type":"State"}},
-     "outputs": {"state":{"name":"state","type":"State"}},
-     "parameters": {}
-    },
-    {
-     "nodeType": "library",
-     "id": "cell-2",
-     "label": "Cell 2",
-     "mechanicName": "board-cell",
-     "inputs": {"state":{"name":"state","type":"State"}},
-     "outputs": {"state":{"name":"state","type":"State"}},
-     "parameters": {}
-    },
-    {
-     "nodeType": "library",
-     "id": "cell-3",
-     "label": "Cell 3",
-     "mechanicName": "board-cell",
-     "inputs": {"state":{"name":"state","type":"State"}},
-     "outputs": {"state":{"name":"state","type":"State"}},
-     "parameters": {}
     }
    ],
    "edges": [
-    {"id":"clear.state->cell-1","sourceNodeId":"clear","sourcePort":"state","targetNodeId":"cell-1","targetPort":"state"},
     {"id":"cell-1.state->cell-2","sourceNodeId":"cell-1","sourcePort":"state","targetNodeId":"cell-2","targetPort":"state"},
-    {"id":"cell-2.state->cell-3","sourceNodeId":"cell-2","sourcePort":"state","targetNodeId":"cell-3","targetPort":"state"}
+    {"id":"cell-2.state->cell-3","sourceNodeId":"cell-2","sourcePort":"state","targetNodeId":"cell-3","targetPort":"state"},
+    {"id":"cell-3.state->board","sourceNodeId":"cell-3","sourcePort":"state","targetNodeId":"board","targetPort":"state"}
    ],
-   "expressions": {"clear":{"exprType":"fieldAccess","target":"state","path":["emptyArray"]}}
-  },
-  "coin-prize": {
-   "name": "coin-prize",
-   "description": "Gives one cell its coin value: the drawn prize × the stake if the cell shows a coin, nothing otherwise.",
-   "nodes": [
-    {
-     "nodeType": "draw",
-     "id": "prize",
-     "label": "Draw the prize a coin on this cell carries",
-     "stateWriteKey": "coinPrize",
-     "inputs": {"state":{"name":"state","type":"State"}},
-     "outputs": {"state":{"name":"state","type":"State"}},
-     "drawWeights": [{"outcomeId":"1","weight":3,"value":0},{"outcomeId":"4","weight":1,"value":0}]
-    },
-    {
-     "nodeType": "modifyState",
-     "id": "value",
-     "label": "A coin is worth its prize × the stake; any other symbol is worth nothing",
-     "outputKey": "coins",
-     "expressionId": "value",
-     "inputs": {"state":{"name":"state","type":"State"}},
-     "outputs": {"state":{"name":"state","type":"State"}}
-    }
-   ],
-   "edges": [{"id":"prize.state->value","sourceNodeId":"prize","sourcePort":"state","targetNodeId":"value","targetPort":"state"}],
    "expressions": {
-    "value": {
+    "board": {
      "exprType": "map",
-     "stateKey": "coins",
+     "stateKey": "boardPositions",
      "itemName": "item",
-     "indexName": "place",
      "itemType": "Number",
      "body": {
       "exprType": "if",
       "condition": {
        "exprType": "compare",
-       "op": "Eq",
-       "left": {"exprType":"fieldAccess","target":"state","path":["place"]},
-       "right": {"exprType":"fieldAccess","target":"state","path":["expressions","cell"]}
+       "op": "Lt",
+       "left": {"exprType":"fieldAccess","target":"state","path":["item"]},
+       "right": {"exprType":"constant","kind":"Integer","value":"1"}
       },
-      "thenExpr": {
+      "thenExpr": {"exprType":"fieldAccess","target":"state","path":["cell1"]},
+      "elseExpr": {
        "exprType": "if",
        "condition": {
         "exprType": "compare",
-        "op": "Eq",
-        "left": {
-         "exprType": "call",
-         "function": "index",
-         "args": [{"exprType":"fieldAccess","target":"state","path":["board"]},{"exprType":"fieldAccess","target":"state","path":["expressions","cell"]}]
-        },
-        "right": {"exprType":"call","function":"toString","args":[{"exprType":"fieldAccess","target":"state","path":["expressions","symbol"]}]}
+        "op": "Lt",
+        "left": {"exprType":"fieldAccess","target":"state","path":["item"]},
+        "right": {"exprType":"constant","kind":"Integer","value":"2"}
        },
-       "thenExpr": {
-        "exprType": "binary",
-        "op": "Mul",
-        "left": {"exprType":"call","function":"toNumber","args":[{"exprType":"fieldAccess","target":"state","path":["coinPrize"]}]},
-        "right": {"exprType":"fieldAccess","target":"state","path":["coinStake"]}
-       },
-       "elseExpr": {"exprType":"constant","kind":"Integer","value":"0"}
-      },
-      "elseExpr": {"exprType":"fieldAccess","target":"state","path":["item"]}
+       "thenExpr": {"exprType":"fieldAccess","target":"state","path":["cell2"]},
+       "elseExpr": {"exprType":"fieldAccess","target":"state","path":["cell3"]}
+      }
      }
     }
    }
   },
   "coin-prizes": {
    "name": "coin-prizes",
-   "description": "Every coin on the board carries a prize: one prize is drawn per cell, and the 3 cells are valued one after another.",
+   "description": "Every coin on the board carries a prize: one prize is drawn per cell, for each of the 3 cells.",
    "nodes": [
     {
-     "nodeType": "library",
+     "nodeType": "draw",
      "id": "cell-1",
-     "label": "Cell 1",
-     "mechanicName": "coin-prize",
+     "label": "Draw the prize a coin on cell 1 carries",
+     "stateWriteKey": "prize1",
      "inputs": {"state":{"name":"state","type":"State"}},
      "outputs": {"state":{"name":"state","type":"State"}},
-     "parameters": {"cell":"0","symbol":"6"}
+     "drawWeights": [{"outcomeId":"1","weight":3,"value":0},{"outcomeId":"4","weight":1,"value":0}]
     },
     {
-     "nodeType": "library",
+     "nodeType": "draw",
      "id": "cell-2",
-     "label": "Cell 2",
-     "mechanicName": "coin-prize",
+     "label": "Draw the prize a coin on cell 2 carries",
+     "stateWriteKey": "prize2",
      "inputs": {"state":{"name":"state","type":"State"}},
      "outputs": {"state":{"name":"state","type":"State"}},
-     "parameters": {"cell":"1","symbol":"6"}
+     "drawWeights": [{"outcomeId":"1","weight":3,"value":0},{"outcomeId":"4","weight":1,"value":0}]
     },
     {
-     "nodeType": "library",
+     "nodeType": "draw",
      "id": "cell-3",
-     "label": "Cell 3",
-     "mechanicName": "coin-prize",
+     "label": "Draw the prize a coin on cell 3 carries",
+     "stateWriteKey": "prize3",
      "inputs": {"state":{"name":"state","type":"State"}},
      "outputs": {"state":{"name":"state","type":"State"}},
-     "parameters": {"cell":"2","symbol":"6"}
+     "drawWeights": [{"outcomeId":"1","weight":3,"value":0},{"outcomeId":"4","weight":1,"value":0}]
+    },
+    {
+     "nodeType": "modifyState",
+     "id": "values",
+     "label": "A coin is worth its prize × the stake; any other symbol is worth nothing",
+     "outputKey": "coins",
+     "expressionId": "values",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}}
     },
     {
      "nodeType": "modifyState",
@@ -1340,9 +1277,59 @@
    "edges": [
     {"id":"cell-1.state->cell-2","sourceNodeId":"cell-1","sourcePort":"state","targetNodeId":"cell-2","targetPort":"state"},
     {"id":"cell-2.state->cell-3","sourceNodeId":"cell-2","sourcePort":"state","targetNodeId":"cell-3","targetPort":"state"},
-    {"id":"cell-3.state->count","sourceNodeId":"cell-3","sourcePort":"state","targetNodeId":"count","targetPort":"state"}
+    {"id":"cell-3.state->values","sourceNodeId":"cell-3","sourcePort":"state","targetNodeId":"values","targetPort":"state"},
+    {"id":"values.state->count","sourceNodeId":"values","sourcePort":"state","targetNodeId":"count","targetPort":"state"}
    ],
    "expressions": {
+    "values": {
+     "exprType": "map",
+     "stateKey": "board",
+     "itemName": "item",
+     "indexName": "place",
+     "itemType": "String",
+     "body": {
+      "exprType": "if",
+      "condition": {
+       "exprType": "compare",
+       "op": "Eq",
+       "left": {"exprType":"fieldAccess","target":"state","path":["item"]},
+       "right": {"exprType":"constant","kind":"String","value":"6"}
+      },
+      "thenExpr": {
+       "exprType": "binary",
+       "op": "Mul",
+       "left": {
+        "exprType": "call",
+        "function": "toNumber",
+        "args": [
+         {
+          "exprType": "if",
+          "condition": {
+           "exprType": "compare",
+           "op": "Lt",
+           "left": {"exprType":"fieldAccess","target":"state","path":["place"]},
+           "right": {"exprType":"constant","kind":"Integer","value":"1"}
+          },
+          "thenExpr": {"exprType":"fieldAccess","target":"state","path":["prize1"]},
+          "elseExpr": {
+           "exprType": "if",
+           "condition": {
+            "exprType": "compare",
+            "op": "Lt",
+            "left": {"exprType":"fieldAccess","target":"state","path":["place"]},
+            "right": {"exprType":"constant","kind":"Integer","value":"2"}
+           },
+           "thenExpr": {"exprType":"fieldAccess","target":"state","path":["prize2"]},
+           "elseExpr": {"exprType":"fieldAccess","target":"state","path":["prize3"]}
+          }
+         }
+        ]
+       },
+       "right": {"exprType":"fieldAccess","target":"state","path":["coinStake"]}
+      },
+      "elseExpr": {"exprType":"constant","kind":"Integer","value":"0"}
+     }
+    },
     "count": {
      "exprType": "aggregate",
      "func": "Count",

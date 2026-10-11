@@ -129,7 +129,10 @@ public class WoodlandWhisperGraphTests(ITestOutputHelper output)
     {
         Variant variant = Game(buy);
         GameGraph game = variant.Small;
-        SlotMathReport classic = game.Enumerate();
+        // Within its branch budget the hybrid evaluator is the classic interpreter: every outcome is visited.
+        RegimeResult hybrid = game.Hybrid(2_000_000, 10_000, Seed);
+        Assert.Equal(EvaluationStrategy.Exact, hybrid.OverallStrategy);
+        SlotMathReport classic = hybrid.Report;
         Assert.Equal(Provenance.Exact, classic.Rtp.Provenance.Provenance);
         Rational rtp = GameGraph.Exact(classic.Rtp);
         Assert.Equal(variant.SmallRtp, rtp);
@@ -140,10 +143,6 @@ public class WoodlandWhisperGraphTests(ITestOutputHelper output)
         Assert.True(structured.PrunedMass.IsZero);
         Assert.Equal(rtp, GameGraph.Exact(structured.Rtp(game.WinScale)));
         Assert.Equal(variant.SmallHitFrequency, structured.HitFrequency);
-
-        RegimeResult hybrid = game.Hybrid(2_000_000, 10_000, Seed);
-        Assert.Equal(EvaluationStrategy.Exact, hybrid.OverallStrategy);
-        Assert.Equal(rtp, GameGraph.Exact(hybrid.Report.Rtp));
 
         // Pruning drops branches rarer than epsilon and has to say how much it dropped. Only the rare mystery symbol
         // (1 in 10) is rarer than 1 in 5; with the declared win cap the result is an enclosure of the exact value (D5).
@@ -156,16 +155,14 @@ public class WoodlandWhisperGraphTests(ITestOutputHelper output)
     }
 
     [Theory]
-    [InlineData(false, true)]
-    [InlineData(false, false)]
-    [InlineData(true, true)]
-    [InlineData(true, false)]
-    public void SmallGame_SamplingAgreesWithTheExactValue_AndRejectsItShiftedByOnePercent(bool buy, bool compiledTier)
+    [InlineData(false)]
+    [InlineData(true)]
+    public void SmallGame_SamplingAgreesWithTheExactValue_AndRejectsItShiftedByOnePercent(bool buy)
     {
         long rounds = buy ? 300_000 : 1_000_000;
         Variant variant = Game(buy);
         var exact = variant.SmallRtp.ToDouble();
-        SampledResult<Dict> sampled = variant.Small.Sample(rounds, Seed, 4, compiledTier);
+        SampledResult<Dict> sampled = variant.Small.Sample(rounds, Seed);
         Assert.Equal(rounds, sampled.SpinsCompleted);
         output.WriteLine($"exact {exact} sampled {sampled.Stats.Mean} ± {sampled.Stats.StdErr}");
         Assert.True(FourSigma.Accepts(exact, sampled.Stats.Mean, sampled.Stats.StdErr));
@@ -251,16 +248,7 @@ public class WoodlandWhisperGraphTests(ITestOutputHelper output)
     {
         long rounds = buy ? 30_000 : 300_000;
         GameGraph game = Game(buy).Full;
-        SampledResult<Dict> one = game.Sample(rounds, Seed, 1);
-        SampledResult<Dict> eight = game.Sample(rounds, Seed, 8);
-        SampledResult<Dict> reference = game.Sample(rounds, Seed, 4, false);
-        foreach (SampledResult<Dict> other in new[] { eight, reference })
-        {
-            Assert.Equal(one.Stats.Mean, other.Stats.Mean);
-            Assert.Equal(one.Stats.Variance, other.Stats.Variance);
-            Assert.Equal(one.Stats.NonZeroCount, other.Stats.NonZeroCount);
-            Assert.Equal(one.Stats.MaxObserved, other.Stats.MaxObserved);
-        }
+        game.AssertSamplingIsBitIdentical(rounds, Seed);
     }
 
     // Beyond its branch budget the hybrid evaluator has to fall back to sampling and say so in the provenance.
@@ -271,7 +259,7 @@ public class WoodlandWhisperGraphTests(ITestOutputHelper output)
     {
         long rounds = buy ? 50_000 : 500_000;
         Variant variant = Game(buy);
-        RegimeResult hybrid = variant.Full.Hybrid(100_000, rounds, Seed);
+        RegimeResult hybrid = variant.Full.Hybrid(GameGraph.FallbackBranches, rounds, Seed);
         Assert.Equal(EvaluationStrategy.Sampled, hybrid.OverallStrategy);
         Assert.Equal(Provenance.Sampled, hybrid.Report.Rtp.Provenance.Provenance);
         Assert.Equal(rounds, hybrid.Report.Rtp.SampleCount);

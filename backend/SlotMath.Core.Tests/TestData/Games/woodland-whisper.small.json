@@ -87,13 +87,6 @@
    "outputs": {"true":{"name":"true","type":"State"},"false":{"name":"false","type":"State"}}
   },
   {
-   "nodeType": "getState",
-   "id": "trigger-join",
-   "label": "Continue",
-   "inputs": {"state":{"name":"state","type":"State"}},
-   "outputs": {"state":{"name":"state","type":"State"}}
-  },
-  {
    "nodeType": "modifyState",
    "id": "credits",
    "label": "Round win as a multiple of the total bet",
@@ -124,15 +117,8 @@
  "edges": [
   {"id":"base-spin.state->trigger","sourceNodeId":"base-spin","sourcePort":"state","targetNodeId":"trigger","targetPort":"state"},
   {"id":"trigger.true->trigger-yes","sourceNodeId":"trigger","sourcePort":"true","targetNodeId":"trigger-yes","targetPort":"state"},
-  {"id":"trigger.false->trigger-join","sourceNodeId":"trigger","sourcePort":"false","targetNodeId":"trigger-join","targetPort":"state"},
-  {
-   "id": "trigger-yes.state->trigger-join",
-   "sourceNodeId": "trigger-yes",
-   "sourcePort": "state",
-   "targetNodeId": "trigger-join",
-   "targetPort": "state"
-  },
-  {"id":"trigger-join.state->credits","sourceNodeId":"trigger-join","sourcePort":"state","targetNodeId":"credits","targetPort":"state"},
+  {"id":"trigger.false->credits","sourceNodeId":"trigger","sourcePort":"false","targetNodeId":"credits","targetPort":"state"},
+  {"id":"trigger-yes.state->credits","sourceNodeId":"trigger-yes","sourcePort":"state","targetNodeId":"credits","targetPort":"state"},
   {"id":"credits.state->round","sourceNodeId":"credits","sourcePort":"state","targetNodeId":"round","targetPort":"state"}
  ],
  "expressions": {
@@ -1576,13 +1562,6 @@
      "outputs": {"true":{"name":"true","type":"State"},"false":{"name":"false","type":"State"}}
     },
     {
-     "nodeType": "getState",
-     "id": "bonus-join",
-     "label": "Continue",
-     "inputs": {"state":{"name":"state","type":"State"}},
-     "outputs": {"state":{"name":"state","type":"State"}}
-    },
-    {
      "nodeType": "modifyState",
      "id": "use",
      "label": "Use one free spin",
@@ -1612,9 +1591,8 @@
    ],
    "edges": [
     {"id":"bonus.true->bonus-yes","sourceNodeId":"bonus","sourcePort":"true","targetNodeId":"bonus-yes","targetPort":"state"},
-    {"id":"bonus.false->bonus-join","sourceNodeId":"bonus","sourcePort":"false","targetNodeId":"bonus-join","targetPort":"state"},
-    {"id":"bonus-yes.state->bonus-join","sourceNodeId":"bonus-yes","sourcePort":"state","targetNodeId":"bonus-join","targetPort":"state"},
-    {"id":"bonus-join.state->use","sourceNodeId":"bonus-join","sourcePort":"state","targetNodeId":"use","targetPort":"state"},
+    {"id":"bonus.false->use","sourceNodeId":"bonus","sourcePort":"false","targetNodeId":"use","targetPort":"state"},
+    {"id":"bonus-yes.state->use","sourceNodeId":"bonus-yes","sourcePort":"state","targetNodeId":"use","targetPort":"state"},
     {"id":"use.state->spin","sourceNodeId":"use","sourcePort":"state","targetNodeId":"spin","targetPort":"state"}
    ],
    "expressions": {

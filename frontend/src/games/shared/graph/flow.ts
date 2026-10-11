@@ -20,15 +20,20 @@ export class Flow {
   private readonly edges: GraphEdge[] = [];
   private readonly expressions: Record<string, Expr> = {};
   private tail: [nodeId: string, port: string] | undefined;
+  private pending: [nodeId: string, port: string][] = [];
 
   private connect(source: string, port: string, target: string) {
     this.edges.push({ id: `${source}.${port}->${target}`, sourceNodeId: source, sourcePort: port, targetNodeId: target, targetPort: 'state' });
   }
   private step(node: GraphNode) {
     if ([...this.path, ...this.bodies].some(existing => existing.id === node.id)) throw new Error(`Duplicate node id '${node.id}'`);
-    if (this.tail) this.connect(this.tail[0], this.tail[1], node.id);
+    for (const [source, port] of this.ends()) this.connect(source, port, node.id);
+    this.pending = [];
     this.path.push(node);
     this.tail = [node.id, 'state'];
+  }
+  private ends(): [nodeId: string, port: string][] {
+    return this.pending.length ? this.pending : this.tail ? [this.tail] : [];
   }
   private placed(id: string, label: string, mechanic: string, parameters: Parameters): GraphNode {
     return { nodeType: 'library', id, label, mechanicName: mechanic, inputs: statePort, outputs: statePort,
@@ -61,13 +66,10 @@ export class Flow {
     this.expressions[id] = condition;
     this.step({ nodeType: 'branch', id, label, conditionId: id, inputs: statePort, outputs: ports('true', 'false') });
     const body = this.placed(`${id}-yes`, label, mechanic, parameters);
-    const join: GraphNode = { nodeType: 'getState', id: `${id}-join`, label: 'Continue', inputs: statePort, outputs: statePort };
     this.bodies.push(body);
     this.connect(id, 'true', body.id);
-    this.connect(id, 'false', join.id);
-    this.connect(body.id, 'state', join.id);
-    this.path.push(join);
-    this.tail = [join.id, 'state'];
+    this.pending = [[id, 'false'], [body.id, 'state']];
+    this.tail = undefined;
     return this;
   }
   /**
@@ -77,12 +79,12 @@ export class Flow {
   either(id: string, label: string, condition: Expr, yes: (path: Flow) => void, no: (path: Flow) => void = () => {}): this {
     this.expressions[id] = condition;
     this.step({ nodeType: 'branch', id, label, conditionId: id, inputs: statePort, outputs: ports('true', 'false') });
-    const join: GraphNode = { nodeType: 'getState', id: `${id}-join`, label: 'Continue', inputs: statePort, outputs: statePort };
+    const ends: [nodeId: string, port: string][] = [];
     for (const [port, lay] of [['true', yes], ['false', no]] as const) {
       const path = new Flow();
       lay(path);
       const first = path.path[0];
-      if (!first || !path.tail) { this.connect(id, port, join.id); continue; }
+      if (!first) { ends.push([id, port]); continue; }
       for (const node of [...path.path, ...path.bodies]) {
         if ([...this.path, ...this.bodies].some(existing => existing.id === node.id)) throw new Error(`Duplicate node id '${node.id}'`);
         this.bodies.push(node);
@@ -90,10 +92,10 @@ export class Flow {
       this.edges.push(...path.edges);
       Object.assign(this.expressions, path.expressions);
       this.connect(id, port, first.id);
-      this.connect(path.tail[0], path.tail[1], join.id);
+      ends.push(...path.ends());
     }
-    this.path.push(join);
-    this.tail = [join.id, 'state'];
+    this.pending = ends;
+    this.tail = undefined;
     return this;
   }
   /**

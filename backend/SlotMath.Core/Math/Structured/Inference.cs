@@ -267,12 +267,14 @@ internal sealed class Inference(TermFactory f)
         f.Budget.Tick((long)a.Values.Length * b.Values.Length * (Words(a.Total) + Words(b.Total) - 1));
         Masses masses = NewMasses(a.Values.Length + b.Values.Length);
         for (var i = 0; i < a.Values.Length; i++)
-        for (var j = 0; j < b.Values.Length; j++)
         {
-            ExprValue value = V.IsErr(a.Values[i]) || V.IsErr(b.Values[j])
-                ? V.Err
-                : ExprValue.Add(a.Values[i], b.Values[j]);
-            masses.Add(value, V.Hash(value), a.Mass[i] * b.Mass[j]);
+            for (var j = 0; j < b.Values.Length; j++)
+            {
+                ExprValue value = V.IsErr(a.Values[i]) || V.IsErr(b.Values[j])
+                    ? V.Err
+                    : ExprValue.Add(a.Values[i], b.Values[j]);
+                masses.Add(value, V.Hash(value), a.Mass[i] * b.Mass[j]);
+            }
         }
 
         return Build(masses, a.Total * b.Total);
@@ -380,7 +382,10 @@ internal sealed class Inference(TermFactory f)
     private Law? Independent(LinTerm lin)
     {
         List<List<int>> groups = f.Fault == StructuredFault.DependentSumsConvolved
-            ? Enumerable.Range(0, lin.Terms.Length).Select(i => new List<int> { i }).ToList()
+            ? Enumerable.Range(0, lin.Terms.Length).Select(i => new List<int>
+            {
+                i
+            }).ToList()
             : Components(lin.Terms);
         if (groups.Count < 2)
         {

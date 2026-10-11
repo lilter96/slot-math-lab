@@ -541,7 +541,8 @@ internal sealed partial class SymbolicExecutor
         Term outer = _guard;
         state = new Dictionary<string, Field>(state, StringComparer.Ordinal)
         {
-            [iterKey] = new(_f.ZeroT, false), [winsKey] = new(_f.ZeroT, false)
+            [iterKey] = new(_f.ZeroT, false),
+            [winsKey] = new(_f.ZeroT, false)
         };
 
         var exits = new List<(Term Condition, Dictionary<string, Field> State)>();
@@ -689,7 +690,8 @@ internal sealed partial class SymbolicExecutor
         var winsKey = $"__wins_{loop.Id}__";
         var entry = new Dictionary<string, Field>(state, StringComparer.Ordinal)
         {
-            [iterKey] = new(_f.ZeroT, false), [winsKey] = new(_f.ZeroT, false)
+            [iterKey] = new(_f.ZeroT, false),
+            [winsKey] = new(_f.ZeroT, false)
         };
 
         // Fields that are constants on entry stay constants until a pass shows the body changing them: a paytable
@@ -704,7 +706,8 @@ internal sealed partial class SymbolicExecutor
         }
 
         Pass pass;
-        for (var round = 0;; round++)
+        var round = 0;
+        while (true)
         {
             if (round == MaxTemplatePasses)
             {
@@ -750,6 +753,8 @@ internal sealed partial class SymbolicExecutor
             {
                 break;
             }
+
+            round++;
         }
 
         // Every field the body changes is one of three things: an amount it only ever adds to and nothing else in
@@ -1047,7 +1052,10 @@ internal sealed partial class SymbolicExecutor
 
     private HashSet<string> Reach(string from)
     {
-        var seen = new HashSet<string> { from };
+        var seen = new HashSet<string>
+        {
+            from
+        };
         var pending = new Stack<string>();
         pending.Push(from);
         while (pending.Count > 0)

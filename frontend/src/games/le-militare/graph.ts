@@ -1,5 +1,5 @@
 import fullModel from './model.json' with { type: 'json' };
-import { add, and, at, countOver, div, emptyArray, eq, floor, gt, gte, iteration, length, lt, lte, mapOver, max, min, mul, neq, num, or, state, str, sub, sumOver, toNumber, when } from '../shared/graph/expr';
+import { add, and, at, countOver, div, emptyArray, eq, except, floor, foldOver, gt, gte, iteration, length, lt, lte, mapOver, max, min, mul, neq, num, only, or, state, str, sub, sumOver, toNumber, when } from '../shared/graph/expr';
 import { Flow, gameGraph, Mechanics } from '../shared/graph/flow';
 import { cascade, cascadeState, tumble, type Carried } from '../shared/graph/mechanics/cascade';
 import { clusterPays, clusterState, clusterTrace, type ClusterBoard } from '../shared/graph/mechanics/clusters';
@@ -114,13 +114,15 @@ export function createLeMilitareGraph(model: LeMilitareModel = fullModel, option
         // Never more planes than cells, and one pass of slack so that the limit is never what ends the loop.
         .repeat('shoot', `Every ${planeName} is shot down and leaves a multiplier`, CELLS + 1, multiplier,
           { until: gte(iteration('shoot'), state('planeCount')), bodyLabel: `One ${planeName}` })
-        .write('hold', `A ${planeName} shot down in a paid spin is held, and so is a reel that arms in the free spins`, 'held',
-          mapOver('held', when(eq(at('newlyArmed', reel), num(1)), state('bonus'),
-            when(eq(at('board', place), str(PLANE)), sub(num(1), state('bonus')), item)), numbered))
-        .write('wilds', `Every ${planeName} shot down and every cell of a reel that arms becomes a ${wildName}`, 'board',
-          mapOver('board', when(or(eq(at('newlyArmed', reel), num(1)), eq(item, str(PLANE))), str(WILD), item), { index: 'place' }))
-        .write('arm', 'A reel stays armed once it has armed', 'armed', mapOver('armed', max(item, at('newlyArmed', place)), numbered))
-        .write('giants', 'In the free spins an armed reel counts as one cell of a group', 'cellCounts', giantCounts))
+        .either('changed', `Was a ${planeName} shot down, or did a reel arm?`,
+          gt(add(state('planeCount'), sumOver('newlyArmed', item, { itemType: 'Number' })), num(0)), changed => changed
+            .write('hold', `A ${planeName} shot down in a paid spin is held, and so is a reel that arms in the free spins`, 'held',
+              mapOver('held', when(eq(at('newlyArmed', reel), num(1)), state('bonus'),
+                when(eq(at('board', place), str(PLANE)), sub(num(1), state('bonus')), item)), numbered))
+            .write('wilds', `Every ${planeName} shot down and every cell of a reel that arms becomes a ${wildName}`, 'board',
+              mapOver('board', when(or(eq(at('newlyArmed', reel), num(1)), eq(item, str(PLANE))), str(WILD), item), { index: 'place' }))
+            .write('arm', 'A reel stays armed once it has armed', 'armed', mapOver('armed', max(item, at('newlyArmed', place)), numbered))
+            .write('giants', 'In the free spins an armed reel counts as one cell of a group', 'cellCounts', giantCounts)))
     .record('trace-after', 'Remember the board after the combat', 'lookAfter', state('board'))
     .record('trace-shots', 'Remember the multipliers the planes left', 'lookShots', state('drawnMultipliers'))
     .record('trace-armed', 'Remember the reels that armed', 'lookArmed', state('newlyArmed'))
@@ -131,7 +133,7 @@ export function createLeMilitareGraph(model: LeMilitareModel = fullModel, option
     .use('combat', 'Combat', combat)
     .use('clusters', 'Pay the groups on the board', mechanics.add(clusterPays(mechanics, clusters)))
     .write('held', 'A held cell stays on the board when its group pays', 'removed',
-      mapOver('removed', when(eq(at('held', place), num(1)), num(0), item), numbered))
+      foldOver('held', state('removed'), when(eq(item, num(1)), except(state('acc'), only(place)), state('acc')), numbered))
     .mechanic('combat-pays', 'Looks at a board: the combat comes first, then the groups pay. Held cells stay on the board.'));
 
   const payStep = new Flow()
@@ -149,8 +151,8 @@ export function createLeMilitareGraph(model: LeMilitareModel = fullModel, option
     tumble: { label: 'Remove what paid and fill the board', mechanic: mechanics.add(new Flow()
       .use('tumble', 'Remove what paid; the rest falls and the reels fill the board',
         mechanics.add(tumble(mechanics, { name: `${kind}-tumble`, columns: COLUMNS, rows: ROWS, refill: { reels }, carried: [held] })))
-      .write('scatters', `Count the ${scatterName}s that dropped in`, 'scatterCount',
-        add(state('scatterCount'), countOver('drops', eq(item, str(SCATTER)))))
+      .write('scatters', `Count the ${scatterName}s that dropped in: those on the board now, less those that stayed`, 'scatterCount',
+        add(state('scatterCount'), sub(countOver('board', eq(item, str(SCATTER))), countOver('survivors', eq(item, str(SCATTER))))))
       .record('trace-held', 'Remember the held cells once the symbols have fallen', 'stepHeld', state('held'))
       .mechanic(`${kind}-refill`, `Fills the board after a step and counts the ${scatterName}s that dropped in.`)) },
   }));
@@ -264,7 +266,7 @@ export function createLeMilitareGraph(model: LeMilitareModel = fullModel, option
       ...(placed ? { placedScatters } : {}), ...(feature === 'chance' ? { forced: '0' } : {}),
       ...(tier ? {} : { raidFires: '0', raidPlanes: '0', raidHit: '0', raidReel: '0', raidRow: '0', raidCell: 0 }),
       board: Array.from({ length: CELLS }, () => '0'), ...Object.fromEntries(Array.from({ length: COLUMNS }, (_, column) => [`stop${column}`, '0'])),
-      ...reelState(paidReels), ...reelState(freeReels), ...clusterState(clusters), ...cascadeState({ carried: [held] }),
+      ...reelState(paidReels), ...reelState(freeReels), ...clusterState(clusters), ...cascadeState({ columns: COLUMNS, rows: ROWS, carried: [held], refill: { reels: paidReels } }),
       ...Object.fromEntries([...spinTrace, ...lookTrace, ...stepTrace, ...clusterTrace.map(stepHits), ...(tier ? [] : raidTrace)].map(key => [key, []])),
     },
     tables: gameTables({ names, wild: WILD, scatter: SCATTER, totalBet: TOTAL_BET, roundCost: ROUND_COST, rows: ROWS, columns: COLUMNS,

@@ -1,165 +1,223 @@
+using System.Collections.Concurrent;
+using System.Globalization;
+using System.Linq.Expressions;
 using System.Numerics;
 using System.Reflection;
 using System.Runtime.CompilerServices;
+using System.Text;
 using SlotMath.Core.Expressions;
 using SlotMath.Core.Model;
 using SlotMath.Core.Random;
+using Expression = SlotMath.Core.Model.Expression;
 using Lx = System.Linq.Expressions.Expression;
 using LxParameter = System.Linq.Expressions.ParameterExpression;
 
 namespace SlotMath.Core.Compiler;
 
-/// <summary>How a sampling expression is executed. Every tier has the same
-/// observable semantics; the tiers differ only in start-up and steady-state cost.</summary>
+/// <summary>
+///     How a sampling expression is executed. Every tier has the same
+///     observable semantics; the tiers differ only in start-up and steady-state cost.
+/// </summary>
 public enum SamplingTier
 {
     /// <summary>Start interpreted; generate IL once the expression is hot.</summary>
     Tiered,
+
     /// <summary>Closure tree only. No code generation.</summary>
     Interpreted,
+
     /// <summary>Generate IL when the expression is bound.</summary>
-    Compiled,
+    Compiled
 }
 
-/// <summary>Process-wide default for newly compiled sampling plans. A host may
-/// select <see cref="SamplingTier.Interpreted"/> to rule code generation out
-/// while diagnosing a result; sampled statistics do not depend on the tier.</summary>
+/// <summary>
+///     Process-wide default for newly compiled sampling plans. A host may
+///     select <see cref="SamplingTier.Interpreted" /> to rule code generation out
+///     while diagnosing a result; sampled statistics do not depend on the tier.
+/// </summary>
 public static class SamplingOptions
 {
     public static SamplingTier Tier { get; set; } = SamplingTier.Tiered;
+
     /// <summary>Evaluations of one expression before IL is generated for it.</summary>
     public static int HotThreshold { get; set; } = 64;
 }
 
-/// <summary>Everything in which two expressions of the same shape differ:
-/// the fields they read, their constants, and the closures of the forms that
-/// stay interpreted. Generated code takes these as an argument, so one method
-/// serves every expression of that shape.</summary>
-internal sealed class SamplingOperands(int[] slots, string[] texts, long[] numbers, ExprValue[] values, ExprValue[][] arrays, SamplingDraw[] draws, Func<SamplingFrame, ExprValue>[] closures, SamplingExpressions owner)
+/// <summary>
+///     Everything in which two expressions of the same shape differ:
+///     the fields they read, their constants, and the closures of the forms that
+///     stay interpreted. Generated code takes these as an argument, so one method
+///     serves every expression of that shape.
+/// </summary>
+internal sealed class SamplingOperands(
+    int[] slots,
+    string[] texts,
+    long[] numbers,
+    ExprValue[] values,
+    ExprValue[][] arrays,
+    SamplingDraw[] draws,
+    Func<SamplingFrame, ExprValue>[] closures,
+    SamplingExpressions owner)
 {
+    public readonly ExprValue[][] Arrays = arrays;
+    public readonly Func<SamplingFrame, ExprValue>[] Closures = closures;
+    public readonly SamplingDraw[] Draws = draws;
+    public readonly long[] Numbers = numbers;
+    public readonly SamplingExpressions Owner = owner;
     public readonly int[] Slots = slots;
     public readonly string[] Texts = texts;
-    public readonly long[] Numbers = numbers;
     public readonly ExprValue[] Values = values;
-    public readonly ExprValue[][] Arrays = arrays;
-    public readonly SamplingDraw[] Draws = draws;
-    public readonly Func<SamplingFrame, ExprValue>[] Closures = closures;
-    public readonly SamplingExpressions Owner = owner;
 }
 
 // Bound data for an ordinary scalar Draw. Sampling preserves its two RNG
 // operations and publishes the same typed outcome and boxed value as the
 // interpreted plan. Keeping this body shared avoids copying the PRNG into
 // every instruction of a generated straight run.
-internal sealed class SamplingDraw(SlotMath.Core.Random.AliasMethod alias, ExprValue[] names, object[] values)
+internal sealed class SamplingDraw(AliasMethod alias, ExprValue[] names, object[] values)
 {
     private readonly SamplingCell[] _outcomes = names.Select(SamplingCell.Typed).ToArray();
 
     [MethodImpl(MethodImplOptions.NoInlining)]
-    public object Run(SamplingFrame frame, SlotMath.Core.Random.SeededRandom rng, int destination)
+    public object Run(SamplingFrame frame, SeededRandom rng, int destination)
     {
         var index = alias.Sample(rng);
-        if (destination >= 0) frame.Cells[destination] = _outcomes[index];
+        if (destination >= 0)
+        {
+            frame.Cells[destination] = _outcomes[index];
+        }
+
         return values[index];
     }
 }
 
 internal sealed class SamplingRunDelegate
 {
-    private sealed class Binding(Func<SamplingFrame, SamplingOperands?, SlotMath.Core.Random.SeededRandom, object?, object?> code, SamplingOperands? operands)
-    {
-        public readonly Func<SamplingFrame, SamplingOperands?, SlotMath.Core.Random.SeededRandom, object?, object?> Code = code;
-        public readonly SamplingOperands? Operands = operands;
-    }
+    private readonly Func<(Func<SamplingFrame, SamplingOperands?, SeededRandom, object?, object?>
+        Code, SamplingOperands Operands)> _generate;
 
-    private Binding _current;
-    private readonly Func<(Func<SamplingFrame, SamplingOperands?, SlotMath.Core.Random.SeededRandom, object?, object?> Code, SamplingOperands Operands)> _generate;
     private readonly int _threshold = System.Math.Max(1, SamplingOptions.HotThreshold);
     private int _calls;
 
-    public SamplingRunDelegate(Func<SamplingFrame, SlotMath.Core.Random.SeededRandom, object?, object?> interpreted,
-        Func<(Func<SamplingFrame, SamplingOperands?, SlotMath.Core.Random.SeededRandom, object?, object?> Code, SamplingOperands Operands)> generate, SamplingTier tier)
+    private Binding _current;
+
+    public SamplingRunDelegate(Func<SamplingFrame, SeededRandom, object?, object?> interpreted,
+        Func<(Func<SamplingFrame, SamplingOperands?, SeededRandom, object?, object?> Code,
+            SamplingOperands Operands)> generate, SamplingTier tier)
     {
         _generate = generate;
         var cold = new Binding((frame, _, rng, input) => interpreted(frame, rng, input), null);
         _current = cold;
-        if (tier == SamplingTier.Compiled) Generate();
+        if (tier == SamplingTier.Compiled)
+        {
+            Generate();
+        }
         else if (tier == SamplingTier.Tiered)
-            _current = new((frame, _, rng, input) =>
+        {
+            _current = new Binding((frame, _, rng, input) =>
             {
                 if (Interlocked.Increment(ref _calls) == _threshold)
                 {
-                    try { Generate(); }
-                    catch (Exception ex) when (ex is NotSupportedException or InvalidOperationException or ArgumentException or PlatformNotSupportedException)
-                    { Volatile.Write(ref _current, cold); }
+                    try
+                    {
+                        Generate();
+                    }
+                    catch (Exception ex) when (ex is NotSupportedException or InvalidOperationException
+                                                   or ArgumentException or PlatformNotSupportedException)
+                    {
+                        Volatile.Write(ref _current, cold);
+                    }
                 }
+
                 return interpreted(frame, rng, input);
             }, null);
+        }
     }
 
     private void Generate()
     {
-        var (code, operands) = _generate();
-        Volatile.Write(ref _current, new(code, operands));
+        (Func<SamplingFrame, SamplingOperands?, SeededRandom, object?, object?> code, SamplingOperands operands) =
+            _generate();
+        Volatile.Write(ref _current, new Binding(code, operands));
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public object? Invoke(SamplingFrame frame, SlotMath.Core.Random.SeededRandom rng, object? input)
+    public object? Invoke(SamplingFrame frame, SeededRandom rng, object? input)
     {
-        var current = _current;
+        Binding current = _current;
         return current.Code(frame, current.Operands, rng, input);
     }
-}
 
-/// <summary>Generated methods by expression shape, shared by a compiled program
-/// and its replicas. A slot game repeats a few shapes many times (one per
-/// payline, reel or cell); sharing keeps the hot code small enough to stay in
-/// the instruction cache and is generated once.</summary>
-internal sealed class SamplingShapes
-{
-    private readonly System.Collections.Concurrent.ConcurrentDictionary<string, Lazy<Delegate>> _code = new(StringComparer.Ordinal);
-
-    public T Get<T>(string shape, Func<T> compile) where T : Delegate => (T)_code.GetOrAdd(shape, _ => new Lazy<Delegate>(compile)).Value;
-
-    public int Count => _code.Count;
-}
-
-/// <summary>One bound expression. Its implementation is replaced by generated
-/// code once the expression is hot; <see cref="Entry"/> is a stable delegate for
-/// callers that keep one.</summary>
-internal sealed class SamplingDelegate<T>
-{
-    // Code and the operands it expects are published together.
-    private sealed class Binding(Func<SamplingFrame, SamplingOperands?, T> code, SamplingOperands? operands)
+    private sealed class Binding(
+        Func<SamplingFrame, SamplingOperands?, SeededRandom, object?, object?> code,
+        SamplingOperands? operands)
     {
-        public readonly Func<SamplingFrame, SamplingOperands?, T> Code = code;
+        public readonly Func<SamplingFrame, SamplingOperands?, SeededRandom, object?, object?>
+            Code = code;
+
         public readonly SamplingOperands? Operands = operands;
     }
+}
 
-    private Binding _current;
+/// <summary>
+///     Generated methods by expression shape, shared by a compiled program
+///     and its replicas. A slot game repeats a few shapes many times (one per
+///     payline, reel or cell); sharing keeps the hot code small enough to stay in
+///     the instruction cache and is generated once.
+/// </summary>
+internal sealed class SamplingShapes
+{
+    private readonly ConcurrentDictionary<string, Lazy<Delegate>> _code =
+        new(StringComparer.Ordinal);
+
+    public int Count => _code.Count;
+
+    public T Get<T>(string shape, Func<T> compile) where T : Delegate =>
+        (T)_code.GetOrAdd(shape, _ => new Lazy<Delegate>(compile)).Value;
+}
+
+/// <summary>
+///     One bound expression. Its implementation is replaced by generated
+///     code once the expression is hot; <see cref="Entry" /> is a stable delegate for
+///     callers that keep one.
+/// </summary>
+internal sealed class SamplingDelegate<T>
+{
     public readonly Func<SamplingFrame, T> Entry;
-    private readonly Func<SamplingFrame, T> _interpreted;
     private readonly Func<(Func<SamplingFrame, SamplingOperands?, T> Code, SamplingOperands Operands)>? _generate;
+    private readonly Func<SamplingFrame, T> _interpreted;
     private readonly int _threshold = System.Math.Max(1, SamplingOptions.HotThreshold);
     private int _calls;
 
-    public SamplingDelegate(Func<SamplingFrame, T> interpreted, Func<(Func<SamplingFrame, SamplingOperands?, T> Code, SamplingOperands Operands)>? generate, SamplingTier tier)
+    private Binding _current;
+
+    public SamplingDelegate(Func<SamplingFrame, T> interpreted,
+        Func<(Func<SamplingFrame, SamplingOperands?, T> Code, SamplingOperands Operands)>? generate, SamplingTier tier)
     {
         _interpreted = interpreted;
         if (generate is null || tier == SamplingTier.Interpreted)
         {
-            _current = new((frame, _) => interpreted(frame), null); Entry = interpreted;
+            _current = new Binding((frame, _) => interpreted(frame), null);
+            Entry = interpreted;
             return;
         }
+
         Entry = Invoke;
-        if (tier == SamplingTier.Compiled) { var (code, operands) = generate(); _current = new(code, operands); }
-        else { _generate = generate; _current = new((frame, _) => Cold(frame), null); }
+        if (tier == SamplingTier.Compiled)
+        {
+            (Func<SamplingFrame, SamplingOperands?, T> code, SamplingOperands operands) = generate();
+            _current = new Binding(code, operands);
+        }
+        else
+        {
+            _generate = generate;
+            _current = new Binding((frame, _) => Cold(frame), null);
+        }
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public T Invoke(SamplingFrame frame)
     {
-        var current = _current;
+        Binding current = _current;
         return current.Code(frame, current.Operands);
     }
 
@@ -169,55 +227,92 @@ internal sealed class SamplingDelegate<T>
         {
             // Generation is an optimization: if it is unavailable, the
             // interpreted closure remains the implementation.
-            try { var (code, operands) = _generate!(); _current = new(code, operands); }
-            catch (Exception ex) when (ex is NotSupportedException or InvalidOperationException or ArgumentException or PlatformNotSupportedException)
-            { _current = new((next, _) => _interpreted(next), null); }
+            try
+            {
+                (Func<SamplingFrame, SamplingOperands?, T> code, SamplingOperands operands) = _generate!();
+                _current = new Binding(code, operands);
+            }
+            catch (Exception ex) when (ex is NotSupportedException or InvalidOperationException or ArgumentException
+                                           or PlatformNotSupportedException)
+            {
+                _current = new Binding((next, _) => _interpreted(next), null);
+            }
         }
+
         return _interpreted(frame);
+    }
+
+    // Code and the operands it expects are published together.
+    private sealed class Binding(Func<SamplingFrame, SamplingOperands?, T> code, SamplingOperands? operands)
+    {
+        public readonly Func<SamplingFrame, SamplingOperands?, T> Code = code;
+        public readonly SamplingOperands? Operands = operands;
     }
 }
 
-/// <summary>Operators emitted by <see cref="SamplingCodegen"/>. Each has an
-/// inlined path for 64-bit integers and plain strings, and otherwise defers to
-/// the shared exact implementation, so results and located errors are identical
-/// to the interpreted tier.</summary>
+/// <summary>
+///     Operators emitted by <see cref="SamplingCodegen" />. Each has an
+///     inlined path for 64-bit integers and plain strings, and otherwise defers to
+///     the shared exact implementation, so results and located errors are identical
+///     to the interpreted tier.
+/// </summary>
 internal static class SamplingOps
 {
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool Truth(ExprValue value) => value.IsBoolean ? value.BoolValue : NotBoolean();
-    private static bool NotBoolean() => throw new ExpressionEvaluationException("EVAL_TYPE_ERROR", "Boolean expression required.");
+
+    private static bool NotBoolean() =>
+        throw new ExpressionEvaluationException("EVAL_TYPE_ERROR", "Boolean expression required.");
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static ExprValue Add(ExprValue l, ExprValue r)
     {
-        if (!(l.IsInlineInteger && r.IsInlineInteger)) RequireNumbers(BinaryOp.Add, l, r);
+        if (!(l.IsInlineInteger && r.IsInlineInteger))
+        {
+            RequireNumbers(BinaryOp.Add, l, r);
+        }
+
         return ExprValue.Add(l, r);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static ExprValue Sub(ExprValue l, ExprValue r)
     {
-        if (!(l.IsInlineInteger && r.IsInlineInteger)) RequireNumbers(BinaryOp.Sub, l, r);
+        if (!(l.IsInlineInteger && r.IsInlineInteger))
+        {
+            RequireNumbers(BinaryOp.Sub, l, r);
+        }
+
         return ExprValue.Sub(l, r);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static ExprValue Mul(ExprValue l, ExprValue r)
     {
-        if (!(l.IsInlineInteger && r.IsInlineInteger)) RequireNumbers(BinaryOp.Mul, l, r);
+        if (!(l.IsInlineInteger && r.IsInlineInteger))
+        {
+            RequireNumbers(BinaryOp.Mul, l, r);
+        }
+
         return ExprValue.Mul(l, r);
     }
 
     public static ExprValue Div(ExprValue l, ExprValue r)
     {
-        if (!(l.IsInlineInteger && r.IsInlineInteger)) RequireNumbers(BinaryOp.Div, l, r);
+        if (!(l.IsInlineInteger && r.IsInlineInteger))
+        {
+            RequireNumbers(BinaryOp.Div, l, r);
+        }
+
         return ExprValue.Div(l, r);
     }
 
     private static void RequireNumbers(BinaryOp op, ExprValue l, ExprValue r)
     {
         if (l.Kind != ExprType.Number || r.Kind != ExprType.Number)
+        {
             throw new ExpressionEvaluationException("EVAL_TYPE_ERROR", $"Operator {op} requires numeric operands.");
+        }
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -236,33 +331,49 @@ internal static class SamplingOps
     // unless the comparison leaves the plain-string path.
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool EqText(ExprValue l, string text) =>
-        l.IsString ? string.Equals(l.TextUnchecked, text) : SamplingExpressions.CompareValues(CompareOp.Eq, l, ExprValue.String(text));
+        l.IsString
+            ? string.Equals(l.TextUnchecked, text)
+            : SamplingExpressions.CompareValues(CompareOp.Eq, l, ExprValue.String(text));
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool NeqText(ExprValue l, string text) =>
-        l.IsString ? !string.Equals(l.TextUnchecked, text) : SamplingExpressions.CompareValues(CompareOp.Neq, l, ExprValue.String(text));
+        l.IsString
+            ? !string.Equals(l.TextUnchecked, text)
+            : SamplingExpressions.CompareValues(CompareOp.Neq, l, ExprValue.String(text));
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool Lt(ExprValue l, ExprValue r) =>
-        l.IsInlineInteger && r.IsInlineInteger ? l.InlineInteger < r.InlineInteger : SamplingExpressions.CompareValues(CompareOp.Lt, l, r);
+        l.IsInlineInteger && r.IsInlineInteger
+            ? l.InlineInteger < r.InlineInteger
+            : SamplingExpressions.CompareValues(CompareOp.Lt, l, r);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool Gt(ExprValue l, ExprValue r) =>
-        l.IsInlineInteger && r.IsInlineInteger ? l.InlineInteger > r.InlineInteger : SamplingExpressions.CompareValues(CompareOp.Gt, l, r);
+        l.IsInlineInteger && r.IsInlineInteger
+            ? l.InlineInteger > r.InlineInteger
+            : SamplingExpressions.CompareValues(CompareOp.Gt, l, r);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool Lte(ExprValue l, ExprValue r) =>
-        l.IsInlineInteger && r.IsInlineInteger ? l.InlineInteger <= r.InlineInteger : SamplingExpressions.CompareValues(CompareOp.Lte, l, r);
+        l.IsInlineInteger && r.IsInlineInteger
+            ? l.InlineInteger <= r.InlineInteger
+            : SamplingExpressions.CompareValues(CompareOp.Lte, l, r);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool Gte(ExprValue l, ExprValue r) =>
-        l.IsInlineInteger && r.IsInlineInteger ? l.InlineInteger >= r.InlineInteger : SamplingExpressions.CompareValues(CompareOp.Gte, l, r);
+        l.IsInlineInteger && r.IsInlineInteger
+            ? l.InlineInteger >= r.InlineInteger
+            : SamplingExpressions.CompareValues(CompareOp.Gte, l, r);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static ExprValue Index(ExprValue array, ExprValue position)
     {
-        if (position.IsInlineInteger && array.ItemsArray is { } items && (ulong)position.InlineInteger < (ulong)items.Length)
+        if (position.IsInlineInteger && array.ItemsArray is { } items &&
+            (ulong)position.InlineInteger < (ulong)items.Length)
+        {
             return items[position.InlineInteger];
+        }
+
         return CollectionFunctions.Index(array, position);
     }
 
@@ -270,62 +381,99 @@ internal static class SamplingOps
     public static ExprValue IndexItems(ExprValue[] items, ExprValue position)
     {
         if (position.IsInlineInteger && (ulong)position.InlineInteger < (ulong)items.Length)
+        {
             return items[position.InlineInteger];
+        }
+
         return CollectionFunctions.Index(ExprValue.Array(items), position);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static ExprValue Max(ExprValue l, ExprValue r) =>
-        l.IsInlineInteger && r.IsInlineInteger ? (l.InlineInteger >= r.InlineInteger ? l : r) : NumericFunctions.Call("max", l, r, 2);
+        l.IsInlineInteger && r.IsInlineInteger
+            ? l.InlineInteger >= r.InlineInteger ? l : r
+            : NumericFunctions.Call("max", l, r, 2);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static ExprValue Min(ExprValue l, ExprValue r) =>
-        l.IsInlineInteger && r.IsInlineInteger ? (l.InlineInteger <= r.InlineInteger ? l : r) : NumericFunctions.Call("min", l, r, 2);
+        l.IsInlineInteger && r.IsInlineInteger
+            ? l.InlineInteger <= r.InlineInteger ? l : r
+            : NumericFunctions.Call("min", l, r, 2);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool HasNumericText(ExprValue value) => value.TryGetNumericText(out _);
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static ExprValue NumericText(ExprValue value) { value.TryGetNumericText(out var number); return ExprValue.Number(number); }
 
-    /// <summary>First step of a fused append chain: checks the base exactly as a
-    /// single append would, then reserves room for every appended item.</summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static ExprValue NumericText(ExprValue value)
+    {
+        value.TryGetNumericText(out var number);
+        return ExprValue.Number(number);
+    }
+
+    /// <summary>
+    ///     First step of a fused append chain: checks the base exactly as a
+    ///     single append would, then reserves room for every appended item.
+    /// </summary>
     public static ExprValue[] AppendBegin(SamplingFrame frame, ExprValue first, int extra)
     {
-        if (first.Kind != ExprType.Array) throw new ExpressionEvaluationException("EVAL_TYPE_ERROR", "append requires an array.", "append");
+        if (first.Kind != ExprType.Array)
+        {
+            throw new ExpressionEvaluationException("EVAL_TYPE_ERROR", "append requires an array.", "append");
+        }
+
         if (first.ItemsArray is { } items)
         {
-            var copy = frame.NewArray(items.Length + extra);
+            ExprValue[] copy = frame.NewArray(items.Length + extra);
             items.CopyTo(copy, 0);
             return copy;
         }
-        var list = first.ArrayValue!;
-        var result = frame.NewArray(list.Count + extra);
-        for (var i = 0; i < list.Count; i++) result[i] = list[i];
+
+        IReadOnlyList<ExprValue>? list = first.ArrayValue!;
+        ExprValue[] result = frame.NewArray(list.Count + extra);
+        for (var i = 0; i < list.Count; i++)
+        {
+            result[i] = list[i];
+        }
+
         return result;
     }
 
     public static ExprValue AppendEnd(ExprValue[] items)
     {
         var symbols = false;
-        foreach (ref readonly var item in items.AsSpan()) if (item.ContainsSymbols) { symbols = true; break; }
+        foreach (ref readonly ExprValue item in items.AsSpan())
+        {
+            if (item.ContainsSymbols)
+            {
+                symbols = true;
+                break;
+            }
+        }
+
         return ExprValue.ArrayOwned(items, symbols);
     }
 }
 
-/// <summary>Translates one expression AST into a LINQ expression tree. Scalar
-/// operators become straight-line IL with statically typed conditions; forms
-/// for map, filter, fold and count become loops with scoped bindings. Other iteration
-/// forms and uncommon paths reuse interpreted closures with compiled bodies.
-/// <para>While translating, the generator writes down the expression's shape:
-/// every decision that selects what is emitted. Slots, constants and closures
-/// are not part of it; they become <see cref="SamplingOperands"/>. Two
-/// expressions with equal shapes therefore produce the same method.</para></summary>
+/// <summary>
+///     Translates one expression AST into a LINQ expression tree. Scalar
+///     operators become straight-line IL with statically typed conditions; forms
+///     for map, filter, fold and count become loops with scoped bindings. Other iteration
+///     forms and uncommon paths reuse interpreted closures with compiled bodies.
+///     <para>
+///         While translating, the generator writes down the expression's shape:
+///         every decision that selects what is emitted. Slots, constants and closures
+///         are not part of it; they become <see cref="SamplingOperands" />. Two
+///         expressions with equal shapes therefore produce the same method.
+///     </para>
+/// </summary>
 internal sealed class SamplingCodegen
 {
-    private const BindingFlags Any = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static | BindingFlags.Instance;
-    private static MethodInfo Op(string name) => typeof(SamplingOps).GetMethod(name, Any) ?? throw new MissingMethodException(nameof(SamplingOps), name);
+    private const BindingFlags Any = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static |
+                                     BindingFlags.Instance;
 
-    private static readonly MethodInfo NumberOf = typeof(ExprValue).GetMethod(nameof(ExprValue.Number), [typeof(long)])!;
+    private static readonly MethodInfo
+        NumberOf = typeof(ExprValue).GetMethod(nameof(ExprValue.Number), [typeof(long)])!;
+
     private static readonly MethodInfo BoolOf = typeof(ExprValue).GetMethod(nameof(ExprValue.Bool), [typeof(bool)])!;
     private static readonly MethodInfo ReadField = typeof(SamplingFrame).GetMethod(nameof(SamplingFrame.Read), Any)!;
     private static readonly MethodInfo TruthOp = Op(nameof(SamplingOps.Truth));
@@ -333,138 +481,194 @@ internal sealed class SamplingCodegen
     private static readonly MethodInfo NumericText = Op(nameof(SamplingOps.NumericText));
     private static readonly MethodInfo AppendBegin = Op(nameof(SamplingOps.AppendBegin));
     private static readonly MethodInfo AppendEnd = Op(nameof(SamplingOps.AppendEnd));
-    private static readonly MethodInfo ToNumberSlow = typeof(SamplingExpressions).GetMethod(nameof(SamplingExpressions.ToNumber), Any)!;
-    private static readonly MethodInfo CallGeneric = typeof(SamplingExpressions).GetMethod(nameof(SamplingExpressions.Call), Any)!;
-    private static MethodInfo Collection(string name) => typeof(CollectionFunctions).GetMethod(name, Any)!;
+
+    private static readonly MethodInfo ToNumberSlow =
+        typeof(SamplingExpressions).GetMethod(nameof(SamplingExpressions.ToNumber), Any)!;
+
+    private static readonly MethodInfo CallGeneric =
+        typeof(SamplingExpressions).GetMethod(nameof(SamplingExpressions.Call), Any)!;
+
+    private readonly List<ExprValue[]> _arrays = [];
+
+    private readonly Dictionary<string, IterationBinding> _bindings = new(StringComparer.Ordinal);
+    private readonly List<Func<SamplingFrame, ExprValue>> _closures = [];
+    private readonly List<SamplingDraw> _draws = [];
+    private readonly LxParameter _frame = Lx.Parameter(typeof(SamplingFrame), "frame");
+    private readonly bool _literalOperands;
+    private readonly List<LxParameter> _locals = [];
+    private readonly HashSet<int> _normalizedWrites = [];
+    private readonly List<long> _numbers = [];
+    private readonly LxParameter _operands = Lx.Parameter(typeof(SamplingOperands), "operands");
 
     private readonly SamplingExpressions _owner;
+    private readonly HashSet<int> _readableWrites = [];
+    private readonly StringBuilder _shape = new();
     private readonly Func<string, int> _slot;
-    private readonly LxParameter _frame = Lx.Parameter(typeof(SamplingFrame), "frame");
-    private readonly LxParameter _operands = Lx.Parameter(typeof(SamplingOperands), "operands");
-    private readonly List<LxParameter> _locals = [];
-    private readonly System.Text.StringBuilder _shape = new();
     private readonly List<int> _slots = [];
     private readonly List<string> _texts = [];
-    private readonly List<long> _numbers = [];
     private readonly List<ExprValue> _values = [];
-    private readonly List<ExprValue[]> _arrays = [];
-    private readonly List<SamplingDraw> _draws = [];
-    private readonly List<Func<SamplingFrame, ExprValue>> _closures = [];
-    private readonly HashSet<int> _readableWrites = [];
-    private readonly HashSet<int> _normalizedWrites = [];
-    private sealed record IterationBinding(string Shape, Func<string, Lx> Read)
-    {
-        public bool NeedsFrame { get; set; }
-        public Lx? Mask { get; init; }
-        public Lx? Integer { get; init; }
-        public Lx? ShiftDistance { get; init; }
-        public ExprValue? Constant { get; init; }
-    }
-    private readonly Dictionary<string, IterationBinding> _bindings = new(StringComparer.Ordinal);
     private int _iteration;
-    private readonly bool _literalOperands;
+
+    private SamplingSubexpressions? _subexpressions;
 
     private SamplingCodegen(SamplingExpressions owner, Func<string, int> slot, bool literalOperands = false)
-    { _owner = owner; _slot = slot; _literalOperands = literalOperands; }
+    {
+        _owner = owner;
+        _slot = slot;
+        _literalOperands = literalOperands;
+    }
 
-    public static (Func<SamplingFrame, SamplingOperands?, ExprValue> Code, SamplingOperands Operands) CompileValue(SamplingExpressions owner, Func<string, int> slot, Expression expression)
+    private static MethodInfo Op(string name) => typeof(SamplingOps).GetMethod(name, Any) ??
+                                                 throw new MissingMethodException(nameof(SamplingOps), name);
+
+    private static MethodInfo Collection(string name) => typeof(CollectionFunctions).GetMethod(name, Any)!;
+
+    public static (Func<SamplingFrame, SamplingOperands?, ExprValue> Code, SamplingOperands Operands) CompileValue(
+        SamplingExpressions owner, Func<string, int> slot, Expression expression)
     {
         var generator = new SamplingCodegen(owner, slot);
         return generator.Finish<ExprValue>("value:", generator.Value(expression));
     }
 
-    public static (Func<SamplingFrame, SamplingOperands?, bool> Code, SamplingOperands Operands) CompileCondition(SamplingExpressions owner, Func<string, int> slot, Expression expression)
+    public static (Func<SamplingFrame, SamplingOperands?, bool> Code, SamplingOperands Operands) CompileCondition(
+        SamplingExpressions owner, Func<string, int> slot, Expression expression)
     {
         var generator = new SamplingCodegen(owner, slot);
         return generator.Finish<bool>("condition:", generator.Condition(expression));
     }
 
-    public static (Func<SamplingFrame, SamplingOperands?, bool> Code, SamplingOperands Operands) CompileWrite(SamplingExpressions owner, Func<string, int> slot, Expression expression, int destination, bool integer, bool inlineMask = false)
+    public static (Func<SamplingFrame, SamplingOperands?, bool> Code, SamplingOperands Operands) CompileWrite(
+        SamplingExpressions owner, Func<string, int> slot, Expression expression, int destination, bool integer,
+        bool inlineMask = false)
     {
         var generator = new SamplingCodegen(owner, slot);
-        return generator.Finish<bool>(integer ? "write-integer:" : "write:", Lx.Block(generator.Write(expression, destination, integer, inlineMask), Lx.Constant(true)));
+        return generator.Finish<bool>(integer ? "write-integer:" : "write:",
+            Lx.Block(generator.Write(expression, destination, integer, inlineMask), Lx.Constant(true)));
     }
 
     private Lx Write(Expression expression, int destination, bool integer, bool inlineMask = false)
     {
         inlineMask = inlineMask && !integer && KnownMask(expression);
         _shape.Append(inlineMask ? "write-inline-mask(" : integer ? "write-integer(" : "write(");
-        var result = Local(typeof(ExprValue));
-        var evaluate = Lx.Assign(result, inlineMask ? Lx.Call(NumberOf, Lx.Convert(KnownMaskValue(expression), typeof(long))) : Value(expression));
+        LxParameter result = Local(typeof(ExprValue));
+        BinaryExpression evaluate = Lx.Assign(result,
+            inlineMask ? Lx.Call(NumberOf, Lx.Convert(KnownMaskValue(expression), typeof(long))) : Value(expression));
         Lx stored = result;
         if (integer)
+        {
             stored = Lx.Call(typeof(ExprValue).GetMethod(nameof(ExprValue.Number), [typeof(BigInteger)])!,
                 Lx.Call(result, typeof(ExprValue).GetMethod(nameof(ExprValue.AsInteger))!));
-        var cell = Lx.ArrayAccess(Lx.Field(_frame, nameof(SamplingFrame.Cells)),
+        }
+
+        IndexExpression cell = Lx.ArrayAccess(Lx.Field(_frame, nameof(SamplingFrame.Cells)),
             Operand(nameof(SamplingOperands.Slots), _slots, destination));
-        var write = Lx.Call(cell, typeof(SamplingCell).GetMethod(nameof(SamplingCell.SetTyped))!, stored);
-        if (integer || ReadableResult(expression)) _readableWrites.Add(destination);
-        else _readableWrites.Remove(destination);
+        MethodCallExpression write = Lx.Call(cell, typeof(SamplingCell).GetMethod(nameof(SamplingCell.SetTyped))!,
+            stored);
+        if (integer || ReadableResult(expression))
+        {
+            _readableWrites.Add(destination);
+        }
+        else
+        {
+            _readableWrites.Remove(destination);
+        }
+
         _normalizedWrites.Add(destination);
         _shape.Append(')');
         return Lx.Block(evaluate, write);
     }
 
-    public static (Func<SamplingFrame, SamplingOperands?, SlotMath.Core.Random.SeededRandom, object?, object?> Code, SamplingOperands Operands) CompileRun(
-        SamplingExpressions owner, Func<string, int> slot, IReadOnlyList<Node> nodes, IReadOnlyDictionary<string, Expression> expressions, BigInteger scale, bool discardOutput = false)
+    public static (Func<SamplingFrame, SamplingOperands?, SeededRandom, object?, object?> Code,
+        SamplingOperands Operands) CompileRun(
+            SamplingExpressions owner, Func<string, int> slot, IReadOnlyList<Node> nodes,
+            IReadOnlyDictionary<string, Expression> expressions, BigInteger scale, bool discardOutput = false)
     {
-        var generator = new SamplingCodegen(owner, slot, literalOperands: true);
-        var rng = Lx.Parameter(typeof(SlotMath.Core.Random.SeededRandom), "rng");
-        var input = Lx.Parameter(typeof(object), "input");
+        var generator = new SamplingCodegen(owner, slot, true);
+        ParameterExpression rng = Lx.Parameter(typeof(SeededRandom), "rng");
+        ParameterExpression input = Lx.Parameter(typeof(object), "input");
         var body = new List<Lx>();
-        foreach (var node in nodes)
+        foreach (Node node in nodes)
         {
-            body.Add(Lx.Call(generator._frame, typeof(SamplingFrame).GetMethod(nameof(SamplingFrame.CheckCancellation))!));
+            body.Add(Lx.Call(generator._frame,
+                typeof(SamplingFrame).GetMethod(nameof(SamplingFrame.CheckCancellation))!));
             switch (node)
             {
                 case ModifyStateNode modify:
-                    if (modify.ExpressionId is null || !expressions.TryGetValue(modify.ExpressionId, out var expression))
-                    { generator._shape.Append("noop;"); break; }
+                    if (modify.ExpressionId is null ||
+                        !expressions.TryGetValue(modify.ExpressionId, out Expression? expression))
+                    {
+                        generator._shape.Append("noop;");
+                        break;
+                    }
+
                     var destination = slot(modify.OutputKey ?? "__modified__");
-                    if (owner.Reduce(expression) is FieldAccessExpr { Target: null or "state" or "board", Path.Length: 1 } field && field.Path[0] == modify.OutputKey)
+                    if (owner.Reduce(expression) is FieldAccessExpr
+                        {
+                            Target: null or "state" or "board", Path.Length: 1
+                        } field && field.Path[0] == modify.OutputKey)
                     {
                         generator._shape.Append("touch;");
-                        body.Add(Lx.Call(generator._frame, typeof(SamplingFrame).GetMethod(nameof(SamplingFrame.Touch))!,
-                            generator.Operand(nameof(SamplingOperands.Slots), generator._slots, destination), generator.Text(field.Path[0])));
+                        body.Add(Lx.Call(generator._frame,
+                            typeof(SamplingFrame).GetMethod(nameof(SamplingFrame.Touch))!,
+                            generator.Operand(nameof(SamplingOperands.Slots), generator._slots, destination),
+                            generator.Text(field.Path[0])));
                         generator._readableWrites.Add(destination);
                         generator._normalizedWrites.Add(destination);
                     }
-                    else body.Add(generator.Write(expression, destination, modify.OutputKey is null, modify.OutputKey is { } outputKey && owner.IsInlineMaskField(outputKey)));
+                    else
+                    {
+                        body.Add(generator.Write(expression, destination, modify.OutputKey is null,
+                            modify.OutputKey is { } outputKey && owner.IsInlineMaskField(outputKey)));
+                    }
+
                     break;
                 case DrawNode draw:
                     generator._shape.Append(draw.StateWriteKey is null ? "draw-value;" : "draw-state;");
-                    var weights = draw.DrawWeights!;
-                    var data = new SamplingDraw(WeightSet.FromIntegers(weights.Select(w => w.Weight).ToArray()).AliasTable,
-                        weights.Select(w => ExprValue.String(w.OutcomeId)).ToArray(), weights.Select(w => (object)(new BigInteger(w.Value) * scale)).ToArray());
-                    body.Add(Lx.Assign(input, Lx.Call(generator.Operand(nameof(SamplingOperands.Draws), generator._draws, data),
-                        typeof(SamplingDraw).GetMethod(nameof(SamplingDraw.Run))!, generator._frame, rng,
-                        draw.StateWriteKey is null ? Lx.Constant(-1) : generator.Operand(nameof(SamplingOperands.Slots), generator._slots, slot(draw.StateWriteKey)))));
+                    DrawWeight[] weights = draw.DrawWeights!;
+                    var data = new SamplingDraw(
+                        WeightSet.FromIntegers(weights.Select(w => w.Weight).ToArray()).AliasTable,
+                        weights.Select(w => ExprValue.String(w.OutcomeId)).ToArray(),
+                        weights.Select(w => (object)(new BigInteger(w.Value) * scale)).ToArray());
+                    body.Add(Lx.Assign(input,
+                        Lx.Call(generator.Operand(nameof(SamplingOperands.Draws), generator._draws, data),
+                            typeof(SamplingDraw).GetMethod(nameof(SamplingDraw.Run))!, generator._frame, rng,
+                            draw.StateWriteKey is null
+                                ? Lx.Constant(-1)
+                                : generator.Operand(nameof(SamplingOperands.Slots), generator._slots,
+                                    slot(draw.StateWriteKey)))));
                     if (draw.StateWriteKey is { } key)
                     {
                         generator._readableWrites.Add(slot(key));
                         generator._normalizedWrites.Add(slot(key));
                     }
+
                     break;
                 default: throw new NotSupportedException($"Cannot emit {node.GetType().Name} in a straight run.");
             }
         }
+
         body.Add(discardOutput ? Lx.Constant(null, typeof(object)) : input);
-        var code = owner.Shapes.Get((discardOutput ? "run-null:" : "run:") + generator._shape, () => Lx.Lambda<Func<SamplingFrame, SamplingOperands?, SlotMath.Core.Random.SeededRandom, object?, object?>>(
-            Lx.Block(generator._locals, body), generator._frame, generator._operands, rng, input).Compile());
+        Func<SamplingFrame, SamplingOperands?, SeededRandom, object?, object?> code = owner.Shapes.Get(
+            (discardOutput ? "run-null:" : "run:") + generator._shape, () => Lx
+                .Lambda<Func<SamplingFrame, SamplingOperands?, SeededRandom, object?, object?>>(
+                    Lx.Block(generator._locals, body), generator._frame, generator._operands, rng, input).Compile());
         return (code, generator.Operands());
     }
 
     private (Func<SamplingFrame, SamplingOperands?, T> Code, SamplingOperands Operands) Finish<T>(string kind, Lx body)
     {
-        var code = _owner.Shapes.Get(kind + _shape, () => Lx.Lambda<Func<SamplingFrame, SamplingOperands?, T>>(Lx.Block(_locals, body), _frame, _operands).Compile());
+        Func<SamplingFrame, SamplingOperands?, T> code = _owner.Shapes.Get(kind + _shape,
+            () => Lx.Lambda<Func<SamplingFrame, SamplingOperands?, T>>(Lx.Block(_locals, body), _frame, _operands)
+                .Compile());
         return (code, Operands());
     }
 
-    private SamplingOperands Operands() => new([.. _slots], [.. _texts], [.. _numbers], [.. _values], [.. _arrays], [.. _draws], [.. _closures], _owner);
+    private SamplingOperands Operands() => new([.. _slots], [.. _texts], [.. _numbers], [.. _values], [.. _arrays],
+        [.. _draws], [.. _closures], _owner);
 
     private LxParameter Local(Type type)
     {
-        var local = Lx.Variable(type);
+        ParameterExpression local = Lx.Variable(type);
         _locals.Add(local);
         return local;
     }
@@ -478,10 +682,11 @@ internal sealed class SamplingCodegen
         // share code across differently bound fields and constants.
         if (_literalOperands && value is int or long or string)
         {
-            var text = Convert.ToString(value, System.Globalization.CultureInfo.InvariantCulture)!;
+            var text = Convert.ToString(value, CultureInfo.InvariantCulture)!;
             _shape.Append(array).Append(':').Append(text.Length).Append(':').Append(text).Append(';');
             return Lx.Constant(value, typeof(T));
         }
+
         list.Add(value);
         return Lx.ArrayIndex(Lx.Field(_operands, array), Lx.Constant(list.Count - 1));
     }
@@ -490,29 +695,55 @@ internal sealed class SamplingCodegen
 
     private Lx Interpreted(Expression expression)
     {
-        foreach (var binding in _bindings.Values) binding.NeedsFrame = true;
+        foreach (IterationBinding binding in _bindings.Values)
+        {
+            binding.NeedsFrame = true;
+        }
+
         _shape.Append("closure;");
-        return Lx.Invoke(Operand(nameof(SamplingOperands.Closures), _closures, _owner.Interpret(expression, Compiled)), _frame);
+        return Lx.Invoke(Operand(nameof(SamplingOperands.Closures), _closures, _owner.Interpret(expression, Compiled)),
+            _frame);
     }
 
     private Func<SamplingFrame, ExprValue> Compiled(Expression expression)
     {
-        var (code, operands) = CompileValue(_owner, _slot, expression);
+        (Func<SamplingFrame, SamplingOperands?, ExprValue> code, SamplingOperands operands) =
+            CompileValue(_owner, _slot, expression);
         return frame => code(frame, operands);
     }
 
     private static bool TryConstant(Expression expression, out ExprValue value)
     {
         value = default;
-        if (expression is not ConstantExpr constant) return false;
-        try { value = ExactExpressionEvaluator.Evaluate(constant, EvalContext.Empty); return true; }
-        catch (Exception ex) when (ex is FormatException or DivideByZeroException or ExpressionEvaluationException) { return false; }
+        if (expression is not ConstantExpr constant)
+        {
+            return false;
+        }
+
+        try
+        {
+            value = ExactExpressionEvaluator.Evaluate(constant, EvalContext.Empty);
+            return true;
+        }
+        catch (Exception ex) when (ex is FormatException or DivideByZeroException or ExpressionEvaluationException)
+        {
+            return false;
+        }
     }
 
     private Lx Literal(ExprValue constant)
     {
-        if (constant.IsInlineInteger) { _shape.Append("integer;"); return Lx.Call(NumberOf, Operand(nameof(SamplingOperands.Numbers), _numbers, constant.InlineInteger)); }
-        if (constant.IsBoolean) return Lx.Call(BoolOf, Truth(constant.BoolValue));
+        if (constant.IsInlineInteger)
+        {
+            _shape.Append("integer;");
+            return Lx.Call(NumberOf, Operand(nameof(SamplingOperands.Numbers), _numbers, constant.InlineInteger));
+        }
+
+        if (constant.IsBoolean)
+        {
+            return Lx.Call(BoolOf, Truth(constant.BoolValue));
+        }
+
         _shape.Append("constant;");
         return Operand(nameof(SamplingOperands.Values), _values, constant);
     }
@@ -527,7 +758,7 @@ internal sealed class SamplingCodegen
     private Lx Form(string name, Func<Lx> emit)
     {
         _shape.Append(name).Append('(');
-        var result = emit();
+        Lx result = emit();
         _shape.Append(')');
         return result;
     }
@@ -535,28 +766,49 @@ internal sealed class SamplingCodegen
     private Lx Value(Expression expression)
     {
         expression = _owner.Reduce(expression);
-        if (TryBoundValue(expression, out var unchanging)) return Literal(unchanging);
+        return _subexpressions?.Emit(expression, () => ValueCore(expression), text => _shape.Append(text))
+               ?? ValueCore(expression);
+    }
+
+    private Lx ValueCore(Expression expression)
+    {
+        expression = _owner.Reduce(expression);
+        if (TryBoundValue(expression, out ExprValue unchanging))
+        {
+            return Literal(unchanging);
+        }
+
         switch (expression)
         {
             case ConstantExpr:
-                return TryConstant(expression, out var constant) ? Literal(constant) : Interpreted(expression);
-            case FieldAccessExpr { Target: null or "state" or "board", Path.Length: 1 } field when !string.IsNullOrEmpty(field.Path[0]):
-                if (_bindings.TryGetValue(field.Path[0], out var binding))
+                return TryConstant(expression, out ExprValue constant) ? Literal(constant) : Interpreted(expression);
+            case FieldAccessExpr { Target: null or "state" or "board", Path.Length: 1 } field
+                when !string.IsNullOrEmpty(field.Path[0]):
+                if (_bindings.TryGetValue(field.Path[0], out IterationBinding? binding))
                 {
                     _shape.Append(binding.Shape);
                     return binding.Read(field.Path[0]);
                 }
+
                 _shape.Append("field;");
                 if (_readableWrites.Contains(_slot(field.Path[0])))
                 {
                     _shape.Append("readable;");
                     return Lx.Property(Lx.ArrayAccess(Lx.Field(_frame, nameof(SamplingFrame.Cells)),
-                        Operand(nameof(SamplingOperands.Slots), _slots, _slot(field.Path[0]))),
+                            Operand(nameof(SamplingOperands.Slots), _slots, _slot(field.Path[0]))),
                         typeof(SamplingCell).GetProperty(nameof(SamplingCell.StoredValue), Any)!);
                 }
-                return Lx.Call(_frame, ReadField, Operand(nameof(SamplingOperands.Slots), _slots, _slot(field.Path[0])), Text(field.Path[0]));
+
+                return Lx.Call(_frame, ReadField, Operand(nameof(SamplingOperands.Slots), _slots, _slot(field.Path[0])),
+                    Text(field.Path[0]));
             case AggregateExpr { Func: AggregateFunc.Count } count:
-                return Iterate(count.StateKey, count.ItemName, null, count.Predicate ?? new ConstantExpr { Kind = ConstantKind.Boolean, Value = "true" }, true, counting: true, selectedValue: count.ValueExpr);
+                return Iterate(count.StateKey, count.ItemName, null,
+                    count.Predicate ?? new ConstantExpr
+                    {
+                        Kind = ConstantKind.Boolean,
+                        Value = "true"
+                    }, true,
+                    counting: true, selectedValue: count.ValueExpr);
             case FoldExpr fold:
                 return Iterate(fold.StateKey, fold.ItemName, fold.IndexName, fold.Body, false, fold.Init, fold.AccName);
             case MapExpr map:
@@ -571,16 +823,22 @@ internal sealed class SamplingCodegen
                         _shape.Append(selected ? "true;" : "false;");
                         return Value(selected ? branch.ThenExpr : branch.ElseExpr);
                     }
-                    var test = Condition(branch.Condition); var yes = Value(branch.ThenExpr);
+
+                    Lx test = Condition(branch.Condition);
+                    Lx yes = Value(branch.ThenExpr);
                     return Lx.Condition(test, yes, Value(branch.ElseExpr));
                 });
-            case NotExpr or BinaryExpr { Op: BinaryOp.And or BinaryOp.Or }
-                or CompareExpr { Op: CompareOp.Eq or CompareOp.Neq or CompareOp.Lt or CompareOp.Gt or CompareOp.Lte or CompareOp.Gte }:
+            case NotExpr:
+            case BinaryExpr { Op: BinaryOp.And or BinaryOp.Or }:
+            case CompareExpr
+            {
+                Op: CompareOp.Eq or CompareOp.Neq or CompareOp.Lt or CompareOp.Gt or CompareOp.Lte or CompareOp.Gte
+            }:
                 return Form("bool", () => Lx.Call(BoolOf, Condition(expression)));
             case BinaryExpr { Op: BinaryOp.Add or BinaryOp.Sub or BinaryOp.Mul or BinaryOp.Div } binary:
                 return Form(binary.Op.ToString(), () =>
                 {
-                    var left = Value(binary.Left);
+                    Lx left = Value(binary.Left);
                     return Lx.Call(Op(binary.Op.ToString()), left, Value(binary.Right));
                 });
             case CallExpr call:
@@ -595,190 +853,344 @@ internal sealed class SamplingCodegen
     // Raw null bindings report null-value errors, whereas typed null state
     // can report an array-type error. Keep nullable sources on the raw path.
     private static bool HasNull(ExprValue value) => value.Kind == ExprType.Null
-        || value.ArrayValue?.Any(HasNull) == true
-        || value.RecordValue?.Values.Any(HasNull) == true;
+                                                    || value.ArrayValue?.Any(HasNull) == true
+                                                    || value.RecordValue?.Values.Any(HasNull) == true;
+
+    private static FieldAccessExpr StateField(string key) => new()
+    {
+        Target = "state",
+        Path = [key]
+    };
 
     // Existing iteration semantics emitted as one loop. Scoped aliases let
     // the generated body read its element/index without repeated frame lookups.
     // Frame bindings are still published for interpreted nested forms, and
     // restored even on errors or cancellation.
-    private Lx Iterate(string key, string itemName, string? indexName, Expression body, bool filter, Expression? init = null, string? accName = null, bool counting = false, Expression? selectedValue = null) =>
-        Form((counting ? "count" : init is not null ? "fold" : filter ? "filter" : "map") + (indexName is null ? "-item" : "-indexed"), () =>
-        {
-            if (!filter && !counting && init is null
-                && _owner.TryConstant(new FieldAccessExpr { Target = "state", Path = [key] }, out var unchanging)
-                && unchanging.ItemsArray is { Length: <= 32 } entries && !unchanging.ContainsSymbols && !HasNull(unchanging))
-                return ConstantMap(entries, itemName, indexName, body);
-            // Range propagation through a Fold phi value: every successful body
-            // path must produce a finite mask, assuming its accumulator is one.
-            var maskFold = init is not null && KnownMask(init) && KnownMask(body, accName, itemName, indexName);
-            _shape.Append(maskFold ? "mask-accumulator;" : "value-accumulator;");
-            var initial = init is null ? null : maskFold ? KnownMaskValue(init) : Value(init);
-            var source = Local(typeof(SamplingCell));
-            var typedItems = Local(typeof(ExprValue[]));
-            var element = Local(typeof(ExprValue));
-            var item = Local(typeof(SamplingCell));
-            var savedItem = Local(typeof(SamplingCell));
-            var savedIndex = indexName is null ? null : Local(typeof(SamplingCell));
-            var accumulator = accName is null ? null : Local(maskFold ? typeof(ulong) : typeof(ExprValue));
-            var savedAcc = accName is null ? null : Local(typeof(SamplingCell));
-            var length = Local(typeof(int));
-            var cursor = Local(typeof(int));
-            var count = Local(typeof(int));
-            var values = Local(typeof(ExprValue[]));
-            var result = Local(maskFold ? typeof(ulong) : typeof(ExprValue));
-            var symbols = Local(typeof(bool));
-            var cells = Lx.Field(_frame, nameof(SamplingFrame.Cells));
-            Lx Cell(int slot) => Lx.ArrayAccess(cells, Operand(nameof(SamplingOperands.Slots), _slots, slot));
-            if (_bindings.TryGetValue(key, out var sourceBinding)) sourceBinding.NeedsFrame = true;
-            Lx sourceCell;
-            Lx? constantItems = null;
-            var constantLength = -1;
-            if (_owner.TryConstant(new FieldAccessExpr { Target = "state", Path = [key] }, out var constantSource)
-                && constantSource.ItemsArray is { } sourceItems && !constantSource.ContainsSymbols && !HasNull(constantSource))
+    private Lx Iterate(string key, string itemName, string? indexName, Expression body, bool filter,
+        Expression? init = null, string? accName = null, bool counting = false, Expression? selectedValue = null) =>
+        Form(
+            (counting ? "count" : init is not null ? "fold" : filter ? "filter" : "map") +
+            (indexName is null ? "-item" : "-indexed"), () =>
             {
-                _shape.Append("constant-source:").Append(sourceItems.Length).Append(';');
-                constantLength = sourceItems.Length;
-                constantItems = Operand(nameof(SamplingOperands.Arrays), _arrays, sourceItems);
-                sourceCell = Lx.Default(typeof(SamplingCell));
-            }
-            else
-            {
-                _shape.Append("state-source;");
-                sourceCell = Cell(_slot(key));
-            }
-            var accCell = accName is null ? null : Cell(_owner.Variable(accName));
-            var itemCell = Cell(_owner.Variable(itemName));
-            var indexCell = indexName is null ? null : Cell(_owner.Variable(indexName));
-            var readable = typeof(StateValues).GetMethod(nameof(StateValues.RequireReadable), Any)!;
-            var readValue = typeof(SamplingCell).GetMethod(nameof(SamplingCell.ReadValue), Any)!;
-            var typed = typeof(SamplingCell).GetMethod(nameof(SamplingCell.Typed), Any)!;
-            var requireArray = typeof(SamplingCell).GetMethod(nameof(SamplingCell.RequireArrayCount), Any)!;
-            var getItem = typeof(SamplingCell).GetMethod(nameof(SamplingCell.Item), Any)!;
-            var checkCancellation = typeof(SamplingFrame).GetMethod(nameof(SamplingFrame.CheckCancellation), Any)!;
-            var owned = typeof(ExprValue).GetMethod(nameof(ExprValue.ArrayOwned), Any)!;
-            var resize = typeof(SamplingFrame).GetMethod(nameof(SamplingFrame.ResizeArray), Any)!;
-            var parentAcc = accName is not null && _bindings.TryGetValue(accName, out var previousAcc) ? previousAcc : null;
-            _bindings.TryGetValue(itemName, out var parentItem);
-            var parentIndex = indexName is not null && _bindings.TryGetValue(indexName, out var found) ? found : null;
-            var iteration = _iteration++;
-            Lx AccumulatorValue() => maskFold ? Lx.Call(SetOp(nameof(BitSetOperations.Value)), accumulator!) : accumulator!;
-            var accBinding = accName is null ? null : new IterationBinding($"acc:{iteration};", name => maskFold
-                ? AccumulatorValue() : Lx.Call(readable, accumulator!, Text(name)))
-            { Mask = maskFold ? accumulator : null };
-            Lx hasTypedItems = constantItems is not null ? Lx.Constant(true) : Lx.NotEqual(typedItems, Lx.Constant(null, typeof(ExprValue[])));
-            Lx ItemValue() => Lx.Condition(hasTypedItems, element, Lx.Property(item, nameof(SamplingCell.FilterValue)));
-            var itemBinding = new IterationBinding($"item:{iteration};", name => constantItems is not null ? element : Lx.Call(readable,
-                Lx.Condition(hasTypedItems, element, Lx.Call(item, readValue, Text(name))), Text(name)));
-            var indexBinding = indexName is null ? null : new IterationBinding($"index:{iteration};", _ => Lx.Call(NumberOf, Lx.Convert(cursor, typeof(long))))
-            { Integer = Lx.Convert(cursor, typeof(long)), ShiftDistance = constantLength is >= 0 and <= 64 ? cursor : null };
-            if (accName is not null) _bindings[accName] = accBinding!;
-            _bindings[itemName] = itemBinding;
-            if (indexName is not null) _bindings[indexName] = indexBinding!;
-            Lx selector;
-            Lx? selected = null;
-            try
-            {
-                selector = filter ? Condition(body) : maskFold ? KnownMaskValue(body) : Value(body);
-                if (counting)
+                if (!filter && !counting && init is null
+                    && _owner.TryConstant(StateField(key),
+                        out ExprValue unchanging)
+                    && unchanging.ItemsArray is { Length: <= 32 } entries && !unchanging.ContainsSymbols &&
+                    !HasNull(unchanging))
                 {
-                    // Count still evaluates its selector (or validates the raw
-                    // item). Parsing an unused numeric string cannot affect it.
-                    if (selectedValue is null)
-                    {
-                        _shape.Append("default-selection;");
-                        selected = ItemValue();
-                    }
-                    else selected = Value(selectedValue);
+                    return ConstantMap(entries, itemName, indexName, body);
                 }
-            }
-            finally
-            {
+
+                // Range propagation through a Fold phi value: every successful body
+                // path must produce a finite mask, assuming its accumulator is one.
+                var maskFold = init is not null && KnownMask(init) && KnownMask(body, accName, itemName, indexName);
+                _shape.Append(maskFold ? "mask-accumulator;" : "value-accumulator;");
+                Lx? initial = init is null ? null : maskFold ? KnownMaskValue(init) : Value(init);
+                LxParameter source = Local(typeof(SamplingCell));
+                LxParameter typedItems = Local(typeof(ExprValue[]));
+                LxParameter element = Local(typeof(ExprValue));
+                LxParameter item = Local(typeof(SamplingCell));
+                LxParameter savedItem = Local(typeof(SamplingCell));
+                LxParameter? savedIndex = indexName is null ? null : Local(typeof(SamplingCell));
+                LxParameter? accumulator = accName is null ? null : Local(maskFold ? typeof(ulong) : typeof(ExprValue));
+                LxParameter? savedAcc = accName is null ? null : Local(typeof(SamplingCell));
+                LxParameter length = Local(typeof(int));
+                LxParameter cursor = Local(typeof(int));
+                LxParameter count = Local(typeof(int));
+                LxParameter values = Local(typeof(ExprValue[]));
+                LxParameter result = Local(maskFold ? typeof(ulong) : typeof(ExprValue));
+                LxParameter symbols = Local(typeof(bool));
+                MemberExpression cells = Lx.Field(_frame, nameof(SamplingFrame.Cells));
+
+                Lx Cell(int slot)
+                {
+                    return Lx.ArrayAccess(cells, Operand(nameof(SamplingOperands.Slots), _slots, slot));
+                }
+
+                if (_bindings.TryGetValue(key, out IterationBinding? sourceBinding))
+                {
+                    sourceBinding.NeedsFrame = true;
+                }
+
+                Lx sourceCell;
+                Lx? constantItems = null;
+                var constantLength = -1;
+                if (_owner.TryConstant(StateField(key),
+                        out ExprValue constantSource)
+                    && constantSource.ItemsArray is { } sourceItems && !constantSource.ContainsSymbols &&
+                    !HasNull(constantSource))
+                {
+                    _shape.Append("constant-source:").Append(sourceItems.Length).Append(';');
+                    constantLength = sourceItems.Length;
+                    constantItems = Operand(nameof(SamplingOperands.Arrays), _arrays, sourceItems);
+                    sourceCell = Lx.Default(typeof(SamplingCell));
+                }
+                else
+                {
+                    _shape.Append("state-source;");
+                    sourceCell = Cell(_slot(key));
+                }
+
+                Lx? accCell = accName is null ? null : Cell(_owner.Variable(accName));
+                Lx itemCell = Cell(_owner.Variable(itemName));
+                Lx? indexCell = indexName is null ? null : Cell(_owner.Variable(indexName));
+                MethodInfo readable = typeof(StateValues).GetMethod(nameof(StateValues.RequireReadable), Any)!;
+                MethodInfo readValue = typeof(SamplingCell).GetMethod(nameof(SamplingCell.ReadValue), Any)!;
+                MethodInfo typed = typeof(SamplingCell).GetMethod(nameof(SamplingCell.Typed), Any)!;
+                MethodInfo requireArray = typeof(SamplingCell).GetMethod(nameof(SamplingCell.RequireArrayCount), Any)!;
+                MethodInfo getItem = typeof(SamplingCell).GetMethod(nameof(SamplingCell.Item), Any)!;
+                MethodInfo checkCancellation =
+                    typeof(SamplingFrame).GetMethod(nameof(SamplingFrame.CheckCancellation), Any)!;
+                MethodInfo owned = typeof(ExprValue).GetMethod(nameof(ExprValue.ArrayOwned), Any)!;
+                MethodInfo resize = typeof(SamplingFrame).GetMethod(nameof(SamplingFrame.ResizeArray), Any)!;
+                IterationBinding? parentAcc =
+                    accName is not null && _bindings.TryGetValue(accName, out IterationBinding? previousAcc)
+                        ? previousAcc
+                        : null;
+                _bindings.TryGetValue(itemName, out IterationBinding? parentItem);
+                IterationBinding? parentIndex =
+                    indexName is not null && _bindings.TryGetValue(indexName, out IterationBinding? found)
+                        ? found
+                        : null;
+                var iteration = _iteration++;
+
+                Lx AccumulatorValue()
+                {
+                    return maskFold ? Lx.Call(SetOp(nameof(BitSetOperations.Value)), accumulator!) : accumulator!;
+                }
+
+                IterationBinding? accBinding = accName is null
+                    ? null
+                    : new IterationBinding($"acc:{iteration};", name => maskFold
+                        ? AccumulatorValue()
+                        : Lx.Call(readable, accumulator!, Text(name)), maskFold ? accumulator : null);
+                Lx hasTypedItems = constantItems is not null
+                    ? Lx.Constant(true)
+                    : Lx.NotEqual(typedItems, Lx.Constant(null, typeof(ExprValue[])));
+
+                Lx ItemValue()
+                {
+                    return Lx.Condition(hasTypedItems, element,
+                        Lx.Property(item, nameof(SamplingCell.FilterValue)));
+                }
+
+                var itemBinding = new IterationBinding($"item:{iteration};", name => constantItems is not null
+                    ? element
+                    : Lx.Call(readable,
+                        Lx.Condition(hasTypedItems, element, Lx.Call(item, readValue, Text(name))), Text(name)));
+                IterationBinding? indexBinding = indexName is null
+                    ? null
+                    : new IterationBinding($"index:{iteration};",
+                        _ => Lx.Call(NumberOf, Lx.Convert(cursor, typeof(long))))
+                    {
+                        Integer = Lx.Convert(cursor, typeof(long)),
+                        ShiftDistance = constantLength is >= 0 and <= 64 ? cursor : null
+                    };
                 if (accName is not null)
                 {
-                    if (parentAcc is null) _bindings.Remove(accName); else _bindings[accName] = parentAcc;
+                    _bindings[accName] = accBinding!;
                 }
-                if (parentItem is null) _bindings.Remove(itemName); else _bindings[itemName] = parentItem;
+
+                _bindings[itemName] = itemBinding;
                 if (indexName is not null)
                 {
-                    if (parentIndex is null) _bindings.Remove(indexName); else _bindings[indexName] = parentIndex;
+                    _bindings[indexName] = indexBinding!;
                 }
-            }
-            var publish = itemBinding.NeedsFrame || accBinding?.NeedsFrame == true || indexBinding?.NeedsFrame == true;
-            _shape.Append(publish ? "published;" : "local;");
-            var take = counting ? Lx.Block(selected!, Lx.PostIncrementAssign(count), Lx.Empty()) : init is not null ? Lx.Block(Lx.Assign(result, selector), Lx.Empty()) : Lx.Block(
-                Lx.Assign(result, filter ? ItemValue() : selector),
-                Lx.Assign(Lx.ArrayAccess(values, count), result),
-                Lx.Assign(symbols, Lx.Or(symbols, Lx.Property(result, nameof(ExprValue.ContainsSymbols)))),
-                Lx.PostIncrementAssign(count), Lx.Empty());
-            var steps = new List<Lx>
-            {
-                Lx.Call(_frame, checkCancellation),
-                Lx.IfThenElse(hasTypedItems,
-                    publish ? Lx.Block(Lx.Assign(element, Lx.ArrayIndex(typedItems, cursor)), Lx.Assign(item, Lx.Call(typed, element)), Lx.Empty())
-                        : Lx.Block(Lx.Assign(element, Lx.ArrayIndex(typedItems, cursor)), Lx.Empty()),
-                    Lx.Block(Lx.Assign(item, Lx.Call(source, getItem, cursor)), Lx.Empty())),
-            };
-            if (accCell is not null)
-            {
-                steps.Add(Lx.Assign(accumulator!, maskFold ? result : Lx.Condition(Lx.Property(result, nameof(ExprValue.ContainsSymbols)),
-                    Lx.Property(Lx.Call(typed, result), nameof(SamplingCell.Value)), result)));
-                if (publish) steps.Add(Lx.Assign(accCell, Lx.Call(typed, AccumulatorValue())));
-            }
-            if (publish) steps.Add(Lx.Assign(itemCell, item));
-            if (publish && indexCell is not null)
-                steps.Add(Lx.Assign(indexCell, Lx.Call(typed, Lx.Call(NumberOf, Lx.Convert(cursor, typeof(long))))));
-            steps.Add(filter ? Lx.IfThen(selector, take) : take);
-            steps.Add(Lx.PostIncrementAssign(cursor));
-            steps.Add(Lx.Empty());
-            var end = Lx.Label();
-            var loop = Lx.Loop(Lx.IfThenElse(Lx.LessThan(cursor, length), Lx.Block(steps), Lx.Break(end)), end);
-            var restore = new List<Lx>();
-            if (accCell is not null) restore.Add(Lx.Assign(accCell, savedAcc!));
-            restore.Add(Lx.Assign(itemCell, savedItem));
-            if (indexCell is not null) restore.Add(Lx.Assign(indexCell, savedIndex!));
-            restore.Add(Lx.Empty());
-            var initialize = new List<Lx>();
-            if (initial is not null) initialize.Add(Lx.Assign(result, initial));
-            if (constantItems is not null)
-            {
-                initialize.Add(Lx.Assign(typedItems, constantItems));
-                initialize.Add(Lx.Assign(length, Lx.Constant(constantLength)));
-            }
-            else initialize.AddRange([
-                Lx.Assign(source, sourceCell),
-                Lx.Assign(length, Lx.Call(source, requireArray, Text(key), Lx.Constant(null, typeof(string)))),
-                // Raw sources retain lazy conversion and their distinct null/symbol semantics.
-                Lx.Assign(typedItems, Lx.Condition(Lx.Field(source, nameof(SamplingCell.HasRaw)), Lx.Constant(null, typeof(ExprValue[])),
-                    Lx.Property(Lx.Property(source, nameof(SamplingCell.Value)), typeof(ExprValue).GetProperty(nameof(ExprValue.ItemsArray), Any)!))),
-            ]);
-            if (publish)
-            {
-                if (accCell is not null) initialize.Add(Lx.Assign(savedAcc!, accCell));
-                initialize.Add(Lx.Assign(savedItem, itemCell));
-                if (indexCell is not null) initialize.Add(Lx.Assign(savedIndex!, indexCell));
-            }
-            Lx execute = publish ? Lx.TryFinally(loop, Lx.Block(restore)) : loop;
-            if (counting)
-            {
-                initialize.AddRange([Lx.Assign(cursor, Lx.Constant(0)), Lx.Assign(count, Lx.Constant(0)), execute, Lx.Call(NumberOf, Lx.Convert(count, typeof(long)))]);
+
+                Lx selector;
+                Lx? selected = null;
+                SamplingSubexpressions? parentSubexpressions = _subexpressions;
+                var selectorSubexpressions = SamplingSubexpressions.Create(body, Local);
+                _subexpressions = selectorSubexpressions;
+                try
+                {
+                    selector = filter ? Condition(body) : maskFold ? KnownMaskValue(body) : Value(body);
+                    if (counting)
+                    {
+                        // Count still evaluates its selector (or validates the raw
+                        // item). Parsing an unused numeric string cannot affect it.
+                        if (selectedValue is null)
+                        {
+                            _shape.Append("default-selection;");
+                            selected = ItemValue();
+                        }
+                        else
+                        {
+                            selected = Value(selectedValue);
+                        }
+                    }
+                }
+                finally
+                {
+                    _subexpressions = parentSubexpressions;
+                    if (accName is not null)
+                    {
+                        if (parentAcc is null)
+                        {
+                            _bindings.Remove(accName);
+                        }
+                        else
+                        {
+                            _bindings[accName] = parentAcc;
+                        }
+                    }
+
+                    if (parentItem is null)
+                    {
+                        _bindings.Remove(itemName);
+                    }
+                    else
+                    {
+                        _bindings[itemName] = parentItem;
+                    }
+
+                    if (indexName is not null)
+                    {
+                        if (parentIndex is null)
+                        {
+                            _bindings.Remove(indexName);
+                        }
+                        else
+                        {
+                            _bindings[indexName] = parentIndex;
+                        }
+                    }
+                }
+
+                var publish = itemBinding.NeedsFrame || accBinding?.NeedsFrame == true ||
+                              indexBinding?.NeedsFrame == true;
+                _shape.Append(publish ? "published;" : "local;");
+                BlockExpression take = counting ? Lx.Block(selected!, Lx.PostIncrementAssign(count), Lx.Empty()) :
+                    init is not null ? Lx.Block(Lx.Assign(result, selector), Lx.Empty()) : Lx.Block(
+                        Lx.Assign(result, filter ? ItemValue() : selector),
+                        Lx.Assign(Lx.ArrayAccess(values, count), result),
+                        Lx.Assign(symbols, Lx.Or(symbols, Lx.Property(result, nameof(ExprValue.ContainsSymbols)))),
+                        Lx.PostIncrementAssign(count), Lx.Empty());
+                var steps = new List<Lx>
+                {
+                    Lx.Call(_frame, checkCancellation),
+                    Lx.IfThenElse(hasTypedItems,
+                        publish
+                            ? Lx.Block(Lx.Assign(element, Lx.ArrayIndex(typedItems, cursor)),
+                                Lx.Assign(item, Lx.Call(typed, element)), Lx.Empty())
+                            : Lx.Block(Lx.Assign(element, Lx.ArrayIndex(typedItems, cursor)), Lx.Empty()),
+                        Lx.Block(Lx.Assign(item, Lx.Call(source, getItem, cursor)), Lx.Empty()))
+                };
+                if (accCell is not null)
+                {
+                    steps.Add(Lx.Assign(accumulator!, maskFold
+                        ? result
+                        : Lx.Condition(Lx.Property(result, nameof(ExprValue.ContainsSymbols)),
+                            Lx.Property(Lx.Call(typed, result), nameof(SamplingCell.Value)), result)));
+                    if (publish)
+                    {
+                        steps.Add(Lx.Assign(accCell, Lx.Call(typed, AccumulatorValue())));
+                    }
+                }
+
+                if (publish)
+                {
+                    steps.Add(Lx.Assign(itemCell, item));
+                }
+
+                if (publish && indexCell is not null)
+                {
+                    steps.Add(Lx.Assign(indexCell,
+                        Lx.Call(typed, Lx.Call(NumberOf, Lx.Convert(cursor, typeof(long))))));
+                }
+
+                if (selectorSubexpressions is not null)
+                {
+                    steps.AddRange(selectorSubexpressions.Reset());
+                }
+
+                steps.Add(filter ? Lx.IfThen(selector, take) : take);
+                steps.Add(Lx.PostIncrementAssign(cursor));
+                steps.Add(Lx.Empty());
+                LabelTarget end = Lx.Label();
+                LoopExpression loop =
+                    Lx.Loop(Lx.IfThenElse(Lx.LessThan(cursor, length), Lx.Block(steps), Lx.Break(end)), end);
+                var restore = new List<Lx>();
+                if (accCell is not null)
+                {
+                    restore.Add(Lx.Assign(accCell, savedAcc!));
+                }
+
+                restore.Add(Lx.Assign(itemCell, savedItem));
+                if (indexCell is not null)
+                {
+                    restore.Add(Lx.Assign(indexCell, savedIndex!));
+                }
+
+                restore.Add(Lx.Empty());
+                var initialize = new List<Lx>();
+                if (initial is not null)
+                {
+                    initialize.Add(Lx.Assign(result, initial));
+                }
+
+                if (constantItems is not null)
+                {
+                    initialize.Add(Lx.Assign(typedItems, constantItems));
+                    initialize.Add(Lx.Assign(length, Lx.Constant(constantLength)));
+                }
+                else
+                {
+                    initialize.AddRange([
+                        Lx.Assign(source, sourceCell),
+                        Lx.Assign(length, Lx.Call(source, requireArray, Text(key), Lx.Constant(null, typeof(string)))),
+                        // Raw sources retain lazy conversion and their distinct null/symbol semantics.
+                        Lx.Assign(typedItems, Lx.Condition(Lx.Field(source, nameof(SamplingCell.HasRaw)),
+                            Lx.Constant(null, typeof(ExprValue[])),
+                            Lx.Property(Lx.Property(source, nameof(SamplingCell.Value)),
+                                typeof(ExprValue).GetProperty(nameof(ExprValue.ItemsArray), Any)!)))
+                    ]);
+                }
+
+                if (publish)
+                {
+                    if (accCell is not null)
+                    {
+                        initialize.Add(Lx.Assign(savedAcc!, accCell));
+                    }
+
+                    initialize.Add(Lx.Assign(savedItem, itemCell));
+                    if (indexCell is not null)
+                    {
+                        initialize.Add(Lx.Assign(savedIndex!, indexCell));
+                    }
+                }
+
+                Lx execute = publish ? Lx.TryFinally(loop, Lx.Block(restore)) : loop;
+                if (counting)
+                {
+                    initialize.AddRange([
+                        Lx.Assign(cursor, Lx.Constant(0)), Lx.Assign(count, Lx.Constant(0)), execute,
+                        Lx.Call(NumberOf, Lx.Convert(count, typeof(long)))
+                    ]);
+                    return Lx.Block(initialize);
+                }
+
+                if (init is not null)
+                {
+                    initialize.AddRange([
+                        Lx.Assign(cursor, Lx.Constant(0)), execute,
+                        maskFold ? Lx.Call(SetOp(nameof(BitSetOperations.Value)), result) : result
+                    ]);
+                    return Lx.Block(initialize);
+                }
+
+                initialize.AddRange([
+                    Lx.Assign(cursor, Lx.Constant(0)), Lx.Assign(count, Lx.Constant(0)),
+                    Lx.Assign(symbols, Lx.Constant(false)),
+                    Lx.Assign(values,
+                        Lx.Call(_frame, typeof(SamplingFrame).GetMethod(nameof(SamplingFrame.NewArray), Any)!, length)),
+                    execute,
+                    Lx.IfThen(Lx.NotEqual(count, length), Lx.Assign(values, Lx.Call(_frame, resize, values, count))),
+                    Lx.Call(owned, values, symbols)
+                ]);
                 return Lx.Block(initialize);
-            }
-            if (init is not null)
-            {
-                initialize.AddRange([Lx.Assign(cursor, Lx.Constant(0)), execute,
-                    maskFold ? Lx.Call(SetOp(nameof(BitSetOperations.Value)), result) : result]);
-                return Lx.Block(initialize);
-            }
-            initialize.AddRange([
-                Lx.Assign(cursor, Lx.Constant(0)), Lx.Assign(count, Lx.Constant(0)),
-                Lx.Assign(symbols, Lx.Constant(false)), Lx.Assign(values, Lx.Call(_frame, typeof(SamplingFrame).GetMethod(nameof(SamplingFrame.NewArray), Any)!, length)),
-                execute,
-                Lx.IfThen(Lx.NotEqual(count, length), Lx.Assign(values, Lx.Call(_frame, resize, values, count))),
-                Lx.Call(owned, values, symbols),
-            ]);
-            return Lx.Block(initialize);
-        });
+            });
 
     private static MethodInfo SetOp(string name) => typeof(BitSetOperations).GetMethod(name, Any)!;
 
@@ -788,64 +1200,121 @@ internal sealed class SamplingCodegen
     private Lx ConstantMap(ExprValue[] entries, string itemName, string? indexName, Expression body)
     {
         _shape.Append("unrolled:").Append(entries.Length).Append(';');
-        var values = Local(typeof(ExprValue[]));
-        var value = Local(typeof(ExprValue));
-        var symbols = Local(typeof(bool));
-        var itemCell = Lx.ArrayAccess(Lx.Field(_frame, nameof(SamplingFrame.Cells)),
+        LxParameter values = Local(typeof(ExprValue[]));
+        LxParameter value = Local(typeof(ExprValue));
+        LxParameter symbols = Local(typeof(bool));
+        IndexExpression itemCell = Lx.ArrayAccess(Lx.Field(_frame, nameof(SamplingFrame.Cells)),
             Operand(nameof(SamplingOperands.Slots), _slots, _owner.Variable(itemName)));
-        var indexCell = indexName is null ? null : Lx.ArrayAccess(Lx.Field(_frame, nameof(SamplingFrame.Cells)),
-            Operand(nameof(SamplingOperands.Slots), _slots, _owner.Variable(indexName)));
-        var savedItem = Local(typeof(SamplingCell));
-        var savedIndex = indexName is null ? null : Local(typeof(SamplingCell));
+        IndexExpression? indexCell = indexName is null
+            ? null
+            : Lx.ArrayAccess(Lx.Field(_frame, nameof(SamplingFrame.Cells)),
+                Operand(nameof(SamplingOperands.Slots), _slots, _owner.Variable(indexName)));
+        LxParameter savedItem = Local(typeof(SamplingCell));
+        LxParameter? savedIndex = indexName is null ? null : Local(typeof(SamplingCell));
         var statements = new List<Lx>();
         var publish = false;
-        _bindings.TryGetValue(itemName, out var previousItem);
-        var previousIndex = indexName is not null && _bindings.TryGetValue(indexName, out var binding) ? binding : null;
+        _bindings.TryGetValue(itemName, out IterationBinding? previousItem);
+        IterationBinding? previousIndex =
+            indexName is not null && _bindings.TryGetValue(indexName, out IterationBinding? binding) ? binding : null;
         try
         {
             for (var i = 0; i < entries.Length; i++)
             {
-                var element = entries[i];
-                var index = ExprValue.Number(i);
-                var itemBinding = new IterationBinding("constant-item;", _ => Literal(element)) { Constant = element };
-                var indexBinding = indexName is null ? null : new IterationBinding("constant-index;", _ => Literal(index)) { Constant = index };
+                ExprValue element = entries[i];
+                ExprValue index = ExprValue.Number(i);
+                var itemBinding = new IterationBinding("constant-item;", _ => Literal(element))
+                {
+                    Constant = element
+                };
+                IterationBinding? indexBinding = indexName is null
+                    ? null
+                    : new IterationBinding("constant-index;", _ => Literal(index))
+                    {
+                        Constant = index
+                    };
                 _bindings[itemName] = itemBinding;
-                if (indexName is not null) _bindings[indexName] = indexBinding!;
-                var selector = Value(body);
+                if (indexName is not null)
+                {
+                    _bindings[indexName] = indexBinding!;
+                }
+
+                Lx selector = Value(body);
                 publish |= itemBinding.NeedsFrame || indexBinding?.NeedsFrame == true;
-                statements.Add(Lx.Call(_frame, typeof(SamplingFrame).GetMethod(nameof(SamplingFrame.CheckCancellation))!));
+                statements.Add(Lx.Call(_frame,
+                    typeof(SamplingFrame).GetMethod(nameof(SamplingFrame.CheckCancellation))!));
                 if (itemBinding.NeedsFrame || indexBinding?.NeedsFrame == true)
                 {
-                    var typed = typeof(SamplingCell).GetMethod(nameof(SamplingCell.Typed))!;
+                    MethodInfo typed = typeof(SamplingCell).GetMethod(nameof(SamplingCell.Typed))!;
                     statements.Add(Lx.Assign(itemCell, Lx.Call(typed, Literal(element))));
-                    if (indexCell is not null) statements.Add(Lx.Assign(indexCell, Lx.Call(typed, Literal(index))));
+                    if (indexCell is not null)
+                    {
+                        statements.Add(Lx.Assign(indexCell, Lx.Call(typed, Literal(index))));
+                    }
                 }
+
                 statements.Add(Lx.Assign(value, selector));
                 statements.Add(Lx.Assign(Lx.ArrayAccess(values, Lx.Constant(i)), value));
                 var normalized = NormalizedResult(body);
                 _shape.Append(normalized ? "normalized;" : "symbols;");
-                if (!normalized) statements.Add(Lx.OrAssign(symbols, Lx.Property(value, nameof(ExprValue.ContainsSymbols))));
+                if (!normalized)
+                {
+                    statements.Add(Lx.OrAssign(symbols, Lx.Property(value, nameof(ExprValue.ContainsSymbols))));
+                }
             }
         }
         finally
         {
-            if (previousItem is null) _bindings.Remove(itemName); else _bindings[itemName] = previousItem;
+            if (previousItem is null)
+            {
+                _bindings.Remove(itemName);
+            }
+            else
+            {
+                _bindings[itemName] = previousItem;
+            }
+
             if (indexName is not null)
             {
-                if (previousIndex is null) _bindings.Remove(indexName); else _bindings[indexName] = previousIndex;
+                if (previousIndex is null)
+                {
+                    _bindings.Remove(indexName);
+                }
+                else
+                {
+                    _bindings[indexName] = previousIndex;
+                }
             }
         }
-        var initialize = new List<Lx> { Lx.Assign(values, Lx.Call(_frame, typeof(SamplingFrame).GetMethod(nameof(SamplingFrame.NewArray), Any)!, Lx.Constant(entries.Length))), Lx.Assign(symbols, Lx.Constant(false)) };
+
+        var initialize = new List<Lx>
+        {
+            Lx.Assign(values,
+                Lx.Call(_frame, typeof(SamplingFrame).GetMethod(nameof(SamplingFrame.NewArray), Any)!,
+                    Lx.Constant(entries.Length))),
+            Lx.Assign(symbols, Lx.Constant(false))
+        };
         Lx execute = Lx.Block(statements.Count == 0 ? [Lx.Empty()] : statements);
         if (publish)
         {
             initialize.Add(Lx.Assign(savedItem, itemCell));
-            if (indexCell is not null) initialize.Add(Lx.Assign(savedIndex!, indexCell));
-            var restore = new List<Lx> { Lx.Assign(itemCell, savedItem) };
-            if (indexCell is not null) restore.Add(Lx.Assign(indexCell, savedIndex!));
+            if (indexCell is not null)
+            {
+                initialize.Add(Lx.Assign(savedIndex!, indexCell));
+            }
+
+            var restore = new List<Lx>
+            {
+                Lx.Assign(itemCell, savedItem)
+            };
+            if (indexCell is not null)
+            {
+                restore.Add(Lx.Assign(indexCell, savedIndex!));
+            }
+
             restore.Add(Lx.Empty());
             execute = Lx.TryFinally(execute, Lx.Block(restore));
         }
+
         initialize.Add(execute);
         initialize.Add(Lx.Call(typeof(ExprValue).GetMethod(nameof(ExprValue.ArrayOwned), Any)!, values, symbols));
         return Lx.Block(initialize);
@@ -855,28 +1324,57 @@ internal sealed class SamplingCodegen
     {
         expression = _owner.Reduce(expression);
         if (expression is FieldAccessExpr { Target: null or "state" or "board", Path.Length: 1 } field
-            && _bindings.TryGetValue(field.Path[0], out var binding) && binding.Constant is { } constant)
-        { value = constant; return true; }
-        if (_owner.TryConstant(expression, out value) || TryConstant(expression, out value)) return true;
+            && _bindings.TryGetValue(field.Path[0], out IterationBinding? binding) && binding.Constant is { } constant)
+        {
+            value = constant;
+            return true;
+        }
+
+        if (_owner.TryConstant(expression, out value) || TryConstant(expression, out value))
+        {
+            return true;
+        }
+
         if (expression is IfExpr branch)
+        {
             return TryBoundBoolean(branch.Condition, out var selected)
-                && TryBoundValue(selected ? branch.ThenExpr : branch.ElseExpr, out value);
-        if (expression is not (BinaryExpr or CompareExpr or NotExpr or CallExpr or BitSetExpr)) return false;
+                   && TryBoundValue(selected ? branch.ThenExpr : branch.ElseExpr, out value);
+        }
+
+        if (expression is not (BinaryExpr or CompareExpr or NotExpr or CallExpr or BitSetExpr))
+        {
+            return false;
+        }
 
         // Only pure forms with entirely immutable operands are evaluated here.
         // Reuse the existing semantics, and retain runtime evaluation for errors
         // or state-dependent operands, including arguments of unknown calls.
         var known = true;
-        var evaluate = _owner.Interpret(expression, child =>
+        Func<SamplingFrame, ExprValue> evaluate = _owner.Interpret(expression, child =>
         {
-            if (TryBoundValue(child, out var operand)) return _ => operand;
+            if (TryBoundValue(child, out ExprValue operand))
+            {
+                return _ => operand;
+            }
+
             known = false;
             return _ => default;
         });
-        if (!known) return false;
-        try { value = evaluate(null!); return true; }
-        catch (Exception ex) when (ex is ExpressionEvaluationException or FormatException or DivideByZeroException or OverflowException)
-        { return false; }
+        if (!known)
+        {
+            return false;
+        }
+
+        try
+        {
+            value = evaluate(null!);
+            return true;
+        }
+        catch (Exception ex) when (ex is ExpressionEvaluationException or FormatException or DivideByZeroException
+                                       or OverflowException)
+        {
+            return false;
+        }
     }
 
     // Facts hold only within a straight run. Every typed state write normalizes
@@ -885,39 +1383,61 @@ internal sealed class SamplingCodegen
     private bool ReadableResult(Expression expression)
     {
         expression = _owner.Reduce(expression);
-        if (TryBoundValue(expression, out var constant)) return constant.Kind != ExprType.Null;
+        if (TryBoundValue(expression, out ExprValue constant))
+        {
+            return constant.Kind != ExprType.Null;
+        }
+
         return expression switch
         {
             FieldAccessExpr { Target: null or "state" or "board", Path.Length: 1 } => true,
-            BitSetExpr or BinaryExpr or CompareExpr or NotExpr or AggregateExpr { Func: AggregateFunc.Count } or MapExpr or FilterExpr => true,
+            BitSetExpr or BinaryExpr or CompareExpr or NotExpr or AggregateExpr { Func: AggregateFunc.Count } or MapExpr
+                or FilterExpr => true,
             IfExpr branch => ReadableResult(branch.ThenExpr) && ReadableResult(branch.ElseExpr),
             FoldExpr fold => ReadableResult(fold.Init) && ReadableResult(fold.Body),
-            _ => false,
+            _ => false
         };
     }
 
     private bool NormalizedResult(Expression expression)
     {
         expression = _owner.Reduce(expression);
-        if (TryBoundValue(expression, out var constant)) return !constant.ContainsSymbols;
+        if (TryBoundValue(expression, out ExprValue constant))
+        {
+            return !constant.ContainsSymbols;
+        }
+
         return expression switch
         {
             FieldAccessExpr { Target: null or "state" or "board", Path.Length: 1 } field =>
                 !_bindings.ContainsKey(field.Path[0]) && _normalizedWrites.Contains(_slot(field.Path[0])),
             BitSetExpr or BinaryExpr or CompareExpr or NotExpr => true,
             IfExpr branch => NormalizedResult(branch.ThenExpr) && NormalizedResult(branch.ElseExpr),
-            _ => false,
+            _ => false
         };
     }
 
     private bool TryBoundBoolean(Expression expression, out bool value)
     {
-        if (TryBoundValue(expression, out var constant) && constant.IsBoolean) { value = constant.BoolValue; return true; }
-        if (expression is CompareExpr compare && TryBoundValue(compare.Left, out var left) && TryBoundValue(compare.Right, out var right))
+        if (TryBoundValue(expression, out ExprValue constant) && constant.IsBoolean)
         {
-            try { value = SamplingExpressions.CompareValues(compare.Op, left, right); return true; }
-            catch (ExpressionEvaluationException) { }
+            value = constant.BoolValue;
+            return true;
         }
+
+        if (expression is CompareExpr compare && TryBoundValue(compare.Left, out ExprValue left) &&
+            TryBoundValue(compare.Right, out ExprValue right))
+        {
+            try
+            {
+                value = SamplingExpressions.CompareValues(compare.Op, left, right);
+                return true;
+            }
+            catch (ExpressionEvaluationException)
+            {
+            }
+        }
+
         value = false;
         return false;
     }
@@ -928,66 +1448,113 @@ internal sealed class SamplingCodegen
     private Lx BitSetValue(BitSetExpr set)
     {
         if (set.Op is not (BitSetOp.Count or BitSetOp.First))
+        {
             return Lx.Call(SetOp(nameof(BitSetOperations.Value)), BitMask(set));
+        }
+
         return Form($"setnumber:{set.Op}", () =>
         {
-            var mask = Local(typeof(ulong));
-            var assign = Lx.Assign(mask, MaskOperand(set.Args[0], 0));
-            var method = typeof(BitOperations).GetMethod(set.Op == BitSetOp.Count ? nameof(BitOperations.PopCount) : nameof(BitOperations.TrailingZeroCount), [typeof(ulong)])!;
+            LxParameter mask = Local(typeof(ulong));
+            BinaryExpression assign = Lx.Assign(mask, MaskOperand(set.Args[0], 0));
+            MethodInfo method = typeof(BitOperations).GetMethod(
+                set.Op == BitSetOp.Count ? nameof(BitOperations.PopCount) : nameof(BitOperations.TrailingZeroCount),
+                [typeof(ulong)])!;
             Lx count = Lx.Call(method, mask);
-            if (set.Op == BitSetOp.First) count = Lx.Condition(Lx.Equal(mask, Lx.Constant(0UL)), Lx.Constant(-1), count);
+            if (set.Op == BitSetOp.First)
+            {
+                count = Lx.Condition(Lx.Equal(mask, Lx.Constant(0UL)), Lx.Constant(-1), count);
+            }
+
             return Lx.Block(assign, Lx.Call(NumberOf, Lx.Convert(count, typeof(long))));
         });
     }
 
-    private static bool IsMask(Expression expression) => expression is BitSetExpr { Args.Length: 2, Op: BitSetOp.Union or BitSetOp.Intersect or BitSetOp.Except or BitSetOp.Shift };
+    private static bool IsMask(Expression expression) => expression is BitSetExpr
+    {
+        Args.Length: 2, Op: BitSetOp.Union or BitSetOp.Intersect or BitSetOp.Except or BitSetOp.Shift
+    };
 
     // A conservative numeric range proof, independent of any authored graph.
     // Unknown forms use the ordinary exact-value representation.
-    private bool KnownMask(Expression expression, string? accumulator = null, string? itemName = null, string? indexName = null)
+    private bool KnownMask(Expression expression, string? accumulator = null, string? itemName = null,
+        string? indexName = null)
     {
         expression = _owner.Reduce(expression);
         // Item and index assignments take precedence over the accumulator,
         // including an outer scoped binding with the same name.
         if (expression is FieldAccessExpr { Target: null or "state" or "board", Path.Length: 1 } scoped
-            && (scoped.Path[0] == itemName || scoped.Path[0] == indexName)) return false;
-        if (_owner.TryConstant(expression, out var constant) || TryConstant(expression, out constant))
+            && (scoped.Path[0] == itemName || scoped.Path[0] == indexName))
+        {
+            return false;
+        }
+
+        if (_owner.TryConstant(expression, out ExprValue constant) || TryConstant(expression, out constant))
+        {
             return constant.Kind == ExprType.Number && constant.NumberDenominator.IsOne
-                && constant.NumberNumerator >= 0 && constant.NumberNumerator <= ulong.MaxValue;
+                                                    && constant.NumberNumerator >= 0 &&
+                                                    constant.NumberNumerator <= ulong.MaxValue;
+        }
+
         return expression switch
         {
             FieldAccessExpr { Target: null or "state" or "board", Path.Length: 1 } field => field.Path[0] == accumulator
-                || (_bindings.TryGetValue(field.Path[0], out var binding) ? binding.Mask is not null : _owner.IsMaskField(field.Path[0])),
-            IfExpr branch => KnownMask(branch.ThenExpr, accumulator, itemName, indexName) && KnownMask(branch.ElseExpr, accumulator, itemName, indexName),
+                || (_bindings.TryGetValue(field.Path[0], out IterationBinding? binding)
+                    ? binding.Mask is not null
+                    : _owner.IsMaskField(field.Path[0])),
+            IfExpr branch => KnownMask(branch.ThenExpr, accumulator, itemName, indexName) &&
+                             KnownMask(branch.ElseExpr, accumulator, itemName, indexName),
             BitSetExpr { Op: BitSetOp.Count, Args.Length: 1 } => true,
-            _ => IsMask(expression),
+            _ => IsMask(expression)
         };
     }
 
     private Lx KnownMaskValue(Expression expression)
     {
         expression = _owner.Reduce(expression);
-        if (TrySetConstant(expression, false, out var constant)) return constant;
-        if (expression is FieldAccessExpr field && _bindings.TryGetValue(field.Path[0], out var binding) && binding.Mask is { } mask)
+        if (TrySetConstant(expression, false, out Lx constant))
+        {
+            return constant;
+        }
+
+        if (expression is FieldAccessExpr field &&
+            _bindings.TryGetValue(field.Path[0], out IterationBinding? binding) &&
+            binding.Mask is { } mask)
         {
             _shape.Append("mask-").Append(binding.Shape);
             return mask;
         }
+
         if (expression is FieldAccessExpr { Target: null or "state" or "board", Path.Length: 1 } stored
             && !_bindings.ContainsKey(stored.Path[0]) && _owner.IsMaskField(stored.Path[0]))
         {
             var inline = _owner.IsInlineMaskField(stored.Path[0]);
             return Form(inline ? "inline-mask-state" : "mask-state", () =>
             {
-                var cell = Lx.ArrayAccess(Lx.Field(_frame, nameof(SamplingFrame.Cells)), Operand(nameof(SamplingOperands.Slots), _slots, _slot(stored.Path[0])));
-                return inline ? Lx.Convert(Lx.Property(Lx.Property(cell, nameof(SamplingCell.StoredValue)), nameof(ExprValue.InlineInteger)), typeof(ulong))
+                IndexExpression cell = Lx.ArrayAccess(Lx.Field(_frame, nameof(SamplingFrame.Cells)),
+                    Operand(nameof(SamplingOperands.Slots), _slots, _slot(stored.Path[0])));
+                return inline
+                    ? Lx.Convert(
+                        Lx.Property(Lx.Property(cell, nameof(SamplingCell.StoredValue)),
+                            nameof(ExprValue.InlineInteger)), typeof(ulong))
                     : Lx.Property(cell, nameof(SamplingCell.StoredMask));
             });
         }
+
         if (expression is IfExpr branch)
-            return Form("mask-if", () => Lx.Condition(Condition(branch.Condition), KnownMaskValue(branch.ThenExpr), KnownMaskValue(branch.ElseExpr)));
+        {
+            return Form("mask-if",
+                () => Lx.Condition(Condition(branch.Condition), KnownMaskValue(branch.ThenExpr),
+                    KnownMaskValue(branch.ElseExpr)));
+        }
+
         if (expression is BitSetExpr { Op: BitSetOp.Count } count)
-            return Form("mask-count", () => Lx.Convert(Lx.Call(typeof(BitOperations).GetMethod(nameof(BitOperations.PopCount), [typeof(ulong)])!, MaskOperand(count.Args[0], 0)), typeof(ulong)));
+        {
+            return Form("mask-count",
+                () => Lx.Convert(
+                    Lx.Call(typeof(BitOperations).GetMethod(nameof(BitOperations.PopCount), [typeof(ulong)])!,
+                        MaskOperand(count.Args[0], 0)), typeof(ulong)));
+        }
+
         return BitMask((BitSetExpr)expression);
     }
 
@@ -995,10 +1562,22 @@ internal sealed class SamplingCodegen
     {
         expression = _owner.Reduce(expression);
         value = null!;
-        if (!_owner.TryConstant(expression, out var constant) && !TryConstant(expression, out constant)) return false;
-        if (constant.Kind != ExprType.Number || !constant.NumberDenominator.IsOne) return false;
-        var number = constant.NumberNumerator;
-        if (distance ? number < -63 || number > 63 : number < 0 || number > ulong.MaxValue) return false;
+        if (!_owner.TryConstant(expression, out ExprValue constant) && !TryConstant(expression, out constant))
+        {
+            return false;
+        }
+
+        if (constant.Kind != ExprType.Number || !constant.NumberDenominator.IsOne)
+        {
+            return false;
+        }
+
+        BigInteger number = constant.NumberNumerator;
+        if (distance ? number < -63 || number > 63 : number < 0 || number > ulong.MaxValue)
+        {
+            return false;
+        }
+
         _shape.Append(distance ? "distance-literal;" : "mask-literal;");
         value = Lx.Convert(Operand(nameof(SamplingOperands.Numbers), _numbers,
             distance ? (long)number : unchecked((long)(ulong)number)), distance ? typeof(int) : typeof(ulong));
@@ -1007,90 +1586,136 @@ internal sealed class SamplingCodegen
 
     private Lx MaskOperand(Expression expression, int index)
     {
-        return KnownMask(expression) ? KnownMaskValue(expression)
+        return KnownMask(expression)
+            ? KnownMaskValue(expression)
             : Lx.Call(SetOp(nameof(BitSetOperations.Mask)), Value(expression), Lx.Constant($"bitset.args[{index}]"));
     }
 
     private Lx BitMask(BitSetExpr set) => Form($"setmask:{set.Op}", () =>
     {
         var statements = new List<Lx>();
+
         Lx Capture(Expression expression, int index, bool distance = false)
         {
             // Valid immutable operands cannot throw. Invalid literals remain on
             // the checked path so argument evaluation and error order stay intact.
-            if (TrySetConstant(expression, distance, out var constant)) return constant;
-            var reduced = _owner.Reduce(expression);
+            if (TrySetConstant(expression, distance, out Lx constant))
+            {
+                return constant;
+            }
+
+            Expression reduced = _owner.Reduce(expression);
             if (distance && reduced is FieldAccessExpr { Target: null or "state" or "board", Path.Length: 1 } field
-                && _bindings.TryGetValue(field.Path[0], out var binding) && binding.ShiftDistance is { } cursor)
+                         && _bindings.TryGetValue(field.Path[0], out IterationBinding? binding) &&
+                         binding.ShiftDistance is { } cursor)
             {
                 _shape.Append("bounded-distance;").Append(binding.Shape);
                 return cursor;
             }
+
             var known = !distance && KnownMask(expression);
             _shape.Append(known ? "mask;" : "checked;");
-            var value = Local(known ? typeof(ulong) : typeof(ExprValue));
+            LxParameter value = Local(known ? typeof(ulong) : typeof(ExprValue));
             statements.Add(Lx.Assign(value, known ? KnownMaskValue(expression) : Value(expression)));
-            return known ? value : distance ? Lx.Call(SetOp(nameof(BitSetOperations.Distance)), value)
+            return known ? value
+                : distance ? Lx.Call(SetOp(nameof(BitSetOperations.Distance)), value)
                 : Lx.Call(SetOp(nameof(BitSetOperations.Mask)), value, Lx.Constant($"bitset.args[{index}]"));
         }
+
         // Both operand expressions run before this operation validates them.
-        var first = Capture(set.Args[0], 0);
-        var second = Capture(set.Args[1], 1, set.Op == BitSetOp.Shift);
+        Lx first = Capture(set.Args[0], 0);
+        Lx second = Capture(set.Args[1], 1, set.Op == BitSetOp.Shift);
         if (set.Op == BitSetOp.Shift)
         {
-            var mask = Local(typeof(ulong)); var distance = Local(typeof(int));
-            statements.Add(Lx.Assign(mask, first)); statements.Add(Lx.Assign(distance, second));
-            statements.Add(Lx.Condition(Lx.GreaterThanOrEqual(distance, Lx.Constant(0)), Lx.LeftShift(mask, distance), Lx.RightShift(mask, Lx.Negate(distance))));
+            LxParameter mask = Local(typeof(ulong));
+            LxParameter distance = Local(typeof(int));
+            statements.Add(Lx.Assign(mask, first));
+            statements.Add(Lx.Assign(distance, second));
+            statements.Add(Lx.Condition(Lx.GreaterThanOrEqual(distance, Lx.Constant(0)), Lx.LeftShift(mask, distance),
+                Lx.RightShift(mask, Lx.Negate(distance))));
         }
-        else statements.Add(set.Op switch
+        else
         {
-            BitSetOp.Union => Lx.Or(first, second),
-            BitSetOp.Intersect => Lx.And(first, second),
-            BitSetOp.Except => Lx.And(first, Lx.Not(second)),
-            _ => throw new InvalidOperationException(),
-        });
+            statements.Add(set.Op switch
+            {
+                BitSetOp.Union => Lx.Or(first, second),
+                BitSetOp.Intersect => Lx.And(first, second),
+                BitSetOp.Except => Lx.And(first, Lx.Not(second)),
+                _ => throw new InvalidOperationException()
+            });
+        }
+
         return Lx.Block(statements);
     });
 
     private Lx Condition(Expression expression)
     {
         expression = _owner.Reduce(expression);
-        if (_owner.TryConstantBool(expression, out var decided)) return Truth(decided);
-        if (TryBoundBoolean(expression, out decided)) return Truth(decided);
+        if (_owner.TryConstantBool(expression, out var decided))
+        {
+            return Truth(decided);
+        }
+
+        if (TryBoundBoolean(expression, out decided))
+        {
+            return Truth(decided);
+        }
+
         switch (expression)
         {
-            case ConstantExpr when TryConstant(expression, out var constant) && constant.IsBoolean:
+            case ConstantExpr when TryConstant(expression, out ExprValue constant) && constant.IsBoolean:
                 return Truth(constant.BoolValue);
             case NotExpr not:
                 return Form("not", () => Lx.Not(Condition(not.Expr)));
             case BinaryExpr { Op: BinaryOp.And } and:
-                return Form("and", () => { var left = Condition(and.Left); return Lx.AndAlso(left, Condition(and.Right)); });
+                return Form("and", () =>
+                {
+                    Lx left = Condition(and.Left);
+                    return Lx.AndAlso(left, Condition(and.Right));
+                });
             case BinaryExpr { Op: BinaryOp.Or } or:
-                return Form("or", () => { var left = Condition(or.Left); return Lx.OrElse(left, Condition(or.Right)); });
+                return Form("or", () =>
+                {
+                    Lx left = Condition(or.Left);
+                    return Lx.OrElse(left, Condition(or.Right));
+                });
             case IfExpr branch:
                 return Form("when", () =>
                 {
-                    var test = Condition(branch.Condition); var yes = Condition(branch.ThenExpr);
+                    Lx test = Condition(branch.Condition);
+                    Lx yes = Condition(branch.ThenExpr);
                     return Lx.Condition(test, yes, Condition(branch.ElseExpr));
                 });
-            case CompareExpr { Op: CompareOp.Eq or CompareOp.Neq or CompareOp.Lt or CompareOp.Gt or CompareOp.Lte or CompareOp.Gte } compare:
+            case CompareExpr
+            {
+                Op: CompareOp.Eq or CompareOp.Neq or CompareOp.Lt or CompareOp.Gt or CompareOp.Lte or CompareOp.Gte
+            } compare:
                 // Both operands are evaluated left to right before comparing.
                 if (KnownInteger(compare.Left) && KnownInteger(compare.Right))
+                {
                     return Form("integer-compare:" + compare.Op, () => Lx.MakeBinary(compare.Op switch
                     {
-                        CompareOp.Eq => System.Linq.Expressions.ExpressionType.Equal,
-                        CompareOp.Neq => System.Linq.Expressions.ExpressionType.NotEqual,
-                        CompareOp.Lt => System.Linq.Expressions.ExpressionType.LessThan,
-                        CompareOp.Gt => System.Linq.Expressions.ExpressionType.GreaterThan,
-                        CompareOp.Lte => System.Linq.Expressions.ExpressionType.LessThanOrEqual,
-                        _ => System.Linq.Expressions.ExpressionType.GreaterThanOrEqual,
+                        CompareOp.Eq => ExpressionType.Equal,
+                        CompareOp.Neq => ExpressionType.NotEqual,
+                        CompareOp.Lt => ExpressionType.LessThan,
+                        CompareOp.Gt => ExpressionType.GreaterThan,
+                        CompareOp.Lte => ExpressionType.LessThanOrEqual,
+                        _ => ExpressionType.GreaterThanOrEqual
                     }, IntegerValue(compare.Left), IntegerValue(compare.Right)));
-                if (compare.Op is CompareOp.Eq or CompareOp.Neq && TryConstant(compare.Right, out var text) && text.IsString && text.StringValue is { } literal)
+                }
+
+                if (compare.Op is CompareOp.Eq or CompareOp.Neq && TryConstant(compare.Right, out ExprValue text) &&
+                    text.IsString && text.StringValue is { } literal)
+                {
                     return Form(compare.Op + "Text", () =>
-                        Lx.Call(Op(compare.Op == CompareOp.Eq ? nameof(SamplingOps.EqText) : nameof(SamplingOps.NeqText)), Value(compare.Left), Text(literal)));
+                        Lx.Call(
+                            Op(compare.Op == CompareOp.Eq ? nameof(SamplingOps.EqText) : nameof(SamplingOps.NeqText)),
+                            Value(compare.Left), Text(literal)));
+                }
+
                 return Form(compare.Op.ToString(), () =>
                 {
-                    var left = Value(compare.Left);
+                    Lx left = Value(compare.Left);
                     return Lx.Call(Op(compare.Op.ToString()), left, Value(compare.Right));
                 });
             default:
@@ -1101,57 +1726,92 @@ internal sealed class SamplingCodegen
     private bool KnownInteger(Expression expression)
     {
         expression = _owner.Reduce(expression);
-        if (TryBoundValue(expression, out var literal)) return literal.IsInlineInteger;
+        if (TryBoundValue(expression, out ExprValue literal))
+        {
+            return literal.IsInlineInteger;
+        }
+
         return expression switch
         {
             FieldAccessExpr { Target: null or "state" or "board", Path.Length: 1 } field =>
-                _bindings.TryGetValue(field.Path[0], out var binding) ? binding.Integer is not null : _owner.IsInlineMaskField(field.Path[0]),
+                _bindings.TryGetValue(field.Path[0], out IterationBinding? binding)
+                    ? binding.Integer is not null
+                    : _owner.IsInlineMaskField(field.Path[0]),
             BitSetExpr { Args.Length: 1, Op: BitSetOp.Count or BitSetOp.First } => true,
-            _ => false,
+            _ => false
         };
     }
 
     private Lx IntegerValue(Expression expression)
     {
         expression = _owner.Reduce(expression);
-        if (TryBoundValue(expression, out var literal))
-            return Form("integer-literal", () => Operand(nameof(SamplingOperands.Numbers), _numbers, literal.InlineInteger));
+        if (TryBoundValue(expression, out ExprValue literal))
+        {
+            return Form("integer-literal",
+                () => Operand(nameof(SamplingOperands.Numbers), _numbers, literal.InlineInteger));
+        }
+
         if (expression is FieldAccessExpr { Target: null or "state" or "board", Path.Length: 1 } field)
         {
-            if (_bindings.TryGetValue(field.Path[0], out var binding) && binding.Integer is { } integer)
-            { _shape.Append("integer-").Append(binding.Shape); return integer; }
-            return Form("integer-state", () => Lx.Property(Lx.Property(Lx.ArrayAccess(Lx.Field(_frame, nameof(SamplingFrame.Cells)),
-                Operand(nameof(SamplingOperands.Slots), _slots, _slot(field.Path[0]))), nameof(SamplingCell.StoredValue)), nameof(ExprValue.InlineInteger)));
+            if (_bindings.TryGetValue(field.Path[0], out IterationBinding? binding) && binding.Integer is { } integer)
+            {
+                _shape.Append("integer-").Append(binding.Shape);
+                return integer;
+            }
+
+            return Form("integer-state", () => Lx.Property(Lx.Property(Lx.ArrayAccess(
+                    Lx.Field(_frame, nameof(SamplingFrame.Cells)),
+                    Operand(nameof(SamplingOperands.Slots), _slots, _slot(field.Path[0]))),
+                nameof(SamplingCell.StoredValue)), nameof(ExprValue.InlineInteger)));
         }
-        return Form("integer-result", () => Lx.Property(BitSetValue((BitSetExpr)expression), nameof(ExprValue.InlineInteger)));
+
+        return Form("integer-result",
+            () => Lx.Property(BitSetValue((BitSetExpr)expression), nameof(ExprValue.InlineInteger)));
     }
 
     private Lx Call(CallExpr call)
     {
         var function = call.Function.ToLowerInvariant();
-        var args = call.Args;
-        Lx Binary(MethodInfo method) => Form(function, () => { var first = Value(args[0]); return Lx.Call(method, first, Value(args[1])); });
+        Expression[] args = call.Args;
+
+        Lx Binary(MethodInfo method)
+        {
+            return Form(function, () =>
+            {
+                Lx first = Value(args[0]);
+                return Lx.Call(method, first, Value(args[1]));
+            });
+        }
+
         switch (function, args.Length)
         {
             case ("tonumber", 1):
                 return Form(function, () =>
                 {
-                    var text = Local(typeof(ExprValue));
+                    LxParameter text = Local(typeof(ExprValue));
                     return Lx.Block(Lx.Assign(text, Value(args[0])),
-                        Lx.Condition(Lx.Call(HasNumericText, text), Lx.Call(NumericText, text), Lx.Call(Lx.Field(_operands, nameof(SamplingOperands.Owner)), ToNumberSlow, text)));
+                        Lx.Condition(Lx.Call(HasNumericText, text), Lx.Call(NumericText, text),
+                            Lx.Call(Lx.Field(_operands, nameof(SamplingOperands.Owner)), ToNumberSlow, text)));
                 });
-            case ("tostring", 1): return Form(function, () => Lx.Call(Collection(nameof(CollectionFunctions.ToText)), Value(args[0])));
-            case ("length", 1): return Form(function, () => Lx.Call(Collection(nameof(CollectionFunctions.Length)), Value(args[0])));
+            case ("tostring", 1):
+                return Form(function, () => Lx.Call(Collection(nameof(CollectionFunctions.ToText)), Value(args[0])));
+            case ("length", 1):
+                return Form(function, () => Lx.Call(Collection(nameof(CollectionFunctions.Length)), Value(args[0])));
             case ("contains", 2): return Binary(Collection(nameof(CollectionFunctions.Contains)));
             case ("index", 2):
-                if (_owner.TryConstant(_owner.Reduce(args[0]), out var source) && source.ItemsArray is { } items)
+                if (_owner.TryConstant(_owner.Reduce(args[0]), out ExprValue source) && source.ItemsArray is { } items)
                 {
-                    if (TryBoundValue(args[1], out var position) && position.IsInlineInteger
-                        && (ulong)position.InlineInteger < (ulong)items.Length)
+                    if (TryBoundValue(args[1], out ExprValue position) && position.IsInlineInteger
+                                                                       && (ulong)position.InlineInteger <
+                                                                       (ulong)items.Length)
+                    {
                         return Form("index-literal", () => Literal(items[position.InlineInteger]));
+                    }
+
                     return Form("index-items", () => Lx.Call(Op(nameof(SamplingOps.IndexItems)),
                         Operand(nameof(SamplingOperands.Arrays), _arrays, items), Value(args[1])));
                 }
+
                 return Binary(Op(nameof(SamplingOps.Index)));
             case ("max", 2): return Binary(Op(nameof(SamplingOps.Max)));
             case ("min", 2): return Binary(Op(nameof(SamplingOps.Min)));
@@ -1163,11 +1823,17 @@ internal sealed class SamplingCodegen
         return Form($"call:{function.Length}:{function}:{args.Length}", () =>
         {
             var statements = new List<Lx>();
-            var first = Local(typeof(ExprValue)); var second = Local(typeof(ExprValue));
+            LxParameter first = Local(typeof(ExprValue));
+            LxParameter second = Local(typeof(ExprValue));
             statements.Add(Lx.Assign(first, args.Length > 0 ? Value(args[0]) : Lx.Call(NumberOf, Lx.Constant(0L))));
             statements.Add(Lx.Assign(second, args.Length > 1 ? Value(args[1]) : Lx.Call(NumberOf, Lx.Constant(0L))));
-            for (var i = 2; i < args.Length; i++) statements.Add(Value(args[i]));
-            statements.Add(Lx.Call(Lx.Field(_operands, nameof(SamplingOperands.Owner)), CallGeneric, Lx.Constant(function), first, second, Lx.Constant(args.Length)));
+            for (var i = 2; i < args.Length; i++)
+            {
+                statements.Add(Value(args[i]));
+            }
+
+            statements.Add(Lx.Call(Lx.Field(_operands, nameof(SamplingOperands.Owner)), CallGeneric,
+                Lx.Constant(function), first, second, Lx.Constant(args.Length)));
             return Lx.Block(typeof(ExprValue), statements);
         });
     }
@@ -1183,22 +1849,42 @@ internal sealed class SamplingCodegen
             appended.Add(inner.Args[1]);
             source = inner.Args[0];
         }
+
         appended.Reverse();
 
         return Form($"append:{appended.Count}", () =>
         {
-            var first = Local(typeof(ExprValue)); var head = Local(typeof(ExprValue)); var items = Local(typeof(ExprValue[]));
+            LxParameter first = Local(typeof(ExprValue));
+            LxParameter head = Local(typeof(ExprValue));
+            LxParameter items = Local(typeof(ExprValue[]));
             var statements = new List<Lx>
             {
                 Lx.Assign(first, Value(source)),
                 Lx.Assign(head, Value(appended[0])),
-                Lx.Assign(items, Lx.Call(AppendBegin, _frame, first, Lx.Constant(appended.Count))),
+                Lx.Assign(items, Lx.Call(AppendBegin, _frame, first, Lx.Constant(appended.Count)))
             };
-            Lx Slot(int i) => Lx.ArrayAccess(items, Lx.Subtract(Lx.ArrayLength(items), Lx.Constant(appended.Count - i)));
+
+            Lx Slot(int i)
+            {
+                return Lx.ArrayAccess(items, Lx.Subtract(Lx.ArrayLength(items), Lx.Constant(appended.Count - i)));
+            }
+
             statements.Add(Lx.Assign(Slot(0), head));
-            for (var i = 1; i < appended.Count; i++) statements.Add(Lx.Assign(Slot(i), Value(appended[i])));
+            for (var i = 1; i < appended.Count; i++)
+            {
+                statements.Add(Lx.Assign(Slot(i), Value(appended[i])));
+            }
+
             statements.Add(Lx.Call(AppendEnd, items));
             return Lx.Block(typeof(ExprValue), statements);
         });
+    }
+
+    private sealed record IterationBinding(string Shape, Func<string, Lx> Read, Lx? Mask = null)
+    {
+        public bool NeedsFrame { get; set; }
+        public Lx? Integer { get; init; }
+        public Lx? ShiftDistance { get; init; }
+        public ExprValue? Constant { get; init; }
     }
 }

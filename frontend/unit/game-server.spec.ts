@@ -10,6 +10,7 @@ import type { WoodlandWhisperSerializedState } from '../src/games/contracts/shar
 import { number, type Game, type Payload } from '../src/games/server/game';
 import { leMilitare } from '../src/games/server/le-militare';
 import { nineLives } from '../src/games/server/nine-lives';
+import { playThrough } from '../src/games/server/play';
 import { woodlandWhisper } from '../src/games/server/woodland-whisper';
 import { x7Club } from '../src/games/server/x7-club';
 
@@ -229,4 +230,36 @@ test('Le Militare plays every kind of round in every mode on the graph of that r
     }
   }
   expect(leMilitare.graph({ action: 'freespin', payload: {}, state: leMilitare.initialState() })).toBeNull();
+});
+
+// The play endpoint turns requests away with 429 when it is busy. A round is a function of its graph, seed and
+// number, so the same request is sent again after a short wait; a long wait, or a rejection of another kind, is
+// reported and never retried.
+test('A busy play endpoint is asked again for the same round, a few times and only after a short wait', async () => {
+  const played = Response.json({ win: 3, state: { spinBoards: [] } });
+  const busy = (retryAfter?: string) => new Response('{}', { status: 429, headers: retryAfter ? { 'Retry-After': retryAfter } : {} });
+  const run = async (responses: Response[]) => {
+    const asked: unknown[] = [], waited: number[] = [];
+    const play = playThrough(async body => { asked.push(body); return responses[asked.length - 1]; }, async ms => { waited.push(ms); });
+    const outcome = await play({ id: 'graph' }, 7, 2).then(round => round as unknown, (error: Error) => error.message);
+    return { asked, waited, outcome };
+  };
+
+  const recovered = await run([busy(), busy('1'), played.clone()]);
+  expect(recovered.outcome).toEqual({ win: 3, trace: { spinBoards: [] } });
+  expect(recovered.waited).toEqual([250, 1000]);
+  expect(recovered.asked).toEqual(Array(3).fill({ config: { id: 'graph' }, seed: 7, roundIndex: 2, trace: true }));
+
+  const stillBusy = await run([busy(), busy(), busy(), busy(), played.clone()]);
+  expect(stillBusy.asked).toHaveLength(4);
+  expect(stillBusy.outcome).toBe('The game server is busy. Spin again shortly.');
+
+  const longWait = await run([busy('30'), played.clone()]);
+  expect(longWait.asked).toHaveLength(1);
+  expect(longWait.waited).toEqual([]);
+  expect(longWait.outcome).toBe('The game server is busy. Spin again shortly.');
+
+  const refused = await run([Response.json({ error: 'Graph validation failed' }, { status: 400 }), played.clone()]);
+  expect(refused.asked).toHaveLength(1);
+  expect(refused.outcome).toBe('Graph validation failed');
 });

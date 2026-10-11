@@ -361,9 +361,11 @@ internal static class Bits
     public static IEnumerable<int> Enumerate(ulong[] set)
     {
         for (var i = 0; i < set.Length; i++)
-        for (var word = set[i]; word != 0; word &= word - 1)
         {
-            yield return (i << 6) + BitOperations.TrailingZeroCount(word);
+            for (var word = set[i]; word != 0; word &= word - 1)
+            {
+                yield return (i << 6) + BitOperations.TrailingZeroCount(word);
+            }
         }
     }
 }
@@ -675,7 +677,11 @@ internal sealed class TermFactory
 
     public Term Const(ExprValue value)
     {
-        var term = new ConstTerm { Value = value, Hash = V.Hash(value) * 31 + 1 };
+        var term = new ConstTerm
+        {
+            Value = value,
+            Hash = V.Hash(value) * 31 + 1
+        };
         if (TryGet(term, out Term existing))
         {
             return existing;
@@ -716,7 +722,12 @@ internal sealed class TermFactory
                 hash.Add(keys[i] = V.Hash(values[i]));
             }
 
-            var term = new TableTerm { Rv = rv, Values = values, Hash = hash.ToHashCode() * 31 + 2 };
+            var term = new TableTerm
+            {
+                Rv = rv,
+                Values = values,
+                Hash = hash.ToHashCode() * 31 + 2
+            };
             if (TryGet(term, out Term existing))
             {
                 Release(values);
@@ -871,8 +882,11 @@ internal sealed class TermFactory
                         return a[0].Kind == ExprType.Null ? V.Err : a[0];
                     }
 
-                    return StateValues.Read(new Dictionary<string, object?> { ["value"] = a[0].ToStateObject() },
-                        ["value", .. segments]);
+                    var nestedState = new Dictionary<string, object?>
+                    {
+                        ["value"] = a[0].ToStateObject()
+                    };
+                    return StateValues.Read(nestedState, ["value", .. segments]);
                 default:
                     var state = new Dictionary<string, object?>(names!.Length);
                     for (var i = 0; i < names.Length; i++)
@@ -880,7 +894,10 @@ internal sealed class TermFactory
                         state[names[i]] = a[i].ToStateObject();
                     }
 
-                    return ExactExpressionEvaluator.Evaluate((Expression)payload!, new EvalContext { State = state });
+                    return ExactExpressionEvaluator.Evaluate((Expression)payload!, new EvalContext
+                    {
+                        State = state
+                    });
             }
         }
         catch (Exception exception) when (exception is not (OutOfMemoryException or StackOverflowException))
@@ -1481,7 +1498,10 @@ internal sealed class TermFactory
         }
 
         result.Kinds = V.Num;
-        HashSet<ExprValue>? sums = new(V.ValueComparer.Instance) { c0 };
+        HashSet<ExprValue>? sums = new(V.ValueComparer.Instance)
+        {
+            c0
+        };
         for (var i = 0; i < result.Terms.Length; i++)
         {
             Term term = result.Terms[i];
@@ -1500,9 +1520,11 @@ internal sealed class TermFactory
 
             var next = new HashSet<ExprValue>(V.ValueComparer.Instance);
             foreach (ExprValue sum in sums)
-            foreach (ExprValue value in term.Vals)
             {
-                next.Add(ExprValue.Add(sum, ExprValue.Mul(result.Coefs[i], value)));
+                foreach (ExprValue value in term.Vals)
+                {
+                    next.Add(ExprValue.Add(sum, ExprValue.Mul(result.Coefs[i], value)));
+                }
             }
 
             sums = next.Count <= MaxVals ? next : null;
@@ -1641,7 +1663,13 @@ internal sealed class TermFactory
             return a;
         }
 
-        var term = new IfTerm { C = c, A = a, B = b, Hash = HashCode.Combine(c.Id, a.Id, b.Id) * 31 + 5 };
+        var term = new IfTerm
+        {
+            C = c,
+            A = a,
+            B = b,
+            Hash = HashCode.Combine(c.Id, a.Id, b.Id) * 31 + 5
+        };
         if (TryGet(term, out Term existing))
         {
             return existing;
@@ -1763,7 +1791,13 @@ internal sealed class TermFactory
             return Table(rv, table);
         }
 
-        var term = new LogicTerm { IsOr = isOr, A = a, B = b, Hash = HashCode.Combine(isOr, a.Id, b.Id) * 31 + 6 };
+        var term = new LogicTerm
+        {
+            IsOr = isOr,
+            A = a,
+            B = b,
+            Hash = HashCode.Combine(isOr, a.Id, b.Id) * 31 + 6
+        };
         if (TryGet(term, out Term existing))
         {
             return existing;
@@ -1817,7 +1851,12 @@ internal sealed class TermFactory
             hash.Add(child.Id);
         }
 
-        var term = new SelTerm { Selector = selector, Children = children, Hash = hash.ToHashCode() * 31 + 7 };
+        var term = new SelTerm
+        {
+            Selector = selector,
+            Children = children,
+            Hash = hash.ToHashCode() * 31 + 7
+        };
         if (TryGet(term, out Term existing))
         {
             return existing;

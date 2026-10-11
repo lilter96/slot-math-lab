@@ -2060,13 +2060,6 @@
      "outputs": {"true":{"name":"true","type":"State"},"false":{"name":"false","type":"State"}}
     },
     {
-     "nodeType": "getState",
-     "id": "bonus-join",
-     "label": "Continue",
-     "inputs": {"state":{"name":"state","type":"State"}},
-     "outputs": {"state":{"name":"state","type":"State"}}
-    },
-    {
      "nodeType": "modifyState",
      "id": "use",
      "label": "Use one free spin",
@@ -2096,9 +2089,8 @@
    ],
    "edges": [
     {"id":"bonus.true->bonus-yes","sourceNodeId":"bonus","sourcePort":"true","targetNodeId":"bonus-yes","targetPort":"state"},
-    {"id":"bonus.false->bonus-join","sourceNodeId":"bonus","sourcePort":"false","targetNodeId":"bonus-join","targetPort":"state"},
-    {"id":"bonus-yes.state->bonus-join","sourceNodeId":"bonus-yes","sourcePort":"state","targetNodeId":"bonus-join","targetPort":"state"},
-    {"id":"bonus-join.state->use","sourceNodeId":"bonus-join","sourcePort":"state","targetNodeId":"use","targetPort":"state"},
+    {"id":"bonus.false->use","sourceNodeId":"bonus","sourcePort":"false","targetNodeId":"use","targetPort":"state"},
+    {"id":"bonus-yes.state->use","sourceNodeId":"bonus-yes","sourcePort":"state","targetNodeId":"use","targetPort":"state"},
     {"id":"use.state->spin","sourceNodeId":"use","sourcePort":"state","targetNodeId":"spin","targetPort":"state"}
    ],
    "expressions": {
@@ -2209,26 +2201,12 @@
      "outputs": {"true":{"name":"true","type":"State"},"false":{"name":"false","type":"State"}}
     },
     {
-     "nodeType": "getState",
-     "id": "reel-0-shows-0-join",
-     "label": "Continue",
-     "inputs": {"state":{"name":"state","type":"State"}},
-     "outputs": {"state":{"name":"state","type":"State"}}
-    },
-    {
      "nodeType": "branch",
      "id": "reel-1-shows-0",
      "label": "Does reel 2 show 0?",
      "conditionId": "reel-1-shows-0",
      "inputs": {"state":{"name":"state","type":"State"}},
      "outputs": {"true":{"name":"true","type":"State"},"false":{"name":"false","type":"State"}}
-    },
-    {
-     "nodeType": "getState",
-     "id": "reel-1-shows-0-join",
-     "label": "Continue",
-     "inputs": {"state":{"name":"state","type":"State"}},
-     "outputs": {"state":{"name":"state","type":"State"}}
     },
     {
      "nodeType": "branch",
@@ -2239,13 +2217,6 @@
      "outputs": {"true":{"name":"true","type":"State"},"false":{"name":"false","type":"State"}}
     },
     {
-     "nodeType": "getState",
-     "id": "reel-2-shows-0-join",
-     "label": "Continue",
-     "inputs": {"state":{"name":"state","type":"State"}},
-     "outputs": {"state":{"name":"state","type":"State"}}
-    },
-    {
      "nodeType": "branch",
      "id": "reel-3-shows-0",
      "label": "Does reel 4 show 0?",
@@ -2254,26 +2225,12 @@
      "outputs": {"true":{"name":"true","type":"State"},"false":{"name":"false","type":"State"}}
     },
     {
-     "nodeType": "getState",
-     "id": "reel-3-shows-0-join",
-     "label": "Continue",
-     "inputs": {"state":{"name":"state","type":"State"}},
-     "outputs": {"state":{"name":"state","type":"State"}}
-    },
-    {
      "nodeType": "branch",
      "id": "reel-4-shows-0",
      "label": "Does reel 5 show 0?",
      "conditionId": "reel-4-shows-0",
      "inputs": {"state":{"name":"state","type":"State"}},
      "outputs": {"true":{"name":"true","type":"State"},"false":{"name":"false","type":"State"}}
-    },
-    {
-     "nodeType": "getState",
-     "id": "reel-4-shows-0-join",
-     "label": "Continue",
-     "inputs": {"state":{"name":"state","type":"State"}},
-     "outputs": {"state":{"name":"state","type":"State"}}
     },
     {
      "nodeType": "modifyState",
@@ -2601,13 +2558,6 @@
      "targetPort": "state"
     },
     {
-     "id": "stop-0-showing-0.state->reel-0-shows-0-join",
-     "sourceNodeId": "stop-0-showing-0",
-     "sourcePort": "state",
-     "targetNodeId": "reel-0-shows-0-join",
-     "targetPort": "state"
-    },
-    {
      "id": "reel-0-shows-0.false->stop-0-showing-1",
      "sourceNodeId": "reel-0-shows-0",
      "sourcePort": "false",
@@ -2615,15 +2565,15 @@
      "targetPort": "state"
     },
     {
-     "id": "stop-0-showing-1.state->reel-0-shows-0-join",
-     "sourceNodeId": "stop-0-showing-1",
+     "id": "stop-0-showing-0.state->reel-1-shows-0",
+     "sourceNodeId": "stop-0-showing-0",
      "sourcePort": "state",
-     "targetNodeId": "reel-0-shows-0-join",
+     "targetNodeId": "reel-1-shows-0",
      "targetPort": "state"
     },
     {
-     "id": "reel-0-shows-0-join.state->reel-1-shows-0",
-     "sourceNodeId": "reel-0-shows-0-join",
+     "id": "stop-0-showing-1.state->reel-1-shows-0",
+     "sourceNodeId": "stop-0-showing-1",
      "sourcePort": "state",
      "targetNodeId": "reel-1-shows-0",
      "targetPort": "state"
@@ -2636,13 +2586,6 @@
      "targetPort": "state"
     },
     {
-     "id": "stop-1-showing-0.state->reel-1-shows-0-join",
-     "sourceNodeId": "stop-1-showing-0",
-     "sourcePort": "state",
-     "targetNodeId": "reel-1-shows-0-join",
-     "targetPort": "state"
-    },
-    {
      "id": "reel-1-shows-0.false->stop-1-showing-1",
      "sourceNodeId": "reel-1-shows-0",
      "sourcePort": "false",
@@ -2650,15 +2593,15 @@
      "targetPort": "state"
     },
     {
-     "id": "stop-1-showing-1.state->reel-1-shows-0-join",
-     "sourceNodeId": "stop-1-showing-1",
+     "id": "stop-1-showing-0.state->reel-2-shows-0",
+     "sourceNodeId": "stop-1-showing-0",
      "sourcePort": "state",
-     "targetNodeId": "reel-1-shows-0-join",
+     "targetNodeId": "reel-2-shows-0",
      "targetPort": "state"
     },
     {
-     "id": "reel-1-shows-0-join.state->reel-2-shows-0",
-     "sourceNodeId": "reel-1-shows-0-join",
+     "id": "stop-1-showing-1.state->reel-2-shows-0",
+     "sourceNodeId": "stop-1-showing-1",
      "sourcePort": "state",
      "targetNodeId": "reel-2-shows-0",
      "targetPort": "state"
@@ -2671,13 +2614,6 @@
      "targetPort": "state"
     },
     {
-     "id": "stop-2-showing-0.state->reel-2-shows-0-join",
-     "sourceNodeId": "stop-2-showing-0",
-     "sourcePort": "state",
-     "targetNodeId": "reel-2-shows-0-join",
-     "targetPort": "state"
-    },
-    {
      "id": "reel-2-shows-0.false->stop-2-showing-1",
      "sourceNodeId": "reel-2-shows-0",
      "sourcePort": "false",
@@ -2685,15 +2621,15 @@
      "targetPort": "state"
     },
     {
-     "id": "stop-2-showing-1.state->reel-2-shows-0-join",
-     "sourceNodeId": "stop-2-showing-1",
+     "id": "stop-2-showing-0.state->reel-3-shows-0",
+     "sourceNodeId": "stop-2-showing-0",
      "sourcePort": "state",
-     "targetNodeId": "reel-2-shows-0-join",
+     "targetNodeId": "reel-3-shows-0",
      "targetPort": "state"
     },
     {
-     "id": "reel-2-shows-0-join.state->reel-3-shows-0",
-     "sourceNodeId": "reel-2-shows-0-join",
+     "id": "stop-2-showing-1.state->reel-3-shows-0",
+     "sourceNodeId": "stop-2-showing-1",
      "sourcePort": "state",
      "targetNodeId": "reel-3-shows-0",
      "targetPort": "state"
@@ -2706,13 +2642,6 @@
      "targetPort": "state"
     },
     {
-     "id": "stop-3-showing-0.state->reel-3-shows-0-join",
-     "sourceNodeId": "stop-3-showing-0",
-     "sourcePort": "state",
-     "targetNodeId": "reel-3-shows-0-join",
-     "targetPort": "state"
-    },
-    {
      "id": "reel-3-shows-0.false->stop-3-showing-1",
      "sourceNodeId": "reel-3-shows-0",
      "sourcePort": "false",
@@ -2720,15 +2649,15 @@
      "targetPort": "state"
     },
     {
-     "id": "stop-3-showing-1.state->reel-3-shows-0-join",
-     "sourceNodeId": "stop-3-showing-1",
+     "id": "stop-3-showing-0.state->reel-4-shows-0",
+     "sourceNodeId": "stop-3-showing-0",
      "sourcePort": "state",
-     "targetNodeId": "reel-3-shows-0-join",
+     "targetNodeId": "reel-4-shows-0",
      "targetPort": "state"
     },
     {
-     "id": "reel-3-shows-0-join.state->reel-4-shows-0",
-     "sourceNodeId": "reel-3-shows-0-join",
+     "id": "stop-3-showing-1.state->reel-4-shows-0",
+     "sourceNodeId": "stop-3-showing-1",
      "sourcePort": "state",
      "targetNodeId": "reel-4-shows-0",
      "targetPort": "state"
@@ -2741,33 +2670,14 @@
      "targetPort": "state"
     },
     {
-     "id": "stop-4-showing-0.state->reel-4-shows-0-join",
-     "sourceNodeId": "stop-4-showing-0",
-     "sourcePort": "state",
-     "targetNodeId": "reel-4-shows-0-join",
-     "targetPort": "state"
-    },
-    {
      "id": "reel-4-shows-0.false->stop-4-showing-1",
      "sourceNodeId": "reel-4-shows-0",
      "sourcePort": "false",
      "targetNodeId": "stop-4-showing-1",
      "targetPort": "state"
     },
-    {
-     "id": "stop-4-showing-1.state->reel-4-shows-0-join",
-     "sourceNodeId": "stop-4-showing-1",
-     "sourcePort": "state",
-     "targetNodeId": "reel-4-shows-0-join",
-     "targetPort": "state"
-    },
-    {
-     "id": "reel-4-shows-0-join.state->window",
-     "sourceNodeId": "reel-4-shows-0-join",
-     "sourcePort": "state",
-     "targetNodeId": "window",
-     "targetPort": "state"
-    }
+    {"id":"stop-4-showing-0.state->window","sourceNodeId":"stop-4-showing-0","sourcePort":"state","targetNodeId":"window","targetPort":"state"},
+    {"id":"stop-4-showing-1.state->window","sourceNodeId":"stop-4-showing-1","sourcePort":"state","targetNodeId":"window","targetPort":"state"}
    ],
    "expressions": {
     "reel-0-shows-0": {

@@ -232,7 +232,11 @@ public static class StructuredExactEvaluator
             {
                 failure = exception;
             }
-        }, StackBytes) { IsBackground = true, Name = "structured-exact" };
+        }, StackBytes)
+        {
+            IsBackground = true,
+            Name = "structured-exact"
+        };
         thread.Start();
         thread.Join();
         if (failure is OperationCanceledException)
@@ -249,7 +253,11 @@ public static class StructuredExactEvaluator
     }
 
     private static StructuredExactResult Declined(string reason, TimeSpan elapsed) =>
-        new() { DeclinedReason = reason, Elapsed = elapsed };
+        new()
+        {
+            DeclinedReason = reason,
+            Elapsed = elapsed
+        };
 
     private static StructuredExactResult Run(StructuredModel model, BigInteger winScale, StructuredExactOptions options,
         CancellationToken cancellation)
@@ -284,14 +292,20 @@ public static class StructuredExactEvaluator
             skipLaw = !byMoments;
         }
 
-        return result with { LoopNotes = notes };
+        return result with
+        {
+            LoopNotes = notes
+        };
     }
 
     private static StructuredExactResult Attempt(StructuredModel model, BigInteger winScale,
         StructuredExactOptions options, LoopMode mode, WorkBudget budget, Stopwatch clock, List<string> notes,
         out bool summarized, out bool byMoments)
     {
-        var factory = new TermFactory(budget) { Fault = options.Fault };
+        var factory = new TermFactory(budget)
+        {
+            Fault = options.Fault
+        };
         var inference = new Inference(factory);
         var executor = new SymbolicExecutor(model.Config, winScale, factory, inference,
             new LoopOptions(mode, options.ChainLoopsAbove, options.LoopLawWork, options.PruneLoopMassBelow,

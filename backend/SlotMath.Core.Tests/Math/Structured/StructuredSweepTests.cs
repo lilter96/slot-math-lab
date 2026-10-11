@@ -12,12 +12,21 @@ namespace SlotMath.Core.Tests.Math.Structured;
 
 public class StructuredSweepTests(ITestOutputHelper output)
 {
+    // The game graphs have suites of their own (Math/Games, StructuredLabDemoTests), which compare the interpreters
+    // on models cut down until the classic interpreter can enumerate them. Here they would only use up its budget.
+    private static readonly string[] OwnSuites = ["Games", "LabDemo"];
+
     [Fact]
     public void EveryFixtureGraph_AgreesWithClassicWhereBothAnswer()
     {
         var root = Path.Combine(AppContext.BaseDirectory, "TestData");
         foreach (var file in Directory.EnumerateFiles(root, "*.json", SearchOption.AllDirectories).Order())
         {
+            if (OwnSuites.Contains(Path.GetRelativePath(root, file).Split(Path.DirectorySeparatorChar)[0]))
+            {
+                continue;
+            }
+
             GraphConfig? config;
             try
             {
@@ -57,7 +66,11 @@ public class StructuredSweepTests(ITestOutputHelper output)
                 classic = ExactInterpreter.Evaluate(compiled.ReferenceProgram!, new Dict(), StateHasher.CanonicalHash,
                     new ExactConfig
                     {
-                        Budget = new Budget { MaxBranches = 2_000_000, MaxTime = TimeSpan.FromSeconds(20) }
+                        Budget = new Budget
+                        {
+                            MaxBranches = 2_000_000,
+                            MaxTime = TimeSpan.FromSeconds(20)
+                        }
                     }).ValueDistribution();
             }
             catch (Exception e)
@@ -65,12 +78,22 @@ public class StructuredSweepTests(ITestOutputHelper output)
                 classicNote = e.GetType().Name;
             }
 
+            if (classic is null)
+            {
+                output.WriteLine($"{Path.GetFileName(file)}: classic={classicNote}, nothing to compare with");
+                continue;
+            }
+
             StructuredExactResult result = StructuredExactEvaluator.Evaluate(compiled,
-                new StructuredExactOptions { DistributionWork = 50_000_000, MaxTime = TimeSpan.FromSeconds(60) });
+                new StructuredExactOptions
+                {
+                    DistributionWork = 50_000_000,
+                    MaxTime = TimeSpan.FromSeconds(60)
+                });
             output.WriteLine(
-                $"{Path.GetFileName(file)}: classic={(classic is null ? classicNote : classic.Count + " values")} structured={(result.Succeeded ? "ok" : "declined: " + result.DeclinedReason)} " +
+                $"{Path.GetFileName(file)}: classic={classic.Count} values structured={(result.Succeeded ? "ok" : "declined: " + result.DeclinedReason)} " +
                 $"dist={result.Distribution?.Count} {result.Elapsed.TotalMilliseconds:F0}ms terms={result.Terms}");
-            if (classic is null || !result.Succeeded)
+            if (!result.Succeeded)
             {
                 continue;
             }

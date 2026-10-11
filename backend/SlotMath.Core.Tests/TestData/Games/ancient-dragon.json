@@ -88,13 +88,6 @@
    "outputs": {"true":{"name":"true","type":"State"},"false":{"name":"false","type":"State"}}
   },
   {
-   "nodeType": "getState",
-   "id": "trigger-join",
-   "label": "Continue",
-   "inputs": {"state":{"name":"state","type":"State"}},
-   "outputs": {"state":{"name":"state","type":"State"}}
-  },
-  {
    "nodeType": "modifyState",
    "id": "credits",
    "label": "Round win as a multiple of the total bet",
@@ -126,15 +119,8 @@
   {"id":"base-spin.state->trace-left","sourceNodeId":"base-spin","sourcePort":"state","targetNodeId":"trace-left","targetPort":"state"},
   {"id":"trace-left.state->trigger","sourceNodeId":"trace-left","sourcePort":"state","targetNodeId":"trigger","targetPort":"state"},
   {"id":"trigger.true->trigger-yes","sourceNodeId":"trigger","sourcePort":"true","targetNodeId":"trigger-yes","targetPort":"state"},
-  {"id":"trigger.false->trigger-join","sourceNodeId":"trigger","sourcePort":"false","targetNodeId":"trigger-join","targetPort":"state"},
-  {
-   "id": "trigger-yes.state->trigger-join",
-   "sourceNodeId": "trigger-yes",
-   "sourcePort": "state",
-   "targetNodeId": "trigger-join",
-   "targetPort": "state"
-  },
-  {"id":"trigger-join.state->credits","sourceNodeId":"trigger-join","sourcePort":"state","targetNodeId":"credits","targetPort":"state"},
+  {"id":"trigger.false->credits","sourceNodeId":"trigger","sourcePort":"false","targetNodeId":"credits","targetPort":"state"},
+  {"id":"trigger-yes.state->credits","sourceNodeId":"trigger-yes","sourcePort":"state","targetNodeId":"credits","targetPort":"state"},
   {"id":"credits.state->round","sourceNodeId":"credits","sourcePort":"state","targetNodeId":"round","targetPort":"state"}
  ],
  "expressions": {

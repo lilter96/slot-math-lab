@@ -368,12 +368,14 @@ internal sealed class LoopChain
         }
 
         for (var a = 0; a < _accumulators; a++)
-        for (var b = a; b < _accumulators; b++)
         {
-            (Term x, Term y) = (deltas[a], deltas[b]);
-            kernel.Second[PairIndex(a, b)] =
-                (SecondKnown ? Within(ref _secondWork, () => SecondOf(x, y)) : null) ?? Unknown();
-            SecondKnown = SecondKnown && _secondWork > 0;
+            for (var b = a; b < _accumulators; b++)
+            {
+                (Term x, Term y) = (deltas[a], deltas[b]);
+                kernel.Second[PairIndex(a, b)] =
+                    (SecondKnown ? Within(ref _secondWork, () => SecondOf(x, y)) : null) ?? Unknown();
+                SecondKnown = SecondKnown && _secondWork > 0;
+            }
         }
 
         return _kernels[state] = kernel;
@@ -530,15 +532,19 @@ internal sealed class LoopChain
         }
 
         foreach (Rational[] row in kernel.First)
-        foreach (Rational value in row)
         {
-            Widen(value);
+            foreach (Rational value in row)
+            {
+                Widen(value);
+            }
         }
 
         foreach (Rational[] row in kernel.Second)
-        foreach (Rational value in row)
         {
-            Widen(value);
+            foreach (Rational value in row)
+            {
+                Widen(value);
+            }
         }
 
         foreach (Rational[]? row in kernel.Zero)
@@ -601,7 +607,10 @@ internal sealed class LoopChain
     {
         var running = new Dictionary<ExprValue, Cell>(V.ValueComparer.Instance);
         var done = new Dictionary<ExprValue, Cell>(V.ValueComparer.Instance);
-        var first = new Cell(_accumulators, _pairs) { Mass = BigInteger.One };
+        var first = new Cell(_accumulators, _pairs)
+        {
+            Mass = BigInteger.One
+        };
         Array.Fill(first.Lo, V.Zero);
         Array.Fill(first.Hi, V.Zero);
         first.Ranged = true;

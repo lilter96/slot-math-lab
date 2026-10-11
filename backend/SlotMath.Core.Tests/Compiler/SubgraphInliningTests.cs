@@ -39,25 +39,78 @@ public sealed class SubgraphInliningTests
         {
             Condition = All(IsH),
             ThenExpr = Int(5),
-            ElseExpr = new IfExpr { Condition = All(IsL), ThenExpr = Int(2), ElseExpr = Int(0) }
+            ElseExpr = new IfExpr
+            {
+                Condition = All(IsL),
+                ThenExpr = Int(2),
+                ElseExpr = Int(0)
+            }
         }
     };
 
     private static StateFieldSchema[] CellSchema =>
     [
-        new() { Name = "c0", Type = "string" },
-        new() { Name = "c1", Type = "string" },
-        new() { Name = "c2", Type = "string" },
-        new() { Name = "win", Type = "number" }
+        new()
+        {
+            Name = "c0",
+            Type = "string"
+        },
+        new()
+        {
+            Name = "c1",
+            Type = "string"
+        },
+        new()
+        {
+            Name = "c2",
+            Type = "string"
+        },
+        new()
+        {
+            Name = "win",
+            Type = "number"
+        }
     ];
 
     // ── Expression helpers ───────────────────────────────────────────────
-    private static FieldAccessExpr Cell(int i) => new() { Target = "state", Path = [$"c{i}"] };
-    private static ConstantExpr Str(string v) => new() { Kind = ConstantKind.String, Value = v };
-    private static ConstantExpr Int(int v) => new() { Kind = ConstantKind.Integer, Value = v.ToString() };
-    private static CompareExpr Eq(Expression l, Expression r) => new() { Op = CompareOp.Eq, Left = l, Right = r };
-    private static BinaryExpr And(Expression l, Expression r) => new() { Op = BinaryOp.And, Left = l, Right = r };
-    private static BinaryExpr Or(Expression l, Expression r) => new() { Op = BinaryOp.Or, Left = l, Right = r };
+    private static FieldAccessExpr Cell(int i) => new()
+    {
+        Target = "state",
+        Path = [$"c{i}"]
+    };
+
+    private static ConstantExpr Str(string v) => new()
+    {
+        Kind = ConstantKind.String,
+        Value = v
+    };
+
+    private static ConstantExpr Int(int v) => new()
+    {
+        Kind = ConstantKind.Integer,
+        Value = v.ToString()
+    };
+
+    private static CompareExpr Eq(Expression l, Expression r) => new()
+    {
+        Op = CompareOp.Eq,
+        Left = l,
+        Right = r
+    };
+
+    private static BinaryExpr And(Expression l, Expression r) => new()
+    {
+        Op = BinaryOp.And,
+        Left = l,
+        Right = r
+    };
+
+    private static BinaryExpr Or(Expression l, Expression r) => new()
+    {
+        Op = BinaryOp.Or,
+        Left = l,
+        Right = r
+    };
 
     private static Expression All(Func<int, Expression> p) => And(And(p(0), p(1)), p(2));
     private static Expression IsH(int i) => Or(Eq(Cell(i), Str(H)), Eq(Cell(i), Str(W)));
@@ -66,16 +119,35 @@ public sealed class SubgraphInliningTests
 
     // ── Port / node helpers ──────────────────────────────────────────────
     private static Dictionary<string, Port> StatePorts(params string[] names) =>
-        names.ToDictionary(n => n, n => new Port { Name = n, Type = PortType.State });
+        names.ToDictionary(n => n, n => new Port
+        {
+            Name = n,
+            Type = PortType.State
+        });
 
     private static DrawNode DrawCell(string id, string writeKey, bool entry) => new()
     {
         Id = id,
         DrawWeights =
         [
-            new DrawWeight { OutcomeId = H, Weight = 3, Value = 0 },
-            new DrawWeight { OutcomeId = L, Weight = 3, Value = 0 },
-            new DrawWeight { OutcomeId = W, Weight = 1, Value = 0 }
+            new DrawWeight
+            {
+                OutcomeId = H,
+                Weight = 3,
+                Value = 0
+            },
+            new DrawWeight
+            {
+                OutcomeId = L,
+                Weight = 3,
+                Value = 0
+            },
+            new DrawWeight
+            {
+                OutcomeId = W,
+                Weight = 1,
+                Value = 0
+            }
         ],
         StateWriteKey = writeKey,
         Inputs = entry ? new Dictionary<string, Port>() : StatePorts("state"),
@@ -89,7 +161,10 @@ public sealed class SubgraphInliningTests
     private static CustomMechanic Spin3Win() => new()
     {
         Name = "spin3win",
-        Expressions = new Dictionary<string, Expression> { ["winExpr"] = WinExpr },
+        Expressions = new Dictionary<string, Expression>
+        {
+            ["winExpr"] = WinExpr
+        },
         Nodes =
         [
             DrawCell("d0", "c0", true),
@@ -151,11 +226,25 @@ public sealed class SubgraphInliningTests
             SchemaVersion = "1.0.0",
             Id = "subgraph-444",
             StateSchema = CellSchema,
-            Mechanics = new Dictionary<string, CustomMechanic> { ["spin3win"] = Spin3Win() },
+            Mechanics = new Dictionary<string, CustomMechanic>
+            {
+                ["spin3win"] = Spin3Win()
+            },
             Nodes =
             [
-                new LibraryNode { Id = "game", MechanicName = "spin3win", Outputs = StatePorts("state") },
-                new MetricsSinkNode { WinCap = 10_000, Id = "sink", WinStateKey = "win", Inputs = StatePorts("state") }
+                new LibraryNode
+                {
+                    Id = "game",
+                    MechanicName = "spin3win",
+                    Outputs = StatePorts("state")
+                },
+                new MetricsSinkNode
+                {
+                    WinCap = 10_000,
+                    Id = "sink",
+                    WinStateKey = "win",
+                    Inputs = StatePorts("state")
+                }
             ],
             Edges =
             [
@@ -188,11 +277,25 @@ public sealed class SubgraphInliningTests
             SchemaVersion = "1.0.0",
             Id = "subgraph-flatten",
             StateSchema = CellSchema,
-            Mechanics = new Dictionary<string, CustomMechanic> { ["spin3win"] = Spin3Win() },
+            Mechanics = new Dictionary<string, CustomMechanic>
+            {
+                ["spin3win"] = Spin3Win()
+            },
             Nodes =
             [
-                new LibraryNode { Id = "game", MechanicName = "spin3win", Outputs = StatePorts("state") },
-                new MetricsSinkNode { WinCap = 10_000, Id = "sink", WinStateKey = "win", Inputs = StatePorts("state") }
+                new LibraryNode
+                {
+                    Id = "game",
+                    MechanicName = "spin3win",
+                    Outputs = StatePorts("state")
+                },
+                new MetricsSinkNode
+                {
+                    WinCap = 10_000,
+                    Id = "sink",
+                    WinStateKey = "win",
+                    Inputs = StatePorts("state")
+                }
             ],
             Edges =
             [
@@ -226,7 +329,11 @@ public sealed class SubgraphInliningTests
         {
             ["pay"] = new IfExpr
             {
-                Condition = Eq(new FieldAccessExpr { Target = "state", Path = ["d"] }, Str("win")),
+                Condition = Eq(new FieldAccessExpr
+                {
+                    Target = "state",
+                    Path = ["d"]
+                }, Str("win")),
                 ThenExpr = Int(2),
                 ElseExpr = Int(0)
             }
@@ -238,8 +345,18 @@ public sealed class SubgraphInliningTests
                 Id = "draw",
                 DrawWeights =
                 [
-                    new DrawWeight { OutcomeId = "win", Weight = 1, Value = 0 },
-                    new DrawWeight { OutcomeId = "lose", Weight = 1, Value = 0 }
+                    new DrawWeight
+                    {
+                        OutcomeId = "win",
+                        Weight = 1,
+                        Value = 0
+                    },
+                    new DrawWeight
+                    {
+                        OutcomeId = "lose",
+                        Weight = 1,
+                        Value = 0
+                    }
                 ],
                 StateWriteKey = "d",
                 Outputs = StatePorts("state")
@@ -272,7 +389,12 @@ public sealed class SubgraphInliningTests
         Name = "wrap-" + innerMechanic,
         Nodes =
         [
-            new LibraryNode { Id = "inner", MechanicName = innerMechanic, Outputs = StatePorts("state") }
+            new LibraryNode
+            {
+                Id = "inner",
+                MechanicName = innerMechanic,
+                Outputs = StatePorts("state")
+            }
         ],
         Edges = []
     };
@@ -281,11 +403,17 @@ public sealed class SubgraphInliningTests
     public void TenLevelNesting_CompilesAndEvaluates()
     {
         // wrap0 → wrap1 → … → wrap8 → core   (10 mechanics, 10 inline passes)
-        var mechanics = new Dictionary<string, CustomMechanic> { ["core"] = Core() };
+        var mechanics = new Dictionary<string, CustomMechanic>
+        {
+            ["core"] = Core()
+        };
         for (var k = 0; k < 9; k++)
         {
             var inner = k == 8 ? "core" : $"wrap{k + 1}";
-            mechanics[$"wrap{k}"] = Wrapper(inner) with { Name = $"wrap{k}" };
+            mechanics[$"wrap{k}"] = Wrapper(inner) with
+            {
+                Name = $"wrap{k}"
+            };
         }
 
         var config = new GraphConfig
@@ -294,14 +422,33 @@ public sealed class SubgraphInliningTests
             Id = "subgraph-nesting",
             StateSchema =
             [
-                new StateFieldSchema { Name = "d", Type = "string" },
-                new StateFieldSchema { Name = "win", Type = "number" }
+                new StateFieldSchema
+                {
+                    Name = "d",
+                    Type = "string"
+                },
+                new StateFieldSchema
+                {
+                    Name = "win",
+                    Type = "number"
+                }
             ],
             Mechanics = mechanics,
             Nodes =
             [
-                new LibraryNode { Id = "top", MechanicName = "wrap0", Outputs = StatePorts("state") },
-                new MetricsSinkNode { WinCap = 10_000, Id = "sink", WinStateKey = "win", Inputs = StatePorts("state") }
+                new LibraryNode
+                {
+                    Id = "top",
+                    MechanicName = "wrap0",
+                    Outputs = StatePorts("state")
+                },
+                new MetricsSinkNode
+                {
+                    WinCap = 10_000,
+                    Id = "sink",
+                    WinStateKey = "win",
+                    Inputs = StatePorts("state")
+                }
             ],
             Edges =
             [
@@ -339,10 +486,18 @@ public sealed class SubgraphInliningTests
                 ["add"] = new BinaryExpr
                 {
                     Op = BinaryOp.Add,
-                    Left = new FieldAccessExpr { Target = "state", Path = ["win"] },
+                    Left = new FieldAccessExpr
+                    {
+                        Target = "state",
+                        Path = ["win"]
+                    },
                     Right = new IfExpr
                     {
-                        Condition = Eq(new FieldAccessExpr { Target = "state", Path = ["d"] }, Str("win")),
+                        Condition = Eq(new FieldAccessExpr
+                        {
+                            Target = "state",
+                            Path = ["d"]
+                        }, Str("win")),
                         ThenExpr = Int(1),
                         ElseExpr = Int(0)
                     }
@@ -355,8 +510,18 @@ public sealed class SubgraphInliningTests
                     Id = "draw",
                     DrawWeights =
                     [
-                        new DrawWeight { OutcomeId = "win", Weight = 1, Value = 0 },
-                        new DrawWeight { OutcomeId = "lose", Weight = 1, Value = 0 }
+                        new DrawWeight
+                        {
+                            OutcomeId = "win",
+                            Weight = 1,
+                            Value = 0
+                        },
+                        new DrawWeight
+                        {
+                            OutcomeId = "lose",
+                            Weight = 1,
+                            Value = 0
+                        }
                     ],
                     StateWriteKey = "d",
                     Inputs = StatePorts("state"),
@@ -391,21 +556,44 @@ public sealed class SubgraphInliningTests
             Id = "subgraph-twice",
             StateSchema =
             [
-                new StateFieldSchema { Name = "d", Type = "string" },
-                new StateFieldSchema { Name = "win", Type = "number" }
+                new StateFieldSchema
+                {
+                    Name = "d",
+                    Type = "string"
+                },
+                new StateFieldSchema
+                {
+                    Name = "win",
+                    Type = "number"
+                }
             ],
-            Mechanics = new Dictionary<string, CustomMechanic> { ["step"] = step },
+            Mechanics = new Dictionary<string, CustomMechanic>
+            {
+                ["step"] = step
+            },
             Nodes =
             [
                 new LibraryNode
                 {
-                    Id = "a", MechanicName = "step", Inputs = StatePorts("state"), Outputs = StatePorts("state")
+                    Id = "a",
+                    MechanicName = "step",
+                    Inputs = StatePorts("state"),
+                    Outputs = StatePorts("state")
                 },
                 new LibraryNode
                 {
-                    Id = "b", MechanicName = "step", Inputs = StatePorts("state"), Outputs = StatePorts("state")
+                    Id = "b",
+                    MechanicName = "step",
+                    Inputs = StatePorts("state"),
+                    Outputs = StatePorts("state")
                 },
-                new MetricsSinkNode { WinCap = 10_000, Id = "sink", WinStateKey = "win", Inputs = StatePorts("state") }
+                new MetricsSinkNode
+                {
+                    WinCap = 10_000,
+                    Id = "sink",
+                    WinStateKey = "win",
+                    Inputs = StatePorts("state")
+                }
             ],
             Edges =
             [
@@ -437,7 +625,10 @@ public sealed class SubgraphInliningTests
 
         Slot<Dict, BigInteger> program = Compile(config);
         ExactResult<Dict, BigInteger> result = ExactInterpreter.Evaluate(program,
-            new Dict { ["win"] = BigInteger.Zero }, StateHasher.CanonicalHash);
+            new Dict
+            {
+                ["win"] = BigInteger.Zero
+            }, StateHasher.CanonicalHash);
         (BigInteger num, BigInteger den) = result.ValueDistribution().ExpectedBigIntegerValue();
         Assert.Equal(num, den); // E = 1/1
     }
@@ -453,8 +644,19 @@ public sealed class SubgraphInliningTests
             Id = "subgraph-missing",
             Nodes =
             [
-                new LibraryNode { Id = "ghost", MechanicName = "does-not-exist", Outputs = StatePorts("state") },
-                new MetricsSinkNode { WinCap = 10_000, Id = "sink", WinStateKey = "win", Inputs = StatePorts("state") }
+                new LibraryNode
+                {
+                    Id = "ghost",
+                    MechanicName = "does-not-exist",
+                    Outputs = StatePorts("state")
+                },
+                new MetricsSinkNode
+                {
+                    WinCap = 10_000,
+                    Id = "sink",
+                    WinStateKey = "win",
+                    Inputs = StatePorts("state")
+                }
             ],
             Edges =
             [
@@ -502,11 +704,25 @@ public sealed class SubgraphInliningTests
         {
             SchemaVersion = "1.0.0",
             Id = "subgraph-cyclic",
-            Mechanics = new Dictionary<string, CustomMechanic> { ["selfref"] = selfref },
+            Mechanics = new Dictionary<string, CustomMechanic>
+            {
+                ["selfref"] = selfref
+            },
             Nodes =
             [
-                new LibraryNode { Id = "top", MechanicName = "selfref", Outputs = StatePorts("state") },
-                new MetricsSinkNode { WinCap = 10_000, Id = "sink", WinStateKey = "win", Inputs = StatePorts("state") }
+                new LibraryNode
+                {
+                    Id = "top",
+                    MechanicName = "selfref",
+                    Outputs = StatePorts("state")
+                },
+                new MetricsSinkNode
+                {
+                    WinCap = 10_000,
+                    Id = "sink",
+                    WinStateKey = "win",
+                    Inputs = StatePorts("state")
+                }
             ],
             Edges =
             [
@@ -528,7 +744,11 @@ public sealed class SubgraphInliningTests
 
     // ── 6. Parameters reach the bodies of map and filter ──────────────────
 
-    private static FieldAccessExpr State(params string[] path) => new() { Target = "state", Path = path };
+    private static FieldAccessExpr State(params string[] path) => new()
+    {
+        Target = "state",
+        Path = path
+    };
 
     // Counts the values that reach the parameter `limit` and raises every value by it:
     // win += 10 × |{v : v ≥ limit}| + (values[0] + limit).  The parameter is read only
@@ -547,7 +767,9 @@ public sealed class SubgraphInliningTests
                     Predicate =
                         new CompareExpr
                         {
-                            Op = CompareOp.Gte, Left = State("item"), Right = State("expressions", "limit")
+                            Op = CompareOp.Gte,
+                            Left = State("item"),
+                            Right = State("expressions", "limit")
                         }
                 },
             ["raised"] =
@@ -559,7 +781,9 @@ public sealed class SubgraphInliningTests
                     Body =
                         new BinaryExpr
                         {
-                            Op = BinaryOp.Add, Left = State("item"), Right = State("expressions", "limit")
+                            Op = BinaryOp.Add,
+                            Left = State("item"),
+                            Right = State("expressions", "limit")
                         }
                 },
             ["score"] = new BinaryExpr
@@ -573,9 +797,17 @@ public sealed class SubgraphInliningTests
                     {
                         Op = BinaryOp.Mul,
                         Left = Int(10),
-                        Right = new CallExpr { Function = "length", Args = [State("kept")] }
+                        Right = new CallExpr
+                        {
+                            Function = "length",
+                            Args = [State("kept")]
+                        }
                     },
-                    Right = new CallExpr { Function = "index", Args = [State("raised"), Int(0)] }
+                    Right = new CallExpr
+                    {
+                        Function = "index",
+                        Args = [State("raised"), Int(0)]
+                    }
                 }
             }
         },
@@ -638,7 +870,10 @@ public sealed class SubgraphInliningTests
             ["raised"] = JsonSerializer.SerializeToElement(new[] { 0 }),
             ["win"] = JsonSerializer.SerializeToElement(0)
         },
-        Mechanics = new Dictionary<string, CustomMechanic> { [mechanic.Name] = mechanic },
+        Mechanics = new Dictionary<string, CustomMechanic>
+        {
+            [mechanic.Name] = mechanic
+        },
         Nodes =
         [
             new LibraryNode
@@ -646,7 +881,10 @@ public sealed class SubgraphInliningTests
                 Id = "a",
                 MechanicName = mechanic.Name,
                 Outputs = StatePorts("state"),
-                Parameters = new Dictionary<string, string> { ["limit"] = firstLimit }
+                Parameters = new Dictionary<string, string>
+                {
+                    ["limit"] = firstLimit
+                }
             },
             new LibraryNode
             {
@@ -654,9 +892,18 @@ public sealed class SubgraphInliningTests
                 MechanicName = mechanic.Name,
                 Inputs = StatePorts("state"),
                 Outputs = StatePorts("state"),
-                Parameters = new Dictionary<string, string> { ["limit"] = secondLimit }
+                Parameters = new Dictionary<string, string>
+                {
+                    ["limit"] = secondLimit
+                }
             },
-            new MetricsSinkNode { WinCap = 10_000, Id = "sink", WinStateKey = "win", Inputs = StatePorts("state") }
+            new MetricsSinkNode
+            {
+                WinCap = 10_000,
+                Id = "sink",
+                WinStateKey = "win",
+                Inputs = StatePorts("state")
+            }
         ],
         Edges =
         [
@@ -713,7 +960,14 @@ public sealed class SubgraphInliningTests
             Nodes =
             [
                 .. config.Nodes.Select(node => node is LibraryNode { Id: "a" } placed
-                    ? placed with { Parameters = new Dictionary<string, string> { ["limit"] = "3", ["score"] = "7" } }
+                    ? placed with
+                    {
+                        Parameters = new Dictionary<string, string>
+                        {
+                            ["limit"] = "3",
+                            ["score"] = "7"
+                        }
+                    }
                     : node)
             ]
         };

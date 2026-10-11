@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using SlotMath.Core;
 using SlotMath.Core.Compiler;
 using SlotMath.Core.Math;
@@ -65,7 +66,10 @@ internal static class GraphPerformance
                         runtime = Environment.Version.ToString(),
                         processors = Environment.ProcessorCount,
                         measurements
-                    }, new JsonSerializerOptions { WriteIndented = true }));
+                    }, new JsonSerializerOptions
+                    {
+                        WriteIndented = true
+                    }));
         }
     }
 
@@ -198,7 +202,13 @@ internal static class GraphPerformance
             allocationCounter = workers == 1 ? "current-thread" : "process-total",
             measurements
         };
-        var json = JsonSerializer.Serialize(report, new JsonSerializerOptions { WriteIndented = true });
+        // The last bucket of a win histogram has no upper bound.
+        var json = JsonSerializer.Serialize(report,
+            new JsonSerializerOptions
+            {
+                WriteIndented = true,
+                NumberHandling = JsonNumberHandling.AllowNamedFloatingPointLiterals
+            });
         var output = Option("--report", "");
         if (output.Length > 0)
         {

@@ -1,7 +1,7 @@
-import { graphRequest, type GraphRound } from '../../lib/graphApi';
 import { ancientDragon } from './ancient-dragon';
 import { leMilitare } from './le-militare';
 import { nineLives } from './nine-lives';
+import { playThrough } from './play';
 import { woodlandWhisper } from './woodland-whisper';
 import { x7Club } from './x7-club';
 import { GameServer, type GameRequest, type SessionStore } from './server';
@@ -18,10 +18,8 @@ function sessionStore(): SessionStore {
 }
 
 const server = new GameServer(
-  async (config, seed, roundIndex) => {
-    const round = await graphRequest<GraphRound>('play/round', { config, seed, roundIndex, trace: true });
-    return { trace: round.state, win: round.win };
-  },
+  playThrough(body => fetch((import.meta.env.VITE_API_URL ?? '') + '/api/play/round', { method: 'POST',
+    headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })),
   sessionStore(),
   () => crypto.getRandomValues(new Uint32Array(1))[0],
 ).register(ancientDragon).register(woodlandWhisper).register(x7Club).register(nineLives).register(leMilitare);

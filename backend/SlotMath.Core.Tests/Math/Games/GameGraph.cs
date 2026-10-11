@@ -20,6 +20,12 @@ namespace SlotMath.Core.Tests.Math.Games;
 /// </summary>
 internal sealed class GameGraph
 {
+    /// <summary>
+    ///     A branch budget no full game fits in. The hybrid evaluator enumerates until the budget is spent before it
+    ///     falls back to sampling, so a test of the fallback gives it no more than shows the game is beyond it.
+    /// </summary>
+    public const int FallbackBranches = 2_000;
+
     private readonly CompileResult _reference;
 
     private GameGraph(GraphConfig config)
@@ -65,7 +71,10 @@ internal sealed class GameGraph
     public (Rational Win, Dict State) Play(long seed, long round, bool traced = true, bool compiledTier = true)
     {
         (BigInteger value, Dict state) = SampledInterpreter.RunSingle(Program(compiledTier),
-            new Dict { ["traceEnabled"] = traced }, seed, round);
+            new Dict
+            {
+                ["traceEnabled"] = traced
+            }, seed, round);
         return (Bets(value), state);
     }
 
@@ -74,7 +83,10 @@ internal sealed class GameGraph
     {
         var choices = new Queue<int>(draws);
         InterpreterResult<Dict, BigInteger> result =
-            TrampolineInterpreter.Run(Program(false), new Dict { ["traceEnabled"] = true }, choices);
+            TrampolineInterpreter.Run(Program(false), new Dict
+            {
+                ["traceEnabled"] = true
+            }, choices);
         Assert.Empty(choices);
         return (Bets(result.Value), result.FinalState);
     }
@@ -89,6 +101,26 @@ internal sealed class GameGraph
                 MaxWinCap = WinCap,
                 WinScale = (double)WinScale
             });
+
+    /// <summary>
+    ///     Sampling depends on the seed alone: one worker and eight give the same statistics to the last bit, and so
+    ///     does the reference tier. The reference tier interprets the graph node by node and is slower by orders of
+    ///     magnitude, so the tiers are compared on <paramref name="referenceRounds" /> rounds only.
+    /// </summary>
+    public void AssertSamplingIsBitIdentical(long rounds, long seed, long referenceRounds = 1_000)
+    {
+        Same(Sample(rounds, seed, 1), Sample(rounds, seed, 8));
+        Same(Sample(referenceRounds, seed), Sample(referenceRounds, seed, 4, false));
+
+        static void Same(SampledResult<Dict> one, SampledResult<Dict> other)
+        {
+            Assert.Equal(one.SpinsCompleted, other.SpinsCompleted);
+            Assert.Equal(one.Stats.Mean, other.Stats.Mean);
+            Assert.Equal(one.Stats.Variance, other.Stats.Variance);
+            Assert.Equal(one.Stats.NonZeroCount, other.Stats.NonZeroCount);
+            Assert.Equal(one.Stats.MaxObserved, other.Stats.MaxObserved);
+        }
+    }
 
     /// <summary>
     ///     A sampling run that also observes the quantities of <paramref name="plan" /> once per round. The mean of
@@ -123,9 +155,19 @@ internal sealed class GameGraph
     ///     <paramref name="beforeNode" />, just before that node of the graph is visited.
     /// </summary>
     public static MeasurementDefinition Quantity(string id, Expression value, string? beforeNode = null) =>
-        new() { Id = id, Name = id, NodeId = beforeNode, Value = value };
+        new()
+        {
+            Id = id,
+            Name = id,
+            NodeId = beforeNode,
+            Value = value
+        };
 
-    public static Expression State(string key) => new FieldAccessExpr { Target = "state", Path = [key] };
+    public static Expression State(string key) => new FieldAccessExpr
+    {
+        Target = "state",
+        Path = [key]
+    };
 
     // An evaluation that has to finish is bounded by what it may do (branches, units of work) and never by the clock:
     // the suites run side by side, and on a busy machine an evaluation of half a minute has been seen to take over
@@ -138,7 +180,10 @@ internal sealed class GameGraph
             StateHasher.CanonicalHash,
             new ExactConfig
             {
-                Budget = new Budget { MaxBranches = maxBranches },
+                Budget = new Budget
+                {
+                    MaxBranches = maxBranches
+                },
                 EpsilonNumerator = epsilon?.Numerator ?? 0,
                 EpsilonDenominator = epsilon?.Denominator ?? 1
             });
@@ -153,7 +198,10 @@ internal sealed class GameGraph
         HybridEvaluator.Evaluate(Compiled.Program!, new Dict(), StateHasher.CanonicalHash,
             new RegimeConfig
             {
-                Budget = new Budget { MaxBranches = maxBranches },
+                Budget = new Budget
+                {
+                    MaxBranches = maxBranches
+                },
                 SampledSeed = seed,
                 SampledSpins = rounds,
                 DegreeOfParallelism = 4,

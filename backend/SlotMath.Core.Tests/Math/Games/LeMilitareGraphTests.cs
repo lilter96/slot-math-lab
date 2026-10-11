@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Text.Json;
 using SlotMath.Core.Math;
 using SlotMath.Core.Math.Regime;
@@ -364,7 +365,10 @@ public class LeMilitareGraphTests(ITestOutputHelper output)
 
         var spin = feature switch
         {
-            "spin" => "paid-spin", "chance" => "chance-spin", "air-raid" => "air-raid-spin", _ => "bought-spin"
+            "spin" => "paid-spin",
+            "chance" => "chance-spin",
+            "air-raid" => "air-raid-spin",
+            _ => "bought-spin"
         };
         if (IsTier(feature))
         {
@@ -771,14 +775,22 @@ public class LeMilitareGraphTests(ITestOutputHelper output)
     {
         GameGraph game = Game($"{feature}.small");
         (Rational expected, Rational hitFrequency) = Small[feature];
-        SlotMathReport classic = game.Enumerate();
+        // Within its branch budget the hybrid evaluator is the classic interpreter: every outcome is visited.
+        var sw = Stopwatch.StartNew();
+        RegimeResult hybrid = game.Hybrid(2_000_000, 10_000, Seed);
+        Assert.Equal(EvaluationStrategy.Exact, hybrid.OverallStrategy);
+        SlotMathReport classic = hybrid.Report;
         Assert.Equal(Provenance.Exact, classic.Rtp.Provenance.Provenance);
         Rational rtp = GameGraph.Exact(classic.Rtp);
         output.WriteLine($"classic: RTP {rtp} = {rtp.ToDouble()}, hit frequency {classic.HitFrequency.DisplayValue}");
         Assert.Equal(expected, rtp);
         Assert.Equal(hitFrequency.ToDouble(), classic.HitFrequency.DisplayValue, 12);
 
+        output.WriteLine($"TIMING classic {sw.Elapsed.TotalSeconds:F1}");
+        sw.Restart();
         StructuredExactResult structured = game.Structured();
+        output.WriteLine($"TIMING structured {sw.Elapsed.TotalSeconds:F1}");
+        sw.Restart();
         Assert.True(structured.Succeeded, structured.DeclinedReason);
         Assert.True(structured.PrunedMass.IsZero);
         Assert.Equal(rtp, GameGraph.Exact(structured.Rtp(game.WinScale)));
@@ -792,10 +804,6 @@ public class LeMilitareGraphTests(ITestOutputHelper output)
         Assert.True(largest <= new Rational(8 * Bet, roundCost));
         Assert.True(feature == "super" || largest == new Rational(8 * Bet, roundCost));
 
-        RegimeResult hybrid = game.Hybrid(2_000_000, 10_000, Seed);
-        Assert.Equal(EvaluationStrategy.Exact, hybrid.OverallStrategy);
-        Assert.Equal(rtp, GameGraph.Exact(hybrid.Report.Rtp));
-
         // Pruning drops, at every draw, the branches rarer than epsilon and has to say how much it dropped. Rarer
         // than 3 in 20 is the large multiplier (1 in 10); with the declared win cap the result is an enclosure of
         // the exact value (D5).
@@ -807,17 +815,17 @@ public class LeMilitareGraphTests(ITestOutputHelper output)
             $"pruned mass {enclosure.PrunedMass}, enclosure [{enclosure.Lo}, {enclosure.Hi}] of {rtp.ToDouble()}");
         Assert.InRange(enclosure.PrunedMass!.Value, 0.001, 0.5);
         Assert.True(enclosure.Lo < rtp.ToDouble() && rtp.ToDouble() < enclosure.Hi);
+        output.WriteLine($"TIMING rest {sw.Elapsed.TotalSeconds:F1}");
     }
 
     [Theory]
-    [MemberData(nameof(KindsAndTiers))]
-    public void SmallGame_SamplingAgreesWithTheExactValue_AndRejectsItShiftedByOnePercent(string feature,
-        bool compiledTier)
+    [MemberData(nameof(Kinds))]
+    public void SmallGame_SamplingAgreesWithTheExactValue_AndRejectsItShiftedByOnePercent(string feature)
     {
         const long Sampled = 2_000_000;
         (Rational rtp, Rational hitFrequency) = Small[feature];
         var exact = rtp.ToDouble();
-        SampledResult<Dict> sampled = Game($"{feature}.small").Sample(Sampled, Seed, 4, compiledTier);
+        SampledResult<Dict> sampled = Game($"{feature}.small").Sample(Sampled, Seed);
         Assert.Equal(Sampled, sampled.SpinsCompleted);
         output.WriteLine(
             $"exact {exact} sampled {sampled.Stats.Mean} ± {sampled.Stats.StdErr}, cap hits {sampled.Stats.CapHits}");
@@ -837,30 +845,24 @@ public class LeMilitareGraphTests(ITestOutputHelper output)
     public void FullGame_StructuredExact_DeclinesWithinItsBudget(string name)
     {
         StructuredExactResult result =
-            Game(name).Structured(new StructuredExactOptions { MaxTime = TimeSpan.FromSeconds(12) });
+            Game(name).Structured(new StructuredExactOptions
+            {
+                MaxTime = TimeSpan.FromSeconds(3)
+            });
         output.WriteLine(
             $"declined: {result.DeclinedReason} after {result.Elapsed.TotalSeconds:F1} s, work {result.Work}");
         Assert.False(result.Succeeded);
         Assert.False(string.IsNullOrWhiteSpace(result.DeclinedReason));
-        Assert.InRange(result.Elapsed.TotalSeconds, 0, 30);
+        Assert.InRange(result.Elapsed.TotalSeconds, 0, 15);
     }
 
     [Theory]
     [MemberData(nameof(Rounds))]
     public void FullGame_SamplingIsBitIdentical_AcrossWorkersAndTiers(string name)
     {
-        long rounds = IsTier(Named(name).Feature) ? 3_000 : 100_000;
-        GameGraph game = Game(name);
-        SampledResult<Dict> one = game.Sample(rounds, Seed, 1);
-        SampledResult<Dict> eight = game.Sample(rounds, Seed, 8);
-        SampledResult<Dict> reference = game.Sample(rounds, Seed, 4, false);
-        foreach (SampledResult<Dict> other in new[] { eight, reference })
-        {
-            Assert.Equal(one.Stats.Mean, other.Stats.Mean);
-            Assert.Equal(one.Stats.Variance, other.Stats.Variance);
-            Assert.Equal(one.Stats.NonZeroCount, other.Stats.NonZeroCount);
-            Assert.Equal(one.Stats.MaxObserved, other.Stats.MaxObserved);
-        }
+        // A bought tier is dozens of free spins a round, and the reference tier interprets every one of them.
+        var tier = IsTier(Named(name).Feature);
+        Game(name).AssertSamplingIsBitIdentical(tier ? 3_000 : 100_000, Seed, tier ? 200 : 1_000);
     }
 
     // A round can pay 15000 bets, and a paid round's win has a standard deviation of some 30 bets, so no affordable
@@ -896,13 +898,22 @@ public class LeMilitareGraphTests(ITestOutputHelper output)
 
         Expression Whole(long value)
         {
-            return new ConstantExpr { Kind = ConstantKind.Integer, Value = value.ToString() };
+            return new ConstantExpr
+            {
+                Kind = ConstantKind.Integer,
+                Value = value.ToString()
+            };
         }
 
         (SampledResult<Dict> sampled, Dictionary<string, (double Mean, double StdErr)> observed) = game.Measure(rounds,
             Seed, 8,
             GameGraph.Quantity("openingWin",
-                new BinaryExpr { Op = BinaryOp.Div, Left = GameGraph.State("roundCoins"), Right = Whole(Bet) },
+                new BinaryExpr
+                {
+                    Op = BinaryOp.Div,
+                    Left = GameGraph.State("roundCoins"),
+                    Right = Whole(Bet)
+                },
                 decided),
             GameGraph.Quantity("openingScatters", GameGraph.State("scatterCount"), decided),
             GameGraph.Quantity("openingMultiplier", GameGraph.State("multiplierSum"), decided),
@@ -913,7 +924,9 @@ public class LeMilitareGraphTests(ITestOutputHelper output)
                 {
                     Condition = new CompareExpr
                     {
-                        Op = CompareOp.Gt, Left = GameGraph.State("freeSpinsPlayed"), Right = Whole(0)
+                        Op = CompareOp.Gt,
+                        Left = GameGraph.State("freeSpinsPlayed"),
+                        Right = Whole(0)
                     },
                     ThenExpr = Whole(1),
                     ElseExpr = Whole(0)
@@ -975,7 +988,7 @@ public class LeMilitareGraphTests(ITestOutputHelper output)
         long rounds = IsTier(feature) ? 3_000 : 300_000;
         using JsonDocument golden = GameGraph.Golden($"le-militare.{feature}.golden.json");
         var observed = golden.RootElement.GetProperty("simulation").GetProperty("rtp").GetDouble();
-        RegimeResult hybrid = Game(feature).Hybrid(100_000, rounds, Seed);
+        RegimeResult hybrid = Game(feature).Hybrid(GameGraph.FallbackBranches, rounds, Seed);
         Assert.Equal(EvaluationStrategy.Sampled, hybrid.OverallStrategy);
         Assert.Equal(Provenance.Sampled, hybrid.Report.Rtp.Provenance.Provenance);
         Assert.Equal(rounds, hybrid.Report.Rtp.SampleCount);

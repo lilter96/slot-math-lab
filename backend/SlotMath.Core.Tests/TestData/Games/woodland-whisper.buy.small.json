@@ -1553,13 +1553,6 @@
      "outputs": {"true":{"name":"true","type":"State"},"false":{"name":"false","type":"State"}}
     },
     {
-     "nodeType": "getState",
-     "id": "bonus-join",
-     "label": "Continue",
-     "inputs": {"state":{"name":"state","type":"State"}},
-     "outputs": {"state":{"name":"state","type":"State"}}
-    },
-    {
      "nodeType": "modifyState",
      "id": "use",
      "label": "Use one free spin",
@@ -1589,9 +1582,8 @@
    ],
    "edges": [
     {"id":"bonus.true->bonus-yes","sourceNodeId":"bonus","sourcePort":"true","targetNodeId":"bonus-yes","targetPort":"state"},
-    {"id":"bonus.false->bonus-join","sourceNodeId":"bonus","sourcePort":"false","targetNodeId":"bonus-join","targetPort":"state"},
-    {"id":"bonus-yes.state->bonus-join","sourceNodeId":"bonus-yes","sourcePort":"state","targetNodeId":"bonus-join","targetPort":"state"},
-    {"id":"bonus-join.state->use","sourceNodeId":"bonus-join","sourcePort":"state","targetNodeId":"use","targetPort":"state"},
+    {"id":"bonus.false->use","sourceNodeId":"bonus","sourcePort":"false","targetNodeId":"use","targetPort":"state"},
+    {"id":"bonus-yes.state->use","sourceNodeId":"bonus-yes","sourcePort":"state","targetNodeId":"use","targetPort":"state"},
     {"id":"use.state->spin","sourceNodeId":"use","sourcePort":"state","targetNodeId":"spin","targetPort":"state"}
    ],
    "expressions": {
@@ -1685,26 +1677,12 @@
      "outputs": {"true":{"name":"true","type":"State"},"false":{"name":"false","type":"State"}}
     },
     {
-     "nodeType": "getState",
-     "id": "reel-0-shows-0-join",
-     "label": "Continue",
-     "inputs": {"state":{"name":"state","type":"State"}},
-     "outputs": {"state":{"name":"state","type":"State"}}
-    },
-    {
      "nodeType": "branch",
      "id": "reel-1-shows-1",
      "label": "Does reel 2 show 1?",
      "conditionId": "reel-1-shows-1",
      "inputs": {"state":{"name":"state","type":"State"}},
      "outputs": {"true":{"name":"true","type":"State"},"false":{"name":"false","type":"State"}}
-    },
-    {
-     "nodeType": "getState",
-     "id": "reel-1-shows-1-join",
-     "label": "Continue",
-     "inputs": {"state":{"name":"state","type":"State"}},
-     "outputs": {"state":{"name":"state","type":"State"}}
     },
     {
      "nodeType": "draw",
@@ -1789,13 +1767,6 @@
      "targetPort": "state"
     },
     {
-     "id": "stop-0-showing-0.state->reel-0-shows-0-join",
-     "sourceNodeId": "stop-0-showing-0",
-     "sourcePort": "state",
-     "targetNodeId": "reel-0-shows-0-join",
-     "targetPort": "state"
-    },
-    {
      "id": "reel-0-shows-0.false->stop-0-showing-1",
      "sourceNodeId": "reel-0-shows-0",
      "sourcePort": "false",
@@ -1803,15 +1774,15 @@
      "targetPort": "state"
     },
     {
-     "id": "stop-0-showing-1.state->reel-0-shows-0-join",
-     "sourceNodeId": "stop-0-showing-1",
+     "id": "stop-0-showing-0.state->reel-1-shows-1",
+     "sourceNodeId": "stop-0-showing-0",
      "sourcePort": "state",
-     "targetNodeId": "reel-0-shows-0-join",
+     "targetNodeId": "reel-1-shows-1",
      "targetPort": "state"
     },
     {
-     "id": "reel-0-shows-0-join.state->reel-1-shows-1",
-     "sourceNodeId": "reel-0-shows-0-join",
+     "id": "stop-0-showing-1.state->reel-1-shows-1",
+     "sourceNodeId": "stop-0-showing-1",
      "sourcePort": "state",
      "targetNodeId": "reel-1-shows-1",
      "targetPort": "state"
@@ -1824,13 +1795,6 @@
      "targetPort": "state"
     },
     {
-     "id": "stop-1-showing-1.state->reel-1-shows-1-join",
-     "sourceNodeId": "stop-1-showing-1",
-     "sourcePort": "state",
-     "targetNodeId": "reel-1-shows-1-join",
-     "targetPort": "state"
-    },
-    {
      "id": "reel-1-shows-1.false->stop-1-showing-2",
      "sourceNodeId": "reel-1-shows-1",
      "sourcePort": "false",
@@ -1838,15 +1802,15 @@
      "targetPort": "state"
     },
     {
-     "id": "stop-1-showing-2.state->reel-1-shows-1-join",
-     "sourceNodeId": "stop-1-showing-2",
+     "id": "stop-1-showing-1.state->stop-2-showing-0",
+     "sourceNodeId": "stop-1-showing-1",
      "sourcePort": "state",
-     "targetNodeId": "reel-1-shows-1-join",
+     "targetNodeId": "stop-2-showing-0",
      "targetPort": "state"
     },
     {
-     "id": "reel-1-shows-1-join.state->stop-2-showing-0",
-     "sourceNodeId": "reel-1-shows-1-join",
+     "id": "stop-1-showing-2.state->stop-2-showing-0",
+     "sourceNodeId": "stop-1-showing-2",
      "sourcePort": "state",
      "targetNodeId": "stop-2-showing-0",
      "targetPort": "state"

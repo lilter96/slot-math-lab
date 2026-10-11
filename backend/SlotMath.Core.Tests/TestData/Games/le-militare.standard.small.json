@@ -36,36 +36,56 @@
   "paidStrip1": ["1","9","11","1"],
   "freeStrip0": ["1","1","10","1"],
   "freeStrip1": ["1","9","11","1"],
-  "adjacent": [0,1,0,2,0,1,1,3,2,3,0,2,2,3,1,3],
   "clusterPays": [0,0,0,0,0,0,0,0,100,300,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
   "clusterMinSize": 3,
-  "payingSymbols": ["1"],
-  "noCells": [0,0,0,0],
-  "clusterSymbols": [],
   "clusterSymbol": "0",
-  "clusterIndex": 0,
   "clusterCoins": 0,
-  "groups": [0,0,0,0],
-  "groupsBefore": [0,0,0,0],
-  "groupStarts": [0],
-  "groupIndex": 0,
-  "groupStart": 0,
+  "unpaidCells": 0,
+  "wildCells": 0,
+  "wildsTaken": 0,
+  "symbolCells": 0,
+  "joinable": 0,
+  "ungrouped": 0,
+  "group": 0,
+  "reached": 0,
   "groupSize": 0,
   "groupPay": 0,
-  "wildTaken": [0,0,0,0],
-  "paidSymbols": [],
-  "removed": [0,0,0,0],
+  "paidCells": 0,
+  "removed": 0,
+  "symbolDigits": [0,1,16,17,256,257,272,273,4096,4097,4112,4113],
+  "boardPart0": [0,1,2,3],
+  "boardPart0Digits": 0,
+  "symbolDigit0": 0,
+  "symbolDigit1": 0,
+  "symbolDigit2": 0,
+  "symbolDigit3": 0,
+  "matchingAbove": 0,
+  "matchingBelow": 0,
+  "matchingLeft": 0,
+  "matchingRight": 0,
+  "internalCells": 0,
+  "junctionCells": 0,
+  "squareEnds": 0,
+  "candidateCells": 0,
+  "useCandidates": false,
   "hitSymbols": [],
   "hitSizes": [],
   "hitPays": [],
   "hitCells": [],
   "cascadeSteps": 0,
   "survivors": ["0"],
-  "keptThrough": [0],
   "drops": ["0"],
   "dropSymbol": "0",
-  "dropChunk": ["0"],
-  "fromZero": [0],
+  "columnStart": [0,0,2,2],
+  "cellColumn": [0,0,1,1],
+  "columnsBefore": [0,3,15],
+  "emptyBefore": [0,0,0],
+  "columnOffsets": [0,2],
+  "columnRemoved": [0,0],
+  "boardRows": [0,1,0,1],
+  "settledSources": [0,1,-1,1,-1,0,-1,-2],
+  "topDrop0": 0,
+  "topDrop1": 0,
   "heldSurvivors": [0],
   "cascadeBoards": [],
   "cascadeRemoved": [],
@@ -119,13 +139,6 @@
    "outputs": {"true":{"name":"true","type":"State"},"false":{"name":"false","type":"State"}}
   },
   {
-   "nodeType": "getState",
-   "id": "bonus-join",
-   "label": "Continue",
-   "inputs": {"state":{"name":"state","type":"State"}},
-   "outputs": {"state":{"name":"state","type":"State"}}
-  },
-  {
    "nodeType": "modifyState",
    "id": "credits",
    "label": "Round win as a multiple of the price paid",
@@ -157,9 +170,8 @@
   {"id":"spin.state->award","sourceNodeId":"spin","sourcePort":"state","targetNodeId":"award","targetPort":"state"},
   {"id":"award.state->bonus","sourceNodeId":"award","sourcePort":"state","targetNodeId":"bonus","targetPort":"state"},
   {"id":"bonus.true->bonus-yes","sourceNodeId":"bonus","sourcePort":"true","targetNodeId":"bonus-yes","targetPort":"state"},
-  {"id":"bonus.false->bonus-join","sourceNodeId":"bonus","sourcePort":"false","targetNodeId":"bonus-join","targetPort":"state"},
-  {"id":"bonus-yes.state->bonus-join","sourceNodeId":"bonus-yes","sourcePort":"state","targetNodeId":"bonus-join","targetPort":"state"},
-  {"id":"bonus-join.state->credits","sourceNodeId":"bonus-join","sourcePort":"state","targetNodeId":"credits","targetPort":"state"},
+  {"id":"bonus.false->credits","sourceNodeId":"bonus","sourcePort":"false","targetNodeId":"credits","targetPort":"state"},
+  {"id":"bonus-yes.state->credits","sourceNodeId":"bonus-yes","sourcePort":"state","targetNodeId":"credits","targetPort":"state"},
   {"id":"credits.state->round","sourceNodeId":"credits","sourcePort":"state","targetNodeId":"round","targetPort":"state"}
  ],
  "expressions": {
@@ -285,13 +297,6 @@
      "outputs": {"true":{"name":"true","type":"State"},"false":{"name":"false","type":"State"}}
     },
     {
-     "nodeType": "getState",
-     "id": "armed-join",
-     "label": "Continue",
-     "inputs": {"state":{"name":"state","type":"State"}},
-     "outputs": {"state":{"name":"state","type":"State"}}
-    },
-    {
      "nodeType": "modifyState",
      "id": "trace-after",
      "label": "Remember the board after the combat",
@@ -346,6 +351,23 @@
      "outputs": {"body":{"name":"body","type":"State"},"exit":{"name":"exit","type":"State"}}
     },
     {
+     "nodeType": "branch",
+     "id": "changed",
+     "label": "Was a PLANE shot down, or did a reel arm?",
+     "conditionId": "changed",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"true":{"name":"true","type":"State"},"false":{"name":"false","type":"State"}}
+    },
+    {
+     "nodeType": "library",
+     "id": "shoot-pass",
+     "label": "One PLANE",
+     "mechanicName": "add-multiplier",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}},
+     "parameters": {}
+    },
+    {
      "nodeType": "modifyState",
      "id": "hold",
      "label": "A PLANE shot down in a paid spin is held, and so is a reel that arms in the free spins",
@@ -380,15 +402,6 @@
      "expressionId": "giants",
      "inputs": {"state":{"name":"state","type":"State"}},
      "outputs": {"state":{"name":"state","type":"State"}}
-    },
-    {
-     "nodeType": "library",
-     "id": "shoot-pass",
-     "label": "One PLANE",
-     "mechanicName": "add-multiplier",
-     "inputs": {"state":{"name":"state","type":"State"}},
-     "outputs": {"state":{"name":"state","type":"State"}},
-     "parameters": {}
     }
    ],
    "edges": [
@@ -398,14 +411,15 @@
     {"id":"launchers.state->armed","sourceNodeId":"launchers","sourcePort":"state","targetNodeId":"armed","targetPort":"state"},
     {"id":"planes.state->shoot","sourceNodeId":"planes","sourcePort":"state","targetNodeId":"shoot","targetPort":"state"},
     {"id":"shoot.body->shoot-pass","sourceNodeId":"shoot","sourcePort":"body","targetNodeId":"shoot-pass","targetPort":"state"},
-    {"id":"shoot.exit->hold","sourceNodeId":"shoot","sourcePort":"exit","targetNodeId":"hold","targetPort":"state"},
+    {"id":"shoot.exit->changed","sourceNodeId":"shoot","sourcePort":"exit","targetNodeId":"changed","targetPort":"state"},
     {"id":"hold.state->wilds","sourceNodeId":"hold","sourcePort":"state","targetNodeId":"wilds","targetPort":"state"},
     {"id":"wilds.state->arm","sourceNodeId":"wilds","sourcePort":"state","targetNodeId":"arm","targetPort":"state"},
     {"id":"arm.state->giants","sourceNodeId":"arm","sourcePort":"state","targetNodeId":"giants","targetPort":"state"},
+    {"id":"changed.true->hold","sourceNodeId":"changed","sourcePort":"true","targetNodeId":"hold","targetPort":"state"},
     {"id":"armed.true->planes","sourceNodeId":"armed","sourcePort":"true","targetNodeId":"planes","targetPort":"state"},
-    {"id":"giants.state->armed-join","sourceNodeId":"giants","sourcePort":"state","targetNodeId":"armed-join","targetPort":"state"},
-    {"id":"armed.false->armed-join","sourceNodeId":"armed","sourcePort":"false","targetNodeId":"armed-join","targetPort":"state"},
-    {"id":"armed-join.state->trace-after","sourceNodeId":"armed-join","sourcePort":"state","targetNodeId":"trace-after","targetPort":"state"},
+    {"id":"giants.state->trace-after","sourceNodeId":"giants","sourcePort":"state","targetNodeId":"trace-after","targetPort":"state"},
+    {"id":"changed.false->trace-after","sourceNodeId":"changed","sourcePort":"false","targetNodeId":"trace-after","targetPort":"state"},
+    {"id":"armed.false->trace-after","sourceNodeId":"armed","sourcePort":"false","targetNodeId":"trace-after","targetPort":"state"},
     {"id":"trace-after.state->trace-shots","sourceNodeId":"trace-after","sourcePort":"state","targetNodeId":"trace-shots","targetPort":"state"},
     {"id":"trace-shots.state->trace-armed","sourceNodeId":"trace-shots","sourcePort":"state","targetNodeId":"trace-armed","targetPort":"state"},
     {"id":"trace-armed.state->trace-held","sourceNodeId":"trace-armed","sourcePort":"state","targetNodeId":"trace-held","targetPort":"state"}
@@ -555,6 +569,24 @@
      "op": "Gte",
      "left": {"exprType":"fieldAccess","target":"state","path":["__iter_shoot__"]},
      "right": {"exprType":"fieldAccess","target":"state","path":["planeCount"]}
+    },
+    "changed": {
+     "exprType": "compare",
+     "op": "Gt",
+     "left": {
+      "exprType": "binary",
+      "op": "Add",
+      "left": {"exprType":"fieldAccess","target":"state","path":["planeCount"]},
+      "right": {
+       "exprType": "aggregate",
+       "func": "Sum",
+       "stateKey": "newlyArmed",
+       "itemName": "item",
+       "itemType": "Number",
+       "valueExpr": {"exprType":"fieldAccess","target":"state","path":["item"]}
+      }
+     },
+     "right": {"exprType":"constant","kind":"Integer","value":"0"}
     },
     "hold": {
      "exprType": "map",
@@ -790,173 +822,277 @@
     }
    }
   },
-  "join-groups": {
-   "name": "join-groups",
-   "description": "One pass of joining touching cells: each takes the smallest number among itself and its neighbours.",
+  "read-board": {
+   "name": "read-board",
+   "description": "Reads the board once and notes which cells show which symbol, so that the cells of a symbol are found without reading the board again.",
    "nodes": [
     {
      "nodeType": "modifyState",
-     "id": "before",
-     "label": "Remember the numbers before this pass",
-     "outputKey": "groupsBefore",
-     "expressionId": "before",
+     "id": "part-1",
+     "label": "Read cells 1 to 4: the digits of their symbol numbers",
+     "outputKey": "boardPart0Digits",
+     "expressionId": "part-1",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}}
+    },
+    {
+     "nodeType": "modifyState",
+     "id": "digit-1",
+     "label": "The cells whose symbol number has binary digit 1",
+     "outputKey": "symbolDigit0",
+     "expressionId": "digit-1",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}}
+    },
+    {
+     "nodeType": "modifyState",
+     "id": "digit-2",
+     "label": "The cells whose symbol number has binary digit 2",
+     "outputKey": "symbolDigit1",
+     "expressionId": "digit-2",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}}
+    },
+    {
+     "nodeType": "modifyState",
+     "id": "digit-3",
+     "label": "The cells whose symbol number has binary digit 3",
+     "outputKey": "symbolDigit2",
+     "expressionId": "digit-3",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}}
+    },
+    {
+     "nodeType": "modifyState",
+     "id": "digit-4",
+     "label": "The cells whose symbol number has binary digit 4",
+     "outputKey": "symbolDigit3",
+     "expressionId": "digit-4",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}}
+    }
+   ],
+   "edges": [
+    {"id":"part-1.state->digit-1","sourceNodeId":"part-1","sourcePort":"state","targetNodeId":"digit-1","targetPort":"state"},
+    {"id":"digit-1.state->digit-2","sourceNodeId":"digit-1","sourcePort":"state","targetNodeId":"digit-2","targetPort":"state"},
+    {"id":"digit-2.state->digit-3","sourceNodeId":"digit-2","sourcePort":"state","targetNodeId":"digit-3","targetPort":"state"},
+    {"id":"digit-3.state->digit-4","sourceNodeId":"digit-3","sourcePort":"state","targetNodeId":"digit-4","targetPort":"state"}
+   ],
+   "expressions": {
+    "part-1": {
+     "exprType": "fold",
+     "stateKey": "boardPart0",
+     "accName": "acc",
+     "itemName": "item",
+     "indexName": "place",
+     "itemType": "Number",
+     "init": {"exprType":"constant","kind":"Integer","value":"0"},
+     "body": {
+      "exprType": "bitset",
+      "op": "Union",
+      "args": [
+       {"exprType":"fieldAccess","target":"state","path":["acc"]},
+       {
+        "exprType": "bitset",
+        "op": "Shift",
+        "args": [
+         {
+          "exprType": "call",
+          "function": "index",
+          "args": [
+           {"exprType":"fieldAccess","target":"state","path":["symbolDigits"]},
+           {
+            "exprType": "call",
+            "function": "toNumber",
+            "args": [
+             {
+              "exprType": "call",
+              "function": "index",
+              "args": [{"exprType":"fieldAccess","target":"state","path":["board"]},{"exprType":"fieldAccess","target":"state","path":["item"]}]
+             }
+            ]
+           }
+          ]
+         },
+         {"exprType":"fieldAccess","target":"state","path":["place"]}
+        ]
+       }
+      ]
+     }
+    },
+    "digit-1": {
+     "exprType": "bitset",
+     "op": "Shift",
+     "args": [
+      {
+       "exprType": "bitset",
+       "op": "Intersect",
+       "args": [
+        {
+         "exprType": "bitset",
+         "op": "Shift",
+         "args": [{"exprType":"fieldAccess","target":"state","path":["boardPart0Digits"]},{"exprType":"constant","kind":"Integer","value":"0"}]
+        },
+        {"exprType":"constant","kind":"Integer","value":"15"}
+       ]
+      },
+      {"exprType":"constant","kind":"Integer","value":"0"}
+     ]
+    },
+    "digit-2": {
+     "exprType": "bitset",
+     "op": "Shift",
+     "args": [
+      {
+       "exprType": "bitset",
+       "op": "Intersect",
+       "args": [
+        {
+         "exprType": "bitset",
+         "op": "Shift",
+         "args": [{"exprType":"fieldAccess","target":"state","path":["boardPart0Digits"]},{"exprType":"constant","kind":"Integer","value":"-4"}]
+        },
+        {"exprType":"constant","kind":"Integer","value":"15"}
+       ]
+      },
+      {"exprType":"constant","kind":"Integer","value":"0"}
+     ]
+    },
+    "digit-3": {
+     "exprType": "bitset",
+     "op": "Shift",
+     "args": [
+      {
+       "exprType": "bitset",
+       "op": "Intersect",
+       "args": [
+        {
+         "exprType": "bitset",
+         "op": "Shift",
+         "args": [{"exprType":"fieldAccess","target":"state","path":["boardPart0Digits"]},{"exprType":"constant","kind":"Integer","value":"-8"}]
+        },
+        {"exprType":"constant","kind":"Integer","value":"15"}
+       ]
+      },
+      {"exprType":"constant","kind":"Integer","value":"0"}
+     ]
+    },
+    "digit-4": {
+     "exprType": "bitset",
+     "op": "Shift",
+     "args": [
+      {
+       "exprType": "bitset",
+       "op": "Intersect",
+       "args": [
+        {
+         "exprType": "bitset",
+         "op": "Shift",
+         "args": [{"exprType":"fieldAccess","target":"state","path":["boardPart0Digits"]},{"exprType":"constant","kind":"Integer","value":"-12"}]
+        },
+        {"exprType":"constant","kind":"Integer","value":"15"}
+       ]
+      },
+      {"exprType":"constant","kind":"Integer","value":"0"}
+     ]
+    }
+   }
+  },
+  "grow-group": {
+   "name": "grow-group",
+   "description": "One pass of growing a group: the cells that touch it side by side and can join it do.",
+   "nodes": [
+    {
+     "nodeType": "modifyState",
+     "id": "reach",
+     "label": "The cells that touch the ones just reached, can join and are not in the group yet",
+     "outputKey": "reached",
+     "expressionId": "reach",
      "inputs": {"state":{"name":"state","type":"State"}},
      "outputs": {"state":{"name":"state","type":"State"}}
     },
     {
      "nodeType": "modifyState",
      "id": "join",
-     "label": "Every cell takes the smallest number among itself and its four neighbours",
-     "outputKey": "groups",
+     "label": "They join the group",
+     "outputKey": "group",
      "expressionId": "join",
      "inputs": {"state":{"name":"state","type":"State"}},
      "outputs": {"state":{"name":"state","type":"State"}}
     }
    ],
-   "edges": [{"id":"before.state->join","sourceNodeId":"before","sourcePort":"state","targetNodeId":"join","targetPort":"state"}],
+   "edges": [{"id":"reach.state->join","sourceNodeId":"reach","sourcePort":"state","targetNodeId":"join","targetPort":"state"}],
    "expressions": {
-    "before": {"exprType":"fieldAccess","target":"state","path":["groups"]},
-    "join": {
-     "exprType": "map",
-     "stateKey": "groups",
-     "itemName": "item",
-     "indexName": "place",
-     "itemType": "Number",
-     "body": {
-      "exprType": "if",
-      "condition": {
-       "exprType": "compare",
-       "op": "Gte",
-       "left": {"exprType":"fieldAccess","target":"state","path":["item"]},
-       "right": {"exprType":"constant","kind":"Integer","value":"8"}
-      },
-      "thenExpr": {"exprType":"fieldAccess","target":"state","path":["item"]},
-      "elseExpr": {
-       "exprType": "call",
-       "function": "min",
+    "reach": {
+     "exprType": "bitset",
+     "op": "Except",
+     "args": [
+      {
+       "exprType": "bitset",
+       "op": "Intersect",
        "args": [
         {
-         "exprType": "call",
-         "function": "min",
-         "args": [
-          {"exprType":"fieldAccess","target":"state","path":["item"]},
-          {
-           "exprType": "call",
-           "function": "index",
-           "args": [
-            {"exprType":"fieldAccess","target":"state","path":["groups"]},
-            {
-             "exprType": "call",
-             "function": "index",
-             "args": [
-              {"exprType":"fieldAccess","target":"state","path":["adjacent"]},
-              {
-               "exprType": "binary",
-               "op": "Add",
-               "left": {
-                "exprType": "binary",
-                "op": "Mul",
-                "left": {"exprType":"fieldAccess","target":"state","path":["place"]},
-                "right": {"exprType":"constant","kind":"Integer","value":"4"}
-               },
-               "right": {"exprType":"constant","kind":"Integer","value":"0"}
-              }
-             ]
-            }
-           ]
-          }
-         ]
-        },
-        {
-         "exprType": "call",
-         "function": "min",
+         "exprType": "bitset",
+         "op": "Union",
          "args": [
           {
-           "exprType": "call",
-           "function": "min",
+           "exprType": "bitset",
+           "op": "Union",
            "args": [
             {
-             "exprType": "call",
-             "function": "index",
+             "exprType": "bitset",
+             "op": "Union",
              "args": [
-              {"exprType":"fieldAccess","target":"state","path":["groups"]},
               {
-               "exprType": "call",
-               "function": "index",
+               "exprType": "bitset",
+               "op": "Shift",
                "args": [
-                {"exprType":"fieldAccess","target":"state","path":["adjacent"]},
                 {
-                 "exprType": "binary",
-                 "op": "Add",
-                 "left": {
-                  "exprType": "binary",
-                  "op": "Mul",
-                  "left": {"exprType":"fieldAccess","target":"state","path":["place"]},
-                  "right": {"exprType":"constant","kind":"Integer","value":"4"}
-                 },
-                 "right": {"exprType":"constant","kind":"Integer","value":"1"}
-                }
+                 "exprType": "bitset",
+                 "op": "Intersect",
+                 "args": [{"exprType":"fieldAccess","target":"state","path":["reached"]},{"exprType":"constant","kind":"Integer","value":"5"}]
+                },
+                {"exprType":"constant","kind":"Integer","value":"1"}
+               ]
+              },
+              {
+               "exprType": "bitset",
+               "op": "Shift",
+               "args": [
+                {
+                 "exprType": "bitset",
+                 "op": "Intersect",
+                 "args": [{"exprType":"fieldAccess","target":"state","path":["reached"]},{"exprType":"constant","kind":"Integer","value":"10"}]
+                },
+                {"exprType":"constant","kind":"Integer","value":"-1"}
                ]
               }
              ]
             },
             {
-             "exprType": "call",
-             "function": "index",
-             "args": [
-              {"exprType":"fieldAccess","target":"state","path":["groups"]},
-              {
-               "exprType": "call",
-               "function": "index",
-               "args": [
-                {"exprType":"fieldAccess","target":"state","path":["adjacent"]},
-                {
-                 "exprType": "binary",
-                 "op": "Add",
-                 "left": {
-                  "exprType": "binary",
-                  "op": "Mul",
-                  "left": {"exprType":"fieldAccess","target":"state","path":["place"]},
-                  "right": {"exprType":"constant","kind":"Integer","value":"4"}
-                 },
-                 "right": {"exprType":"constant","kind":"Integer","value":"2"}
-                }
-               ]
-              }
-             ]
+             "exprType": "bitset",
+             "op": "Shift",
+             "args": [{"exprType":"fieldAccess","target":"state","path":["reached"]},{"exprType":"constant","kind":"Integer","value":"2"}]
             }
            ]
           },
           {
-           "exprType": "call",
-           "function": "index",
-           "args": [
-            {"exprType":"fieldAccess","target":"state","path":["groups"]},
-            {
-             "exprType": "call",
-             "function": "index",
-             "args": [
-              {"exprType":"fieldAccess","target":"state","path":["adjacent"]},
-              {
-               "exprType": "binary",
-               "op": "Add",
-               "left": {
-                "exprType": "binary",
-                "op": "Mul",
-                "left": {"exprType":"fieldAccess","target":"state","path":["place"]},
-                "right": {"exprType":"constant","kind":"Integer","value":"4"}
-               },
-               "right": {"exprType":"constant","kind":"Integer","value":"3"}
-              }
-             ]
-            }
-           ]
+           "exprType": "bitset",
+           "op": "Shift",
+           "args": [{"exprType":"fieldAccess","target":"state","path":["reached"]},{"exprType":"constant","kind":"Integer","value":"-2"}]
           }
          ]
-        }
+        },
+        {"exprType":"fieldAccess","target":"state","path":["joinable"]}
        ]
-      }
-     }
+      },
+      {"exprType":"fieldAccess","target":"state","path":["group"]}
+     ]
+    },
+    "join": {
+     "exprType": "bitset",
+     "op": "Union",
+     "args": [{"exprType":"fieldAccess","target":"state","path":["group"]},{"exprType":"fieldAccess","target":"state","path":["reached"]}]
     }
    }
   },
@@ -977,7 +1113,7 @@
      "nodeType": "modifyState",
      "id": "wilds",
      "label": "Its wilds are used up: no group of another symbol can count them",
-     "outputKey": "wildTaken",
+     "outputKey": "wildsTaken",
      "expressionId": "wilds",
      "inputs": {"state":{"name":"state","type":"State"}},
      "outputs": {"state":{"name":"state","type":"State"}}
@@ -985,8 +1121,8 @@
     {
      "nodeType": "modifyState",
      "id": "symbol",
-     "label": "Remember that this symbol has paid",
-     "outputKey": "paidSymbols",
+     "label": "Every cell of a symbol that has paid leaves the board",
+     "outputKey": "paidCells",
      "expressionId": "symbol",
      "inputs": {"state":{"name":"state","type":"State"}},
      "outputs": {"state":{"name":"state","type":"State"}}
@@ -1044,54 +1180,21 @@
      "right": {"exprType":"fieldAccess","target":"state","path":["groupPay"]}
     },
     "wilds": {
-     "exprType": "map",
-     "stateKey": "wildTaken",
-     "itemName": "item",
-     "indexName": "place",
-     "itemType": "Number",
-     "body": {
-      "exprType": "if",
-      "condition": {
-       "exprType": "binary",
-       "op": "And",
-       "left": {
-        "exprType": "compare",
-        "op": "Eq",
-        "left": {
-         "exprType": "call",
-         "function": "index",
-         "args": [{"exprType":"fieldAccess","target":"state","path":["groups"]},{"exprType":"fieldAccess","target":"state","path":["place"]}]
-        },
-        "right": {"exprType":"fieldAccess","target":"state","path":["groupStart"]}
-       },
-       "right": {
-        "exprType": "compare",
-        "op": "Eq",
-        "left": {
-         "exprType": "call",
-         "function": "index",
-         "args": [{"exprType":"fieldAccess","target":"state","path":["board"]},{"exprType":"fieldAccess","target":"state","path":["place"]}]
-        },
-        "right": {"exprType":"constant","kind":"String","value":"0"}
-       }
-      },
-      "thenExpr": {"exprType":"constant","kind":"Integer","value":"1"},
-      "elseExpr": {"exprType":"fieldAccess","target":"state","path":["item"]}
-     }
+     "exprType": "bitset",
+     "op": "Union",
+     "args": [
+      {"exprType":"fieldAccess","target":"state","path":["wildsTaken"]},
+      {
+       "exprType": "bitset",
+       "op": "Intersect",
+       "args": [{"exprType":"fieldAccess","target":"state","path":["group"]},{"exprType":"fieldAccess","target":"state","path":["wildCells"]}]
+      }
+     ]
     },
     "symbol": {
-     "exprType": "if",
-     "condition": {
-      "exprType": "call",
-      "function": "contains",
-      "args": [{"exprType":"fieldAccess","target":"state","path":["paidSymbols"]},{"exprType":"fieldAccess","target":"state","path":["clusterSymbol"]}]
-     },
-     "thenExpr": {"exprType":"fieldAccess","target":"state","path":["paidSymbols"]},
-     "elseExpr": {
-      "exprType": "call",
-      "function": "append",
-      "args": [{"exprType":"fieldAccess","target":"state","path":["paidSymbols"]},{"exprType":"fieldAccess","target":"state","path":["clusterSymbol"]}]
-     }
+     "exprType": "bitset",
+     "op": "Union",
+     "args": [{"exprType":"fieldAccess","target":"state","path":["paidCells"]},{"exprType":"fieldAccess","target":"state","path":["symbolCells"]}]
     },
     "trace-symbol": {
      "exprType": "if",
@@ -1133,16 +1236,28 @@
        {"exprType":"fieldAccess","target":"state","path":["hitCells"]},
        {
         "exprType": "map",
-        "stateKey": "groups",
+        "stateKey": "board",
         "itemName": "item",
-        "itemType": "Number",
+        "indexName": "place",
+        "itemType": "String",
         "body": {
          "exprType": "if",
          "condition": {
           "exprType": "compare",
-          "op": "Eq",
-          "left": {"exprType":"fieldAccess","target":"state","path":["item"]},
-          "right": {"exprType":"fieldAccess","target":"state","path":["groupStart"]}
+          "op": "Gt",
+          "left": {
+           "exprType": "bitset",
+           "op": "Intersect",
+           "args": [
+            {"exprType":"fieldAccess","target":"state","path":["group"]},
+            {
+             "exprType": "bitset",
+             "op": "Shift",
+             "args": [{"exprType":"constant","kind":"Integer","value":"1"},{"exprType":"fieldAccess","target":"state","path":["place"]}]
+            }
+           ]
+          },
+          "right": {"exprType":"constant","kind":"Integer","value":"0"}
          },
          "thenExpr": {"exprType":"constant","kind":"Integer","value":"1"},
          "elseExpr": {"exprType":"constant","kind":"Integer","value":"0"}
@@ -1156,14 +1271,59 @@
   },
   "pay-group": {
    "name": "pay-group",
-   "description": "One group of touching symbols: its size selects its pay, and a group that pays is claimed.",
+   "description": "One group of touching symbols: it grows from one cell, its size selects its pay, and a group that pays is claimed.",
    "nodes": [
     {
      "nodeType": "modifyState",
      "id": "start",
-     "label": "A group is known by its first cell",
-     "outputKey": "groupStart",
+     "label": "A group starts from the first cell of the symbol that is in no group yet",
+     "outputKey": "reached",
      "expressionId": "start",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}}
+    },
+    {
+     "nodeType": "modifyState",
+     "id": "alone",
+     "label": "So far the group is that cell",
+     "outputKey": "group",
+     "expressionId": "alone",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}}
+    },
+    {
+     "nodeType": "library",
+     "id": "first-neighbors",
+     "label": "Reach the first neighbors",
+     "mechanicName": "grow-group",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}},
+     "parameters": {}
+    },
+    {
+     "nodeType": "library",
+     "id": "second-neighbors",
+     "label": "Reach the next neighbors",
+     "mechanicName": "grow-group",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}},
+     "parameters": {}
+    },
+    {
+     "nodeType": "loop",
+     "id": "grow",
+     "label": "Grow the group until no more cells can join",
+     "maxIterations": 3,
+     "stopConditionId": "grow-until",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"body":{"name":"body","type":"State"},"exit":{"name":"exit","type":"State"}}
+    },
+    {
+     "nodeType": "modifyState",
+     "id": "grouped",
+     "label": "Its cells are in a group now",
+     "outputKey": "ungrouped",
+     "expressionId": "grouped",
      "inputs": {"state":{"name":"state","type":"State"}},
      "outputs": {"state":{"name":"state","type":"State"}}
     },
@@ -1195,10 +1355,19 @@
     },
     {
      "nodeType": "getState",
-     "id": "pays-join",
-     "label": "Continue",
+     "id": "done",
+     "label": "Done",
      "inputs": {"state":{"name":"state","type":"State"}},
      "outputs": {"state":{"name":"state","type":"State"}}
+    },
+    {
+     "nodeType": "library",
+     "id": "grow-pass",
+     "label": "Grow",
+     "mechanicName": "grow-group",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}},
+     "parameters": {}
     },
     {
      "nodeType": "library",
@@ -1211,22 +1380,49 @@
     }
    ],
    "edges": [
-    {"id":"start.state->size","sourceNodeId":"start","sourcePort":"state","targetNodeId":"size","targetPort":"state"},
+    {"id":"start.state->alone","sourceNodeId":"start","sourcePort":"state","targetNodeId":"alone","targetPort":"state"},
+    {"id":"alone.state->first-neighbors","sourceNodeId":"alone","sourcePort":"state","targetNodeId":"first-neighbors","targetPort":"state"},
+    {
+     "id": "first-neighbors.state->second-neighbors",
+     "sourceNodeId": "first-neighbors",
+     "sourcePort": "state",
+     "targetNodeId": "second-neighbors",
+     "targetPort": "state"
+    },
+    {"id":"second-neighbors.state->grow","sourceNodeId":"second-neighbors","sourcePort":"state","targetNodeId":"grow","targetPort":"state"},
+    {"id":"grow.body->grow-pass","sourceNodeId":"grow","sourcePort":"body","targetNodeId":"grow-pass","targetPort":"state"},
+    {"id":"grow.exit->grouped","sourceNodeId":"grow","sourcePort":"exit","targetNodeId":"grouped","targetPort":"state"},
+    {"id":"grouped.state->size","sourceNodeId":"grouped","sourcePort":"state","targetNodeId":"size","targetPort":"state"},
     {"id":"size.state->pay","sourceNodeId":"size","sourcePort":"state","targetNodeId":"pay","targetPort":"state"},
     {"id":"pay.state->pays","sourceNodeId":"pay","sourcePort":"state","targetNodeId":"pays","targetPort":"state"},
     {"id":"pays.true->pays-yes","sourceNodeId":"pays","sourcePort":"true","targetNodeId":"pays-yes","targetPort":"state"},
-    {"id":"pays.false->pays-join","sourceNodeId":"pays","sourcePort":"false","targetNodeId":"pays-join","targetPort":"state"},
-    {"id":"pays-yes.state->pays-join","sourceNodeId":"pays-yes","sourcePort":"state","targetNodeId":"pays-join","targetPort":"state"}
+    {"id":"pays.false->done","sourceNodeId":"pays","sourcePort":"false","targetNodeId":"done","targetPort":"state"},
+    {"id":"pays-yes.state->done","sourceNodeId":"pays-yes","sourcePort":"state","targetNodeId":"done","targetPort":"state"}
    ],
    "expressions": {
     "start": {
-     "exprType": "call",
-     "function": "index",
-     "args": [{"exprType":"fieldAccess","target":"state","path":["groupStarts"]},{"exprType":"fieldAccess","target":"state","path":["groupIndex"]}]
+     "exprType": "bitset",
+     "op": "Shift",
+     "args": [
+      {"exprType":"constant","kind":"Integer","value":"1"},
+      {"exprType":"bitset","op":"First","args":[{"exprType":"fieldAccess","target":"state","path":["ungrouped"]}]}
+     ]
+    },
+    "alone": {"exprType":"fieldAccess","target":"state","path":["reached"]},
+    "grow-until": {
+     "exprType": "compare",
+     "op": "Eq",
+     "left": {"exprType":"fieldAccess","target":"state","path":["reached"]},
+     "right": {"exprType":"constant","kind":"Integer","value":"0"}
+    },
+    "grouped": {
+     "exprType": "bitset",
+     "op": "Except",
+     "args": [{"exprType":"fieldAccess","target":"state","path":["ungrouped"]},{"exprType":"fieldAccess","target":"state","path":["group"]}]
     },
     "size": {
      "exprType": "fold",
-     "stateKey": "groups",
+     "stateKey": "cellCounts",
      "accName": "acc",
      "itemName": "item",
      "indexName": "place",
@@ -1240,15 +1436,22 @@
        "exprType": "if",
        "condition": {
         "exprType": "compare",
-        "op": "Eq",
-        "left": {"exprType":"fieldAccess","target":"state","path":["item"]},
-        "right": {"exprType":"fieldAccess","target":"state","path":["groupStart"]}
+        "op": "Gt",
+        "left": {
+         "exprType": "bitset",
+         "op": "Intersect",
+         "args": [
+          {"exprType":"fieldAccess","target":"state","path":["group"]},
+          {
+           "exprType": "bitset",
+           "op": "Shift",
+           "args": [{"exprType":"constant","kind":"Integer","value":"1"},{"exprType":"fieldAccess","target":"state","path":["place"]}]
+          }
+         ]
+        },
+        "right": {"exprType":"constant","kind":"Integer","value":"0"}
        },
-       "thenExpr": {
-        "exprType": "call",
-        "function": "index",
-        "args": [{"exprType":"fieldAccess","target":"state","path":["cellCounts"]},{"exprType":"fieldAccess","target":"state","path":["place"]}]
-       },
+       "thenExpr": {"exprType":"fieldAccess","target":"state","path":["item"]},
        "elseExpr": {"exprType":"constant","kind":"Integer","value":"0"}
       }
      }
@@ -1281,35 +1484,8 @@
   },
   "symbol-groups": {
    "name": "symbol-groups",
-   "description": "Joins the touching cells of one symbol into groups and pays every group.",
+   "description": "Pays every group of one symbol, starting with the group of its first cell.",
    "nodes": [
-    {
-     "nodeType": "modifyState",
-     "id": "fresh",
-     "label": "Nothing has been joined yet",
-     "outputKey": "groupsBefore",
-     "expressionId": "fresh",
-     "inputs": {"state":{"name":"state","type":"State"}},
-     "outputs": {"state":{"name":"state","type":"State"}}
-    },
-    {
-     "nodeType": "loop",
-     "id": "join",
-     "label": "Join touching cells until a pass changes nothing",
-     "maxIterations": 5,
-     "stopConditionId": "join-until",
-     "inputs": {"state":{"name":"state","type":"State"}},
-     "outputs": {"body":{"name":"body","type":"State"},"exit":{"name":"exit","type":"State"}}
-    },
-    {
-     "nodeType": "modifyState",
-     "id": "starts",
-     "label": "Every group now carries the number of its first cell: list the groups",
-     "outputKey": "groupStarts",
-     "expressionId": "starts",
-     "inputs": {"state":{"name":"state","type":"State"}},
-     "outputs": {"state":{"name":"state","type":"State"}}
-    },
     {
      "nodeType": "loop",
      "id": "group",
@@ -1328,24 +1504,6 @@
     },
     {
      "nodeType": "library",
-     "id": "join-pass",
-     "label": "Join",
-     "mechanicName": "join-groups",
-     "inputs": {"state":{"name":"state","type":"State"}},
-     "outputs": {"state":{"name":"state","type":"State"}},
-     "parameters": {}
-    },
-    {
-     "nodeType": "modifyState",
-     "id": "group-turn",
-     "label": "Which pass this is, counted from 0",
-     "outputKey": "groupIndex",
-     "expressionId": "group-turn",
-     "inputs": {"state":{"name":"state","type":"State"}},
-     "outputs": {"state":{"name":"state","type":"State"}}
-    },
-    {
-     "nodeType": "library",
      "id": "group-pass",
      "label": "Pay one group",
      "mechanicName": "pay-group",
@@ -1355,42 +1513,16 @@
     }
    ],
    "edges": [
-    {"id":"fresh.state->join","sourceNodeId":"fresh","sourcePort":"state","targetNodeId":"join","targetPort":"state"},
-    {"id":"join.body->join-pass","sourceNodeId":"join","sourcePort":"body","targetNodeId":"join-pass","targetPort":"state"},
-    {"id":"join.exit->starts","sourceNodeId":"join","sourcePort":"exit","targetNodeId":"starts","targetPort":"state"},
-    {"id":"starts.state->group","sourceNodeId":"starts","sourcePort":"state","targetNodeId":"group","targetPort":"state"},
-    {"id":"group.body->group-turn","sourceNodeId":"group","sourcePort":"body","targetNodeId":"group-turn","targetPort":"state"},
-    {"id":"group-turn.state->group-pass","sourceNodeId":"group-turn","sourcePort":"state","targetNodeId":"group-pass","targetPort":"state"},
+    {"id":"group.body->group-pass","sourceNodeId":"group","sourcePort":"body","targetNodeId":"group-pass","targetPort":"state"},
     {"id":"group.exit->done","sourceNodeId":"group","sourcePort":"exit","targetNodeId":"done","targetPort":"state"}
    ],
    "expressions": {
-    "fresh": {"exprType":"fieldAccess","target":"state","path":["noCells"]},
-    "join-until": {
-     "exprType": "compare",
-     "op": "Eq",
-     "left": {"exprType":"fieldAccess","target":"state","path":["groups"]},
-     "right": {"exprType":"fieldAccess","target":"state","path":["groupsBefore"]}
-    },
-    "starts": {
-     "exprType": "filter",
-     "stateKey": "groups",
-     "itemName": "item",
-     "indexName": "place",
-     "itemType": "Number",
-     "predicate": {
-      "exprType": "compare",
-      "op": "Eq",
-      "left": {"exprType":"fieldAccess","target":"state","path":["item"]},
-      "right": {"exprType":"fieldAccess","target":"state","path":["place"]}
-     }
-    },
     "group-until": {
      "exprType": "compare",
-     "op": "Gte",
-     "left": {"exprType":"fieldAccess","target":"state","path":["__iter_group__"]},
-     "right": {"exprType":"call","function":"length","args":[{"exprType":"fieldAccess","target":"state","path":["groupStarts"]}]}
-    },
-    "group-turn": {"exprType":"fieldAccess","target":"state","path":["__iter_group__"]}
+     "op": "Eq",
+     "left": {"exprType":"fieldAccess","target":"state","path":["ungrouped"]},
+     "right": {"exprType":"constant","kind":"Integer","value":"0"}
+    }
    }
   },
   "symbol-clusters": {
@@ -1400,7 +1532,7 @@
     {
      "nodeType": "modifyState",
      "id": "symbol",
-     "label": "The symbol to look at",
+     "label": "The symbol to look at: the one on the first cell not looked at yet",
      "outputKey": "clusterSymbol",
      "expressionId": "symbol",
      "inputs": {"state":{"name":"state","type":"State"}},
@@ -1408,10 +1540,37 @@
     },
     {
      "nodeType": "modifyState",
-     "id": "number",
-     "label": "Number the cells of the symbol; a wild no group has used counts as the symbol",
-     "outputKey": "groups",
-     "expressionId": "number",
+     "id": "cells",
+     "label": "The cells that show the symbol",
+     "outputKey": "symbolCells",
+     "expressionId": "cells",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}}
+    },
+    {
+     "nodeType": "modifyState",
+     "id": "looked",
+     "label": "They have been looked at now",
+     "outputKey": "unpaidCells",
+     "expressionId": "looked",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}}
+    },
+    {
+     "nodeType": "modifyState",
+     "id": "joinable",
+     "label": "A wild no group has used counts as the symbol",
+     "outputKey": "joinable",
+     "expressionId": "joinable",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}}
+    },
+    {
+     "nodeType": "modifyState",
+     "id": "ungrouped",
+     "label": "None of its cells is in a group yet; a cell that touches nothing it could join forms none",
+     "outputKey": "ungrouped",
+     "expressionId": "ungrouped",
      "inputs": {"state":{"name":"state","type":"State"}},
      "outputs": {"state":{"name":"state","type":"State"}}
     },
@@ -1425,8 +1584,8 @@
     },
     {
      "nodeType": "getState",
-     "id": "enough-join",
-     "label": "Continue",
+     "id": "done",
+     "label": "Done",
      "inputs": {"state":{"name":"state","type":"State"}},
      "outputs": {"state":{"name":"state","type":"State"}}
     },
@@ -1441,81 +1600,524 @@
     }
    ],
    "edges": [
-    {"id":"symbol.state->number","sourceNodeId":"symbol","sourcePort":"state","targetNodeId":"number","targetPort":"state"},
-    {"id":"number.state->enough","sourceNodeId":"number","sourcePort":"state","targetNodeId":"enough","targetPort":"state"},
+    {"id":"symbol.state->cells","sourceNodeId":"symbol","sourcePort":"state","targetNodeId":"cells","targetPort":"state"},
+    {"id":"cells.state->looked","sourceNodeId":"cells","sourcePort":"state","targetNodeId":"looked","targetPort":"state"},
+    {"id":"looked.state->joinable","sourceNodeId":"looked","sourcePort":"state","targetNodeId":"joinable","targetPort":"state"},
+    {"id":"joinable.state->ungrouped","sourceNodeId":"joinable","sourcePort":"state","targetNodeId":"ungrouped","targetPort":"state"},
+    {"id":"ungrouped.state->enough","sourceNodeId":"ungrouped","sourcePort":"state","targetNodeId":"enough","targetPort":"state"},
     {"id":"enough.true->enough-yes","sourceNodeId":"enough","sourcePort":"true","targetNodeId":"enough-yes","targetPort":"state"},
-    {"id":"enough.false->enough-join","sourceNodeId":"enough","sourcePort":"false","targetNodeId":"enough-join","targetPort":"state"},
-    {"id":"enough-yes.state->enough-join","sourceNodeId":"enough-yes","sourcePort":"state","targetNodeId":"enough-join","targetPort":"state"}
+    {"id":"enough.false->done","sourceNodeId":"enough","sourcePort":"false","targetNodeId":"done","targetPort":"state"},
+    {"id":"enough-yes.state->done","sourceNodeId":"enough-yes","sourcePort":"state","targetNodeId":"done","targetPort":"state"}
    ],
    "expressions": {
     "symbol": {
      "exprType": "call",
      "function": "index",
-     "args": [{"exprType":"fieldAccess","target":"state","path":["clusterSymbols"]},{"exprType":"fieldAccess","target":"state","path":["clusterIndex"]}]
+     "args": [
+      {"exprType":"fieldAccess","target":"state","path":["board"]},
+      {"exprType":"bitset","op":"First","args":[{"exprType":"fieldAccess","target":"state","path":["unpaidCells"]}]}
+     ]
     },
-    "number": {
-     "exprType": "map",
-     "stateKey": "board",
-     "itemName": "item",
-     "indexName": "place",
-     "itemType": "String",
-     "body": {
+    "cells": {
+     "exprType": "if",
+     "condition": {
+      "exprType": "compare",
+      "op": "Lt",
+      "left": {"exprType":"call","function":"toNumber","args":[{"exprType":"fieldAccess","target":"state","path":["clusterSymbol"]}]},
+      "right": {"exprType":"constant","kind":"Integer","value":"6"}
+     },
+     "thenExpr": {
       "exprType": "if",
       "condition": {
        "exprType": "compare",
-       "op": "Eq",
-       "left": {"exprType":"fieldAccess","target":"state","path":["item"]},
-       "right": {"exprType":"fieldAccess","target":"state","path":["clusterSymbol"]}
+       "op": "Lt",
+       "left": {"exprType":"call","function":"toNumber","args":[{"exprType":"fieldAccess","target":"state","path":["clusterSymbol"]}]},
+       "right": {"exprType":"constant","kind":"Integer","value":"3"}
       },
-      "thenExpr": {"exprType":"fieldAccess","target":"state","path":["place"]},
+      "thenExpr": {
+       "exprType": "if",
+       "condition": {
+        "exprType": "compare",
+        "op": "Lt",
+        "left": {"exprType":"call","function":"toNumber","args":[{"exprType":"fieldAccess","target":"state","path":["clusterSymbol"]}]},
+        "right": {"exprType":"constant","kind":"Integer","value":"1"}
+       },
+       "thenExpr": {
+        "exprType": "bitset",
+        "op": "Except",
+        "args": [
+         {
+          "exprType": "bitset",
+          "op": "Except",
+          "args": [
+           {
+            "exprType": "bitset",
+            "op": "Except",
+            "args": [
+             {
+              "exprType": "bitset",
+              "op": "Except",
+              "args": [{"exprType":"constant","kind":"Integer","value":"15"},{"exprType":"fieldAccess","target":"state","path":["symbolDigit0"]}]
+             },
+             {"exprType":"fieldAccess","target":"state","path":["symbolDigit1"]}
+            ]
+           },
+           {"exprType":"fieldAccess","target":"state","path":["symbolDigit2"]}
+          ]
+         },
+         {"exprType":"fieldAccess","target":"state","path":["symbolDigit3"]}
+        ]
+       },
+       "elseExpr": {
+        "exprType": "if",
+        "condition": {
+         "exprType": "compare",
+         "op": "Lt",
+         "left": {"exprType":"call","function":"toNumber","args":[{"exprType":"fieldAccess","target":"state","path":["clusterSymbol"]}]},
+         "right": {"exprType":"constant","kind":"Integer","value":"2"}
+        },
+        "thenExpr": {
+         "exprType": "bitset",
+         "op": "Except",
+         "args": [
+          {
+           "exprType": "bitset",
+           "op": "Except",
+           "args": [
+            {
+             "exprType": "bitset",
+             "op": "Except",
+             "args": [
+              {
+               "exprType": "bitset",
+               "op": "Intersect",
+               "args": [{"exprType":"constant","kind":"Integer","value":"15"},{"exprType":"fieldAccess","target":"state","path":["symbolDigit0"]}]
+              },
+              {"exprType":"fieldAccess","target":"state","path":["symbolDigit1"]}
+             ]
+            },
+            {"exprType":"fieldAccess","target":"state","path":["symbolDigit2"]}
+           ]
+          },
+          {"exprType":"fieldAccess","target":"state","path":["symbolDigit3"]}
+         ]
+        },
+        "elseExpr": {
+         "exprType": "bitset",
+         "op": "Except",
+         "args": [
+          {
+           "exprType": "bitset",
+           "op": "Except",
+           "args": [
+            {
+             "exprType": "bitset",
+             "op": "Intersect",
+             "args": [
+              {
+               "exprType": "bitset",
+               "op": "Except",
+               "args": [{"exprType":"constant","kind":"Integer","value":"15"},{"exprType":"fieldAccess","target":"state","path":["symbolDigit0"]}]
+              },
+              {"exprType":"fieldAccess","target":"state","path":["symbolDigit1"]}
+             ]
+            },
+            {"exprType":"fieldAccess","target":"state","path":["symbolDigit2"]}
+           ]
+          },
+          {"exprType":"fieldAccess","target":"state","path":["symbolDigit3"]}
+         ]
+        }
+       }
+      },
       "elseExpr": {
        "exprType": "if",
        "condition": {
-        "exprType": "binary",
-        "op": "And",
-        "left": {
-         "exprType": "compare",
-         "op": "Eq",
-         "left": {"exprType":"fieldAccess","target":"state","path":["item"]},
-         "right": {"exprType":"constant","kind":"String","value":"0"}
-        },
-        "right": {
-         "exprType": "compare",
-         "op": "Eq",
-         "left": {
-          "exprType": "call",
-          "function": "index",
-          "args": [{"exprType":"fieldAccess","target":"state","path":["wildTaken"]},{"exprType":"fieldAccess","target":"state","path":["place"]}]
-         },
-         "right": {"exprType":"constant","kind":"Integer","value":"0"}
-        }
-       },
-       "thenExpr": {
-        "exprType": "binary",
-        "op": "Add",
-        "left": {"exprType":"fieldAccess","target":"state","path":["place"]},
+        "exprType": "compare",
+        "op": "Lt",
+        "left": {"exprType":"call","function":"toNumber","args":[{"exprType":"fieldAccess","target":"state","path":["clusterSymbol"]}]},
         "right": {"exprType":"constant","kind":"Integer","value":"4"}
        },
-       "elseExpr": {"exprType":"constant","kind":"Integer","value":"8"}
+       "thenExpr": {
+        "exprType": "bitset",
+        "op": "Except",
+        "args": [
+         {
+          "exprType": "bitset",
+          "op": "Except",
+          "args": [
+           {
+            "exprType": "bitset",
+            "op": "Intersect",
+            "args": [
+             {
+              "exprType": "bitset",
+              "op": "Intersect",
+              "args": [{"exprType":"constant","kind":"Integer","value":"15"},{"exprType":"fieldAccess","target":"state","path":["symbolDigit0"]}]
+             },
+             {"exprType":"fieldAccess","target":"state","path":["symbolDigit1"]}
+            ]
+           },
+           {"exprType":"fieldAccess","target":"state","path":["symbolDigit2"]}
+          ]
+         },
+         {"exprType":"fieldAccess","target":"state","path":["symbolDigit3"]}
+        ]
+       },
+       "elseExpr": {
+        "exprType": "if",
+        "condition": {
+         "exprType": "compare",
+         "op": "Lt",
+         "left": {"exprType":"call","function":"toNumber","args":[{"exprType":"fieldAccess","target":"state","path":["clusterSymbol"]}]},
+         "right": {"exprType":"constant","kind":"Integer","value":"5"}
+        },
+        "thenExpr": {
+         "exprType": "bitset",
+         "op": "Except",
+         "args": [
+          {
+           "exprType": "bitset",
+           "op": "Intersect",
+           "args": [
+            {
+             "exprType": "bitset",
+             "op": "Except",
+             "args": [
+              {
+               "exprType": "bitset",
+               "op": "Except",
+               "args": [{"exprType":"constant","kind":"Integer","value":"15"},{"exprType":"fieldAccess","target":"state","path":["symbolDigit0"]}]
+              },
+              {"exprType":"fieldAccess","target":"state","path":["symbolDigit1"]}
+             ]
+            },
+            {"exprType":"fieldAccess","target":"state","path":["symbolDigit2"]}
+           ]
+          },
+          {"exprType":"fieldAccess","target":"state","path":["symbolDigit3"]}
+         ]
+        },
+        "elseExpr": {
+         "exprType": "bitset",
+         "op": "Except",
+         "args": [
+          {
+           "exprType": "bitset",
+           "op": "Intersect",
+           "args": [
+            {
+             "exprType": "bitset",
+             "op": "Except",
+             "args": [
+              {
+               "exprType": "bitset",
+               "op": "Intersect",
+               "args": [{"exprType":"constant","kind":"Integer","value":"15"},{"exprType":"fieldAccess","target":"state","path":["symbolDigit0"]}]
+              },
+              {"exprType":"fieldAccess","target":"state","path":["symbolDigit1"]}
+             ]
+            },
+            {"exprType":"fieldAccess","target":"state","path":["symbolDigit2"]}
+           ]
+          },
+          {"exprType":"fieldAccess","target":"state","path":["symbolDigit3"]}
+         ]
+        }
+       }
       }
+     },
+     "elseExpr": {
+      "exprType": "if",
+      "condition": {
+       "exprType": "compare",
+       "op": "Lt",
+       "left": {"exprType":"call","function":"toNumber","args":[{"exprType":"fieldAccess","target":"state","path":["clusterSymbol"]}]},
+       "right": {"exprType":"constant","kind":"Integer","value":"9"}
+      },
+      "thenExpr": {
+       "exprType": "if",
+       "condition": {
+        "exprType": "compare",
+        "op": "Lt",
+        "left": {"exprType":"call","function":"toNumber","args":[{"exprType":"fieldAccess","target":"state","path":["clusterSymbol"]}]},
+        "right": {"exprType":"constant","kind":"Integer","value":"7"}
+       },
+       "thenExpr": {
+        "exprType": "bitset",
+        "op": "Except",
+        "args": [
+         {
+          "exprType": "bitset",
+          "op": "Intersect",
+          "args": [
+           {
+            "exprType": "bitset",
+            "op": "Intersect",
+            "args": [
+             {
+              "exprType": "bitset",
+              "op": "Except",
+              "args": [{"exprType":"constant","kind":"Integer","value":"15"},{"exprType":"fieldAccess","target":"state","path":["symbolDigit0"]}]
+             },
+             {"exprType":"fieldAccess","target":"state","path":["symbolDigit1"]}
+            ]
+           },
+           {"exprType":"fieldAccess","target":"state","path":["symbolDigit2"]}
+          ]
+         },
+         {"exprType":"fieldAccess","target":"state","path":["symbolDigit3"]}
+        ]
+       },
+       "elseExpr": {
+        "exprType": "if",
+        "condition": {
+         "exprType": "compare",
+         "op": "Lt",
+         "left": {"exprType":"call","function":"toNumber","args":[{"exprType":"fieldAccess","target":"state","path":["clusterSymbol"]}]},
+         "right": {"exprType":"constant","kind":"Integer","value":"8"}
+        },
+        "thenExpr": {
+         "exprType": "bitset",
+         "op": "Except",
+         "args": [
+          {
+           "exprType": "bitset",
+           "op": "Intersect",
+           "args": [
+            {
+             "exprType": "bitset",
+             "op": "Intersect",
+             "args": [
+              {
+               "exprType": "bitset",
+               "op": "Intersect",
+               "args": [{"exprType":"constant","kind":"Integer","value":"15"},{"exprType":"fieldAccess","target":"state","path":["symbolDigit0"]}]
+              },
+              {"exprType":"fieldAccess","target":"state","path":["symbolDigit1"]}
+             ]
+            },
+            {"exprType":"fieldAccess","target":"state","path":["symbolDigit2"]}
+           ]
+          },
+          {"exprType":"fieldAccess","target":"state","path":["symbolDigit3"]}
+         ]
+        },
+        "elseExpr": {
+         "exprType": "bitset",
+         "op": "Intersect",
+         "args": [
+          {
+           "exprType": "bitset",
+           "op": "Except",
+           "args": [
+            {
+             "exprType": "bitset",
+             "op": "Except",
+             "args": [
+              {
+               "exprType": "bitset",
+               "op": "Except",
+               "args": [{"exprType":"constant","kind":"Integer","value":"15"},{"exprType":"fieldAccess","target":"state","path":["symbolDigit0"]}]
+              },
+              {"exprType":"fieldAccess","target":"state","path":["symbolDigit1"]}
+             ]
+            },
+            {"exprType":"fieldAccess","target":"state","path":["symbolDigit2"]}
+           ]
+          },
+          {"exprType":"fieldAccess","target":"state","path":["symbolDigit3"]}
+         ]
+        }
+       }
+      },
+      "elseExpr": {
+       "exprType": "if",
+       "condition": {
+        "exprType": "compare",
+        "op": "Lt",
+        "left": {"exprType":"call","function":"toNumber","args":[{"exprType":"fieldAccess","target":"state","path":["clusterSymbol"]}]},
+        "right": {"exprType":"constant","kind":"Integer","value":"10"}
+       },
+       "thenExpr": {
+        "exprType": "bitset",
+        "op": "Intersect",
+        "args": [
+         {
+          "exprType": "bitset",
+          "op": "Except",
+          "args": [
+           {
+            "exprType": "bitset",
+            "op": "Except",
+            "args": [
+             {
+              "exprType": "bitset",
+              "op": "Intersect",
+              "args": [{"exprType":"constant","kind":"Integer","value":"15"},{"exprType":"fieldAccess","target":"state","path":["symbolDigit0"]}]
+             },
+             {"exprType":"fieldAccess","target":"state","path":["symbolDigit1"]}
+            ]
+           },
+           {"exprType":"fieldAccess","target":"state","path":["symbolDigit2"]}
+          ]
+         },
+         {"exprType":"fieldAccess","target":"state","path":["symbolDigit3"]}
+        ]
+       },
+       "elseExpr": {
+        "exprType": "if",
+        "condition": {
+         "exprType": "compare",
+         "op": "Lt",
+         "left": {"exprType":"call","function":"toNumber","args":[{"exprType":"fieldAccess","target":"state","path":["clusterSymbol"]}]},
+         "right": {"exprType":"constant","kind":"Integer","value":"11"}
+        },
+        "thenExpr": {
+         "exprType": "bitset",
+         "op": "Intersect",
+         "args": [
+          {
+           "exprType": "bitset",
+           "op": "Except",
+           "args": [
+            {
+             "exprType": "bitset",
+             "op": "Intersect",
+             "args": [
+              {
+               "exprType": "bitset",
+               "op": "Except",
+               "args": [{"exprType":"constant","kind":"Integer","value":"15"},{"exprType":"fieldAccess","target":"state","path":["symbolDigit0"]}]
+              },
+              {"exprType":"fieldAccess","target":"state","path":["symbolDigit1"]}
+             ]
+            },
+            {"exprType":"fieldAccess","target":"state","path":["symbolDigit2"]}
+           ]
+          },
+          {"exprType":"fieldAccess","target":"state","path":["symbolDigit3"]}
+         ]
+        },
+        "elseExpr": {
+         "exprType": "bitset",
+         "op": "Intersect",
+         "args": [
+          {
+           "exprType": "bitset",
+           "op": "Except",
+           "args": [
+            {
+             "exprType": "bitset",
+             "op": "Intersect",
+             "args": [
+              {
+               "exprType": "bitset",
+               "op": "Intersect",
+               "args": [{"exprType":"constant","kind":"Integer","value":"15"},{"exprType":"fieldAccess","target":"state","path":["symbolDigit0"]}]
+              },
+              {"exprType":"fieldAccess","target":"state","path":["symbolDigit1"]}
+             ]
+            },
+            {"exprType":"fieldAccess","target":"state","path":["symbolDigit2"]}
+           ]
+          },
+          {"exprType":"fieldAccess","target":"state","path":["symbolDigit3"]}
+         ]
+        }
+       }
+      }
+     }
+    },
+    "looked": {
+     "exprType": "bitset",
+     "op": "Except",
+     "args": [{"exprType":"fieldAccess","target":"state","path":["unpaidCells"]},{"exprType":"fieldAccess","target":"state","path":["symbolCells"]}]
+    },
+    "joinable": {
+     "exprType": "bitset",
+     "op": "Union",
+     "args": [
+      {"exprType":"fieldAccess","target":"state","path":["symbolCells"]},
+      {
+       "exprType": "bitset",
+       "op": "Except",
+       "args": [{"exprType":"fieldAccess","target":"state","path":["wildCells"]},{"exprType":"fieldAccess","target":"state","path":["wildsTaken"]}]
+      }
+     ]
+    },
+    "ungrouped": {
+     "exprType": "if",
+     "condition": {"exprType":"fieldAccess","target":"state","path":["useCandidates"]},
+     "thenExpr": {
+      "exprType": "bitset",
+      "op": "Intersect",
+      "args": [{"exprType":"fieldAccess","target":"state","path":["symbolCells"]},{"exprType":"fieldAccess","target":"state","path":["candidateCells"]}]
+     },
+     "elseExpr": {
+      "exprType": "bitset",
+      "op": "Intersect",
+      "args": [
+       {"exprType":"fieldAccess","target":"state","path":["symbolCells"]},
+       {
+        "exprType": "bitset",
+        "op": "Union",
+        "args": [
+         {
+          "exprType": "bitset",
+          "op": "Union",
+          "args": [
+           {
+            "exprType": "bitset",
+            "op": "Union",
+            "args": [
+             {
+              "exprType": "bitset",
+              "op": "Shift",
+              "args": [
+               {
+                "exprType": "bitset",
+                "op": "Intersect",
+                "args": [{"exprType":"fieldAccess","target":"state","path":["joinable"]},{"exprType":"constant","kind":"Integer","value":"5"}]
+               },
+               {"exprType":"constant","kind":"Integer","value":"1"}
+              ]
+             },
+             {
+              "exprType": "bitset",
+              "op": "Shift",
+              "args": [
+               {
+                "exprType": "bitset",
+                "op": "Intersect",
+                "args": [{"exprType":"fieldAccess","target":"state","path":["joinable"]},{"exprType":"constant","kind":"Integer","value":"10"}]
+               },
+               {"exprType":"constant","kind":"Integer","value":"-1"}
+              ]
+             }
+            ]
+           },
+           {
+            "exprType": "bitset",
+            "op": "Shift",
+            "args": [{"exprType":"fieldAccess","target":"state","path":["joinable"]},{"exprType":"constant","kind":"Integer","value":"2"}]
+           }
+          ]
+         },
+         {
+          "exprType": "bitset",
+          "op": "Shift",
+          "args": [{"exprType":"fieldAccess","target":"state","path":["joinable"]},{"exprType":"constant","kind":"Integer","value":"-2"}]
+         }
+        ]
+       }
+      ]
      }
     },
     "enough": {
      "exprType": "compare",
      "op": "Gte",
-     "left": {
-      "exprType": "aggregate",
-      "func": "Count",
-      "stateKey": "groups",
-      "itemName": "item",
-      "itemType": "Number",
-      "predicate": {
-       "exprType": "compare",
-       "op": "Lt",
-       "left": {"exprType":"fieldAccess","target":"state","path":["item"]},
-       "right": {"exprType":"constant","kind":"Integer","value":"8"}
-      }
-     },
+     "left": {"exprType":"bitset","op":"Count","args":[{"exprType":"fieldAccess","target":"state","path":["joinable"]}]},
      "right": {"exprType":"fieldAccess","target":"state","path":["clusterMinSize"]}
     }
    }
@@ -1537,17 +2139,17 @@
      "nodeType": "modifyState",
      "id": "reset-wilds",
      "label": "Every wild is free",
-     "outputKey": "wildTaken",
+     "outputKey": "wildsTaken",
      "expressionId": "reset-wilds",
      "inputs": {"state":{"name":"state","type":"State"}},
      "outputs": {"state":{"name":"state","type":"State"}}
     },
     {
      "nodeType": "modifyState",
-     "id": "reset-symbols",
+     "id": "reset-paid",
      "label": "No symbol has paid yet",
-     "outputKey": "paidSymbols",
-     "expressionId": "reset-symbols",
+     "outputKey": "paidCells",
+     "expressionId": "reset-paid",
      "inputs": {"state":{"name":"state","type":"State"}},
      "outputs": {"state":{"name":"state","type":"State"}}
     },
@@ -1588,18 +2190,45 @@
      "outputs": {"state":{"name":"state","type":"State"}}
     },
     {
+     "nodeType": "library",
+     "id": "read",
+     "label": "Read the board: which cells show which symbol",
+     "mechanicName": "read-board",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}},
+     "parameters": {}
+    },
+    {
      "nodeType": "modifyState",
-     "id": "order",
-     "label": "List the paying symbols in the order they first appear on the board",
-     "outputKey": "clusterSymbols",
-     "expressionId": "order",
+     "id": "wilds",
+     "label": "The cells that show a wild",
+     "outputKey": "wildCells",
+     "expressionId": "wilds",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}}
+    },
+    {
+     "nodeType": "modifyState",
+     "id": "paying",
+     "label": "The cells that show a symbol that can pay; none has been looked at yet",
+     "outputKey": "unpaidCells",
+     "expressionId": "paying",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}}
+    },
+    {
+     "nodeType": "modifyState",
+     "id": "candidate-mode",
+     "label": "Use size-five seed pruning only without wilds and ordered traces",
+     "outputKey": "useCandidates",
+     "expressionId": "candidate-mode",
      "inputs": {"state":{"name":"state","type":"State"}},
      "outputs": {"state":{"name":"state","type":"State"}}
     },
     {
      "nodeType": "loop",
      "id": "symbol",
-     "label": "Pay the groups of every symbol on the board",
+     "label": "Pay the groups of every symbol on the board, in the order the symbols first appear",
      "maxIterations": 2,
      "stopConditionId": "symbol-until",
      "inputs": {"state":{"name":"state","type":"State"}},
@@ -1615,15 +2244,6 @@
      "outputs": {"state":{"name":"state","type":"State"}}
     },
     {
-     "nodeType": "modifyState",
-     "id": "symbol-turn",
-     "label": "Which pass this is, counted from 0",
-     "outputKey": "clusterIndex",
-     "expressionId": "symbol-turn",
-     "inputs": {"state":{"name":"state","type":"State"}},
-     "outputs": {"state":{"name":"state","type":"State"}}
-    },
-    {
      "nodeType": "library",
      "id": "symbol-pass",
      "label": "One symbol",
@@ -1635,16 +2255,10 @@
    ],
    "edges": [
     {"id":"reset-pay.state->reset-wilds","sourceNodeId":"reset-pay","sourcePort":"state","targetNodeId":"reset-wilds","targetPort":"state"},
+    {"id":"reset-wilds.state->reset-paid","sourceNodeId":"reset-wilds","sourcePort":"state","targetNodeId":"reset-paid","targetPort":"state"},
     {
-     "id": "reset-wilds.state->reset-symbols",
-     "sourceNodeId": "reset-wilds",
-     "sourcePort": "state",
-     "targetNodeId": "reset-symbols",
-     "targetPort": "state"
-    },
-    {
-     "id": "reset-symbols.state->reset-hitSymbols",
-     "sourceNodeId": "reset-symbols",
+     "id": "reset-paid.state->reset-hitSymbols",
+     "sourceNodeId": "reset-paid",
      "sourcePort": "state",
      "targetNodeId": "reset-hitSymbols",
      "targetPort": "state"
@@ -1670,91 +2284,85 @@
      "targetNodeId": "reset-hitCells",
      "targetPort": "state"
     },
-    {"id":"reset-hitCells.state->order","sourceNodeId":"reset-hitCells","sourcePort":"state","targetNodeId":"order","targetPort":"state"},
-    {"id":"order.state->symbol","sourceNodeId":"order","sourcePort":"state","targetNodeId":"symbol","targetPort":"state"},
-    {"id":"symbol.body->symbol-turn","sourceNodeId":"symbol","sourcePort":"body","targetNodeId":"symbol-turn","targetPort":"state"},
-    {"id":"symbol-turn.state->symbol-pass","sourceNodeId":"symbol-turn","sourcePort":"state","targetNodeId":"symbol-pass","targetPort":"state"},
+    {"id":"reset-hitCells.state->read","sourceNodeId":"reset-hitCells","sourcePort":"state","targetNodeId":"read","targetPort":"state"},
+    {"id":"read.state->wilds","sourceNodeId":"read","sourcePort":"state","targetNodeId":"wilds","targetPort":"state"},
+    {"id":"wilds.state->paying","sourceNodeId":"wilds","sourcePort":"state","targetNodeId":"paying","targetPort":"state"},
+    {"id":"paying.state->candidate-mode","sourceNodeId":"paying","sourcePort":"state","targetNodeId":"candidate-mode","targetPort":"state"},
+    {"id":"candidate-mode.state->symbol","sourceNodeId":"candidate-mode","sourcePort":"state","targetNodeId":"symbol","targetPort":"state"},
+    {"id":"symbol.body->symbol-pass","sourceNodeId":"symbol","sourcePort":"body","targetNodeId":"symbol-pass","targetPort":"state"},
     {"id":"symbol.exit->removed","sourceNodeId":"symbol","sourcePort":"exit","targetNodeId":"removed","targetPort":"state"}
    ],
    "expressions": {
     "reset-pay": {"exprType":"constant","kind":"Integer","value":"0"},
-    "reset-wilds": {"exprType":"fieldAccess","target":"state","path":["noCells"]},
-    "reset-symbols": {"exprType":"fieldAccess","target":"state","path":["emptyArray"]},
+    "reset-wilds": {"exprType":"constant","kind":"Integer","value":"0"},
+    "reset-paid": {"exprType":"constant","kind":"Integer","value":"0"},
     "reset-hitSymbols": {"exprType":"fieldAccess","target":"state","path":["emptyArray"]},
     "reset-hitSizes": {"exprType":"fieldAccess","target":"state","path":["emptyArray"]},
     "reset-hitPays": {"exprType":"fieldAccess","target":"state","path":["emptyArray"]},
     "reset-hitCells": {"exprType":"fieldAccess","target":"state","path":["emptyArray"]},
-    "order": {
-     "exprType": "fold",
-     "stateKey": "board",
-     "accName": "acc",
-     "itemName": "item",
-     "itemType": "String",
-     "init": {"exprType":"fieldAccess","target":"state","path":["emptyArray"]},
-     "body": {
-      "exprType": "if",
-      "condition": {
-       "exprType": "binary",
-       "op": "And",
-       "left": {
-        "exprType": "call",
-        "function": "contains",
-        "args": [{"exprType":"fieldAccess","target":"state","path":["payingSymbols"]},{"exprType":"fieldAccess","target":"state","path":["item"]}]
-       },
-       "right": {
-        "exprType": "not",
-        "expr": {
-         "exprType": "call",
-         "function": "contains",
-         "args": [{"exprType":"fieldAccess","target":"state","path":["acc"]},{"exprType":"fieldAccess","target":"state","path":["item"]}]
-        }
-       }
+    "wilds": {
+     "exprType": "bitset",
+     "op": "Except",
+     "args": [
+      {
+       "exprType": "bitset",
+       "op": "Except",
+       "args": [
+        {
+         "exprType": "bitset",
+         "op": "Except",
+         "args": [
+          {
+           "exprType": "bitset",
+           "op": "Except",
+           "args": [{"exprType":"constant","kind":"Integer","value":"15"},{"exprType":"fieldAccess","target":"state","path":["symbolDigit0"]}]
+          },
+          {"exprType":"fieldAccess","target":"state","path":["symbolDigit1"]}
+         ]
+        },
+        {"exprType":"fieldAccess","target":"state","path":["symbolDigit2"]}
+       ]
       },
-      "thenExpr": {
-       "exprType": "call",
-       "function": "append",
-       "args": [{"exprType":"fieldAccess","target":"state","path":["acc"]},{"exprType":"fieldAccess","target":"state","path":["item"]}]
-      },
-      "elseExpr": {"exprType":"fieldAccess","target":"state","path":["acc"]}
-     }
+      {"exprType":"fieldAccess","target":"state","path":["symbolDigit3"]}
+     ]
     },
+    "paying": {
+     "exprType": "bitset",
+     "op": "Except",
+     "args": [
+      {
+       "exprType": "bitset",
+       "op": "Except",
+       "args": [
+        {
+         "exprType": "bitset",
+         "op": "Except",
+         "args": [
+          {
+           "exprType": "bitset",
+           "op": "Intersect",
+           "args": [{"exprType":"constant","kind":"Integer","value":"15"},{"exprType":"fieldAccess","target":"state","path":["symbolDigit0"]}]
+          },
+          {"exprType":"fieldAccess","target":"state","path":["symbolDigit1"]}
+         ]
+        },
+        {"exprType":"fieldAccess","target":"state","path":["symbolDigit2"]}
+       ]
+      },
+      {"exprType":"fieldAccess","target":"state","path":["symbolDigit3"]}
+     ]
+    },
+    "candidate-mode": {"exprType":"constant","kind":"Boolean","value":"false"},
     "symbol-until": {
      "exprType": "compare",
-     "op": "Gte",
-     "left": {"exprType":"fieldAccess","target":"state","path":["__iter_symbol__"]},
-     "right": {"exprType":"call","function":"length","args":[{"exprType":"fieldAccess","target":"state","path":["clusterSymbols"]}]}
+     "op": "Eq",
+     "left": {"exprType":"fieldAccess","target":"state","path":["unpaidCells"]},
+     "right": {"exprType":"constant","kind":"Integer","value":"0"}
     },
-    "symbol-turn": {"exprType":"fieldAccess","target":"state","path":["__iter_symbol__"]},
     "removed": {
-     "exprType": "map",
-     "stateKey": "board",
-     "itemName": "item",
-     "indexName": "place",
-     "itemType": "String",
-     "body": {
-      "exprType": "if",
-      "condition": {
-       "exprType": "binary",
-       "op": "Or",
-       "left": {
-        "exprType": "call",
-        "function": "contains",
-        "args": [{"exprType":"fieldAccess","target":"state","path":["paidSymbols"]},{"exprType":"fieldAccess","target":"state","path":["item"]}]
-       },
-       "right": {
-        "exprType": "compare",
-        "op": "Eq",
-        "left": {
-         "exprType": "call",
-         "function": "index",
-         "args": [{"exprType":"fieldAccess","target":"state","path":["wildTaken"]},{"exprType":"fieldAccess","target":"state","path":["place"]}]
-        },
-        "right": {"exprType":"constant","kind":"Integer","value":"1"}
-       }
-      },
-      "thenExpr": {"exprType":"constant","kind":"Integer","value":"1"},
-      "elseExpr": {"exprType":"constant","kind":"Integer","value":"0"}
-     }
+     "exprType": "bitset",
+     "op": "Union",
+     "args": [{"exprType":"fieldAccess","target":"state","path":["paidCells"]},{"exprType":"fieldAccess","target":"state","path":["wildsTaken"]}]
     }
    }
   },
@@ -1796,25 +2404,34 @@
    ],
    "expressions": {
     "held": {
-     "exprType": "map",
-     "stateKey": "removed",
+     "exprType": "fold",
+     "stateKey": "held",
+     "accName": "acc",
      "itemName": "item",
      "indexName": "place",
      "itemType": "Number",
+     "init": {"exprType":"fieldAccess","target":"state","path":["removed"]},
      "body": {
       "exprType": "if",
       "condition": {
        "exprType": "compare",
        "op": "Eq",
-       "left": {
-        "exprType": "call",
-        "function": "index",
-        "args": [{"exprType":"fieldAccess","target":"state","path":["held"]},{"exprType":"fieldAccess","target":"state","path":["place"]}]
-       },
+       "left": {"exprType":"fieldAccess","target":"state","path":["item"]},
        "right": {"exprType":"constant","kind":"Integer","value":"1"}
       },
-      "thenExpr": {"exprType":"constant","kind":"Integer","value":"0"},
-      "elseExpr": {"exprType":"fieldAccess","target":"state","path":["item"]}
+      "thenExpr": {
+       "exprType": "bitset",
+       "op": "Except",
+       "args": [
+        {"exprType":"fieldAccess","target":"state","path":["acc"]},
+        {
+         "exprType": "bitset",
+         "op": "Shift",
+         "args": [{"exprType":"constant","kind":"Integer","value":"1"},{"exprType":"fieldAccess","target":"state","path":["place"]}]
+        }
+       ]
+      },
+      "elseExpr": {"exprType":"fieldAccess","target":"state","path":["acc"]}
      }
     }
    }
@@ -2152,6 +2769,24 @@
    "nodes": [
     {
      "nodeType": "modifyState",
+     "id": "empty-cells",
+     "label": "Count the empty cells in the columns before each column",
+     "outputKey": "emptyBefore",
+     "expressionId": "empty-cells",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}}
+    },
+    {
+     "nodeType": "modifyState",
+     "id": "column-removed",
+     "label": "Read the removal pattern of each column",
+     "outputKey": "columnRemoved",
+     "expressionId": "column-removed",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}}
+    },
+    {
+     "nodeType": "modifyState",
      "id": "survivors",
      "label": "The symbols that stay, in board order",
      "outputKey": "survivors",
@@ -2169,24 +2804,6 @@
      "outputs": {"state":{"name":"state","type":"State"}}
     },
     {
-     "nodeType": "modifyState",
-     "id": "count",
-     "label": "Count the symbols that stay, cell by cell",
-     "outputKey": "keptThrough",
-     "expressionId": "count",
-     "inputs": {"state":{"name":"state","type":"State"}},
-     "outputs": {"state":{"name":"state","type":"State"}}
-    },
-    {
-     "nodeType": "modifyState",
-     "id": "empty",
-     "label": "No new symbol has dropped yet",
-     "outputKey": "drops",
-     "expressionId": "empty",
-     "inputs": {"state":{"name":"state","type":"State"}},
-     "outputs": {"state":{"name":"state","type":"State"}}
-    },
-    {
      "nodeType": "branch",
      "id": "reel-0",
      "label": "Does reel 1 have empty cells?",
@@ -2195,26 +2812,12 @@
      "outputs": {"true":{"name":"true","type":"State"},"false":{"name":"false","type":"State"}}
     },
     {
-     "nodeType": "getState",
-     "id": "reel-0-join",
-     "label": "Continue",
-     "inputs": {"state":{"name":"state","type":"State"}},
-     "outputs": {"state":{"name":"state","type":"State"}}
-    },
-    {
      "nodeType": "branch",
      "id": "reel-1",
      "label": "Does reel 2 have empty cells?",
      "conditionId": "reel-1",
      "inputs": {"state":{"name":"state","type":"State"}},
      "outputs": {"true":{"name":"true","type":"State"},"false":{"name":"false","type":"State"}}
-    },
-    {
-     "nodeType": "getState",
-     "id": "reel-1-join",
-     "label": "Continue",
-     "inputs": {"state":{"name":"state","type":"State"}},
-     "outputs": {"state":{"name":"state","type":"State"}}
     },
     {
      "nodeType": "modifyState",
@@ -2245,19 +2848,10 @@
     },
     {
      "nodeType": "modifyState",
-     "id": "chunk-0",
-     "label": "The symbols from the stop on, one for every empty cell",
-     "outputKey": "dropChunk",
-     "expressionId": "chunk-0",
-     "inputs": {"state":{"name":"state","type":"State"}},
-     "outputs": {"state":{"name":"state","type":"State"}}
-    },
-    {
-     "nodeType": "modifyState",
-     "id": "drops-0",
-     "label": "They wait above the board with the others",
-     "outputKey": "drops",
-     "expressionId": "drops-0",
+     "id": "top-0",
+     "label": "How far below the stop the symbol for the top cell is",
+     "outputKey": "topDrop0",
+     "expressionId": "top-0",
      "inputs": {"state":{"name":"state","type":"State"}},
      "outputs": {"state":{"name":"state","type":"State"}}
     },
@@ -2272,24 +2866,29 @@
     },
     {
      "nodeType": "modifyState",
-     "id": "chunk-1",
-     "label": "The symbols from the stop on, one for every empty cell",
-     "outputKey": "dropChunk",
-     "expressionId": "chunk-1",
-     "inputs": {"state":{"name":"state","type":"State"}},
-     "outputs": {"state":{"name":"state","type":"State"}}
-    },
-    {
-     "nodeType": "modifyState",
-     "id": "drops-1",
-     "label": "They wait above the board with the others",
-     "outputKey": "drops",
-     "expressionId": "drops-1",
+     "id": "top-1",
+     "label": "How far below the stop the symbol for the top cell is",
+     "outputKey": "topDrop1",
+     "expressionId": "top-1",
      "inputs": {"state":{"name":"state","type":"State"}},
      "outputs": {"state":{"name":"state","type":"State"}}
     }
    ],
    "edges": [
+    {
+     "id": "empty-cells.state->column-removed",
+     "sourceNodeId": "empty-cells",
+     "sourcePort": "state",
+     "targetNodeId": "column-removed",
+     "targetPort": "state"
+    },
+    {
+     "id": "column-removed.state->survivors",
+     "sourceNodeId": "column-removed",
+     "sourcePort": "state",
+     "targetNodeId": "survivors",
+     "targetPort": "state"
+    },
     {
      "id": "survivors.state->survivors-held",
      "sourceNodeId": "survivors",
@@ -2297,24 +2896,61 @@
      "targetNodeId": "survivors-held",
      "targetPort": "state"
     },
-    {"id":"survivors-held.state->count","sourceNodeId":"survivors-held","sourcePort":"state","targetNodeId":"count","targetPort":"state"},
-    {"id":"count.state->empty","sourceNodeId":"count","sourcePort":"state","targetNodeId":"empty","targetPort":"state"},
-    {"id":"empty.state->reel-0","sourceNodeId":"empty","sourcePort":"state","targetNodeId":"reel-0","targetPort":"state"},
-    {"id":"stop-0.state->chunk-0","sourceNodeId":"stop-0","sourcePort":"state","targetNodeId":"chunk-0","targetPort":"state"},
-    {"id":"chunk-0.state->drops-0","sourceNodeId":"chunk-0","sourcePort":"state","targetNodeId":"drops-0","targetPort":"state"},
+    {"id":"survivors-held.state->reel-0","sourceNodeId":"survivors-held","sourcePort":"state","targetNodeId":"reel-0","targetPort":"state"},
+    {"id":"stop-0.state->top-0","sourceNodeId":"stop-0","sourcePort":"state","targetNodeId":"top-0","targetPort":"state"},
     {"id":"reel-0.true->stop-0","sourceNodeId":"reel-0","sourcePort":"true","targetNodeId":"stop-0","targetPort":"state"},
-    {"id":"drops-0.state->reel-0-join","sourceNodeId":"drops-0","sourcePort":"state","targetNodeId":"reel-0-join","targetPort":"state"},
-    {"id":"reel-0.false->reel-0-join","sourceNodeId":"reel-0","sourcePort":"false","targetNodeId":"reel-0-join","targetPort":"state"},
-    {"id":"reel-0-join.state->reel-1","sourceNodeId":"reel-0-join","sourcePort":"state","targetNodeId":"reel-1","targetPort":"state"},
-    {"id":"stop-1.state->chunk-1","sourceNodeId":"stop-1","sourcePort":"state","targetNodeId":"chunk-1","targetPort":"state"},
-    {"id":"chunk-1.state->drops-1","sourceNodeId":"chunk-1","sourcePort":"state","targetNodeId":"drops-1","targetPort":"state"},
+    {"id":"top-0.state->reel-1","sourceNodeId":"top-0","sourcePort":"state","targetNodeId":"reel-1","targetPort":"state"},
+    {"id":"reel-0.false->reel-1","sourceNodeId":"reel-0","sourcePort":"false","targetNodeId":"reel-1","targetPort":"state"},
+    {"id":"stop-1.state->top-1","sourceNodeId":"stop-1","sourcePort":"state","targetNodeId":"top-1","targetPort":"state"},
     {"id":"reel-1.true->stop-1","sourceNodeId":"reel-1","sourcePort":"true","targetNodeId":"stop-1","targetPort":"state"},
-    {"id":"drops-1.state->reel-1-join","sourceNodeId":"drops-1","sourcePort":"state","targetNodeId":"reel-1-join","targetPort":"state"},
-    {"id":"reel-1.false->reel-1-join","sourceNodeId":"reel-1","sourcePort":"false","targetNodeId":"reel-1-join","targetPort":"state"},
-    {"id":"reel-1-join.state->settle","sourceNodeId":"reel-1-join","sourcePort":"state","targetNodeId":"settle","targetPort":"state"},
+    {"id":"top-1.state->settle","sourceNodeId":"top-1","sourcePort":"state","targetNodeId":"settle","targetPort":"state"},
+    {"id":"reel-1.false->settle","sourceNodeId":"reel-1","sourcePort":"false","targetNodeId":"settle","targetPort":"state"},
     {"id":"settle.state->settle-held","sourceNodeId":"settle","sourcePort":"state","targetNodeId":"settle-held","targetPort":"state"}
    ],
    "expressions": {
+    "empty-cells": {
+     "exprType": "map",
+     "stateKey": "columnsBefore",
+     "itemName": "item",
+     "itemType": "Number",
+     "body": {
+      "exprType": "bitset",
+      "op": "Count",
+      "args": [
+       {
+        "exprType": "bitset",
+        "op": "Intersect",
+        "args": [{"exprType":"fieldAccess","target":"state","path":["removed"]},{"exprType":"fieldAccess","target":"state","path":["item"]}]
+       }
+      ]
+     }
+    },
+    "column-removed": {
+     "exprType": "map",
+     "stateKey": "columnOffsets",
+     "itemName": "item",
+     "itemType": "Number",
+     "body": {
+      "exprType": "bitset",
+      "op": "Intersect",
+      "args": [
+       {
+        "exprType": "bitset",
+        "op": "Shift",
+        "args": [
+         {"exprType":"fieldAccess","target":"state","path":["removed"]},
+         {
+          "exprType": "binary",
+          "op": "Sub",
+          "left": {"exprType":"constant","kind":"Integer","value":"0"},
+          "right": {"exprType":"fieldAccess","target":"state","path":["item"]}
+         }
+        ]
+       },
+       {"exprType":"constant","kind":"Integer","value":"3"}
+      ]
+     }
+    },
     "survivors": {
      "exprType": "filter",
      "stateKey": "board",
@@ -2322,14 +2958,24 @@
      "indexName": "place",
      "itemType": "String",
      "predicate": {
-      "exprType": "compare",
-      "op": "Eq",
-      "left": {
-       "exprType": "call",
-       "function": "index",
-       "args": [{"exprType":"fieldAccess","target":"state","path":["removed"]},{"exprType":"fieldAccess","target":"state","path":["place"]}]
-      },
-      "right": {"exprType":"constant","kind":"Integer","value":"0"}
+      "exprType": "not",
+      "expr": {
+       "exprType": "compare",
+       "op": "Gt",
+       "left": {
+        "exprType": "bitset",
+        "op": "Intersect",
+        "args": [
+         {"exprType":"fieldAccess","target":"state","path":["removed"]},
+         {
+          "exprType": "bitset",
+          "op": "Shift",
+          "args": [{"exprType":"constant","kind":"Integer","value":"1"},{"exprType":"fieldAccess","target":"state","path":["place"]}]
+         }
+        ]
+       },
+       "right": {"exprType":"constant","kind":"Integer","value":"0"}
+      }
      }
     },
     "survivors-held": {
@@ -2339,130 +2985,63 @@
      "indexName": "place",
      "itemType": "Number",
      "predicate": {
-      "exprType": "compare",
-      "op": "Eq",
-      "left": {
-       "exprType": "call",
-       "function": "index",
-       "args": [{"exprType":"fieldAccess","target":"state","path":["removed"]},{"exprType":"fieldAccess","target":"state","path":["place"]}]
-      },
-      "right": {"exprType":"constant","kind":"Integer","value":"0"}
+      "exprType": "not",
+      "expr": {
+       "exprType": "compare",
+       "op": "Gt",
+       "left": {
+        "exprType": "bitset",
+        "op": "Intersect",
+        "args": [
+         {"exprType":"fieldAccess","target":"state","path":["removed"]},
+         {
+          "exprType": "bitset",
+          "op": "Shift",
+          "args": [{"exprType":"constant","kind":"Integer","value":"1"},{"exprType":"fieldAccess","target":"state","path":["place"]}]
+         }
+        ]
+       },
+       "right": {"exprType":"constant","kind":"Integer","value":"0"}
+      }
      }
     },
-    "count": {
-     "exprType": "fold",
-     "stateKey": "removed",
-     "accName": "acc",
-     "itemName": "item",
-     "indexName": "place",
-     "itemType": "Number",
-     "init": {"exprType":"fieldAccess","target":"state","path":["fromZero"]},
-     "body": {
-      "exprType": "call",
-      "function": "append",
-      "args": [
-       {"exprType":"fieldAccess","target":"state","path":["acc"]},
-       {
-        "exprType": "binary",
-        "op": "Add",
-        "left": {
-         "exprType": "call",
-         "function": "index",
-         "args": [{"exprType":"fieldAccess","target":"state","path":["acc"]},{"exprType":"fieldAccess","target":"state","path":["place"]}]
-        },
-        "right": {
-         "exprType": "binary",
-         "op": "Sub",
-         "left": {"exprType":"constant","kind":"Integer","value":"1"},
-         "right": {"exprType":"fieldAccess","target":"state","path":["item"]}
-        }
-       }
-      ]
-     }
-    },
-    "empty": {"exprType":"fieldAccess","target":"state","path":["emptyArray"]},
     "reel-0": {
      "exprType": "compare",
      "op": "Gt",
      "left": {
       "exprType": "binary",
       "op": "Sub",
-      "left": {"exprType":"constant","kind":"Integer","value":"2"},
+      "left": {
+       "exprType": "call",
+       "function": "index",
+       "args": [{"exprType":"fieldAccess","target":"state","path":["emptyBefore"]},{"exprType":"constant","kind":"Integer","value":"1"}]
+      },
       "right": {
-       "exprType": "binary",
-       "op": "Sub",
-       "left": {
-        "exprType": "call",
-        "function": "index",
-        "args": [{"exprType":"fieldAccess","target":"state","path":["keptThrough"]},{"exprType":"constant","kind":"Integer","value":"2"}]
-       },
-       "right": {
-        "exprType": "call",
-        "function": "index",
-        "args": [{"exprType":"fieldAccess","target":"state","path":["keptThrough"]},{"exprType":"constant","kind":"Integer","value":"0"}]
-       }
+       "exprType": "call",
+       "function": "index",
+       "args": [{"exprType":"fieldAccess","target":"state","path":["emptyBefore"]},{"exprType":"constant","kind":"Integer","value":"0"}]
       }
      },
      "right": {"exprType":"constant","kind":"Integer","value":"0"}
     },
-    "chunk-0": {
-     "exprType": "filter",
-     "stateKey": "paidStrip0",
-     "itemName": "item",
-     "indexName": "place",
-     "itemType": "String",
-     "predicate": {
+    "top-0": {
+     "exprType": "binary",
+     "op": "Sub",
+     "left": {
       "exprType": "binary",
-      "op": "And",
+      "op": "Sub",
       "left": {
-       "exprType": "compare",
-       "op": "Gte",
-       "left": {"exprType":"fieldAccess","target":"state","path":["place"]},
-       "right": {"exprType":"call","function":"toNumber","args":[{"exprType":"fieldAccess","target":"state","path":["stop0"]}]}
+       "exprType": "call",
+       "function": "index",
+       "args": [{"exprType":"fieldAccess","target":"state","path":["emptyBefore"]},{"exprType":"constant","kind":"Integer","value":"1"}]
       },
       "right": {
-       "exprType": "compare",
-       "op": "Lt",
-       "left": {"exprType":"fieldAccess","target":"state","path":["place"]},
-       "right": {
-        "exprType": "binary",
-        "op": "Add",
-        "left": {"exprType":"call","function":"toNumber","args":[{"exprType":"fieldAccess","target":"state","path":["stop0"]}]},
-        "right": {
-         "exprType": "binary",
-         "op": "Sub",
-         "left": {"exprType":"constant","kind":"Integer","value":"2"},
-         "right": {
-          "exprType": "binary",
-          "op": "Sub",
-          "left": {
-           "exprType": "call",
-           "function": "index",
-           "args": [{"exprType":"fieldAccess","target":"state","path":["keptThrough"]},{"exprType":"constant","kind":"Integer","value":"2"}]
-          },
-          "right": {
-           "exprType": "call",
-           "function": "index",
-           "args": [{"exprType":"fieldAccess","target":"state","path":["keptThrough"]},{"exprType":"constant","kind":"Integer","value":"0"}]
-          }
-         }
-        }
-       }
+       "exprType": "call",
+       "function": "index",
+       "args": [{"exprType":"fieldAccess","target":"state","path":["emptyBefore"]},{"exprType":"constant","kind":"Integer","value":"0"}]
       }
-     }
-    },
-    "drops-0": {
-     "exprType": "fold",
-     "stateKey": "dropChunk",
-     "accName": "acc",
-     "itemName": "item",
-     "itemType": "String",
-     "init": {"exprType":"fieldAccess","target":"state","path":["drops"]},
-     "body": {
-      "exprType": "call",
-      "function": "append",
-      "args": [{"exprType":"fieldAccess","target":"state","path":["acc"]},{"exprType":"fieldAccess","target":"state","path":["item"]}]
-     }
+     },
+     "right": {"exprType":"constant","kind":"Integer","value":"1"}
     },
     "reel-1": {
      "exprType": "compare",
@@ -2470,82 +3049,37 @@
      "left": {
       "exprType": "binary",
       "op": "Sub",
-      "left": {"exprType":"constant","kind":"Integer","value":"2"},
+      "left": {
+       "exprType": "call",
+       "function": "index",
+       "args": [{"exprType":"fieldAccess","target":"state","path":["emptyBefore"]},{"exprType":"constant","kind":"Integer","value":"2"}]
+      },
       "right": {
-       "exprType": "binary",
-       "op": "Sub",
-       "left": {
-        "exprType": "call",
-        "function": "index",
-        "args": [{"exprType":"fieldAccess","target":"state","path":["keptThrough"]},{"exprType":"constant","kind":"Integer","value":"4"}]
-       },
-       "right": {
-        "exprType": "call",
-        "function": "index",
-        "args": [{"exprType":"fieldAccess","target":"state","path":["keptThrough"]},{"exprType":"constant","kind":"Integer","value":"2"}]
-       }
+       "exprType": "call",
+       "function": "index",
+       "args": [{"exprType":"fieldAccess","target":"state","path":["emptyBefore"]},{"exprType":"constant","kind":"Integer","value":"1"}]
       }
      },
      "right": {"exprType":"constant","kind":"Integer","value":"0"}
     },
-    "chunk-1": {
-     "exprType": "filter",
-     "stateKey": "paidStrip1",
-     "itemName": "item",
-     "indexName": "place",
-     "itemType": "String",
-     "predicate": {
+    "top-1": {
+     "exprType": "binary",
+     "op": "Sub",
+     "left": {
       "exprType": "binary",
-      "op": "And",
+      "op": "Sub",
       "left": {
-       "exprType": "compare",
-       "op": "Gte",
-       "left": {"exprType":"fieldAccess","target":"state","path":["place"]},
-       "right": {"exprType":"call","function":"toNumber","args":[{"exprType":"fieldAccess","target":"state","path":["stop1"]}]}
+       "exprType": "call",
+       "function": "index",
+       "args": [{"exprType":"fieldAccess","target":"state","path":["emptyBefore"]},{"exprType":"constant","kind":"Integer","value":"2"}]
       },
       "right": {
-       "exprType": "compare",
-       "op": "Lt",
-       "left": {"exprType":"fieldAccess","target":"state","path":["place"]},
-       "right": {
-        "exprType": "binary",
-        "op": "Add",
-        "left": {"exprType":"call","function":"toNumber","args":[{"exprType":"fieldAccess","target":"state","path":["stop1"]}]},
-        "right": {
-         "exprType": "binary",
-         "op": "Sub",
-         "left": {"exprType":"constant","kind":"Integer","value":"2"},
-         "right": {
-          "exprType": "binary",
-          "op": "Sub",
-          "left": {
-           "exprType": "call",
-           "function": "index",
-           "args": [{"exprType":"fieldAccess","target":"state","path":["keptThrough"]},{"exprType":"constant","kind":"Integer","value":"4"}]
-          },
-          "right": {
-           "exprType": "call",
-           "function": "index",
-           "args": [{"exprType":"fieldAccess","target":"state","path":["keptThrough"]},{"exprType":"constant","kind":"Integer","value":"2"}]
-          }
-         }
-        }
-       }
+       "exprType": "call",
+       "function": "index",
+       "args": [{"exprType":"fieldAccess","target":"state","path":["emptyBefore"]},{"exprType":"constant","kind":"Integer","value":"1"}]
       }
-     }
-    },
-    "drops-1": {
-     "exprType": "fold",
-     "stateKey": "dropChunk",
-     "accName": "acc",
-     "itemName": "item",
-     "itemType": "String",
-     "init": {"exprType":"fieldAccess","target":"state","path":["drops"]},
-     "body": {
-      "exprType": "call",
-      "function": "append",
-      "args": [{"exprType":"fieldAccess","target":"state","path":["acc"]},{"exprType":"fieldAccess","target":"state","path":["item"]}]
-     }
+     },
+     "right": {"exprType":"constant","kind":"Integer","value":"1"}
     },
     "settle": {
      "exprType": "map",
@@ -2559,249 +3093,145 @@
        "exprType": "compare",
        "op": "Gte",
        "left": {
-        "exprType": "binary",
-        "op": "Sub",
-        "left": {
-         "exprType": "call",
-         "function": "index",
-         "args": [
-          {"exprType":"fieldAccess","target":"state","path":["keptThrough"]},
-          {
-           "exprType": "binary",
-           "op": "Add",
-           "left": {
-            "exprType": "binary",
-            "op": "Mul",
-            "left": {
-             "exprType": "call",
-             "function": "floor",
-             "args": [
-              {
-               "exprType": "binary",
-               "op": "Div",
-               "left": {"exprType":"fieldAccess","target":"state","path":["place"]},
-               "right": {"exprType":"constant","kind":"Integer","value":"2"}
-              }
-             ]
-            },
-            "right": {"exprType":"constant","kind":"Integer","value":"2"}
-           },
-           "right": {"exprType":"constant","kind":"Integer","value":"2"}
-          }
-         ]
-        },
-        "right": {
-         "exprType": "binary",
-         "op": "Sub",
-         "left": {
+        "exprType": "call",
+        "function": "index",
+        "args": [
+         {"exprType":"fieldAccess","target":"state","path":["settledSources"]},
+         {
           "exprType": "binary",
           "op": "Add",
           "left": {
            "exprType": "binary",
            "op": "Mul",
-           "left": {
+           "left": {"exprType":"constant","kind":"Integer","value":"2"},
+           "right": {
             "exprType": "call",
-            "function": "floor",
+            "function": "index",
             "args": [
+             {"exprType":"fieldAccess","target":"state","path":["columnRemoved"]},
              {
-              "exprType": "binary",
-              "op": "Div",
-              "left": {"exprType":"fieldAccess","target":"state","path":["place"]},
-              "right": {"exprType":"constant","kind":"Integer","value":"2"}
+              "exprType": "call",
+              "function": "index",
+              "args": [{"exprType":"fieldAccess","target":"state","path":["cellColumn"]},{"exprType":"fieldAccess","target":"state","path":["place"]}]
              }
             ]
-           },
-           "right": {"exprType":"constant","kind":"Integer","value":"2"}
+           }
           },
-          "right": {"exprType":"constant","kind":"Integer","value":"2"}
-         },
-         "right": {"exprType":"fieldAccess","target":"state","path":["place"]}
-        }
-       },
-       "right": {
-        "exprType": "call",
-        "function": "index",
-        "args": [
-         {"exprType":"fieldAccess","target":"state","path":["keptThrough"]},
-         {
-          "exprType": "binary",
-          "op": "Mul",
-          "left": {
+          "right": {
            "exprType": "call",
-           "function": "floor",
-           "args": [
-            {
-             "exprType": "binary",
-             "op": "Div",
-             "left": {"exprType":"fieldAccess","target":"state","path":["place"]},
-             "right": {"exprType":"constant","kind":"Integer","value":"2"}
-            }
-           ]
-          },
-          "right": {"exprType":"constant","kind":"Integer","value":"2"}
+           "function": "index",
+           "args": [{"exprType":"fieldAccess","target":"state","path":["boardRows"]},{"exprType":"fieldAccess","target":"state","path":["place"]}]
+          }
          }
         ]
-       }
+       },
+       "right": {"exprType":"constant","kind":"Integer","value":"0"}
       },
       "thenExpr": {
        "exprType": "call",
        "function": "index",
        "args": [
-        {"exprType":"fieldAccess","target":"state","path":["survivors"]},
+        {"exprType":"fieldAccess","target":"state","path":["board"]},
         {
          "exprType": "binary",
-         "op": "Sub",
+         "op": "Add",
          "left": {
           "exprType": "call",
           "function": "index",
+          "args": [{"exprType":"fieldAccess","target":"state","path":["columnStart"]},{"exprType":"fieldAccess","target":"state","path":["place"]}]
+         },
+         "right": {
+          "exprType": "call",
+          "function": "index",
           "args": [
-           {"exprType":"fieldAccess","target":"state","path":["keptThrough"]},
+           {"exprType":"fieldAccess","target":"state","path":["settledSources"]},
            {
             "exprType": "binary",
             "op": "Add",
             "left": {
              "exprType": "binary",
              "op": "Mul",
-             "left": {
+             "left": {"exprType":"constant","kind":"Integer","value":"2"},
+             "right": {
               "exprType": "call",
-              "function": "floor",
+              "function": "index",
               "args": [
+               {"exprType":"fieldAccess","target":"state","path":["columnRemoved"]},
                {
-                "exprType": "binary",
-                "op": "Div",
-                "left": {"exprType":"fieldAccess","target":"state","path":["place"]},
-                "right": {"exprType":"constant","kind":"Integer","value":"2"}
+                "exprType": "call",
+                "function": "index",
+                "args": [{"exprType":"fieldAccess","target":"state","path":["cellColumn"]},{"exprType":"fieldAccess","target":"state","path":["place"]}]
                }
               ]
-             },
-             "right": {"exprType":"constant","kind":"Integer","value":"2"}
+             }
             },
-            "right": {"exprType":"constant","kind":"Integer","value":"2"}
+            "right": {
+             "exprType": "call",
+             "function": "index",
+             "args": [{"exprType":"fieldAccess","target":"state","path":["boardRows"]},{"exprType":"fieldAccess","target":"state","path":["place"]}]
+            }
            }
           ]
-         },
-         "right": {
-          "exprType": "binary",
-          "op": "Sub",
-          "left": {
-           "exprType": "binary",
-           "op": "Add",
-           "left": {
-            "exprType": "binary",
-            "op": "Mul",
-            "left": {
-             "exprType": "call",
-             "function": "floor",
-             "args": [
-              {
-               "exprType": "binary",
-               "op": "Div",
-               "left": {"exprType":"fieldAccess","target":"state","path":["place"]},
-               "right": {"exprType":"constant","kind":"Integer","value":"2"}
-              }
-             ]
-            },
-            "right": {"exprType":"constant","kind":"Integer","value":"2"}
-           },
-           "right": {"exprType":"constant","kind":"Integer","value":"2"}
-          },
-          "right": {"exprType":"fieldAccess","target":"state","path":["place"]}
          }
         }
        ]
       },
       "elseExpr": {
-       "exprType": "call",
-       "function": "index",
-       "args": [
-        {"exprType":"fieldAccess","target":"state","path":["drops"]},
-        {
-         "exprType": "binary",
-         "op": "Sub",
-         "left": {
-          "exprType": "binary",
-          "op": "Sub",
-          "left": {
-           "exprType": "binary",
-           "op": "Add",
-           "left": {
-            "exprType": "binary",
-            "op": "Mul",
-            "left": {
-             "exprType": "call",
-             "function": "floor",
-             "args": [
-              {
-               "exprType": "binary",
-               "op": "Div",
-               "left": {"exprType":"fieldAccess","target":"state","path":["place"]},
-               "right": {"exprType":"constant","kind":"Integer","value":"2"}
-              }
-             ]
-            },
-            "right": {"exprType":"constant","kind":"Integer","value":"2"}
-           },
-           "right": {"exprType":"constant","kind":"Integer","value":"2"}
-          },
-          "right": {
-           "exprType": "call",
-           "function": "index",
-           "args": [
-            {"exprType":"fieldAccess","target":"state","path":["keptThrough"]},
-            {
-             "exprType": "binary",
-             "op": "Add",
-             "left": {
-              "exprType": "binary",
-              "op": "Mul",
-              "left": {
-               "exprType": "call",
-               "function": "floor",
-               "args": [
-                {
-                 "exprType": "binary",
-                 "op": "Div",
-                 "left": {"exprType":"fieldAccess","target":"state","path":["place"]},
-                 "right": {"exprType":"constant","kind":"Integer","value":"2"}
-                }
-               ]
-              },
-              "right": {"exprType":"constant","kind":"Integer","value":"2"}
-             },
-             "right": {"exprType":"constant","kind":"Integer","value":"2"}
-            }
-           ]
-          }
-         },
-         "right": {
+       "exprType": "if",
+       "condition": {
+        "exprType": "compare",
+        "op": "Lt",
+        "left": {
+         "exprType": "call",
+         "function": "index",
+         "args": [{"exprType":"fieldAccess","target":"state","path":["cellColumn"]},{"exprType":"fieldAccess","target":"state","path":["place"]}]
+        },
+        "right": {"exprType":"constant","kind":"Integer","value":"1"}
+       },
+       "thenExpr": {
+        "exprType": "call",
+        "function": "index",
+        "args": [
+         {"exprType":"fieldAccess","target":"state","path":["paidStrip0"]},
+         {
           "exprType": "binary",
           "op": "Add",
-          "left": {
+          "left": {"exprType":"call","function":"toNumber","args":[{"exprType":"fieldAccess","target":"state","path":["stop0"]}]},
+          "right": {
            "exprType": "binary",
            "op": "Sub",
-           "left": {"exprType":"fieldAccess","target":"state","path":["place"]},
+           "left": {"exprType":"fieldAccess","target":"state","path":["topDrop0"]},
            "right": {
-            "exprType": "binary",
-            "op": "Mul",
-            "left": {
-             "exprType": "call",
-             "function": "floor",
-             "args": [
-              {
-               "exprType": "binary",
-               "op": "Div",
-               "left": {"exprType":"fieldAccess","target":"state","path":["place"]},
-               "right": {"exprType":"constant","kind":"Integer","value":"2"}
-              }
-             ]
-            },
-            "right": {"exprType":"constant","kind":"Integer","value":"2"}
+            "exprType": "call",
+            "function": "index",
+            "args": [{"exprType":"fieldAccess","target":"state","path":["boardRows"]},{"exprType":"fieldAccess","target":"state","path":["place"]}]
            }
-          },
-          "right": {"exprType":"constant","kind":"Integer","value":"1"}
+          }
          }
-        }
-       ]
+        ]
+       },
+       "elseExpr": {
+        "exprType": "call",
+        "function": "index",
+        "args": [
+         {"exprType":"fieldAccess","target":"state","path":["paidStrip1"]},
+         {
+          "exprType": "binary",
+          "op": "Add",
+          "left": {"exprType":"call","function":"toNumber","args":[{"exprType":"fieldAccess","target":"state","path":["stop1"]}]},
+          "right": {
+           "exprType": "binary",
+           "op": "Sub",
+           "left": {"exprType":"fieldAccess","target":"state","path":["topDrop1"]},
+           "right": {
+            "exprType": "call",
+            "function": "index",
+            "args": [{"exprType":"fieldAccess","target":"state","path":["boardRows"]},{"exprType":"fieldAccess","target":"state","path":["place"]}]
+           }
+          }
+         }
+        ]
+       }
       }
      }
     },
@@ -2817,153 +3247,85 @@
        "exprType": "compare",
        "op": "Gte",
        "left": {
-        "exprType": "binary",
-        "op": "Sub",
-        "left": {
-         "exprType": "call",
-         "function": "index",
-         "args": [
-          {"exprType":"fieldAccess","target":"state","path":["keptThrough"]},
-          {
-           "exprType": "binary",
-           "op": "Add",
-           "left": {
-            "exprType": "binary",
-            "op": "Mul",
-            "left": {
-             "exprType": "call",
-             "function": "floor",
-             "args": [
-              {
-               "exprType": "binary",
-               "op": "Div",
-               "left": {"exprType":"fieldAccess","target":"state","path":["place"]},
-               "right": {"exprType":"constant","kind":"Integer","value":"2"}
-              }
-             ]
-            },
-            "right": {"exprType":"constant","kind":"Integer","value":"2"}
-           },
-           "right": {"exprType":"constant","kind":"Integer","value":"2"}
-          }
-         ]
-        },
-        "right": {
-         "exprType": "binary",
-         "op": "Sub",
-         "left": {
+        "exprType": "call",
+        "function": "index",
+        "args": [
+         {"exprType":"fieldAccess","target":"state","path":["settledSources"]},
+         {
           "exprType": "binary",
           "op": "Add",
           "left": {
            "exprType": "binary",
            "op": "Mul",
-           "left": {
+           "left": {"exprType":"constant","kind":"Integer","value":"2"},
+           "right": {
             "exprType": "call",
-            "function": "floor",
+            "function": "index",
             "args": [
+             {"exprType":"fieldAccess","target":"state","path":["columnRemoved"]},
              {
-              "exprType": "binary",
-              "op": "Div",
-              "left": {"exprType":"fieldAccess","target":"state","path":["place"]},
-              "right": {"exprType":"constant","kind":"Integer","value":"2"}
+              "exprType": "call",
+              "function": "index",
+              "args": [{"exprType":"fieldAccess","target":"state","path":["cellColumn"]},{"exprType":"fieldAccess","target":"state","path":["place"]}]
              }
             ]
-           },
-           "right": {"exprType":"constant","kind":"Integer","value":"2"}
+           }
           },
-          "right": {"exprType":"constant","kind":"Integer","value":"2"}
-         },
-         "right": {"exprType":"fieldAccess","target":"state","path":["place"]}
-        }
-       },
-       "right": {
-        "exprType": "call",
-        "function": "index",
-        "args": [
-         {"exprType":"fieldAccess","target":"state","path":["keptThrough"]},
-         {
-          "exprType": "binary",
-          "op": "Mul",
-          "left": {
+          "right": {
            "exprType": "call",
-           "function": "floor",
-           "args": [
-            {
-             "exprType": "binary",
-             "op": "Div",
-             "left": {"exprType":"fieldAccess","target":"state","path":["place"]},
-             "right": {"exprType":"constant","kind":"Integer","value":"2"}
-            }
-           ]
-          },
-          "right": {"exprType":"constant","kind":"Integer","value":"2"}
+           "function": "index",
+           "args": [{"exprType":"fieldAccess","target":"state","path":["boardRows"]},{"exprType":"fieldAccess","target":"state","path":["place"]}]
+          }
          }
         ]
-       }
+       },
+       "right": {"exprType":"constant","kind":"Integer","value":"0"}
       },
       "thenExpr": {
        "exprType": "call",
        "function": "index",
        "args": [
-        {"exprType":"fieldAccess","target":"state","path":["heldSurvivors"]},
+        {"exprType":"fieldAccess","target":"state","path":["held"]},
         {
          "exprType": "binary",
-         "op": "Sub",
+         "op": "Add",
          "left": {
           "exprType": "call",
           "function": "index",
+          "args": [{"exprType":"fieldAccess","target":"state","path":["columnStart"]},{"exprType":"fieldAccess","target":"state","path":["place"]}]
+         },
+         "right": {
+          "exprType": "call",
+          "function": "index",
           "args": [
-           {"exprType":"fieldAccess","target":"state","path":["keptThrough"]},
+           {"exprType":"fieldAccess","target":"state","path":["settledSources"]},
            {
             "exprType": "binary",
             "op": "Add",
             "left": {
              "exprType": "binary",
              "op": "Mul",
-             "left": {
+             "left": {"exprType":"constant","kind":"Integer","value":"2"},
+             "right": {
               "exprType": "call",
-              "function": "floor",
+              "function": "index",
               "args": [
+               {"exprType":"fieldAccess","target":"state","path":["columnRemoved"]},
                {
-                "exprType": "binary",
-                "op": "Div",
-                "left": {"exprType":"fieldAccess","target":"state","path":["place"]},
-                "right": {"exprType":"constant","kind":"Integer","value":"2"}
+                "exprType": "call",
+                "function": "index",
+                "args": [{"exprType":"fieldAccess","target":"state","path":["cellColumn"]},{"exprType":"fieldAccess","target":"state","path":["place"]}]
                }
               ]
-             },
-             "right": {"exprType":"constant","kind":"Integer","value":"2"}
+             }
             },
-            "right": {"exprType":"constant","kind":"Integer","value":"2"}
+            "right": {
+             "exprType": "call",
+             "function": "index",
+             "args": [{"exprType":"fieldAccess","target":"state","path":["boardRows"]},{"exprType":"fieldAccess","target":"state","path":["place"]}]
+            }
            }
           ]
-         },
-         "right": {
-          "exprType": "binary",
-          "op": "Sub",
-          "left": {
-           "exprType": "binary",
-           "op": "Add",
-           "left": {
-            "exprType": "binary",
-            "op": "Mul",
-            "left": {
-             "exprType": "call",
-             "function": "floor",
-             "args": [
-              {
-               "exprType": "binary",
-               "op": "Div",
-               "left": {"exprType":"fieldAccess","target":"state","path":["place"]},
-               "right": {"exprType":"constant","kind":"Integer","value":"2"}
-              }
-             ]
-            },
-            "right": {"exprType":"constant","kind":"Integer","value":"2"}
-           },
-           "right": {"exprType":"constant","kind":"Integer","value":"2"}
-          },
-          "right": {"exprType":"fieldAccess","target":"state","path":["place"]}
          }
         }
        ]
@@ -2989,7 +3351,7 @@
     {
      "nodeType": "modifyState",
      "id": "scatters",
-     "label": "Count the SCATTERs that dropped in",
+     "label": "Count the SCATTERs that dropped in: those on the board now, less those that stayed",
      "outputKey": "scatterCount",
      "expressionId": "scatters",
      "inputs": {"state":{"name":"state","type":"State"}},
@@ -3015,16 +3377,33 @@
      "op": "Add",
      "left": {"exprType":"fieldAccess","target":"state","path":["scatterCount"]},
      "right": {
-      "exprType": "aggregate",
-      "func": "Count",
-      "stateKey": "drops",
-      "itemName": "item",
-      "itemType": "String",
-      "predicate": {
-       "exprType": "compare",
-       "op": "Eq",
-       "left": {"exprType":"fieldAccess","target":"state","path":["item"]},
-       "right": {"exprType":"constant","kind":"String","value":"11"}
+      "exprType": "binary",
+      "op": "Sub",
+      "left": {
+       "exprType": "aggregate",
+       "func": "Count",
+       "stateKey": "board",
+       "itemName": "item",
+       "itemType": "String",
+       "predicate": {
+        "exprType": "compare",
+        "op": "Eq",
+        "left": {"exprType":"fieldAccess","target":"state","path":["item"]},
+        "right": {"exprType":"constant","kind":"String","value":"11"}
+       }
+      },
+      "right": {
+       "exprType": "aggregate",
+       "func": "Count",
+       "stateKey": "survivors",
+       "itemName": "item",
+       "itemType": "String",
+       "predicate": {
+        "exprType": "compare",
+        "op": "Eq",
+        "left": {"exprType":"fieldAccess","target":"state","path":["item"]},
+        "right": {"exprType":"constant","kind":"String","value":"11"}
+       }
       }
      }
     },
@@ -3108,8 +3487,8 @@
     },
     {
      "nodeType": "getState",
-     "id": "pays-join",
-     "label": "Continue",
+     "id": "done",
+     "label": "Done",
      "inputs": {"state":{"name":"state","type":"State"}},
      "outputs": {"state":{"name":"state","type":"State"}}
     },
@@ -3137,8 +3516,8 @@
     {"id":"trace-after.state->count","sourceNodeId":"trace-after","sourcePort":"state","targetNodeId":"count","targetPort":"state"},
     {"id":"count.state->pays","sourceNodeId":"count","sourcePort":"state","targetNodeId":"pays","targetPort":"state"},
     {"id":"pays.true->pays-yes","sourceNodeId":"pays","sourcePort":"true","targetNodeId":"pays-yes","targetPort":"state"},
-    {"id":"pays.false->pays-join","sourceNodeId":"pays","sourcePort":"false","targetNodeId":"pays-join","targetPort":"state"},
-    {"id":"pays-yes.state->pays-join","sourceNodeId":"pays-yes","sourcePort":"state","targetNodeId":"pays-join","targetPort":"state"}
+    {"id":"pays.false->done","sourceNodeId":"pays","sourcePort":"false","targetNodeId":"done","targetPort":"state"},
+    {"id":"pays-yes.state->done","sourceNodeId":"pays-yes","sourcePort":"state","targetNodeId":"done","targetPort":"state"}
    ],
    "expressions": {
     "trace-board": {
@@ -3157,7 +3536,38 @@
      "thenExpr": {
       "exprType": "call",
       "function": "append",
-      "args": [{"exprType":"fieldAccess","target":"state","path":["cascadeRemoved"]},{"exprType":"fieldAccess","target":"state","path":["removed"]}]
+      "args": [
+       {"exprType":"fieldAccess","target":"state","path":["cascadeRemoved"]},
+       {
+        "exprType": "map",
+        "stateKey": "board",
+        "itemName": "item",
+        "indexName": "place",
+        "itemType": "String",
+        "body": {
+         "exprType": "if",
+         "condition": {
+          "exprType": "compare",
+          "op": "Gt",
+          "left": {
+           "exprType": "bitset",
+           "op": "Intersect",
+           "args": [
+            {"exprType":"fieldAccess","target":"state","path":["removed"]},
+            {
+             "exprType": "bitset",
+             "op": "Shift",
+             "args": [{"exprType":"constant","kind":"Integer","value":"1"},{"exprType":"fieldAccess","target":"state","path":["place"]}]
+            }
+           ]
+          },
+          "right": {"exprType":"constant","kind":"Integer","value":"0"}
+         },
+         "thenExpr": {"exprType":"constant","kind":"Integer","value":"1"},
+         "elseExpr": {"exprType":"constant","kind":"Integer","value":"0"}
+        }
+       }
+      ]
      },
      "elseExpr": {"exprType":"fieldAccess","target":"state","path":["cascadeRemoved"]}
     },
@@ -3714,6 +4124,24 @@
    "nodes": [
     {
      "nodeType": "modifyState",
+     "id": "empty-cells",
+     "label": "Count the empty cells in the columns before each column",
+     "outputKey": "emptyBefore",
+     "expressionId": "empty-cells",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}}
+    },
+    {
+     "nodeType": "modifyState",
+     "id": "column-removed",
+     "label": "Read the removal pattern of each column",
+     "outputKey": "columnRemoved",
+     "expressionId": "column-removed",
+     "inputs": {"state":{"name":"state","type":"State"}},
+     "outputs": {"state":{"name":"state","type":"State"}}
+    },
+    {
+     "nodeType": "modifyState",
      "id": "survivors",
      "label": "The symbols that stay, in board order",
      "outputKey": "survivors",
@@ -3731,24 +4159,6 @@
      "outputs": {"state":{"name":"state","type":"State"}}
     },
     {
-     "nodeType": "modifyState",
-     "id": "count",
-     "label": "Count the symbols that stay, cell by cell",
-     "outputKey": "keptThrough",
-     "expressionId": "count",
-     "inputs": {"state":{"name":"state","type":"State"}},
-     "outputs": {"state":{"name":"state","type":"State"}}
-    },
-    {
-     "nodeType": "modifyState",
-     "id": "empty",
-     "label": "No new symbol has dropped yet",
-     "outputKey": "drops",
-     "expressionId": "empty",
-     "inputs": {"state":{"name":"state","type":"State"}},
-     "outputs": {"state":{"name":"state","type":"State"}}
-    },
-    {
      "nodeType": "branch",
      "id": "reel-0",
      "label": "Does reel 1 have empty cells?",
@@ -3757,26 +4167,12 @@
      "outputs": {"true":{"name":"true","type":"State"},"false":{"name":"false","type":"State"}}
     },
     {
-     "nodeType": "getState",
-     "id": "reel-0-join",
-     "label": "Continue",
-     "inputs": {"state":{"name":"state","type":"State"}},
-     "outputs": {"state":{"name":"state","type":"State"}}
-    },
-    {
      "nodeType": "branch",
      "id": "reel-1",
      "label": "Does reel 2 have empty cells?",
      "conditionId": "reel-1",
      "inputs": {"state":{"name":"state","type":"State"}},
      "outputs": {"true":{"name":"true","type":"State"},"false":{"name":"false","type":"State"}}
-    },
-    {
-     "nodeType": "getState",
-     "id": "reel-1-join",
-     "label": "Continue",
-     "inputs": {"state":{"name":"state","type":"State"}},
-     "outputs": {"state":{"name":"state","type":"State"}}
     },
     {
      "nodeType": "modifyState",
@@ -3807,19 +4203,10 @@
     },
     {
      "nodeType": "modifyState",
-     "id": "chunk-0",
-     "label": "The symbols from the stop on, one for every empty cell",
-     "outputKey": "dropChunk",
-     "expressionId": "chunk-0",
-     "inputs": {"state":{"name":"state","type":"State"}},
-     "outputs": {"state":{"name":"state","type":"State"}}
-    },
-    {
-     "nodeType": "modifyState",
-     "id": "drops-0",
-     "label": "They wait above the board with the others",
-     "outputKey": "drops",
-     "expressionId": "drops-0",
+     "id": "top-0",
+     "label": "How far below the stop the symbol for the top cell is",
+     "outputKey": "topDrop0",
+     "expressionId": "top-0",
      "inputs": {"state":{"name":"state","type":"State"}},
      "outputs": {"state":{"name":"state","type":"State"}}
     },
@@ -3834,24 +4221,29 @@
     },
     {
      "nodeType": "modifyState",
-     "id": "chunk-1",
-     "label": "The symbols from the stop on, one for every empty cell",
-     "outputKey": "dropChunk",
-     "expressionId": "chunk-1",
-     "inputs": {"state":{"name":"state","type":"State"}},
-     "outputs": {"state":{"name":"state","type":"State"}}
-    },
-    {
-     "nodeType": "modifyState",
-     "id": "drops-1",
-     "label": "They wait above the board with the others",
-     "outputKey": "drops",
-     "expressionId": "drops-1",
+     "id": "top-1",
+     "label": "How far below the stop the symbol for the top cell is",
+     "outputKey": "topDrop1",
+     "expressionId": "top-1",
      "inputs": {"state":{"name":"state","type":"State"}},
      "outputs": {"state":{"name":"state","type":"State"}}
     }
    ],
    "edges": [
+    {
+     "id": "empty-cells.state->column-removed",
+     "sourceNodeId": "empty-cells",
+     "sourcePort": "state",
+     "targetNodeId": "column-removed",
+     "targetPort": "state"
+    },
+    {
+     "id": "column-removed.state->survivors",
+     "sourceNodeId": "column-removed",
+     "sourcePort": "state",
+     "targetNodeId": "survivors",
+     "targetPort": "state"
+    },
     {
      "id": "survivors.state->survivors-held",
      "sourceNodeId": "survivors",
@@ -3859,24 +4251,61 @@
      "targetNodeId": "survivors-held",
      "targetPort": "state"
     },
-    {"id":"survivors-held.state->count","sourceNodeId":"survivors-held","sourcePort":"state","targetNodeId":"count","targetPort":"state"},
-    {"id":"count.state->empty","sourceNodeId":"count","sourcePort":"state","targetNodeId":"empty","targetPort":"state"},
-    {"id":"empty.state->reel-0","sourceNodeId":"empty","sourcePort":"state","targetNodeId":"reel-0","targetPort":"state"},
-    {"id":"stop-0.state->chunk-0","sourceNodeId":"stop-0","sourcePort":"state","targetNodeId":"chunk-0","targetPort":"state"},
-    {"id":"chunk-0.state->drops-0","sourceNodeId":"chunk-0","sourcePort":"state","targetNodeId":"drops-0","targetPort":"state"},
+    {"id":"survivors-held.state->reel-0","sourceNodeId":"survivors-held","sourcePort":"state","targetNodeId":"reel-0","targetPort":"state"},
+    {"id":"stop-0.state->top-0","sourceNodeId":"stop-0","sourcePort":"state","targetNodeId":"top-0","targetPort":"state"},
     {"id":"reel-0.true->stop-0","sourceNodeId":"reel-0","sourcePort":"true","targetNodeId":"stop-0","targetPort":"state"},
-    {"id":"drops-0.state->reel-0-join","sourceNodeId":"drops-0","sourcePort":"state","targetNodeId":"reel-0-join","targetPort":"state"},
-    {"id":"reel-0.false->reel-0-join","sourceNodeId":"reel-0","sourcePort":"false","targetNodeId":"reel-0-join","targetPort":"state"},
-    {"id":"reel-0-join.state->reel-1","sourceNodeId":"reel-0-join","sourcePort":"state","targetNodeId":"reel-1","targetPort":"state"},
-    {"id":"stop-1.state->chunk-1","sourceNodeId":"stop-1","sourcePort":"state","targetNodeId":"chunk-1","targetPort":"state"},
-    {"id":"chunk-1.state->drops-1","sourceNodeId":"chunk-1","sourcePort":"state","targetNodeId":"drops-1","targetPort":"state"},
+    {"id":"top-0.state->reel-1","sourceNodeId":"top-0","sourcePort":"state","targetNodeId":"reel-1","targetPort":"state"},
+    {"id":"reel-0.false->reel-1","sourceNodeId":"reel-0","sourcePort":"false","targetNodeId":"reel-1","targetPort":"state"},
+    {"id":"stop-1.state->top-1","sourceNodeId":"stop-1","sourcePort":"state","targetNodeId":"top-1","targetPort":"state"},
     {"id":"reel-1.true->stop-1","sourceNodeId":"reel-1","sourcePort":"true","targetNodeId":"stop-1","targetPort":"state"},
-    {"id":"drops-1.state->reel-1-join","sourceNodeId":"drops-1","sourcePort":"state","targetNodeId":"reel-1-join","targetPort":"state"},
-    {"id":"reel-1.false->reel-1-join","sourceNodeId":"reel-1","sourcePort":"false","targetNodeId":"reel-1-join","targetPort":"state"},
-    {"id":"reel-1-join.state->settle","sourceNodeId":"reel-1-join","sourcePort":"state","targetNodeId":"settle","targetPort":"state"},
+    {"id":"top-1.state->settle","sourceNodeId":"top-1","sourcePort":"state","targetNodeId":"settle","targetPort":"state"},
+    {"id":"reel-1.false->settle","sourceNodeId":"reel-1","sourcePort":"false","targetNodeId":"settle","targetPort":"state"},
     {"id":"settle.state->settle-held","sourceNodeId":"settle","sourcePort":"state","targetNodeId":"settle-held","targetPort":"state"}
    ],
    "expressions": {
+    "empty-cells": {
+     "exprType": "map",
+     "stateKey": "columnsBefore",
+     "itemName": "item",
+     "itemType": "Number",
+     "body": {
+      "exprType": "bitset",
+      "op": "Count",
+      "args": [
+       {
+        "exprType": "bitset",
+        "op": "Intersect",
+        "args": [{"exprType":"fieldAccess","target":"state","path":["removed"]},{"exprType":"fieldAccess","target":"state","path":["item"]}]
+       }
+      ]
+     }
+    },
+    "column-removed": {
+     "exprType": "map",
+     "stateKey": "columnOffsets",
+     "itemName": "item",
+     "itemType": "Number",
+     "body": {
+      "exprType": "bitset",
+      "op": "Intersect",
+      "args": [
+       {
+        "exprType": "bitset",
+        "op": "Shift",
+        "args": [
+         {"exprType":"fieldAccess","target":"state","path":["removed"]},
+         {
+          "exprType": "binary",
+          "op": "Sub",
+          "left": {"exprType":"constant","kind":"Integer","value":"0"},
+          "right": {"exprType":"fieldAccess","target":"state","path":["item"]}
+         }
+        ]
+       },
+       {"exprType":"constant","kind":"Integer","value":"3"}
+      ]
+     }
+    },
     "survivors": {
      "exprType": "filter",
      "stateKey": "board",
@@ -3884,14 +4313,24 @@
      "indexName": "place",
      "itemType": "String",
      "predicate": {
-      "exprType": "compare",
-      "op": "Eq",
-      "left": {
-       "exprType": "call",
-       "function": "index",
-       "args": [{"exprType":"fieldAccess","target":"state","path":["removed"]},{"exprType":"fieldAccess","target":"state","path":["place"]}]
-      },
-      "right": {"exprType":"constant","kind":"Integer","value":"0"}
+      "exprType": "not",
+      "expr": {
+       "exprType": "compare",
+       "op": "Gt",
+       "left": {
+        "exprType": "bitset",
+        "op": "Intersect",
+        "args": [
+         {"exprType":"fieldAccess","target":"state","path":["removed"]},
+         {
+          "exprType": "bitset",
+          "op": "Shift",
+          "args": [{"exprType":"constant","kind":"Integer","value":"1"},{"exprType":"fieldAccess","target":"state","path":["place"]}]
+         }
+        ]
+       },
+       "right": {"exprType":"constant","kind":"Integer","value":"0"}
+      }
      }
     },
     "survivors-held": {
@@ -3901,130 +4340,63 @@
      "indexName": "place",
      "itemType": "Number",
      "predicate": {
-      "exprType": "compare",
-      "op": "Eq",
-      "left": {
-       "exprType": "call",
-       "function": "index",
-       "args": [{"exprType":"fieldAccess","target":"state","path":["removed"]},{"exprType":"fieldAccess","target":"state","path":["place"]}]
-      },
-      "right": {"exprType":"constant","kind":"Integer","value":"0"}
+      "exprType": "not",
+      "expr": {
+       "exprType": "compare",
+       "op": "Gt",
+       "left": {
+        "exprType": "bitset",
+        "op": "Intersect",
+        "args": [
+         {"exprType":"fieldAccess","target":"state","path":["removed"]},
+         {
+          "exprType": "bitset",
+          "op": "Shift",
+          "args": [{"exprType":"constant","kind":"Integer","value":"1"},{"exprType":"fieldAccess","target":"state","path":["place"]}]
+         }
+        ]
+       },
+       "right": {"exprType":"constant","kind":"Integer","value":"0"}
+      }
      }
     },
-    "count": {
-     "exprType": "fold",
-     "stateKey": "removed",
-     "accName": "acc",
-     "itemName": "item",
-     "indexName": "place",
-     "itemType": "Number",
-     "init": {"exprType":"fieldAccess","target":"state","path":["fromZero"]},
-     "body": {
-      "exprType": "call",
-      "function": "append",
-      "args": [
-       {"exprType":"fieldAccess","target":"state","path":["acc"]},
-       {
-        "exprType": "binary",
-        "op": "Add",
-        "left": {
-         "exprType": "call",
-         "function": "index",
-         "args": [{"exprType":"fieldAccess","target":"state","path":["acc"]},{"exprType":"fieldAccess","target":"state","path":["place"]}]
-        },
-        "right": {
-         "exprType": "binary",
-         "op": "Sub",
-         "left": {"exprType":"constant","kind":"Integer","value":"1"},
-         "right": {"exprType":"fieldAccess","target":"state","path":["item"]}
-        }
-       }
-      ]
-     }
-    },
-    "empty": {"exprType":"fieldAccess","target":"state","path":["emptyArray"]},
     "reel-0": {
      "exprType": "compare",
      "op": "Gt",
      "left": {
       "exprType": "binary",
       "op": "Sub",
-      "left": {"exprType":"constant","kind":"Integer","value":"2"},
+      "left": {
+       "exprType": "call",
+       "function": "index",
+       "args": [{"exprType":"fieldAccess","target":"state","path":["emptyBefore"]},{"exprType":"constant","kind":"Integer","value":"1"}]
+      },
       "right": {
-       "exprType": "binary",
-       "op": "Sub",
-       "left": {
-        "exprType": "call",
-        "function": "index",
-        "args": [{"exprType":"fieldAccess","target":"state","path":["keptThrough"]},{"exprType":"constant","kind":"Integer","value":"2"}]
-       },
-       "right": {
-        "exprType": "call",
-        "function": "index",
-        "args": [{"exprType":"fieldAccess","target":"state","path":["keptThrough"]},{"exprType":"constant","kind":"Integer","value":"0"}]
-       }
+       "exprType": "call",
+       "function": "index",
+       "args": [{"exprType":"fieldAccess","target":"state","path":["emptyBefore"]},{"exprType":"constant","kind":"Integer","value":"0"}]
       }
      },
      "right": {"exprType":"constant","kind":"Integer","value":"0"}
     },
-    "chunk-0": {
-     "exprType": "filter",
-     "stateKey": "freeStrip0",
-     "itemName": "item",
-     "indexName": "place",
-     "itemType": "String",
-     "predicate": {
+    "top-0": {
+     "exprType": "binary",
+     "op": "Sub",
+     "left": {
       "exprType": "binary",
-      "op": "And",
+      "op": "Sub",
       "left": {
-       "exprType": "compare",
-       "op": "Gte",
-       "left": {"exprType":"fieldAccess","target":"state","path":["place"]},
-       "right": {"exprType":"call","function":"toNumber","args":[{"exprType":"fieldAccess","target":"state","path":["stop0"]}]}
+       "exprType": "call",
+       "function": "index",
+       "args": [{"exprType":"fieldAccess","target":"state","path":["emptyBefore"]},{"exprType":"constant","kind":"Integer","value":"1"}]
       },
       "right": {
-       "exprType": "compare",
-       "op": "Lt",
-       "left": {"exprType":"fieldAccess","target":"state","path":["place"]},
-       "right": {
-        "exprType": "binary",
-        "op": "Add",
-        "left": {"exprType":"call","function":"toNumber","args":[{"exprType":"fieldAccess","target":"state","path":["stop0"]}]},
-        "right": {
-         "exprType": "binary",
-         "op": "Sub",
-         "left": {"exprType":"constant","kind":"Integer","value":"2"},
-         "right": {
-          "exprType": "binary",
-          "op": "Sub",
-          "left": {
-           "exprType": "call",
-           "function": "index",
-           "args": [{"exprType":"fieldAccess","target":"state","path":["keptThrough"]},{"exprType":"constant","kind":"Integer","value":"2"}]
-          },
-          "right": {
-           "exprType": "call",
-           "function": "index",
-           "args": [{"exprType":"fieldAccess","target":"state","path":["keptThrough"]},{"exprType":"constant","kind":"Integer","value":"0"}]
-          }
-         }
-        }
-       }
+       "exprType": "call",
+       "function": "index",
+       "args": [{"exprType":"fieldAccess","target":"state","path":["emptyBefore"]},{"exprType":"constant","kind":"Integer","value":"0"}]
       }
-     }
-    },
-    "drops-0": {
-     "exprType": "fold",
-     "stateKey": "dropChunk",
-     "accName": "acc",
-     "itemName": "item",
-     "itemType": "String",
-     "init": {"exprType":"fieldAccess","target":"state","path":["drops"]},
-     "body": {
-      "exprType": "call",
-      "function": "append",
-      "args": [{"exprType":"fieldAccess","target":"state","path":["acc"]},{"exprType":"fieldAccess","target":"state","path":["item"]}]
-     }
+     },
+     "right": {"exprType":"constant","kind":"Integer","value":"1"}
     },
     "reel-1": {
      "exprType": "compare",
@@ -4032,82 +4404,37 @@
      "left": {
       "exprType": "binary",
       "op": "Sub",
-      "left": {"exprType":"constant","kind":"Integer","value":"2"},
+      "left": {
+       "exprType": "call",
+       "function": "index",
+       "args": [{"exprType":"fieldAccess","target":"state","path":["emptyBefore"]},{"exprType":"constant","kind":"Integer","value":"2"}]
+      },
       "right": {
-       "exprType": "binary",
-       "op": "Sub",
-       "left": {
-        "exprType": "call",
-        "function": "index",
-        "args": [{"exprType":"fieldAccess","target":"state","path":["keptThrough"]},{"exprType":"constant","kind":"Integer","value":"4"}]
-       },
-       "right": {
-        "exprType": "call",
-        "function": "index",
-        "args": [{"exprType":"fieldAccess","target":"state","path":["keptThrough"]},{"exprType":"constant","kind":"Integer","value":"2"}]
-       }
+       "exprType": "call",
+       "function": "index",
+       "args": [{"exprType":"fieldAccess","target":"state","path":["emptyBefore"]},{"exprType":"constant","kind":"Integer","value":"1"}]
       }
      },
      "right": {"exprType":"constant","kind":"Integer","value":"0"}
     },
-    "chunk-1": {
-     "exprType": "filter",
-     "stateKey": "freeStrip1",
-     "itemName": "item",
-     "indexName": "place",
-     "itemType": "String",
-     "predicate": {
+    "top-1": {
+     "exprType": "binary",
+     "op": "Sub",
+     "left": {
       "exprType": "binary",
-      "op": "And",
+      "op": "Sub",
       "left": {
-       "exprType": "compare",
-       "op": "Gte",
-       "left": {"exprType":"fieldAccess","target":"state","path":["place"]},
-       "right": {"exprType":"call","function":"toNumber","args":[{"exprType":"fieldAccess","target":"state","path":["stop1"]}]}
+       "exprType": "call",
+       "function": "index",
+       "args": [{"exprType":"fieldAccess","target":"state","path":["emptyBefore"]},{"exprType":"constant","kind":"Integer","value":"2"}]
       },
       "right": {
-       "exprType": "compare",
-       "op": "Lt",
-       "left": {"exprType":"fieldAccess","target":"state","path":["place"]},
-       "right": {
-        "exprType": "binary",
-        "op": "Add",
-        "left": {"exprType":"call","function":"toNumber","args":[{"exprType":"fieldAccess","target":"state","path":["stop1"]}]},
-        "right": {
-         "exprType": "binary",
-         "op": "Sub",
-         "left": {"exprType":"constant","kind":"Integer","value":"2"},
-         "right": {
-          "exprType": "binary",
-          "op": "Sub",
-          "left": {
-           "exprType": "call",
-           "function": "index",
-           "args": [{"exprType":"fieldAccess","target":"state","path":["keptThrough"]},{"exprType":"constant","kind":"Integer","value":"4"}]
-          },
-          "right": {
-           "exprType": "call",
-           "function": "index",
-           "args": [{"exprType":"fieldAccess","target":"state","path":["keptThrough"]},{"exprType":"constant","kind":"Integer","value":"2"}]
-          }
-         }
-        }
-       }
+       "exprType": "call",
+       "function": "index",
+       "args": [{"exprType":"fieldAccess","target":"state","path":["emptyBefore"]},{"exprType":"constant","kind":"Integer","value":"1"}]
       }
-     }
-    },
-    "drops-1": {
-     "exprType": "fold",
-     "stateKey": "dropChunk",
-     "accName": "acc",
-     "itemName": "item",
-     "itemType": "String",
-     "init": {"exprType":"fieldAccess","target":"state","path":["drops"]},
-     "body": {
-      "exprType": "call",
-      "function": "append",
-      "args": [{"exprType":"fieldAccess","target":"state","path":["acc"]},{"exprType":"fieldAccess","target":"state","path":["item"]}]
-     }
+     },
+     "right": {"exprType":"constant","kind":"Integer","value":"1"}
     },
     "settle": {
      "exprType": "map",
@@ -4121,249 +4448,145 @@
        "exprType": "compare",
        "op": "Gte",
        "left": {
-        "exprType": "binary",
-        "op": "Sub",
-        "left": {
-         "exprType": "call",
-         "function": "index",
-         "args": [
-          {"exprType":"fieldAccess","target":"state","path":["keptThrough"]},
-          {
-           "exprType": "binary",
-           "op": "Add",
-           "left": {
-            "exprType": "binary",
-            "op": "Mul",
-            "left": {
-             "exprType": "call",
-             "function": "floor",
-             "args": [
-              {
-               "exprType": "binary",
-               "op": "Div",
-               "left": {"exprType":"fieldAccess","target":"state","path":["place"]},
-               "right": {"exprType":"constant","kind":"Integer","value":"2"}
-              }
-             ]
-            },
-            "right": {"exprType":"constant","kind":"Integer","value":"2"}
-           },
-           "right": {"exprType":"constant","kind":"Integer","value":"2"}
-          }
-         ]
-        },
-        "right": {
-         "exprType": "binary",
-         "op": "Sub",
-         "left": {
+        "exprType": "call",
+        "function": "index",
+        "args": [
+         {"exprType":"fieldAccess","target":"state","path":["settledSources"]},
+         {
           "exprType": "binary",
           "op": "Add",
           "left": {
            "exprType": "binary",
            "op": "Mul",
-           "left": {
+           "left": {"exprType":"constant","kind":"Integer","value":"2"},
+           "right": {
             "exprType": "call",
-            "function": "floor",
+            "function": "index",
             "args": [
+             {"exprType":"fieldAccess","target":"state","path":["columnRemoved"]},
              {
-              "exprType": "binary",
-              "op": "Div",
-              "left": {"exprType":"fieldAccess","target":"state","path":["place"]},
-              "right": {"exprType":"constant","kind":"Integer","value":"2"}
+              "exprType": "call",
+              "function": "index",
+              "args": [{"exprType":"fieldAccess","target":"state","path":["cellColumn"]},{"exprType":"fieldAccess","target":"state","path":["place"]}]
              }
             ]
-           },
-           "right": {"exprType":"constant","kind":"Integer","value":"2"}
+           }
           },
-          "right": {"exprType":"constant","kind":"Integer","value":"2"}
-         },
-         "right": {"exprType":"fieldAccess","target":"state","path":["place"]}
-        }
-       },
-       "right": {
-        "exprType": "call",
-        "function": "index",
-        "args": [
-         {"exprType":"fieldAccess","target":"state","path":["keptThrough"]},
-         {
-          "exprType": "binary",
-          "op": "Mul",
-          "left": {
+          "right": {
            "exprType": "call",
-           "function": "floor",
-           "args": [
-            {
-             "exprType": "binary",
-             "op": "Div",
-             "left": {"exprType":"fieldAccess","target":"state","path":["place"]},
-             "right": {"exprType":"constant","kind":"Integer","value":"2"}
-            }
-           ]
-          },
-          "right": {"exprType":"constant","kind":"Integer","value":"2"}
+           "function": "index",
+           "args": [{"exprType":"fieldAccess","target":"state","path":["boardRows"]},{"exprType":"fieldAccess","target":"state","path":["place"]}]
+          }
          }
         ]
-       }
+       },
+       "right": {"exprType":"constant","kind":"Integer","value":"0"}
       },
       "thenExpr": {
        "exprType": "call",
        "function": "index",
        "args": [
-        {"exprType":"fieldAccess","target":"state","path":["survivors"]},
+        {"exprType":"fieldAccess","target":"state","path":["board"]},
         {
          "exprType": "binary",
-         "op": "Sub",
+         "op": "Add",
          "left": {
           "exprType": "call",
           "function": "index",
+          "args": [{"exprType":"fieldAccess","target":"state","path":["columnStart"]},{"exprType":"fieldAccess","target":"state","path":["place"]}]
+         },
+         "right": {
+          "exprType": "call",
+          "function": "index",
           "args": [
-           {"exprType":"fieldAccess","target":"state","path":["keptThrough"]},
+           {"exprType":"fieldAccess","target":"state","path":["settledSources"]},
            {
             "exprType": "binary",
             "op": "Add",
             "left": {
              "exprType": "binary",
              "op": "Mul",
-             "left": {
+             "left": {"exprType":"constant","kind":"Integer","value":"2"},
+             "right": {
               "exprType": "call",
-              "function": "floor",
+              "function": "index",
               "args": [
+               {"exprType":"fieldAccess","target":"state","path":["columnRemoved"]},
                {
-                "exprType": "binary",
-                "op": "Div",
-                "left": {"exprType":"fieldAccess","target":"state","path":["place"]},
-                "right": {"exprType":"constant","kind":"Integer","value":"2"}
+                "exprType": "call",
+                "function": "index",
+                "args": [{"exprType":"fieldAccess","target":"state","path":["cellColumn"]},{"exprType":"fieldAccess","target":"state","path":["place"]}]
                }
               ]
-             },
-             "right": {"exprType":"constant","kind":"Integer","value":"2"}
+             }
             },
-            "right": {"exprType":"constant","kind":"Integer","value":"2"}
+            "right": {
+             "exprType": "call",
+             "function": "index",
+             "args": [{"exprType":"fieldAccess","target":"state","path":["boardRows"]},{"exprType":"fieldAccess","target":"state","path":["place"]}]
+            }
            }
           ]
-         },
-         "right": {
-          "exprType": "binary",
-          "op": "Sub",
-          "left": {
-           "exprType": "binary",
-           "op": "Add",
-           "left": {
-            "exprType": "binary",
-            "op": "Mul",
-            "left": {
-             "exprType": "call",
-             "function": "floor",
-             "args": [
-              {
-               "exprType": "binary",
-               "op": "Div",
-               "left": {"exprType":"fieldAccess","target":"state","path":["place"]},
-               "right": {"exprType":"constant","kind":"Integer","value":"2"}
-              }
-             ]
-            },
-            "right": {"exprType":"constant","kind":"Integer","value":"2"}
-           },
-           "right": {"exprType":"constant","kind":"Integer","value":"2"}
-          },
-          "right": {"exprType":"fieldAccess","target":"state","path":["place"]}
          }
         }
        ]
       },
       "elseExpr": {
-       "exprType": "call",
-       "function": "index",
-       "args": [
-        {"exprType":"fieldAccess","target":"state","path":["drops"]},
-        {
-         "exprType": "binary",
-         "op": "Sub",
-         "left": {
-          "exprType": "binary",
-          "op": "Sub",
-          "left": {
-           "exprType": "binary",
-           "op": "Add",
-           "left": {
-            "exprType": "binary",
-            "op": "Mul",
-            "left": {
-             "exprType": "call",
-             "function": "floor",
-             "args": [
-              {
-               "exprType": "binary",
-               "op": "Div",
-               "left": {"exprType":"fieldAccess","target":"state","path":["place"]},
-               "right": {"exprType":"constant","kind":"Integer","value":"2"}
-              }
-             ]
-            },
-            "right": {"exprType":"constant","kind":"Integer","value":"2"}
-           },
-           "right": {"exprType":"constant","kind":"Integer","value":"2"}
-          },
-          "right": {
-           "exprType": "call",
-           "function": "index",
-           "args": [
-            {"exprType":"fieldAccess","target":"state","path":["keptThrough"]},
-            {
-             "exprType": "binary",
-             "op": "Add",
-             "left": {
-              "exprType": "binary",
-              "op": "Mul",
-              "left": {
-               "exprType": "call",
-               "function": "floor",
-               "args": [
-                {
-                 "exprType": "binary",
-                 "op": "Div",
-                 "left": {"exprType":"fieldAccess","target":"state","path":["place"]},
-                 "right": {"exprType":"constant","kind":"Integer","value":"2"}
-                }
-               ]
-              },
-              "right": {"exprType":"constant","kind":"Integer","value":"2"}
-             },
-             "right": {"exprType":"constant","kind":"Integer","value":"2"}
-            }
-           ]
-          }
-         },
-         "right": {
+       "exprType": "if",
+       "condition": {
+        "exprType": "compare",
+        "op": "Lt",
+        "left": {
+         "exprType": "call",
+         "function": "index",
+         "args": [{"exprType":"fieldAccess","target":"state","path":["cellColumn"]},{"exprType":"fieldAccess","target":"state","path":["place"]}]
+        },
+        "right": {"exprType":"constant","kind":"Integer","value":"1"}
+       },
+       "thenExpr": {
+        "exprType": "call",
+        "function": "index",
+        "args": [
+         {"exprType":"fieldAccess","target":"state","path":["freeStrip0"]},
+         {
           "exprType": "binary",
           "op": "Add",
-          "left": {
+          "left": {"exprType":"call","function":"toNumber","args":[{"exprType":"fieldAccess","target":"state","path":["stop0"]}]},
+          "right": {
            "exprType": "binary",
            "op": "Sub",
-           "left": {"exprType":"fieldAccess","target":"state","path":["place"]},
+           "left": {"exprType":"fieldAccess","target":"state","path":["topDrop0"]},
            "right": {
-            "exprType": "binary",
-            "op": "Mul",
-            "left": {
-             "exprType": "call",
-             "function": "floor",
-             "args": [
-              {
-               "exprType": "binary",
-               "op": "Div",
-               "left": {"exprType":"fieldAccess","target":"state","path":["place"]},
-               "right": {"exprType":"constant","kind":"Integer","value":"2"}
-              }
-             ]
-            },
-            "right": {"exprType":"constant","kind":"Integer","value":"2"}
+            "exprType": "call",
+            "function": "index",
+            "args": [{"exprType":"fieldAccess","target":"state","path":["boardRows"]},{"exprType":"fieldAccess","target":"state","path":["place"]}]
            }
-          },
-          "right": {"exprType":"constant","kind":"Integer","value":"1"}
+          }
          }
-        }
-       ]
+        ]
+       },
+       "elseExpr": {
+        "exprType": "call",
+        "function": "index",
+        "args": [
+         {"exprType":"fieldAccess","target":"state","path":["freeStrip1"]},
+         {
+          "exprType": "binary",
+          "op": "Add",
+          "left": {"exprType":"call","function":"toNumber","args":[{"exprType":"fieldAccess","target":"state","path":["stop1"]}]},
+          "right": {
+           "exprType": "binary",
+           "op": "Sub",
+           "left": {"exprType":"fieldAccess","target":"state","path":["topDrop1"]},
+           "right": {
+            "exprType": "call",
+            "function": "index",
+            "args": [{"exprType":"fieldAccess","target":"state","path":["boardRows"]},{"exprType":"fieldAccess","target":"state","path":["place"]}]
+           }
+          }
+         }
+        ]
+       }
       }
      }
     },
@@ -4379,153 +4602,85 @@
        "exprType": "compare",
        "op": "Gte",
        "left": {
-        "exprType": "binary",
-        "op": "Sub",
-        "left": {
-         "exprType": "call",
-         "function": "index",
-         "args": [
-          {"exprType":"fieldAccess","target":"state","path":["keptThrough"]},
-          {
-           "exprType": "binary",
-           "op": "Add",
-           "left": {
-            "exprType": "binary",
-            "op": "Mul",
-            "left": {
-             "exprType": "call",
-             "function": "floor",
-             "args": [
-              {
-               "exprType": "binary",
-               "op": "Div",
-               "left": {"exprType":"fieldAccess","target":"state","path":["place"]},
-               "right": {"exprType":"constant","kind":"Integer","value":"2"}
-              }
-             ]
-            },
-            "right": {"exprType":"constant","kind":"Integer","value":"2"}
-           },
-           "right": {"exprType":"constant","kind":"Integer","value":"2"}
-          }
-         ]
-        },
-        "right": {
-         "exprType": "binary",
-         "op": "Sub",
-         "left": {
+        "exprType": "call",
+        "function": "index",
+        "args": [
+         {"exprType":"fieldAccess","target":"state","path":["settledSources"]},
+         {
           "exprType": "binary",
           "op": "Add",
           "left": {
            "exprType": "binary",
            "op": "Mul",
-           "left": {
+           "left": {"exprType":"constant","kind":"Integer","value":"2"},
+           "right": {
             "exprType": "call",
-            "function": "floor",
+            "function": "index",
             "args": [
+             {"exprType":"fieldAccess","target":"state","path":["columnRemoved"]},
              {
-              "exprType": "binary",
-              "op": "Div",
-              "left": {"exprType":"fieldAccess","target":"state","path":["place"]},
-              "right": {"exprType":"constant","kind":"Integer","value":"2"}
+              "exprType": "call",
+              "function": "index",
+              "args": [{"exprType":"fieldAccess","target":"state","path":["cellColumn"]},{"exprType":"fieldAccess","target":"state","path":["place"]}]
              }
             ]
-           },
-           "right": {"exprType":"constant","kind":"Integer","value":"2"}
+           }
           },
-          "right": {"exprType":"constant","kind":"Integer","value":"2"}
-         },
-         "right": {"exprType":"fieldAccess","target":"state","path":["place"]}
-        }
-       },
-       "right": {
-        "exprType": "call",
-        "function": "index",
-        "args": [
-         {"exprType":"fieldAccess","target":"state","path":["keptThrough"]},
-         {
-          "exprType": "binary",
-          "op": "Mul",
-          "left": {
+          "right": {
            "exprType": "call",
-           "function": "floor",
-           "args": [
-            {
-             "exprType": "binary",
-             "op": "Div",
-             "left": {"exprType":"fieldAccess","target":"state","path":["place"]},
-             "right": {"exprType":"constant","kind":"Integer","value":"2"}
-            }
-           ]
-          },
-          "right": {"exprType":"constant","kind":"Integer","value":"2"}
+           "function": "index",
+           "args": [{"exprType":"fieldAccess","target":"state","path":["boardRows"]},{"exprType":"fieldAccess","target":"state","path":["place"]}]
+          }
          }
         ]
-       }
+       },
+       "right": {"exprType":"constant","kind":"Integer","value":"0"}
       },
       "thenExpr": {
        "exprType": "call",
        "function": "index",
        "args": [
-        {"exprType":"fieldAccess","target":"state","path":["heldSurvivors"]},
+        {"exprType":"fieldAccess","target":"state","path":["held"]},
         {
          "exprType": "binary",
-         "op": "Sub",
+         "op": "Add",
          "left": {
           "exprType": "call",
           "function": "index",
+          "args": [{"exprType":"fieldAccess","target":"state","path":["columnStart"]},{"exprType":"fieldAccess","target":"state","path":["place"]}]
+         },
+         "right": {
+          "exprType": "call",
+          "function": "index",
           "args": [
-           {"exprType":"fieldAccess","target":"state","path":["keptThrough"]},
+           {"exprType":"fieldAccess","target":"state","path":["settledSources"]},
            {
             "exprType": "binary",
             "op": "Add",
             "left": {
              "exprType": "binary",
              "op": "Mul",
-             "left": {
+             "left": {"exprType":"constant","kind":"Integer","value":"2"},
+             "right": {
               "exprType": "call",
-              "function": "floor",
+              "function": "index",
               "args": [
+               {"exprType":"fieldAccess","target":"state","path":["columnRemoved"]},
                {
-                "exprType": "binary",
-                "op": "Div",
-                "left": {"exprType":"fieldAccess","target":"state","path":["place"]},
-                "right": {"exprType":"constant","kind":"Integer","value":"2"}
+                "exprType": "call",
+                "function": "index",
+                "args": [{"exprType":"fieldAccess","target":"state","path":["cellColumn"]},{"exprType":"fieldAccess","target":"state","path":["place"]}]
                }
               ]
-             },
-             "right": {"exprType":"constant","kind":"Integer","value":"2"}
+             }
             },
-            "right": {"exprType":"constant","kind":"Integer","value":"2"}
+            "right": {
+             "exprType": "call",
+             "function": "index",
+             "args": [{"exprType":"fieldAccess","target":"state","path":["boardRows"]},{"exprType":"fieldAccess","target":"state","path":["place"]}]
+            }
            }
           ]
-         },
-         "right": {
-          "exprType": "binary",
-          "op": "Sub",
-          "left": {
-           "exprType": "binary",
-           "op": "Add",
-           "left": {
-            "exprType": "binary",
-            "op": "Mul",
-            "left": {
-             "exprType": "call",
-             "function": "floor",
-             "args": [
-              {
-               "exprType": "binary",
-               "op": "Div",
-               "left": {"exprType":"fieldAccess","target":"state","path":["place"]},
-               "right": {"exprType":"constant","kind":"Integer","value":"2"}
-              }
-             ]
-            },
-            "right": {"exprType":"constant","kind":"Integer","value":"2"}
-           },
-           "right": {"exprType":"constant","kind":"Integer","value":"2"}
-          },
-          "right": {"exprType":"fieldAccess","target":"state","path":["place"]}
          }
         }
        ]
@@ -4551,7 +4706,7 @@
     {
      "nodeType": "modifyState",
      "id": "scatters",
-     "label": "Count the SCATTERs that dropped in",
+     "label": "Count the SCATTERs that dropped in: those on the board now, less those that stayed",
      "outputKey": "scatterCount",
      "expressionId": "scatters",
      "inputs": {"state":{"name":"state","type":"State"}},
@@ -4577,16 +4732,33 @@
      "op": "Add",
      "left": {"exprType":"fieldAccess","target":"state","path":["scatterCount"]},
      "right": {
-      "exprType": "aggregate",
-      "func": "Count",
-      "stateKey": "drops",
-      "itemName": "item",
-      "itemType": "String",
-      "predicate": {
-       "exprType": "compare",
-       "op": "Eq",
-       "left": {"exprType":"fieldAccess","target":"state","path":["item"]},
-       "right": {"exprType":"constant","kind":"String","value":"11"}
+      "exprType": "binary",
+      "op": "Sub",
+      "left": {
+       "exprType": "aggregate",
+       "func": "Count",
+       "stateKey": "board",
+       "itemName": "item",
+       "itemType": "String",
+       "predicate": {
+        "exprType": "compare",
+        "op": "Eq",
+        "left": {"exprType":"fieldAccess","target":"state","path":["item"]},
+        "right": {"exprType":"constant","kind":"String","value":"11"}
+       }
+      },
+      "right": {
+       "exprType": "aggregate",
+       "func": "Count",
+       "stateKey": "survivors",
+       "itemName": "item",
+       "itemType": "String",
+       "predicate": {
+        "exprType": "compare",
+        "op": "Eq",
+        "left": {"exprType":"fieldAccess","target":"state","path":["item"]},
+        "right": {"exprType":"constant","kind":"String","value":"11"}
+       }
       }
      }
     },
@@ -4670,8 +4842,8 @@
     },
     {
      "nodeType": "getState",
-     "id": "pays-join",
-     "label": "Continue",
+     "id": "done",
+     "label": "Done",
      "inputs": {"state":{"name":"state","type":"State"}},
      "outputs": {"state":{"name":"state","type":"State"}}
     },
@@ -4699,8 +4871,8 @@
     {"id":"trace-after.state->count","sourceNodeId":"trace-after","sourcePort":"state","targetNodeId":"count","targetPort":"state"},
     {"id":"count.state->pays","sourceNodeId":"count","sourcePort":"state","targetNodeId":"pays","targetPort":"state"},
     {"id":"pays.true->pays-yes","sourceNodeId":"pays","sourcePort":"true","targetNodeId":"pays-yes","targetPort":"state"},
-    {"id":"pays.false->pays-join","sourceNodeId":"pays","sourcePort":"false","targetNodeId":"pays-join","targetPort":"state"},
-    {"id":"pays-yes.state->pays-join","sourceNodeId":"pays-yes","sourcePort":"state","targetNodeId":"pays-join","targetPort":"state"}
+    {"id":"pays.false->done","sourceNodeId":"pays","sourcePort":"false","targetNodeId":"done","targetPort":"state"},
+    {"id":"pays-yes.state->done","sourceNodeId":"pays-yes","sourcePort":"state","targetNodeId":"done","targetPort":"state"}
    ],
    "expressions": {
     "trace-board": {
@@ -4719,7 +4891,38 @@
      "thenExpr": {
       "exprType": "call",
       "function": "append",
-      "args": [{"exprType":"fieldAccess","target":"state","path":["cascadeRemoved"]},{"exprType":"fieldAccess","target":"state","path":["removed"]}]
+      "args": [
+       {"exprType":"fieldAccess","target":"state","path":["cascadeRemoved"]},
+       {
+        "exprType": "map",
+        "stateKey": "board",
+        "itemName": "item",
+        "indexName": "place",
+        "itemType": "String",
+        "body": {
+         "exprType": "if",
+         "condition": {
+          "exprType": "compare",
+          "op": "Gt",
+          "left": {
+           "exprType": "bitset",
+           "op": "Intersect",
+           "args": [
+            {"exprType":"fieldAccess","target":"state","path":["removed"]},
+            {
+             "exprType": "bitset",
+             "op": "Shift",
+             "args": [{"exprType":"constant","kind":"Integer","value":"1"},{"exprType":"fieldAccess","target":"state","path":["place"]}]
+            }
+           ]
+          },
+          "right": {"exprType":"constant","kind":"Integer","value":"0"}
+         },
+         "thenExpr": {"exprType":"constant","kind":"Integer","value":"1"},
+         "elseExpr": {"exprType":"constant","kind":"Integer","value":"0"}
+        }
+       }
+      ]
      },
      "elseExpr": {"exprType":"fieldAccess","target":"state","path":["cascadeRemoved"]}
     },

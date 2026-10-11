@@ -1,5 +1,5 @@
-import { append, emptyArray, state } from '../expr';
-import { Flow, Mechanics, type Mechanic, type Outcome } from '../flow';
+import { choose, mapOver, state } from '../expr';
+import { Flow, type Mechanic, type Outcome } from '../flow';
 
 export interface CellBoard {
   /** Subgraph name, e.g. `board`; a game with several kinds of spin names each of its boards. */
@@ -10,19 +10,22 @@ export interface CellBoard {
   outcomes: readonly Outcome[];
 }
 
-/** State the `spinCells` subgraph writes: the board, and the symbol of the cell being drawn. */
-export const cellState = ({ cells }: Pick<CellBoard, 'cells'>) => ({ board: Array.from({ length: cells }, () => '0'), cellSymbol: '0' });
+/** The state keys the cells of a board are drawn into, in board order: `cell1`, `cell2` and so on. */
+const cellKeys = (cells: number) => Array.from({ length: cells }, (_, cell) => `cell${cell + 1}`);
+
+/** State the `spinCells` subgraph writes: the symbol drawn for every cell, and the board they make. */
+export const cellState = ({ cells }: Pick<CellBoard, 'cells'>) => ({
+  boardPositions: Array.from({ length: cells }, (_, cell) => cell),
+  board: Array.from({ length: cells }, () => '0'), ...Object.fromEntries(cellKeys(cells).map(key => [key, '0'])),
+});
 
 /**
  * A board without reel strips: every cell draws its own symbol, independently of the others, and the symbols
  * drawn become `board`. Cells are drawn in board order, column by column from the top.
  */
-export function spinCells(mechanics: Mechanics, { name, cells, outcomes }: CellBoard): Mechanic {
-  const cell = mechanics.add(new Flow()
-    .draw('symbol', 'Draw the symbol the cell shows', 'cellSymbol', outcomes)
-    .write('place', 'Put it on the board', 'board', append('board', state('cellSymbol')))
-    .mechanic(`${name}-cell`, 'One cell of the board: its symbol is drawn and takes the next place on the board.'));
-  const flow = new Flow().write('clear', 'Start with an empty board', 'board', emptyArray());
-  for (let index = 0; index < cells; index++) flow.use(`cell-${index + 1}`, `Cell ${index + 1}`, cell);
-  return flow.mechanic(name, `Draws a symbol for each of the ${cells} cells, every cell on its own, and puts them on the board.`);
+export function spinCells({ name, cells, outcomes }: CellBoard): Mechanic {
+  const flow = new Flow();
+  cellKeys(cells).forEach((key, cell) => flow.draw(`cell-${cell + 1}`, `Draw the symbol of cell ${cell + 1}`, key, outcomes));
+  return flow.write('board', 'The symbols drawn are the board', 'board', mapOver('boardPositions', choose(state('item'), cellKeys(cells).map(state)), { itemType: 'Number' }))
+    .mechanic(name, `Draws a symbol for each of the ${cells} cells, every cell on its own, and puts them on the board.`);
 }

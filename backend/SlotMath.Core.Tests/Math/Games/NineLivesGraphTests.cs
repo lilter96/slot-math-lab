@@ -199,11 +199,18 @@ public class NineLivesGraphTests(ITestOutputHelper output)
         JsonElement config = golden.RootElement.GetProperty("config");
         GraphConfig graph = variant.Full.Config;
 
-        // A weight of 0 is no outcome at all, in the original as in the graph.
-        Dictionary<string, long> Draw(string mechanic)
+        // The one table every draw of a subgraph uses. A weight of 0 is no outcome at all, in the original as in
+        // the graph.
+        Dictionary<string, long> Draw(string mechanic, int draws = 1)
         {
-            return graph.Mechanics![mechanic].Nodes.OfType<DrawNode>().Single().DrawWeights!
-                .ToDictionary(outcome => outcome.OutcomeId, outcome => outcome.Weight);
+            Dictionary<string, long>[] tables =
+            [
+                .. graph.Mechanics![mechanic].Nodes.OfType<DrawNode>().Select(draw =>
+                    draw.DrawWeights!.ToDictionary(outcome => outcome.OutcomeId, outcome => outcome.Weight))
+            ];
+            Assert.Equal(draws, tables.Length);
+            Assert.All(tables, table => Assert.Equal(tables[0], table));
+            return tables[0];
         }
 
         Dictionary<string, long> Weights(string table)
@@ -214,15 +221,15 @@ public class NineLivesGraphTests(ITestOutputHelper output)
 
         if (!buy)
         {
-            Assert.Equal(Weights("weights"), Draw("paid-board-cell"));
+            Assert.Equal(Weights("weights"), Draw("paid-board", Cells));
         }
 
-        Assert.Equal(Weights("bonusWeights"), Draw("free-board-cell"));
+        Assert.Equal(Weights("bonusWeights"), Draw("free-board", Cells));
         Assert.Equal(Weights("refillWeights"), Draw("drop-symbol"));
         Assert.Equal(
             config.GetProperty("prizes").EnumerateArray()
                 .ToDictionary(prize => prize[0].GetInt64().ToString(), prize => prize[1].GetInt64()),
-            Draw("coin-prize"));
+            Draw("coin-prizes", Cells));
 
         Dictionary<long, Dictionary<int, long>> pays = Paytable(golden);
         long[] table = [.. graph.InitialState!["clusterPays"].EnumerateArray().Select(pay => pay.GetInt64())];
@@ -406,7 +413,10 @@ public class NineLivesGraphTests(ITestOutputHelper output)
     {
         Variant variant = Game(buy);
         GameGraph game = variant.Small;
-        SlotMathReport classic = game.Enumerate();
+        // Within its branch budget the hybrid evaluator is the classic interpreter: every outcome is visited.
+        RegimeResult hybrid = game.Hybrid(2_000_000, 10_000, Seed);
+        Assert.Equal(EvaluationStrategy.Exact, hybrid.OverallStrategy);
+        SlotMathReport classic = hybrid.Report;
         Assert.Equal(Provenance.Exact, classic.Rtp.Provenance.Provenance);
         Rational rtp = GameGraph.Exact(classic.Rtp);
         Assert.Equal(variant.SmallRtp, rtp);
@@ -422,10 +432,6 @@ public class NineLivesGraphTests(ITestOutputHelper output)
         var cap = new Rational(8 * 2, buy ? 2 * 3 : 2);
         Assert.Equal(cap, new Rational(structured.Distribution!.Entries.Max(entry => entry.Value), game.WinScale));
 
-        RegimeResult hybrid = game.Hybrid(2_000_000, 10_000, Seed);
-        Assert.Equal(EvaluationStrategy.Exact, hybrid.OverallStrategy);
-        Assert.Equal(rtp, GameGraph.Exact(hybrid.Report.Rtp));
-
         // Pruning drops, at every draw, the branches rarer than epsilon and has to say how much it dropped. Rarer
         // than 3 in 20 are the wild of a paid spin (1 in 10) and the coin of a free spin (1 in 20); with the
         // declared win cap the result is an enclosure of the exact value (D5).
@@ -440,16 +446,14 @@ public class NineLivesGraphTests(ITestOutputHelper output)
     }
 
     [Theory]
-    [InlineData(false, true)]
-    [InlineData(false, false)]
-    [InlineData(true, true)]
-    [InlineData(true, false)]
-    public void SmallGame_SamplingAgreesWithTheExactValue_AndRejectsItShiftedByOnePercent(bool buy, bool compiledTier)
+    [InlineData(false)]
+    [InlineData(true)]
+    public void SmallGame_SamplingAgreesWithTheExactValue_AndRejectsItShiftedByOnePercent(bool buy)
     {
         const long Rounds = 2_000_000;
         Variant variant = Game(buy);
         var exact = variant.SmallRtp.ToDouble();
-        SampledResult<Dict> sampled = variant.Small.Sample(Rounds, Seed, 4, compiledTier);
+        SampledResult<Dict> sampled = variant.Small.Sample(Rounds, Seed);
         Assert.Equal(Rounds, sampled.SpinsCompleted);
         output.WriteLine(
             $"exact {exact} sampled {sampled.Stats.Mean} ± {sampled.Stats.StdErr}, cap hits {sampled.Stats.CapHits}");
@@ -470,12 +474,15 @@ public class NineLivesGraphTests(ITestOutputHelper output)
     public void FullGame_StructuredExact_DeclinesWithinItsBudget(bool buy)
     {
         StructuredExactResult result =
-            Game(buy).Full.Structured(new StructuredExactOptions { MaxTime = TimeSpan.FromSeconds(12) });
+            Game(buy).Full.Structured(new StructuredExactOptions
+            {
+                MaxTime = TimeSpan.FromSeconds(3)
+            });
         output.WriteLine(
             $"declined: {result.DeclinedReason} after {result.Elapsed.TotalSeconds:F1} s, work {result.Work}");
         Assert.False(result.Succeeded);
         Assert.False(string.IsNullOrWhiteSpace(result.DeclinedReason));
-        Assert.InRange(result.Elapsed.TotalSeconds, 0, 30);
+        Assert.InRange(result.Elapsed.TotalSeconds, 0, 15);
     }
 
     // Without an exact value the full game is held against the original directly: 40 million rounds of the original
@@ -506,11 +513,20 @@ public class NineLivesGraphTests(ITestOutputHelper output)
         }
 
         // What the paid spin has paid is read where the round decides whether the free spins start.
-        var bet = new ConstantExpr { Kind = ConstantKind.Integer, Value = Bet.ToString() };
+        var bet = new ConstantExpr
+        {
+            Kind = ConstantKind.Integer,
+            Value = Bet.ToString()
+        };
         (SampledResult<Dict> sampled, Dictionary<string, (double Mean, double StdErr)> observed) = variant.Full.Measure(
             Rounds, Seed, 8,
             GameGraph.Quantity("paidSpin",
-                new BinaryExpr { Op = BinaryOp.Div, Left = GameGraph.State("roundCoins"), Right = bet }, "trigger"),
+                new BinaryExpr
+                {
+                    Op = BinaryOp.Div,
+                    Left = GameGraph.State("roundCoins"),
+                    Right = bet
+                }, "trigger"),
             GameGraph.Quantity("scatters", GameGraph.State("scatterCount")),
             GameGraph.Quantity("triggered",
                 new IfExpr
@@ -519,10 +535,22 @@ public class NineLivesGraphTests(ITestOutputHelper output)
                     {
                         Op = CompareOp.Gte,
                         Left = GameGraph.State("scatterCount"),
-                        Right = new ConstantExpr { Kind = ConstantKind.Integer, Value = Trigger.ToString() }
+                        Right = new ConstantExpr
+                        {
+                            Kind = ConstantKind.Integer,
+                            Value = Trigger.ToString()
+                        }
                     },
-                    ThenExpr = new ConstantExpr { Kind = ConstantKind.Integer, Value = "1" },
-                    ElseExpr = new ConstantExpr { Kind = ConstantKind.Integer, Value = "0" }
+                    ThenExpr = new ConstantExpr
+                    {
+                        Kind = ConstantKind.Integer,
+                        Value = "1"
+                    },
+                    ElseExpr = new ConstantExpr
+                    {
+                        Kind = ConstantKind.Integer,
+                        Value = "0"
+                    }
                 }));
         Assert.Equal(Rounds, sampled.SpinsCompleted);
 
@@ -639,16 +667,7 @@ public class NineLivesGraphTests(ITestOutputHelper output)
     {
         long rounds = buy ? 6_000 : 200_000;
         GameGraph game = Game(buy).Full;
-        SampledResult<Dict> one = game.Sample(rounds, Seed, 1);
-        SampledResult<Dict> eight = game.Sample(rounds, Seed, 8);
-        SampledResult<Dict> reference = game.Sample(rounds, Seed, 4, false);
-        foreach (SampledResult<Dict> other in new[] { eight, reference })
-        {
-            Assert.Equal(one.Stats.Mean, other.Stats.Mean);
-            Assert.Equal(one.Stats.Variance, other.Stats.Variance);
-            Assert.Equal(one.Stats.NonZeroCount, other.Stats.NonZeroCount);
-            Assert.Equal(one.Stats.MaxObserved, other.Stats.MaxObserved);
-        }
+        game.AssertSamplingIsBitIdentical(rounds, Seed);
     }
 
     // Beyond its branch budget the hybrid evaluator has to fall back to sampling and say so in the provenance.
@@ -661,7 +680,7 @@ public class NineLivesGraphTests(ITestOutputHelper output)
         Variant variant = Game(buy);
         using JsonDocument golden = variant.Golden();
         var observed = golden.RootElement.GetProperty("simulation").GetProperty("rtp").GetDouble();
-        RegimeResult hybrid = variant.Full.Hybrid(100_000, rounds, Seed);
+        RegimeResult hybrid = variant.Full.Hybrid(GameGraph.FallbackBranches, rounds, Seed);
         Assert.Equal(EvaluationStrategy.Sampled, hybrid.OverallStrategy);
         Assert.Equal(Provenance.Sampled, hybrid.Report.Rtp.Provenance.Provenance);
         Assert.Equal(rounds, hybrid.Report.Rtp.SampleCount);

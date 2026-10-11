@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Text.Json;
 using SlotMath.Core.Math;
 using SlotMath.Core.Math.Regime;
@@ -30,7 +31,10 @@ public class X7ClubGraphTests(ITestOutputHelper output)
 
     private static readonly Dictionary<string, (int Add, int Times, bool Ends)> Pulls = new()
     {
-        ["STOP"] = (0, 1, true), ["PLUS1"] = (Bet, 1, false), ["PLUS2"] = (2 * Bet, 1, false), ["X7"] = (0, 7, true)
+        ["STOP"] = (0, 1, true),
+        ["PLUS1"] = (Bet, 1, false),
+        ["PLUS2"] = (2 * Bet, 1, false),
+        ["X7"] = (0, 7, true)
     };
 
     private static readonly Lazy<Variant> Paid = new(() => new Variant("x7-club",
@@ -227,23 +231,27 @@ public class X7ClubGraphTests(ITestOutputHelper output)
     {
         Variant variant = Game(buy);
         GameGraph game = variant.Small;
-        SlotMathReport classic = game.Enumerate();
+        // Within its branch budget the hybrid evaluator is the classic interpreter: every outcome is visited.
+        var sw = Stopwatch.StartNew();
+        RegimeResult hybrid = game.Hybrid(2_000_000, 10_000, Seed);
+        Assert.Equal(EvaluationStrategy.Exact, hybrid.OverallStrategy);
+        SlotMathReport classic = hybrid.Report;
         Assert.Equal(Provenance.Exact, classic.Rtp.Provenance.Provenance);
         Rational rtp = GameGraph.Exact(classic.Rtp);
         Assert.Equal(variant.SmallRtp, rtp);
         Assert.Equal(variant.SmallHitFrequency.ToDouble(), classic.HitFrequency.DisplayValue, 12);
 
+        output.WriteLine($"TIMING classic {sw.Elapsed.TotalSeconds:F1}");
+        sw.Restart();
         StructuredExactResult structured = game.Structured();
+        output.WriteLine($"TIMING structured {sw.Elapsed.TotalSeconds:F1}");
+        sw.Restart();
         Assert.True(structured.Succeeded, structured.DeclinedReason);
         Assert.True(structured.PrunedMass.IsZero);
         Assert.Equal(rtp, GameGraph.Exact(structured.Rtp(game.WinScale)));
         Assert.Equal(variant.SmallHitFrequency, structured.HitFrequency);
         // The cap of this cut-down game is a rule that cuts real wins: the largest win is exactly the cap.
         Assert.Equal(game.WinCap * game.WinScale, structured.Distribution!.Entries.Max(entry => entry.Value));
-
-        RegimeResult hybrid = game.Hybrid(2_000_000, 10_000, Seed);
-        Assert.Equal(EvaluationStrategy.Exact, hybrid.OverallStrategy);
-        Assert.Equal(rtp, GameGraph.Exact(hybrid.Report.Rtp));
 
         // Pruning drops, at every draw, the branches rarer than epsilon and has to say how much it dropped. Rarer
         // than 1 in 5 are the wild (1 in 10) and the multiplying pull (1 in 90); with the declared win cap the
@@ -254,19 +262,18 @@ public class X7ClubGraphTests(ITestOutputHelper output)
         Assert.Equal(BoundSource.DeclaredWinCap, enclosure.BoundSource);
         Assert.InRange(enclosure.PrunedMass!.Value, 0.01, 0.4);
         Assert.True(enclosure.Lo < rtp.ToDouble() && rtp.ToDouble() < enclosure.Hi);
+        output.WriteLine($"TIMING rest {sw.Elapsed.TotalSeconds:F1}");
     }
 
     [Theory]
-    [InlineData(false, true)]
-    [InlineData(false, false)]
-    [InlineData(true, true)]
-    [InlineData(true, false)]
-    public void SmallGame_SamplingAgreesWithTheExactValue_AndRejectsItShiftedByOnePercent(bool buy, bool compiledTier)
+    [InlineData(false)]
+    [InlineData(true)]
+    public void SmallGame_SamplingAgreesWithTheExactValue_AndRejectsItShiftedByOnePercent(bool buy)
     {
         long rounds = buy ? 500_000 : 2_000_000;
         Variant variant = Game(buy);
         var exact = variant.SmallRtp.ToDouble();
-        SampledResult<Dict> sampled = variant.Small.Sample(rounds, Seed, 4, compiledTier);
+        SampledResult<Dict> sampled = variant.Small.Sample(rounds, Seed);
         Assert.Equal(rounds, sampled.SpinsCompleted);
         output.WriteLine(
             $"exact {exact} sampled {sampled.Stats.Mean} ± {sampled.Stats.StdErr}, cap hits {sampled.Stats.CapHits}");
@@ -294,12 +301,15 @@ public class X7ClubGraphTests(ITestOutputHelper output)
     public void FullGame_StructuredExact_DeclinesWithinItsBudget(bool buy)
     {
         StructuredExactResult result =
-            Game(buy).Full.Structured(new StructuredExactOptions { MaxTime = TimeSpan.FromSeconds(12) });
+            Game(buy).Full.Structured(new StructuredExactOptions
+            {
+                MaxTime = TimeSpan.FromSeconds(3)
+            });
         output.WriteLine(
             $"declined: {result.DeclinedReason} after {result.Elapsed.TotalSeconds:F1} s, work {result.Work}");
         Assert.False(result.Succeeded);
         Assert.False(string.IsNullOrWhiteSpace(result.DeclinedReason));
-        Assert.InRange(result.Elapsed.TotalSeconds, 0, 30);
+        Assert.InRange(result.Elapsed.TotalSeconds, 0, 15);
     }
 
     // Without an exact value the full game is held against the original directly: tens of millions of rounds of
@@ -352,16 +362,7 @@ public class X7ClubGraphTests(ITestOutputHelper output)
     {
         long rounds = buy ? 30_000 : 300_000;
         GameGraph game = Game(buy).Full;
-        SampledResult<Dict> one = game.Sample(rounds, Seed, 1);
-        SampledResult<Dict> eight = game.Sample(rounds, Seed, 8);
-        SampledResult<Dict> reference = game.Sample(rounds, Seed, 4, false);
-        foreach (SampledResult<Dict> other in new[] { eight, reference })
-        {
-            Assert.Equal(one.Stats.Mean, other.Stats.Mean);
-            Assert.Equal(one.Stats.Variance, other.Stats.Variance);
-            Assert.Equal(one.Stats.NonZeroCount, other.Stats.NonZeroCount);
-            Assert.Equal(one.Stats.MaxObserved, other.Stats.MaxObserved);
-        }
+        game.AssertSamplingIsBitIdentical(rounds, Seed);
     }
 
     // Beyond its branch budget the hybrid evaluator has to fall back to sampling and say so in the provenance.
@@ -374,7 +375,7 @@ public class X7ClubGraphTests(ITestOutputHelper output)
         Variant variant = Game(buy);
         using JsonDocument golden = variant.Golden();
         var observed = golden.RootElement.GetProperty("simulation").GetProperty("rtp").GetDouble();
-        RegimeResult hybrid = variant.Full.Hybrid(100_000, rounds, Seed);
+        RegimeResult hybrid = variant.Full.Hybrid(GameGraph.FallbackBranches, rounds, Seed);
         Assert.Equal(EvaluationStrategy.Sampled, hybrid.OverallStrategy);
         Assert.Equal(Provenance.Sampled, hybrid.Report.Rtp.Provenance.Provenance);
         Assert.Equal(rounds, hybrid.Report.Rtp.SampleCount);

@@ -297,7 +297,17 @@ internal sealed partial class SymbolicExecutor
             NativeFunction function = Native(map.Id, "line", length, () =>
             {
                 var alone = new LinesEvaluator(paytable,
-                    new PaylineSet { Id = lines.Id, Paylines = [new Payline { Positions = new int[length] }] }, wild);
+                    new PaylineSet
+                    {
+                        Id = lines.Id,
+                        Paylines =
+                        [
+                            new Payline
+                            {
+                                Positions = new int[length]
+                            }
+                        ]
+                    }, wild);
                 return new NativeFunction($"line:{map.Id}", arguments =>
                 {
                     var row = new object?[length];
@@ -308,9 +318,13 @@ internal sealed partial class SymbolicExecutor
 
                     return Amount(alone.Evaluate(new Dictionary<string, object?>(2, StringComparer.Ordinal)
                     {
-                        [GridState.CellsKey] = row, [GridState.ColsKey] = length
+                        [GridState.CellsKey] = row,
+                        [GridState.ColsKey] = length
                     }));
-                }) { Most = most };
+                })
+                {
+                    Most = most
+                };
             });
 
             var on = new Term[length];
@@ -386,12 +400,18 @@ internal sealed partial class SymbolicExecutor
                     }
 
                     return ExprValue.Number(matches);
-                }) { Most = rows });
+                })
+            {
+                Most = rows
+            });
             NativeFunction pays = Native(map.Id, "ways", ordinal, () =>
             {
                 // The evaluator looks a symbol's payouts up in the first entry that names it.
                 PaytableEntry first = paytable.Entries.First(other => other.SymbolId == symbol);
-                var alone = new WaysEvaluator(paytable with { Entries = [first] }, wild);
+                var alone = new WaysEvaluator(paytable with
+                {
+                    Entries = [first]
+                }, wild);
                 BigInteger? most = Largest([first]) is { } pay ? pay * BigInteger.Pow(rows, cols) : null;
                 return new NativeFunction($"ways:{map.Id}", arguments =>
                 {
@@ -412,9 +432,14 @@ internal sealed partial class SymbolicExecutor
 
                     return Amount(alone.Evaluate(new Dictionary<string, object?>(3, StringComparer.Ordinal)
                     {
-                        [GridState.CellsKey] = counted, [GridState.RowsKey] = rows, [GridState.ColsKey] = cols
+                        [GridState.CellsKey] = counted,
+                        [GridState.RowsKey] = rows,
+                        [GridState.ColsKey] = cols
                     }));
-                }) { Most = most };
+                })
+                {
+                    Most = most
+                };
             });
 
             var counts = new Term[cols];
