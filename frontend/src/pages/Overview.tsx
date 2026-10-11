@@ -25,11 +25,11 @@ export default function Overview() {
   if (!graph) return <section className="overview-page"><h1>No project selected</h1><Link className="btn primary" to="/projects">Choose or create a project</Link></section>;
   return <section className="overview-page" aria-labelledby="overview-heading">
     <header className="page-heading"><div><h1 id="overview-heading">{String(graph?.name ?? name ?? 'Your model')}</h1><p>{String(graph?.description ?? 'Explore the inputs and logic of your current model.')}</p></div><Link className="btn" to="/build">Explore logic graph</Link></header>
-    <div className="overview-model">
+    <div className={'overview-model' + (geometry ? '' : ' without-board')}>
       <div className="model-board-region">
-        <div className="board-heading"><h2>Game structure</h2><span>{geometry ? `${columns} columns × ${rows} rows` : 'No board geometry defined'}</span></div>
+        <div className="board-heading"><h2>{geometry ? 'Game structure' : 'Model structure'}</h2><span>{geometry ? `${columns} columns × ${rows} rows` : 'No board geometry defined'}</span></div>
         {geometry && <div className="structure-board" role="img" aria-label={`${columns} reels by ${rows} rows; model geometry, not a spin result`} style={{ gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))` }}>{Array.from({ length: rows * columns }, (_, index) => <span key={index}>{Math.floor(index / columns) + 1}:{index % columns + 1}</span>)}</div>}
-        <p className="hint">Configured geometry. No spin has been generated in this view.</p>
+        <p className="hint">{geometry ? 'Configured geometry. No spin has been generated in this view.' : 'This model has no board geometry. Work with its data and logic directly.'}</p>
         {symbols?.length ? <div className="symbol-reference" aria-label="Model symbols">{symbols.map(symbol => <div key={symbol.id}>{nineLives && assets.images?.[symbol.name] && <img src={assets.images?.[symbol.name]} alt="" width="44" height="44" />}<span>{symbol.name}</span><small>ID {symbol.id}</small></div>)}</div> : <p className="hint">This model does not define symbol metadata.</p>}
       </div>
       <div className="model-summary"><h2>Model inputs</h2><dl><div><dt>Logic definitions</dt><dd>{Object.keys(mechanics).length}</dd></div><div><dt>Weighted draws</dt><dd>{capabilities.weightedDraws}</dd></div><div><dt>Reel-strip metadata</dt><dd>{capabilities.reelStrips ? 'Defined in model' : 'No dedicated metadata'}</dd></div><div><dt>Paytable metadata</dt><dd>{capabilities.paytables ? 'Available; see source mapping' : 'Not exposed by this model'}</dd></div></dl>
@@ -38,7 +38,7 @@ export default function Overview() {
         {features.play && graph && <Link className="btn" to="/debug">Test spin</Link>}
       </div>
     </div>
-    <section className="overview-mechanics"><h2>Explore mechanics</h2><p>Open the definition that implements each part of the game.</p><div className="feature-list">{Object.keys(mechanics).filter(id => nineLives ? ['base-spin', 'cascade-step', 'bonus', 'free-spin', 'round-entry'].includes(id) : true).slice(0, 8).map(id => <button key={id} onClick={() => open(id)}><strong>{mechanicLabel(id)}</strong><span>{mechanics[id].description ?? `${mechanics[id].nodes.length} nodes`}</span><small>Open logic</small></button>)}</div>{nineLives && <p className="hint">Presentation features: {manifest.features.join(', ')}. Definitions above come from the editable graph.</p>}</section>
+    <section className="overview-mechanics"><h2>Explore mechanics</h2>{Object.keys(mechanics).length ? <><p>Open the definition that implements each part of the game.</p><div className="feature-list">{Object.keys(mechanics).filter(id => nineLives ? ['base-spin', 'cascade-step', 'bonus', 'free-spin', 'round-entry'].includes(id) : true).slice(0, 8).map(id => <button key={id} onClick={() => open(id)}><strong>{mechanicLabel(id)}</strong><span>{mechanics[id].description ?? `${mechanics[id].nodes.length} nodes`}</span><small>Open logic</small></button>)}</div></> : <p>This model has no named mechanics. <Link to="/build">Open its complete logic graph</Link>.</p>}{nineLives && <p className="hint">Presentation features: {manifest.features.join(', ')}. Definitions above come from the editable graph.</p>}</section>
     <OverviewEvidence graph={graph} />
     <section className="overview-library"><h2>Personal workspace</h2><Link className="btn" to="/projects">All my projects and templates</Link><StarterLibrary /></section>
   </section>;

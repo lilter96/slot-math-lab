@@ -1,1 +1,17 @@
-.dh-dialog{color:#e6eee9;border:1px solid #5a7564;background:#15241e;border-radius:14px;padding:0;width:min(470px,92vw);max-height:90dvh;box-shadow:0 25px 100px #0009}.dh-dialog-wide{width:min(1060px,95vw)}.dh-dialog::backdrop{background:#08120bdd;backdrop-filter:blur(4px)}.dh-dialog header{display:flex;justify-content:space-between;align-items:center;padding:18px 22px;border-bottom:1px solid #3c5446;position:sticky;top:0;background:#15241e;z-index:5}.dh-dialog h2{font-size:20px;margin:0}.dh-dialog header button{border:0;background:none;color:#cbd8cf;font-size:28px;line-height:1}.dh-dialog-content{padding:20px 22px;line-height:1.6}.dh-dialog-content p{margin:0 0 16px}.dh-dialog-content h3{font-size:30px;color:#ffe357;text-align:center;margin:14px 0}.dh-dialog-content>svg{width:100%}.dh-dialog-content label{display:flex;gap:8px;flex-direction:column;margin:0 0 12px;font-size:13px}.dh-dialog-content label:has(input[type=checkbox]){flex-direction:row;align-items:center}.dh-dialog input:not([type=checkbox]),.dh-dialog select{background:#091911;border:1px solid #456150;border-radius:5px;padding:8px;color:#e5eee7;min-width:0;width:100%}.dh-dialog button:not(.btn){cursor:pointer;border:1px solid #54755d;border-radius:6px;background:#294334;color:#eaf2e8;padding:7px 12px}.dh-dialog header button{background:transparent;border:0;padding:0 7px}.dh-dialog button:disabled{opacity:.4;cursor:default}.dh-dialog .dh-primary{background:#dbab22;color:#1d230a;border-color:#ffce40;font-weight:700}.dh-dialog a{color:#aee69a}
+.dh-dialog { color: var(--text); border: 1px solid var(--line); background: var(--bg-1); border-radius: var(--radius-lg); padding: 0; width: min(470px, 92vw); max-height: 90dvh; box-shadow: var(--shadow-pop); }
+.dh-dialog-wide { width: min(1060px, 95vw); }
+.dh-dialog::backdrop { background: #081018dd; backdrop-filter: blur(4px); }
+.dh-dialog header { display: flex; justify-content: space-between; align-items: center; padding: 18px 22px; border-bottom: 1px solid var(--line); position: sticky; top: 0; background: var(--bg-1); z-index: 5; gap: 12px; }
+.dh-dialog h2 { font-size: 20px; margin: 0; }
+.dh-dialog-content { padding: 20px 22px; line-height: 1.6; }
+.dh-dialog-content p { margin: 0 0 16px; }
+.dh-dialog-content h3 { font-size: 17px; color: var(--text); margin: 14px 0; }
+.dh-dialog-content > svg { width: 100%; }
+.dh-dialog-content label { display: flex; gap: 8px; flex-direction: column; margin: 0 0 12px; font-size: 13px; }
+.dh-dialog-content label:has(input[type=checkbox]) { flex-direction: row; align-items: center; }
+.dh-dialog input:not([type=checkbox]), .dh-dialog select { background: var(--bg); border: 1px solid var(--line); border-radius: var(--radius); padding: 8px; color: var(--text); min-width: 0; width: 100%; }
+.dh-dialog button:not(.btn) { cursor: pointer; border: 1px solid var(--line); border-radius: var(--radius); background: var(--bg-2); color: var(--text); padding: 7px 12px; min-height: 36px; }
+.dh-dialog header button { background: transparent; border: 0; padding: 0 7px; font-size: 28px; line-height: 1; min-width: 36px; flex-shrink: 0; }
+.dh-dialog button:disabled { opacity: .4; cursor: default; }
+.dh-dialog .dh-primary { background: var(--sampled-dim); color: var(--sampled); border-color: var(--sampled); font-weight: 700; }
+.dh-dialog a { color: var(--sampled); }

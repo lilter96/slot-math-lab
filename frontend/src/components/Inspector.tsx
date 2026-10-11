@@ -23,8 +23,8 @@ export default function Inspector() {
       <div className="empty-inspector" style={{ flex: 1 }}>
         <Ic.target style={{ width: 32, height: 32, opacity: 0.3 }} />
         <span>Select a node to inspect</span>
-        <span style={{ fontSize: 11, color: 'var(--faint)' }}>
-          Drag from palette to add nodes
+        <span style={{ fontSize: 12, color: 'var(--faint)' }}>
+          Use Add nodes to extend the graph
         </span>
       </div>
     );
@@ -75,7 +75,7 @@ export default function Inspector() {
               return (
                 <>
                   <div style={{ overflowX: 'auto' }}>
-                    <table style={{ width: '100%', fontSize: 11, borderCollapse: 'collapse' }}>
+                    <table style={{ width: '100%', fontSize: 12, borderCollapse: 'collapse' }}>
                       <thead>
                         <tr style={{ color: 'var(--faint)' }}>
                           <th style={{ textAlign: 'left', padding: '2px 4px', fontWeight: 400 }}>Outcome</th>
@@ -90,7 +90,8 @@ export default function Inspector() {
                             <td style={{ padding: '2px 4px' }}>
                               <input
                                 className="inp"
-                                style={{ fontSize: 11, padding: '2px 4px', width: '100%' }}
+                                aria-label={`Outcome ID ${i + 1}`}
+                                style={{ fontSize: 12, padding: '2px 4px', width: '100%' }}
                                 value={w.outcomeId}
                                 onChange={(e) => {
                                   const next = weights.map((x, j) => j === i ? { ...x, outcomeId: e.target.value } : x);
@@ -101,7 +102,8 @@ export default function Inspector() {
                             <td style={{ padding: '2px 4px' }}>
                               <input
                                 className="inp"
-                                style={{ fontSize: 11, padding: '2px 4px', width: '100%', textAlign: 'right' }}
+                                aria-label={`Weight for ${w.outcomeId}`}
+                                style={{ fontSize: 12, padding: '2px 4px', width: '100%', textAlign: 'right' }}
                                 type="number" min={1}
                                 value={w.weight}
                                 onChange={(e) => {
@@ -113,7 +115,8 @@ export default function Inspector() {
                             <td style={{ padding: '2px 4px' }}>
                               <input
                                 className="inp"
-                                style={{ fontSize: 11, padding: '2px 4px', width: '100%', textAlign: 'right' }}
+                                aria-label={`Value for ${w.outcomeId}`}
+                                style={{ fontSize: 12, padding: '2px 4px', width: '100%', textAlign: 'right' }}
                                 type="number"
                                 value={w.value}
                                 onChange={(e) => {
@@ -124,7 +127,8 @@ export default function Inspector() {
                             </td>
                             <td style={{ padding: '2px 2px', textAlign: 'center' }}>
                               <button
-                                style={{ background: 'none', border: 'none', color: 'var(--danger)', cursor: 'pointer', fontSize: 13, lineHeight: 1 }}
+                                aria-label={`Remove outcome ${w.outcomeId || i + 1}`}
+                                style={{ background: 'none', border: 'none', color: 'var(--danger)', cursor: 'pointer', fontSize: 13, lineHeight: 1, minWidth: 36, minHeight: 36 }}
                                 onClick={() => updateWeights(weights.filter((_, j) => j !== i))}
                               >×</button>
                             </td>
@@ -141,7 +145,7 @@ export default function Inspector() {
                     + Add outcome
                   </button>
                   {weights.length > 0 && (
-                    <div style={{ display: 'flex', gap: 12, marginTop: 6, fontSize: 11, color: 'var(--faint)', fontFamily: 'var(--mono)' }}>
+                    <div style={{ display: 'flex', gap: 12, marginTop: 6, fontSize: 12, color: 'var(--faint)', fontFamily: 'var(--mono)' }}>
                       <span>Total weight: {totalWeight}</span>
                       <span>E[value]: {expectedValue.toFixed(4)}</span>
                     </div>
@@ -329,7 +333,7 @@ export default function Inspector() {
         <div className="row">
           <div>
             <div className="section-label">Node ID</div>
-            <div className="mono" style={{ fontSize: 10, color: 'var(--faint)' }}>
+            <div className="mono" style={{ fontSize: 12, color: 'var(--faint)' }}>
               {node.id}
             </div>
           </div>
