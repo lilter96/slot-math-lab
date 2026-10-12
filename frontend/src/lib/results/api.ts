@@ -10,7 +10,7 @@ import { waitForRetry } from '../measurements/requests';
 
 export async function resultsRequest<T>(path: string, init?: RequestInit, signal?: AbortSignal, timeout = 10000): Promise<T> {
   const response = await fetch('/api/' + path, { ...init, signal: AbortSignal.any([...(signal ? [signal] : []), AbortSignal.timeout(timeout)]) });
-  const data = response.ok && path.startsWith('configs/')
+  const data = response.ok && (path.startsWith('configs/') || /^runs\/[^/]+\/evidence$/.test(path))
     ? parseModelJson(await response.text())
     : await response.json().catch(() => ({}));
   if (!response.ok) {

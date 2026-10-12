@@ -34,6 +34,10 @@ Sharing, collaboration, public links, invitations, teams and publication are def
 
 ## Coding Style & Naming Conventions
 
+For the workbench redesign, deliver coherent pages rather than a sequence of tiny control/style patches. Each page pass covers hierarchy, content, actions, empty/loading/error states, responsive layout and keyboard interaction together. Validate the finished page with relevant scenarios and visual inspection; do not rerun broad suites or create a separate iteration for each cosmetic adjustment. Preserve actual mathematical evidence and private multi-project behavior while improving the interface.
+
+Visual acceptance must inspect the whole page from its header to the footer, including content below the fold, every tab and expanded details/forms. A first-viewport screenshot or green interaction test cannot certify a page. Capture and inspect desktop and phone views of the lower sections as well as the primary workspace; correct native unstyled controls, cramped labels and inconsistent shared components before delivering the page.
+
 Follow `backend/.editorconfig`: four spaces, LF endings, file-scoped namespaces, and braces on separate lines. Use PascalCase for C# types/methods and camelCase for locals. Match nearby TypeScript code: typically two spaces, single quotes, and semicolons. Use PascalCase component names and camelCase functions. Use the generation scripts for API/schema types rather than editing generated files manually.
 
 ## Atomic Graph Composition (Mandatory)
