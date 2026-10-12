@@ -111,3 +111,12 @@ f4cce7f adds raw-row/evidence deletion confirmation, prevents silent duplicate-f
 Scoped Chromium 11/11 and Firefox/WebKit 18/18 passed; afterward only the strengthened embedded-byte/export test reran (Chromium 1/1, Firefox/WebKit 2/2). Build/touched ESLint pass. Sixteen four-size captures have no document/tab overflow and no plugin-panel proof badges; [review](qa/DATA_INPUT_SAFETY_REVIEW.md) records real hashing, actual empty registry, fault injection, source scope and cleanup limits. No full suites or backend/math tests ran for this frontend slice.
 
 The [complete model inventory](MODEL_CAPABILITY_INVENTORY.md) found physical strips in Ancient Dragon, Woodland Whisper and Le Militare's initialState. The top-level-only capability detector missed them. A guarded physical reel editor is still required; raw-array editing or an 'unsupported' message does not complete the known-schema roadmap requirement. Its wrap suffix, stop distributions and conditioned/refill dependencies must round-trip together. Goal completion and release readiness remain unproven.
+
+
+## Source-backed ordinary reel editor
+
+87c95d8 delivers circular strip editing for ordinary Ancient Dragon/Woodland Whisper and both Le Militare sets, including shared refill stops. Full-period data, repeated tails and every mapped stop domain update together. Dense columns, keyboard manipulation, counts/raw probabilities, paged rows, staged validated CSV and guarded Undo are real working controls. Overview links to proven sets; mobile shows the current project.
+
+Scoped mapping units 5/5 and CSV units 4/4 pass. Initial Chromium 8/8; post-density checks 6/7 exposed a genuine focus race, then only failed/new/affected checks 4/4 pass. Final Firefox/WebKit 12/12 pass. Actual compiler/evaluation/round endpoints prove a small independent expectation 0.5 → 1 and exact seeded restoration; all ordinary game sets Apply/Undo compile. Sixteen final captures have no document overflow and 44px phone controls. Final caption copy received build/lint/render review, no suite repeat. [Reel review](qa/REEL_EDITOR_REVIEW.md) retains scope, failures and cleanup blockers.
+
+The conditioned bought-feature mapping is still required. Its materialized patterns/weights/stop subsets are preserved read-only until a complete guarded update exists. This does not complete that known-schema requirement. No kernel/PRNG/backend changes, full suites, publication or deployment occurred.

@@ -141,3 +141,14 @@ Destructive-action follow-up: SlotCanvas, Inspector and subgraph-library tests a
 - `frontend/e2e/data-input-safety.spec.ts`
 
 Data/evidence follow-up also touches ProjectDataEditor and api/hooks. Reformat attempts exit 3; frontend Full Cleanup remains unavailable. Actual logs: `data-input-safety-rider.log`, `data-input-safety-hook-rider.log`, `data-input-safety-export-rider.log`. Scoped lint/build/browser checks do not replace required cleanup.
+
+
+Circular reel follow-up: all touched files below require Reformat then Full Cleanup. CLI Reformat exits 3; Full Cleanup remains unavailable outside the solution. Actual attempts: reel-*-rider.log, including later density/focus/touch/action/caption edits. No successful cleanup claimed.
+
+- `frontend/src/lib/reelCommands.ts`
+- `frontend/src/lib/reelCsv.ts`
+- `frontend/src/components/editor/ReelStripEditor.tsx`
+- `frontend/src/components/editor/ReelStripEditor.css`
+- `frontend/unit/reel-commands.spec.ts`
+- `frontend/unit/reel-csv.spec.ts`
+- `frontend/e2e/reel-strips.spec.ts`

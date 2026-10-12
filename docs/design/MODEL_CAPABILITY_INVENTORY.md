@@ -22,14 +22,14 @@ Captured 2026-10-12 against f4cce7f. Every factory in gameModelLibrary/starterLi
 - X7 Club: source uses finite composed draws and editable state/AST/payline metadata. The current authored inventory has no physical strip family; do not infer one from its 5×3 board or 'reel' labels.
 - Cluster pays / Cascading clusters starters: independent cell draws, cluster payout lookup state, typed expressions and optional cascade/refill. Their 6×5 geometry does not imply physical reels.
 
-## Physical strips: unfinished required implementation
+## Physical strips: delivered ordinary mapping and remaining coupled variant
 
-The prior detector only checks a top-level `reelStrips` array. None of these eight models has that field; this **does not prove absence of physical strips**. The actual shared source above disproves that inference. UX_MASTERPLAN §7.3/Phase 4 therefore still requires a guarded reel editor against the known source representation.
+The prior detector only checks a top-level `reelStrips` array. None of these eight models has that field; this **does not prove absence of physical strips**. The actual shared source above disproves that inference. 87c95d8 now delivers a guarded editor for all three ordinary template families, including separate Le Militare paid/free sets. It recognizes actual state/AST/stop domains and updates their repeated tails together. See qa/REEL_EDITOR_REVIEW.md. The conditioned Woodland Whisper bought variant remains required work.
 
 | Model | Stored strip lengths | Additional dependencies |
 |---|---|---|
 | Ancient Dragon | 45, 45, 51, 44, 44 | Three-row window; raw periods 43, 43, 49, 42, 42. Stop draws and wrap suffix must update together. Mystery-symbol weights are a distinct weighted source. |
-| Woodland Whisper | 45, 44, 51, 44, 44 | Three-row window; raw periods 43, 42, 49, 42, 42. Bought feature materializes showPatterns, weighted pattern selection and conditional stop subsets; raw strip-only mutation would invalidate its conditioning. |
+| Woodland Whisper | 45, 44, 51, 44, 44 | Three-row window; raw periods 43, 42, 49, 42, 42. Ordinary template uses ordinary stops. The separate bought variant materializes showPatterns, weighted pattern selection and conditional stop subsets; raw strip-only mutation would invalidate its conditioning. |
 | Le Militare paid | 142, 150, 142, 150, 142, 150 | Five-row window; raw periods 138/146. Stop subgraphs shared with refill/cascade. |
 | Le Militare free | 177, 181, 177, 181, 177, 181 | Five-row window; raw periods 173/177. Keep paid and free sets distinct and identify each referenced stop domain. |
 
@@ -39,4 +39,4 @@ Required behavior remains column/index/symbol presentation, source-derived count
 
 All eight models include symbols/paytable metadata and boardConfig; Ancient Dragon, Woodland Whisper and X7 Club also include paylineSets. Metadata is not automatically an executable payout source. State arrays are commonly strings that encode exact integers or symbolic IDs; retain their original types. Boolean/nested/null state remains read-only in the generic adapter. Finite draw weights may encode stop indices rather than direct payouts, so editing a weight must never be described as universal symbol frequency or physical strip editing.
 
-The existing supported table/feature adapters have scoped tests. This inventory is source evidence and an implementation input, not verification of the unfinished reel editor or a universal form conversion.
+The existing supported table/feature adapters have scoped tests. This inventory is source evidence and an implementation input. Ordinary reel mapping has separate scoped verification; conditional mapping and universal form conversion are not claimed complete.
