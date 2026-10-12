@@ -1,207 +1,39 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { Ic } from './Icons';
 import { useAppStore } from '../store';
-import type { GraphNode, GraphEdge } from '../store';
+import { parseModelJson } from '../lib/modelJson';
+import { generatedModel } from '../lib/generatedModel';
+import { projectContentScope, switchProject } from '../lib/projectFiles';
+import { graphRequest } from '../lib/graphApi';
 
 interface AiGenerateModalProps {
   onClose: () => void;
-}
-
-interface BackendNode {
-  nodeType: string;
-  id: string;
-  label?: string;
-  mechanicName?: string;
-  parameters?: Record<string, string>;
-  drawWeights?: Array<{ outcomeId: string; weight: number; value: number }>;
-  stateKey?: string;
-  maxIterations?: number;
-  stopConditionId?: string;
-  conditionId?: string;
-  transformId?: string;
-  weightExpressionId?: string;
-  stateWriteKey?: string;
-  expressionId?: string;
-  outputKey?: string;
-  metricId?: string;
-  winStateKey?: string;
-}
-
-interface BackendEdge {
-  id: string;
-  sourceNodeId: string;
-  sourcePort: string;
-  targetNodeId: string;
-  targetPort: string;
-}
-
-interface GeneratedConfig {
-  name?: string;
-  nodes?: BackendNode[];
-  edges?: BackendEdge[];
-}
-
-/** Map a backend nodeType string to the frontend canvas node type */
-function backendNodeTypeToFrontend(nodeType: string): GraphNode['type'] {
-  switch (nodeType) {
-    case 'draw': return 'draw';
-    case 'loop': return 'loop';
-    case 'branch': return 'branch';
-    case 'map': return 'map';
-    case 'metricsSink': return 'sink';
-    case 'library': return 'library';
-    case 'getState':
-    case 'putState':
-    case 'modifyState':
-      return 'state';
-    default: return 'draw';
-  }
-}
-
-/** Map a backend node to GraphNodeData for the canvas store */
-function mapBackendNodeToGraphNode(n: BackendNode, index: number): GraphNode {
-  const frontendType = backendNodeTypeToFrontend(n.nodeType);
-
-  // Position nodes in a simple left-to-right layout
-  const x = 80 + index * 200;
-  const y = 200 + (index % 2 === 0 ? 0 : 60);
-
-  const base: GraphNode = {
-    id: n.id,
-    type: frontendType,
-    position: { x, y },
-    data: {
-      label: n.label ?? n.id,
-      nodeType: frontendType as GraphNode['data']['nodeType'],
-      sub: '',
-      level: 'a' as const,
-    },
-  };
-
-  switch (n.nodeType) {
-    case 'draw':
-      return {
-        ...base,
-        data: {
-          ...base.data,
-          sub: 'Weighted choice',
-          drawWeights: n.drawWeights,
-          weightExpressionId: n.weightExpressionId,
-          stateWriteKey: n.stateWriteKey,
-        },
-      };
-
-    case 'loop':
-      return {
-        ...base,
-        data: {
-          ...base.data,
-          sub: 'Fixpoint + stop',
-          iterations: n.maxIterations ?? 5,
-          terminationExpr: n.stopConditionId ?? '',
-        },
-      };
-
-    case 'branch':
-      return {
-        ...base,
-        data: {
-          ...base.data,
-          sub: 'Bind + conditional',
-          expression: n.conditionId ?? '',
-        },
-      };
-
-    case 'map':
-      return {
-        ...base,
-        data: {
-          ...base.data,
-          sub: 'Transform result',
-          transformId: n.transformId ?? '',
-        },
-      };
-
-    case 'library':
-      return {
-        ...base,
-        data: {
-          ...base.data,
-          sub: 'Catalog mechanic',
-          nodeType: 'library',
-          mechanicName: n.mechanicName ?? '',
-        },
-      };
-
-    case 'getState':
-      return {
-        ...base,
-        data: {
-          ...base.data,
-          sub: 'Get / Put / Modify',
-          nodeType: 'state',
-          stateOp: 'get' as const,
-          stateKey: n.stateKey ?? '',
-        },
-      };
-
-    case 'putState':
-      return {
-        ...base,
-        data: {
-          ...base.data,
-          sub: 'Get / Put / Modify',
-          nodeType: 'state',
-          stateOp: 'put' as const,
-          stateKey: n.stateKey ?? '',
-        },
-      };
-
-    case 'modifyState':
-      return {
-        ...base,
-        data: {
-          ...base.data,
-          sub: 'Get / Put / Modify',
-          nodeType: 'state',
-          stateOp: 'modify' as const,
-          expression: n.expressionId ?? '',
-          stateKey: n.outputKey ?? '',
-        },
-      };
-
-    case 'metricsSink':
-      return {
-        ...base,
-        data: {
-          ...base.data,
-          sub: 'Metrics output',
-          nodeType: 'sink',
-        },
-      };
-
-    default:
-      return base;
-  }
 }
 
 export default function AiGenerateModal({ onClose }: AiGenerateModalProps) {
   const [prompt, setPrompt] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const dialogRef = useRef<HTMLDialogElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  const addNode = useAppStore((s) => s.addNode);
-  const setEdges = useCallback((edges: GraphEdge[]) => {
-    // Replace edges by setting them directly
-    useAppStore.setState({ edges });
+  const pending = useRef<{ controller: AbortController; scope: string } | null>(null);
+  const mounted = useRef(true);
+  useEffect(() => {
+    mounted.current = true;
+    const unsubscribe = useAppStore.subscribe(() => {
+      const task = pending.current;
+      if (task && task.scope !== projectContentScope()) task.controller.abort();
+    });
+    return () => { mounted.current = false; pending.current?.controller.abort(); pending.current = null; unsubscribe(); };
   }, []);
-  const existingEdges = useAppStore((s) => s.edges);
-  const setConfigName = useAppStore((s) => s.setConfigName);
 
   // Focus textarea on mount
   useEffect(() => {
-    textareaRef.current?.focus();
+    const trigger = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    const dialog = dialogRef.current;
+    dialog?.showModal(); textareaRef.current?.focus();
+    return () => { dialog?.close(); requestAnimationFrame(() => { if (trigger?.isConnected) trigger.focus(); }); };
   }, []);
 
   // Close on Escape key
@@ -214,7 +46,10 @@ export default function AiGenerateModal({ onClose }: AiGenerateModalProps) {
   }, [onClose]);
 
   const handleGenerate = useCallback(async () => {
-    if (!prompt.trim()) return;
+    if (!prompt.trim() || pending.current) return;
+    const task = { controller: new AbortController(), scope: projectContentScope() };
+    pending.current = task;
+    const current = () => mounted.current && pending.current === task && !task.controller.signal.aborted && projectContentScope() === task.scope;
 
     setLoading(true);
     setError(null);
@@ -224,56 +59,39 @@ export default function AiGenerateModal({ onClose }: AiGenerateModalProps) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ prompt: prompt.trim() }),
+        signal: task.controller.signal,
       });
 
       if (res.status === 503) {
-        setError('AI service is not configured on this server (ANTHROPIC__APIKEY not set).');
+        if (current()) setError('AI service is not configured on this server.');
         return;
       }
 
-      const data: unknown = await res.json();
+      const data = res.ok ? parseModelJson(await res.text()) : await res.json().catch(() => ({}));
+      if (!current()) return;
 
       if (!res.ok) {
         // 422 with compiler errors or 400
-        const errData = data as { error?: string; compilerErrors?: Array<{ message: string }> };
-        const msgs = errData.compilerErrors?.map((e) => e.message).join('\n') ?? errData.error ?? 'Unknown error';
+        const errData = data as { error?: string; title?: string; compilerErrors?: Array<{ message: string }> };
+        const msgs = (Array.isArray(errData.compilerErrors) ? errData.compilerErrors.map(error => error.message).filter(Boolean).join('\n') : '') || errData.error || errData.title || `Generation failed (HTTP ${res.status}).`;
         setError(msgs);
         return;
       }
 
-      // Success — data is a GraphConfig
-      const config = data as GeneratedConfig;
-      const nodes = config.nodes ?? [];
-      const edges = config.edges ?? [];
-
-      // Load name
-      if (config.name) {
-        setConfigName(config.name);
-      }
-
-      // Add nodes to canvas
-      nodes.forEach((n, i) => {
-        addNode(mapBackendNodeToGraphNode(n, i));
-      });
-
-      // Add edges (merge with existing)
-      const newEdges: GraphEdge[] = edges.map((e) => ({
-        id: e.id,
-        source: e.sourceNodeId,
-        target: e.targetNodeId,
-        sourceHandle: e.sourcePort,
-        targetHandle: e.targetPort,
-        type: 'provenance',
-      }));
-      setEdges([...existingEdges, ...newEdges]);
-
+      const config = generatedModel(data);
+      const checked = await graphRequest<{ isValid: boolean; errors?: { message: string }[] }>('validate', { config }, task.controller.signal);
+      if (!current()) return;
+      if (checked.isValid !== true) throw new Error(checked.errors?.map(error => error.message).join('; ') || 'Generated model failed compiler validation.');
+      pending.current = null;
+      switchProject(config);
       onClose();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Request failed');
+      if (mounted.current && pending.current === task) setError(task.controller.signal.aborted ? 'The source changed while generating. Generate again for the current workspace.' : err instanceof Error ? err.message : 'Request failed');
     } finally {
-      setLoading(false);
+      if (mounted.current) setLoading(false);
+      if (pending.current === task) pending.current = null;
     }
-  }, [prompt, addNode, setEdges, existingEdges, setConfigName, onClose]);
+  }, [prompt, onClose]);
 
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
@@ -282,16 +100,14 @@ export default function AiGenerateModal({ onClose }: AiGenerateModalProps) {
   }, [handleGenerate]);
 
   return (
-    <div
-      style={{
-        position: 'fixed',
-        inset: 0,
-        background: 'rgba(0,0,0,0.55)',
-        zIndex: 200,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-      }}
+    <dialog ref={dialogRef} onKeyDown={event => {
+      if (event.key !== 'Tab') return;
+      const controls = Array.from(event.currentTarget.querySelectorAll<HTMLElement>('button:not([disabled]), textarea:not([disabled])'));
+      const first = controls[0], last = controls.at(-1);
+      if (event.shiftKey && document.activeElement === first && last) { event.preventDefault(); last.focus(); }
+      else if (!event.shiftKey && document.activeElement === last && first) { event.preventDefault(); first.focus(); }
+    }} onCancel={event => { event.preventDefault(); onClose(); }}
+      style={{ padding: 0, border: 0, background: 'transparent', color: 'inherit', width: 520, maxWidth: '90vw', maxHeight: '90vh', overflowY: 'auto', borderRadius: 'var(--radius-lg)' }}
       onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
       role="dialog"
       aria-modal="true"
@@ -349,7 +165,7 @@ export default function AiGenerateModal({ onClose }: AiGenerateModalProps) {
               border: 'none',
               color: 'var(--muted)',
               cursor: 'pointer',
-              padding: 4,
+              padding: 4, minWidth: 44, minHeight: 44,
               borderRadius: 6,
               display: 'grid',
               placeItems: 'center',
@@ -378,7 +194,7 @@ export default function AiGenerateModal({ onClose }: AiGenerateModalProps) {
               disabled={loading}
             />
             <div className="hint">
-              Ctrl+Enter to generate. The AI will produce a graph ready to evaluate.
+              Ctrl+Enter to generate a separate private project. Your current draft is retained; generated content is checked by the compiler.
             </div>
           </div>
 
@@ -397,7 +213,7 @@ export default function AiGenerateModal({ onClose }: AiGenerateModalProps) {
                 marginTop: 4,
               }}
             >
-              {error}
+              <span role="alert">{error}</span>
             </div>
           )}
         </div>
@@ -418,7 +234,7 @@ export default function AiGenerateModal({ onClose }: AiGenerateModalProps) {
               generating…
             </span>
           )}
-          <button className="btn" onClick={onClose} disabled={loading}>
+          <button className="btn" onClick={onClose} >
             Cancel
           </button>
           <button
@@ -431,6 +247,6 @@ export default function AiGenerateModal({ onClose }: AiGenerateModalProps) {
           </button>
         </div>
       </div>
-    </div>
+    </dialog>
   );
 }

@@ -1,57 +1,59 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useAppStore } from '../../store';
-import ProvBadge from '../ProvBadge';
+import { useModelSnapshot } from '../../hooks/useModelProjection';
+import { parseModelJson, parseModelNumber } from '../../lib/modelJson';
+import { generatedModel } from '../../lib/generatedModel';
+import { projectContentScope, switchProject } from '../../lib/projectFiles';
 
 interface AutoTuneResult {
+  targetRtp: number;
   achievedRtp: number;
   iterations: number;
   elapsedMs: number;
+  bestConfig: Record<string, unknown>;
+  scope: string;
 }
 
 export default function AutoTunePanel() {
-  const nodes = useAppStore((s) => s.nodes);
-  const edges = useAppStore((s) => s.edges);
+  const snapshot = useModelSnapshot();
+  useAppStore(s => s.projectId);
+  const pending = useRef<{ controller: AbortController; scope: string } | null>(null);
+  const mounted = useRef(true);
+  useEffect(() => {
+    mounted.current = true;
+    const unsubscribe = useAppStore.subscribe(() => { const task = pending.current; if (task && task.scope !== projectContentScope()) task.controller.abort(); });
+    return () => { mounted.current = false; pending.current?.controller.abort(); pending.current = null; unsubscribe(); };
+  }, []);
 
   const [targetRtp, setTargetRtp] = useState('0.96');
   const [maxIter, setMaxIter] = useState('200');
   const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState<AutoTuneResult | null>(null);
+  const [storedResult, setResult] = useState<AutoTuneResult | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  const result = storedResult?.scope === projectContentScope() ? storedResult : null;
   const tune = async () => {
-    if (nodes.length === 0) {
-      setError('Build a graph first.');
-      return;
-    }
+    if (pending.current) return;
+    const task = { controller: new AbortController(), scope: projectContentScope() }; pending.current = task;
+    const current = () => mounted.current && pending.current === task && !task.controller.signal.aborted && task.scope === projectContentScope();
     setLoading(true);
     setError(null);
     setResult(null);
     try {
-      const config = {
-        schemaVersion: '1.0.0',
-        nodes: nodes.map((n) => ({
-          ...n.data,
-          id: n.id,
-          inputs: {},
-          outputs: {},
-        })),
-        edges: edges.map((e) => ({
-          id: e.id,
-          sourceNodeId: e.source,
-          targetNodeId: e.target,
-          sourcePort: e.sourceHandle ?? 'out',
-          targetPort: e.targetHandle ?? 'in',
-        })),
-      };
+      const config = snapshot.config;
+      if (!config) throw new Error(snapshot.error ?? 'Build a graph first.');
+      const targetValue = parseModelNumber(targetRtp), iterations = parseModelNumber(maxIter);
+      if (targetValue < 0 || !Number.isInteger(iterations) || iterations < 1 || iterations > 500) throw new Error('Use a non-negative target RTP and 1–500 whole iterations.');
 
       const res = await fetch('/api/ai/auto-tune', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           config,
-          targetRtp: parseFloat(targetRtp) || 0.96,
-          maxIterations: parseInt(maxIter) || 200,
+          targetRtp: targetValue,
+          maxIterations: iterations,
         }),
+        signal: task.controller.signal,
       });
 
       if (!res.ok) {
@@ -59,16 +61,20 @@ export default function AutoTunePanel() {
         throw new Error((body as { error?: string }).error ?? `HTTP ${res.status}`);
       }
 
-      const data = (await res.json()) as AutoTuneResult & { bestConfig?: unknown };
-      setResult({ achievedRtp: data.achievedRtp, iterations: data.iterations, elapsedMs: data.elapsedMs });
+      const data = parseModelJson(await res.text());
+      if (!current()) return;
+      if (typeof data.achievedRtp !== 'number' || !Number.isFinite(data.achievedRtp) || !Number.isSafeInteger(data.iterations) || Number(data.iterations) < 0 || typeof data.elapsedMs !== 'number' || !Number.isFinite(data.elapsedMs) || data.elapsedMs < 0) throw new Error('Tuning response is missing a valid candidate report.');
+      const bestConfig = generatedModel(data.bestConfig);
+      setResult({ targetRtp: targetValue, achievedRtp: data.achievedRtp, iterations: Number(data.iterations), elapsedMs: data.elapsedMs, bestConfig, scope: task.scope });
     } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
+      if (mounted.current && pending.current === task) setError(task.controller.signal.aborted ? 'The source changed while tuning. Tune again for the current model.' : e instanceof Error ? e.message : String(e));
     } finally {
-      setLoading(false);
+      if (mounted.current) setLoading(false);
+      if (pending.current === task) pending.current = null;
     }
   };
 
-  const target = parseFloat(targetRtp);
+  const target = result?.targetRtp ?? 0;
   const diff = result ? Math.abs(result.achievedRtp - target) : null;
 
   return (
@@ -82,8 +88,7 @@ export default function AutoTunePanel() {
           <span style={{ color: 'var(--muted)' }}>Target RTP</span>
           <input
             type="number"
-            min="0.5"
-            max="1.0"
+            min="0"
             step="0.01"
             value={targetRtp}
             onChange={(e) => setTargetRtp(e.target.value)}
@@ -98,7 +103,7 @@ export default function AutoTunePanel() {
           <span style={{ color: 'var(--muted)' }}>Max iterations</span>
           <input
             type="number"
-            min="10"
+            min="1"
             max="500"
             step="10"
             value={maxIter}
@@ -113,7 +118,7 @@ export default function AutoTunePanel() {
 
         <button
           onClick={tune}
-          disabled={loading}
+          disabled={loading || !snapshot.config}
           style={{
             marginTop: 4, padding: '7px 14px', fontSize: 12, fontWeight: 600,
             background: loading ? 'var(--surface-2)' : 'var(--accent)', color: '#fff',
@@ -124,7 +129,7 @@ export default function AutoTunePanel() {
         </button>
 
         {error && (
-          <div style={{ fontSize: 11, color: 'var(--epsilon)', padding: '6px 8px', background: 'var(--epsilon-dim)', borderRadius: 6 }}>
+          <div role="alert" style={{ fontSize: 12, color: 'var(--epsilon)', padding: '6px 8px', background: 'var(--epsilon-dim)', borderRadius: 6 }}>
             {error}
           </div>
         )}
@@ -132,7 +137,7 @@ export default function AutoTunePanel() {
         {result && (
           <div style={{ marginTop: 4, padding: '8px 10px', background: 'var(--surface-2)', borderRadius: 8, fontSize: 12 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-              <span style={{ color: 'var(--muted)' }}>Achieved RTP</span>
+              <span style={{ color: 'var(--muted)' }}>Reported candidate RTP</span>
               <span style={{ fontWeight: 700, color: diff != null && diff < 0.02 ? 'var(--exact)' : 'var(--epsilon)' }}>
                 {(result.achievedRtp * 100).toFixed(2)}%
               </span>
@@ -156,7 +161,7 @@ export default function AutoTunePanel() {
               <span>{result.elapsedMs.toFixed(0)} ms</span>
             </div>
             <div style={{ marginTop: 8 }}>
-              <ProvBadge p={{ kind: 'Sampled', n: 5000, stdErr: 0.001 }} mini />
+              <p className="hint">Sampling details are not included in this response. The current draft is unchanged.</p><button className="btn" onClick={() => switchProject(result.bestConfig)}>Open tuned candidate as a new project</button>
             </div>
           </div>
         )}

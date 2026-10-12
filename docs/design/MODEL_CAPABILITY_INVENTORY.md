@@ -15,6 +15,8 @@ Captured 2026-10-12 against f4cce7f. Every factory in gameModelLibrary/starterLi
 
 ## Source families and safe editing
 
+Runtime qualification from the AI source audit: a Draw `weightExpression` referencing an array-valued state field passes structural validation but the current light evaluator returns `EVAL_TYPE_ERROR: Numeric weight expression required.` Declared dynamic mode is not proof of executable vector-weight support. Preserve source and show the actual error; do not claim compiler acceptance certifies every evaluation. See [AI source evidence](qa/AI_MODEL_SOURCE_REVIEW.md). No new kernel atom was introduced.
+
 - Nine Lives reference: `src/games/nine-lives/graph.ts`, separate authored row-major reference model, 40 reusable definitions. Finite draws, initial state, typed AST, flattened executable cluster payout inputs and matching paytable metadata. Existing cluster payout/free-spin form adapters guard their exact executable mappings.
 - Nine Lives migrated: `src/games/nine-lives-tgslots/graph.ts`, composed shared atomic authoring helpers. It is a separate 6×5 model, not the reference adapter's universal schema. Do not assume identical payout/form mappings because IDs or names resemble each other.
 - Ancient Dragon and Woodland Whisper: their game factories compose `reelState` and `spinReels` from `src/games/shared/graph/mechanics/reels.ts`. **Physical circular strips are already present** in `initialState.reel0` through `reel4`. Stored lengths include the first `rows−1` symbols repeated as a suffix so window reads do not wrap. Stop draws encode allowed indices independently of that suffix.

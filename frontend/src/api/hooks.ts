@@ -1,3 +1,4 @@
+import { assertModelNumbers } from '../lib/modelJson';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useEffect } from 'react';
 import { apiClient, BASE_URL } from './client';
@@ -187,6 +188,7 @@ export function useSaveConfig() {
         },
       };
 
+      assertModelNumbers(body.config);
       if (config.id) {
         const { data, error } = await apiClient.PUT('/api/configs/{id}', {
           params: { path: { id: config.id } },
