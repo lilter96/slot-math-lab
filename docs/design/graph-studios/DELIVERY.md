@@ -2,7 +2,7 @@
 
 Reel & Paytable Studio and State Machine Designer edit the selected private project's existing GraphConfig and use the existing compiler/execution APIs. No backend/API/schema changes, new graph atoms, game-name runtime dispatch, alternate RNG or mathematical runtime were introduced. Browser projects remain private and independent; server saving remains explicit.
 
-Implementation commit: recorded below after the local checkpoint. Branch: `feat/precision-workbench-redesign`. Base audit/fetched main: `b81e71c82cb0314d066d7134278751b85676f356`; old work and the Simulate checkpoint were preserved. No push/merge/deployment.
+Implementation commit: `b6dfd81` (Designer); Studio checkpoint: `6e98807`. Branch: `feat/precision-workbench-redesign`. Base audit/fetched main: `b81e71c82cb0314d066d7134278751b85676f356`; old work and the Simulate checkpoint were preserved. No push/merge/deployment.
 
 Live development: http://localhost:4187/model/studio and http://localhost:4187/model/machine. API: 5166; built preview: 4186. Polling HMR remains enabled. Open **My projects**, select/create/import a model, then use Studio or State machine in the navigation.
 
