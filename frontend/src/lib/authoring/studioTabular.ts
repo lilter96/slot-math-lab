@@ -152,7 +152,7 @@ export function previewTable(graph: ModelGraph, target: TableTarget, sheet: Inpu
     });
     result.patches.push({ kind: 'reels', key: target.binding.key, stops, ...(stops.some(strip => strip.some(stop => stop.identity === null)) ? { addedWeight: options.addedWeight } : {}), ...(options.discardStops ? { removedStops: 'discard' } : {}) });
   }
-  if (target.kind === 'lines') result.patches.push({ kind: 'lines', key: target.binding.key, paths: lines });
+  if (target.kind === 'lines') result.patches.push({ ...(pendingLines?.kind === 'lines' ? pendingLines : {}), kind: 'lines', key: target.binding.key, paths: lines });
   if (!result.errors.length) {
     const candidate = studioCandidate(graph, result.patches.reduce(replaceStudioPatch, existing));
     if (candidate.error) fail(0, 'Complete candidate', candidate.error);

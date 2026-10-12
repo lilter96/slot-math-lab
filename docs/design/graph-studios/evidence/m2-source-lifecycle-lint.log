@@ -1,0 +1,6 @@
+
+/home/terentiy/work/github-profile-audit/slot-math-lab-worktrees/precision-workbench-redesign/frontend/src/lib/authoring/sourceLifecycle.ts
+  8:53  error  'NodeSource' is defined but never used  @typescript-eslint/no-unused-vars
+
+✖ 1 problem (1 error, 0 warnings)
+

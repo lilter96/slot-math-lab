@@ -1,0 +1,108 @@
+{
+  "base": "http://127.0.0.1:4187",
+  "records": [
+    {
+      "slug": "x7",
+      "width": 390,
+      "height": 844,
+      "state": "line-per-line",
+      "scrollMax": 1336,
+      "document": 390,
+      "viewport": 390,
+      "zoom": "1",
+      "scale": 1
+    },
+    {
+      "slug": "x7",
+      "width": 390,
+      "height": 844,
+      "state": "line-fixed-invalid",
+      "scrollMax": 1429,
+      "document": 390,
+      "viewport": 390,
+      "zoom": "1",
+      "scale": 1
+    },
+    {
+      "slug": "x7",
+      "width": 390,
+      "height": 844,
+      "state": "line-fixed-valid",
+      "scrollMax": 1373,
+      "document": 390,
+      "viewport": 390,
+      "zoom": "1",
+      "scale": 1
+    },
+    {
+      "slug": "x7",
+      "width": 390,
+      "height": 844,
+      "state": "create-cells",
+      "scrollMax": 355,
+      "document": 390,
+      "viewport": 390,
+      "zoom": "1",
+      "scale": 1
+    },
+    {
+      "slug": "x7",
+      "width": 390,
+      "height": 844,
+      "state": "create-reels",
+      "scrollMax": 272,
+      "document": 390,
+      "viewport": 390,
+      "zoom": "1",
+      "scale": 1
+    },
+    {
+      "slug": "x7",
+      "width": 390,
+      "height": 844,
+      "state": "create-invalid",
+      "scrollMax": 349,
+      "document": 390,
+      "viewport": 390,
+      "zoom": "1",
+      "scale": 1
+    },
+    {
+      "slug": "x7",
+      "width": 390,
+      "height": 844,
+      "state": "copy-invalid",
+      "scrollMax": 0,
+      "document": 390,
+      "viewport": 390,
+      "zoom": "1",
+      "scale": 1
+    },
+    {
+      "slug": "x7",
+      "width": 390,
+      "height": 844,
+      "state": "prize-domain",
+      "scrollMax": 2259,
+      "document": 390,
+      "viewport": 390,
+      "zoom": "1",
+      "scale": 1
+    },
+    {
+      "slug": "x7",
+      "width": 390,
+      "height": 844,
+      "state": "prize-domain-dirty",
+      "scrollMax": 2462,
+      "document": 390,
+      "viewport": 390,
+      "zoom": "1",
+      "scale": 1
+    },
+    {
+      "slug": "x7",
+      "errors": []
+    }
+  ]
+}

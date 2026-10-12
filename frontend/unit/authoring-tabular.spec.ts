@@ -10,6 +10,7 @@ import { clusterStudioProof } from './fixtures/clusterStudioProof';
 import { prizeStudioProof } from './fixtures/prizeStudioProof';
 import { createAncientDragonGraph } from '../src/games/ancient-dragon/graph';
 import { graphStudiosCorpus } from './fixtures/graphStudiosCorpus';
+import { computedLineBoundProof } from './fixtures/computedLineBoundProof';
 import type { ModelGraph } from '../src/lib/modelProjection';
 
 function preview(graph: ModelGraph, target: TableTarget, rows: string[][], override: Partial<ImportOptions> = {}) {
@@ -58,4 +59,12 @@ test('Partial imports preview the staged values and retain untouched pending out
   const existing = [{ kind: 'weights' as const, key: source.key, values: [['1', '8'], ['5', '4']] as [string, string][] }];
   const result = previewTable(graph, target, sheet, { headerRow: 0, mapping: { outcomeId: 0, weight: 1 }, symbols: 'id', unit: 'native', addedWeight: '1', discardStops: false }, existing);
   expect(result.errors).toEqual([]); expect(result.changes[0].before).toBe('8'); expect(result.patches).toEqual([{ kind: 'weights', key: source.key, values: [['1', '2'], ['5', '4']] }]);
+});
+test('Partial path imports retain pending line identities and the explicit stake policy', () => {
+  const graph = computedLineBoundProof() as ModelGraph, binding = lineBindings(graph)[0], target: TableTarget = { kind: 'lines', label: 'Paths', binding };
+  const existing = [{ kind: 'lines' as const, key: binding.key, paths: [[0, 0], [0, 0]], identities: ['0', null], stakePolicy: { mode: 'fixed-total' as const, confirmFixed: true, cap: 'recompute' as const } }];
+  const sheet = parseTableText('line,column,row\n2,1,0', 'csv').sheets[0];
+  const result = previewTable(graph, target, sheet, { headerRow: 0, mapping: autoColumns(sheet, target), symbols: 'id', unit: 'native', addedWeight: '1', discardStops: false }, existing);
+  expect(result.errors).toEqual([]); expect(result.patches).toEqual(existing);
+  expect(lineBindings(applyStudioPatches(graph, result.patches))[0].lines).toHaveLength(2);
 });

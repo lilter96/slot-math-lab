@@ -29,6 +29,13 @@ export function cellBindings(graph: ModelGraph): CellBinding[] {
     const first = weights.find(weight => weight.source.scope === scope && weight.capability === 'editable');
     if (!first) continue;
     const template = spinCells({ name: scope, cells, outcomes: first.rows.map(row => [row.outcomeId, Math.max(1, row.weight)]) }) as unknown as ModelGraph;
+    // Each cell owns its domain, even when another cell currently has the same rows.
+    const draws = (template.nodes ?? []).filter(node => node.nodeType === 'draw');
+    if (draws.some((node, position) => {
+      const actual = definition.nodes[position], source = weights.find(weight => weight.source.scope === scope && weight.source.id === actual?.id);
+      if (!source || source.capability !== 'editable' || source.rows.some(row => row.value !== 0)) return true;
+      node.drawWeights = source.rows.map(row => ({ ...row })); return false;
+    })) continue;
     const shape = matchReelShape(definition, template); if (!shape) continue;
     const assignments = Array.from({ length: cells }, (_, position) => ({ position, source: weights.find(weight => weight.key === sourceKey(scope, shape.nodes.get(`cell-${position + 1}`)!.id))! }));
     if (assignments.some(cell => !cell.source || cell.source.capability !== 'editable')) continue;

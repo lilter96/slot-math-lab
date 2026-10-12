@@ -1,0 +1,23 @@
+
+Running 10 tests using 2 workers
+
+(node:340951) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:340952) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:340951) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:340952) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   2 unit/authoring-cell-bindings.spec.ts:22:1 › X7 has fifteen column-major cells and no physical strips; geometry and stale assignments refuse candidate mutation (55ms)
+  ✓   3 unit/authoring-source-lifecycle.spec.ts:12:1 › New numeric source emits ordinary atoms and one explicit round entry; collisions do not replace existing source (10ms)
+  ✓   4 unit/authoring-source-lifecycle.spec.ts:17:49 › cells: copying one use isolates definitions/strip data and preserves original calls and opaque fields (14ms)
+  ✓   5 unit/authoring-source-lifecycle.spec.ts:17:49 › reels: copying one use isolates definitions/strip data and preserves original calls and opaque fields (18ms)
+  ✓   6 unit/authoring-source-lifecycle.spec.ts:25:1 › Changing one cell domain keeps peers, payloads and board assignment; no-op domains preserve source exactly (6ms)
+  ✓   7 unit/authoring-source-lifecycle.spec.ts:31:1 › Numeric prize domain synchronizes consumers and exact ordinal precision; retained rows preserve weights/opaque data and removal is explicit (11ms)
+  ✓   1 unit/authoring-cell-bindings.spec.ts:9:1 › TGSlots paid/free boards contain independent cell Draws; editing one or selected cells preserves other stages and refill (219ms)
+  ✓   8 unit/studio-edits.spec.ts:9:1 › A Studio draft composes source-local reel and weight edits into one untouched-base candidate (69ms)
+  ✓  10 unit/studio-edits.spec.ts:27:1 › Incomplete inputs stay in a draft, invalid candidates leave source untouched and replacing one coordinate retains other edits (149ms)
+  ✓   9 unit/studio-edits.spec.ts:18:1 › Batch payout edits share the original bound and regenerate the wild row once without order-dependent rejection (411ms)
+
+  10 passed (1.8s)

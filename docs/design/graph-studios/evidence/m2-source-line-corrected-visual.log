@@ -1,0 +1,6 @@
+locator.evaluate: Timeout 30000ms exceeded.
+Call log:
+[2m  - waiting for locator('.studio-source-dialog')[22m
+
+    at capture (/tmp/slotmath-source-line-visual.cjs:5:100)
+    at /tmp/slotmath-source-line-visual.cjs:8:239

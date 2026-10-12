@@ -1,0 +1,1 @@
+src/lib/authoring/lineLifecycle.ts(15,7): error TS6133: 'same' is declared but its value is never read.

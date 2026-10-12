@@ -1,0 +1,31 @@
+
+Running 18 tests using 2 workers
+
+(node:362899) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:362905) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:362899) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:362905) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   2 unit/authoring-line-lifecycle.spec.ts:19:1 › Fixed total is an explicit changed contract; incomplete pricing and non-integral per-line scaling reject without changing source (39ms)
+  ✓   3 unit/authoring-line-lifecycle.spec.ts:26:1 › Retained line IDs and opaque metadata/node/edge fields survive topology changes (19ms)
+  ✓   4 unit/authoring-source-lifecycle.spec.ts:12:1 › New numeric source emits ordinary atoms and one explicit round entry; collisions do not replace existing source (11ms)
+  ✓   5 unit/authoring-source-lifecycle.spec.ts:17:49 › cells: copying one use isolates definitions/strip data and preserves original calls and opaque fields (13ms)
+  ✓   6 unit/authoring-source-lifecycle.spec.ts:17:49 › reels: copying one use isolates definitions/strip data and preserves original calls and opaque fields (10ms)
+  ✓   7 unit/authoring-source-lifecycle.spec.ts:25:1 › Changing one cell domain keeps peers, payloads and board assignment; no-op domains preserve source exactly (5ms)
+  ✓   8 unit/authoring-source-lifecycle.spec.ts:31:1 › Numeric prize domain synchronizes consumers and exact ordinal precision; retained rows preserve weights/opaque data and removal is explicit (7ms)
+  ✓   9 unit/authoring-tabular.spec.ts:20:1 › CSV/TSV retain literal IDs, delimiters, multiline fields, fractions and exact XML number tokens (6ms)
+  ✓  10 unit/authoring-tabular.spec.ts:33:1 › Payout import uses exact units and explicit symbol matching; a new cluster size updates the complete candidate (79ms)
+  ✓  11 unit/authoring-tabular.spec.ts:39:1 › Independent numeric prize weights and shared prize values import together without losing payloads or collapsing draws (37ms)
+  ✓  12 unit/authoring-tabular.spec.ts:44:1 › Reel resizing and ID-based reorder retain weighted stop identity; missing removal policy rejects atomically (404ms)
+  ✓  13 unit/authoring-tabular.spec.ts:51:1 › Formula/malformed/duplicate/unsafe rows provide locations and never yield a partly applicable edit (4ms)
+  ✓  14 unit/authoring-tabular.spec.ts:57:1 › Partial imports preview the staged values and retain untouched pending outcomes in the same Draw (2ms)
+  ✓  15 unit/authoring-tabular.spec.ts:63:1 › Partial path imports retain pending line identities and the explicit stake policy (31ms)
+  ✓  16 unit/studio-edits.spec.ts:9:1 › A Studio draft composes source-local reel and weight edits into one untouched-base candidate (42ms)
+  ✓  17 unit/studio-edits.spec.ts:18:1 › Batch payout edits share the original bound and regenerate the wild row once without order-dependent rejection (324ms)
+  ✓  18 unit/studio-edits.spec.ts:27:1 › Incomplete inputs stay in a draft, invalid candidates leave source untouched and replacing one coordinate retains other edits (99ms)
+  ✓   1 unit/authoring-line-lifecycle.spec.ts:9:1 › Bundled line families/entries add/remove lines while preserving per-line pricing, bought ratio, native lookups and precision (1.5s)
+
+  18 passed (2.3s)

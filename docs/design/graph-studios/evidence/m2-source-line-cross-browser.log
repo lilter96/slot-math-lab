@@ -1,0 +1,19 @@
+
+Running 6 tests using 1 worker
+
+(node:365858) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:365858) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  1 [firefox] › e2e/studio-source-lifecycle.spec.ts:19:49 › Studio source creation: a new reels board uses the authored dictionary and executes ordinary graph primitives (2.0s)
+  ✓  2 [firefox] › e2e/studio-source-lifecycle.spec.ts:24:49 › Studio private cells: copying the second use and editing only its source changes real probability while the first source stays intact (1.9s)
+  ✓  3 [firefox] › e2e/studio-source-lifecycle.spec.ts:39:1 › Studio line lifecycle: duplicate/remove lines preserve per-line pricing or explicitly keep a fixed total, and execute the real payout (2.4s)
+(node:366239) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:366239) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  4 [webkit] › e2e/studio-source-lifecycle.spec.ts:19:49 › Studio source creation: a new reels board uses the authored dictionary and executes ordinary graph primitives (2.2s)
+  ✓  5 [webkit] › e2e/studio-source-lifecycle.spec.ts:24:49 › Studio private cells: copying the second use and editing only its source changes real probability while the first source stays intact (2.3s)
+  ✓  6 [webkit] › e2e/studio-source-lifecycle.spec.ts:39:1 › Studio line lifecycle: duplicate/remove lines preserve per-line pricing or explicitly keep a fixed total, and execute the real payout (2.6s)
+
+  6 passed (14.7s)

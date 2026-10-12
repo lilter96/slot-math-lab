@@ -5,6 +5,7 @@ import type { WeightBinding } from '../../lib/authoring/weightBindings';
 import { validateWeights } from '../../lib/modelCommands';
 import { resolveNodeSource, sourceKey } from '../../lib/authoring/sourceIndex';
 import { Ic } from '../Icons';
+import { OutcomeDomainEditor } from './StudioSourceLifecycle';
 import { SymbolBadge, type StudioContext } from './StudioShared';
 
 export function ReelSurface({ context, binding, onImport }: { context: StudioContext; binding: ReelBinding; onImport: () => void }) {
@@ -49,8 +50,9 @@ export function WeightSurface({ context, sources, board, onImport }: { context: 
       const row = source.rows.find(row => row.outcomeId === id); if (!row) return <td key={source.key}><span className="studio-unavailable">Not in this source</span></td>;
       const weights = values(source), value = weights.get(id) ?? '', invalid = ['editable', 'computed'].includes(source.capability) ? validateWeights(source.rows.map(row => weights.get(row.outcomeId) ?? '')) : 'No proven static distribution';
       const total = invalid ? null : [...weights.values()].reduce((sum, value) => sum + BigInt(value.trim()), 0n);
-      return <td key={source.key}><input aria-label={`Weight ${id} in ${source.source.id}`} aria-invalid={source.capability === 'editable' && !!invalid} inputMode="numeric" value={value} disabled={disabled || source.capability !== 'editable'} data-changed={value !== String(row.weight)} onChange={event => change(source, id, event.target.value)} /><span className="weight-probability">{total ? `${(Number(value) / Number(total) * 100).toFixed(3)}%` : source.capability === 'dynamic' ? 'State-dependent' : 'Incomplete'}<small>{total ? `${value} / ${total}` : source.capability === 'dynamic' ? 'Expression retained' : 'Enter valid weights'}</small></span></td>;
+      return <td key={source.key}><input aria-label={`Weight ${id} in ${source.source.id}`} aria-invalid={source.capability === 'editable' && !!invalid} inputMode="numeric" value={value} disabled={disabled || source.capability !== 'editable' || patches.some(patch => patch.kind === 'outcomes' && patch.key === source.key)} data-changed={value !== String(row.weight)} onChange={event => change(source, id, event.target.value)} /><span className="weight-probability">{total ? `${(Number(value) / Number(total) * 100).toFixed(3)}%` : source.capability === 'dynamic' ? 'State-dependent' : 'Incomplete'}<small>{total ? `${value} / ${total}` : source.capability === 'dynamic' ? 'Expression retained' : 'Enter valid weights'}</small></span></td>;
     })}{!board && active.length === 1 && <td className="studio-payload">{active[0]?.rows.find(row => row.outcomeId === id)?.value ?? '—'}</td>}</tr>; })}</tbody><tfoot><tr><th>Total weight</th>{active.map(source => { const weights = values(source), invalid = ['editable', 'computed'].includes(source.capability) ? validateWeights(source.rows.map(row => weights.get(row.outcomeId) ?? '')) : 'No static total'; return <td key={source.key}>{invalid ? source.capability === 'dynamic' ? 'Expression' : 'Incomplete' : [...weights.values()].reduce((sum, value) => sum + BigInt(value.trim()), 0n).toString()}</td>; })}{!board && active.length === 1 && <td />}</tr></tfoot></table></div>
+    {active.length === 1 && <OutcomeDomainEditor context={context} source={active[0]} />}
     {!board && sources[0]?.reason && <p className="studio-explanation">{sources[0].reason}</p>}<p className="studio-footnote">Ratios describe this local draw. They are not RTP or window-event probabilities. Numeric payloads are retained unchanged.</p>
   </div>;
 }

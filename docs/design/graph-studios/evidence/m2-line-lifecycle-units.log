@@ -1,0 +1,21 @@
+
+Running 8 tests using 2 workers
+
+(node:358229) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:358230) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:358229) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:358230) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  1 unit/authoring-line-bindings.spec.ts:10:3 › Ancient Dragon: payline paths update column-major execution parameters and preserve stake, metadata and other lines (135ms)
+  ✓  2 unit/authoring-line-bindings.spec.ts:10:3 › Woodland Whisper: payline paths update column-major execution parameters and preserve stake, metadata and other lines (153ms)
+  ✓  4 unit/authoring-line-bindings.spec.ts:21:1 › Renamed shared payline fragments remain editable; stale geometry and inconsistent metadata stay locally unavailable (27ms)
+  ✓  3 unit/authoring-line-bindings.spec.ts:10:3 › X7 Club: payline paths update column-major execution parameters and preserve stake, metadata and other lines (97ms)
+  ✓  5 unit/authoring-line-bindings.spec.ts:37:1 › Duplicated execution definitions linked to one declared line set change together without merging unrelated state (69ms)
+  ✓  7 unit/authoring-line-lifecycle.spec.ts:19:1 › Fixed total is an explicit changed contract; incomplete pricing and non-integral per-line scaling reject without changing source (16ms)
+  ✓  8 unit/authoring-line-lifecycle.spec.ts:26:1 › Retained line IDs, opaque metadata/node/edge fields and renamed helper identities survive topology changes (13ms)
+  ✓  6 unit/authoring-line-lifecycle.spec.ts:9:1 › Bundled line families/entries add/remove lines while preserving per-line pricing, bought ratio, native lookups and precision (1.0s)
+
+  8 passed (1.9s)

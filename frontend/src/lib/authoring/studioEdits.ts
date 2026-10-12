@@ -7,12 +7,19 @@ import { changeBoundWeights, weightBindings } from './weightBindings';
 import { changeBoundLines, lineBindings } from './lineBindings';
 import { changeBoundPayouts, payBindings } from './payBindings';
 import { computedLineBound } from './payoutBounds';
+import { createDrawingSource, copySourceUse, changeSourceOutcomes, changePrizeDomain, type SourceDefinitionInput, type SourceConnection, type OutcomeInput } from './sourceLifecycle';
+import { changeLineDomain, type LineStakePolicy } from './lineLifecycle';
 
 export type StudioPatch = { kind: 'reels'; key: string; stops: PhysicalStop[][]; addedWeight?: string; removedStops?: 'discard' }
   | { kind: 'weights'; key: string; values: [string, string][] }
   | { kind: 'payout'; key: string; symbolId: string; count: number; value: string; remove?: boolean; capPolicy?: 'keep' | 'recompute' }
-  | { kind: 'lines'; key: string; paths: number[][] }
-  | { kind: 'symbol'; key: string; name: string };
+  | { kind: 'lines'; key: string; paths: number[][]; identities?: (string | null)[]; stakePolicy?: LineStakePolicy }
+  | { kind: 'symbol'; key: string; name: string }
+  | SourceStudioPatch;
+export type SourceStudioPatch = { kind: 'create-source'; key: string; input: SourceDefinitionInput; connection: SourceConnection }
+  | { kind: 'copy-source'; key: string; nodeKey: string; name: string }
+  | { kind: 'outcomes'; key: string; rows: OutcomeInput[] }
+  | { kind: 'prize-domain'; key: string; values: { value: string; addedWeight?: string }[]; discard: boolean };
 export interface StudioDraft { version: 1; projectId: string; baseHash: string; patches: StudioPatch[] }
 export const patchKey = (patch: StudioPatch) => patch.kind === 'payout' ? JSON.stringify([patch.kind, patch.key, patch.symbolId, patch.count]) : JSON.stringify([patch.kind, patch.key]);
 export function replaceStudioPatch(patches: StudioPatch[], patch: StudioPatch): StudioPatch[] {
@@ -28,7 +35,11 @@ export function applyStudioPatches(graph: ModelGraph, patches: StudioPatch[]): M
   if (new Set(payoutEdits.filter(patch => cappedTables.has(patch.key)).map(effectivePolicy)).size > 1) throw new Error('Choose the same payout-cap policy for all tables sharing this result cap.');
   // Prize values are numeric Draw identities. Apply weight drafts against their original identities first.
   for (const patch of [...patches.filter(patch => patch.kind !== 'payout'), ...payoutEdits]) {
-    if (patch.kind === 'weights') {
+    if (patch.kind === 'create-source') candidate = createDrawingSource(candidate, patch.input, patch.connection);
+    else if (patch.kind === 'copy-source') candidate = copySourceUse(candidate, patch.nodeKey, patch.name);
+    else if (patch.kind === 'outcomes') candidate = changeSourceOutcomes(candidate, patch.key, patch.rows);
+    else if (patch.kind === 'prize-domain') candidate = changePrizeDomain(candidate, patch.key, patch.values, patch.discard);
+    else if (patch.kind === 'weights') {
       const source = weightBindings(candidate).find(source => source.key === patch.key); if (!source) throw new Error('The weighted source is unavailable.');
       candidate = changeBoundWeights(candidate, source, new Map(patch.values));
     } else if (patch.kind === 'reels') {
@@ -43,7 +54,10 @@ export function applyStudioPatches(graph: ModelGraph, patches: StudioPatch[]): M
       candidate = changeBoundPayouts(candidate, source, edits, edits[0].capPolicy);
     } else if (patch.kind === 'lines') {
       const source = lineBindings(candidate).find(source => source.key === patch.key); if (!source) throw new Error('The payline source is unavailable.');
-      candidate = changeBoundLines(candidate, source, patch.paths);
+      if (patch.identities) {
+        if (!patch.stakePolicy) throw new Error('Choose an explicit stake and cap policy for a changed line domain.');
+        candidate = changeLineDomain(candidate, source, patch.paths, patch.identities, patch.stakePolicy);
+      } else candidate = changeBoundLines(candidate, source, patch.paths);
     } else {
       const symbols = Array.isArray(candidate.symbols) ? candidate.symbols as { id: string; name: string }[] : [];
       if (!patch.name.trim() || symbols.filter(symbol => symbol.id === patch.key).length !== 1) throw new Error('A symbol needs a display name and one unambiguous ID.');
@@ -67,10 +81,23 @@ export function readStudioDraft(projectId: string): StudioDraft | null {
 function validPatch(value: unknown): value is StudioPatch {
   if (!value || typeof value !== 'object') return false;
   const patch = value as Record<string, unknown>; if (typeof patch.key !== 'string') return false;
+  const outcomes = (rows: unknown) => Array.isArray(rows) && rows.every(row => row && typeof row === 'object' && typeof row.id === 'string' && typeof row.weight === 'string' && typeof row.payload === 'string');
+  if (patch.kind === 'outcomes') return outcomes(patch.rows);
+  if (patch.kind === 'copy-source') return typeof patch.nodeKey === 'string' && typeof patch.name === 'string';
+  if (patch.kind === 'prize-domain') return typeof patch.discard === 'boolean' && Array.isArray(patch.values) && patch.values.every(row => row && typeof row === 'object' && typeof row.value === 'string' && (row.addedWeight === undefined || typeof row.addedWeight === 'string'));
+  if (patch.kind === 'create-source') {
+    const input = patch.input as Record<string, unknown> | undefined, connection = patch.connection as Record<string, unknown> | undefined;
+    const connect = connection && (['definition', 'empty-round'].includes(String(connection.kind)) || (connection.kind === 'replace' ? typeof connection.nodeKey === 'string' : connection.kind === 'edge' && (connection.scope === null || typeof connection.scope === 'string') && typeof connection.edgeId === 'string'));
+    const symbols = input?.symbols === undefined || Array.isArray(input.symbols) && input.symbols.every(row => row && typeof row === 'object' && ['id', 'name', 'kind'].every(key => typeof row[key] === 'string'));
+    return !!connect && !!input && typeof input.name === 'string' && symbols && (input.kind === 'outcomes' ? typeof input.stateKey === 'string' && outcomes(input.outcomes) : input.kind === 'cells' ? Number.isSafeInteger(input.rows) && Number.isSafeInteger(input.columns) && outcomes(input.outcomes) : input.kind === 'reels' && Number.isSafeInteger(input.rows) && Array.isArray(input.strips) && input.strips.every(strip => Array.isArray(strip) && strip.every(id => typeof id === 'string')));
+  }
   if (patch.kind === 'weights') return Array.isArray(patch.values) && patch.values.every(row => Array.isArray(row) && row.length === 2 && row.every(value => typeof value === 'string')) && new Set(patch.values.map(row => row[0])).size === patch.values.length;
   if (patch.kind === 'payout') return typeof patch.symbolId === 'string' && typeof patch.count === 'number' && Number.isSafeInteger(patch.count) && typeof patch.value === 'string' && (patch.remove === undefined || typeof patch.remove === 'boolean') && (patch.capPolicy === undefined || ['keep', 'recompute'].includes(String(patch.capPolicy)));
   if (patch.kind === 'symbol') return typeof patch.name === 'string';
-  if (patch.kind === 'lines') return Array.isArray(patch.paths) && patch.paths.every(path => Array.isArray(path) && path.every(row => typeof row === 'number' && Number.isSafeInteger(row)));
+  if (patch.kind === 'lines') {
+    const policy = patch.stakePolicy as Record<string, unknown> | undefined;
+    return Array.isArray(patch.paths) && patch.paths.every(path => Array.isArray(path) && path.every(row => typeof row === 'number' && Number.isSafeInteger(row))) && (patch.identities === undefined || Array.isArray(patch.identities) && patch.identities.every(id => id === null || typeof id === 'string')) && (policy === undefined || ['per-line', 'fixed-total'].includes(String(policy.mode)) && ['keep', 'recompute'].includes(String(policy.cap)) && (policy.confirmFixed === undefined || typeof policy.confirmFixed === 'boolean'));
+  }
   if (patch.kind === 'reels') return Array.isArray(patch.stops) && patch.stops.every(strip => Array.isArray(strip) && strip.every(stop => stop && typeof stop === 'object' && (stop.identity === null || typeof stop.identity === 'string') && typeof stop.symbol === 'string'))
     && (patch.addedWeight === undefined || typeof patch.addedWeight === 'string') && (patch.removedStops === undefined || patch.removedStops === 'discard');
   return false;
