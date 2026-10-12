@@ -80,6 +80,8 @@ AGENTS.md now prohibits complete suites on every iteration. Ordinary changes run
 
 ## Documentation alignment and renewed completion audit
 
+Documentation follow-up (2026-10-12): the workspace-level copies of UX_MASTERPLAN, DESIGN_SYSTEM and CODEX_HANDOFF are synchronized with this worktree's private multi-project scope; their index points to the maintained repository documents. AGENTS.md now also makes this product scope mandatory, alongside the existing affected/new-test policy. The frontend README describes the actual project library, identity boundaries and development workflow instead of the Vite starter template. This follow-up changes documentation only; no tests were launched and no new implementation verification is claimed.
+
 The 2026-10-12 user instruction requires the documentation to reflect many private projects per user. Updated UX_MASTERPLAN, DESIGN_SYSTEM, CODEX_HANDOFF, PRD, README and TESTING; added the named `design-system/MASTER.md` artifact and a migration/rollback plan. Removed single-game entry assumptions and current sharing requirements. Historical QA/slice observations remain historical evidence; they are not rewritten as present-day product requirements. No source changes or tests were made for this documentation slice.
 
 This is progress toward the active goal, not full completion. Current audit findings:

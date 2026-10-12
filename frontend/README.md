@@ -1,73 +1,35 @@
-# React + TypeScript + Vite
+# Slot Math Lab frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+React 19, TypeScript and Vite power a mathematical workbench where each user can own many private game/model projects. React Router handles navigation, Zustand holds editing state and React Flow renders the model graph.
 
-Currently, two official plugins are available:
+## Projects and ownership
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+The application starts at **My projects** (`/projects`). Users can create blank projects, import personal JSON or make independent template copies. Switching projects preserves their edits and nested context. Each selected model supplies its own geometry, symbols, mechanics and supported editors; Nine Lives is one reference example.
 
-## React Compiler
+Browser workspaces are scoped to verified user identity. Server configurations, runs and experiments are owner-only. Sharing and collaboration are deferred. Local drafts autosave within browser capacity; saving a server version is explicit. Automatic cross-device draft synchronization is not implemented.
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+See the [product README](../README.md), [private workspace contract](../docs/design/PRIVATE_WORKSPACES.md) and [UX plan](../docs/design/UX_MASTERPLAN.md) for behavior, persistence and limits.
 
-## Expanding the ESLint configuration
+## Local development
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+Use Node.js 22. From this directory:
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```sh
+npm ci --legacy-peer-deps
+npm run dev
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+Backend startup and local dependencies are described in the [product README](../README.md). `npm run build` checks TypeScript and produces the Vite bundle; `npm run lint` runs ESLint. Generate schema/API types using `npm run generate-types` and `npm run generate-api` rather than editing generated files manually.
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+## Verification
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+Follow [AGENTS.md](../AGENTS.md): ordinary iterations run only affected or new tests. Full suites run after a substantial integrated feature or an explicit user request; documentation-only edits need no tests.
+
+Unit tests live in `unit/`, browser workflows in `e2e/`. Select relevant files with Playwright, for example:
+
+```sh
+npx playwright test -c playwright.unit.config.ts unit/<affected-file>.spec.ts
+npx playwright test e2e/<affected-file>.spec.ts
 ```
+
+The [testing guide](../docs/TESTING.md) explains browser prerequisites and release checks. Available suite commands are not a checklist to execute on every iteration.

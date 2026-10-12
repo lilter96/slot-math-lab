@@ -22,6 +22,14 @@ From `frontend`:
 - `npm run test:unit`: run browser-free logic tests.
 - `npm run test:e2e:critical`: run critical browser workflows; build first and provide database dependencies. Playwright starts the API and preview server.
 
+## Private Multi-Project Product Scope (Mandatory)
+
+Each user can own many private projects, games, models and personal materials. Start at **My projects**; do not automatically create or select one game for a fresh workspace. Nine Lives is a reference fixture, not the universal game schema. Derive geometry, symbols, mechanics and editor capabilities from the selected model.
+
+Keep project identity separate from authored model/template IDs. Switching projects must preserve each project's edits and nested context; independent template copies must not share mutable editing state. Scope browser storage to verified user identity and enforce ownership of server configurations, runs, experiments and realtime access. Never show another project's result as current evidence.
+
+Sharing, collaboration, public links, invitations, teams and publication are deferred. Preserve personal JSON export/import and legacy inbound import compatibility. Browser drafts autosave locally; server version saving is explicit. Do not claim automatic cross-device synchronization or large-scale capacity without implementation and evidence. See `docs/design/PRIVATE_WORKSPACES.md` for current behavior and limits.
+
 ## Coding Style & Naming Conventions
 
 Follow `backend/.editorconfig`: four spaces, LF endings, file-scoped namespaces, and braces on separate lines. Use PascalCase for C# types/methods and camelCase for locals. Match nearby TypeScript code: typically two spaces, single quotes, and semicolons. Use PascalCase component names and camelCase functions. Use the generation scripts for API/schema types rather than editing generated files manually.
