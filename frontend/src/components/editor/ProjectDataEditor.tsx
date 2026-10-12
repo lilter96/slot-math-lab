@@ -1,5 +1,5 @@
 import { EvidenceInputsEditor } from './EvidenceInputsEditor';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useAppStore } from '../../store';
 import type { ExpressionAst } from '../../lib/expressionParser';
 import ExpressionTreeEditor from './ExpressionTreeEditor';
@@ -7,6 +7,12 @@ import GameDialog from './GraphDialog';
 import { graphRequest, type GraphRound } from '../../lib/graphApi';
 import { DEFAULT_FEATURES, useFeaturesQuery } from '../../api/hooks';
 import { peekRootProject } from '../../lib/projectFiles';
+import { canonicalJson } from '../../lib/hash';
+
+const executionScope = () => {
+  const current = useAppStore.getState();
+  return canonicalJson([current.projectId, current.graphTrail.map(entry => entry.mechanic), peekRootProject()]);
+};
 export default function ProjectDataEditor({ onClose, initialTable }: { onClose: () => void; initialTable?: string }) {
   const play = (useFeaturesQuery().data ?? DEFAULT_FEATURES).play;
   const tables = useAppStore(s => s.tables);
@@ -17,6 +23,19 @@ export default function ProjectDataEditor({ onClose, initialTable }: { onClose: 
   const [expressionId, setExpressionId] = useState(Object.keys(expressions)[0] ?? '');
   const [newKey, setNewKey] = useState('');
   const [executed, setExecuted] = useState<GraphRound | null>(null), [running, setRunning] = useState(false), [error, setError] = useState('');
+  const execution = useRef<{ controller: AbortController; scope: string } | null>(null);
+  useEffect(() => {
+    let scope = executionScope();
+    const unsubscribe = useAppStore.subscribe((current, previous) => {
+      if (current.projectId === previous.projectId && current.graphTrail === previous.graphTrail && current.nodes === previous.nodes && current.edges === previous.edges && current.tables === previous.tables) return;
+      const next = executionScope();
+      if (next === scope) return;
+      scope = next;
+      execution.current?.controller.abort(); execution.current = null;
+      setExecuted(null); setError(''); setRunning(false);
+    });
+    return () => { unsubscribe(); execution.current?.controller.abort(); execution.current = null; };
+  }, []);
   const update = (value: unknown) => useAppStore.setState({ tables: { ...tables, initialState: { ...state, [key]: value } } });
   const value = state[key];
   const readOnlyState = value === null || (value != null && typeof value === 'object' && !Array.isArray(value)) || (Array.isArray(value) && value.some(entry => typeof entry !== 'string' && typeof entry !== 'number'));
@@ -42,7 +61,18 @@ export default function ProjectDataEditor({ onClose, initialTable }: { onClose: 
       {Object.hasOwn(expressions, newKey) && <p role="alert">This expression ID already exists. Choose a different ID to keep its definition.</p>}
     </> : kind === 'evidence' ? <EvidenceInputsEditor /> : <>
       <p>Execute the current complete graph with seed 42. The final state below comes from the shared compiler and interpreter.</p>
-      <button className="btn primary" disabled={running || !play} onClick={async () => { setRunning(true); setError(''); try { const config = peekRootProject(); if (!config) throw new Error('No graph'); setExecuted(await graphRequest<GraphRound>('play/round', { config, seed: 42, trace: true })); } catch(e) { setError(e instanceof Error ? e.message : 'Execution failed'); } finally { setRunning(false); } }}>{running ? 'Executing…' : 'Execute graph'}</button>
+      <button className="btn primary" disabled={running || !play} onClick={async () => {
+        execution.current?.controller.abort();
+        const task = { controller: new AbortController(), scope: executionScope() };
+        execution.current = task; setRunning(true); setError(''); setExecuted(null);
+        const current = () => execution.current === task && !task.controller.signal.aborted && task.scope === executionScope();
+        try {
+          const config = peekRootProject(); if (!config) throw new Error('No graph');
+          const result = await graphRequest<GraphRound>('play/round', { config, seed: 42, trace: true }, task.controller.signal);
+          if (current()) setExecuted(result);
+        } catch (e) { if (current()) setError(e instanceof Error ? e.message : 'Execution failed'); }
+        finally { if (current()) { setRunning(false); execution.current = null; } }
+      }}>{running ? 'Executing…' : 'Execute graph'}</button>
       {error && <p role="alert">{error}</p>}{executed && <><p>Graph {executed.configHash}</p><table className="dh-math-table" data-testid="executed-state"><thead><tr><th>State field</th><th>Exact value</th></tr></thead><tbody>{Object.entries(executed.state).map(([key, value]) => <tr key={key}><th>{key}</th><td><code style={{ overflowWrap: 'anywhere' }}>{typeof value === 'object' ? JSON.stringify(value) : String(value)}</code></td></tr>)}</tbody></table></>}
     </>}
   </GameDialog>;
