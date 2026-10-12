@@ -1,0 +1,50 @@
+
+Running 9 tests using 1 worker
+
+(node:496431) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:496431) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  1 [chromium] › e2e/state-machine-designer.spec.ts:19:1 › Authored action edit survives reload, applies once, runs raw graph, exports/reimports and undoes the whole source (3.2s)
+  ✘  2 [chromium] › e2e/state-machine-designer.spec.ts:27:1 › Create a connected feature, author its action and execute through one original settlement sink (1.2s)
+(node:496628) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:496628) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  3 [chromium] › e2e/state-machine-designer.spec.ts:34:1 › An independent machine use gets a private namespace and remains editable in the table (2.2s)
+  ✓  4 [chromium] › e2e/state-machine-designer.spec.ts:38:151 › Existing ancient-dragon/ordinary: real source edit → graph → seeded execution → raw export/import (2.4s)
+  ✓  5 [chromium] › e2e/state-machine-designer.spec.ts:38:151 › Existing woodland-whisper/bought: real source edit → graph → seeded execution → raw export/import (2.4s)
+  ✓  6 [chromium] › e2e/state-machine-designer.spec.ts:38:151 › Existing x7-club/bought: real source edit → graph → seeded execution → raw export/import (2.3s)
+  ✓  7 [chromium] › e2e/state-machine-designer.spec.ts:38:151 › Existing nine-lives-tgslots/bought: real source edit → graph → seeded execution → raw export/import (2.4s)
+  ✓  8 [chromium] › e2e/state-machine-designer.spec.ts:38:151 › Existing le-militare/siege/spin: real source edit → graph → seeded execution → raw export/import (2.7s)
+  ✓  9 [chromium] › e2e/state-machine-designer.spec.ts:47:1 › Full-page visual review captures all states, table, lower sections and responsive inspector (3.8s)
+
+
+  1) [chromium] › e2e/state-machine-designer.spec.ts:27:1 › Create a connected feature, author its action and execute through one original settlement sink
+
+    Error: locator.click: Error: strict mode violation: getByRole('complementary', { name: 'Selected state editor' }).getByRole('button', { name: 'Add assignment', exact: true }) resolved to 2 elements:
+        1) <button>Add assignment</button> aka getByRole('button', { name: 'Add assignment' }).first()
+        2) <button>Add assignment</button> aka getByRole('button', { name: 'Add assignment' }).nth(1)
+
+    Call log:
+    [2m  - waiting for getByRole('complementary', { name: 'Selected state editor' }).getByRole('button', { name: 'Add assignment', exact: true })[22m
+
+
+      28 |   const graph = machineProofGraph(sequenceMachine()); await open(page, graph); await page.getByRole('button', { name: 'Create / reuse', exact: true }).click(); const dialog = page.getByRole('dialog'); await dialog.getByLabel('New machine instance ID').fill('my-feature');
+      29 |   const edge = (graph.edges as { id: string }[])[0]; await dialog.getByLabel('New machine connection').selectOption(JSON.stringify({ kind: 'edge', scope: null, edgeId: edge.id })); await dialog.getByRole('button', { name: 'Stage feature', exact: true }).click();
+    > 30 |   const panel = page.getByRole('complementary', { name: 'Selected state editor' }); await panel.getByRole('button', { name: 'Add assignment', exact: true }).click(); const expression = panel.getByLabel('Expression for Set variable', { exact: true }); await expression.fill('7'); await expression.locator('..').locator('..').getByRole('button', { name: 'Use expression', exact: true }).click(); await apply(page);
+         |                                                                                                                                                              ^
+      31 |   const saved = await backup(page); expect(saved.graph.nodes!.filter(node => node.nodeType === 'metricsSink')).toHaveLength(1); const machine = readMachineSource(saved.graph, 'my-feature')!; expect(machine).not.toBeNull(); const response = await request.post('/api/play/round', { data: { config: saved.graph, seed: 42, roundIndex: 0 } }); expect(response.ok()).toBe(true); expect((await response.json()).win).toBe(111);
+      32 |   await page.goto('/build'); await page.getByLabel('Import project file').setInputFiles({ name: 'graph-only.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(saved.graph)) }); await page.goto('/model/machine?scope=my-feature'); await expect(page.locator('.machine-canvas-node')).toHaveCount(2);
+      33 | });
+        at /home/terentiy/work/github-profile-audit/slot-math-lab-worktrees/precision-workbench-redesign/frontend/e2e/state-machine-designer.spec.ts:30:158
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/state-machine-designer-Cre-c9930-ne-original-settlement-sink-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/state-machine-designer-Cre-c9930-ne-original-settlement-sink-chromium/error-context.md
+
+  1 failed
+    [chromium] › e2e/state-machine-designer.spec.ts:27:1 › Create a connected feature, author its action and execute through one original settlement sink
+  8 passed (23.6s)

@@ -1,0 +1,120 @@
+[
+  {
+    "caseId": "ancient-dragon/ordinary",
+    "width": 1440,
+    "scope": "free-spins",
+    "views": [
+      "root",
+      "nested",
+      "editor",
+      "lower",
+      "table"
+    ]
+  },
+  {
+    "caseId": "ancient-dragon/ordinary",
+    "width": 390,
+    "scope": "free-spins",
+    "views": [
+      "root",
+      "nested",
+      "editor",
+      "lower",
+      "table"
+    ]
+  },
+  {
+    "caseId": "woodland-whisper/bought",
+    "width": 1440,
+    "scope": "award-free-spins",
+    "views": [
+      "root",
+      "nested",
+      "editor",
+      "lower",
+      "table"
+    ]
+  },
+  {
+    "caseId": "woodland-whisper/bought",
+    "width": 390,
+    "scope": "award-free-spins",
+    "views": [
+      "root",
+      "nested",
+      "editor",
+      "lower",
+      "table"
+    ]
+  },
+  {
+    "caseId": "x7-club/bought",
+    "width": 1440,
+    "scope": "hold-and-spin",
+    "views": [
+      "root",
+      "nested",
+      "editor",
+      "lower",
+      "table"
+    ]
+  },
+  {
+    "caseId": "x7-club/bought",
+    "width": 390,
+    "scope": "hold-and-spin",
+    "views": [
+      "root",
+      "nested",
+      "editor",
+      "lower",
+      "table"
+    ]
+  },
+  {
+    "caseId": "nine-lives-tgslots/bought",
+    "width": 1440,
+    "scope": "free-spins",
+    "views": [
+      "root",
+      "nested",
+      "editor",
+      "lower",
+      "table"
+    ]
+  },
+  {
+    "caseId": "nine-lives-tgslots/bought",
+    "width": 390,
+    "scope": "free-spins",
+    "views": [
+      "root",
+      "nested",
+      "editor",
+      "lower",
+      "table"
+    ]
+  },
+  {
+    "caseId": "le-militare/siege/spin",
+    "width": 1440,
+    "views": [
+      "root",
+      "nested",
+      "editor",
+      "lower",
+      "table"
+    ]
+  },
+  {
+    "caseId": "le-militare/siege/spin",
+    "width": 390,
+    "views": [
+      "root",
+      "nested",
+      "editor",
+      "lower",
+      "table"
+    ]
+  }
+]

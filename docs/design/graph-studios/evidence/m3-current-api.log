@@ -1,0 +1,18 @@
+
+Running 9 tests using 1 worker
+
+(node:481161) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:481161) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  1 [chromium] › e2e/machine-lowering.spec.ts:15:1 › Machine graph-only sequence: A, B and terminal each execute once and one outer sink pays 111 (119ms)
+  ✓  2 [chromium] › e2e/machine-lowering.spec.ts:18:1 › Machine explicit variable parameter binding specializes the original graph operation and pays seven (83ms)
+  ✓  3 [chromium] › e2e/machine-lowering.spec.ts:23:1 › Machine post-entry guards and sequential effects: first true wins, next state waits for the next visit and pays 12 (75ms)
+  ✓  4 [chromium] › e2e/machine-lowering.spec.ts:24:1 › Machine weighted choice: one Draw has independent exact payout (1×1 + 3×3)/4 = 5/2, including an authored zero row (56ms)
+  ✓  5 [chromium] › e2e/machine-lowering.spec.ts:28:1 › Machine self transition: two entry visits and one terminal visit pay 12; exact limit boundary remains modelLimit (88ms)
+  ✓  6 [chromium] › e2e/machine-lowering.spec.ts:33:1 › Machine initially terminal: its action runs once; budget 1 still classifies the boundary as modelLimit (60ms)
+  ✓  7 [chromium] › e2e/machine-lowering.spec.ts:37:1 › Machine nested instances: inner completion does not corrupt outer control; private counters remain separate and shared coins pay 36 (79ms)
+  ✓  8 [chromium] › e2e/machine-lowering.spec.ts:44:1 › Machine private binding preserves lexical map/fold item fields while namespacing the outer private variable (72ms)
+  ✓  9 [chromium] › e2e/machine-lowering.spec.ts:48:1 › Existing respin initialization/reset edit preserves the helper and changes independent exact coin expectation 5/4 → 55/32 (80ms)
+
+  9 passed (1.6s)

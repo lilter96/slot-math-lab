@@ -1,0 +1,15 @@
+
+Running 6 tests using 1 worker
+
+(node:448368) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:448368) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  1 [chromium] › e2e/machine-lowering.spec.ts:12:1 › Machine graph-only sequence: A, B and terminal each execute once and one outer sink pays 111 (105ms)
+  ✓  2 [chromium] › e2e/machine-lowering.spec.ts:15:1 › Machine post-entry guards and sequential effects: first true wins, next state waits for the next visit and pays 12 (67ms)
+  ✓  3 [chromium] › e2e/machine-lowering.spec.ts:16:1 › Machine weighted choice: one Draw has independent exact payout (1×1 + 3×3)/4 = 5/2, including an authored zero row (59ms)
+  ✓  4 [chromium] › e2e/machine-lowering.spec.ts:20:1 › Machine self transition: two entry visits and one terminal visit pay 12; exact limit boundary remains modelLimit (78ms)
+  ✓  5 [chromium] › e2e/machine-lowering.spec.ts:25:1 › Machine initially terminal: its action runs once; budget 1 still classifies the boundary as modelLimit (55ms)
+  ✓  6 [chromium] › e2e/machine-lowering.spec.ts:29:1 › Machine nested instances: inner completion does not corrupt outer control; private counters remain separate and shared coins pay 24 (58ms)
+
+  6 passed (1.1s)

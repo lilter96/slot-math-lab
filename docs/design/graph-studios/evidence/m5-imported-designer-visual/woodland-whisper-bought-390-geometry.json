@@ -1,0 +1,33 @@
+{
+  "viewport": "transform: translate(-9px, 137.5px) scale(1);",
+  "nodes": [
+    {
+      "id": "[\"award-free-spins\",\"pick\"]",
+      "transform": "z-index: 1000; transform: translate(50px, 45px); pointer-events: all; visibility: visible;",
+      "rect": {
+        "x": 58,
+        "y": 771,
+        "width": 274,
+        "height": 132.59375,
+        "top": 771,
+        "right": 332,
+        "bottom": 903.59375,
+        "left": 58
+      }
+    },
+    {
+      "id": "[\"award-free-spins\",\"award\"]",
+      "transform": "z-index: 0; transform: translate(50px, 280px); pointer-events: all; visibility: visible;",
+      "rect": {
+        "x": 58,
+        "y": 1006,
+        "width": 274,
+        "height": 156.390625,
+        "top": 1006,
+        "right": 332,
+        "bottom": 1162.390625,
+        "left": 58
+      }
+    }
+  ]
+}

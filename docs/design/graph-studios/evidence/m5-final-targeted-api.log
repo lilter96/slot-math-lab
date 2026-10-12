@@ -1,0 +1,45 @@
+
+Running 4 tests using 1 worker
+
+(node:562161) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:562161) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  1 [chromium] › e2e/machine-lowering.spec.ts:16:1 › Independent copy includes a nested machine behind an opaque operation and preserves the raw graph payout of 36 (118ms)
+  ✘  2 [chromium] › e2e/machine-lowering.spec.ts:22:1 › An existing fractional shared payout field is retained by the ordinary machine graph and pays 111.5 (62ms)
+(node:562350) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:562350) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  3 [chromium] › e2e/machine-lowering.spec.ts:23:1 › Machine explicit variable parameter binding specializes the original graph operation and pays seven (103ms)
+  ✓  4 [chromium] › e2e/machine-lowering.spec.ts:53:1 › Existing respin initialization/reset edit preserves the helper and changes independent exact coin expectation 5/4 → 55/32 (69ms)
+
+
+  1) [chromium] › e2e/machine-lowering.spec.ts:22:1 › An existing fractional shared payout field is retained by the ordinary machine graph and pays 111.5
+
+    Error: {"error":"State payout exceeds the declared settlement/paytable precision."}
+
+    [2mexpect([22m[31mreceived[39m[2m).[22mtoBe[2m([22m[32mexpected[39m[2m) // Object.is equality[22m
+
+    Expected: [32mtrue[39m
+    Received: [31mfalse[39m
+
+      11 | async function run(request: APIRequestContext, graph: ModelGraph, expected: number) {
+      12 |   const validation = await request.post('/api/validate', { data: { config: graph } }), checked = await validation.json(); expect(checked, JSON.stringify(checked)).toMatchObject({ isValid: true });
+    > 13 |   const response = await request.post('/api/play/round', { data: { config: graph, seed: 42, roundIndex: 0 } }), body = await response.json(); expect(response.ok(), JSON.stringify(body)).toBe(true); expect(body.win).toBe(expected); return body as { win: number; state: Record<string, unknown> };
+         |                                                                                                                                                                                           ^
+      14 | }
+      15 | const loopReasons = (state: Record<string, unknown>) => Object.entries(state).filter(([key]) => key.startsWith('__exitReason_')).map(([, value]) => value);
+      16 | test('Independent copy includes a nested machine behind an opaque operation and preserves the raw graph payout of 36', async ({ request }) => {
+        at run (/home/terentiy/work/github-profile-audit/slot-math-lab-worktrees/precision-workbench-redesign/frontend/e2e/machine-lowering.spec.ts:13:187)
+        at /home/terentiy/work/github-profile-audit/slot-math-lab-worktrees/precision-workbench-redesign/frontend/e2e/machine-lowering.spec.ts:22:247
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/machine-lowering-An-existi-511c4-achine-graph-and-pays-111-5-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/machine-lowering-An-existi-511c4-achine-graph-and-pays-111-5-chromium/error-context.md
+
+  1 failed
+    [chromium] › e2e/machine-lowering.spec.ts:22:1 › An existing fractional shared payout field is retained by the ordinary machine graph and pays 111.5
+  3 passed (1.3s)

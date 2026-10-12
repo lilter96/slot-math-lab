@@ -1,0 +1,16 @@
+
+Running 3 tests using 2 workers
+
+(node:445985) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:445984) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:445984) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:445985) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  2 unit/authoring-machine-lowering.spec.ts:12:1 › Missing fallback, destination, unreachable state and ambiguous variable bindings reject before source installation (14ms)
+  ✓  1 unit/authoring-machine-lowering.spec.ts:6:1 › Generated machines roundtrip every executable action/guard/effect from GraphConfig and use only existing atoms (41ms)
+  ✓  3 unit/authoring-machine-lowering.spec.ts:17:1 › Independent instances retain shared game fields and isolate controls/counters; unrecognized source changes invalidate machine bindings (4ms)
+
+  3 passed (779ms)

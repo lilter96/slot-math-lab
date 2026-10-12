@@ -1,0 +1,89 @@
+{
+  "viewport": "transform: translate(126.5px, 208px) scale(1);",
+  "nodes": [
+    {
+      "id": "[null,\"spin\"]",
+      "transform": "z-index: 1000; transform: translate(50px, 45px); pointer-events: all; visibility: visible;",
+      "rect": {
+        "x": 630.5,
+        "y": 596.5,
+        "width": 274,
+        "height": 132,
+        "top": 596.5,
+        "right": 904.5,
+        "bottom": 728.5,
+        "left": 630.5
+      }
+    },
+    {
+      "id": "[null,\"award\"]",
+      "transform": "z-index: 0; transform: translate(50px, 280px); pointer-events: all; visibility: visible;",
+      "rect": {
+        "x": 630.5,
+        "y": 831.5,
+        "width": 274,
+        "height": 132.59375,
+        "top": 831.5,
+        "right": 904.5,
+        "bottom": 964.09375,
+        "left": 630.5
+      }
+    },
+    {
+      "id": "[null,\"trigger\"]",
+      "transform": "z-index: 0; transform: translate(50px, 515px); pointer-events: all; visibility: visible;",
+      "rect": {
+        "x": 630.5,
+        "y": 1066.5,
+        "width": 274,
+        "height": 153.59375,
+        "top": 1066.5,
+        "right": 904.5,
+        "bottom": 1220.09375,
+        "left": 630.5
+      }
+    },
+    {
+      "id": "[null,\"credits\"]",
+      "transform": "z-index: 0; transform: translate(50px, 750px); pointer-events: all; visibility: visible;",
+      "rect": {
+        "x": 630.5,
+        "y": 1301.5,
+        "width": 274,
+        "height": 132.59375,
+        "top": 1301.5,
+        "right": 904.5,
+        "bottom": 1434.09375,
+        "left": 630.5
+      }
+    },
+    {
+      "id": "[null,\"round\"]",
+      "transform": "z-index: 0; transform: translate(50px, 985px); pointer-events: all; visibility: visible;",
+      "rect": {
+        "x": 630.5,
+        "y": 1536.5,
+        "width": 274,
+        "height": 132.59375,
+        "top": 1536.5,
+        "right": 904.5,
+        "bottom": 1669.09375,
+        "left": 630.5
+      }
+    },
+    {
+      "id": "[null,\"trigger-yes\"]",
+      "transform": "z-index: 0; transform: translate(390px, 550px); pointer-events: all; visibility: visible;",
+      "rect": {
+        "x": 970.5,
+        "y": 1101.5,
+        "width": 274,
+        "height": 132.59375,
+        "top": 1101.5,
+        "right": 1244.5,
+        "bottom": 1234.09375,
+        "left": 970.5
+      }
+    }
+  ]
+}

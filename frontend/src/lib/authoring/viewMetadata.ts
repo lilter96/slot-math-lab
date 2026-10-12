@@ -1,7 +1,7 @@
 export interface AuthoringViews {
   version: 1;
   studio?: { tab: 'sources' | 'paytables' | 'paylines' | 'symbols'; selectedSource: string | null; pinnedSources: string[] };
-  machine?: { positions: Record<string, { x: number; y: number }>; viewport: { x: number; y: number; zoom: number }; expandedSources: string[] };
+  machine?: { positions: Record<string, { x: number; y: number }>; viewport: { x: number; y: number; zoom: number }; viewports?: Record<string, { x: number; y: number; zoom: number }>; expandedSources: string[] };
   symbolAssets?: Record<string, string>;
 }
 const object = (value: unknown): value is Record<string, unknown> => !!value && typeof value === 'object' && !Array.isArray(value);
@@ -21,9 +21,10 @@ export function parseAuthoringViews(value: unknown): AuthoringViews | null {
   }
   if (value.machine !== undefined) {
     const machine = value.machine;
-    if (!object(machine) || !keys(machine, ['positions', 'viewport', 'expandedSources']) || !object(machine.positions) || !Object.values(machine.positions).every(point) || !strings(machine.expandedSources)) return fail();
+    if (!object(machine) || !keys(machine, ['positions', 'viewport', 'viewports', 'expandedSources']) || !object(machine.positions) || !Object.values(machine.positions).every(point) || !strings(machine.expandedSources)) return fail();
     const viewport = machine.viewport;
     if (!object(viewport) || !keys(viewport, ['x', 'y', 'zoom']) || !point({ x: viewport.x, y: viewport.y }) || typeof viewport.zoom !== 'number' || !Number.isFinite(viewport.zoom) || viewport.zoom <= 0) return fail();
+    if (machine.viewports !== undefined && (!object(machine.viewports) || !Object.values(machine.viewports).every(value => object(value) && keys(value, ['x', 'y', 'zoom']) && point({ x: value.x, y: value.y }) && typeof value.zoom === 'number' && Number.isFinite(value.zoom) && value.zoom > 0))) return fail();
   }
   if (value.symbolAssets !== undefined && (!object(value.symbolAssets) || !Object.values(value.symbolAssets).every(asset => typeof asset === 'string'))) return fail();
   return structuredClone(value) as unknown as AuthoringViews;

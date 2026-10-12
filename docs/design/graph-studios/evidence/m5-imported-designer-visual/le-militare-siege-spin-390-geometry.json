@@ -1,0 +1,89 @@
+{
+  "viewport": "transform: translate(-9px, 138px) scale(1);",
+  "nodes": [
+    {
+      "id": "[null,\"spin\"]",
+      "transform": "z-index: 1000; transform: translate(50px, 45px); pointer-events: all; visibility: visible;",
+      "rect": {
+        "x": 58,
+        "y": 771.5,
+        "width": 274,
+        "height": 132,
+        "top": 771.5,
+        "right": 332,
+        "bottom": 903.5,
+        "left": 58
+      }
+    },
+    {
+      "id": "[null,\"award\"]",
+      "transform": "z-index: 0; transform: translate(50px, 280px); pointer-events: all; visibility: visible;",
+      "rect": {
+        "x": 58,
+        "y": 1006.5,
+        "width": 274,
+        "height": 132.59375,
+        "top": 1006.5,
+        "right": 332,
+        "bottom": 1139.09375,
+        "left": 58
+      }
+    },
+    {
+      "id": "[null,\"trigger\"]",
+      "transform": "z-index: 0; transform: translate(50px, 515px); pointer-events: all; visibility: visible;",
+      "rect": {
+        "x": 58,
+        "y": 1241.5,
+        "width": 274,
+        "height": 153.59375,
+        "top": 1241.5,
+        "right": 332,
+        "bottom": 1395.09375,
+        "left": 58
+      }
+    },
+    {
+      "id": "[null,\"credits\"]",
+      "transform": "z-index: 0; transform: translate(50px, 750px); pointer-events: all; visibility: visible;",
+      "rect": {
+        "x": 58,
+        "y": 1476.5,
+        "width": 274,
+        "height": 132.59375,
+        "top": 1476.5,
+        "right": 332,
+        "bottom": 1609.09375,
+        "left": 58
+      }
+    },
+    {
+      "id": "[null,\"round\"]",
+      "transform": "z-index: 0; transform: translate(50px, 985px); pointer-events: all; visibility: visible;",
+      "rect": {
+        "x": 58,
+        "y": 1711.5,
+        "width": 274,
+        "height": 132.59375,
+        "top": 1711.5,
+        "right": 332,
+        "bottom": 1844.09375,
+        "left": 58
+      }
+    },
+    {
+      "id": "[null,\"trigger-yes\"]",
+      "transform": "z-index: 0; transform: translate(390px, 550px); pointer-events: all; visibility: visible;",
+      "rect": {
+        "x": 398,
+        "y": 1276.5,
+        "width": 274,
+        "height": 132.59375,
+        "top": 1276.5,
+        "right": 672,
+        "bottom": 1409.09375,
+        "left": 398
+      }
+    }
+  ]
+}

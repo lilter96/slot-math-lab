@@ -16,6 +16,8 @@ Start with [the core](backend/SlotMath.Core), [cross-check tests](backend/SlotMa
 
 The [product and design documentation](docs/design/README.md) describes the multi-project workspace: each user owns many private projects and personal materials; each selected model determines its own editing capabilities. Sharing is deferred.
 
+The graph-backed [Reel & Paytable Studio and State Machine Designer](docs/design/graph-studios/STATUS.md) open at `/model/studio` and `/model/machine` for the selected private project. Studio edits supported drawing sources, payouts, paylines and symbols. Designer projects existing control flow and authors reusable machines using the same GraphConfig and compiler. Pending inputs save in this browser; **Validate & apply** commits the complete graph, and **Back up project** exports it with non-executable layout. Server version saving remains explicit.
+
 ## Scope and verification
 
 This is an experimental engineering showcase. It has no gambling certification, production-readiness claim, or proven plugin security boundary. The bundled database credentials and default JWT settings are development defaults; replace them before any hosted deployment. Plugin support must be treated as trusted-code experimentation.

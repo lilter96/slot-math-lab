@@ -1,0 +1,66 @@
+
+Running 2 tests using 1 worker
+
+(node:576089) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:576089) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  1 [chromium] › e2e/state-machine-designer.spec.ts:27:1 › Create a connected feature, author its action and execute through one original settlement sink (1.3m)
+(node:577095) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:577095) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  2 [chromium] › e2e/state-machine-designer.spec.ts:70:1 › Imported family visual review covers root, nested editor, table and lower evidence on desktop and phone (1.2m)
+
+
+  1) [chromium] › e2e/state-machine-designer.spec.ts:27:1 › Create a connected feature, author its action and execute through one original settlement sink
+
+    TimeoutError: locator.waitFor: Timeout 70000ms exceeded.
+    Call log:
+    [2m  - waiting for getByLabel('Import project file') to be visible[22m
+    [2m    142 × locator resolved to hidden <input type="file" accept="application/json,.json" aria-label="Import project file"/>[22m
+
+
+      11 | import type { ModelGraph } from '../src/lib/modelProjection';
+      12 | async function open(page: Page, graph: ModelGraph, scope?: string) {
+    > 13 |   test.setTimeout(Math.max(test.info().timeout, 180000)); await page.goto('/build'); await page.getByLabel('Import project file').waitFor({ timeout: 70000 }); await page.getByLabel('Import project file').setInputFiles({ name: 'machine-graph.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(graph)) }); await expect(page.locator('.project-name')).toHaveText(String(graph.name));
+         |                                                                                                                                   ^
+      14 |   await page.goto('/model/machine' + (scope ? `?scope=${encodeURIComponent(scope)}` : '')); await expect(page.getByRole('heading', { name: 'State Machine Designer', exact: true })).toBeVisible({ timeout: 70000 }); await expect(page.getByRole('button', { name: 'Create / reuse', exact: true })).toBeEnabled({ timeout: 70000 });
+      15 | }
+      16 | async function backup(page: Page): Promise<{ graph: ModelGraph; views: unknown }> { const pending = page.waitForEvent('download'); await page.getByRole('button', { name: 'Back up project', exact: true }).click(); return JSON.parse(await readFile((await (await pending).path())!, 'utf8')); }
+        at open (/home/terentiy/work/github-profile-audit/slot-math-lab-worktrees/precision-workbench-redesign/frontend/e2e/state-machine-designer.spec.ts:13:131)
+        at /home/terentiy/work/github-profile-audit/slot-math-lab-worktrees/precision-workbench-redesign/frontend/e2e/state-machine-designer.spec.ts:28:55
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/m5-visual-final/state-machine-designer-Cre-c9930-ne-original-settlement-sink-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/m5-visual-final/state-machine-designer-Cre-c9930-ne-original-settlement-sink-chromium/error-context.md
+
+  2) [chromium] › e2e/state-machine-designer.spec.ts:70:1 › Imported family visual review covers root, nested editor, table and lower evidence on desktop and phone
+
+    TimeoutError: locator.waitFor: Timeout 70000ms exceeded.
+    Call log:
+    [2m  - waiting for getByLabel('Import project file') to be visible[22m
+    [2m    142 × locator resolved to hidden <input type="file" accept="application/json,.json" aria-label="Import project file"/>[22m
+
+
+      11 | import type { ModelGraph } from '../src/lib/modelProjection';
+      12 | async function open(page: Page, graph: ModelGraph, scope?: string) {
+    > 13 |   test.setTimeout(Math.max(test.info().timeout, 180000)); await page.goto('/build'); await page.getByLabel('Import project file').waitFor({ timeout: 70000 }); await page.getByLabel('Import project file').setInputFiles({ name: 'machine-graph.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(graph)) }); await expect(page.locator('.project-name')).toHaveText(String(graph.name));
+         |                                                                                                                                   ^
+      14 |   await page.goto('/model/machine' + (scope ? `?scope=${encodeURIComponent(scope)}` : '')); await expect(page.getByRole('heading', { name: 'State Machine Designer', exact: true })).toBeVisible({ timeout: 70000 }); await expect(page.getByRole('button', { name: 'Create / reuse', exact: true })).toBeEnabled({ timeout: 70000 });
+      15 | }
+      16 | async function backup(page: Page): Promise<{ graph: ModelGraph; views: unknown }> { const pending = page.waitForEvent('download'); await page.getByRole('button', { name: 'Back up project', exact: true }).click(); return JSON.parse(await readFile((await (await pending).path())!, 'utf8')); }
+        at open (/home/terentiy/work/github-profile-audit/slot-math-lab-worktrees/precision-workbench-redesign/frontend/e2e/state-machine-designer.spec.ts:13:131)
+        at /home/terentiy/work/github-profile-audit/slot-math-lab-worktrees/precision-workbench-redesign/frontend/e2e/state-machine-designer.spec.ts:73:204
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/m5-visual-final/state-machine-designer-Imp-ea9d5-idence-on-desktop-and-phone-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/m5-visual-final/state-machine-designer-Imp-ea9d5-idence-on-desktop-and-phone-chromium/error-context.md
+
+  2 failed
+    [chromium] › e2e/state-machine-designer.spec.ts:27:1 › Create a connected feature, author its action and execute through one original settlement sink
+    [chromium] › e2e/state-machine-designer.spec.ts:70:1 › Imported family visual review covers root, nested editor, table and lower evidence on desktop and phone

@@ -27,7 +27,7 @@ const initialInspectorPinned = (() => {
   catch { return false; }
 })();
 
-export type TabId = 'projects' | 'overview' | 'data' | 'studio' | 'features' | 'build' | 'simulate' | 'results' | 'export' | 'debug' | 'play';
+export type TabId = 'projects' | 'overview' | 'data' | 'studio' | 'machine' | 'features' | 'build' | 'simulate' | 'results' | 'export' | 'debug' | 'play';
 export type Mood = 'slate' | 'ocean' | 'violet' | 'steel';
 export type Density = 'compact' | 'regular';
 

@@ -1,0 +1,48 @@
+
+Running 6 tests using 1 worker
+
+(node:562168) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:562168) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  1 [chromium] › e2e/state-machine-designer.spec.ts:34:1 › An independent machine use gets a private namespace and remains editable in the table (2.2s)
+  ✓  2 [chromium] › e2e/state-machine-designer.spec.ts:38:1 › An imported feature use can get an independent definition without replacing its shared game fields or paid-entry contract (1.5s)
+  ✓  3 [chromium] › e2e/state-machine-designer.spec.ts:41:1 › Weighted actions and transition priority change actual exact and seeded results through the same machine editors (2.4s)
+  ✓  4 [chromium] › e2e/state-machine-designer.spec.ts:53:151 › Existing x7-club/bought: real source edit → graph → seeded execution → raw export/import (2.3s)
+  ✓  5 [chromium] › e2e/state-machine-designer.spec.ts:62:1 › Full-page visual review captures all states, table, lower sections and responsive inspector (8.6s)
+  ✘  6 [chromium] › e2e/state-machine-designer.spec.ts:70:1 › Imported family visual review covers root, nested editor, table and lower evidence on desktop and phone (28.1s)
+
+
+  1) [chromium] › e2e/state-machine-designer.spec.ts:70:1 › Imported family visual review covers root, nested editor, table and lower evidence on desktop and phone
+
+    Error: [2mexpect([22m[31mlocator[39m[2m).[22mtoBeVisible[2m([22m[2m)[22m failed
+
+    Locator: getByRole('heading', { name: 'State Machine Designer', exact: true })
+    Expected: visible
+    Timeout: 5000ms
+    Error: element(s) not found
+
+    Call log:
+    [2m  - Expect "toBeVisible" with timeout 5000ms[22m
+    [2m  - waiting for getByRole('heading', { name: 'State Machine Designer', exact: true })[22m
+
+
+      12 | async function open(page: Page, graph: ModelGraph, scope?: string) {
+      13 |   await page.goto('/build'); await page.getByLabel('Import project file').setInputFiles({ name: 'machine-graph.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(graph)) }); await expect(page.locator('.project-name')).toHaveText(String(graph.name));
+    > 14 |   await page.goto('/model/machine' + (scope ? `?scope=${encodeURIComponent(scope)}` : '')); await expect(page.getByRole('heading', { name: 'State Machine Designer', exact: true })).toBeVisible(); await expect(page.getByRole('button', { name: 'Create / reuse', exact: true })).toBeEnabled();
+         |                                                                                                                                                                                      ^
+      15 | }
+      16 | async function backup(page: Page): Promise<{ graph: ModelGraph; views: unknown }> { const pending = page.waitForEvent('download'); await page.getByRole('button', { name: 'Back up project', exact: true }).click(); return JSON.parse(await readFile((await (await pending).path())!, 'utf8')); }
+      17 | async function apply(page: Page) { await page.getByRole('button', { name: 'Validate & apply', exact: true }).click(); await expect(page.getByRole('button', { name: 'Undo', exact: true })).toBeEnabled({ timeout: 70000 }); }
+        at open (/home/terentiy/work/github-profile-audit/slot-math-lab-worktrees/precision-workbench-redesign/frontend/e2e/state-machine-designer.spec.ts:14:182)
+        at /home/terentiy/work/github-profile-audit/slot-math-lab-worktrees/precision-workbench-redesign/frontend/e2e/state-machine-designer.spec.ts:73:204
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/state-machine-designer-Imp-ea9d5-idence-on-desktop-and-phone-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/state-machine-designer-Imp-ea9d5-idence-on-desktop-and-phone-chromium/error-context.md
+
+  1 failed
+    [chromium] › e2e/state-machine-designer.spec.ts:70:1 › Imported family visual review covers root, nested editor, table and lower evidence on desktop and phone
+  5 passed (45.7s)

@@ -1,0 +1,74 @@
+
+Running 2 tests using 1 worker
+
+(node:470838) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:470838) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  1 [chromium] › e2e/machine-lowering.spec.ts:16:1 › Machine explicit variable parameter binding specializes the original graph operation and pays seven (98ms)
+(node:470930) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:470930) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  2 [chromium] › e2e/machine-lowering.spec.ts:42:1 › Machine private binding preserves lexical map/fold item fields while namespacing the outer private variable (99ms)
+
+
+  1) [chromium] › e2e/machine-lowering.spec.ts:16:1 › Machine explicit variable parameter binding specializes the original graph operation and pays seven
+
+    Error: apiRequestContext.post: connect ECONNREFUSED 127.0.0.1:4186
+    Call log:
+    [2m  - → POST http://127.0.0.1:4186/api/validate[22m
+    [2m    - user-agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.7778.96 Safari/537.36[22m
+    [2m    - accept: */*[22m
+    [2m    - accept-encoding: gzip,deflate,br[22m
+    [2m    - content-type: application/json[22m
+    [2m    - content-length: 8160[22m
+
+
+       7 | import type { ModelGraph } from '../src/lib/modelProjection';
+       8 | async function run(request: APIRequestContext, graph: ModelGraph, expected: number) {
+    >  9 |   const validation = await request.post('/api/validate', { data: { config: graph } }), checked = await validation.json(); expect(checked, JSON.stringify(checked)).toMatchObject({ isValid: true });
+         |                                    ^
+      10 |   const response = await request.post('/api/play/round', { data: { config: graph, seed: 42, roundIndex: 0 } }), body = await response.json(); expect(response.ok(), JSON.stringify(body)).toBe(true); expect(body.win).toBe(expected); return body as { win: number; state: Record<string, unknown> };
+      11 | }
+      12 | const loopReasons = (state: Record<string, unknown>) => Object.entries(state).filter(([key]) => key.startsWith('__exitReason_')).map(([, value]) => value);
+        at run (/home/terentiy/work/github-profile-audit/slot-math-lab-worktrees/precision-workbench-redesign/frontend/e2e/machine-lowering.spec.ts:9:36)
+        at /home/terentiy/work/github-profile-audit/slot-math-lab-worktrees/precision-workbench-redesign/frontend/e2e/machine-lowering.spec.ts:18:311
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/machine-lowering-Machine-e-85bd9-ph-operation-and-pays-seven-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/machine-lowering-Machine-e-85bd9-ph-operation-and-pays-seven-chromium/error-context.md
+
+  2) [chromium] › e2e/machine-lowering.spec.ts:42:1 › Machine private binding preserves lexical map/fold item fields while namespacing the outer private variable
+
+    Error: apiRequestContext.post: connect ECONNREFUSED 127.0.0.1:4186
+    Call log:
+    [2m  - → POST http://127.0.0.1:4186/api/validate[22m
+    [2m    - user-agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.7778.96 Safari/537.36[22m
+    [2m    - accept: */*[22m
+    [2m    - accept-encoding: gzip,deflate,br[22m
+    [2m    - content-type: application/json[22m
+    [2m    - content-length: 7015[22m
+
+
+       7 | import type { ModelGraph } from '../src/lib/modelProjection';
+       8 | async function run(request: APIRequestContext, graph: ModelGraph, expected: number) {
+    >  9 |   const validation = await request.post('/api/validate', { data: { config: graph } }), checked = await validation.json(); expect(checked, JSON.stringify(checked)).toMatchObject({ isValid: true });
+         |                                    ^
+      10 |   const response = await request.post('/api/play/round', { data: { config: graph, seed: 42, roundIndex: 0 } }), body = await response.json(); expect(response.ok(), JSON.stringify(body)).toBe(true); expect(body.win).toBe(expected); return body as { win: number; state: Record<string, unknown> };
+      11 | }
+      12 | const loopReasons = (state: Record<string, unknown>) => Object.entries(state).filter(([key]) => key.startsWith('__exitReason_')).map(([, value]) => value);
+        at run (/home/terentiy/work/github-profile-audit/slot-math-lab-worktrees/precision-workbench-redesign/frontend/e2e/machine-lowering.spec.ts:9:36)
+        at /home/terentiy/work/github-profile-audit/slot-math-lab-worktrees/precision-workbench-redesign/frontend/e2e/machine-lowering.spec.ts:44:144
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/machine-lowering-Machine-p-8742e--the-outer-private-variable-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/machine-lowering-Machine-p-8742e--the-outer-private-variable-chromium/error-context.md
+
+  2 failed
+    [chromium] › e2e/machine-lowering.spec.ts:16:1 › Machine explicit variable parameter binding specializes the original graph operation and pays seven
+    [chromium] › e2e/machine-lowering.spec.ts:42:1 › Machine private binding preserves lexical map/fold item fields while namespacing the outer private variable

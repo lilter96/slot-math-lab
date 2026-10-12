@@ -1,0 +1,50 @@
+[
+  {
+    "viewport": {
+      "width": 1440,
+      "height": 900
+    },
+    "paths": [
+      "../docs/design/graph-studios/evidence/m4-designer-visual/1440-diagram.png",
+      "1440-lower.png",
+      "1440-inspector.png",
+      "1440-table.png"
+    ]
+  },
+  {
+    "viewport": {
+      "width": 1280,
+      "height": 800
+    },
+    "paths": [
+      "../docs/design/graph-studios/evidence/m4-designer-visual/1280-diagram.png",
+      "1280-lower.png",
+      "1280-inspector.png",
+      "1280-table.png"
+    ]
+  },
+  {
+    "viewport": {
+      "width": 1024,
+      "height": 768
+    },
+    "paths": [
+      "../docs/design/graph-studios/evidence/m4-designer-visual/1024-diagram.png",
+      "1024-lower.png",
+      "1024-inspector.png",
+      "1024-table.png"
+    ]
+  },
+  {
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "paths": [
+      "../docs/design/graph-studios/evidence/m4-designer-visual/390-diagram.png",
+      "390-lower.png",
+      "390-inspector.png",
+      "390-table.png"
+    ]
+  }
+]

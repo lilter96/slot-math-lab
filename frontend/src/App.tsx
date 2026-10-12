@@ -15,6 +15,7 @@ const Results = lazy(() => import('./pages/Results'));
 const Debug = lazy(() => import('./pages/Debug'));
 const NineLives = lazy(() => import('./games/nine-lives/NineLives'));
 const ReelPaytableStudio = lazy(() => import('./pages/ReelPaytableStudio'));
+const StateMachineDesigner = lazy(() => import('./pages/StateMachineDesigner'));
 
 /**
  * Fail-closed route guard: the /play route is only reachable when the backend
@@ -41,6 +42,7 @@ export default function App() {
           <Route path="model/features" element={<Features />} />
           <Route path="model/data" element={<ModelData />} />
           <Route path="model/studio" element={<Suspense fallback={<p role="status">Loading Studio…</p>}><ReelPaytableStudio /></Suspense>} />
+          <Route path="model/machine" element={<Suspense fallback={<p role="status">Loading State Machine Designer…</p>}><StateMachineDesigner /></Suspense>} />
           <Route path="build" element={<Build />} />
           <Route path="simulate" element={<Suspense fallback={<p>Loading simulation lab…</p>}><Simulate /></Suspense>} />
           <Route path="results" element={<Suspense fallback={<p role="status">Loading run evidence…</p>}><Results /></Suspense>} />

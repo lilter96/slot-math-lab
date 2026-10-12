@@ -17,6 +17,7 @@ const TABS = [
   { id: 'overview' as const, label: 'Overview', Icon: Ic.build },
   { id: 'data' as const, path: 'model/data', label: 'Model data', Icon: Ic.draw },
   { id: 'studio' as const, path: 'model/studio', label: 'Studio', Icon: Ic.evaluator },
+  { id: 'machine' as const, path: 'model/machine', label: 'State machine', Icon: Ic.loop },
   { id: 'features' as const, path: 'model/features', label: 'Features', Icon: Ic.loop },
   { id: 'build' as const, label: 'Build', Icon: Ic.build },
   { id: 'simulate' as const, label: 'Simulate', Icon: Ic.sim },

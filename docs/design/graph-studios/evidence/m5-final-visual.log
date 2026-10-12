@@ -1,0 +1,11 @@
+
+Running 2 tests using 1 worker
+
+(node:513395) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:513395) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  1 [chromium] › e2e/state-machine-designer.spec.ts:59:1 › Full-page visual review captures all states, table, lower sections and responsive inspector (9.1s)
+  ✓  2 [chromium] › e2e/state-machine-designer.spec.ts:67:1 › Imported family visual review covers root, nested editor, table and lower evidence on desktop and phone (28.2s)
+
+  2 passed (37.8s)

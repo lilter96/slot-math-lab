@@ -1,0 +1,12 @@
+
+Running 7 tests using 2 workers
+
+  ✓  1 unit/authoring-control-projection.spec.ts:11:1 › Projected expression edits retain opaque fields/topology and reject stale or different scope bindings (145ms)
+  ✓  3 unit/authoring-control-projection.spec.ts:17:1 › X7 ordinary/bought respin count edits synchronize initialization, restoration and the proven bound while prizes and held state stay intact (178ms)
+  ✓  4 unit/authoring-machine-lowering.spec.ts:9:1 › Generated machines roundtrip every executable action/guard/effect from GraphConfig and use only existing atoms (24ms)
+  ✓  5 unit/authoring-machine-lowering.spec.ts:15:1 › Variable-bound operations reconstruct their bindings from AST source, preserve the original operation and remain portable without descriptors (3ms)
+  ✓  6 unit/authoring-machine-lowering.spec.ts:20:1 › Missing fallback, destination, unreachable state and ambiguous variable bindings reject before source installation (5ms)
+  ✓  7 unit/authoring-machine-lowering.spec.ts:25:1 › Independent instances retain shared game fields and isolate controls/counters; unrecognized source changes invalidate machine bindings (6ms)
+  ✓  2 unit/authoring-control-projection.spec.ts:8:1 › All 65 corpus graphs project their actual nodes/edges without altering source, versions, prices or random draw order (4.6s)
+
+  7 passed (5.4s)
