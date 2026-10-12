@@ -3,16 +3,16 @@ export function weightsCsv(rows: DrawRow[], weights = rows.map(row => String(row
   const quote = (value: string) => `"${value.replaceAll('"', '""')}"`;
   return ['outcomeId,weight', ...rows.map((row, index) => `${quote(row.outcomeId)},${weights[index]}`)].join('\r\n');
 }
-export function parseCsv(text: string): string[][] {
+export function parseCsv(text: string, separator = ',', maxRows = Infinity): string[][] {
   const result: string[][] = []; let row: string[] = [], field = '', quoted = false, closed = false;
   const finishField = () => { row.push(field); field = ''; closed = false; };
-  const finishRow = () => { finishField(); result.push(row); row = []; };
+  const finishRow = () => { if (result.length >= maxRows) throw new Error('The table exceeds the supported row limit.'); finishField(); result.push(row); row = []; };
   text = text.replace(/^\uFEFF/, '');
   for (let i = 0; i < text.length; i++) {
     const char = text[i];
     if (quoted) { if (char === '"') { if (text[i + 1] === '"') { field += '"'; i++; } else { quoted = false; closed = true; } } else field += char; }
     else if (char === '"') { if (field || closed) throw new Error('Invalid CSV quoting.'); quoted = true; }
-    else if (char === ',') finishField();
+    else if (char === separator) finishField();
     else if (char === '\r' || char === '\n') { if (char === '\r' && text[i + 1] === '\n') i++; finishRow(); }
     else { if (closed) throw new Error('Unexpected text after quoted field.'); field += char; }
   }

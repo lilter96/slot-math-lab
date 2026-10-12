@@ -1,0 +1,23 @@
+
+Running 10 tests using 2 workers
+
+(node:292347) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:292348) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:292347) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:292348) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   1 unit/authoring-tabular.spec.ts:19:1 › CSV/TSV retain literal IDs, delimiters, multiline fields, fractions and exact XML number tokens (11ms)
+  ✓   2 unit/authoring-tabular.spec.ts:38:1 › Independent numeric prize weights and shared prize values import together without losing payloads or collapsing draws (18ms)
+  ✓   4 unit/authoring-tabular.spec.ts:32:1 › Payout import uses exact units and explicit symbol matching; a new cluster size updates the complete candidate (98ms)
+  ✓   5 unit/authoring-tabular.spec.ts:50:1 › Formula/malformed/duplicate/unsafe rows provide locations and never yield a partly applicable edit (5ms)
+  ✓   6 unit/authoring-tabular.spec.ts:56:1 › Partial imports preview the staged values and retain untouched pending outcomes in the same Draw (4ms)
+  ✓   7 unit/reel-csv.spec.ts:4:1 › Strip CSV preserves symbol IDs and reconstructs ordered stops from unordered rows (1ms)
+  ✓   8 unit/reel-csv.spec.ts:9:1 › Strip CSV rejects unknown symbols, missing reels/indices, duplicates and malformed quoting (12ms)
+  ✓   9 unit/weight-csv.spec.ts:4:1 › Weight CSV preserves quoted multiline outcome IDs and maps file rows to original order (5ms)
+  ✓  10 unit/weight-csv.spec.ts:8:1 › CSV rejects unknown, missing, duplicate, invalid weights and malformed quoting before staging (4ms)
+  ✓   3 unit/authoring-tabular.spec.ts:43:1 › Reel resizing and ID-based reorder retain weighted stop identity; missing removal policy rejects atomically (294ms)
+
+  10 passed (1.0s)

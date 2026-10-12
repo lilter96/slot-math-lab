@@ -1,0 +1,1397 @@
+{
+  "base": "http://127.0.0.1:4187",
+  "records": [
+    {
+      "slug": "ad",
+      "view": "Sources",
+      "width": 1920,
+      "height": 1080,
+      "scale": 1,
+      "document": 1920,
+      "viewport": 1920,
+      "zoom": "1"
+    },
+    {
+      "slug": "ad",
+      "view": "Sources",
+      "width": 1920,
+      "height": 1080,
+      "region": "graph-studio",
+      "y": 437
+    },
+    {
+      "slug": "ad",
+      "view": "Sources",
+      "width": 1920,
+      "height": 1080,
+      "region": "reel-scroll",
+      "y": 546.4
+    },
+    {
+      "slug": "ad",
+      "view": "Sources",
+      "width": 1920,
+      "height": 1080,
+      "region": "reel-scroll",
+      "y": 1092.8
+    },
+    {
+      "slug": "ad",
+      "view": "Sources",
+      "width": 1920,
+      "height": 1080,
+      "region": "reel-scroll",
+      "y": 1637
+    },
+    {
+      "slug": "ad",
+      "view": "Paytables",
+      "width": 1920,
+      "height": 1080,
+      "scale": 1,
+      "document": 1920,
+      "viewport": 1920,
+      "zoom": "1"
+    },
+    {
+      "slug": "ad",
+      "view": "Paytables",
+      "width": 1920,
+      "height": 1080,
+      "region": "graph-studio",
+      "y": 728
+    },
+    {
+      "slug": "ad",
+      "view": "Paylines",
+      "width": 1920,
+      "height": 1080,
+      "scale": 1,
+      "document": 1920,
+      "viewport": 1920,
+      "zoom": "1"
+    },
+    {
+      "slug": "ad",
+      "view": "Paylines",
+      "width": 1920,
+      "height": 1080,
+      "region": "graph-studio",
+      "y": 299
+    },
+    {
+      "slug": "ad",
+      "view": "Paylines",
+      "width": 1920,
+      "height": 1080,
+      "region": "studio-line-list",
+      "y": 416
+    },
+    {
+      "slug": "ad",
+      "view": "Paylines",
+      "width": 1920,
+      "height": 1080,
+      "region": "studio-line-list",
+      "y": 721
+    },
+    {
+      "slug": "ad",
+      "view": "Symbols",
+      "width": 1920,
+      "height": 1080,
+      "scale": 1,
+      "document": 1920,
+      "viewport": 1920,
+      "zoom": "1"
+    },
+    {
+      "slug": "ad",
+      "view": "Symbols",
+      "width": 1920,
+      "height": 1080,
+      "region": "graph-studio",
+      "y": 820.8000000000001
+    },
+    {
+      "slug": "ad",
+      "view": "Symbols",
+      "width": 1920,
+      "height": 1080,
+      "region": "graph-studio",
+      "y": 1059
+    },
+    {
+      "slug": "ad",
+      "width": 1920,
+      "height": 1080,
+      "dialogY": 462
+    },
+    {
+      "slug": "ad",
+      "view": "Sources",
+      "width": 1440,
+      "height": 900,
+      "scale": 1,
+      "document": 1440,
+      "viewport": 1440,
+      "zoom": "1"
+    },
+    {
+      "slug": "ad",
+      "view": "Sources",
+      "width": 1440,
+      "height": 900,
+      "region": "graph-studio",
+      "y": 437
+    },
+    {
+      "slug": "ad",
+      "view": "Sources",
+      "width": 1440,
+      "height": 900,
+      "region": "reel-scroll",
+      "y": 402.40000000000003
+    },
+    {
+      "slug": "ad",
+      "view": "Sources",
+      "width": 1440,
+      "height": 900,
+      "region": "reel-scroll",
+      "y": 804.8000000000001
+    },
+    {
+      "slug": "ad",
+      "view": "Sources",
+      "width": 1440,
+      "height": 900,
+      "region": "reel-scroll",
+      "y": 1207.2
+    },
+    {
+      "slug": "ad",
+      "view": "Sources",
+      "width": 1440,
+      "height": 900,
+      "region": "reel-scroll",
+      "y": 1609.6000000000001
+    },
+    {
+      "slug": "ad",
+      "view": "Sources",
+      "width": 1440,
+      "height": 900,
+      "region": "reel-scroll",
+      "y": 1817
+    },
+    {
+      "slug": "ad",
+      "view": "Paytables",
+      "width": 1440,
+      "height": 900,
+      "scale": 1,
+      "document": 1440,
+      "viewport": 1440,
+      "zoom": "1"
+    },
+    {
+      "slug": "ad",
+      "view": "Paytables",
+      "width": 1440,
+      "height": 900,
+      "region": "graph-studio",
+      "y": 676.8000000000001
+    },
+    {
+      "slug": "ad",
+      "view": "Paytables",
+      "width": 1440,
+      "height": 900,
+      "region": "graph-studio",
+      "y": 748
+    },
+    {
+      "slug": "ad",
+      "view": "Paytables",
+      "width": 1440,
+      "height": 900,
+      "region": "studio-matrix-scroll",
+      "y": 188
+    },
+    {
+      "slug": "ad",
+      "view": "Paylines",
+      "width": 1440,
+      "height": 900,
+      "scale": 1,
+      "document": 1440,
+      "viewport": 1440,
+      "zoom": "1"
+    },
+    {
+      "slug": "ad",
+      "view": "Paylines",
+      "width": 1440,
+      "height": 900,
+      "region": "graph-studio",
+      "y": 479
+    },
+    {
+      "slug": "ad",
+      "view": "Paylines",
+      "width": 1440,
+      "height": 900,
+      "region": "studio-line-list",
+      "y": 416
+    },
+    {
+      "slug": "ad",
+      "view": "Paylines",
+      "width": 1440,
+      "height": 900,
+      "region": "studio-line-list",
+      "y": 721
+    },
+    {
+      "slug": "ad",
+      "view": "Symbols",
+      "width": 1440,
+      "height": 900,
+      "scale": 1,
+      "document": 1440,
+      "viewport": 1440,
+      "zoom": "1"
+    },
+    {
+      "slug": "ad",
+      "view": "Symbols",
+      "width": 1440,
+      "height": 900,
+      "region": "graph-studio",
+      "y": 676.8000000000001
+    },
+    {
+      "slug": "ad",
+      "view": "Symbols",
+      "width": 1440,
+      "height": 900,
+      "region": "graph-studio",
+      "y": 1258
+    },
+    {
+      "slug": "ad",
+      "width": 1440,
+      "height": 900,
+      "dialogY": 585
+    },
+    {
+      "slug": "ad",
+      "width": 1440,
+      "height": 900,
+      "dialogY": 620
+    },
+    {
+      "slug": "ad",
+      "view": "Sources",
+      "width": 1280,
+      "height": 800,
+      "scale": 1,
+      "document": 1280,
+      "viewport": 1280,
+      "zoom": "1"
+    },
+    {
+      "slug": "ad",
+      "view": "Sources",
+      "width": 1280,
+      "height": 800,
+      "region": "graph-studio",
+      "y": 437
+    },
+    {
+      "slug": "ad",
+      "view": "Sources",
+      "width": 1280,
+      "height": 800,
+      "region": "reel-scroll",
+      "y": 322.40000000000003
+    },
+    {
+      "slug": "ad",
+      "view": "Sources",
+      "width": 1280,
+      "height": 800,
+      "region": "reel-scroll",
+      "y": 644.8000000000001
+    },
+    {
+      "slug": "ad",
+      "view": "Sources",
+      "width": 1280,
+      "height": 800,
+      "region": "reel-scroll",
+      "y": 967.2
+    },
+    {
+      "slug": "ad",
+      "view": "Sources",
+      "width": 1280,
+      "height": 800,
+      "region": "reel-scroll",
+      "y": 1289.6000000000001
+    },
+    {
+      "slug": "ad",
+      "view": "Sources",
+      "width": 1280,
+      "height": 800,
+      "region": "reel-scroll",
+      "y": 1612.0000000000002
+    },
+    {
+      "slug": "ad",
+      "view": "Sources",
+      "width": 1280,
+      "height": 800,
+      "region": "reel-scroll",
+      "y": 1917
+    },
+    {
+      "slug": "ad",
+      "view": "Paytables",
+      "width": 1280,
+      "height": 800,
+      "scale": 1,
+      "document": 1280,
+      "viewport": 1280,
+      "zoom": "1"
+    },
+    {
+      "slug": "ad",
+      "view": "Paytables",
+      "width": 1280,
+      "height": 800,
+      "region": "graph-studio",
+      "y": 596.8000000000001
+    },
+    {
+      "slug": "ad",
+      "view": "Paytables",
+      "width": 1280,
+      "height": 800,
+      "region": "graph-studio",
+      "y": 748
+    },
+    {
+      "slug": "ad",
+      "view": "Paytables",
+      "width": 1280,
+      "height": 800,
+      "region": "studio-matrix-scroll",
+      "y": 288
+    },
+    {
+      "slug": "ad",
+      "view": "Paylines",
+      "width": 1280,
+      "height": 800,
+      "scale": 1,
+      "document": 1280,
+      "viewport": 1280,
+      "zoom": "1"
+    },
+    {
+      "slug": "ad",
+      "view": "Paylines",
+      "width": 1280,
+      "height": 800,
+      "region": "graph-studio",
+      "y": 596.8000000000001
+    },
+    {
+      "slug": "ad",
+      "view": "Paylines",
+      "width": 1280,
+      "height": 800,
+      "region": "graph-studio",
+      "y": 598
+    },
+    {
+      "slug": "ad",
+      "view": "Paylines",
+      "width": 1280,
+      "height": 800,
+      "region": "studio-line-list",
+      "y": 416
+    },
+    {
+      "slug": "ad",
+      "view": "Paylines",
+      "width": 1280,
+      "height": 800,
+      "region": "studio-line-list",
+      "y": 721
+    },
+    {
+      "slug": "ad",
+      "view": "Symbols",
+      "width": 1280,
+      "height": 800,
+      "scale": 1,
+      "document": 1280,
+      "viewport": 1280,
+      "zoom": "1"
+    },
+    {
+      "slug": "ad",
+      "view": "Symbols",
+      "width": 1280,
+      "height": 800,
+      "region": "graph-studio",
+      "y": 596.8000000000001
+    },
+    {
+      "slug": "ad",
+      "view": "Symbols",
+      "width": 1280,
+      "height": 800,
+      "region": "graph-studio",
+      "y": 1193.6000000000001
+    },
+    {
+      "slug": "ad",
+      "view": "Symbols",
+      "width": 1280,
+      "height": 800,
+      "region": "graph-studio",
+      "y": 1358
+    },
+    {
+      "slug": "ad",
+      "width": 1280,
+      "height": 800,
+      "dialogY": 520
+    },
+    {
+      "slug": "ad",
+      "width": 1280,
+      "height": 800,
+      "dialogY": 708
+    },
+    {
+      "slug": "ad",
+      "view": "Sources",
+      "width": 390,
+      "height": 844,
+      "scale": 1,
+      "document": 390,
+      "viewport": 390,
+      "zoom": "1"
+    },
+    {
+      "slug": "ad",
+      "view": "Sources",
+      "width": 390,
+      "height": 844,
+      "region": "graph-studio",
+      "y": 577.6
+    },
+    {
+      "slug": "ad",
+      "view": "Sources",
+      "width": 390,
+      "height": 844,
+      "region": "graph-studio",
+      "y": 979
+    },
+    {
+      "slug": "ad",
+      "view": "Sources",
+      "width": 390,
+      "height": 844,
+      "region": "reel-scroll",
+      "y": 342.40000000000003
+    },
+    {
+      "slug": "ad",
+      "view": "Sources",
+      "width": 390,
+      "height": 844,
+      "region": "reel-scroll",
+      "y": 684.8000000000001
+    },
+    {
+      "slug": "ad",
+      "view": "Sources",
+      "width": 390,
+      "height": 844,
+      "region": "reel-scroll",
+      "y": 1027.2
+    },
+    {
+      "slug": "ad",
+      "view": "Sources",
+      "width": 390,
+      "height": 844,
+      "region": "reel-scroll",
+      "y": 1369.6000000000001
+    },
+    {
+      "slug": "ad",
+      "view": "Sources",
+      "width": 390,
+      "height": 844,
+      "region": "reel-scroll",
+      "y": 1712.0000000000002
+    },
+    {
+      "slug": "ad",
+      "view": "Sources",
+      "width": 390,
+      "height": 844,
+      "region": "reel-scroll",
+      "y": 1910
+    },
+    {
+      "slug": "ad",
+      "view": "Sources",
+      "width": 390,
+      "height": 844,
+      "region": "reel-scroll",
+      "x": 244
+    },
+    {
+      "slug": "ad",
+      "view": "Paytables",
+      "width": 390,
+      "height": 844,
+      "scale": 1,
+      "document": 390,
+      "viewport": 390,
+      "zoom": "1"
+    },
+    {
+      "slug": "ad",
+      "view": "Paytables",
+      "width": 390,
+      "height": 844,
+      "region": "graph-studio",
+      "y": 577.6
+    },
+    {
+      "slug": "ad",
+      "view": "Paytables",
+      "width": 390,
+      "height": 844,
+      "region": "graph-studio",
+      "y": 1155.2
+    },
+    {
+      "slug": "ad",
+      "view": "Paytables",
+      "width": 390,
+      "height": 844,
+      "region": "graph-studio",
+      "y": 1329
+    },
+    {
+      "slug": "ad",
+      "view": "Paytables",
+      "width": 390,
+      "height": 844,
+      "region": "studio-matrix-scroll",
+      "y": 318
+    },
+    {
+      "slug": "ad",
+      "view": "Paytables",
+      "width": 390,
+      "height": 844,
+      "region": "studio-matrix-scroll",
+      "x": 209
+    },
+    {
+      "slug": "ad",
+      "view": "Paylines",
+      "width": 390,
+      "height": 844,
+      "scale": 1,
+      "document": 390,
+      "viewport": 390,
+      "zoom": "1"
+    },
+    {
+      "slug": "ad",
+      "view": "Paylines",
+      "width": 390,
+      "height": 844,
+      "region": "graph-studio",
+      "y": 577.6
+    },
+    {
+      "slug": "ad",
+      "view": "Paylines",
+      "width": 390,
+      "height": 844,
+      "region": "graph-studio",
+      "y": 1134
+    },
+    {
+      "slug": "ad",
+      "view": "Paylines",
+      "width": 390,
+      "height": 844,
+      "region": "studio-line-list",
+      "x": 284.8
+    },
+    {
+      "slug": "ad",
+      "view": "Paylines",
+      "width": 390,
+      "height": 844,
+      "region": "studio-line-list",
+      "x": 569.6
+    },
+    {
+      "slug": "ad",
+      "view": "Paylines",
+      "width": 390,
+      "height": 844,
+      "region": "studio-line-list",
+      "x": 854.4000000000001
+    },
+    {
+      "slug": "ad",
+      "view": "Paylines",
+      "width": 390,
+      "height": 844,
+      "region": "studio-line-list",
+      "x": 1139.2
+    },
+    {
+      "slug": "ad",
+      "view": "Paylines",
+      "width": 390,
+      "height": 844,
+      "region": "studio-line-list",
+      "x": 1424
+    },
+    {
+      "slug": "ad",
+      "view": "Paylines",
+      "width": 390,
+      "height": 844,
+      "region": "studio-line-list",
+      "x": 1708.8
+    },
+    {
+      "slug": "ad",
+      "view": "Paylines",
+      "width": 390,
+      "height": 844,
+      "region": "studio-line-list",
+      "x": 1933
+    },
+    {
+      "slug": "ad",
+      "view": "Symbols",
+      "width": 390,
+      "height": 844,
+      "scale": 1,
+      "document": 390,
+      "viewport": 390,
+      "zoom": "1"
+    },
+    {
+      "slug": "ad",
+      "view": "Symbols",
+      "width": 390,
+      "height": 844,
+      "region": "graph-studio",
+      "y": 577.6
+    },
+    {
+      "slug": "ad",
+      "view": "Symbols",
+      "width": 390,
+      "height": 844,
+      "region": "graph-studio",
+      "y": 1155.2
+    },
+    {
+      "slug": "ad",
+      "view": "Symbols",
+      "width": 390,
+      "height": 844,
+      "region": "graph-studio",
+      "y": 1732.8000000000002
+    },
+    {
+      "slug": "ad",
+      "view": "Symbols",
+      "width": 390,
+      "height": 844,
+      "region": "graph-studio",
+      "y": 2310.4
+    },
+    {
+      "slug": "ad",
+      "view": "Symbols",
+      "width": 390,
+      "height": 844,
+      "region": "graph-studio",
+      "y": 2888
+    },
+    {
+      "slug": "ad",
+      "view": "Symbols",
+      "width": 390,
+      "height": 844,
+      "region": "graph-studio",
+      "y": 3465.6
+    },
+    {
+      "slug": "ad",
+      "view": "Symbols",
+      "width": 390,
+      "height": 844,
+      "region": "graph-studio",
+      "y": 3738
+    },
+    {
+      "slug": "ad",
+      "width": 390,
+      "height": 844,
+      "dialogY": 548.6
+    },
+    {
+      "slug": "ad",
+      "width": 390,
+      "height": 844,
+      "dialogY": 1097.2
+    },
+    {
+      "slug": "ad",
+      "width": 390,
+      "height": 844,
+      "dialogY": 1158
+    },
+    {
+      "slug": "ad",
+      "errors": []
+    },
+    {
+      "slug": "tg",
+      "view": "Sources",
+      "width": 1920,
+      "height": 1080,
+      "scale": 1,
+      "document": 1920,
+      "viewport": 1920,
+      "zoom": "1"
+    },
+    {
+      "slug": "tg",
+      "view": "Sources",
+      "width": 1920,
+      "height": 1080,
+      "region": "graph-studio",
+      "y": 529
+    },
+    {
+      "slug": "tg",
+      "view": "Paytables",
+      "width": 1920,
+      "height": 1080,
+      "scale": 1,
+      "document": 1920,
+      "viewport": 1920,
+      "zoom": "1"
+    },
+    {
+      "slug": "tg",
+      "view": "Paytables",
+      "width": 1920,
+      "height": 1080,
+      "region": "graph-studio",
+      "y": 217
+    },
+    {
+      "slug": "tg",
+      "view": "Paytables",
+      "width": 1920,
+      "height": 1080,
+      "region": "studio-matrix-scroll",
+      "x": 1122.4
+    },
+    {
+      "slug": "tg",
+      "view": "Paytables",
+      "width": 1920,
+      "height": 1080,
+      "region": "studio-matrix-scroll",
+      "x": 2105
+    },
+    {
+      "slug": "tg",
+      "view": "Paylines",
+      "width": 1920,
+      "height": 1080,
+      "scale": 1,
+      "document": 1920,
+      "viewport": 1920,
+      "zoom": "1"
+    },
+    {
+      "slug": "tg",
+      "view": "Symbols",
+      "width": 1920,
+      "height": 1080,
+      "scale": 1,
+      "document": 1920,
+      "viewport": 1920,
+      "zoom": "1"
+    },
+    {
+      "slug": "tg",
+      "view": "Symbols",
+      "width": 1920,
+      "height": 1080,
+      "region": "graph-studio",
+      "y": 362
+    },
+    {
+      "slug": "tg",
+      "width": 1920,
+      "height": 1080,
+      "dialogY": 437
+    },
+    {
+      "slug": "tg",
+      "view": "Sources",
+      "width": 1440,
+      "height": 900,
+      "scale": 1,
+      "document": 1440,
+      "viewport": 1440,
+      "zoom": "1"
+    },
+    {
+      "slug": "tg",
+      "view": "Sources",
+      "width": 1440,
+      "height": 900,
+      "region": "graph-studio",
+      "y": 662
+    },
+    {
+      "slug": "tg",
+      "view": "Sources",
+      "width": 1440,
+      "height": 900,
+      "region": "studio-matrix-scroll",
+      "y": 48
+    },
+    {
+      "slug": "tg",
+      "view": "Paytables",
+      "width": 1440,
+      "height": 900,
+      "scale": 1,
+      "document": 1440,
+      "viewport": 1440,
+      "zoom": "1"
+    },
+    {
+      "slug": "tg",
+      "view": "Paytables",
+      "width": 1440,
+      "height": 900,
+      "region": "graph-studio",
+      "y": 417
+    },
+    {
+      "slug": "tg",
+      "view": "Paytables",
+      "width": 1440,
+      "height": 900,
+      "region": "studio-matrix-scroll",
+      "x": 747.2
+    },
+    {
+      "slug": "tg",
+      "view": "Paytables",
+      "width": 1440,
+      "height": 900,
+      "region": "studio-matrix-scroll",
+      "x": 1494.4
+    },
+    {
+      "slug": "tg",
+      "view": "Paytables",
+      "width": 1440,
+      "height": 900,
+      "region": "studio-matrix-scroll",
+      "x": 2241.6000000000004
+    },
+    {
+      "slug": "tg",
+      "view": "Paytables",
+      "width": 1440,
+      "height": 900,
+      "region": "studio-matrix-scroll",
+      "x": 2574
+    },
+    {
+      "slug": "tg",
+      "view": "Paylines",
+      "width": 1440,
+      "height": 900,
+      "scale": 1,
+      "document": 1440,
+      "viewport": 1440,
+      "zoom": "1"
+    },
+    {
+      "slug": "tg",
+      "view": "Symbols",
+      "width": 1440,
+      "height": 900,
+      "scale": 1,
+      "document": 1440,
+      "viewport": 1440,
+      "zoom": "1"
+    },
+    {
+      "slug": "tg",
+      "view": "Symbols",
+      "width": 1440,
+      "height": 900,
+      "region": "graph-studio",
+      "y": 561
+    },
+    {
+      "slug": "tg",
+      "width": 1440,
+      "height": 900,
+      "dialogY": 585
+    },
+    {
+      "slug": "tg",
+      "width": 1440,
+      "height": 900,
+      "dialogY": 595
+    },
+    {
+      "slug": "tg",
+      "view": "Sources",
+      "width": 1280,
+      "height": 800,
+      "scale": 1,
+      "document": 1280,
+      "viewport": 1280,
+      "zoom": "1"
+    },
+    {
+      "slug": "tg",
+      "view": "Sources",
+      "width": 1280,
+      "height": 800,
+      "region": "graph-studio",
+      "y": 596.8000000000001
+    },
+    {
+      "slug": "tg",
+      "view": "Sources",
+      "width": 1280,
+      "height": 800,
+      "region": "graph-studio",
+      "y": 662
+    },
+    {
+      "slug": "tg",
+      "view": "Sources",
+      "width": 1280,
+      "height": 800,
+      "region": "studio-matrix-scroll",
+      "y": 148
+    },
+    {
+      "slug": "tg",
+      "view": "Paytables",
+      "width": 1280,
+      "height": 800,
+      "scale": 1,
+      "document": 1280,
+      "viewport": 1280,
+      "zoom": "1"
+    },
+    {
+      "slug": "tg",
+      "view": "Paytables",
+      "width": 1280,
+      "height": 800,
+      "region": "graph-studio",
+      "y": 517
+    },
+    {
+      "slug": "tg",
+      "view": "Paytables",
+      "width": 1280,
+      "height": 800,
+      "region": "studio-matrix-scroll",
+      "x": 619.2
+    },
+    {
+      "slug": "tg",
+      "view": "Paytables",
+      "width": 1280,
+      "height": 800,
+      "region": "studio-matrix-scroll",
+      "x": 1238.4
+    },
+    {
+      "slug": "tg",
+      "view": "Paytables",
+      "width": 1280,
+      "height": 800,
+      "region": "studio-matrix-scroll",
+      "x": 1857.6000000000001
+    },
+    {
+      "slug": "tg",
+      "view": "Paytables",
+      "width": 1280,
+      "height": 800,
+      "region": "studio-matrix-scroll",
+      "x": 2476.8
+    },
+    {
+      "slug": "tg",
+      "view": "Paytables",
+      "width": 1280,
+      "height": 800,
+      "region": "studio-matrix-scroll",
+      "x": 2734
+    },
+    {
+      "slug": "tg",
+      "view": "Paylines",
+      "width": 1280,
+      "height": 800,
+      "scale": 1,
+      "document": 1280,
+      "viewport": 1280,
+      "zoom": "1"
+    },
+    {
+      "slug": "tg",
+      "view": "Paylines",
+      "width": 1280,
+      "height": 800,
+      "region": "graph-studio",
+      "y": 76
+    },
+    {
+      "slug": "tg",
+      "view": "Symbols",
+      "width": 1280,
+      "height": 800,
+      "scale": 1,
+      "document": 1280,
+      "viewport": 1280,
+      "zoom": "1"
+    },
+    {
+      "slug": "tg",
+      "view": "Symbols",
+      "width": 1280,
+      "height": 800,
+      "region": "graph-studio",
+      "y": 596.8000000000001
+    },
+    {
+      "slug": "tg",
+      "view": "Symbols",
+      "width": 1280,
+      "height": 800,
+      "region": "graph-studio",
+      "y": 661
+    },
+    {
+      "slug": "tg",
+      "width": 1280,
+      "height": 800,
+      "dialogY": 520
+    },
+    {
+      "slug": "tg",
+      "width": 1280,
+      "height": 800,
+      "dialogY": 683
+    },
+    {
+      "slug": "tg",
+      "view": "Sources",
+      "width": 390,
+      "height": 844,
+      "scale": 1,
+      "document": 390,
+      "viewport": 390,
+      "zoom": "1"
+    },
+    {
+      "slug": "tg",
+      "view": "Sources",
+      "width": 390,
+      "height": 844,
+      "region": "graph-studio",
+      "y": 577.6
+    },
+    {
+      "slug": "tg",
+      "view": "Sources",
+      "width": 390,
+      "height": 844,
+      "region": "graph-studio",
+      "y": 1155.2
+    },
+    {
+      "slug": "tg",
+      "view": "Sources",
+      "width": 390,
+      "height": 844,
+      "region": "graph-studio",
+      "y": 1195
+    },
+    {
+      "slug": "tg",
+      "view": "Sources",
+      "width": 390,
+      "height": 844,
+      "region": "studio-matrix-scroll",
+      "y": 384
+    },
+    {
+      "slug": "tg",
+      "view": "Sources",
+      "width": 390,
+      "height": 844,
+      "region": "studio-matrix-scroll",
+      "y": 477
+    },
+    {
+      "slug": "tg",
+      "view": "Paytables",
+      "width": 390,
+      "height": 844,
+      "scale": 1,
+      "document": 390,
+      "viewport": 390,
+      "zoom": "1"
+    },
+    {
+      "slug": "tg",
+      "view": "Paytables",
+      "width": 390,
+      "height": 844,
+      "region": "graph-studio",
+      "y": 577.6
+    },
+    {
+      "slug": "tg",
+      "view": "Paytables",
+      "width": 390,
+      "height": 844,
+      "region": "graph-studio",
+      "y": 1021
+    },
+    {
+      "slug": "tg",
+      "view": "Paytables",
+      "width": 390,
+      "height": 844,
+      "region": "studio-matrix-scroll",
+      "x": 284.8
+    },
+    {
+      "slug": "tg",
+      "view": "Paytables",
+      "width": 390,
+      "height": 844,
+      "region": "studio-matrix-scroll",
+      "x": 569.6
+    },
+    {
+      "slug": "tg",
+      "view": "Paytables",
+      "width": 390,
+      "height": 844,
+      "region": "studio-matrix-scroll",
+      "x": 854.4000000000001
+    },
+    {
+      "slug": "tg",
+      "view": "Paytables",
+      "width": 390,
+      "height": 844,
+      "region": "studio-matrix-scroll",
+      "x": 1139.2
+    },
+    {
+      "slug": "tg",
+      "view": "Paytables",
+      "width": 390,
+      "height": 844,
+      "region": "studio-matrix-scroll",
+      "x": 1424
+    },
+    {
+      "slug": "tg",
+      "view": "Paytables",
+      "width": 390,
+      "height": 844,
+      "region": "studio-matrix-scroll",
+      "x": 1708.8
+    },
+    {
+      "slug": "tg",
+      "view": "Paytables",
+      "width": 390,
+      "height": 844,
+      "region": "studio-matrix-scroll",
+      "x": 1993.6
+    },
+    {
+      "slug": "tg",
+      "view": "Paytables",
+      "width": 390,
+      "height": 844,
+      "region": "studio-matrix-scroll",
+      "x": 2278.4
+    },
+    {
+      "slug": "tg",
+      "view": "Paytables",
+      "width": 390,
+      "height": 844,
+      "region": "studio-matrix-scroll",
+      "x": 2563.2000000000003
+    },
+    {
+      "slug": "tg",
+      "view": "Paytables",
+      "width": 390,
+      "height": 844,
+      "region": "studio-matrix-scroll",
+      "x": 2848.0000000000005
+    },
+    {
+      "slug": "tg",
+      "view": "Paytables",
+      "width": 390,
+      "height": 844,
+      "region": "studio-matrix-scroll",
+      "x": 3132.8000000000006
+    },
+    {
+      "slug": "tg",
+      "view": "Paytables",
+      "width": 390,
+      "height": 844,
+      "region": "studio-matrix-scroll",
+      "x": 3417.600000000001
+    },
+    {
+      "slug": "tg",
+      "view": "Paytables",
+      "width": 390,
+      "height": 844,
+      "region": "studio-matrix-scroll",
+      "x": 3429
+    },
+    {
+      "slug": "tg",
+      "view": "Paylines",
+      "width": 390,
+      "height": 844,
+      "scale": 1,
+      "document": 390,
+      "viewport": 390,
+      "zoom": "1"
+    },
+    {
+      "slug": "tg",
+      "view": "Paylines",
+      "width": 390,
+      "height": 844,
+      "region": "graph-studio",
+      "y": 371
+    },
+    {
+      "slug": "tg",
+      "view": "Symbols",
+      "width": 390,
+      "height": 844,
+      "scale": 1,
+      "document": 390,
+      "viewport": 390,
+      "zoom": "1"
+    },
+    {
+      "slug": "tg",
+      "view": "Symbols",
+      "width": 390,
+      "height": 844,
+      "region": "graph-studio",
+      "y": 577.6
+    },
+    {
+      "slug": "tg",
+      "view": "Symbols",
+      "width": 390,
+      "height": 844,
+      "region": "graph-studio",
+      "y": 1155.2
+    },
+    {
+      "slug": "tg",
+      "view": "Symbols",
+      "width": 390,
+      "height": 844,
+      "region": "graph-studio",
+      "y": 1732.8000000000002
+    },
+    {
+      "slug": "tg",
+      "view": "Symbols",
+      "width": 390,
+      "height": 844,
+      "region": "graph-studio",
+      "y": 2108
+    },
+    {
+      "slug": "tg",
+      "width": 390,
+      "height": 844,
+      "dialogY": 548.6
+    },
+    {
+      "slug": "tg",
+      "width": 390,
+      "height": 844,
+      "dialogY": 1097.2
+    },
+    {
+      "slug": "tg",
+      "width": 390,
+      "height": 844,
+      "dialogY": 1193
+    },
+    {
+      "slug": "tg",
+      "errors": []
+    }
+  ]
+}
