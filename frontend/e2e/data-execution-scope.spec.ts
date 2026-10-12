@@ -73,3 +73,20 @@ test('Closing data editor aborts its request and reopening has no stale executio
   await expect(page.getByTestId('executed-state')).toHaveCount(0);
   await expect(page.getByRole('button', { name: 'Execute graph', exact: true })).toBeEnabled();
 });
+
+test('Changing mechanic context aborts data execution while the editor stays mounted', async ({ page }) => {
+  await page.goto('/overview?project=nine-lives');
+  await page.getByRole('button', { name: /Free spins.*Open logic/ }).click();
+  await expect(page.getByTestId('model-navigation')).toContainText('free-spin');
+  await page.getByRole('button', { name: 'Edit project data and expressions', exact: true }).click();
+  await page.getByRole('button', { name: 'Execute & inspect', exact: true }).click();
+  const delayed = await delayRound(page);
+  // Exercise an external context change using the real toolbar handler, without unmounting the modal.
+  await page.getByRole('button', { name: 'Save subgraph and return', exact: true }).evaluate(element => (element as HTMLButtonElement).click());
+  await expect(page.getByRole('dialog', { name: 'Project data & expressions' })).toBeVisible();
+  await delayed.expectAborted(); await delayed.release();
+  await expect(page.getByTestId('executed-state')).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Execute graph', exact: true })).toBeEnabled();
+  await calculateWithQuota(page, '/api/play/round', 'Execute graph');
+  await expect(page.getByTestId('executed-state')).toBeVisible();
+});
