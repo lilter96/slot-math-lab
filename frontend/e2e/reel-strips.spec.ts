@@ -86,15 +86,19 @@ test('Strip CSV preview validates all indices/symbols and keyboard reorder/remov
 
 test('Late strip validation aborts when another project is opened', async ({ page }) => {
   await page.goto(link(fixture)); await openReels(page);
-  let release!: () => void, requested = false, aborted = false, finished = false;
+  let release!: () => void, requested = false, finished = false;
   const gate = new Promise<void>(resolve => { release = resolve; });
-  page.on('requestfailed', request => { if (new URL(request.url()).pathname === '/api/validate') aborted = true; });
+  await page.evaluate(() => {
+    const host = window as unknown as { stripValidationAborted: boolean };
+    const original = window.fetch.bind(window);
+    window.fetch = (input, init) => { if (String(input).endsWith('/api/validate')) init?.signal?.addEventListener('abort', () => { host.stripValidationAborted = true; }, { once: true }); return original(input, init); };
+  });
   await page.route('**/api/validate', async route => { requested = true; const response = await route.fetch(); await gate; await route.fulfill({ response }).catch(() => {}); finished = true; });
   await page.getByLabel('Reel 1 symbol at 0', { exact: true }).selectOption('1');
   await page.getByRole('button', { name: 'Validate & apply strips', exact: true }).click();
   await expect.poll(() => requested).toBe(true);
   await page.getByRole('tab', { name: 'Build', exact: true }).click();
-  await expect.poll(() => aborted).toBe(true);
+  await expect.poll(() => page.evaluate(() => (window as unknown as { stripValidationAborted: boolean }).stripValidationAborted)).toBe(true);
   await page.getByLabel('Import project file', { exact: true }).setInputFiles({ name: 'copy.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify({ ...fixture, name: 'Independent strip copy' })) });
   release(); await expect.poll(() => finished).toBe(true); await page.unroute('**/api/validate');
   await openReels(page);

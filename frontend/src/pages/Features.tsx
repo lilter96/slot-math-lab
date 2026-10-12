@@ -1,5 +1,5 @@
 import { useAppStore } from '../store';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useModelProjection } from '../hooks/useModelProjection';
 import { mechanicLabel, referencedMechanics, type ModelGraph } from '../lib/modelProjection';
@@ -13,12 +13,14 @@ function FreeSpinForm({ graph, count }: { graph: ModelGraph; count: number }) {
   const [value, setValue] = useState(() => staged.get(draftKey)?.value ?? String(count));
   const [base, setBase] = useState(() => staged.get(draftKey)?.base ?? graph);
   const [busy, setBusy] = useState(false), [error, setError] = useState('');
+  const pending = useRef<AbortController | null>(null);
+  useEffect(() => () => { pending.current?.abort(); pending.current = null; }, []);
   const [undo, setUndo] = useState<{ previous: ModelGraph; committed: string } | null>(null);
   return <section className="feature-form"><h2>Awarded free spins</h2><p>Change the awarded count and its matching loop ceiling together. Trigger conditions, round cap and bonus-buy price retain their current source values.</p>
     <label>Free-spin count<input className="inp" aria-label="Awarded free spins" inputMode="numeric" value={value} disabled={busy} onChange={event => { setValue(event.target.value); staged.set(draftKey, { base, value: event.target.value }); }} /></label>
     <p className="hint">Source mapping: initialState.freeSpins; bonus.expressions.lives; bonus.nodes[free-spins].maxIterations; base-spin.expressions[initial-lives].thenExpr.</p>
     <div className="editor-actions"><button className="btn primary" disabled={busy || value === String(count)} onClick={async () => {
-      setBusy(true); setError(''); try { const next = changeFreeSpinCount(base, value); const committed = await applyValidatedModel(base, next); setUndo({ previous: base, committed: canonicalJson(committed) }); setBase(committed); staged.delete(draftKey); } catch (reason) { setError(reason instanceof Error ? reason.message : String(reason)); } finally { setBusy(false); }
+      pending.current?.abort(); const controller = new AbortController(); pending.current = controller; setBusy(true); setError(''); try { const next = changeFreeSpinCount(base, value); const committed = await applyValidatedModel(base, next, controller.signal); if (controller.signal.aborted || pending.current !== controller) return; setUndo({ previous: base, committed: canonicalJson(committed) }); setBase(committed); staged.delete(draftKey); } catch (reason) { if (!controller.signal.aborted && pending.current === controller && !(reason instanceof DOMException && reason.name === 'AbortError')) setError(reason instanceof Error ? reason.message : String(reason)); } finally { if (pending.current === controller) { pending.current = null; setBusy(false); } }
     }}>{busy ? 'Validating…' : 'Validate & apply free spins'}</button><button className="btn" disabled={busy} onClick={() => { setBase(graph); setValue(String(count)); setError(''); staged.delete(draftKey); }}>Reset free spins</button>{undo && <button className="btn" disabled={busy} onClick={() => { if (canonicalJson(peekRootProject()) !== undo.committed) { setError('Newer edits prevent this Undo. Reset to the current model.'); return; } rootProject(); loadProject(undo.previous); setBase(peekRootProject() as ModelGraph); setValue(String(freeSpinCapability(undo.previous))); setUndo(null); staged.delete(draftKey); }}>Undo free-spin change</button>}</div>
     {error && <p className="inline-validation" role="alert">{error}</p>}{undo && <p role="status">Free-spin sources updated together. Run analysis to measure the edited model.</p>}
   </section>;
