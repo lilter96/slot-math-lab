@@ -15,3 +15,15 @@ export function drawRowSummary(rows: { weight: number; value?: number }[]): { to
   while (remainder) [divisor, remainder] = [remainder, divisor % remainder];
   return { total: String(total), mean: total / divisor === 1n ? String(numerator / divisor) : `${numerator / divisor}/${total / divisor}` };
 }
+
+/** Follow configPayload: native expression ID, with edited draw-row aliases taking precedence. */
+export function drawCardSummary(data: { backendNode?: unknown; weightExpressionId?: unknown; drawWeights?: unknown }): { label: string; value: string } {
+  const native = data.backendNode && typeof data.backendNode === 'object' ? data.backendNode as Record<string, unknown> : null;
+  const expression = native ? native.weightExpressionId : data.weightExpressionId;
+  if (expression !== undefined && expression !== null && expression !== '') return { label: 'mode', value: 'Dynamic weights' };
+  const rows = data.drawWeights || native?.drawWeights;
+  if (!Array.isArray(rows) || rows.length === 0) return { label: 'mode', value: 'Unconfigured' };
+  if (rows.some(row => !row || typeof row !== 'object' || typeof row.weight !== 'number' || (row.value !== undefined && typeof row.value !== 'number'))) return { label: 'mode', value: 'Unsupported rows' };
+  const summary = drawRowSummary(rows);
+  return summary ? { label: 'Static mean', value: summary.mean } : { label: 'mode', value: 'Unsupported rows' };
+}

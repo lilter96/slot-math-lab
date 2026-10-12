@@ -1,3 +1,4 @@
+import { drawCardSummary } from '../../../lib/drawRows';
 import { memo, type FC } from 'react';
 import { Handle, Position } from '@xyflow/react';
 import type { GraphNodeData } from '../../../store';
@@ -59,15 +60,11 @@ const BaseNodeCard: FC<BaseNodeProps> = ({ id, data, selected }) => {
       <div className="node-body">
         {data.nodeType === 'draw' && (() => {
           const dw = Array.isArray(data.drawWeights) ? data.drawWeights as { outcomeId: string; weight: number; value: number }[] : [];
-          if (dw.length === 0) {
-            return <div className="mini-row"><span className="k">mode</span><span className="v" style={{ color: 'var(--faint)' }}>unconfigured</span></div>;
-          }
-          const total = dw.reduce((s, w) => s + w.weight, 0);
-          const exp = total > 0 ? dw.reduce((s, w) => s + w.value * w.weight, 0) / total : 0;
+          const summary = drawCardSummary(data);
           return (
             <>
               <div className="mini-row"><span className="k">outcomes</span><span className="v">{dw.length}</span></div>
-              <div className="mini-row"><span className="k">E[value]</span><span className="v" style={{ color: 'var(--exact)' }}>{exp.toFixed(2)}</span></div>
+              <div className="mini-row" data-testid="draw-source-summary"><span className="k">{summary.label}</span><span className="v" title={summary.value} style={{ minWidth: 0, whiteSpace: 'normal', overflowWrap: 'anywhere', textAlign: 'right' }}>{summary.value.includes('/') ? <>{summary.value.split('/')[0]}/<wbr />{summary.value.split('/')[1]}</> : summary.value}</span></div>
               {data.stateWriteKey && (
                 <div className="mini-row">
                   <span className="k">→ state</span>
