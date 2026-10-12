@@ -1,5 +1,7 @@
 # Required Rider cleanup
 
+Editable draft restoration: `frontend/src/lib/editableDraft.ts`, `frontend/src/pages/Projects.tsx`, `frontend/unit/editable-draft.spec.ts`, `frontend/e2e/serialization-errors.spec.ts`. Required passes remain outstanding; standalone attempts in editable-restore-rider.log, editable-restore-tests-rider.log and editable-restore-persist-rider.log exited 3 with `solution can't be null`.
+
 AI source slice: `frontend/src/api/hooks.ts`, `frontend/src/components/AiGenerateModal.tsx`, `frontend/src/components/ai/AutoTunePanel.tsx`, `frontend/src/lib/generatedModel.ts`, `frontend/unit/generated-model.spec.ts`, `frontend/e2e/ai-model-source.spec.ts`. All remain uncleaned by the required Rider passes. Standalone attempts exited 3: ai-source-rider.log, ai-tune-rider.log, ai-tests-rider.log, ai-dialog-rider.log, ai-final-rider.log, ai-focus-rider.log, ai-lifecycle-tests-rider.log, ai-errors-rider.log, ai-candidate-rider.log and ai-color-rider.log.
 
 AGENTS.md requires Reformat Code followed by Built-in: Full Cleanup on every touched source. Standalone Rider fails with `solution can't be null`; frontend files are outside the .NET solution. The pinned backend CLI encounters missing `System.Composition.AttributedModel, Version=10.0.0.12` and bounded passes time out. No successful required cleanup is claimed. Supplementary scoped whitespace/ESLint checks do not replace these passes. Run both in the owner's Rider workspace on this exact source list, review changes, and rerun validation before release.

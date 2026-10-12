@@ -56,6 +56,32 @@ test('Incomplete expression edits remain recoverable across invalid edits, reloa
   expect(errors).toEqual([]);
 });
 
+test('Editable backup restores incomplete source into an independent project and preserves the current game', async ({ page }) => {
+  await page.goto(link(model)); await expect(page.getByRole('alert')).toContainText('Select a state field');
+  const pending = page.waitForEvent('download'); await page.getByRole('button', { name: 'Download editable draft', exact: true }).click();
+  const backup = await readFile((await (await pending).path())!);
+  await page.getByRole('button', { name: 'Load coin example', exact: true }).click();
+  await page.getByRole('tab', { name: 'My projects', exact: true }).click();
+  const input = page.locator('.project-import input[type="file"]');
+  await input.setInputFiles({ name: 'broken.json', mimeType: 'application/json', buffer: Buffer.from('{"format":"slotmath-editable-draft-v1","nodes":[]}') });
+  await expect(page.getByRole('alert')).toContainText('current project has not been replaced');
+  await expect(page.locator('[aria-label="Personal projects"] .project-row').filter({ hasText: 'REF-A Coin' })).toContainText('Current project');
+  await input.setInputFiles({ name: 'backup.json', mimeType: 'application/json', buffer: backup });
+  await expect(page.getByRole('alert')).toContainText('Select a state field');
+  await page.getByLabel('Focus graph node').selectOption('draw');
+  await expect(page.locator('.cm-content').first()).toContainText('state-weights');
+  await expression(page, 'state.weights'); await expect(page.getByRole('alert')).toHaveCount(0);
+  await page.getByRole('tab', { name: 'My projects', exact: true }).click();
+  await expect(page.locator('[aria-label="Personal projects"] .project-row')).toHaveCount(3);
+  await page.locator('[aria-label="Personal projects"] .project-row').filter({ hasText: 'REF-A Coin' }).getByRole('button', { name: 'Open project', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'REF-A Coin', exact: true })).toBeVisible();
+  await expect.poll(() => page.evaluate(() => {
+    const saved = JSON.parse(localStorage.getItem('slotmath-draft-v1') ?? '{}');
+    return saved.configName === 'REF-A Coin' && Object.keys(saved.projects ?? {}).length === 3;
+  })).toBe(true);
+  await page.reload(); await expect(page.getByRole('heading', { name: 'REF-A Coin', exact: true })).toBeVisible();
+});
+
 test('Invalid models keep measurement dialogs editable without posting a substitute schema or collection plan', async ({ page }) => {
   await page.addInitScript(() => localStorage.setItem('slotmath-measurements-v1', JSON.stringify({ metrics: [{ id: 'payout', name: 'Payout', nodeId: '', valueMode: 'payout', expression: '', filterMode: 'all', filter: '', unit: '', reducers: ['mean'], chart: true, chartStatistic: 'mean', hidden: false }], hiddenWidgets: [] })));
   let schemas = 0; const errors: string[] = [];

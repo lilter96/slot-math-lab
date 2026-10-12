@@ -8,6 +8,7 @@ import { peekRootProject, switchProject } from '../lib/projectFiles';
 import { gameModelLibrary, starterLibrary } from '../lib/starterLibrary';
 import { createNineLivesGraph } from '../games/nine-lives/graph';
 import { getBrowserIdentity } from '../lib/browserIdentity';
+import { parseEditableDraft } from '../lib/editableDraft';
 
 const templates = [{ name: 'Nine Lives · reference', create: () => createNineLivesGraph() }, ...gameModelLibrary.map(model => ({ ...model, name: model.name === 'Nine Lives' ? 'Nine Lives · TGslots' : model.name })), ...starterLibrary].sort((a, b) => a.name.localeCompare(b.name));
 export default function Projects() {
@@ -62,6 +63,9 @@ export default function Projects() {
       }}>{loadingId === p.id ? 'Opening…' : 'Open saved version'}</button></div>)}</div>
       {server.data?.length === 0 && <p className="hint">No server versions saved yet. Save a project from Export.</p>}
     </section>
-    <section className="project-import"><h2>Import a personal model</h2><label className="btn">Choose JSON file<input type="file" accept=".json,application/json" onChange={async e => { const file = e.target.files?.[0]; if (!file) return; e.target.value = ''; const token = ++task.current; pending.current?.abort(); pending.current = null; setLoadingId(null); const current = () => mounted.current && token === task.current; try { const text = await file.text(); if (!current()) return; const config = parseModelJson(text); if (!config.schemaVersion || !Array.isArray(config.nodes) || !Array.isArray(config.edges)) throw new Error('Choose an executable graph JSON with schemaVersion, nodes and edges.'); create(config); } catch (err) { if (current()) setError(err instanceof Error ? err.message : 'Unable to import this file'); } }} /></label>{error && <p role="alert">{error}</p>}</section>
+    <section className="project-import"><h2>Import a personal model</h2><p className="hint">Model JSON or an editable-draft backup opens as a separate private project. Draft backups retain incomplete expressions for repair; saved run evidence is not restored.</p><label className="btn">Choose JSON file<input type="file" accept=".json,application/json" onChange={async e => { const file = e.target.files?.[0]; if (!file) return; e.target.value = ''; const token = ++task.current; pending.current?.abort(); pending.current = null; setLoadingId(null); setError(''); const current = () => mounted.current && token === task.current; try { const text = await file.text(); if (!current()) return; const config = parseModelJson(text); if (config.format === 'slotmath-editable-draft-v1') {
+      const draft = parseEditableDraft(text); retainCurrentProject(); const id = crypto.randomUUID();
+      useAppStore.setState({ projects: { ...useAppStore.getState().projects, [id]: draft } }); activateProject(id); navigate('/build');
+    } else { if (!config.schemaVersion || !Array.isArray(config.nodes) || !Array.isArray(config.edges)) throw new Error('Choose a graph JSON or a slotmath-editable-draft-v1 backup.'); create(config); } } catch (err) { if (current()) setError(err instanceof Error ? err.message : 'Unable to import this file'); } }} /></label>{error && <p role="alert">{error}</p>}</section>
   </section>;
 }
