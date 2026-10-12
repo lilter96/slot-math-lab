@@ -1,6 +1,7 @@
 import { test, expect } from './fixtures';
 import { readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
+import { createAncientDragonGraph } from '../src/games/ancient-dragon/graph';
 
 const config = { schemaVersion: '1.0.0', name: 'Authored numeric table', reviewerMetadata: { untouched: true }, nodes: [
   { id: 'draw', nodeType: 'draw', drawWeights: Array.from({ length: 60 }, (_, index) => ({ outcomeId: `outcome-${index}`, weight: index + 1, value: index === 0 ? 2147483647 : index })), outputs: { out: { name: 'out', type: 'Wins' } } },
@@ -105,5 +106,25 @@ test('Payout tables keep raw scaled values and usable fields at four sizes', asy
       await page.getByRole('button', { name: 'Copy raw payout for 5 cells', exact: true }).click();
       expect(await page.evaluate(() => (window as unknown as { copiedPayout: string }).copiedPayout)).toBe('1/20');
     }
+  }
+});
+
+test('Reel tables honor regular and compact density without shrinking symbol targets', async ({ page }) => {
+  const graph = createAncientDragonGraph();
+  await page.goto('/build');
+  await page.getByLabel('Import project file', { exact: true }).setInputFiles({ name: 'ancient-dragon.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(graph)) });
+  await page.getByRole('tab', { name: 'Model data', exact: true }).click();
+  await page.getByRole('tab', { name: 'Reel strips', exact: true }).click();
+  const row = page.locator('.reel-data-table tbody tr').first();
+  const regular = (await row.boundingBox())!.height;
+  await page.getByLabel('Table density').selectOption('compact');
+  await expect(page.locator('body')).toHaveClass(/compact/);
+  expect((await row.boundingBox())!.height).toBeLessThan(regular);
+  expect((await page.getByLabel('Reel 1 symbol at 0', { exact: true }).boundingBox())!.height).toBeGreaterThanOrEqual(36);
+  for (const [width, height] of [[1440, 900], [1280, 800], [1024, 768], [390, 844]]) {
+    await page.setViewportSize({ width, height });
+    expect((await page.getByLabel('Reel 1 symbol at 0', { exact: true }).boundingBox())!.height).toBeGreaterThanOrEqual(width === 390 ? 44 : 36);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+    await page.screenshot({ path: path.resolve('../docs/design/qa', `table-contract-reel-${width}.png`), fullPage: true });
   }
 });

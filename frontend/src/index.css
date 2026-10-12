@@ -721,6 +721,8 @@ body { font-size: 14px; line-height: 1.5; }
 .weighted-editor .math-data-table thead th:first-child { left: 0; z-index: 3; }
 .weighted-editor .math-data-table .inp { height: 36px; min-height: 36px; padding: 4px 8px; }
 body.compact .weighted-editor .math-data-table tbody th, body.compact .weighted-editor .math-data-table tbody td { height: 38px; padding: 0 6px; }
+.model-data-page .reel-data-table tbody th, .model-data-page .reel-data-table tbody td { height: 44px; }
+body.compact .model-data-page .reel-data-table tbody th, body.compact .model-data-page .reel-data-table tbody td { height: 38px; padding: 0 6px; }
 .math-data-table input[data-changed="true"] { border-color: var(--epsilon); background: var(--epsilon-dim); }
 .raw-number { display: inline-flex; align-items: center; justify-content: end; gap: 6px; position: relative; white-space: nowrap; }
 .raw-copy { display: inline-flex; justify-content: center; align-items: center; min-width: 36px; min-height: 36px; border: 1px solid transparent; border-radius: 4px; background: transparent; color: var(--muted); cursor: pointer; }
