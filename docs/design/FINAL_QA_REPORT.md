@@ -129,3 +129,7 @@ c4d4c9e closes the known bought-feature strip mapping: showing patterns, their e
 Affected/new units initially 8/8; changed guard/budget checks 3/3, final recovery rejection 1/1. Chromium 7/7 and only strengthened degeneration 1/1; Firefox/WebKit changed/new conditional 4/4. Actual API oracle confirms 2/3 → 1/2, raw share 1/3, all-symbol result 1, exact seeded/authored Undo and real bought-game compiler/reimport. Twelve final real before/applied/impossible captures have no document overflow/editor proof badges. [Conditional review](qa/CONDITIONED_REEL_REVIEW.md) documents AST contract, exact scope, recovery, guard limits and required cleanup. No full suite was repeated.
 
 Remaining keyboard/async/table/rubric/human and Core/Rider gates are tracked in the requirement audit; this feature does not prove whole-goal completion or release readiness.
+
+## Keyboard connection authoring
+
+026e7e0 adds canonical typed handles and shared pointer/keyboard checks, independent IDs for distinct ports, a labelled keyboard dialog and project-scoped import/dialog/focus protection. Scoped units, Chromium 8+2 and Firefox/WebKit 14+4 pass; build/touched lint and four viewport captures pass. See [review and remaining race/cleanup limits](qa/KEYBOARD_CONNECTION_REVIEW.md). Whole-goal and release gates remain incomplete; no full suite was repeated.

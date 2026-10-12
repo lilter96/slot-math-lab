@@ -158,3 +158,10 @@ Circular reel follow-up: all touched files below require Reformat then Full Clea
 - `frontend/unit/reel-conditioning.spec.ts`
 
 Conditioned-reel follow-up also changes reelCommands, ReelStripEditor, reel-commands units and reel-strips browser tests. Reformat attempts exit 3; Full Cleanup remains unavailable. Actual logs: reel-conditioning-rider.log and conditioning-*-rider.log. Build/lint/scoped checks do not replace required cleanup.
+
+Keyboard connection follow-up (026e7e0): required Reformat/Full Cleanup remain unavailable; actual standalone attempts exit 3, logs keyboard-connection-*-rider.log. Existing toolbar/canvas/card/store entries above are also affected. Added files:
+
+- `frontend/src/components/editor/ConnectNodesDialog.tsx`
+- `frontend/src/lib/graphConnections.ts`
+- `frontend/unit/graph-connections.spec.ts`
+- `frontend/e2e/keyboard-connections.spec.ts`
