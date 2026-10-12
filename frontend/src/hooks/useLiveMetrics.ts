@@ -62,17 +62,19 @@ export function useLiveMetrics(
   const abortRef = useRef<AbortController | null>(null);
   const seqRef = useRef(0);
 
-  const payloadJson = useMemo(() => {
-    if (tables.uiAnalysisKind === 'expectationProof' || trail.length) return null;
+  const payload = useMemo(() => {
+    if (tables.uiAnalysisKind === 'expectationProof' || trail.length) return { json: null, error: null };
     try {
     const payload = buildConfigPayload(nodes, edges, {
       name: 'Live Preview',
       tables,
       expressions,
     });
-    return payload ? JSON.stringify(payload) : null;
-    } catch { return JSON.stringify({ schemaVersion: '1.0.0', name: 'Invalid expression', nodes: [] }); }
+    return { json: payload ? JSON.stringify(payload) : null, error: null };
+    } catch (reason) { return { json: null, error: reason instanceof Error ? reason.message : 'Unable to serialize model.' }; }
   }, [nodes, edges, expressions, tables, trail]);
+
+  const payloadJson = payload.json;
 
   const evaluate = useCallback(async (configJson: string | null) => {
     if (!configJson) {
@@ -158,5 +160,6 @@ export function useLiveMetrics(
     };
   }, []);
 
+  if (payload.error) return { ...EMPTY, error: payload.error };
   return state.configJson === payloadJson ? state : { ...EMPTY, loading: !!payloadJson };
 }

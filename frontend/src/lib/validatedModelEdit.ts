@@ -1,10 +1,10 @@
 import { useAppStore } from '../store';
 import { graphRequest } from './graphApi';
 import { canonicalJson } from './hash';
-import { peekRootProject, rootProject, loadProject } from './projectFiles';
+import { peekRootProject, rootProject, loadProject, projectContentScope } from './projectFiles';
 import type { ModelGraph } from './modelProjection';
 export async function applyValidatedModel(base: ModelGraph, next: ModelGraph, signal?: AbortSignal): Promise<ModelGraph> {
-  const scope = () => { const state = useAppStore.getState(); return canonicalJson([state.projectId, state.graphTrail.map(entry => entry.mechanic), peekRootProject()]); };
+  const scope = projectContentScope;
   if (canonicalJson(peekRootProject()) !== canonicalJson(base)) throw new Error('The model changed while these inputs were open. Reset before applying.');
   const origin = scope(), controller = new AbortController();
   const combined = signal ? AbortSignal.any([signal, controller.signal]) : controller.signal;

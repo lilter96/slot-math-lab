@@ -1,3 +1,4 @@
+import { projectContentScope } from '../../lib/projectFiles';
 import RawNumber from './RawNumber';
 import { tableKeyboard } from '../../lib/tableKeyboard';
 import { useAppStore } from '../../store';
@@ -11,7 +12,7 @@ import { graphRequest } from '../../lib/graphApi';
 import type { ModelGraph } from '../../lib/modelProjection';
 import { importWeightsCsv, weightsCsv } from '../../lib/weightCsv';
 
-const context = () => { const state = useAppStore.getState(); return canonicalJson([state.projectId, state.graphTrail.map(entry => entry.mechanic), peekRootProject()]); };
+const context = projectContentScope;
 
 const staged = new Map<string, { base: ModelGraph; weights: string[] }>();
 

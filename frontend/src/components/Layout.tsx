@@ -1,3 +1,5 @@
+import { useModelSnapshot } from '../hooks/useModelProjection';
+import { captureProjectDraft } from '../store';
 import Login from './Login';
 import TweaksPanel from './TweaksPanel';
 import { useProjectInitialization } from '../hooks/useProjectInitialization';
@@ -24,6 +26,7 @@ const TABS = [
 ];
 
 export default function Layout() {
+  const modelSnapshot = useModelSnapshot();
   const importError = useProjectInitialization();
   useSimulationConnection();
   const location = useLocation();
@@ -95,6 +98,11 @@ export default function Layout() {
         </div>
       </div>
 
+      {modelSnapshot.error && <div className="draft-storage-warning" role="alert">Model cannot be serialized: {modelSnapshot.error} Your editable draft is retained.
+        <NavLink className="btn" to="/build">Edit model</NavLink><button className="btn" onClick={() => {
+          const url = URL.createObjectURL(new Blob([JSON.stringify({ format: 'slotmath-editable-draft-v1', ...captureProjectDraft() }, null, 2)], { type: 'application/json' }));
+          const link = document.createElement('a'); link.href = url; link.download = 'slotmath-editable-draft.json'; link.click(); URL.revokeObjectURL(url);
+        }}>Download editable draft</button></div>}
       {storageError && <div className="draft-storage-warning" role="alert">{storageError} <NavLink className="btn" to="/export">Back up this project</NavLink>{getDraftRecovery() !== null && <button className="btn" onClick={() => {
         const original = getDraftRecovery(); if (original === null) return;
         const url = URL.createObjectURL(new Blob([original], { type: 'application/json' }));

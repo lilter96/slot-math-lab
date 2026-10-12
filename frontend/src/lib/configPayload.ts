@@ -1,3 +1,4 @@
+import { assertModelNumbers } from './modelJson';
 import { parseExpression, type ExpressionAst } from './expressionParser';
 import type { GraphNode, GraphEdge } from '../store';
 
@@ -180,7 +181,7 @@ export function buildConfigPayload(
     }
     return handle ?? direction;
   }
-  return {
+  const config = {
     ...options.tables,
     schemaVersion: '1.0.0',
     name: options.name,
@@ -194,4 +195,6 @@ export function buildConfigPayload(
     })),
     expressions: { ...(options.tables?.expressions as Record<string, unknown> ?? {}), ...expressions },
   };
+  assertModelNumbers(config);
+  return config;
 }

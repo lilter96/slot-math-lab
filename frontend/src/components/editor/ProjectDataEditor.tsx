@@ -1,3 +1,4 @@
+import { projectContentScope } from '../../lib/projectFiles';
 import ModelNumberInput from './ModelNumberInput';
 import { EvidenceInputsEditor } from './EvidenceInputsEditor';
 import { useEffect, useRef, useState } from 'react';
@@ -8,12 +9,8 @@ import GameDialog from './GraphDialog';
 import { graphRequest, type GraphRound } from '../../lib/graphApi';
 import { DEFAULT_FEATURES, useFeaturesQuery } from '../../api/hooks';
 import { peekRootProject } from '../../lib/projectFiles';
-import { canonicalJson } from '../../lib/hash';
 
-const executionScope = () => {
-  const current = useAppStore.getState();
-  return canonicalJson([current.projectId, current.graphTrail.map(entry => entry.mechanic), peekRootProject()]);
-};
+const executionScope = projectContentScope;
 export default function ProjectDataEditor({ onClose, initialTable }: { onClose: () => void; initialTable?: string }) {
   const play = (useFeaturesQuery().data ?? DEFAULT_FEATURES).play;
   const tables = useAppStore(s => s.tables);

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import ExpressionTreeEditor from '../editor/ExpressionTreeEditor';
-import { peekRootProject } from '../../lib/projectFiles';
+import { inspectRootProject } from '../../lib/projectFiles';
 import { createNineLivesGraph } from '../../games/nine-lives/graph';
 import { useAppStore } from '../../store';
 import { useMeasurementWorkspace } from '../../lib/measurements/store';
@@ -17,14 +17,15 @@ export function AccountingEditor({ close }: { close(): void }) {
   const [total, setTotal] = useState<ExpressionAst>(payoutExpression), [components, setComponents] = useState<{ name: string; value: ExpressionAst | null }[]>([{ name: 'Base', value: null }, { name: 'Feature', value: null }]);
   const [filter, setFilter] = useState<ExpressionAst | null>(null), [group, setGroup] = useState<ExpressionAst | null>(null), [support, setSupport] = useState(32), [groups, setGroups] = useState(4);
   const [busy, setBusy] = useState(false), [error, setError] = useState(''), [status, setStatus] = useState('');
-  const [config] = useState(() => useAppStore.getState().verificationSource ?? (useAppStore.getState().nodes.length ? peekRootProject() : createNineLivesGraph()));
-  const schema = useQuery<MeasurementSchema>({ queryKey: ['measurement-schema', config], queryFn: ({ signal }) => calculationRequest('/api/runs/measurements/schema', { config }, signal, () => {}, 10000), retry: false, staleTime: Infinity });
+  const [config] = useState(() => useAppStore.getState().verificationSource ?? (useAppStore.getState().nodes.length ? inspectRootProject().config : createNineLivesGraph()));
+  const schema = useQuery<MeasurementSchema>({ queryKey: ['measurement-schema', config], enabled: !!config, queryFn: ({ signal }) => calculationRequest('/api/runs/measurements/schema', { config }, signal, () => {}, 10000), retry: false, staleTime: Infinity });
   useEffect(() => { const el = dialog.current!; el.showModal(); return () => { validation.current?.abort(); el.close(); }; }, []);
   const dismiss = () => { validation.current?.abort(); close(); };
   const added = components.length + components.length * (components.length - 1) / 2 + 2;
   const update = (i: number, patch: Partial<typeof components[number]>) => setComponents(c => c.map((value, j) => j === i ? { ...value, ...patch } : value));
   return <dialog ref={dialog} className="measurement-dialog" aria-labelledby="accounting-editor-title" onCancel={dismiss} onClose={dismiss}><form onSubmit={async e => {
     e.preventDefault(); try {
+      if (!config) throw new Error('Fix model serialization before validating this plan.');
       if (!schema.data) throw new Error('Load the graph schema before saving.');
       if (components.some(c => !c.value)) throw new Error('Choose or build a value for every component.');
       const current = useMeasurementWorkspace.getState().metrics;
@@ -37,7 +38,7 @@ export function AccountingEditor({ close }: { close(): void }) {
       if (useMeasurementWorkspace.getState().metrics !== current) throw new Error('The collection plan changed during validation. Review it before saving again.');
       useMeasurementWorkspace.setState({ metrics: proposed }); close();
     } catch (err) { if (!validation.current?.signal.aborted) { setError(err instanceof Error ? err.message : 'Invalid accounting plan.'); setBusy(false); } }
-  }}><header><div><span className="sim-eyebrow">COMPONENT ACCOUNTING / NEXT RUN</span><h2 id="accounting-editor-title">Reconcile payout components</h2></div><button type="button" className="btn" aria-label="Close accounting editor" onClick={dismiss}>✕</button></header>
+  }}>{!config && <p role="alert">Fix model serialization in Build before validating this plan. Your metric draft remains editable.</p>}<header><div><span className="sim-eyebrow">COMPONENT ACCOUNTING / NEXT RUN</span><h2 id="accounting-editor-title">Reconcile payout components</h2></div><button type="button" className="btn" aria-label="Close accounting editor" onClick={dismiss}>✕</button></header>
     <p>Measure total and every component on the same observation. The plan collects every pair covariance and an exact total-minus-components assertion. Define completed feature totals in the constructor before observing their boundary.</p>
     <fieldset className="measurement-form-grid" disabled={busy}>
       <label>Reconciliation name<input aria-label="Reconciliation name" value={name} maxLength={64} required onChange={e => setName(e.target.value)} /></label>
@@ -52,7 +53,7 @@ export function AccountingEditor({ close }: { close(): void }) {
       <label>Distinct values per metric / cohort<input aria-label="Accounting support limit" type="number" min="1" max="1024" value={support} onChange={e => setSupport(Number(e.target.value))} /></label><label>Maximum cohorts<input aria-label="Accounting group limit" type="number" min="1" max="32" value={groups} onChange={e => setGroups(Number(e.target.value))} /></label>
       <p className="measurement-wide">Adds {added} measurements: total, {components.length} components, {components.length * (components.length - 1) / 2} pairs and one exact residual. Pair cards start hidden; their covariance evidence remains available. Full-support retention is bounded; moments remain collected when distinct support fills.</p>
     </fieldset>
-    {schema.isPending && <p role="status">Compiling graph schema…</p>}{schema.error && <p className="measurement-error" role="alert">{schema.error.message} <button type="button" className="btn" onClick={() => void schema.refetch()}>Retry schema</button></p>}
+    {config && schema.isPending && <p role="status">Compiling graph schema…</p>}{schema.error && <p className="measurement-error" role="alert">{schema.error.message} <button type="button" className="btn" onClick={() => void schema.refetch()}>Retry schema</button></p>}
     {busy && <p role="status">Validating the complete collection plan · {status}</p>}{error && <p role="alert" className="measurement-error">{error}</p>}
     <footer><button type="button" className="btn" onClick={dismiss}>Cancel</button><button type="submit" className="btn primary" disabled={busy || !schema.data}>{busy ? 'Validating…' : 'Save accounting plan'}</button></footer>
   </form></dialog>;

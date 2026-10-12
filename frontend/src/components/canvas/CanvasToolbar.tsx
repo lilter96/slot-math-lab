@@ -1,16 +1,16 @@
+import { projectContentScope, inspectRootProject } from '../../lib/projectFiles';
 import { parseModelJson } from '../../lib/modelJson';
 import { useNavigate } from 'react-router-dom';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useReactFlow, useViewport } from '@xyflow/react';
 import { Ic } from '../Icons';
-import { peekRootProject, loadProject, loadCoinExample, catalogExamples, switchProject } from '../../lib/projectFiles';
+import { loadProject, loadCoinExample, catalogExamples, switchProject } from '../../lib/projectFiles';
 import AiGenerateModal from '../AiGenerateModal';
 import { useAppStore } from '../../store';
 import { DEFAULT_FEATURES, useFeaturesQuery } from '../../api/hooks';
 import { closeMechanic } from '../../lib/projectFiles';
 import ProjectDataEditor from '../editor/ProjectDataEditor';
 import ConnectNodesDialog from '../editor/ConnectNodesDialog';
-import { canonicalJson } from '../../lib/hash';
 
 const graphScope = () => { const state = useAppStore.getState(); return JSON.stringify([state.projectId, state.graphTrail.map(entry => entry.mechanic)]); };
 
@@ -78,12 +78,12 @@ export default function CanvasToolbar({ canConnect = true }: { canConnect?: bool
         <input ref={fileRef} type="file" accept="application/json,.json" aria-label="Import project file" style={{ display: 'none' }} onChange={async e => {
           const file = e.target.files?.[0]; if (!file) return;
           e.target.value = '';
-          const token = ++importTask.current, origin = graphScope(), base = canonicalJson(peekRootProject());
+          const token = ++importTask.current, origin = graphScope(), base = projectContentScope();
           importScope.current = origin;
           try {
             const content = await file.text();
             if (token !== importTask.current || origin !== graphScope()) return;
-            if (base !== canonicalJson(peekRootProject())) { setFileError('The model changed while reading this file. Select the file again to import it.'); return; }
+            if (base !== projectContentScope()) { setFileError('The model changed while reading this file. Select the file again to import it.'); return; }
             switchProject(parseModelJson(content)); setFileError(null);
           } catch (err) { if (token === importTask.current && origin === graphScope()) setFileError(err instanceof Error ? err.message : 'Invalid project'); }
         }} />
@@ -94,7 +94,7 @@ export default function CanvasToolbar({ canConnect = true }: { canConnect?: bool
         <button onClick={loadCoinExample} aria-label="Load coin example" title="Load REF-A example">REF-A</button>
         <button onClick={() => fileRef.current?.click()} aria-label="Import project" title="Import project">Import</button>
         <button aria-label="Export project" title="Export project" onClick={() => {
-          try { const content = peekRootProject(); if (!content) return; const url = URL.createObjectURL(new Blob([JSON.stringify(content, null, 2)], { type: 'application/json' }));
+          try { const snapshot = inspectRootProject(); if (snapshot.error) throw new Error(snapshot.error); const content = snapshot.config; if (!content) return; const url = URL.createObjectURL(new Blob([JSON.stringify(content, null, 2)], { type: 'application/json' }));
             const link = document.createElement('a'); link.href = url; link.download = 'slotmath-project.json'; link.click(); URL.revokeObjectURL(url); }
           catch (err) { setFileError(err instanceof Error ? err.message : 'Invalid project'); }
         }}>Save</button>

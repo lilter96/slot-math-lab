@@ -95,8 +95,8 @@ export default function Export() {
   const saveConfig = useSaveConfig();
 
   const [exportHash, setExportHash] = useState('');
-  useEffect(() => { let active = true; void configHash(exportPayload).then(hash => { if (active) setExportHash(hash); }); return () => { active = false; }; }, [exportPayload]);
-  const exportJson = useMemo(() => JSON.stringify(exportPayload, null, 2), [exportPayload]);
+  useEffect(() => { if (!exportPayload) return; let active = true; void configHash(exportPayload).then(hash => { if (active) setExportHash(hash); }); return () => { active = false; }; }, [exportPayload]);
+  const exportJson = useMemo(() => exportPayload ? JSON.stringify(exportPayload, null, 2) : '', [exportPayload]);
 
   const handleDownload = useCallback(() => {
     const blob = new Blob([exportJson], { type: 'application/json' });
@@ -187,22 +187,22 @@ export default function Export() {
 
           </div>
           <div className="par-meta" style={{ overflowWrap: 'anywhere', fontSize: 12 }}>
-            Config hash: <span className="mono" style={{ color: 'var(--exact)' }}>{exportHash}</span>
+            Config hash: <span className="mono" style={{ color: 'var(--exact)' }}>{exportPayload ? exportHash : 'Unavailable'}</span>
             {' · '}{nodes.length} nodes · {edges.length} edges · {mechanics.length} mechanics
           </div>
 
           <div className="par-section">
             <h2>Export</h2>
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-              <button className="btn primary" onClick={handleDownload}>
+              <button className="btn primary" disabled={!exportPayload} onClick={handleDownload}>
                 <Ic.export style={{ width: 14, height: 14 }} /> Download JSON
               </button>
-              <button className="btn" onClick={handleCopy}>
+              <button className="btn" disabled={!exportPayload} onClick={handleCopy}>
                 <Ic.copy style={{ width: 14, height: 14 }} /> {copied ? 'Copied!' : 'Copy to clipboard'}
               </button>
               <button
                 className="btn"
-                disabled={saveConfig.isPending}
+                disabled={saveConfig.isPending || !exportPayload}
                 onClick={() =>
                   saveConfig.mutate(
                     { name: configName ?? 'Untitled', payload: exportPayload ?? undefined },

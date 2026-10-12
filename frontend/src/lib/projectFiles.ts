@@ -1,3 +1,4 @@
+import { canonicalJson } from './hash';
 import { assertModelNumbers } from './modelJson';
 import { useAppStore, type GraphNode, type GraphEdge, retainCurrentProject } from '../store';
 import { buildConfigPayload } from './configPayload';
@@ -106,4 +107,18 @@ export function peekRootProject(): Record<string, unknown> | null {
     current = { ...parent.graph, mechanics, initialState: current.initialState };
   }
   return current;
+}
+
+/** Rendering and request scopes must survive an incomplete authored expression. */
+export function inspectRootProject(): { config: Record<string, unknown> | null; error: string | null } {
+  try { return { config: peekRootProject(), error: null }; }
+  catch (error) { return { config: null, error: error instanceof Error ? error.message : 'Unable to serialize the current model.' }; }
+}
+
+export function projectContentScope(): string {
+  const state = useAppStore.getState(), snapshot = inspectRootProject();
+  return canonicalJson([state.projectId, state.graphTrail.map(entry => entry.mechanic), snapshot.error === null ? snapshot.config : {
+    invalidDraft: true, nodes: state.nodes.map(node => ({ id: node.id, data: node.data })), edges: state.edges,
+    tables: state.tables, parents: state.graphTrail.map(entry => entry.graph),
+  }]);
 }

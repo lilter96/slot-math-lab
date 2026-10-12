@@ -1,8 +1,8 @@
 import { useMemo } from 'react';
 import { useAppStore } from '../store';
-import { peekRootProject } from '../lib/projectFiles';
+import { inspectRootProject } from '../lib/projectFiles';
 import type { ModelGraph } from '../lib/modelProjection';
-export function useModelProjection() {
+export function useModelSnapshot() {
   const nodes = useAppStore(s => s.nodes);
   const edges = useAppStore(s => s.edges);
   const tables = useAppStore(s => s.tables);
@@ -10,6 +10,8 @@ export function useModelProjection() {
   const name = useAppStore(s => s.configName);
   return useMemo(() => {
     void nodes; void edges; void tables; void trail; void name;
-    return peekRootProject() as ModelGraph | null;
+    return inspectRootProject();
   }, [nodes, edges, tables, trail, name]);
 }
+
+export function useModelProjection() { return useModelSnapshot().config as ModelGraph | null; }
