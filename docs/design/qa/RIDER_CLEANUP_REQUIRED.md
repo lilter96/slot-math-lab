@@ -181,3 +181,10 @@ Numeric-table follow-up (65113ba/92af329): listed ModelData.tsx, WeightedDrawEdi
 - `frontend/e2e/table-contract.spec.ts`
 
 Actual table-contract-*-rider.log attempts exit 3; no Reformat/Full Cleanup success is claimed.
+
+Scored-view follow-up (6fa0468/cf40f6c/d96a4ae): existing Layout.tsx, index.css, Export.tsx, results.css and simulate.css entries plus new test files require both passes:
+
+- `frontend/e2e/project-header.spec.ts`
+- `frontend/e2e/evidence-legibility.spec.ts`
+
+Actual project-header-*, evidence-legibility-*, evidence-select-*, phone-graph-*, trace-index-*-rider.log attempts exit 3. No Full Cleanup success.
