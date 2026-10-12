@@ -30,6 +30,18 @@ export default function CanvasToolbar() {
     const focus = (event: Event) => { const id = (event as CustomEvent<string>).detail; requestAnimationFrame(() => requestAnimationFrame(() => { if (useAppStore.getState().nodes.some(node => node.id === id)) void fitView({ nodes: [{ id }], padding: 1, maxZoom: 1 }); })); };
     window.addEventListener('slotmath:focus-node', focus); return () => window.removeEventListener('slotmath:focus-node', focus);
   }, [fitView]);
+  useEffect(() => {
+    const focus = (event: Event) => {
+      const id = (event as CustomEvent<string>).detail;
+      requestAnimationFrame(() => requestAnimationFrame(() => {
+        const state = useAppStore.getState(), edge = state.edges.find(item => item.id === id);
+        const endpoints = edge ? state.nodes.filter(node => node.id === edge.source || node.id === edge.target) : [];
+        if (endpoints.length) void fitView({ nodes: endpoints, padding: 0.5, maxZoom: 1 });
+      }));
+    };
+    window.addEventListener('slotmath:focus-edge', focus);
+    return () => window.removeEventListener('slotmath:focus-edge', focus);
+  }, [fitView]);
 
   return (
     <>
