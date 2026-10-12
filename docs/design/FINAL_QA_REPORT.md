@@ -141,3 +141,7 @@ Remaining keyboard/async/table/rubric/human and Core/Rider gates are tracked in 
 ## Weighted and project import cancellation
 
 5913d07 guards delayed weighted CSV, validation and personal-project imports/server opens. Build/touched lint pass; initial Chromium 7/8 then only failed/new 2/2 after waiting for actual unmount; Firefox/WebKit 16/16. Real compiler response cancellation and affected independent expectation/Apply/Undo/export remain verified. See [async review](qa/WEIGHTED_ASYNC_REVIEW.md). No broad suites; required cleanup and whole-goal gates remain open.
+
+## Shared validation lifecycle
+
+482c548 aborts validation on source/project/path changes and cancels free-spin/payout work on unmount. Real held compiler responses prove change-and-restore and unchanged-model nested-path cancellation. Build/touched lint pass; Chromium initially 8/9 then only failed navigation case 1/1; Firefox/WebKit 15/16 then only failed WebKit transport-observation case 1/1. See [validation review](qa/VALIDATION_LIFECYCLE_REVIEW.md) for retained failures, independent expectation/Undo evidence and remaining gates. No full suites or release-readiness claim.
