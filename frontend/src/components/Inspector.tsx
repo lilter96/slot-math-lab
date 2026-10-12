@@ -3,6 +3,7 @@ import { useAppStore, type DrawWeightEntry } from '../store';
 import { Ic } from './Icons';
 import ExprEditor from './editor/ExprEditor';
 import NativeInspector from './editor/NativeInspector';
+import { confirmGraphDelete } from '../lib/confirmGraphDelete';
 
 export default function Inspector() {
   const selectedNodeId = useAppStore((s) => s.selectedNodeId);
@@ -13,7 +14,7 @@ export default function Inspector() {
   const node = nodes.find((n) => n.id === selectedNodeId) ?? null;
 
   const handleDelete = useCallback(() => {
-    if (node) {
+    if (node && confirmGraphDelete(1, 0)) {
       removeNode(node.id);
     }
   }, [node, removeNode]);
@@ -129,7 +130,7 @@ export default function Inspector() {
                               <button
                                 aria-label={`Remove outcome ${w.outcomeId || i + 1}`}
                                 style={{ background: 'none', border: 'none', color: 'var(--danger)', cursor: 'pointer', fontSize: 13, lineHeight: 1, minWidth: 36, minHeight: 36 }}
-                                onClick={() => updateWeights(weights.filter((_, j) => j !== i))}
+                                onClick={() => { if (window.confirm(`Remove outcome ${w.outcomeId || i + 1}? This changes the draw distribution.`)) updateWeights(weights.filter((_, j) => j !== i)); }}
                               >×</button>
                             </td>
                           </tr>

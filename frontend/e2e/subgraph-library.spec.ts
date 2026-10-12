@@ -62,6 +62,7 @@ test('Cascade starter exposes shared evaluation, refill and award subgraphs', as
 });
 
 test('An emptied subgraph remains editable and can return to its parent', async ({ page }) => {
+  page.on('dialog', dialog => dialog.accept());
   await page.goto('/build');
   const library = page.getByTestId('starter-library');
   await library.locator('summary').click();

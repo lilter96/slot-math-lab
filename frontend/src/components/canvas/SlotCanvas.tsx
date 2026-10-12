@@ -14,6 +14,7 @@ import { nodeTypes } from './nodes';
 import CanvasToolbar from './CanvasToolbar';
 import type { GraphNode } from '../../store';
 import { openMechanic } from '../../lib/projectFiles';
+import { confirmGraphDelete } from '../../lib/confirmGraphDelete';
 
 const cameras = new Map<string, Viewport>();
 function FitLoadedGraph() {
@@ -116,6 +117,7 @@ function CanvasSurface() {
         edges={edges}
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
+        onBeforeDelete={async ({ nodes: removedNodes, edges: removedEdges }) => confirmGraphDelete(removedNodes.length, removedEdges.length)}
         onConnect={(conn: Connection) => {
           setEdgeError(null);
           onConnect(conn);

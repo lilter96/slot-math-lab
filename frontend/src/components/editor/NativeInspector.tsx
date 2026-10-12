@@ -2,6 +2,7 @@ import { useAppStore, type GraphNode } from '../../store';
 import { openMechanic } from '../../lib/projectFiles';
 import type { ExpressionAst } from '../../lib/expressionParser';
 import ExpressionTreeEditor from './ExpressionTreeEditor';
+import { confirmGraphDelete } from '../../lib/confirmGraphDelete';
 export default function NativeInspector({ node }: { node: GraphNode }) {
   const tables = useAppStore(s => s.tables); const setNodeData = useAppStore(s => s.setNodeData);
   const native = node.data.backendNode as Record<string, unknown>;
@@ -26,7 +27,7 @@ export default function NativeInspector({ node }: { node: GraphNode }) {
       </tbody></table></>}
     {refKey && expressions[String(native[refKey])] && <><div className="section-label">Typed expression · editable AST</div>
       <ExpressionTreeEditor value={expressions[String(native[refKey])]} onChange={value => useAppStore.setState({ tables: { ...tables, expressions: { ...expressions, [String(native[refKey])]: value } } })} /></>}
-    <div className="divider" /><button className="btn" onClick={() => useAppStore.getState().removeNode(node.id)}>Delete node</button>
+    <div className="divider" /><button className="btn" onClick={() => { if (confirmGraphDelete(1, 0)) useAppStore.getState().removeNode(node.id); }}>Delete node</button>
   </div></>;
 }
 
