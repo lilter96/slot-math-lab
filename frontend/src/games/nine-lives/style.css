@@ -131,5 +131,29 @@
 
 @media (min-width:769px) and (max-width:1000px) {
   .app:has(.nl-play) .topbar {gap:8px;}
-  .app:has(.nl-play) .legend,.app:has(.nl-play) .project-pill {display:none;}
+  .app:has(.nl-play) .legend {display:none;}
 }
+
+/* Reference-demo controls retain the workbench's legibility and target floor. */
+.nl-play { --nl-readable-muted: #d7b9a5; }
+.nl-play .nl-graph-tools label { min-height: 44px; flex-wrap: wrap; font-size: 13px; }
+.nl-play .nl-graph-tools input:not([type=checkbox]) { min-height: 44px; font-size: 14px; }
+.nl-play .nl-graph-tools input[type=checkbox] { width: 20px; height: 20px; }
+.nl-play .nl-graph-tools .btn { min-height: 44px; }
+.nl-play .nl-game button:not(.nl-spin):not(.nl-buy), .nl-play .nl-game a { min-height: 44px; min-width: 44px; }
+.nl-play .nl-game a { display: inline-flex; align-items: center; }
+.nl-play .nl-bet button { height: 44px; }
+.nl-play .nl-top { gap: 10px; flex-wrap: wrap; }
+.nl-play .nl-top > span, .nl-play .nl-sound, .nl-play .nl-brand p,
+.nl-play .nl-brand > div, .nl-play .nl-marquee span, .nl-play .nl-feature span,
+.nl-play .nl-controls > div > span, .nl-play .nl-lives small,
+.nl-play .nl-multiplier small, .nl-play .nl-reaper small, .nl-play .nl-buy small,
+.nl-play .nl-bottom, .nl-play .nl-bottom button, .nl-play .nl-game .nl-buy {
+  font-size: 12px; line-height: 1.5;
+}
+.nl-play .nl-brand p, .nl-play .nl-brand > div, .nl-play .nl-marquee span,
+.nl-play .nl-feature span, .nl-play .nl-controls > div > span,
+.nl-play .nl-lives small, .nl-play .nl-multiplier small,
+.nl-play .nl-reaper small, .nl-play .nl-buy small { color: var(--nl-readable-muted); }
+.nl-play .nl-marquee { flex-wrap: wrap; }
+.nl-play .nl-bottom button { padding: 8px; }

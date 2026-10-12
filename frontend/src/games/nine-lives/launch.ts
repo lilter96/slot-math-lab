@@ -55,12 +55,12 @@ export async function launchNineLives(host: HTMLElement, signal?: AbortSignal): 
     own(() => root.remove())
     root.className = 'nl-game'
     root.dataset.phase = 'BASE'
-    root.innerHTML = `<header class="nl-top"><a href="/build">← MATH LAB</a><span>VIRTUAL CREDITS</span><button class="nl-sound" aria-pressed="false">SOUND OFF</button></header>
+    root.innerHTML = `<header class="nl-top"><a href="/build">← MATH LAB</a><span>VIRTUAL CREDITS</span><button class="nl-sound" disabled aria-pressed="false">SOUND OFF</button></header>
     <section class="nl-layout"><header class="nl-brand"><p>ONE MORE SPIN BEFORE THE AFTERLIFE.</p><h1><span>NINE</span> LIVES<i>✦</i></h1><div>DEATH HAS A SOFT SPOT FOR CATS.</div></header>
     <div class="nl-cabinet"><div class="nl-marquee"><strong>THE MIDNIGHT SHIFT</strong><span>6 × 5 · CLUSTER PAYS</span></div><div class="nl-stage" role="img" aria-label="Six columns and five rows"><div class="nl-loading"><strong>OPENING AT MIDNIGHT</strong><small>Gathering the souls…</small><div><i></i></div></div></div><div class="nl-message" role="status" aria-live="polite">The Reaper is waiting.</div></div>
     <aside class="nl-feature"><div class="nl-lives"><span>NINE LIVES</span><div>${Array.from({ length: 9 }, (_, i) => `<i data-life="${i}">♥</i>`).join('')}</div><small>4 hourglasses unlock the afterlife</small></div><div class="nl-multiplier"><span>CASCADE MULTIPLIER</span><strong>×1</strong><small>Every winning cascade turns it up</small></div><div class="nl-reaper"><img src="/assets/images/nine-lives/reaper-hero.webp" alt="The cat Reaper holding a paw chip"/><div><span>BONUS BANK</span><strong>0</strong><small>He takes the chips. You keep the credits.</small></div></div></aside>
-    <div class="nl-controls"><div><span>BALANCE</span><strong class="nl-balance">—</strong></div><div class="nl-bet"><span>BET</span><div><button class="nl-minus" aria-label="Decrease bet">−</button><strong>${config.baseCost}</strong><button class="nl-plus" aria-label="Increase bet">+</button></div></div><div><span>LAST WIN</span><strong class="nl-win">0</strong></div><button class="nl-spin" disabled>LOADING</button><button class="nl-buy" disabled>BUY NINE LIVES<small>${config.buyCost}× BET</small></button></div>
-    <footer class="nl-bottom"><button class="nl-rules">THE FINE PRINT ↗</button><span>SAME TOMORROW?</span><button class="nl-turbo" aria-pressed="false">TURBO OFF</button></footer><div class="nl-error" role="alert" hidden></div><button class="nl-refresh" hidden>REFRESH SESSION</button></section>`
+    <div class="nl-controls"><div><span>BALANCE</span><strong class="nl-balance">—</strong></div><div class="nl-bet"><span>BET</span><div><button class="nl-minus" disabled aria-label="Decrease bet">−</button><strong>${config.baseCost}</strong><button class="nl-plus" disabled aria-label="Increase bet">+</button></div></div><div><span>LAST WIN</span><strong class="nl-win">0</strong></div><button class="nl-spin" disabled>LOADING</button><button class="nl-buy" disabled>BUY NINE LIVES<small>${config.buyCost}× BET</small></button></div>
+    <footer class="nl-bottom"><button class="nl-rules" disabled>THE FINE PRINT ↗</button><span>SAME TOMORROW?</span><button class="nl-turbo" disabled aria-pressed="false">TURBO OFF</button></footer><div class="nl-error" role="alert" hidden></div><button class="nl-refresh" hidden>REFRESH SESSION</button></section>`
     host.append(root)
     const element = <T extends HTMLElement>(selector: string) => {
       const found = root.querySelector<T>(selector)
@@ -383,6 +383,11 @@ export async function launchNineLives(host: HTMLElement, signal?: AbortSignal): 
       const dialog = document.createElement('dialog')
       dialog.className = 'nl-dialog'
       dialog.innerHTML = html
+      const heading = dialog.querySelector('h2')
+      if (heading) {
+        heading.id = `demo-dialog-${crypto.randomUUID()}`
+        dialog.setAttribute('aria-labelledby', heading.id)
+      }
       root.append(dialog)
       dialog.showModal()
       dialog.addEventListener('close', () => {
@@ -466,6 +471,7 @@ export async function launchNineLives(host: HTMLElement, signal?: AbortSignal): 
     };
     document.addEventListener('keydown', keydown);
     own(() => document.removeEventListener('keydown', keydown));
+    for (const selector of ['.nl-sound', '.nl-minus', '.nl-plus', '.nl-rules', '.nl-turbo']) element<HTMLButtonElement>(selector).disabled = false;
     await restore();
     return { dispose, replay: async (hash, seed, index, purchase) => {
       if (busy) throw new Error('Finish the current presentation first.');
