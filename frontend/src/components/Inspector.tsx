@@ -1,4 +1,7 @@
-import { useCallback } from 'react';
+import ModelNumberInput from './editor/ModelNumberInput';
+import { LOOP } from '../constants';
+import { checkDrawRows, drawRowSummary } from '../lib/drawRows';
+import { useCallback, useState } from 'react';
 import { useAppStore, type DrawWeightEntry } from '../store';
 import { Ic } from './Icons';
 import ExprEditor from './editor/ExprEditor';
@@ -6,6 +9,8 @@ import NativeInspector from './editor/NativeInspector';
 import { confirmGraphDelete } from '../lib/confirmGraphDelete';
 
 export default function Inspector() {
+  const scope = useAppStore(s => JSON.stringify([s.projectId, s.graphTrail.map(entry => entry.mechanic), s.selectedNodeId]));
+  const [rowError, setRowError] = useState<{ scope: string; message: string } | null>(null);
   const selectedNodeId = useAppStore((s) => s.selectedNodeId);
   const nodes = useAppStore((s) => s.nodes);
   const removeNode = useAppStore((s) => s.removeNode);
@@ -32,7 +37,7 @@ export default function Inspector() {
   }
 
   const data = node.data;
-  if (data.backendNode) return <NativeInspector node={node} />;
+  if (data.backendNode) return <NativeInspector key={scope} node={node} />;
 
   return (
     <>
@@ -54,8 +59,8 @@ export default function Inspector() {
 
         {data.nodeType === 'sink' && <div className="field">
           <label htmlFor="win-cap">Round win cap</label>
-          <input id="win-cap" className="inp" type="number" min="1" step="1" value={Number(data.winCap ?? 10000)}
-            onChange={(e) => setNodeData(node.id, { winCap: Number(e.target.value) })} />
+          <ModelNumberInput key={`${scope}:cap`} id="win-cap" integer min={1} value={data.winCap as number ?? 10000}
+            onChange={value => setNodeData(node.id, { winCap: value })} />
         </div>}
         {/* ── Draw node config ── */}
         {data.nodeType === 'draw' && (
@@ -67,22 +72,24 @@ export default function Inspector() {
             </div>
             {(() => {
               const weights: DrawWeightEntry[] = Array.isArray(data.drawWeights) ? data.drawWeights as DrawWeightEntry[] : [];
-              const totalWeight = weights.reduce((s, w) => s + w.weight, 0);
-              const expectedValue = totalWeight > 0
-                ? weights.reduce((s, w) => s + w.value * w.weight, 0) / totalWeight
-                : 0;
-              const updateWeights = (next: DrawWeightEntry[]) =>
-                setNodeData(node.id, { drawWeights: next });
+              const summary = drawRowSummary(weights);
+              const updateWeights = (next: DrawWeightEntry[]) => {
+                checkDrawRows(next);
+                setNodeData(node.id, { drawWeights: next }); setRowError(null);
+              };
+              const rowOperation = (next: DrawWeightEntry[]) => {
+                try { updateWeights(next); } catch (error) { setRowError({ scope, message: error instanceof Error ? error.message : 'This table edit has not been applied.' }); }
+              };
               return (
                 <>
                   <div style={{ overflowX: 'auto' }}>
-                    <table style={{ width: '100%', fontSize: 12, borderCollapse: 'collapse' }}>
+                    <table style={{ width: '100%', minWidth: 448, tableLayout: 'fixed', fontSize: 12, borderCollapse: 'collapse' }}>
                       <thead>
                         <tr style={{ color: 'var(--faint)' }}>
                           <th style={{ textAlign: 'left', padding: '2px 4px', fontWeight: 400 }}>Outcome</th>
-                          <th style={{ textAlign: 'right', padding: '2px 4px', fontWeight: 400, width: 52 }}>Weight</th>
-                          <th style={{ textAlign: 'right', padding: '2px 4px', fontWeight: 400, width: 52 }}>Value</th>
-                          <th style={{ width: 20 }} />
+                          <th style={{ textAlign: 'right', padding: '2px 4px', fontWeight: 400, width: 160 }}>Weight</th>
+                          <th style={{ textAlign: 'right', padding: '2px 4px', fontWeight: 400, width: 160 }}>Value</th>
+                          <th style={{ width: 36 }} />
                         </tr>
                       </thead>
                       <tbody>
@@ -96,41 +103,25 @@ export default function Inspector() {
                                 value={w.outcomeId}
                                 onChange={(e) => {
                                   const next = weights.map((x, j) => j === i ? { ...x, outcomeId: e.target.value } : x);
-                                  updateWeights(next);
+                                  rowOperation(next);
                                 }}
                               />
                             </td>
                             <td style={{ padding: '2px 4px' }}>
-                              <input
-                                className="inp"
-                                aria-label={`Weight for ${w.outcomeId}`}
-                                style={{ fontSize: 12, padding: '2px 4px', width: '100%', textAlign: 'right' }}
-                                type="number" min={1}
-                                value={w.weight}
-                                onChange={(e) => {
-                                  const next = weights.map((x, j) => j === i ? { ...x, weight: parseInt(e.target.value) || 1 } : x);
-                                  updateWeights(next);
-                                }}
-                              />
+                              <ModelNumberInput key={`${scope}:weight:${i}`} label={`Weight for ${w.outcomeId}`} integer min={0}
+                                style={{ fontSize: 12, padding: '2px 4px', width: '100%', textAlign: 'right' }} value={w.weight}
+                                onChange={value => updateWeights(weights.map((x, j) => j === i ? { ...x, weight: value } : x))} />
                             </td>
                             <td style={{ padding: '2px 4px' }}>
-                              <input
-                                className="inp"
-                                aria-label={`Value for ${w.outcomeId}`}
-                                style={{ fontSize: 12, padding: '2px 4px', width: '100%', textAlign: 'right' }}
-                                type="number"
-                                value={w.value}
-                                onChange={(e) => {
-                                  const next = weights.map((x, j) => j === i ? { ...x, value: parseInt(e.target.value) || 0 } : x);
-                                  updateWeights(next);
-                                }}
-                              />
+                              <ModelNumberInput key={`${scope}:value:${i}`} label={`Value for ${w.outcomeId}`} integer
+                                style={{ fontSize: 12, padding: '2px 4px', width: '100%', textAlign: 'right' }} value={w.value}
+                                onChange={value => updateWeights(weights.map((x, j) => j === i ? { ...x, value } : x))} />
                             </td>
                             <td style={{ padding: '2px 2px', textAlign: 'center' }}>
                               <button
                                 aria-label={`Remove outcome ${w.outcomeId || i + 1}`}
                                 style={{ background: 'none', border: 'none', color: 'var(--danger)', cursor: 'pointer', fontSize: 13, lineHeight: 1, minWidth: 36, minHeight: 36 }}
-                                onClick={() => { if (window.confirm(`Remove outcome ${w.outcomeId || i + 1}? This changes the draw distribution.`)) updateWeights(weights.filter((_, j) => j !== i)); }}
+                                onClick={() => { if (window.confirm(`Remove outcome ${w.outcomeId || i + 1}? This changes the draw distribution.`)) rowOperation(weights.filter((_, j) => j !== i)); }}
                               >×</button>
                             </td>
                           </tr>
@@ -141,14 +132,15 @@ export default function Inspector() {
                   <button
                     className="btn sm"
                     style={{ marginTop: 6, width: '100%' }}
-                    onClick={() => updateWeights([...weights, { outcomeId: `outcome${weights.length + 1}`, weight: 1, value: 0 }])}
+                    onClick={() => rowOperation([...weights, { outcomeId: `outcome${weights.length + 1}`, weight: 1, value: 0 }])}
                   >
                     + Add outcome
                   </button>
-                  {weights.length > 0 && (
-                    <div style={{ display: 'flex', gap: 12, marginTop: 6, fontSize: 12, color: 'var(--faint)', fontFamily: 'var(--mono)' }}>
-                      <span>Total weight: {totalWeight}</span>
-                      <span>E[value]: {expectedValue.toFixed(4)}</span>
+                  {rowError?.scope === scope && <p role="alert">{rowError.message}</p>}
+                  {summary && (
+                    <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', overflowWrap: 'anywhere', marginTop: 6, fontSize: 12, color: 'var(--faint)', fontFamily: 'var(--mono)' }}>
+                      <span>Static total weight: {summary.total}</span>
+                      <span>Static table mean: {summary.mean}</span>
                     </div>
                   )}
                 </>
@@ -185,15 +177,10 @@ export default function Inspector() {
             <div className="field">
               <label>Iterations (max)</label>
               <div className="stepper">
-                <button onClick={() => setNodeData(node.id, { iterations: Math.max(1, (data.iterations as number ?? 5) - 1) })}>−</button>
-                <input
-                  className="inp"
-                  type="number"
-                  min={1}
-                  value={data.iterations as number ?? 5}
-                  onChange={(e) => setNodeData(node.id, { iterations: parseInt(e.target.value) || 1 })}
-                />
-                <button onClick={() => setNodeData(node.id, { iterations: (data.iterations as number ?? 5) + 1 })}>+</button>
+                <button aria-label="Decrease iteration cap" disabled={(data.iterations as number ?? 5) <= 1} onClick={() => setNodeData(node.id, { iterations: Math.max(1, (data.iterations as number ?? 5) - 1) })}>−</button>
+                <ModelNumberInput key={`${scope}:iterations`} label="Iteration cap" integer min={1} max={LOOP.capMax}
+                  value={data.iterations as number ?? 5} onChange={value => setNodeData(node.id, { iterations: value })} />
+                <button aria-label="Increase iteration cap" disabled={(data.iterations as number ?? 5) >= LOOP.capMax} onClick={() => setNodeData(node.id, { iterations: Math.min(LOOP.capMax, (data.iterations as number ?? 5) + 1) })}>+</button>
               </div>
               <div className="hint">Maximum number of loop iterations before forced exit.</div>
             </div>

@@ -1,3 +1,6 @@
+import ModelNumberInput from './ModelNumberInput';
+import { LOOP } from '../../constants';
+import { checkDrawRows, drawRowSummary } from '../../lib/drawRows';
 import { useAppStore, type GraphNode } from '../../store';
 import { openMechanic } from '../../lib/projectFiles';
 import type { ExpressionAst } from '../../lib/expressionParser';
@@ -8,8 +11,9 @@ export default function NativeInspector({ node }: { node: GraphNode }) {
   const native = node.data.backendNode as Record<string, unknown>;
   const update = (key: string, value: unknown) => setNodeData(node.id, { backendNode: { ...native, [key]: value },
     ...(key === 'label' ? { label: String(value) } : {}), ...(key === 'winCap' ? { winCap: Number(value) } : {}),
+    ...(key === 'maxIterations' ? { iterations: value as number } : {}),
     ...(key === 'drawWeights' ? { drawWeights: value as GraphNode['data']['drawWeights'] } : {}) });
-  const field = (key: string, label: string, numeric = false) => <div className="field" key={key}><label htmlFor={`native-${key}`}>{label}</label><input id={`native-${key}`} className="inp" type={numeric ? 'number' : 'text'} value={String(native[key] ?? '')} onChange={e => update(key, numeric ? Number(e.target.value) : e.target.value)} /></div>;
+  const field = (key: string, label: string, numeric = false) => <div className="field" key={key}><label htmlFor={`native-${key}`}>{label}</label>{numeric ? <ModelNumberInput key={key} id={`native-${key}`} value={typeof native[key] === 'number' ? native[key] : undefined} integer min={1} max={key === 'maxIterations' ? LOOP.capMax : undefined} onChange={value => update(key, value)} /> : <input id={`native-${key}`} className="inp" value={String(native[key] ?? '')} onChange={e => update(key, e.target.value)} />}</div>;
   const refKey = ['expressionId', 'conditionId', 'stopConditionId', 'weightExpressionId'].find(key => native[key]);
   const expressions = tables.expressions as Record<string, ExpressionAst> ?? {};
   return <><div className="panel-h"><b>{node.data.label}</b><span>{String(native.nodeType)}</span></div><div className="panel-body">
@@ -22,9 +26,9 @@ export default function NativeInspector({ node }: { node: GraphNode }) {
       {Object.entries(native.parameters as Record<string, string> ?? {}).map(([key, value]) => <div className="field" key={key}><label htmlFor={`param-${key}`}>Parameter {key}</label><input id={`param-${key}`} className="inp" value={value} onChange={e => update('parameters', { ...native.parameters as object, [key]: e.target.value })} /></div>)}
       <button className="btn primary" onClick={() => openMechanic(String(native.mechanicName))}>Open subgraph</button></>}
     {native.nodeType === 'draw' && <>{field('stateWriteKey', 'Outcome state key')}
-      <table className="native-weights"><thead><tr><th>Outcome</th><th>Weight</th></tr></thead><tbody>
-        {(node.data.drawWeights ?? []).map((weight, i, weights) => <tr key={i}><td>{weight.outcomeId}</td><td><input className="inp" aria-label={`Outcome ${weight.outcomeId} weight`} type="number" min="0" value={weight.weight} onChange={e => update('drawWeights', weights.map((w, j) => j === i ? { ...w, weight: Number(e.target.value) } : w))} /></td></tr>)}
-      </tbody></table></>}
+      <div style={{ overflowX: 'auto' }}><table className="native-weights" style={{ minWidth: 384, tableLayout: 'fixed' }}><thead><tr><th style={{ width: 64 }}>Outcome</th><th>Weight</th><th>Value</th></tr></thead><tbody>
+        {(node.data.drawWeights ?? []).map((weight, i, weights) => <tr key={i}><td>{weight.outcomeId}</td><td><ModelNumberInput key={`weight:${i}`} label={`Outcome ${weight.outcomeId} weight`} integer min={0} value={weight.weight} onChange={value => { const next = weights.map((w, j) => j === i ? { ...w, weight: value } : w); checkDrawRows(next); update('drawWeights', next); }} /></td><td><ModelNumberInput key={`value:${i}`} label={`Outcome ${weight.outcomeId} value`} integer value={weight.value ?? 0} onChange={value => update('drawWeights', weights.map((w, j) => j === i ? { ...w, value } : w))} /></td></tr>)}
+      </tbody></table></div>{(() => { const summary = drawRowSummary(node.data.drawWeights ?? []); return summary && <p className="hint" style={{ overflowWrap: 'anywhere' }}>Static total weight: {summary.total} · Static table mean: {summary.mean}{native.weightExpressionId ? ' · Weight expression overrides static rows.' : ''}</p>; })()}</>}
     {refKey && expressions[String(native[refKey])] && <><div className="section-label">Typed expression · editable AST</div>
       <ExpressionTreeEditor value={expressions[String(native[refKey])]} onChange={value => useAppStore.setState({ tables: { ...tables, expressions: { ...expressions, [String(native[refKey])]: value } } })} /></>}
     <div className="divider" /><button className="btn" onClick={() => { if (confirmGraphDelete(1, 0)) useAppStore.getState().removeNode(node.id); }}>Delete node</button>
