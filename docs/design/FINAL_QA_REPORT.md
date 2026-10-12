@@ -137,3 +137,7 @@ Remaining keyboard/async/table/rubric/human and Core/Rider gates are tracked in 
 ## Generic data execution isolation
 
 7191f0c aborts obsolete calculations and clears results on project/path/source changes or editor close. Build/touched lint, Chromium 4/4 and Firefox 4/4 pass; initial WebKit 2/4 followed by only failed cases 2/2 after switching the test observation to the actual fetch AbortSignal. Real held server responses never populate the changed workspace. See [execution review and remaining scope](qa/DATA_EXECUTION_REVIEW.md). Required cleanup and whole-goal gates remain open.
+
+## Weighted and project import cancellation
+
+5913d07 guards delayed weighted CSV, validation and personal-project imports/server opens. Build/touched lint pass; initial Chromium 7/8 then only failed/new 2/2 after waiting for actual unmount; Firefox/WebKit 16/16. Real compiler response cancellation and affected independent expectation/Apply/Undo/export remain verified. See [async review](qa/WEIGHTED_ASYNC_REVIEW.md). No broad suites; required cleanup and whole-goal gates remain open.

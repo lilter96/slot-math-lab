@@ -167,3 +167,5 @@ Keyboard connection follow-up (026e7e0): required Reformat/Full Cleanup remain u
 - `frontend/e2e/keyboard-connections.spec.ts`
 
 Data execution follow-up (7191f0c): ProjectDataEditor.tsx above and new `frontend/e2e/data-execution-scope.spec.ts` require both passes. Actual Reformat attempts exit 3; Full Cleanup unavailable. Logs data-execution-rider.log and data-execution-test-recheck-rider.log.
+
+Weighted/project async follow-up (5913d07): WeightedDrawEditor.tsx and Projects.tsx listed above plus new `frontend/e2e/weighted-async.spec.ts` still require Reformat and Full Cleanup. Actual standalone attempts exit 3; Full Cleanup unavailable. Logs weighted-async-*-rider.log and project-import-async-rider.log.
