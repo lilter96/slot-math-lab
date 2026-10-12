@@ -1,3 +1,5 @@
+import { reelSources } from './reelCommands';
+
 export interface ModelNode { id: string; nodeType: string; mechanicName?: string; label?: string; [key: string]: unknown }
 export interface ModelDefinition { nodes: ModelNode[]; description?: string; [key: string]: unknown }
 export interface ModelGraph { nodes?: ModelNode[]; mechanics?: Record<string, ModelDefinition>; [key: string]: unknown }
@@ -13,6 +15,7 @@ export function modelCapabilities(graph: ModelGraph) {
   return {
     weightedDraws: scopes.reduce((count, nodes) => count + nodes.filter(node => node.nodeType === 'draw' && Array.isArray(node.drawWeights) && !node.weightExpressionId).length, 0),
     reelStrips: Array.isArray(graph.reelStrips) && graph.reelStrips.length > 0,
+    reelSets: reelSources(graph).length,
     paytables: Array.isArray(graph.paytables) && graph.paytables.length > 0,
   };
 }

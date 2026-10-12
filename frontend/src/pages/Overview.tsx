@@ -32,9 +32,10 @@ export default function Overview() {
         <p className="hint">{geometry ? 'Configured geometry. No spin has been generated in this view.' : 'This model has no board geometry. Work with its data and logic directly.'}</p>
         {symbols?.length ? <div className="symbol-reference" aria-label="Model symbols">{symbols.map(symbol => <div key={symbol.id}>{nineLives && assets.images?.[symbol.name] && <img src={assets.images?.[symbol.name]} alt="" width="44" height="44" />}<span>{symbol.name}</span><small>ID {symbol.id}</small></div>)}</div> : <p className="hint">This model does not define symbol metadata.</p>}
       </div>
-      <div className="model-summary"><h2>Model inputs</h2><dl><div><dt>Logic definitions</dt><dd>{Object.keys(mechanics).length}</dd></div><div><dt>Weighted draws</dt><dd>{capabilities.weightedDraws}</dd></div><div><dt>Reel-strip metadata</dt><dd>{capabilities.reelStrips ? 'Defined in model' : 'No dedicated metadata'}</dd></div><div><dt>Paytable metadata</dt><dd>{capabilities.paytables ? 'Available; see source mapping' : 'Not exposed by this model'}</dd></div></dl>
+      <div className="model-summary"><h2>Model inputs</h2><dl><div><dt>Logic definitions</dt><dd>{Object.keys(mechanics).length}</dd></div><div><dt>Weighted draws</dt><dd>{capabilities.weightedDraws}</dd></div><div><dt>Editable reel sets</dt><dd>{capabilities.reelSets || (capabilities.reelStrips ? 'Metadata requires source mapping' : 'No proven source mapping')}</dd></div><div><dt>Paytable metadata</dt><dd>{capabilities.paytables ? 'Available; see source mapping' : 'Not exposed by this model'}</dd></div></dl>
         {nineLives && <p className="model-notice">Uncalibrated research model. Configured targets are not measured RTP.</p>}
         <Link className="btn" to="/model/data">Edit model inputs</Link>
+        {capabilities.reelSets > 0 && <Link className="btn" to="/model/data?view=reels">Edit reel strips</Link>}
         {features.play && graph && <Link className="btn" to="/debug">Test spin</Link>}
       </div>
     </div>

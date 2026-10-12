@@ -3,7 +3,7 @@ export function weightsCsv(rows: DrawRow[], weights = rows.map(row => String(row
   const quote = (value: string) => `"${value.replaceAll('"', '""')}"`;
   return ['outcomeId,weight', ...rows.map((row, index) => `${quote(row.outcomeId)},${weights[index]}`)].join('\r\n');
 }
-function parseCsv(text: string): string[][] {
+export function parseCsv(text: string): string[][] {
   const result: string[][] = []; let row: string[] = [], field = '', quoted = false, closed = false;
   const finishField = () => { row.push(field); field = ''; closed = false; };
   const finishRow = () => { finishField(); result.push(row); row = []; };
