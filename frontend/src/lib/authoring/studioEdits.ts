@@ -10,7 +10,7 @@ import { computedLineBound } from './payoutBounds';
 
 export type StudioPatch = { kind: 'reels'; key: string; stops: PhysicalStop[][]; addedWeight?: string; removedStops?: 'discard' }
   | { kind: 'weights'; key: string; values: [string, string][] }
-  | { kind: 'payout'; key: string; symbolId: string; count: number; value: string; capPolicy?: 'keep' | 'recompute' }
+  | { kind: 'payout'; key: string; symbolId: string; count: number; value: string; remove?: boolean; capPolicy?: 'keep' | 'recompute' }
   | { kind: 'lines'; key: string; paths: number[][] }
   | { kind: 'symbol'; key: string; name: string };
 export interface StudioDraft { version: 1; projectId: string; baseHash: string; patches: StudioPatch[] }
@@ -23,8 +23,11 @@ export function applyStudioPatches(graph: ModelGraph, patches: StudioPatch[]): M
   let candidate = structuredClone(graph);
   const payoutTables = new Set<string>();
   const payoutEdits = patches.filter((patch): patch is Extract<StudioPatch, { kind: 'payout' }> => patch.kind === 'payout');
-  if (payoutEdits.length && new Set(payoutEdits.map(patch => patch.capPolicy ?? (computedLineBound(graph) ? 'recompute' : 'keep'))).size > 1) throw new Error('Choose the same payout-cap policy for all tables sharing this result cap.');
-  for (const patch of patches) {
+  const cappedTables = new Set(payBindings(graph).filter(binding => binding.kind === 'line' || binding.kind === 'scatter').map(binding => binding.key));
+  const effectivePolicy = (patch: Extract<StudioPatch, { kind: 'payout' }>) => patch.capPolicy ?? (computedLineBound(graph) ? 'recompute' : 'keep');
+  if (new Set(payoutEdits.filter(patch => cappedTables.has(patch.key)).map(effectivePolicy)).size > 1) throw new Error('Choose the same payout-cap policy for all tables sharing this result cap.');
+  // Prize values are numeric Draw identities. Apply weight drafts against their original identities first.
+  for (const patch of [...patches.filter(patch => patch.kind !== 'payout'), ...payoutEdits]) {
     if (patch.kind === 'weights') {
       const source = weightBindings(candidate).find(source => source.key === patch.key); if (!source) throw new Error('The weighted source is unavailable.');
       candidate = changeBoundWeights(candidate, source, new Map(patch.values));
@@ -36,7 +39,7 @@ export function applyStudioPatches(graph: ModelGraph, patches: StudioPatch[]): M
       payoutTables.add(patch.key);
       const source = payBindings(candidate).find(source => source.key === patch.key); if (!source) throw new Error('The payout source is unavailable.');
       const edits = patches.filter((item): item is Extract<StudioPatch, { kind: 'payout' }> => item.kind === 'payout' && item.key === patch.key);
-      if (edits.some(edit => edit.capPolicy !== edits[0].capPolicy)) throw new Error('Choose one payout-cap policy for this table batch.');
+      if (cappedTables.has(patch.key) && edits.some(edit => effectivePolicy(edit) !== effectivePolicy(edits[0]))) throw new Error('Choose one payout-cap policy for this table batch.');
       candidate = changeBoundPayouts(candidate, source, edits, edits[0].capPolicy);
     } else if (patch.kind === 'lines') {
       const source = lineBindings(candidate).find(source => source.key === patch.key); if (!source) throw new Error('The payline source is unavailable.');
@@ -65,7 +68,7 @@ function validPatch(value: unknown): value is StudioPatch {
   if (!value || typeof value !== 'object') return false;
   const patch = value as Record<string, unknown>; if (typeof patch.key !== 'string') return false;
   if (patch.kind === 'weights') return Array.isArray(patch.values) && patch.values.every(row => Array.isArray(row) && row.length === 2 && row.every(value => typeof value === 'string')) && new Set(patch.values.map(row => row[0])).size === patch.values.length;
-  if (patch.kind === 'payout') return typeof patch.symbolId === 'string' && typeof patch.count === 'number' && Number.isSafeInteger(patch.count) && typeof patch.value === 'string' && (patch.capPolicy === undefined || ['keep', 'recompute'].includes(String(patch.capPolicy)));
+  if (patch.kind === 'payout') return typeof patch.symbolId === 'string' && typeof patch.count === 'number' && Number.isSafeInteger(patch.count) && typeof patch.value === 'string' && (patch.remove === undefined || typeof patch.remove === 'boolean') && (patch.capPolicy === undefined || ['keep', 'recompute'].includes(String(patch.capPolicy)));
   if (patch.kind === 'symbol') return typeof patch.name === 'string';
   if (patch.kind === 'lines') return Array.isArray(patch.paths) && patch.paths.every(path => Array.isArray(path) && path.every(row => typeof row === 'number' && Number.isSafeInteger(row)));
   if (patch.kind === 'reels') return Array.isArray(patch.stops) && patch.stops.every(strip => Array.isArray(strip) && strip.every(stop => stop && typeof stop === 'object' && (stop.identity === null || typeof stop.identity === 'string') && typeof stop.symbol === 'string'))

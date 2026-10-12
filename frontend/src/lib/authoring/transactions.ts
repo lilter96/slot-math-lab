@@ -1,4 +1,4 @@
-import { useAppStore, type AppState } from '../../store';
+import { flushProjectDraftSave, useAppStore, type AppState } from '../../store';
 import { canonicalJson } from '../hash';
 import { assertModelNumbers } from '../modelJson';
 import { graphRequest } from '../graphApi';
@@ -67,6 +67,7 @@ export async function commitGraphEdit(edit: GraphEdit, signal?: AbortSignal, val
     const next = rebasedEditor(candidate, useAppStore.getState());
     unsubscribe();
     useAppStore.setState({ ...next, verificationSource: null, liveRtp: null, liveProvenance: null });
+    flushProjectDraftSave();
     const after = peekRootProject() as ModelGraph;
     return { edit, before, after, committedSource: canonicalJson(after) };
   } finally { unsubscribe(); }
@@ -76,5 +77,5 @@ export async function commitGraphEdit(edit: GraphEdit, signal?: AbortSignal, val
 export function undoGraphEdit(applied: AppliedGraphEdit): void {
   const state = useAppStore.getState();
   if (state.projectId !== applied.edit.projectId || canonicalJson(peekRootProject()) !== applied.committedSource) throw conflict();
-  if (applied.edit.changed) useAppStore.setState(applied.before);
+  if (applied.edit.changed) { useAppStore.setState(applied.before); flushProjectDraftSave(); }
 }

@@ -1,0 +1,19 @@
+
+Running 6 tests using 2 workers
+
+(node:227747) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:227748) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:227748) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:227747) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  1 unit/authoring-cluster-pay-bindings.spec.ts:19:3 › TGSlots: exact payout edits synchronize the real lookup and precision while preserving unrelated control, rule caps and input (137ms)
+  ✓  3 unit/authoring-cluster-pay-bindings.spec.ts:19:3 › weighted Le Militare: exact payout edits synchronize the real lookup and precision while preserving unrelated control, rule caps and input (268ms)
+  ✓  4 unit/authoring-cluster-pay-bindings.spec.ts:19:3 › reference: exact payout edits synchronize the real lookup and precision while preserving unrelated control, rule caps and input (72ms)
+  ✓  5 unit/authoring-cluster-pay-bindings.spec.ts:31:1 › Minimum crosses five and one in both directions: pruning, isolated-cell handling and shared callers reconcile without replacing the game (167ms)
+  ✓  6 unit/authoring-cluster-pay-bindings.spec.ts:44:1 › Runtime overrides, extra lookup consumers, mismatched metadata and stale revisions reject before mutation (79ms)
+  ✓  2 unit/authoring-cluster-pay-bindings.spec.ts:10:1 › Every TGSlots entry, all eighteen Le Militare variants and the separate reference expose executable cluster bindings without no-op rewriting (1.9s)
+
+  6 passed (2.5s)

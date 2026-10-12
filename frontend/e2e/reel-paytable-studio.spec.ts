@@ -7,6 +7,10 @@ import { cellState, spinCells } from '../src/games/shared/graph/mechanics/cells'
 import { linePayTable, paylines, paylineState } from '../src/games/shared/graph/mechanics/paylines';
 import { computedLineBoundProof } from '../unit/fixtures/computedLineBoundProof';
 import { graphStudiosCorpus } from '../unit/fixtures/graphStudiosCorpus';
+import { clusterStudioProof } from '../unit/fixtures/clusterStudioProof';
+import { prizeStudioProof } from '../unit/fixtures/prizeStudioProof';
+import { createX7ClubGraph } from '../src/games/x7-club/graph';
+import { createNineLivesGraph as createTgslotsGraph } from '../src/games/nine-lives-tgslots/graph';
 function reels() {
   const spec = { name: 'private-reels', stripKey: 'privateStrip', rows: 2, strips: [['A', 'B', 'C']] }, mechanics = new Mechanics();
   const root = new Flow().use('spin', 'Spin the private reel', mechanics.add(spinReels(spec))).write('pay', 'AB pays one', 'coins', when(and(eq(at('board', num(0)), str('A')), eq(at('board', num(1)), str('B'))), num(1), num(0))).sink('sink', 'Payout', 'coins', 1);
@@ -80,4 +84,38 @@ test('Studio: all 65 game/variant/reference/custom corpus graphs open and export
   for (const { caseId, graph } of graphs) {
     await open(page, graph as Record<string, unknown>); expect((await backup(page)).graph, caseId).toEqual(graph);
   }
+});
+for (const weighted of [false, true]) test(`Studio: ${weighted ? 'weighted' : 'ordinary'} cluster size edits change executed payouts across minimum-five and isolated-cell boundaries`, async ({ page, request }) => {
+  const graph = clusterStudioProof(weighted); await open(page, graph); await page.getByRole('tab', { name: 'Paytables', exact: true }).click();
+  const size = weighted ? 3 : 4; await expect(page.getByLabel('New group size')).toBeEnabled(); await page.getByLabel('New group size').fill(String(size)); await page.getByRole('button', { name: 'Add size', exact: true }).click();
+  await page.getByLabel(`cluster payout 1 count ${size}`, { exact: true }).fill('6'); await apply(page); const grouped = (await backup(page)).graph;
+  await exact(request, graph, 0); await exact(request, grouped, 6); expect((grouped.initialState as Record<string, unknown>).clusterMinSize).toBe(size); expect(grouped.nodes).toEqual(graph.nodes); expect(grouped.opaque).toEqual(graph.opaque);
+  await page.getByLabel('New group size').fill('1'); await page.getByRole('button', { name: 'Add size', exact: true }).click(); await page.getByLabel('cluster payout 1 count 1', { exact: true }).fill('3'); await apply(page);
+  const singles = (await backup(page)).graph; await exact(request, singles, 9); expect((singles.initialState as Record<string, unknown>).clusterMinSize).toBe(1);
+  await page.getByLabel('Remove paying size').selectOption('1'); await page.getByRole('button', { name: 'Remove size', exact: true }).click(); await apply(page); await exact(request, (await backup(page)).graph, 6);
+  await page.getByLabel('Remove paying size').selectOption(String(size)); await page.getByRole('button', { name: 'Remove size', exact: true }).click(); await apply(page); const restored = (await backup(page)).graph; await exact(request, restored, 0); expect((restored.initialState as Record<string, unknown>).clusterMinSize).toBe(5);
+  await page.getByRole('button', { name: 'Undo', exact: true }).click(); expect((await backup(page)).graph).toEqual(grouped);
+});
+test('Studio: prize values and independent weights survive immediate reload and change the real expected payout', async ({ page, request }) => {
+  const graph = prizeStudioProof(); await open(page, graph); await page.getByRole('tab', { name: 'Paytables', exact: true }).click();
+  await expect(page.getByLabel('Prize 1 value')).toBeEnabled(); await page.getByLabel('Prize 1 value').fill('3'); await page.reload(); await expect(page.getByLabel('Prize 1 value')).toHaveValue('3');
+  await apply(page); const values = (await backup(page)).graph; await exact(request, graph, 4); await exact(request, values, 7);
+  await page.getByLabel('Prize 1 weight').fill('1'); await apply(page); const weighted = (await backup(page)).graph; await exact(request, weighted, 8);
+  await page.getByLabel('Prize 1 value').fill('5'); await expect(page.getByRole('button', { name: 'Validate & apply', exact: true })).toBeDisabled(); await expect(page.getByRole('alert')).toContainText('same identity'); expect((await backup(page)).graph).toEqual(weighted);
+});
+test('Studio: the selected X7 prize table and its pending values recover immediately instead of returning to line payouts', async ({ page }) => {
+  const graph = createX7ClubGraph(); await open(page, graph); await page.getByRole('tab', { name: 'Paytables', exact: true }).click(); await page.locator('.studio-source-explorer').getByRole('button', { name: /Coin prizes/ }).click();
+  await expect(page.getByLabel('Prize 1 value')).toBeEnabled(); await page.getByLabel('Prize weight distribution').selectOption({ index: 1 }); const selectedDraw = await page.getByLabel('Prize weight distribution').inputValue(); await page.getByLabel('Prize 1 weight').fill('1111'); await page.getByLabel('Prize 1 value').fill('10001'); await page.reload(); await expect(page.getByRole('heading', { name: 'Coin prizes', exact: true })).toBeVisible(); await expect(page.getByLabel('Prize 1 value')).toHaveValue('10001'); await expect(page.getByLabel('Prize weight distribution')).toHaveValue(selectedDraw); await expect(page.getByLabel('Prize 1 weight')).toHaveValue('1111');
+  await apply(page); const changed = (await backup(page)).graph; expect(changed.initialState).toEqual(graph.initialState); expect(changed.nodes).toEqual(graph.nodes);
+  const old = graph.mechanics as Record<string, { nodes: Record<string, unknown>[] }>, current = changed.mechanics as typeof old;
+  for (const [scope, definition] of Object.entries(old)) for (const node of definition.nodes.filter(node => node.nodeType === 'draw' && /^prize\d+$/.test(String(node.stateWriteKey)))) {
+    const edited = current[scope].nodes.find(value => value.id === node.id)!; expect((edited.drawWeights as Record<string, unknown>[])[0]).toEqual({ ...(node.drawWeights as Record<string, unknown>[])[0], outcomeId: '10001', ...(JSON.stringify([scope, node.id]) === selectedDraw ? { weight: 1111 } : {}) });
+  }
+});
+test('Studio: adding a TGSlots size across all symbol rows and editing one cell commits the whole cluster dependency closure', async ({ page, request }) => {
+  const graph = createTgslotsGraph(); await open(page, graph); await page.getByRole('tab', { name: 'Paytables', exact: true }).click();
+  await expect(page.getByLabel('New group size')).toBeEnabled(); await page.getByLabel('New group size').fill('4'); await page.getByRole('button', { name: 'Add size', exact: true }).click(); await page.getByLabel('cluster payout 1 count 4', { exact: true }).fill('1');
+  await apply(page); const changed = (await backup(page)).graph; expect((changed.initialState as Record<string, unknown>).clusterMinSize).toBe(4); expect(changed.nodes).toEqual(graph.nodes);
+  const response = await request.post('/api/play/round', { data: { config: changed, seed: 42, roundIndex: 0 } }); expect(response.ok()).toBe(true); expect((await response.json()).seed).toBe(42);
+  await page.getByRole('button', { name: 'Undo', exact: true }).click(); expect((await backup(page)).graph).toEqual(graph);
 });

@@ -7,6 +7,8 @@ import { exactInteger, normalizedCredits } from './exactAmounts';
 import { matchReelShape } from './reelShape';
 import { indexGraphSources, type NodeSource, type SourcePath } from './sourceIndex';
 import { activePayoutCap, computedLineBound, type ActivePayoutCap, type ComputedLineBound } from './payoutBounds';
+import { clusterPayBindings, changeBoundClusterPayouts, type ClusterContract } from './clusterPayBindings';
+import { prizeBindings, changeBoundPrizes, type PrizeContract } from './prizeBindings';
 
 interface PayEntry { symbolId: string; counts: number[]; payouts: string[]; [key: string]: unknown }
 interface Paytable { id: string; entries: PayEntry[]; [key: string]: unknown }
@@ -14,9 +16,9 @@ export interface PayBinding {
   version: 1;
   key: string;
   revision: string;
-  kind: 'line' | 'scatter';
+  kind: 'line' | 'scatter' | 'cluster' | 'prize';
   tableId: string;
-  unit: 'line credits' | 'total-bet multiples';
+  unit: 'line credits' | 'total-bet multiples' | 'cluster credits';
   roundCost: number;
   scale: number;
   columns: number;
@@ -30,6 +32,8 @@ export interface PayBinding {
   maximum: number;
   bound: ComputedLineBound | null;
   cap: ActivePayoutCap | null;
+  cluster?: ClusterContract;
+  prize?: PrizeContract;
 }
 function tables(graph: ModelGraph): Paytable[] {
   return Array.isArray(graph.paytables) ? (graph.paytables as Paytable[]).filter(table => typeof table.id === 'string' && Array.isArray(table.entries)
@@ -39,12 +43,13 @@ function tables(graph: ModelGraph): Paytable[] {
 }
 /** Payout metadata is admitted only when the runtime helper and every exact lookup value agree. */
 export function payBindings(graph: ModelGraph): PayBinding[] {
+  const clusters = [...clusterPayBindings(graph), ...prizeBindings(graph)];
   const state = reelObject(graph.initialState), board = reelObject(graph.boardConfig), cost = Number(state?.roundCost), bet = Number(state?.totalBet);
   const symbols = Array.isArray(graph.symbols) ? graph.symbols as { id: string; kind: string }[] : [];
   const columns = Number(board?.columns), rows = Number(board?.rows), cells = columns * rows;
-  if (!state || !Number.isSafeInteger(cost) || cost <= 0 || !Number.isSafeInteger(columns) || columns < 1 || !Number.isSafeInteger(rows) || rows < 1 || cells > 64) return [];
+  if (!state || !Number.isSafeInteger(cost) || cost <= 0 || !Number.isSafeInteger(columns) || columns < 1 || !Number.isSafeInteger(rows) || rows < 1 || cells > 64) return clusters;
   const index = indexGraphSources(graph), definitions = graph.mechanics ?? {}, bindings: PayBinding[] = [], bound = computedLineBound(graph), cap = activePayoutCap(graph);
-  if (index.stateWrites.some(write => ['linePays', 'scatterPays', 'wildSymbol', 'roundCost', 'totalBet'].includes(write.key))) return [];
+  if (index.stateWrites.some(write => ['linePays', 'scatterPays', 'wildSymbol', 'roundCost', 'totalBet'].includes(write.key))) return clusters;
   const candidates = tables(graph);
   for (const kind of ['line', 'scatter'] as const) {
     const lookup = kind === 'line' ? state.linePays : state.scatterPays;
@@ -83,20 +88,23 @@ export function payBindings(graph: ModelGraph): PayBinding[] {
       } catch { /* Non-integral/unsupported exact units stay outside this proven lookup adapter. */ }
     }
   }
-  return bindings;
+  return [...bindings, ...clusters];
 }
 
 export function changeBoundPayout(graph: ModelGraph, binding: PayBinding, symbolId: string, count: number, value: string, capPolicy?: 'keep' | 'recompute'): ModelGraph {
   return changeBoundPayouts(graph, binding, [{ symbolId, count, value }], capPolicy);
 }
-export interface PayoutCellEdit { symbolId: string; count: number; value: string }
+export interface PayoutCellEdit { symbolId: string; count: number; value: string; remove?: boolean }
 export function changeBoundPayouts(graph: ModelGraph, binding: PayBinding, edits: PayoutCellEdit[], capPolicy?: 'keep' | 'recompute'): ModelGraph {
+  if (binding.kind === 'cluster') return changeBoundClusterPayouts(graph, binding, edits);
+  if (binding.kind === 'prize') return changeBoundPrizes(graph, binding, edits);
   const current = payBindings(graph).find(item => item.key === binding.key);
   if (!current || current.revision !== binding.revision) throw new Error('The payout source, precision table or execution consumer changed. Reconcile this draft.');
   const identities = new Set<string>();
   const bound = computedLineBound(graph);
   if (capPolicy === 'recompute' && !bound) throw new Error('No proven computed upper-bound contract is available. Preserve the active cap or inspect its source.');
   const values = edits.map(edit => {
+    if (edit.remove) throw new Error('Removing paying sizes requires a supported dependency transformation.');
     const row = current.rows.find(row => row.symbolId === edit.symbolId), position = row?.counts.indexOf(edit.count) ?? -1;
     if (!row || position < 0) throw new Error('This cell is not an authored paying size. A size/eligibility edit needs the dependency transformation.');
     const key = JSON.stringify([edit.symbolId, edit.count]); if (identities.has(key)) throw new Error('A payout cell occurs twice in this batch.'); identities.add(key);

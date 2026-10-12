@@ -1,0 +1,62 @@
+
+Running 6 tests using 1 worker
+
+(node:256485) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:256485) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  1 [firefox] › e2e/graph-studios-storage.spec.ts:7:1 › Graph studios storage: immediate reload flushes pending metadata/source without waiting for the save debounce (1.7s)
+(node:256785) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:256785) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  2 [firefox] › e2e/graph-studios-storage.spec.ts:35:1 › Graph studios storage: confirmed autosave retains envelope views and unnamed raw imports remain unnamed after reload (1.9s)
+  ✓  3 [firefox] › e2e/reel-paytable-studio.spec.ts:106:1 › Studio: the selected X7 prize table and its pending values recover immediately instead of returning to line payouts (2.1s)
+(node:257309) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:257309) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  4 [webkit] › e2e/graph-studios-storage.spec.ts:7:1 › Graph studios storage: immediate reload flushes pending metadata/source without waiting for the save debounce (2.2s)
+  ✓  5 [webkit] › e2e/graph-studios-storage.spec.ts:35:1 › Graph studios storage: confirmed autosave retains envelope views and unnamed raw imports remain unnamed after reload (1.2s)
+  ✓  6 [webkit] › e2e/reel-paytable-studio.spec.ts:106:1 › Studio: the selected X7 prize table and its pending values recover immediately instead of returning to line payouts (2.3s)
+
+
+  1) [firefox] › e2e/graph-studios-storage.spec.ts:7:1 › Graph studios storage: immediate reload flushes pending metadata/source without waiting for the save debounce 
+
+    Error: [2mexpect([22m[31mreceived[39m[2m).[22mtoEqual[2m([22m[32mexpected[39m[2m) // deep equality[22m
+
+    [32m- Expected  - 2[39m
+    [31m+ Received  + 2[39m
+
+    [33m@@ -15,10 +15,10 @@[39m
+    [2m    },[22m
+    [2m    "studio": Object {[22m
+    [2m      "pinnedSources": Array [[22m
+    [2m        "[null,\"draw\"]",[22m
+    [2m      ],[22m
+    [32m-     "selectedSource": null,[39m
+    [32m-     "tab": "symbols",[39m
+    [31m+     "selectedSource": "[null,\"draw\"]",[39m
+    [31m+     "tab": "sources",[39m
+    [2m    },[22m
+    [2m    "version": 1,[22m
+    [2m  }[22m
+
+      25 |   const saved = await page.evaluate(() => JSON.parse(localStorage.getItem('slotmath-draft-v1') ?? 'null'));
+      26 |   const changedViews = { ...views, studio: { ...views.studio, tab: 'symbols', selectedSource: null } };
+    > 27 |   expect(saved.authoringViews).toEqual(changedViews); expect(saved.projects[saved.projectId].authoringViews).toEqual(changedViews); expect(saved.tables.authoringViews).toBeUndefined();
+         |                                ^
+      28 |   await page.getByRole('tab', { name: 'Build', exact: true }).click();
+      29 |   const pending = page.waitForEvent('download'); await page.getByRole('button', { name: 'Export project', exact: true }).click();
+      30 |   const download = await pending, path = await download.path(); expect(path).not.toBeNull();
+        at /home/terentiy/work/github-profile-audit/slot-math-lab-worktrees/precision-workbench-redesign/frontend/e2e/graph-studios-storage.spec.ts:27:32
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/graph-studios-storage-Grap-02cee-iting-for-the-save-debounce-firefox/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/graph-studios-storage-Grap-02cee-iting-for-the-save-debounce-firefox/error-context.md
+
+  1 failed
+    [firefox] › e2e/graph-studios-storage.spec.ts:7:1 › Graph studios storage: immediate reload flushes pending metadata/source without waiting for the save debounce 
+  5 passed (13.5s)

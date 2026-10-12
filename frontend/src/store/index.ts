@@ -445,6 +445,9 @@ let draftStorageError: string | null = null;
 let draftRecovery: string | null = null;
 export interface DraftSaveState { status: 'idle' | 'pending' | 'saved' | 'error'; projectId: string | null; error: string | null }
 let draftSaveState: DraftSaveState = { status: 'idle', projectId: null, error: null };
+let flushPendingProjectSave = () => {};
+/** Explicit semantic commits must persist before returning; canvas motion remains debounced. */
+export function flushProjectDraftSave() { flushPendingProjectSave(); }
 export function getDraftSaveState() { return draftSaveState; }
 function reportDraftSave(status: DraftSaveState['status'], error: string | null = null) {
   const projectId = useAppStore.getState().projectId;
@@ -508,6 +511,14 @@ if (typeof window !== 'undefined') {
     const s = useAppStore.getState();
     if (!s.projectId && s.nodes.length) { useAppStore.setState({ projectId: crypto.randomUUID() }); return; }
     if (writesBlocked) { reportDraftSave('error', draftStorageError); return; }
+    // A newly opened/imported project needs a durable recovery base before any unload event.
+    // Later edits keep the debounce, including canvas dragging.
+    if (draftSaveState.projectId !== s.projectId || draftSaveState.status === 'idle') {
+      if (saveTimer !== undefined) clearTimeout(saveTimer);
+      saveTimer = undefined;
+      persistNow();
+      return;
+    }
     reportDraftSave('pending');
     if (saveTimer !== undefined) clearTimeout(saveTimer);
     saveTimer = window.setTimeout(() => {
@@ -551,7 +562,7 @@ if (typeof window !== 'undefined') {
 
   if (writesBlocked) reportDraftSave('error', draftStorageError);
   useAppStore.subscribe(schedulePersist);
-  window.addEventListener('beforeunload', () => {
+  const flushPendingDraft = () => {
     // Only flush when this tab actually has a pending write. Unconditionally
     // flushing on unload would let an untouched tab overwrite a newer draft
     // persisted by another tab with its stale in-memory state.
@@ -559,5 +570,9 @@ if (typeof window !== 'undefined') {
     clearTimeout(saveTimer);
     saveTimer = undefined;
     persistNow();
-  });
+  };
+  flushPendingProjectSave = flushPendingDraft;
+  window.addEventListener('beforeunload', flushPendingDraft);
+  window.addEventListener('pagehide', flushPendingDraft);
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') flushPendingDraft(); });
 }
