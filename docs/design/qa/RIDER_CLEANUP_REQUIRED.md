@@ -196,3 +196,5 @@ Reference/wide weights (ac65826/43f32ce/626ad84): existing NineLives.tsx, launch
 - `frontend/e2e/wide-weights.spec.ts`
 
 Scoped reference-*-rider.log and wide-weights-*-rider.log attempts exit 3; Full Cleanup remains unavailable.
+
+Reference rendering follow-up: `frontend/src/games/nine-lives/presentation/asset-registry.ts` and `frontend/e2e/reference-rendering.spec.ts` require Reformat Code followed by Built-in Full Cleanup. Actual scoped attempts in reference-rendering-source-rider.log and reference-rendering-test-rider.log exit 3 (`solution can't be null`). Neither pass is claimed complete; scoped ESLint is separate validation.
