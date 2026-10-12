@@ -16,7 +16,14 @@ export default function Projects() {
   const [error, setError] = useState('');
   const [loadingId, setLoadingId] = useState<string | null>(null);
   const pending = useRef<AbortController | null>(null);
-  useEffect(() => () => pending.current?.abort(), []);
+  const task = useRef(0), mounted = useRef(false);
+  useEffect(() => {
+    mounted.current = true;
+    const unsubscribe = useAppStore.subscribe((current, previous) => {
+      if (current.projectId !== previous.projectId) { task.current++; pending.current?.abort(); pending.current = null; setLoadingId(null); }
+    });
+    return () => { mounted.current = false; task.current++; pending.current?.abort(); unsubscribe(); };
+  }, []);
   const server = useQuery({ queryKey: ['configs'], queryFn: async ({ signal }) => {
     const response = await fetch(`${BASE_URL}/api/configs`, { signal });
     if (!response.ok) throw new Error(`Saved projects unavailable (HTTP ${response.status}).`);
@@ -27,7 +34,7 @@ export default function Projects() {
     if (state.projectId) entries[state.projectId] = captureProjectDraft(state);
     return Object.entries(entries).filter(([, p]) => `${p.configName} ${p.tables.id ?? ''}`.toLowerCase().includes(search.toLowerCase()));
   }, [state, search]);
-  const create = (config: Record<string, unknown>) => { switchProject(config); navigate('/overview'); };
+  const create = (config: Record<string, unknown>) => { task.current++; pending.current?.abort(); pending.current = null; switchProject(config); navigate('/overview'); };
   const identity = getBrowserIdentity();
   return <section className="projects-page" aria-labelledby="projects-heading">
     <header className="page-heading"><div><h1 id="projects-heading">My projects</h1><p>{identity.authenticated ? `Personal workspace · ${identity.userId}` : 'Local workspace · saved in this browser'}</p></div><button className="btn primary" onClick={() => create({ schemaVersion: '1.0.0', id: 'custom-model', name: 'Untitled model', nodes: [{ nodeType: 'metricsSink', id: 'metrics', label: 'Round payout', winCap: 10000, inputs: { in: { name: 'in', type: 'Wins' } } }], edges: [] })}>New blank project</button></header>
@@ -47,13 +54,13 @@ export default function Projects() {
       {server.isPending && <p role="status">Loading saved projects…</p>}
       {server.isError && <p role="alert">{server.error.message} <button className="btn" onClick={() => void server.refetch()}>Retry saved projects</button></p>}
       <div className="project-list">{server.data?.filter(p => `${p.name} ${p.id}`.toLowerCase().includes(search.toLowerCase())).map(p => <div className="project-row" key={p.id}><div><h2>{p.name}</h2><p>Version {p.latestVersion} · {p.id}</p></div><button className="btn" disabled={!!loadingId} onClick={async () => {
-        const controller = new AbortController(); pending.current = controller; setLoadingId(p.id); setError('');
-        try { const response = await fetch(`${BASE_URL}/api/configs/${encodeURIComponent(p.id)}`, { signal: controller.signal }); if (!response.ok) throw new Error(`Unable to open saved project (HTTP ${response.status}).`); const detail = await response.json(); if (!controller.signal.aborted) create(detail.config); }
-        catch (reason) { if (!controller.signal.aborted) setError(reason instanceof Error ? reason.message : 'Unable to open saved project'); }
-        finally { if (!controller.signal.aborted) setLoadingId(null); }
+        const token = ++task.current; pending.current?.abort(); const controller = new AbortController(); pending.current = controller; const current = () => mounted.current && token === task.current && !controller.signal.aborted; setLoadingId(p.id); setError('');
+        try { const response = await fetch(`${BASE_URL}/api/configs/${encodeURIComponent(p.id)}`, { signal: controller.signal }); if (!response.ok) throw new Error(`Unable to open saved project (HTTP ${response.status}).`); const detail = await response.json(); if (current()) create(detail.config); }
+        catch (reason) { if (current()) setError(reason instanceof Error ? reason.message : 'Unable to open saved project'); }
+        finally { if (current()) setLoadingId(null); }
       }}>{loadingId === p.id ? 'Opening…' : 'Open saved version'}</button></div>)}</div>
       {server.data?.length === 0 && <p className="hint">No server versions saved yet. Save a project from Export.</p>}
     </section>
-    <section className="project-import"><h2>Import a personal model</h2><label className="btn">Choose JSON file<input type="file" accept=".json,application/json" onChange={async e => { const file = e.target.files?.[0]; if (!file) return; try { const config = JSON.parse(await file.text()); if (!config.schemaVersion || !Array.isArray(config.nodes) || !Array.isArray(config.edges)) throw new Error('Choose an executable graph JSON with schemaVersion, nodes and edges.'); create(config); } catch (err) { setError(err instanceof Error ? err.message : 'Unable to import this file'); } e.target.value = ''; }} /></label>{error && <p role="alert">{error}</p>}</section>
+    <section className="project-import"><h2>Import a personal model</h2><label className="btn">Choose JSON file<input type="file" accept=".json,application/json" onChange={async e => { const file = e.target.files?.[0]; if (!file) return; e.target.value = ''; const token = ++task.current; pending.current?.abort(); pending.current = null; setLoadingId(null); const current = () => mounted.current && token === task.current; try { const text = await file.text(); if (!current()) return; const config = JSON.parse(text); if (!config.schemaVersion || !Array.isArray(config.nodes) || !Array.isArray(config.edges)) throw new Error('Choose an executable graph JSON with schemaVersion, nodes and edges.'); create(config); } catch (err) { if (current()) setError(err instanceof Error ? err.message : 'Unable to import this file'); } }} /></label>{error && <p role="alert">{error}</p>}</section>
   </section>;
 }
