@@ -1,0 +1,10 @@
+
+Running 1 test using 1 worker
+
+(node:409112) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:409112) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  1 [chromium] › e2e/studio-integration.spec.ts:28:71 › Studio integrated x7-club/bought: one board/landing distribution and its payout/prize edit preserve independent stages, payloads and bought price (2.7s)
+
+  1 passed (3.4s)

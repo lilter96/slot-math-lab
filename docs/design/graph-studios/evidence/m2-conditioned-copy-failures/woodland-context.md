@@ -1,0 +1,1407 @@
+# Instructions
+
+- Following Playwright test failed.
+- Explain why, be concise, respect Playwright best practices.
+- Provide a snippet of code with the fix, if possible.
+
+# Test info
+
+- Name: studio-conditioned-copy.spec.ts >> Studio Woodland bought: private conditional copy keeps seeded payouts/board and can reorder its own strip through the real compiler
+- Location: e2e/studio-conditioned-copy.spec.ts:20:1
+
+# Error details
+
+```
+Error: locator.click: Error: strict mode violation: locator('.studio-source-explorer button').filter({ hasText: 'Private source' }) resolved to 2 elements:
+    1) <button aria-pressed="true">…</button> aka getByRole('button', { name: 'Private source_reel 5 reels' })
+    2) <button aria-pressed="false">…</button> aka getByRole('button', { name: 'How many COINs each reel shows Private source' })
+
+Call log:
+  - waiting for locator('.studio-source-explorer button').filter({ hasText: 'Private source' })
+
+```
+
+# Page snapshot
+
+```yaml
+- generic [ref=e3]:
+  - link "Skip to main content" [ref=e4] [cursor=pointer]:
+    - /url: "#main-content"
+  - generic [ref=e5]:
+    - generic [ref=e8]: Slot Math Lab
+    - link "Choose project" [ref=e9] [cursor=pointer]:
+      - /url: /projects
+      - generic [ref=e11]: Woodland Whisper · bought feature
+    - generic [ref=e12]:
+      - button "AI assist" [ref=e13] [cursor=pointer]
+      - link "Games" [ref=e14] [cursor=pointer]:
+        - /url: /games.html
+        - img [ref=e15]
+        - text: Games
+      - button "Appearance settings" [ref=e18] [cursor=pointer]: ⚙
+  - generic [ref=e19]:
+    - complementary "Workspace" [ref=e20]:
+      - button "Collapse navigation" [expanded] [ref=e21] [cursor=pointer]
+      - generic [ref=e22]: Woodland Whisper · bought feature
+      - tablist "Main navigation" [ref=e23]:
+        - tab "My projects" [ref=e24] [cursor=pointer]:
+          - img [ref=e25]
+          - text: My projects
+        - tab "Overview" [ref=e30] [cursor=pointer]:
+          - img [ref=e31]
+          - text: Overview
+        - tab "Model data" [ref=e36] [cursor=pointer]:
+          - img [ref=e37]
+          - text: Model data
+        - tab "Studio" [selected] [ref=e42] [cursor=pointer]:
+          - img [ref=e43]
+          - text: Studio
+        - tab "Features" [ref=e46] [cursor=pointer]:
+          - img [ref=e47]
+          - text: Features
+        - tab "Build" [ref=e50] [cursor=pointer]:
+          - img [ref=e51]
+          - text: Build
+        - tab "Simulate" [ref=e56] [cursor=pointer]:
+          - img [ref=e57]
+          - text: Simulate
+        - tab "Results" [ref=e59] [cursor=pointer]:
+          - img [ref=e60]
+          - text: Results
+        - tab "Export" [ref=e63] [cursor=pointer]:
+          - img [ref=e64]
+          - text: Export
+        - tab "Debug" [ref=e67] [cursor=pointer]:
+          - img [ref=e68]
+          - text: Debug
+        - tab "Reference demo" [ref=e70] [cursor=pointer]:
+          - img [ref=e71]
+          - text: Reference demo
+    - main [ref=e73]:
+      - region "Reel & Paytable Studio" [ref=e74]:
+        - generic [ref=e75]:
+          - generic [ref=e76]:
+            - paragraph [ref=e77]:
+              - text: Woodland Whisper · bought feature
+              - generic [ref=e78]: Private project
+            - heading "Reel & Paytable Studio" [level=1] [ref=e79]
+          - generic [ref=e80]:
+            - button "Create source" [ref=e81] [cursor=pointer]
+            - button "Undo" [ref=e82] [cursor=pointer]
+            - button "Validate & apply" [disabled] [ref=e83]
+            - link "Run analysis ↗" [ref=e84] [cursor=pointer]:
+              - /url: /simulate
+              - text: Run analysis
+              - generic [ref=e85]: ↗
+        - generic [ref=e86]:
+          - tablist "Studio views" [ref=e87]:
+            - tab "Sources" [selected] [ref=e88] [cursor=pointer]
+            - tab "Paytables" [ref=e89] [cursor=pointer]
+            - tab "Paylines" [ref=e90] [cursor=pointer]
+            - tab "Symbols" [ref=e91] [cursor=pointer]
+          - generic [ref=e92]: Applied to graph
+        - generic [ref=e93]:
+          - complementary [ref=e94]:
+            - generic [ref=e95]:
+              - heading "Drawing sources" [level=2] [ref=e96]
+              - searchbox "Search Studio sources" [ref=e97]
+            - generic [ref=e98]:
+              - heading "Physical reels 2" [level=3] [ref=e99]:
+                - text: Physical reels
+                - generic [ref=e100]: "2"
+              - generic [ref=e101]:
+                - button "Private source_reel 5 reels · 3 rows" [pressed] [ref=e102] [cursor=pointer]:
+                  - img [ref=e104]
+                  - generic [ref=e109]:
+                    - generic [ref=e110]: Private source_reel
+                    - generic [ref=e111]: 5 reels · 3 rows
+                - button "Pin Private source_reel" [ref=e112] [cursor=pointer]: ◇
+              - generic [ref=e113]:
+                - button "Reel 5 reels · 3 rows" [ref=e114] [cursor=pointer]:
+                  - img [ref=e116]
+                  - generic [ref=e121]:
+                    - generic [ref=e122]: Reel
+                    - generic [ref=e123]: 5 reels · 3 rows
+                - button "Pin Reel" [ref=e124] [cursor=pointer]: ◇
+            - generic [ref=e125]:
+              - heading "Outcomes & prizes 5" [level=3] [ref=e126]:
+                - text: Outcomes & prizes
+                - generic [ref=e127]: "5"
+              - generic [ref=e128]:
+                - button "Draw this spin's mystery symbol Bought spin" [ref=e129] [cursor=pointer]:
+                  - img [ref=e131]
+                  - generic [ref=e134]:
+                    - generic [ref=e135]: Draw this spin's mystery symbol
+                    - generic [ref=e136]: Bought spin
+                - button "Pin Draw this spin's mystery symbol" [ref=e137] [cursor=pointer]: ◇
+              - generic [ref=e138]:
+                - button "How many COINs each reel shows Private source" [ref=e139] [cursor=pointer]:
+                  - img [ref=e141]
+                  - generic [ref=e144]:
+                    - generic [ref=e145]: How many COINs each reel shows
+                    - generic [ref=e146]: Private source
+                - button "Pin How many COINs each reel shows" [ref=e147] [cursor=pointer]: ◇
+              - generic [ref=e148]:
+                - button "Draw this spin's mystery symbol Spin" [ref=e149] [cursor=pointer]:
+                  - img [ref=e151]
+                  - generic [ref=e154]:
+                    - generic [ref=e155]: Draw this spin's mystery symbol
+                    - generic [ref=e156]: Spin
+                - button "Pin Draw this spin's mystery symbol" [ref=e157] [cursor=pointer]: ◇
+              - generic [ref=e158]:
+                - button "Turn a card Turn card" [ref=e159] [cursor=pointer]:
+                  - img [ref=e161]
+                  - generic [ref=e164]:
+                    - generic [ref=e165]: Turn a card
+                    - generic [ref=e166]: Turn card
+                - button "Pin Turn a card" [ref=e167] [cursor=pointer]: ◇
+              - generic [ref=e168]:
+                - button "How many COINs each reel shows Spin reels triggering" [ref=e169] [cursor=pointer]:
+                  - img [ref=e171]
+                  - generic [ref=e174]:
+                    - generic [ref=e175]: How many COINs each reel shows
+                    - generic [ref=e176]: Spin reels triggering
+                - button "Pin How many COINs each reel shows" [ref=e177] [cursor=pointer]: ◇
+            - generic [ref=e178]:
+              - button "Back up project" [active] [ref=e179] [cursor=pointer]:
+                - img [ref=e180]
+                - text: Back up project
+              - link "Switch private project" [ref=e183] [cursor=pointer]:
+                - /url: /projects
+          - main [ref=e184]:
+            - generic [ref=e185]:
+              - generic [ref=e186]:
+                - text: Private source_reel
+                - generic [ref=e187]: 5 reels · 3 rows
+              - button "Source details" [ref=e188] [cursor=pointer]:
+                - text: Source details
+                - img [ref=e189]
+            - generic [ref=e191]:
+              - generic [ref=e192]: 2 known uses · definition edits affect every caller
+              - button "Make one use independent" [ref=e193] [cursor=pointer]
+            - generic [ref=e194]:
+              - generic [ref=e195]:
+                - button "Import table" [ref=e196] [cursor=pointer]
+                - button "Copy TSV" [ref=e197] [cursor=pointer]
+              - generic [ref=e198]:
+                - generic [ref=e199]:
+                  - text: Export format
+                  - combobox "Table export format" [ref=e200]:
+                    - option "Excel · XLSX" [selected]
+                    - option "CSV"
+                    - option "TSV"
+                - button "Export applied table" [ref=e201] [cursor=pointer]
+            - generic [ref=e202]:
+              - generic [ref=e203]:
+                - generic [ref=e204]:
+                  - heading "Ordered reel strips" [level=2] [ref=e205]
+                  - paragraph [ref=e206]: 5 reels · 3 visible rows · wrap padding is managed automatically
+                - button "Paste / import" [ref=e208] [cursor=pointer]
+              - generic [ref=e209]:
+                - generic [ref=e210]:
+                  - text: Inspect a window
+                  - generic [ref=e211]: Configuration preview · select a stop to see its following symbols
+                - generic [ref=e212]: Conditioned entry included
+              - generic [ref=e214]:
+                - region "Reel 1" [ref=e215]:
+                  - generic [ref=e216]:
+                    - generic [ref=e217]: Reel 1
+                    - generic [ref=e218]: 43 physical stops
+                  - list [ref=e219]:
+                    - listitem [ref=e220]:
+                      - 'button "Select reel 1 stop 1: J" [pressed] [ref=e221]':
+                        - generic [ref=e222]: "1"
+                        - generic [ref=e225]: J
+                        - generic [ref=e226]: J
+                    - listitem [ref=e227]:
+                      - 'button "Select reel 1 stop 2: TIARA" [ref=e228]':
+                        - generic [ref=e229]: "2"
+                        - generic [ref=e232]: TI
+                        - generic [ref=e233]: TIARA
+                    - listitem [ref=e234]:
+                      - 'button "Select reel 1 stop 3: Q" [ref=e235]':
+                        - generic [ref=e236]: "3"
+                        - generic [ref=e239]: Q
+                        - generic [ref=e240]: Q
+                    - listitem [ref=e241]:
+                      - 'button "Select reel 1 stop 4: K" [ref=e242]':
+                        - generic [ref=e243]: "4"
+                        - generic [ref=e246]: K
+                        - generic [ref=e247]: K
+                    - listitem [ref=e248]:
+                      - 'button "Select reel 1 stop 5: REPLACEMENT" [ref=e249]':
+                        - generic [ref=e250]: "5"
+                        - generic [ref=e253]: RE
+                        - generic [ref=e254]: REPLACEMENT
+                    - listitem [ref=e255]:
+                      - 'button "Select reel 1 stop 6: REPLACEMENT" [ref=e256]':
+                        - generic [ref=e257]: "6"
+                        - generic [ref=e260]: RE
+                        - generic [ref=e261]: REPLACEMENT
+                    - listitem [ref=e262]:
+                      - 'button "Select reel 1 stop 7: REPLACEMENT" [ref=e263]':
+                        - generic [ref=e264]: "7"
+                        - generic [ref=e267]: RE
+                        - generic [ref=e268]: REPLACEMENT
+                    - listitem [ref=e269]:
+                      - 'button "Select reel 1 stop 8: REPLACEMENT" [ref=e270]':
+                        - generic [ref=e271]: "8"
+                        - generic [ref=e274]: RE
+                        - generic [ref=e275]: REPLACEMENT
+                    - listitem [ref=e276]:
+                      - 'button "Select reel 1 stop 9: REPLACEMENT" [ref=e277]':
+                        - generic [ref=e278]: "9"
+                        - generic [ref=e281]: RE
+                        - generic [ref=e282]: REPLACEMENT
+                    - listitem [ref=e283]:
+                      - 'button "Select reel 1 stop 10: REPLACEMENT" [ref=e284]':
+                        - generic [ref=e285]: "10"
+                        - generic [ref=e288]: RE
+                        - generic [ref=e289]: REPLACEMENT
+                    - listitem [ref=e290]:
+                      - 'button "Select reel 1 stop 11: TIARA" [ref=e291]':
+                        - generic [ref=e292]: "11"
+                        - generic [ref=e295]: TI
+                        - generic [ref=e296]: TIARA
+                    - listitem [ref=e297]:
+                      - 'button "Select reel 1 stop 12: Q" [ref=e298]':
+                        - generic [ref=e299]: "12"
+                        - generic [ref=e302]: Q
+                        - generic [ref=e303]: Q
+                    - listitem [ref=e304]:
+                      - 'button "Select reel 1 stop 13: A" [ref=e305]':
+                        - generic [ref=e306]: "13"
+                        - generic [ref=e309]: A
+                        - generic [ref=e310]: A
+                    - listitem [ref=e311]:
+                      - 'button "Select reel 1 stop 14: COIN" [ref=e312]':
+                        - generic [ref=e313]: "14"
+                        - generic [ref=e316]: CO
+                        - generic [ref=e317]: COIN
+                    - listitem [ref=e318]:
+                      - 'button "Select reel 1 stop 15: K" [ref=e319]':
+                        - generic [ref=e320]: "15"
+                        - generic [ref=e323]: K
+                        - generic [ref=e324]: K
+                    - listitem [ref=e325]:
+                      - 'button "Select reel 1 stop 16: Q" [ref=e326]':
+                        - generic [ref=e327]: "16"
+                        - generic [ref=e330]: Q
+                        - generic [ref=e331]: Q
+                    - listitem [ref=e332]:
+                      - 'button "Select reel 1 stop 17: J" [ref=e333]':
+                        - generic [ref=e334]: "17"
+                        - generic [ref=e337]: J
+                        - generic [ref=e338]: J
+                    - listitem [ref=e339]:
+                      - 'button "Select reel 1 stop 18: CHEST" [ref=e340]':
+                        - generic [ref=e341]: "18"
+                        - generic [ref=e344]: CH
+                        - generic [ref=e345]: CHEST
+                    - listitem [ref=e346]:
+                      - 'button "Select reel 1 stop 19: Q" [ref=e347]':
+                        - generic [ref=e348]: "19"
+                        - generic [ref=e351]: Q
+                        - generic [ref=e352]: Q
+                    - listitem [ref=e353]:
+                      - 'button "Select reel 1 stop 20: A" [ref=e354]':
+                        - generic [ref=e355]: "20"
+                        - generic [ref=e358]: A
+                        - generic [ref=e359]: A
+                    - listitem [ref=e360]:
+                      - 'button "Select reel 1 stop 21: PINECONE" [ref=e361]':
+                        - generic [ref=e362]: "21"
+                        - generic [ref=e365]: PI
+                        - generic [ref=e366]: PINECONE
+                    - listitem [ref=e367]:
+                      - 'button "Select reel 1 stop 22: J" [ref=e368]':
+                        - generic [ref=e369]: "22"
+                        - generic [ref=e372]: J
+                        - generic [ref=e373]: J
+                    - listitem [ref=e374]:
+                      - 'button "Select reel 1 stop 23: Q" [ref=e375]':
+                        - generic [ref=e376]: "23"
+                        - generic [ref=e379]: Q
+                        - generic [ref=e380]: Q
+                    - listitem [ref=e381]:
+                      - 'button "Select reel 1 stop 24: MUSHROOMS" [ref=e382]':
+                        - generic [ref=e383]: "24"
+                        - generic [ref=e386]: MU
+                        - generic [ref=e387]: MUSHROOMS
+                    - listitem [ref=e388]:
+                      - 'button "Select reel 1 stop 25: J" [ref=e389]':
+                        - generic [ref=e390]: "25"
+                        - generic [ref=e393]: J
+                        - generic [ref=e394]: J
+                    - listitem [ref=e395]:
+                      - 'button "Select reel 1 stop 26: Q" [ref=e396]':
+                        - generic [ref=e397]: "26"
+                        - generic [ref=e400]: Q
+                        - generic [ref=e401]: Q
+                    - listitem [ref=e402]:
+                      - 'button "Select reel 1 stop 27: MUSHROOMS" [ref=e403]':
+                        - generic [ref=e404]: "27"
+                        - generic [ref=e407]: MU
+                        - generic [ref=e408]: MUSHROOMS
+                    - listitem [ref=e409]:
+                      - 'button "Select reel 1 stop 28: 10" [ref=e410]':
+                        - generic [ref=e411]: "28"
+                        - generic [ref=e414]: "10"
+                        - generic [ref=e415]: "10"
+                    - listitem [ref=e416]:
+                      - 'button "Select reel 1 stop 29: K" [ref=e417]':
+                        - generic [ref=e418]: "29"
+                        - generic [ref=e421]: K
+                        - generic [ref=e422]: K
+                    - listitem [ref=e423]:
+                      - 'button "Select reel 1 stop 30: 9" [ref=e424]':
+                        - generic [ref=e425]: "30"
+                        - generic [ref=e428]: "9"
+                        - generic [ref=e429]: "9"
+                    - listitem [ref=e430]:
+                      - 'button "Select reel 1 stop 31: TIARA" [ref=e431]':
+                        - generic [ref=e432]: "31"
+                        - generic [ref=e435]: TI
+                        - generic [ref=e436]: TIARA
+                    - listitem [ref=e437]:
+                      - 'button "Select reel 1 stop 32: K" [ref=e438]':
+                        - generic [ref=e439]: "32"
+                        - generic [ref=e442]: K
+                        - generic [ref=e443]: K
+                    - listitem [ref=e444]:
+                      - 'button "Select reel 1 stop 33: PINECONE" [ref=e445]':
+                        - generic [ref=e446]: "33"
+                        - generic [ref=e449]: PI
+                        - generic [ref=e450]: PINECONE
+                    - listitem [ref=e451]:
+                      - 'button "Select reel 1 stop 34: 10" [ref=e452]':
+                        - generic [ref=e453]: "34"
+                        - generic [ref=e456]: "10"
+                        - generic [ref=e457]: "10"
+                    - listitem [ref=e458]:
+                      - 'button "Select reel 1 stop 35: J" [ref=e459]':
+                        - generic [ref=e460]: "35"
+                        - generic [ref=e463]: J
+                        - generic [ref=e464]: J
+                    - listitem [ref=e465]:
+                      - 'button "Select reel 1 stop 36: CHEST" [ref=e466]':
+                        - generic [ref=e467]: "36"
+                        - generic [ref=e470]: CH
+                        - generic [ref=e471]: CHEST
+                    - listitem [ref=e472]:
+                      - 'button "Select reel 1 stop 37: K" [ref=e473]':
+                        - generic [ref=e474]: "37"
+                        - generic [ref=e477]: K
+                        - generic [ref=e478]: K
+                    - listitem [ref=e479]:
+                      - 'button "Select reel 1 stop 38: 10" [ref=e480]':
+                        - generic [ref=e481]: "38"
+                        - generic [ref=e484]: "10"
+                        - generic [ref=e485]: "10"
+                    - listitem [ref=e486]:
+                      - 'button "Select reel 1 stop 39: COIN" [ref=e487]':
+                        - generic [ref=e488]: "39"
+                        - generic [ref=e491]: CO
+                        - generic [ref=e492]: COIN
+                    - listitem [ref=e493]:
+                      - 'button "Select reel 1 stop 40: K" [ref=e494]':
+                        - generic [ref=e495]: "40"
+                        - generic [ref=e498]: K
+                        - generic [ref=e499]: K
+                    - listitem [ref=e500]:
+                      - 'button "Select reel 1 stop 41: A" [ref=e501]':
+                        - generic [ref=e502]: "41"
+                        - generic [ref=e505]: A
+                        - generic [ref=e506]: A
+                    - listitem [ref=e507]:
+                      - 'button "Select reel 1 stop 42: CHEST" [ref=e508]':
+                        - generic [ref=e509]: "42"
+                        - generic [ref=e512]: CH
+                        - generic [ref=e513]: CHEST
+                    - listitem [ref=e514]:
+                      - 'button "Select reel 1 stop 43: 9" [ref=e515]':
+                        - generic [ref=e516]: "43"
+                        - generic [ref=e519]: "9"
+                        - generic [ref=e520]: "9"
+                  - button "Add stop" [ref=e521] [cursor=pointer]:
+                    - img [ref=e522]
+                    - text: Add stop
+                - region "Reel 2" [ref=e524]:
+                  - generic [ref=e525]:
+                    - generic [ref=e526]: Reel 2
+                    - generic [ref=e527]: 42 physical stops
+                  - list [ref=e528]:
+                    - listitem [ref=e529]:
+                      - 'button "Select reel 2 stop 1: 10" [ref=e530]':
+                        - generic [ref=e531]: "1"
+                        - generic [ref=e534]: "10"
+                        - generic [ref=e535]: "10"
+                    - listitem [ref=e536]:
+                      - 'button "Select reel 2 stop 2: A" [ref=e537]':
+                        - generic [ref=e538]: "2"
+                        - generic [ref=e541]: A
+                        - generic [ref=e542]: A
+                    - listitem [ref=e543]:
+                      - 'button "Select reel 2 stop 3: PINECONE" [ref=e544]':
+                        - generic [ref=e545]: "3"
+                        - generic [ref=e548]: PI
+                        - generic [ref=e549]: PINECONE
+                    - listitem [ref=e550]:
+                      - 'button "Select reel 2 stop 4: Q" [ref=e551]':
+                        - generic [ref=e552]: "4"
+                        - generic [ref=e555]: Q
+                        - generic [ref=e556]: Q
+                    - listitem [ref=e557]:
+                      - 'button "Select reel 2 stop 5: 10" [ref=e558]':
+                        - generic [ref=e559]: "5"
+                        - generic [ref=e562]: "10"
+                        - generic [ref=e563]: "10"
+                    - listitem [ref=e564]:
+                      - 'button "Select reel 2 stop 6: CHEST" [ref=e565]':
+                        - generic [ref=e566]: "6"
+                        - generic [ref=e569]: CH
+                        - generic [ref=e570]: CHEST
+                    - listitem [ref=e571]:
+                      - 'button "Select reel 2 stop 7: Q" [ref=e572]':
+                        - generic [ref=e573]: "7"
+                        - generic [ref=e576]: Q
+                        - generic [ref=e577]: Q
+                    - listitem [ref=e578]:
+                      - 'button "Select reel 2 stop 8: J" [ref=e579]':
+                        - generic [ref=e580]: "8"
+                        - generic [ref=e583]: J
+                        - generic [ref=e584]: J
+                    - listitem [ref=e585]:
+                      - 'button "Select reel 2 stop 9: TIARA" [ref=e586]':
+                        - generic [ref=e587]: "9"
+                        - generic [ref=e590]: TI
+                        - generic [ref=e591]: TIARA
+                    - listitem [ref=e592]:
+                      - 'button "Select reel 2 stop 10: REPLACEMENT" [ref=e593]':
+                        - generic [ref=e594]: "10"
+                        - generic [ref=e597]: RE
+                        - generic [ref=e598]: REPLACEMENT
+                    - listitem [ref=e599]:
+                      - 'button "Select reel 2 stop 11: REPLACEMENT" [ref=e600]':
+                        - generic [ref=e601]: "11"
+                        - generic [ref=e604]: RE
+                        - generic [ref=e605]: REPLACEMENT
+                    - listitem [ref=e606]:
+                      - 'button "Select reel 2 stop 12: REPLACEMENT" [ref=e607]':
+                        - generic [ref=e608]: "12"
+                        - generic [ref=e611]: RE
+                        - generic [ref=e612]: REPLACEMENT
+                    - listitem [ref=e613]:
+                      - 'button "Select reel 2 stop 13: REPLACEMENT" [ref=e614]':
+                        - generic [ref=e615]: "13"
+                        - generic [ref=e618]: RE
+                        - generic [ref=e619]: REPLACEMENT
+                    - listitem [ref=e620]:
+                      - 'button "Select reel 2 stop 14: REPLACEMENT" [ref=e621]':
+                        - generic [ref=e622]: "14"
+                        - generic [ref=e625]: RE
+                        - generic [ref=e626]: REPLACEMENT
+                    - listitem [ref=e627]:
+                      - 'button "Select reel 2 stop 15: REPLACEMENT" [ref=e628]':
+                        - generic [ref=e629]: "15"
+                        - generic [ref=e632]: RE
+                        - generic [ref=e633]: REPLACEMENT
+                    - listitem [ref=e634]:
+                      - 'button "Select reel 2 stop 16: REPLACEMENT" [ref=e635]':
+                        - generic [ref=e636]: "16"
+                        - generic [ref=e639]: RE
+                        - generic [ref=e640]: REPLACEMENT
+                    - listitem [ref=e641]:
+                      - 'button "Select reel 2 stop 17: REPLACEMENT" [ref=e642]':
+                        - generic [ref=e643]: "17"
+                        - generic [ref=e646]: RE
+                        - generic [ref=e647]: REPLACEMENT
+                    - listitem [ref=e648]:
+                      - 'button "Select reel 2 stop 18: K" [ref=e649]':
+                        - generic [ref=e650]: "18"
+                        - generic [ref=e653]: K
+                        - generic [ref=e654]: K
+                    - listitem [ref=e655]:
+                      - 'button "Select reel 2 stop 19: J" [ref=e656]':
+                        - generic [ref=e657]: "19"
+                        - generic [ref=e660]: J
+                        - generic [ref=e661]: J
+                    - listitem [ref=e662]:
+                      - 'button "Select reel 2 stop 20: CHEST" [ref=e663]':
+                        - generic [ref=e664]: "20"
+                        - generic [ref=e667]: CH
+                        - generic [ref=e668]: CHEST
+                    - listitem [ref=e669]:
+                      - 'button "Select reel 2 stop 21: A" [ref=e670]':
+                        - generic [ref=e671]: "21"
+                        - generic [ref=e674]: A
+                        - generic [ref=e675]: A
+                    - listitem [ref=e676]:
+                      - 'button "Select reel 2 stop 22: PINECONE" [ref=e677]':
+                        - generic [ref=e678]: "22"
+                        - generic [ref=e681]: PI
+                        - generic [ref=e682]: PINECONE
+                    - listitem [ref=e683]:
+                      - 'button "Select reel 2 stop 23: 9" [ref=e684]':
+                        - generic [ref=e685]: "23"
+                        - generic [ref=e688]: "9"
+                        - generic [ref=e689]: "9"
+                    - listitem [ref=e690]:
+                      - 'button "Select reel 2 stop 24: A" [ref=e691]':
+                        - generic [ref=e692]: "24"
+                        - generic [ref=e695]: A
+                        - generic [ref=e696]: A
+                    - listitem [ref=e697]:
+                      - 'button "Select reel 2 stop 25: COIN" [ref=e698]':
+                        - generic [ref=e699]: "25"
+                        - generic [ref=e702]: CO
+                        - generic [ref=e703]: COIN
+                    - listitem [ref=e704]:
+                      - 'button "Select reel 2 stop 26: Q" [ref=e705]':
+                        - generic [ref=e706]: "26"
+                        - generic [ref=e709]: Q
+                        - generic [ref=e710]: Q
+                    - listitem [ref=e711]:
+                      - 'button "Select reel 2 stop 27: J" [ref=e712]':
+                        - generic [ref=e713]: "27"
+                        - generic [ref=e716]: J
+                        - generic [ref=e717]: J
+                    - listitem [ref=e718]:
+                      - 'button "Select reel 2 stop 28: PINECONE" [ref=e719]':
+                        - generic [ref=e720]: "28"
+                        - generic [ref=e723]: PI
+                        - generic [ref=e724]: PINECONE
+                    - listitem [ref=e725]:
+                      - 'button "Select reel 2 stop 29: J" [ref=e726]':
+                        - generic [ref=e727]: "29"
+                        - generic [ref=e730]: J
+                        - generic [ref=e731]: J
+                    - listitem [ref=e732]:
+                      - 'button "Select reel 2 stop 30: WOMAN" [ref=e733]':
+                        - generic [ref=e734]: "30"
+                        - generic [ref=e737]: WO
+                        - generic [ref=e738]: WOMAN
+                    - listitem [ref=e739]:
+                      - 'button "Select reel 2 stop 31: A" [ref=e740]':
+                        - generic [ref=e741]: "31"
+                        - generic [ref=e744]: A
+                        - generic [ref=e745]: A
+                    - listitem [ref=e746]:
+                      - 'button "Select reel 2 stop 32: TIARA" [ref=e747]':
+                        - generic [ref=e748]: "32"
+                        - generic [ref=e751]: TI
+                        - generic [ref=e752]: TIARA
+                    - listitem [ref=e753]:
+                      - 'button "Select reel 2 stop 33: 10" [ref=e754]':
+                        - generic [ref=e755]: "33"
+                        - generic [ref=e758]: "10"
+                        - generic [ref=e759]: "10"
+                    - listitem [ref=e760]:
+                      - 'button "Select reel 2 stop 34: CHEST" [ref=e761]':
+                        - generic [ref=e762]: "34"
+                        - generic [ref=e765]: CH
+                        - generic [ref=e766]: CHEST
+                    - listitem [ref=e767]:
+                      - 'button "Select reel 2 stop 35: K" [ref=e768]':
+                        - generic [ref=e769]: "35"
+                        - generic [ref=e772]: K
+                        - generic [ref=e773]: K
+                    - listitem [ref=e774]:
+                      - 'button "Select reel 2 stop 36: MUSHROOMS" [ref=e775]':
+                        - generic [ref=e776]: "36"
+                        - generic [ref=e779]: MU
+                        - generic [ref=e780]: MUSHROOMS
+                    - listitem [ref=e781]:
+                      - 'button "Select reel 2 stop 37: A" [ref=e782]':
+                        - generic [ref=e783]: "37"
+                        - generic [ref=e786]: A
+                        - generic [ref=e787]: A
+                    - listitem [ref=e788]:
+                      - 'button "Select reel 2 stop 38: 9" [ref=e789]':
+                        - generic [ref=e790]: "38"
+                        - generic [ref=e793]: "9"
+                        - generic [ref=e794]: "9"
+                    - listitem [ref=e795]:
+                      - 'button "Select reel 2 stop 39: COIN" [ref=e796]':
+                        - generic [ref=e797]: "39"
+                        - generic [ref=e800]: CO
+                        - generic [ref=e801]: COIN
+                    - listitem [ref=e802]:
+                      - 'button "Select reel 2 stop 40: MUSHROOMS" [ref=e803]':
+                        - generic [ref=e804]: "40"
+                        - generic [ref=e807]: MU
+                        - generic [ref=e808]: MUSHROOMS
+                    - listitem [ref=e809]:
+                      - 'button "Select reel 2 stop 41: K" [ref=e810]':
+                        - generic [ref=e811]: "41"
+                        - generic [ref=e814]: K
+                        - generic [ref=e815]: K
+                    - listitem [ref=e816]:
+                      - 'button "Select reel 2 stop 42: CHEST" [ref=e817]':
+                        - generic [ref=e818]: "42"
+                        - generic [ref=e821]: CH
+                        - generic [ref=e822]: CHEST
+                  - button "Add stop" [ref=e823] [cursor=pointer]:
+                    - img [ref=e824]
+                    - text: Add stop
+                - region "Reel 3" [ref=e826]:
+                  - generic [ref=e827]:
+                    - generic [ref=e828]: Reel 3
+                    - generic [ref=e829]: 49 physical stops
+                  - list [ref=e830]:
+                    - listitem [ref=e831]:
+                      - 'button "Select reel 3 stop 1: WOMAN" [ref=e832]':
+                        - generic [ref=e833]: "1"
+                        - generic [ref=e836]: WO
+                        - generic [ref=e837]: WOMAN
+                    - listitem [ref=e838]:
+                      - 'button "Select reel 3 stop 2: Q" [ref=e839]':
+                        - generic [ref=e840]: "2"
+                        - generic [ref=e843]: Q
+                        - generic [ref=e844]: Q
+                    - listitem [ref=e845]:
+                      - 'button "Select reel 3 stop 3: MUSHROOMS" [ref=e846]':
+                        - generic [ref=e847]: "3"
+                        - generic [ref=e850]: MU
+                        - generic [ref=e851]: MUSHROOMS
+                    - listitem [ref=e852]:
+                      - 'button "Select reel 3 stop 4: K" [ref=e853]':
+                        - generic [ref=e854]: "4"
+                        - generic [ref=e857]: K
+                        - generic [ref=e858]: K
+                    - listitem [ref=e859]:
+                      - 'button "Select reel 3 stop 5: COIN" [ref=e860]':
+                        - generic [ref=e861]: "5"
+                        - generic [ref=e864]: CO
+                        - generic [ref=e865]: COIN
+                    - listitem [ref=e866]:
+                      - 'button "Select reel 3 stop 6: 10" [ref=e867]':
+                        - generic [ref=e868]: "6"
+                        - generic [ref=e871]: "10"
+                        - generic [ref=e872]: "10"
+                    - listitem [ref=e873]:
+                      - 'button "Select reel 3 stop 7: MUSHROOMS" [ref=e874]':
+                        - generic [ref=e875]: "7"
+                        - generic [ref=e878]: MU
+                        - generic [ref=e879]: MUSHROOMS
+                    - listitem [ref=e880]:
+                      - 'button "Select reel 3 stop 8: Q" [ref=e881]':
+                        - generic [ref=e882]: "8"
+                        - generic [ref=e885]: Q
+                        - generic [ref=e886]: Q
+                    - listitem [ref=e887]:
+                      - 'button "Select reel 3 stop 9: K" [ref=e888]':
+                        - generic [ref=e889]: "9"
+                        - generic [ref=e892]: K
+                        - generic [ref=e893]: K
+                    - listitem [ref=e894]:
+                      - 'button "Select reel 3 stop 10: PINECONE" [ref=e895]':
+                        - generic [ref=e896]: "10"
+                        - generic [ref=e899]: PI
+                        - generic [ref=e900]: PINECONE
+                    - listitem [ref=e901]:
+                      - 'button "Select reel 3 stop 11: A" [ref=e902]':
+                        - generic [ref=e903]: "11"
+                        - generic [ref=e906]: A
+                        - generic [ref=e907]: A
+                    - listitem [ref=e908]:
+                      - 'button "Select reel 3 stop 12: 10" [ref=e909]':
+                        - generic [ref=e910]: "12"
+                        - generic [ref=e913]: "10"
+                        - generic [ref=e914]: "10"
+                    - listitem [ref=e915]:
+                      - 'button "Select reel 3 stop 13: TIARA" [ref=e916]':
+                        - generic [ref=e917]: "13"
+                        - generic [ref=e920]: TI
+                        - generic [ref=e921]: TIARA
+                    - listitem [ref=e922]:
+                      - 'button "Select reel 3 stop 14: 9" [ref=e923]':
+                        - generic [ref=e924]: "14"
+                        - generic [ref=e927]: "9"
+                        - generic [ref=e928]: "9"
+                    - listitem [ref=e929]:
+                      - 'button "Select reel 3 stop 15: MUSHROOMS" [ref=e930]':
+                        - generic [ref=e931]: "15"
+                        - generic [ref=e934]: MU
+                        - generic [ref=e935]: MUSHROOMS
+                    - listitem [ref=e936]:
+                      - 'button "Select reel 3 stop 16: REPLACEMENT" [ref=e937]':
+                        - generic [ref=e938]: "16"
+                        - generic [ref=e941]: RE
+                        - generic [ref=e942]: REPLACEMENT
+                    - listitem [ref=e943]:
+                      - 'button "Select reel 3 stop 17: REPLACEMENT" [ref=e944]':
+                        - generic [ref=e945]: "17"
+                        - generic [ref=e948]: RE
+                        - generic [ref=e949]: REPLACEMENT
+                    - listitem [ref=e950]:
+                      - 'button "Select reel 3 stop 18: REPLACEMENT" [ref=e951]':
+                        - generic [ref=e952]: "18"
+                        - generic [ref=e955]: RE
+                        - generic [ref=e956]: REPLACEMENT
+                    - listitem [ref=e957]:
+                      - 'button "Select reel 3 stop 19: REPLACEMENT" [ref=e958]':
+                        - generic [ref=e959]: "19"
+                        - generic [ref=e962]: RE
+                        - generic [ref=e963]: REPLACEMENT
+                    - listitem [ref=e964]:
+                      - 'button "Select reel 3 stop 20: REPLACEMENT" [ref=e965]':
+                        - generic [ref=e966]: "20"
+                        - generic [ref=e969]: RE
+                        - generic [ref=e970]: REPLACEMENT
+                    - listitem [ref=e971]:
+                      - 'button "Select reel 3 stop 21: REPLACEMENT" [ref=e972]':
+                        - generic [ref=e973]: "21"
+                        - generic [ref=e976]: RE
+                        - generic [ref=e977]: REPLACEMENT
+                    - listitem [ref=e978]:
+                      - 'button "Select reel 3 stop 22: REPLACEMENT" [ref=e979]':
+                        - generic [ref=e980]: "22"
+                        - generic [ref=e983]: RE
+                        - generic [ref=e984]: REPLACEMENT
+                    - listitem [ref=e985]:
+                      - 'button "Select reel 3 stop 23: REPLACEMENT" [ref=e986]':
+                        - generic [ref=e987]: "23"
+                        - generic [ref=e990]: RE
+                        - generic [ref=e991]: REPLACEMENT
+                    - listitem [ref=e992]:
+                      - 'button "Select reel 3 stop 24: TIARA" [ref=e993]':
+                        - generic [ref=e994]: "24"
+                        - generic [ref=e997]: TI
+                        - generic [ref=e998]: TIARA
+                    - listitem [ref=e999]:
+                      - 'button "Select reel 3 stop 25: J" [ref=e1000]':
+                        - generic [ref=e1001]: "25"
+                        - generic [ref=e1004]: J
+                        - generic [ref=e1005]: J
+                    - listitem [ref=e1006]:
+                      - 'button "Select reel 3 stop 26: CHEST" [ref=e1007]':
+                        - generic [ref=e1008]: "26"
+                        - generic [ref=e1011]: CH
+                        - generic [ref=e1012]: CHEST
+                    - listitem [ref=e1013]:
+                      - 'button "Select reel 3 stop 27: Q" [ref=e1014]':
+                        - generic [ref=e1015]: "27"
+                        - generic [ref=e1018]: Q
+                        - generic [ref=e1019]: Q
+                    - listitem [ref=e1020]:
+                      - 'button "Select reel 3 stop 28: MUSHROOMS" [ref=e1021]':
+                        - generic [ref=e1022]: "28"
+                        - generic [ref=e1025]: MU
+                        - generic [ref=e1026]: MUSHROOMS
+                    - listitem [ref=e1027]:
+                      - 'button "Select reel 3 stop 29: 10" [ref=e1028]':
+                        - generic [ref=e1029]: "29"
+                        - generic [ref=e1032]: "10"
+                        - generic [ref=e1033]: "10"
+                    - listitem [ref=e1034]:
+                      - 'button "Select reel 3 stop 30: TIARA" [ref=e1035]':
+                        - generic [ref=e1036]: "30"
+                        - generic [ref=e1039]: TI
+                        - generic [ref=e1040]: TIARA
+                    - listitem [ref=e1041]:
+                      - 'button "Select reel 3 stop 31: A" [ref=e1042]':
+                        - generic [ref=e1043]: "31"
+                        - generic [ref=e1046]: A
+                        - generic [ref=e1047]: A
+                    - listitem [ref=e1048]:
+                      - 'button "Select reel 3 stop 32: PINECONE" [ref=e1049]':
+                        - generic [ref=e1050]: "32"
+                        - generic [ref=e1053]: PI
+                        - generic [ref=e1054]: PINECONE
+                    - listitem [ref=e1055]:
+                      - 'button "Select reel 3 stop 33: Q" [ref=e1056]':
+                        - generic [ref=e1057]: "33"
+                        - generic [ref=e1060]: Q
+                        - generic [ref=e1061]: Q
+                    - listitem [ref=e1062]:
+                      - 'button "Select reel 3 stop 34: TIARA" [ref=e1063]':
+                        - generic [ref=e1064]: "34"
+                        - generic [ref=e1067]: TI
+                        - generic [ref=e1068]: TIARA
+                    - listitem [ref=e1069]:
+                      - 'button "Select reel 3 stop 35: A" [ref=e1070]':
+                        - generic [ref=e1071]: "35"
+                        - generic [ref=e1074]: A
+                        - generic [ref=e1075]: A
+                    - listitem [ref=e1076]:
+                      - 'button "Select reel 3 stop 36: PINECONE" [ref=e1077]':
+                        - generic [ref=e1078]: "36"
+                        - generic [ref=e1081]: PI
+                        - generic [ref=e1082]: PINECONE
+                    - listitem [ref=e1083]:
+                      - 'button "Select reel 3 stop 37: Q" [ref=e1084]':
+                        - generic [ref=e1085]: "37"
+                        - generic [ref=e1088]: Q
+                        - generic [ref=e1089]: Q
+                    - listitem [ref=e1090]:
+                      - 'button "Select reel 3 stop 38: MUSHROOMS" [ref=e1091]':
+                        - generic [ref=e1092]: "38"
+                        - generic [ref=e1095]: MU
+                        - generic [ref=e1096]: MUSHROOMS
+                    - listitem [ref=e1097]:
+                      - 'button "Select reel 3 stop 39: 10" [ref=e1098]':
+                        - generic [ref=e1099]: "39"
+                        - generic [ref=e1102]: "10"
+                        - generic [ref=e1103]: "10"
+                    - listitem [ref=e1104]:
+                      - 'button "Select reel 3 stop 40: TIARA" [ref=e1105]':
+                        - generic [ref=e1106]: "40"
+                        - generic [ref=e1109]: TI
+                        - generic [ref=e1110]: TIARA
+                    - listitem [ref=e1111]:
+                      - 'button "Select reel 3 stop 41: A" [ref=e1112]':
+                        - generic [ref=e1113]: "41"
+                        - generic [ref=e1116]: A
+                        - generic [ref=e1117]: A
+                    - listitem [ref=e1118]:
+                      - 'button "Select reel 3 stop 42: MUSHROOMS" [ref=e1119]':
+                        - generic [ref=e1120]: "42"
+                        - generic [ref=e1123]: MU
+                        - generic [ref=e1124]: MUSHROOMS
+                    - listitem [ref=e1125]:
+                      - 'button "Select reel 3 stop 43: 10" [ref=e1126]':
+                        - generic [ref=e1127]: "43"
+                        - generic [ref=e1130]: "10"
+                        - generic [ref=e1131]: "10"
+                    - listitem [ref=e1132]:
+                      - 'button "Select reel 3 stop 44: TIARA" [ref=e1133]':
+                        - generic [ref=e1134]: "44"
+                        - generic [ref=e1137]: TI
+                        - generic [ref=e1138]: TIARA
+                    - listitem [ref=e1139]:
+                      - 'button "Select reel 3 stop 45: A" [ref=e1140]':
+                        - generic [ref=e1141]: "45"
+                        - generic [ref=e1144]: A
+                        - generic [ref=e1145]: A
+                    - listitem [ref=e1146]:
+                      - 'button "Select reel 3 stop 46: CHEST" [ref=e1147]':
+                        - generic [ref=e1148]: "46"
+                        - generic [ref=e1151]: CH
+                        - generic [ref=e1152]: CHEST
+                    - listitem [ref=e1153]:
+                      - 'button "Select reel 3 stop 47: K" [ref=e1154]':
+                        - generic [ref=e1155]: "47"
+                        - generic [ref=e1158]: K
+                        - generic [ref=e1159]: K
+                    - listitem [ref=e1160]:
+                      - 'button "Select reel 3 stop 48: PINECONE" [ref=e1161]':
+                        - generic [ref=e1162]: "48"
+                        - generic [ref=e1165]: PI
+                        - generic [ref=e1166]: PINECONE
+                    - listitem [ref=e1167]:
+                      - 'button "Select reel 3 stop 49: A" [ref=e1168]':
+                        - generic [ref=e1169]: "49"
+                        - generic [ref=e1172]: A
+                        - generic [ref=e1173]: A
+                  - button "Add stop" [ref=e1174] [cursor=pointer]:
+                    - img [ref=e1175]
+                    - text: Add stop
+                - region "Reel 4" [ref=e1177]:
+                  - generic [ref=e1178]:
+                    - generic [ref=e1179]: Reel 4
+                    - generic [ref=e1180]: 42 physical stops
+                  - list [ref=e1181]:
+                    - listitem [ref=e1182]:
+                      - 'button "Select reel 4 stop 1: K" [ref=e1183]':
+                        - generic [ref=e1184]: "1"
+                        - generic [ref=e1187]: K
+                        - generic [ref=e1188]: K
+                    - listitem [ref=e1189]:
+                      - 'button "Select reel 4 stop 2: TIARA" [ref=e1190]':
+                        - generic [ref=e1191]: "2"
+                        - generic [ref=e1194]: TI
+                        - generic [ref=e1195]: TIARA
+                    - listitem [ref=e1196]:
+                      - 'button "Select reel 4 stop 3: Q" [ref=e1197]':
+                        - generic [ref=e1198]: "3"
+                        - generic [ref=e1201]: Q
+                        - generic [ref=e1202]: Q
+                    - listitem [ref=e1203]:
+                      - 'button "Select reel 4 stop 4: PINECONE" [ref=e1204]':
+                        - generic [ref=e1205]: "4"
+                        - generic [ref=e1208]: PI
+                        - generic [ref=e1209]: PINECONE
+                    - listitem [ref=e1210]:
+                      - 'button "Select reel 4 stop 5: 10" [ref=e1211]':
+                        - generic [ref=e1212]: "5"
+                        - generic [ref=e1215]: "10"
+                        - generic [ref=e1216]: "10"
+                    - listitem [ref=e1217]:
+                      - 'button "Select reel 4 stop 6: MUSHROOMS" [ref=e1218]':
+                        - generic [ref=e1219]: "6"
+                        - generic [ref=e1222]: MU
+                        - generic [ref=e1223]: MUSHROOMS
+                    - listitem [ref=e1224]:
+                      - 'button "Select reel 4 stop 7: 9" [ref=e1225]':
+                        - generic [ref=e1226]: "7"
+                        - generic [ref=e1229]: "9"
+                        - generic [ref=e1230]: "9"
+                    - listitem [ref=e1231]:
+                      - 'button "Select reel 4 stop 8: PINECONE" [ref=e1232]':
+                        - generic [ref=e1233]: "8"
+                        - generic [ref=e1236]: PI
+                        - generic [ref=e1237]: PINECONE
+                    - listitem [ref=e1238]:
+                      - 'button "Select reel 4 stop 9: J" [ref=e1239]':
+                        - generic [ref=e1240]: "9"
+                        - generic [ref=e1243]: J
+                        - generic [ref=e1244]: J
+                    - listitem [ref=e1245]:
+                      - 'button "Select reel 4 stop 10: MUSHROOMS" [ref=e1246]':
+                        - generic [ref=e1247]: "10"
+                        - generic [ref=e1250]: MU
+                        - generic [ref=e1251]: MUSHROOMS
+                    - listitem [ref=e1252]:
+                      - 'button "Select reel 4 stop 11: Q" [ref=e1253]':
+                        - generic [ref=e1254]: "11"
+                        - generic [ref=e1257]: Q
+                        - generic [ref=e1258]: Q
+                    - listitem [ref=e1259]:
+                      - 'button "Select reel 4 stop 12: 10" [ref=e1260]':
+                        - generic [ref=e1261]: "12"
+                        - generic [ref=e1264]: "10"
+                        - generic [ref=e1265]: "10"
+                    - listitem [ref=e1266]:
+                      - 'button "Select reel 4 stop 13: COIN" [ref=e1267]':
+                        - generic [ref=e1268]: "13"
+                        - generic [ref=e1271]: CO
+                        - generic [ref=e1272]: COIN
+                    - listitem [ref=e1273]:
+                      - 'button "Select reel 4 stop 14: J" [ref=e1274]':
+                        - generic [ref=e1275]: "14"
+                        - generic [ref=e1278]: J
+                        - generic [ref=e1279]: J
+                    - listitem [ref=e1280]:
+                      - 'button "Select reel 4 stop 15: CHEST" [ref=e1281]':
+                        - generic [ref=e1282]: "15"
+                        - generic [ref=e1285]: CH
+                        - generic [ref=e1286]: CHEST
+                    - listitem [ref=e1287]:
+                      - 'button "Select reel 4 stop 16: K" [ref=e1288]':
+                        - generic [ref=e1289]: "16"
+                        - generic [ref=e1292]: K
+                        - generic [ref=e1293]: K
+                    - listitem [ref=e1294]:
+                      - 'button "Select reel 4 stop 17: 9" [ref=e1295]':
+                        - generic [ref=e1296]: "17"
+                        - generic [ref=e1299]: "9"
+                        - generic [ref=e1300]: "9"
+                    - listitem [ref=e1301]:
+                      - 'button "Select reel 4 stop 18: PINECONE" [ref=e1302]':
+                        - generic [ref=e1303]: "18"
+                        - generic [ref=e1306]: PI
+                        - generic [ref=e1307]: PINECONE
+                    - listitem [ref=e1308]:
+                      - 'button "Select reel 4 stop 19: MUSHROOMS" [ref=e1309]':
+                        - generic [ref=e1310]: "19"
+                        - generic [ref=e1313]: MU
+                        - generic [ref=e1314]: MUSHROOMS
+                    - listitem [ref=e1315]:
+                      - 'button "Select reel 4 stop 20: 10" [ref=e1316]':
+                        - generic [ref=e1317]: "20"
+                        - generic [ref=e1320]: "10"
+                        - generic [ref=e1321]: "10"
+                    - listitem [ref=e1322]:
+                      - 'button "Select reel 4 stop 21: CHEST" [ref=e1323]':
+                        - generic [ref=e1324]: "21"
+                        - generic [ref=e1327]: CH
+                        - generic [ref=e1328]: CHEST
+                    - listitem [ref=e1329]:
+                      - 'button "Select reel 4 stop 22: 9" [ref=e1330]':
+                        - generic [ref=e1331]: "22"
+                        - generic [ref=e1334]: "9"
+                        - generic [ref=e1335]: "9"
+                    - listitem [ref=e1336]:
+                      - 'button "Select reel 4 stop 23: TIARA" [ref=e1337]':
+                        - generic [ref=e1338]: "23"
+                        - generic [ref=e1341]: TI
+                        - generic [ref=e1342]: TIARA
+                    - listitem [ref=e1343]:
+                      - 'button "Select reel 4 stop 24: REPLACEMENT" [ref=e1344]':
+                        - generic [ref=e1345]: "24"
+                        - generic [ref=e1348]: RE
+                        - generic [ref=e1349]: REPLACEMENT
+                    - listitem [ref=e1350]:
+                      - 'button "Select reel 4 stop 25: REPLACEMENT" [ref=e1351]':
+                        - generic [ref=e1352]: "25"
+                        - generic [ref=e1355]: RE
+                        - generic [ref=e1356]: REPLACEMENT
+                    - listitem [ref=e1357]:
+                      - 'button "Select reel 4 stop 26: REPLACEMENT" [ref=e1358]':
+                        - generic [ref=e1359]: "26"
+                        - generic [ref=e1362]: RE
+                        - generic [ref=e1363]: REPLACEMENT
+                    - listitem [ref=e1364]:
+                      - 'button "Select reel 4 stop 27: REPLACEMENT" [ref=e1365]':
+                        - generic [ref=e1366]: "27"
+                        - generic [ref=e1369]: RE
+                        - generic [ref=e1370]: REPLACEMENT
+                    - listitem [ref=e1371]:
+                      - 'button "Select reel 4 stop 28: REPLACEMENT" [ref=e1372]':
+                        - generic [ref=e1373]: "28"
+                        - generic [ref=e1376]: RE
+                        - generic [ref=e1377]: REPLACEMENT
+                    - listitem [ref=e1378]:
+                      - 'button "Select reel 4 stop 29: REPLACEMENT" [ref=e1379]':
+                        - generic [ref=e1380]: "29"
+                        - generic [ref=e1383]: RE
+                        - generic [ref=e1384]: REPLACEMENT
+                    - listitem [ref=e1385]:
+                      - 'button "Select reel 4 stop 30: REPLACEMENT" [ref=e1386]':
+                        - generic [ref=e1387]: "30"
+                        - generic [ref=e1390]: RE
+                        - generic [ref=e1391]: REPLACEMENT
+                    - listitem [ref=e1392]:
+                      - 'button "Select reel 4 stop 31: REPLACEMENT" [ref=e1393]':
+                        - generic [ref=e1394]: "31"
+                        - generic [ref=e1397]: RE
+                        - generic [ref=e1398]: REPLACEMENT
+                    - listitem [ref=e1399]:
+                      - 'button "Select reel 4 stop 32: CHEST" [ref=e1400]':
+                        - generic [ref=e1401]: "32"
+                        - generic [ref=e1404]: CH
+                        - generic [ref=e1405]: CHEST
+                    - listitem [ref=e1406]:
+                      - 'button "Select reel 4 stop 33: K" [ref=e1407]':
+                        - generic [ref=e1408]: "33"
+                        - generic [ref=e1411]: K
+                        - generic [ref=e1412]: K
+                    - listitem [ref=e1413]:
+                      - 'button "Select reel 4 stop 34: MUSHROOMS" [ref=e1414]':
+                        - generic [ref=e1415]: "34"
+                        - generic [ref=e1418]: MU
+                        - generic [ref=e1419]: MUSHROOMS
+                    - listitem [ref=e1420]:
+                      - 'button "Select reel 4 stop 35: 9" [ref=e1421]':
+                        - generic [ref=e1422]: "35"
+                        - generic [ref=e1425]: "9"
+                        - generic [ref=e1426]: "9"
+                    - listitem [ref=e1427]:
+                      - 'button "Select reel 4 stop 36: PINECONE" [ref=e1428]':
+                        - generic [ref=e1429]: "36"
+                        - generic [ref=e1432]: PI
+                        - generic [ref=e1433]: PINECONE
+                    - listitem [ref=e1434]:
+                      - 'button "Select reel 4 stop 37: J" [ref=e1435]':
+                        - generic [ref=e1436]: "37"
+                        - generic [ref=e1439]: J
+                        - generic [ref=e1440]: J
+                    - listitem [ref=e1441]:
+                      - 'button "Select reel 4 stop 38: WOMAN" [ref=e1442]':
+                        - generic [ref=e1443]: "38"
+                        - generic [ref=e1446]: WO
+                        - generic [ref=e1447]: WOMAN
+                    - listitem [ref=e1448]:
+                      - 'button "Select reel 4 stop 39: 9" [ref=e1449]':
+                        - generic [ref=e1450]: "39"
+                        - generic [ref=e1453]: "9"
+                        - generic [ref=e1454]: "9"
+                    - listitem [ref=e1455]:
+                      - 'button "Select reel 4 stop 40: MUSHROOMS" [ref=e1456]':
+                        - generic [ref=e1457]: "40"
+                        - generic [ref=e1460]: MU
+                        - generic [ref=e1461]: MUSHROOMS
+                    - listitem [ref=e1462]:
+                      - 'button "Select reel 4 stop 41: A" [ref=e1463]':
+                        - generic [ref=e1464]: "41"
+                        - generic [ref=e1467]: A
+                        - generic [ref=e1468]: A
+                    - listitem [ref=e1469]:
+                      - 'button "Select reel 4 stop 42: CHEST" [ref=e1470]':
+                        - generic [ref=e1471]: "42"
+                        - generic [ref=e1474]: CH
+                        - generic [ref=e1475]: CHEST
+                  - button "Add stop" [ref=e1476] [cursor=pointer]:
+                    - img [ref=e1477]
+                    - text: Add stop
+                - region "Reel 5" [ref=e1479]:
+                  - generic [ref=e1480]:
+                    - generic [ref=e1481]: Reel 5
+                    - generic [ref=e1482]: 42 physical stops
+                  - list [ref=e1483]:
+                    - listitem [ref=e1484]:
+                      - 'button "Select reel 5 stop 1: J" [ref=e1485]':
+                        - generic [ref=e1486]: "1"
+                        - generic [ref=e1489]: J
+                        - generic [ref=e1490]: J
+                    - listitem [ref=e1491]:
+                      - 'button "Select reel 5 stop 2: A" [ref=e1492]':
+                        - generic [ref=e1493]: "2"
+                        - generic [ref=e1496]: A
+                        - generic [ref=e1497]: A
+                    - listitem [ref=e1498]:
+                      - 'button "Select reel 5 stop 3: MUSHROOMS" [ref=e1499]':
+                        - generic [ref=e1500]: "3"
+                        - generic [ref=e1503]: MU
+                        - generic [ref=e1504]: MUSHROOMS
+                    - listitem [ref=e1505]:
+                      - 'button "Select reel 5 stop 4: 10" [ref=e1506]':
+                        - generic [ref=e1507]: "4"
+                        - generic [ref=e1510]: "10"
+                        - generic [ref=e1511]: "10"
+                    - listitem [ref=e1512]:
+                      - 'button "Select reel 5 stop 5: A" [ref=e1513]':
+                        - generic [ref=e1514]: "5"
+                        - generic [ref=e1517]: A
+                        - generic [ref=e1518]: A
+                    - listitem [ref=e1519]:
+                      - 'button "Select reel 5 stop 6: MUSHROOMS" [ref=e1520]':
+                        - generic [ref=e1521]: "6"
+                        - generic [ref=e1524]: MU
+                        - generic [ref=e1525]: MUSHROOMS
+                    - listitem [ref=e1526]:
+                      - 'button "Select reel 5 stop 7: J" [ref=e1527]':
+                        - generic [ref=e1528]: "7"
+                        - generic [ref=e1531]: J
+                        - generic [ref=e1532]: J
+                    - listitem [ref=e1533]:
+                      - 'button "Select reel 5 stop 8: CHEST" [ref=e1534]':
+                        - generic [ref=e1535]: "8"
+                        - generic [ref=e1538]: CH
+                        - generic [ref=e1539]: CHEST
+                    - listitem [ref=e1540]:
+                      - 'button "Select reel 5 stop 9: Q" [ref=e1541]':
+                        - generic [ref=e1542]: "9"
+                        - generic [ref=e1545]: Q
+                        - generic [ref=e1546]: Q
+                    - listitem [ref=e1547]:
+                      - 'button "Select reel 5 stop 10: A" [ref=e1548]':
+                        - generic [ref=e1549]: "10"
+                        - generic [ref=e1552]: A
+                        - generic [ref=e1553]: A
+                    - listitem [ref=e1554]:
+                      - 'button "Select reel 5 stop 11: TIARA" [ref=e1555]':
+                        - generic [ref=e1556]: "11"
+                        - generic [ref=e1559]: TI
+                        - generic [ref=e1560]: TIARA
+                    - listitem [ref=e1561]:
+                      - 'button "Select reel 5 stop 12: J" [ref=e1562]':
+                        - generic [ref=e1563]: "12"
+                        - generic [ref=e1566]: J
+                        - generic [ref=e1567]: J
+                    - listitem [ref=e1568]:
+                      - 'button "Select reel 5 stop 13: K" [ref=e1569]':
+                        - generic [ref=e1570]: "13"
+                        - generic [ref=e1573]: K
+                        - generic [ref=e1574]: K
+                    - listitem [ref=e1575]:
+                      - 'button "Select reel 5 stop 14: MUSHROOMS" [ref=e1576]':
+                        - generic [ref=e1577]: "14"
+                        - generic [ref=e1580]: MU
+                        - generic [ref=e1581]: MUSHROOMS
+                    - listitem [ref=e1582]:
+                      - 'button "Select reel 5 stop 15: Q" [ref=e1583]':
+                        - generic [ref=e1584]: "15"
+                        - generic [ref=e1587]: Q
+                        - generic [ref=e1588]: Q
+                    - listitem [ref=e1589]:
+                      - 'button "Select reel 5 stop 16: WOMAN" [ref=e1590]':
+                        - generic [ref=e1591]: "16"
+                        - generic [ref=e1594]: WO
+                        - generic [ref=e1595]: WOMAN
+                    - listitem [ref=e1596]:
+                      - 'button "Select reel 5 stop 17: K" [ref=e1597]':
+                        - generic [ref=e1598]: "17"
+                        - generic [ref=e1601]: K
+                        - generic [ref=e1602]: K
+                    - listitem [ref=e1603]:
+                      - 'button "Select reel 5 stop 18: PINECONE" [ref=e1604]':
+                        - generic [ref=e1605]: "18"
+                        - generic [ref=e1608]: PI
+                        - generic [ref=e1609]: PINECONE
+                    - listitem [ref=e1610]:
+                      - 'button "Select reel 5 stop 19: 10" [ref=e1611]':
+                        - generic [ref=e1612]: "19"
+                        - generic [ref=e1615]: "10"
+                        - generic [ref=e1616]: "10"
+                    - listitem [ref=e1617]:
+                      - 'button "Select reel 5 stop 20: TIARA" [ref=e1618]':
+                        - generic [ref=e1619]: "20"
+                        - generic [ref=e1622]: TI
+                        - generic [ref=e1623]: TIARA
+                    - listitem [ref=e1624]:
+                      - 'button "Select reel 5 stop 21: J" [ref=e1625]':
+                        - generic [ref=e1626]: "21"
+                        - generic [ref=e1629]: J
+                        - generic [ref=e1630]: J
+                    - listitem [ref=e1631]:
+                      - 'button "Select reel 5 stop 22: MUSHROOMS" [ref=e1632]':
+                        - generic [ref=e1633]: "22"
+                        - generic [ref=e1636]: MU
+                        - generic [ref=e1637]: MUSHROOMS
+                    - listitem [ref=e1638]:
+                      - 'button "Select reel 5 stop 23: TIARA" [ref=e1639]':
+                        - generic [ref=e1640]: "23"
+                        - generic [ref=e1643]: TI
+                        - generic [ref=e1644]: TIARA
+                    - listitem [ref=e1645]:
+                      - 'button "Select reel 5 stop 24: REPLACEMENT" [ref=e1646]':
+                        - generic [ref=e1647]: "24"
+                        - generic [ref=e1650]: RE
+                        - generic [ref=e1651]: REPLACEMENT
+                    - listitem [ref=e1652]:
+                      - 'button "Select reel 5 stop 25: REPLACEMENT" [ref=e1653]':
+                        - generic [ref=e1654]: "25"
+                        - generic [ref=e1657]: RE
+                        - generic [ref=e1658]: REPLACEMENT
+                    - listitem [ref=e1659]:
+                      - 'button "Select reel 5 stop 26: REPLACEMENT" [ref=e1660]':
+                        - generic [ref=e1661]: "26"
+                        - generic [ref=e1664]: RE
+                        - generic [ref=e1665]: REPLACEMENT
+                    - listitem [ref=e1666]:
+                      - 'button "Select reel 5 stop 27: REPLACEMENT" [ref=e1667]':
+                        - generic [ref=e1668]: "27"
+                        - generic [ref=e1671]: RE
+                        - generic [ref=e1672]: REPLACEMENT
+                    - listitem [ref=e1673]:
+                      - 'button "Select reel 5 stop 28: REPLACEMENT" [ref=e1674]':
+                        - generic [ref=e1675]: "28"
+                        - generic [ref=e1678]: RE
+                        - generic [ref=e1679]: REPLACEMENT
+                    - listitem [ref=e1680]:
+                      - 'button "Select reel 5 stop 29: REPLACEMENT" [ref=e1681]':
+                        - generic [ref=e1682]: "29"
+                        - generic [ref=e1685]: RE
+                        - generic [ref=e1686]: REPLACEMENT
+                    - listitem [ref=e1687]:
+                      - 'button "Select reel 5 stop 30: REPLACEMENT" [ref=e1688]':
+                        - generic [ref=e1689]: "30"
+                        - generic [ref=e1692]: RE
+                        - generic [ref=e1693]: REPLACEMENT
+                    - listitem [ref=e1694]:
+                      - 'button "Select reel 5 stop 31: REPLACEMENT" [ref=e1695]':
+                        - generic [ref=e1696]: "31"
+                        - generic [ref=e1699]: RE
+                        - generic [ref=e1700]: REPLACEMENT
+                    - listitem [ref=e1701]:
+                      - 'button "Select reel 5 stop 32: TIARA" [ref=e1702]':
+                        - generic [ref=e1703]: "32"
+                        - generic [ref=e1706]: TI
+                        - generic [ref=e1707]: TIARA
+                    - listitem [ref=e1708]:
+                      - 'button "Select reel 5 stop 33: K" [ref=e1709]':
+                        - generic [ref=e1710]: "33"
+                        - generic [ref=e1713]: K
+                        - generic [ref=e1714]: K
+                    - listitem [ref=e1715]:
+                      - 'button "Select reel 5 stop 34: CHEST" [ref=e1716]':
+                        - generic [ref=e1717]: "34"
+                        - generic [ref=e1720]: CH
+                        - generic [ref=e1721]: CHEST
+                    - listitem [ref=e1722]:
+                      - 'button "Select reel 5 stop 35: 10" [ref=e1723]':
+                        - generic [ref=e1724]: "35"
+                        - generic [ref=e1727]: "10"
+                        - generic [ref=e1728]: "10"
+                    - listitem [ref=e1729]:
+                      - 'button "Select reel 5 stop 36: 9" [ref=e1730]':
+                        - generic [ref=e1731]: "36"
+                        - generic [ref=e1734]: "9"
+                        - generic [ref=e1735]: "9"
+                    - listitem [ref=e1736]:
+                      - 'button "Select reel 5 stop 37: COIN" [ref=e1737]':
+                        - generic [ref=e1738]: "37"
+                        - generic [ref=e1741]: CO
+                        - generic [ref=e1742]: COIN
+                    - listitem [ref=e1743]:
+                      - 'button "Select reel 5 stop 38: PINECONE" [ref=e1744]':
+                        - generic [ref=e1745]: "38"
+                        - generic [ref=e1748]: PI
+                        - generic [ref=e1749]: PINECONE
+                    - listitem [ref=e1750]:
+                      - 'button "Select reel 5 stop 39: 10" [ref=e1751]':
+                        - generic [ref=e1752]: "39"
+                        - generic [ref=e1755]: "10"
+                        - generic [ref=e1756]: "10"
+                    - listitem [ref=e1757]:
+                      - 'button "Select reel 5 stop 40: 9" [ref=e1758]':
+                        - generic [ref=e1759]: "40"
+                        - generic [ref=e1762]: "9"
+                        - generic [ref=e1763]: "9"
+                    - listitem [ref=e1764]:
+                      - 'button "Select reel 5 stop 41: A" [ref=e1765]':
+                        - generic [ref=e1766]: "41"
+                        - generic [ref=e1769]: A
+                        - generic [ref=e1770]: A
+                    - listitem [ref=e1771]:
+                      - 'button "Select reel 5 stop 42: PINECONE" [ref=e1772]':
+                        - generic [ref=e1773]: "42"
+                        - generic [ref=e1776]: PI
+                        - generic [ref=e1777]: PINECONE
+                  - button "Add stop" [ref=e1778] [cursor=pointer]:
+                    - img [ref=e1779]
+                    - text: Add stop
+              - generic [ref=e1781]:
+                - generic [ref=e1782]:
+                  - generic [ref=e1783]: Reel 1 · stop 1
+                  - generic [ref=e1784]: New or conditioned stop
+                - generic [ref=e1785]:
+                  - text: Symbol
+                  - combobox "Selected stop symbol" [ref=e1786]:
+                    - option "WOMAN · 0"
+                    - option "CHEST · 1"
+                    - option "TIARA · 2"
+                    - option "MUSHROOMS · 3"
+                    - option "PINECONE · 4"
+                    - option "A · 5"
+                    - option "K · 6"
+                    - option "Q · 7"
+                    - option "J · 8" [selected]
+                    - option "10 · 9"
+                    - option "9 · 10"
+                    - option "COIN · 11"
+                    - option "REPLACEMENT · 12"
+                - generic [ref=e1787]:
+                  - button "Move selected stop up" [disabled] [ref=e1788]: ↑ Move up
+                  - button "Move selected stop down" [ref=e1789] [cursor=pointer]: ↓ Move down
+                  - button "Remove stop" [ref=e1790] [cursor=pointer]
+            - generic [ref=e1791]:
+              - generic [ref=e1792]:
+                - text: Test the applied source
+                - paragraph [ref=e1793]: A real round through the existing execution API. A single round does not estimate RTP.
+              - generic [ref=e1794]:
+                - text: Seed
+                - textbox "Test round seed" [ref=e1795]: "42"
+              - button "Play test round" [ref=e1796] [cursor=pointer]:
+                - img [ref=e1797]
+                - text: Play test round
+        - generic [ref=e1800]:
+          - generic [ref=e1801]: Applied to graph
+          - generic [ref=e1802]: Applied graph saved in this browser
+```
+
+# Test source
+
+```ts
+  1  | import { readFile } from 'node:fs/promises';
+  2  | import { test, expect, type Page, type APIRequestContext } from './fixtures';
+  3  | import { conditionedSourceProof } from '../unit/fixtures/conditionedSourceProof';
+  4  | import { createWoodlandWhisperGraph } from '../src/games/woodland-whisper/graph';
+  5  | import { indexGraphSources } from '../src/lib/authoring/sourceIndex';
+  6  | import { reelBindings } from '../src/lib/authoring/reelBindings';
+  7  | import type { ModelGraph } from '../src/lib/modelProjection';
+  8  | async function open(page: Page, graph: Record<string, unknown>) { await page.goto('/build'); await page.getByLabel('Import project file').setInputFiles({ name: 'conditional-proof.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(graph)) }); await expect(page.locator('.project-name')).toHaveText(String(graph.name)); await page.getByRole('tab', { name: 'Studio', exact: true }).click(); }
+  9  | async function backup(page: Page) { const pending = page.waitForEvent('download'); await page.getByRole('button', { name: 'Back up project', exact: true }).click(); return JSON.parse(await readFile((await (await pending).path())!, 'utf8')).graph as ModelGraph; }
+  10 | async function apply(page: Page) { const response = page.waitForResponse(response => new URL(response.url()).pathname === '/api/validate' && response.status() !== 429); await page.getByRole('button', { name: 'Validate & apply', exact: true }).click(); const result = await (await response).json(); expect(result, JSON.stringify(result)).toMatchObject({ isValid: true }); await expect(page.getByRole('button', { name: 'Undo', exact: true })).toBeEnabled(); }
+  11 | async function exact(request: APIRequestContext, graph: ModelGraph, value: number) { const response = await request.post('/api/evaluate/light', { data: { config: graph, maxBranches: 10000, sampleSize: 1000 } }); expect(response.ok()).toBe(true); const result = await response.json(); expect(result.strategy).toBe('Exact'); expect(result.rtp).toBeCloseTo(value, 12); }
+  12 | test('Studio private conditioning: copy one call, change its private strip, execute 2/3 → 5/6 and reject an impossible private event atomically', async ({ page, request }) => {
+  13 |   const graph = conditionedSourceProof() as ModelGraph; await exact(request, graph, 2 / 3); await open(page, graph);
+  14 |   await page.getByRole('button', { name: 'Make one use independent', exact: true }).click(); await page.getByLabel('Independent source use').selectOption({ label: 'Root / Second conditioned call' }); await expect(page.getByRole('dialog')).toContainText('2 private condition fields'); await page.getByRole('button', { name: 'Stage independent copy', exact: true }).click(); await page.reload(); await apply(page);
+  15 |   const copied = await backup(page); await exact(request, copied, 2 / 3); await page.locator('.studio-source-explorer button').filter({ hasText: 'Private source' }).click();
+  16 |   await page.locator('.studio-reel-lane').first().locator('.reel-stop').nth(1).click(); await page.getByLabel('Selected stop symbol').selectOption('S'); await apply(page);
+  17 |   const changed = await backup(page); await exact(request, changed, 5 / 6); expect(changed.mechanics!['conditional-source']).toEqual(graph.mechanics!['conditional-source']); expect((changed.initialState as Record<string, unknown>).showPatterns).toEqual((graph.initialState as Record<string, unknown>).showPatterns);
+  18 |   await page.getByRole('button', { name: 'Import table', exact: true }).click(); await page.getByLabel('CSV import input').fill('reel,index,symbolId,stopId,weight\n1,0,A,0,1\n1,1,A,1,1\n2,0,A,0,1\n2,1,A,1,1'); await page.getByRole('button', { name: 'Preview exact values', exact: true }).click(); await expect(page.getByRole('dialog')).toContainText('No reel stops'); await page.getByRole('button', { name: 'Close import', exact: true }).click(); expect(await backup(page)).toEqual(changed);
+  19 | });
+  20 | test('Studio Woodland bought: private conditional copy keeps seeded payouts/board and can reorder its own strip through the real compiler', async ({ page, request }) => {
+  21 |   const graph = createWoodlandWhisperGraph(undefined, { buy: true }) as ModelGraph, condition = reelBindings(graph)[0].source.conditions![0], use = indexGraphSources(graph).libraryUses.find(use => use.definition === condition.scope)!;
+  22 |   await open(page, graph); await page.getByRole('button', { name: 'Make one use independent', exact: true }).click(); await page.getByLabel('Independent source use').selectOption(use.source.key); await page.getByRole('button', { name: 'Stage independent copy', exact: true }).click(); await apply(page); const copied = await backup(page);
+  23 |   const rounds = []; for (const config of [graph, copied]) { const response = await request.post('/api/play/round', { data: { config, seed: 42, roundIndex: 0 } }); expect(response.ok()).toBe(true); rounds.push(await response.json()); }
+  24 |   expect(rounds[1].win).toBe(rounds[0].win); expect(rounds[1].state.board).toEqual(rounds[0].state.board); expect((copied.initialState as Record<string, unknown>).roundCost).toBe((graph.initialState as Record<string, unknown>).roundCost);
+> 25 |   await page.locator('.studio-source-explorer button').filter({ hasText: 'Private source' }).click(); await page.getByRole('button', { name: 'Move selected stop down', exact: true }).click(); await apply(page); const changed = await backup(page); expect(changed.mechanics![condition.scope]).toEqual(graph.mechanics![condition.scope]);
+     |                                                                                              ^ Error: locator.click: Error: strict mode violation: locator('.studio-source-explorer button').filter({ hasText: 'Private source' }) resolved to 2 elements:
+  26 |   const response = await request.post('/api/play/round', { data: { config: changed, seed: 42, roundIndex: 0 } }); expect(response.ok()).toBe(true);
+  27 | });
+  28 | 
+```

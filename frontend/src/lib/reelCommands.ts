@@ -2,7 +2,7 @@ import { Mechanics } from '../games/shared/graph/flow';
 import { reelState, spinReels, type ReelSet } from '../games/shared/graph/mechanics/reels';
 import { canonicalJson } from './hash';
 import type { ModelGraph, ModelNode } from './modelProjection';
-import { applyReelCondition, findReelCondition, type ReelCondition } from './reelConditioning';
+import { applyReelCondition, findReelCondition, conditionCandidates, conditionStateKeys, type ReelCondition } from './reelConditioning';
 import { matchReelShape } from './authoring/reelShape';
 import { validateWeights } from './modelCommands';
 
@@ -26,7 +26,6 @@ export function sameReelScope(actual: ModelGraph, expected: ModelGraph): boolean
     && canonicalJson(actual.edges) === canonicalJson(expected.edges)
     && canonicalJson(actual.expressions) === canonicalJson(expected.expressions);
 }
-const sameScope = sameReelScope;
 
 /** Adapt the existing generic authoring shape, never a game ID or kernel dispatch. */
 export function reelSources(graph: ModelGraph): ReelSource[] {
@@ -67,32 +66,25 @@ export function reelSources(graph: ModelGraph): ReelSource[] {
       } else expected.nodes!.filter(node => node.nodeType === 'draw').forEach((node, reel) => stops.push({ scope, nodeId: shape.nodes.get(node.id)!.id, reel }));
       matched = true; break;
     }
-    const conditional = definition.nodes.some(node => node.nodeType === 'draw' && node.stateWriteKey === 'showPattern');
+    const conditional = conditionCandidates(graph, scope).length > 0;
     if (!matched && !conditional) continue;
     const key = JSON.stringify(stripKeys), existing = groups.get(key);
     if (existing) existing.stops.push(...stops);
     else groups.set(key, { key, label: prefix, rows, stripKeys, strips, stops });
   }
-  const conditionalScopes = Object.entries(graph.mechanics ?? {}).filter(([, definition]) => definition.nodes.some(node => node.nodeType === 'draw' && node.stateWriteKey === 'showPattern'));
-  // The existing generic helper shares one showPatterns table. Multiple independent consumers need a separate mapping.
-  if (conditionalScopes.length > 1) return [];
+  const conditionalScopes = Object.entries(graph.mechanics ?? {}).filter(([scope]) => conditionCandidates(graph, scope).length > 0);
   for (const source of groups.values()) {
     for (const [scope, definition] of conditionalScopes) {
-      const condition = findReelCondition(graph, source, scope, sameScope);
+      const condition = findReelCondition(graph, source, scope);
       if (!condition) continue;
       source.conditions = [...source.conditions ?? [], condition];
       definition.nodes.filter(node => node.nodeType === 'draw' && /^stop\d+$/.test(String(node.stateWriteKey))).forEach(node => source.stops.push({ scope, nodeId: node.id, reel: Number(String(node.stateWriteKey).slice(4)) }));
     }
   }
-  if (conditionalScopes.length && ![...groups.values()].some(source => source.conditions?.length)) return [];
-  if (conditionalScopes.length) {
-    const reference = (value: unknown): boolean => {
-      const expression = object(value);
-      if (!expression) return Array.isArray(value) && value.some(reference);
-      if (expression.exprType === 'fieldAccess' && expression.target === 'state' && Array.isArray(expression.path) && ['showPatterns', 'showPattern'].includes(String(expression.path[0]))) return true;
-      return Object.values(expression).some(reference);
-    };
-    if (reference(graph.expressions) || Object.entries(graph.mechanics ?? {}).some(([scope, definition]) => !conditionalScopes.some(([name]) => name === scope) && reference(definition.expressions))) return [];
+  for (const [key, source] of groups) for (const condition of source.conditions ?? []) {
+    const keys = conditionStateKeys(condition), owned = new Set(source.conditions!.map(condition => condition.scope));
+    const reference = (value: unknown): boolean => { const expression = object(value); if (!expression) return Array.isArray(value) && value.some(reference); if (expression.exprType === 'fieldAccess' && expression.target === 'state' && Array.isArray(expression.path) && [keys.patterns, keys.pattern].includes(String(expression.path[0]))) return true; return Object.values(expression).some(reference); };
+    if (reference(graph.expressions) || Object.entries(graph.mechanics ?? {}).some(([scope, definition]) => !owned.has(scope) && reference(definition.expressions))) groups.delete(key);
   }
   const allStops = new Set([...groups.values()].flatMap(source => source.stops.map(stop => JSON.stringify([stop.scope, stop.nodeId]))));
   // A conditioned or customized stop source is coupled to the same state; don't rewrite only one domain.

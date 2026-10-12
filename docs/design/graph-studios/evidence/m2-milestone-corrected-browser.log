@@ -1,0 +1,16 @@
+
+Running 7 tests using 1 worker
+
+(node:423668) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:423668) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  1 [chromium] › e2e/reel-paytable-studio.spec.ts:88:39 › Studio: ordinary cluster size edits change executed payouts across minimum-five and isolated-cell boundaries (2.2s)
+  ✓  2 [chromium] › e2e/reel-paytable-studio.spec.ts:88:39 › Studio: weighted cluster size edits change executed payouts across minimum-five and isolated-cell boundaries (2.1s)
+  ✓  3 [chromium] › e2e/studio-source-lifecycle.spec.ts:24:49 › Studio private cells: copying the second use and editing only its source changes real probability while the first source stays intact (1.5s)
+  ✓  4 [chromium] › e2e/studio-spreadsheets.spec.ts:83:1 › Studio clipboard: keyboard rectangle selection copies exact values and an oversized paste leaves every input intact (1.3s)
+  ✓  5 [chromium] › e2e/studio-symbol-lifecycle.spec.ts:17:39 › Studio ordinary cluster eligibility: new B row becomes a real one-cell payout, removal retains drawing/dictionary source (2.5s)
+  ✓  6 [chromium] › e2e/studio-symbol-lifecycle.spec.ts:17:39 › Studio weighted cluster eligibility: new B row becomes a real one-cell payout, removal retains drawing/dictionary source (2.9s)
+  ✓  7 [chromium] › e2e/studio-symbol-lifecycle.spec.ts:23:1 › Studio line eligibility: authored wild row reconciles computed bound and can be removed to restore its derived rule (1.7s)
+
+  7 passed (15.0s)

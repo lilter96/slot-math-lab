@@ -1,4 +1,5 @@
 import { canonicalJson } from '../hash';
+import { conditionStateKeys } from '../reelConditioning';
 import type { ModelGraph } from '../modelProjection';
 import { changeReels, reelSources, type ReelSource } from '../reelCommands';
 import { indexGraphSources, sourceKey, type NodeSource, type SourcePath } from './sourceIndex';
@@ -33,7 +34,7 @@ export function reelBindings(graph: ModelGraph): ReelBinding[] {
       }
     }
     const paths: SourcePath[] = [['boardConfig'], ['symbols'], ...source.stripKeys.map(key => ['initialState', key]), ...[...scopes].map(scope => ['mechanics', scope])];
-    if (source.conditions?.length) paths.push(['initialState', 'showPatterns'], ['initialState', 'showPattern']);
+    for (const condition of source.conditions ?? []) { const keys = conditionStateKeys(condition); paths.push(['initialState', keys.patterns], ['initialState', keys.pattern]); }
     for (const use of uses.filter(node => node.scope === null)) paths.push(use.path);
     const reads = paths.map(path => ({ path, fingerprint: canonicalJson({ value: atPath(graph, path) }) }));
     const writes: SourcePath[] = source.stripKeys.map(key => ['initialState', key]);
@@ -41,7 +42,7 @@ export function reelBindings(graph: ModelGraph): ReelBinding[] {
       const node = index.nodes.find(node => node.key === sourceKey(stop.scope, stop.nodeId));
       if (node && !source.conditions?.some(condition => condition.scope === stop.scope)) writes.push([...node.path, 'drawWeights']);
     }
-    for (const condition of source.conditions ?? []) writes.push(['mechanics', condition.scope], ['initialState', 'showPatterns']);
+    for (const condition of source.conditions ?? []) writes.push(['mechanics', condition.scope], ['initialState', conditionStateKeys(condition).patterns]);
     return { version: 1, key: source.key, revision: canonicalJson(reads), source, encoding: 'column-major', weightUnit: 'integer stop weight', reads, writes, uses,
       stops: source.strips.map(strip => strip.map((symbol, position) => ({ identity: String(position), symbol }))) };
   });

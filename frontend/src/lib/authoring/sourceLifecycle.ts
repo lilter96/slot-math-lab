@@ -11,6 +11,7 @@ import { cellBindings } from './cellBindings';
 import { weightBindings } from './weightBindings';
 import { exactInteger, normalizedCredits } from './exactAmounts';
 import { prizeBindings } from './prizeBindings';
+import { conditionStateKeys } from '../reelConditioning';
 import { num, state, toNumber } from '../../games/shared/graph/expr';
 
 export interface OutcomeInput { id: string; weight: string; payload: string }
@@ -92,15 +93,15 @@ export function createDrawingSource(graph: ModelGraph, input: SourceDefinitionIn
   return next;
 }
 
-export interface DefinitionCopyPlan { nodeKey: string; definition: string; copied: string[]; privateStrips: string[]; uses: number }
+export interface DefinitionCopyPlan { nodeKey: string; definition: string; copied: string[]; privateStrips: string[]; privateConditionFields: string[]; uses: number }
 export function definitionCopyPlan(graph: ModelGraph, nodeKey: string): DefinitionCopyPlan {
   const target = resolveNodeSource(graph, nodeKey); if (target.node.nodeType !== 'library' || typeof target.node.mechanicName !== 'string') throw new Error('Choose one Library use of a source.');
   const definition = target.node.mechanicName, copied = new Set<string>(), active = new Set<string>();
   const visit = (name: string) => { if (active.has(name)) throw new Error('Recursive source definitions cannot be copied by this workflow.'); if (copied.has(name)) return; const scope = graph.mechanics?.[name]; if (!scope) throw new Error('A referenced definition is missing.'); active.add(name); for (const node of scope.nodes) if (node.nodeType === 'library' && node.mechanicName) visit(node.mechanicName); active.delete(name); copied.add(name); };
   visit(definition);
   const reels = reelBindings(graph).filter(binding => binding.source.stops.some(stop => copied.has(stop.scope)));
-  if (reels.some(binding => binding.source.conditions?.some(condition => copied.has(condition.scope)))) throw new Error('This conditioned source needs a private conditioning-state closure. Edit its existing strips; cloning that contract is not yet supported.');
-  return { nodeKey, definition, copied: [...copied], privateStrips: [...new Set(reels.flatMap(binding => binding.source.stripKeys))], uses: indexGraphSources(graph).libraryUses.filter(use => use.definition === definition).length };
+  const privateConditionFields = [...new Set(reels.flatMap(binding => binding.source.conditions?.filter(condition => copied.has(condition.scope)).flatMap(condition => Object.values(conditionStateKeys(condition))) ?? []))];
+  return { nodeKey, definition, copied: [...copied], privateStrips: [...new Set(reels.flatMap(binding => binding.source.stripKeys))], privateConditionFields, uses: indexGraphSources(graph).libraryUses.filter(use => use.definition === definition).length };
 }
 /** One selected use gets private definitions/strip data; other callers and game-state keys retain their contracts. */
 export function copySourceUse(graph: ModelGraph, nodeKey: string, name: string): ModelGraph {
@@ -108,7 +109,7 @@ export function copySourceUse(graph: ModelGraph, nodeKey: string, name: string):
   const plan = definitionCopyPlan(graph, nodeKey), next = structuredClone(graph), taken = new Set(Object.keys(next.mechanics!)), names = new Map([[plan.definition, name]]); taken.add(name);
   for (const original of plan.copied) if (!names.has(original)) names.set(original, freshName(`${name}-${original}`, taken));
   const initial = next.initialState as Record<string, unknown>, stateNames = new Map<string, string>();
-  for (const key of plan.privateStrips) { const replacement = `${name}_${key}`; if (Object.hasOwn(initial, replacement)) throw new Error('A private strip state key already exists. Choose another name.'); stateNames.set(key, replacement); initial[replacement] = structuredClone(initial[key]); }
+  for (const key of [...plan.privateStrips, ...plan.privateConditionFields]) { const replacement = `${name}_${key}`; if (Object.hasOwn(initial, replacement)) throw new Error('A private strip state key already exists. Choose another name.'); stateNames.set(key, replacement); initial[replacement] = structuredClone(initial[key]); }
   const rename = (value: unknown): void => {
     if (!value || typeof value !== 'object') return; if (Array.isArray(value)) { value.forEach(rename); return; }
     const record = value as Record<string, unknown>;
@@ -117,7 +118,7 @@ export function copySourceUse(graph: ModelGraph, nodeKey: string, name: string):
     Object.values(record).forEach(rename);
   };
   for (const original of plan.copied) {
-    const definition = structuredClone(graph.mechanics![original]); definition.name = names.get(original); definition.nodes = definition.nodes.map(node => node.mechanicName && names.has(node.mechanicName) ? { ...node, mechanicName: names.get(node.mechanicName) } : node); rename(definition);
+    const definition = structuredClone(graph.mechanics![original]); definition.name = names.get(original); definition.nodes = definition.nodes.map(node => node.mechanicName && names.has(node.mechanicName) ? { ...node, mechanicName: names.get(node.mechanicName) } : node); rename(definition.expressions); for (const node of definition.nodes) { if (typeof node.stateWriteKey === 'string' && stateNames.has(node.stateWriteKey)) node.stateWriteKey = stateNames.get(node.stateWriteKey); if (typeof node.stateKey === 'string' && stateNames.has(node.stateKey)) node.stateKey = stateNames.get(node.stateKey); rename(node.parameters); }
     next.mechanics![names.get(original)!] = definition;
   }
   (resolveNodeSource(next, nodeKey).node as ModelNode).mechanicName = name; return next;

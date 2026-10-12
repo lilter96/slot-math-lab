@@ -1,0 +1,42 @@
+{
+  "base": "http://127.0.0.1:4187",
+  "records": [
+    {
+      "slug": "x7-bought",
+      "width": 390,
+      "height": 844,
+      "state": "sources",
+      "max": 1113,
+      "document": 390,
+      "viewport": 390,
+      "zoom": "1",
+      "scale": 1
+    },
+    {
+      "slug": "x7-bought",
+      "width": 390,
+      "height": 844,
+      "state": "landing-domain",
+      "max": 1092,
+      "document": 390,
+      "viewport": 390,
+      "zoom": "1",
+      "scale": 1
+    },
+    {
+      "slug": "x7-bought",
+      "width": 390,
+      "height": 844,
+      "state": "inspector",
+      "max": 1092,
+      "document": 390,
+      "viewport": 390,
+      "zoom": "1",
+      "scale": 1
+    },
+    {
+      "slug": "x7-bought",
+      "errors": []
+    }
+  ]
+}

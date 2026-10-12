@@ -1,0 +1,4 @@
+src/lib/reelConditioning.ts(20,3): error TS2322: Type '{ patternsKey: string; patternKey: {}; }[]' is not assignable to type '{ patternsKey: string; patternKey: string; }[]'.
+  Type '{ patternsKey: string; patternKey: {}; }' is not assignable to type '{ patternsKey: string; patternKey: string; }'.
+    Types of property 'patternKey' are incompatible.
+      Type '{}' is not assignable to type 'string'.
