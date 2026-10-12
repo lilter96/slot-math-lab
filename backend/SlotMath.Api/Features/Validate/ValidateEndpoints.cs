@@ -21,6 +21,21 @@ public static class ValidateEndpoints
             try
             {
                 config = ConfigsEndpoints.DeserializeConfig(request.Config);
+                if (config is null)
+                {
+                    return Results.BadRequest(new ValidateResponse
+                    {
+                        IsValid = false,
+                        Errors = new[]
+                        {
+                            new ValidateErrorItem
+                            {
+                                Code = "INVALID_CONFIG",
+                                Message = "Configuration is missing or null."
+                            }
+                        }
+                    });
+                }
             }
             catch (Exception ex) when (ex is JsonException or NotSupportedException or InvalidOperationException)
             {

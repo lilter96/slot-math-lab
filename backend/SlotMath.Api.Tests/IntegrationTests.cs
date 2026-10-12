@@ -1,6 +1,8 @@
+using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
 using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using SlotMath.Api.Infrastructure;
 using SlotMath.Core.Mechanics;
@@ -285,6 +287,25 @@ public class IntegrationTests : IClassFixture<WebApplicationFactory<Program>>, I
 
         var body = await response.Content.ReadFromJsonAsync<JsonElement>();
         Assert.True(body.GetProperty("isValid").GetBoolean());
+    }
+
+    [Fact]
+    public async Task Validate_NullConfig_ReturnErrors()
+    {
+        object? config = null;
+        var response = await _client.PostAsJsonAsync("/api/validate", new { config });
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+
+        var body = await response.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.False(body.GetProperty("isValid").GetBoolean());
+
+        var errors = body.GetProperty("errors");
+        var errorCodes = errors.EnumerateArray()
+            .Select(e => e.GetProperty("code").GetString())
+            .ToList();
+
+        Assert.Contains("INVALID_CONFIG", errorCodes);
     }
 
     [Fact]
