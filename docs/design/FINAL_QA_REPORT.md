@@ -145,3 +145,7 @@ Remaining keyboard/async/table/rubric/human and Core/Rider gates are tracked in 
 ## Shared validation lifecycle
 
 482c548 aborts validation on source/project/path changes and cancels free-spin/payout work on unmount. Real held compiler responses prove change-and-restore and unchanged-model nested-path cancellation. Build/touched lint pass; Chromium initially 8/9 then only failed navigation case 1/1; Firefox/WebKit 15/16 then only failed WebKit transport-observation case 1/1. See [validation review](qa/VALIDATION_LIFECYCLE_REVIEW.md) for retained failures, independent expectation/Undo evidence and remaining gates. No full suites or release-readiness claim.
+
+## Controlled graph/context races
+
+New tests prove actual delayed node-focus cancellation across same-ID projects/mechanics and newer selections, including forced cancelled-callback replay and a working active control. Mounted nested data execution aborts on a real toolbar context change; a fresh API execution succeeds. Scoped lint, Chromium 5/5 and Firefox/WebKit 10/10 pass. No app changes, rebuild or broad suites. See [race review and exact evidence scope](qa/FOCUS_SCOPE_REVIEW.md). Whole-goal and required cleanup gates remain open.

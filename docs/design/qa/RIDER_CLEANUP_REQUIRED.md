@@ -171,3 +171,5 @@ Data execution follow-up (7191f0c): ProjectDataEditor.tsx above and new `fronten
 Weighted/project async follow-up (5913d07): WeightedDrawEditor.tsx and Projects.tsx listed above plus new `frontend/e2e/weighted-async.spec.ts` still require Reformat and Full Cleanup. Actual standalone attempts exit 3; Full Cleanup unavailable. Logs weighted-async-*-rider.log and project-import-async-rider.log.
 
 Validation lifecycle follow-up (482c548): existing validatedModelEdit.ts, Features.tsx, ClusterPayoutEditor.tsx and reel-strips.spec.ts entries remain affected; new `frontend/e2e/validation-lifecycle.spec.ts` also requires Reformat/Full Cleanup. Actual standalone passes exit 3; no Full Cleanup success. Logs validation-lifecycle-*-rider.log.
+
+Controlled race tests: new `frontend/e2e/focus-scope.spec.ts` and changed `frontend/e2e/data-execution-scope.spec.ts` require both passes. Actual standalone attempts exit 3; Full Cleanup remains unavailable. Logs focus-scope-rider.log and nested-execution-rider.log.
