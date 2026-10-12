@@ -6,8 +6,10 @@ import { Ic, NODE_ACCENT } from '../../Icons';
 import ProvBadge from '../../ProvBadge';
 import type { Provenance } from '../../ProvBadge';
 import { openMechanic } from '../../../lib/projectFiles';
+import { dataPorts } from '../../../lib/graphConnections';
 
 interface BaseNodeProps {
+  id: string;
   data: GraphNodeData;
   selected: boolean;
 }
@@ -24,18 +26,14 @@ const iconMap: Record<string, keyof typeof Ic> = {
   sink: 'sink',
 };
 
-const BaseNodeCard: FC<BaseNodeProps> = ({ data, selected }) => {
+const BaseNodeCard: FC<BaseNodeProps> = ({ id, data, selected }) => {
   const accent = NODE_ACCENT[data.nodeType] ?? 'var(--text)';
   const iconKey = iconMap[data.nodeType] ?? 'draw';
   const IconC = Ic[iconKey];
   const lvlCls = data.level === 'b' ? 'node-lvl b' : data.level === 'c' ? 'node-lvl plugin' : 'node-lvl';
   const lvlTxt = data.level === 'b' ? 'expr' : data.level === 'c' ? 'plugin' : 'L0';
-  // Draw nodes generate values — they have no input handles
-  const hasIn = data.nodeType !== 'draw' || !!(data.backendNode as { inputs?: object } | undefined)?.inputs;
-  const hasOut = data.nodeType !== 'sink' && data.nodeType !== 'branch' && data.nodeType !== 'loop';
-  const backendNode = data.backendNode as { inputs?: Record<string, unknown>; outputs?: Record<string, unknown> } | undefined;
-  const inputPorts = Object.keys(backendNode?.inputs ?? {});
-  const outputPorts = Object.keys(backendNode?.outputs ?? {});
+  const inputPorts = dataPorts(id, data, 'inputs');
+  const outputPorts = dataPorts(id, data, 'outputs');
   const liveRtp = useAppStore((s) => s.liveRtp);
   const liveProvenance = useAppStore((s) => s.liveProvenance);
   const canOpen = useAppStore(s => !!(s.tables.mechanics as Record<string, unknown>)?.[String(data.mechanicName)]);
@@ -49,7 +47,7 @@ const BaseNodeCard: FC<BaseNodeProps> = ({ data, selected }) => {
 
   return (
     <div className={'node' + (selected ? ' selected' : '')} style={{ '--sel': accent } as React.CSSProperties}>
-      {hasIn && (inputPorts.length ? inputPorts.map((id, index) => <Handle key={id} id={id} type="target" position={Position.Left} className="port in" style={{ top: `${(index + 1) * 100 / (inputPorts.length + 1)}%` }} />) : <Handle type="target" position={Position.Left} className="port in" />)}
+      {inputPorts.map((port, index) => <Handle key={port.id} id={port.id} type="target" position={Position.Left} className="port in" title={`${port.id}: ${port.type}`} style={{ top: `${(index + 1) * 100 / (inputPorts.length + 1)}%` }} />)}
       <div className="node-head">
         <span className="node-ic" style={{ '--nc': accent } as React.CSSProperties}><IconC /></span>
         <div className="node-tt">
@@ -125,23 +123,7 @@ const BaseNodeCard: FC<BaseNodeProps> = ({ data, selected }) => {
           </div>
         )}
       </div>
-      {hasOut && (outputPorts.length ? outputPorts.map((id, index) => <Handle key={id} id={id} type="source" position={Position.Right} className="port out" style={{ top: `${(index + 1) * 100 / (outputPorts.length + 1)}%` }} />) : <Handle type="source" position={Position.Right} className="port out" />)}
-      {data.nodeType === 'branch' && (
-        <>
-          <Handle id="true" type="source" position={Position.Right}
-            style={{ top: '33%' }} className="port out" />
-          <Handle id="false" type="source" position={Position.Right}
-            style={{ top: '67%' }} className="port out" />
-        </>
-      )}
-      {data.nodeType === 'loop' && (
-        <>
-          <Handle id="body" type="source" position={Position.Right}
-            style={{ top: '35%' }} className="port out" />
-          <Handle id="exit" type="source" position={Position.Right}
-            style={{ top: '65%' }} className="port out" />
-        </>
-      )}
+      {outputPorts.map((port, index) => <Handle key={port.id} id={port.id} type="source" position={Position.Right} className="port out" title={`${port.id}: ${port.type}`} style={{ top: `${(index + 1) * 100 / (outputPorts.length + 1)}%` }} />)}
     </div>
   );
 };

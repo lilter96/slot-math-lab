@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { browserStorageKey } from '../lib/browserIdentity';
 import { LIMITS } from '../lib/limits';
+import { connectionError, nodePorts } from '../lib/graphConnections';
 import {
   applyNodeChanges,
   applyEdgeChanges,
@@ -340,10 +341,13 @@ export const useAppStore = create<AppState>((set, get) => ({
     })),
 
   onConnect: (connection) => {
-    const { nodes, setEdgeValidationError } = get();
+    const { nodes, edges, setEdgeValidationError } = get();
     const source = nodes.find((n) => n.id === connection.source);
     const target = nodes.find((n) => n.id === connection.target);
+    const err = connectionError(nodes, edges, connection);
+    if (err) { setEdgeValidationError(err); return; }
     if (!source || !target) return;
+    setEdgeValidationError(null);
 
     const edgeCount = get().edges.length;
     if (edgeCount >= LIMITS.maxEdges) {
@@ -351,24 +355,15 @@ export const useAppStore = create<AppState>((set, get) => ({
       return;
     }
 
-    const err = validateConnection(
-      source.data?.nodeType ?? 'draw',
-      target.data?.nodeType ?? 'sink',
-    );
-    if (err) {
-      setEdgeValidationError(err);
-      return;
-    }
-    setEdgeValidationError(null);
     set((s) => ({
       edges: [
         ...s.edges,
         {
-          id: `e-${connection.source}-${connection.target}`,
+          id: `e-${crypto.randomUUID()}`,
           source: connection.source,
           target: connection.target,
-          sourceHandle: connection.sourceHandle ?? undefined,
-          targetHandle: connection.targetHandle ?? undefined,
+          sourceHandle: connection.sourceHandle ?? nodePorts(source, 'outputs')[0]?.id,
+          targetHandle: connection.targetHandle ?? nodePorts(target, 'inputs')[0]?.id,
           type: 'provenance',
         } as GraphEdge,
       ],

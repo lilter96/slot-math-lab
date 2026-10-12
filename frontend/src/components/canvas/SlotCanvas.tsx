@@ -151,7 +151,7 @@ function CanvasSurface() {
           color="oklch(0.32 0.014 255)"
         />
       </ReactFlow>
-      <CanvasToolbar />
+      <CanvasToolbar canConnect={!smallScreen && interactive} />
       {smallScreen && <p className="mobile-graph-notice" role="status">Graph movement and connections are read only on this screen. Open on desktop for full authoring.</p>}
       {edgeError && (
         <div
