@@ -29,3 +29,7 @@ test('External catalog operations and dynamic expressions stay explicit without 
   expect(index.libraryUses[0].present).toBe(false); expect(index.nodes[1].node.weightExpressionId).toBe('weights');
   expect(index.stateWrites).toEqual([]); expect(index.stateReads[0].statePath).toEqual(['weights', 0]); expect(index.expressions).toHaveLength(1);
 });
+test('PutState declares its actual StateKey write rather than a ModifyState outputKey alias', () => {
+  const index = indexGraphSources({ nodes: [{ id: 'put', nodeType: 'putState', stateKey: 'actual', outputKey: 'opaque-extension' }, { id: 'data', nodeType: 'data', stateKey: 'lookup', rows: ['1', '2'] }], edges: [] });
+  expect(index.stateWrites.map(write => write.key)).toEqual(['actual', 'lookup']);
+});

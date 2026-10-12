@@ -46,7 +46,7 @@ export function indexGraphSources(graph: ModelGraph): GraphSourceIndex {
       const source: NodeSource = { key: sourceKey(scope, node.id), scope, id: node.id, path, node: node as ModelNode };
       index.nodes.push(source);
       if (node.nodeType === 'library' && typeof node.mechanicName === 'string') index.libraryUses.push({ source, definition: node.mechanicName, present: Object.hasOwn(definitions, node.mechanicName) });
-      const writeKey = node.nodeType === 'draw' ? node.stateWriteKey : ['putState', 'modifyState'].includes(node.nodeType) ? node.outputKey : undefined;
+      const writeKey = node.nodeType === 'draw' ? node.stateWriteKey : ['putState', 'data'].includes(node.nodeType) ? node.stateKey : node.nodeType === 'modifyState' ? node.outputKey : undefined;
       if (typeof writeKey === 'string') index.stateWrites.push({ source, key: writeKey });
       reads(node, path);
     });

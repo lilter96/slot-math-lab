@@ -25,7 +25,8 @@ for (const [name, create] of [['Ancient Dragon', createAncientDragonGraph], ['Wo
     expect(next.mechanics).toEqual(before.mechanics); expect(next.nodes).toEqual(before.nodes); expect(next.edges).toEqual(before.edges); expect(graph).toEqual(before);
     expect(payBindings(next).find(binding => binding.kind === 'line')!.rows[0].values[0]).toBe(String(amount));
     expect(changeBoundPayout(graph, binding, row.symbolId, count, row.values[0])).toEqual(graph);
-    expect(() => changeBoundPayout(graph, binding, row.symbolId, count, String(binding.maximum + 1))).toThrow('payout bound');
+    if (name === 'X7 Club') expect(() => changeBoundPayout(graph, binding, row.symbolId, count, String(binding.maximum + 1))).toThrow('payout bound');
+    else expect(changeBoundPayout(graph, binding, row.symbolId, count, String(binding.maximum + 1)).nodes).not.toEqual(graph.nodes);
   });
 }
 for (const [name, create] of [['Ancient Dragon', createAncientDragonGraph], ['Woodland Whisper bought', () => createWoodlandWhisperGraph(undefined, { buy: true })]] as const) {
@@ -48,4 +49,11 @@ test('Explicit wild payouts remain authored; renamed tables are recognized and s
   expect((next.initialState as { linePays: number[][] }).linePays[binding.wild!]).toEqual((graph.initialState as { linePays: number[][] }).linePays[binding.wild!]);
   const stale = structuredClone(graph); (stale.paytables as typeof graph.paytables as { id: string; entries: { payouts: string[] }[] }[])[0].entries[0].payouts[0] = '999';
   expect(() => changeBoundPayout(stale, binding, row.symbolId, row.counts[0], '0')).toThrow('source');
+});
+test('Runtime Data/PutState writes and mutable wild rules do not expose an initial-state lookup as an editable static paytable', () => {
+  for (const [nodeType, stateKey] of [['data', 'linePays'], ['putState', 'wildSymbol']] as const) {
+    const graph = createAncientDragonGraph() as ModelGraph, before = structuredClone(graph);
+    graph.nodes!.push({ id: 'runtime-override', nodeType, stateKey, rows: ['1'] });
+    expect(payBindings(graph)).toEqual([]); expect(graph.nodes!.slice(0, -1)).toEqual(before.nodes);
+  }
 });

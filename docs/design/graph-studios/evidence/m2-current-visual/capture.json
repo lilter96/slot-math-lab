@@ -1,0 +1,941 @@
+{
+  "base": "http://127.0.0.1:4187",
+  "records": [
+    {
+      "slug": "ancient-dragon",
+      "view": "Sources",
+      "width": 1920,
+      "height": 1080,
+      "scale": 1,
+      "document": 1920,
+      "viewport": 1920,
+      "zoom": "1"
+    },
+    {
+      "slug": "ancient-dragon",
+      "view": "Sources",
+      "width": 1920,
+      "height": 1080,
+      "region": "graph-studio",
+      "y": 360
+    },
+    {
+      "slug": "ancient-dragon",
+      "view": "Sources",
+      "width": 1920,
+      "height": 1080,
+      "region": "reel-scroll",
+      "y": 546.4
+    },
+    {
+      "slug": "ancient-dragon",
+      "view": "Sources",
+      "width": 1920,
+      "height": 1080,
+      "region": "reel-scroll",
+      "y": 1092.8
+    },
+    {
+      "slug": "ancient-dragon",
+      "view": "Sources",
+      "width": 1920,
+      "height": 1080,
+      "region": "reel-scroll",
+      "y": 1637
+    },
+    {
+      "slug": "ancient-dragon",
+      "view": "Paytables",
+      "width": 1920,
+      "height": 1080,
+      "scale": 1,
+      "document": 1920,
+      "viewport": 1920,
+      "zoom": "1"
+    },
+    {
+      "slug": "ancient-dragon",
+      "view": "Paytables",
+      "width": 1920,
+      "height": 1080,
+      "region": "graph-studio",
+      "y": 535
+    },
+    {
+      "slug": "ancient-dragon",
+      "view": "Paylines",
+      "width": 1920,
+      "height": 1080,
+      "scale": 1,
+      "document": 1920,
+      "viewport": 1920,
+      "zoom": "1"
+    },
+    {
+      "slug": "ancient-dragon",
+      "view": "Paylines",
+      "width": 1920,
+      "height": 1080,
+      "region": "graph-studio",
+      "y": 68
+    },
+    {
+      "slug": "ancient-dragon",
+      "view": "Paylines",
+      "width": 1920,
+      "height": 1080,
+      "region": "studio-line-list",
+      "y": 416
+    },
+    {
+      "slug": "ancient-dragon",
+      "view": "Paylines",
+      "width": 1920,
+      "height": 1080,
+      "region": "studio-line-list",
+      "y": 721
+    },
+    {
+      "slug": "ancient-dragon",
+      "view": "Symbols",
+      "width": 1920,
+      "height": 1080,
+      "scale": 1,
+      "document": 1920,
+      "viewport": 1920,
+      "zoom": "1"
+    },
+    {
+      "slug": "ancient-dragon",
+      "view": "Symbols",
+      "width": 1920,
+      "height": 1080,
+      "region": "graph-studio",
+      "y": 820.8000000000001
+    },
+    {
+      "slug": "ancient-dragon",
+      "view": "Symbols",
+      "width": 1920,
+      "height": 1080,
+      "region": "graph-studio",
+      "y": 828
+    },
+    {
+      "slug": "ancient-dragon",
+      "view": "Sources",
+      "width": 1440,
+      "height": 900,
+      "scale": 1,
+      "document": 1440,
+      "viewport": 1440,
+      "zoom": "1"
+    },
+    {
+      "slug": "ancient-dragon",
+      "view": "Sources",
+      "width": 1440,
+      "height": 900,
+      "region": "graph-studio",
+      "y": 360
+    },
+    {
+      "slug": "ancient-dragon",
+      "view": "Sources",
+      "width": 1440,
+      "height": 900,
+      "region": "reel-scroll",
+      "y": 402.40000000000003
+    },
+    {
+      "slug": "ancient-dragon",
+      "view": "Sources",
+      "width": 1440,
+      "height": 900,
+      "region": "reel-scroll",
+      "y": 804.8000000000001
+    },
+    {
+      "slug": "ancient-dragon",
+      "view": "Sources",
+      "width": 1440,
+      "height": 900,
+      "region": "reel-scroll",
+      "y": 1207.2
+    },
+    {
+      "slug": "ancient-dragon",
+      "view": "Sources",
+      "width": 1440,
+      "height": 900,
+      "region": "reel-scroll",
+      "y": 1609.6000000000001
+    },
+    {
+      "slug": "ancient-dragon",
+      "view": "Sources",
+      "width": 1440,
+      "height": 900,
+      "region": "reel-scroll",
+      "y": 1817
+    },
+    {
+      "slug": "ancient-dragon",
+      "view": "Paytables",
+      "width": 1440,
+      "height": 900,
+      "scale": 1,
+      "document": 1440,
+      "viewport": 1440,
+      "zoom": "1"
+    },
+    {
+      "slug": "ancient-dragon",
+      "view": "Paytables",
+      "width": 1440,
+      "height": 900,
+      "region": "graph-studio",
+      "y": 555
+    },
+    {
+      "slug": "ancient-dragon",
+      "view": "Paytables",
+      "width": 1440,
+      "height": 900,
+      "region": "studio-matrix-scroll",
+      "y": 188
+    },
+    {
+      "slug": "ancient-dragon",
+      "view": "Paylines",
+      "width": 1440,
+      "height": 900,
+      "scale": 1,
+      "document": 1440,
+      "viewport": 1440,
+      "zoom": "1"
+    },
+    {
+      "slug": "ancient-dragon",
+      "view": "Paylines",
+      "width": 1440,
+      "height": 900,
+      "region": "graph-studio",
+      "y": 248
+    },
+    {
+      "slug": "ancient-dragon",
+      "view": "Paylines",
+      "width": 1440,
+      "height": 900,
+      "region": "studio-line-list",
+      "y": 416
+    },
+    {
+      "slug": "ancient-dragon",
+      "view": "Paylines",
+      "width": 1440,
+      "height": 900,
+      "region": "studio-line-list",
+      "y": 721
+    },
+    {
+      "slug": "ancient-dragon",
+      "view": "Symbols",
+      "width": 1440,
+      "height": 900,
+      "scale": 1,
+      "document": 1440,
+      "viewport": 1440,
+      "zoom": "1"
+    },
+    {
+      "slug": "ancient-dragon",
+      "view": "Symbols",
+      "width": 1440,
+      "height": 900,
+      "region": "graph-studio",
+      "y": 676.8000000000001
+    },
+    {
+      "slug": "ancient-dragon",
+      "view": "Symbols",
+      "width": 1440,
+      "height": 900,
+      "region": "graph-studio",
+      "y": 1027
+    },
+    {
+      "slug": "ancient-dragon",
+      "view": "Sources",
+      "width": 1280,
+      "height": 800,
+      "scale": 1,
+      "document": 1280,
+      "viewport": 1280,
+      "zoom": "1"
+    },
+    {
+      "slug": "ancient-dragon",
+      "view": "Sources",
+      "width": 1280,
+      "height": 800,
+      "region": "graph-studio",
+      "y": 360
+    },
+    {
+      "slug": "ancient-dragon",
+      "view": "Sources",
+      "width": 1280,
+      "height": 800,
+      "region": "reel-scroll",
+      "y": 322.40000000000003
+    },
+    {
+      "slug": "ancient-dragon",
+      "view": "Sources",
+      "width": 1280,
+      "height": 800,
+      "region": "reel-scroll",
+      "y": 644.8000000000001
+    },
+    {
+      "slug": "ancient-dragon",
+      "view": "Sources",
+      "width": 1280,
+      "height": 800,
+      "region": "reel-scroll",
+      "y": 967.2
+    },
+    {
+      "slug": "ancient-dragon",
+      "view": "Sources",
+      "width": 1280,
+      "height": 800,
+      "region": "reel-scroll",
+      "y": 1289.6000000000001
+    },
+    {
+      "slug": "ancient-dragon",
+      "view": "Sources",
+      "width": 1280,
+      "height": 800,
+      "region": "reel-scroll",
+      "y": 1612.0000000000002
+    },
+    {
+      "slug": "ancient-dragon",
+      "view": "Sources",
+      "width": 1280,
+      "height": 800,
+      "region": "reel-scroll",
+      "y": 1917
+    },
+    {
+      "slug": "ancient-dragon",
+      "view": "Paytables",
+      "width": 1280,
+      "height": 800,
+      "scale": 1,
+      "document": 1280,
+      "viewport": 1280,
+      "zoom": "1"
+    },
+    {
+      "slug": "ancient-dragon",
+      "view": "Paytables",
+      "width": 1280,
+      "height": 800,
+      "region": "graph-studio",
+      "y": 555
+    },
+    {
+      "slug": "ancient-dragon",
+      "view": "Paytables",
+      "width": 1280,
+      "height": 800,
+      "region": "studio-matrix-scroll",
+      "y": 288
+    },
+    {
+      "slug": "ancient-dragon",
+      "view": "Paylines",
+      "width": 1280,
+      "height": 800,
+      "scale": 1,
+      "document": 1280,
+      "viewport": 1280,
+      "zoom": "1"
+    },
+    {
+      "slug": "ancient-dragon",
+      "view": "Paylines",
+      "width": 1280,
+      "height": 800,
+      "region": "graph-studio",
+      "y": 367
+    },
+    {
+      "slug": "ancient-dragon",
+      "view": "Paylines",
+      "width": 1280,
+      "height": 800,
+      "region": "studio-line-list",
+      "y": 416
+    },
+    {
+      "slug": "ancient-dragon",
+      "view": "Paylines",
+      "width": 1280,
+      "height": 800,
+      "region": "studio-line-list",
+      "y": 721
+    },
+    {
+      "slug": "ancient-dragon",
+      "view": "Symbols",
+      "width": 1280,
+      "height": 800,
+      "scale": 1,
+      "document": 1280,
+      "viewport": 1280,
+      "zoom": "1"
+    },
+    {
+      "slug": "ancient-dragon",
+      "view": "Symbols",
+      "width": 1280,
+      "height": 800,
+      "region": "graph-studio",
+      "y": 596.8000000000001
+    },
+    {
+      "slug": "ancient-dragon",
+      "view": "Symbols",
+      "width": 1280,
+      "height": 800,
+      "region": "graph-studio",
+      "y": 1127
+    },
+    {
+      "slug": "ancient-dragon",
+      "view": "Sources",
+      "width": 390,
+      "height": 844,
+      "scale": 1,
+      "document": 390,
+      "viewport": 390,
+      "zoom": "1"
+    },
+    {
+      "slug": "ancient-dragon",
+      "view": "Sources",
+      "width": 390,
+      "height": 844,
+      "region": "graph-studio",
+      "y": 577.6
+    },
+    {
+      "slug": "ancient-dragon",
+      "view": "Sources",
+      "width": 390,
+      "height": 844,
+      "region": "graph-studio",
+      "y": 836
+    },
+    {
+      "slug": "ancient-dragon",
+      "view": "Sources",
+      "width": 390,
+      "height": 844,
+      "region": "reel-scroll",
+      "y": 342.40000000000003
+    },
+    {
+      "slug": "ancient-dragon",
+      "view": "Sources",
+      "width": 390,
+      "height": 844,
+      "region": "reel-scroll",
+      "y": 684.8000000000001
+    },
+    {
+      "slug": "ancient-dragon",
+      "view": "Sources",
+      "width": 390,
+      "height": 844,
+      "region": "reel-scroll",
+      "y": 1027.2
+    },
+    {
+      "slug": "ancient-dragon",
+      "view": "Sources",
+      "width": 390,
+      "height": 844,
+      "region": "reel-scroll",
+      "y": 1369.6000000000001
+    },
+    {
+      "slug": "ancient-dragon",
+      "view": "Sources",
+      "width": 390,
+      "height": 844,
+      "region": "reel-scroll",
+      "y": 1712.0000000000002
+    },
+    {
+      "slug": "ancient-dragon",
+      "view": "Sources",
+      "width": 390,
+      "height": 844,
+      "region": "reel-scroll",
+      "y": 1910
+    },
+    {
+      "slug": "ancient-dragon",
+      "view": "Paytables",
+      "width": 390,
+      "height": 844,
+      "scale": 1,
+      "document": 390,
+      "viewport": 390,
+      "zoom": "1"
+    },
+    {
+      "slug": "ancient-dragon",
+      "view": "Paytables",
+      "width": 390,
+      "height": 844,
+      "region": "graph-studio",
+      "y": 577.6
+    },
+    {
+      "slug": "ancient-dragon",
+      "view": "Paytables",
+      "width": 390,
+      "height": 844,
+      "region": "graph-studio",
+      "y": 986
+    },
+    {
+      "slug": "ancient-dragon",
+      "view": "Paytables",
+      "width": 390,
+      "height": 844,
+      "region": "studio-matrix-scroll",
+      "y": 318
+    },
+    {
+      "slug": "ancient-dragon",
+      "view": "Paylines",
+      "width": 390,
+      "height": 844,
+      "scale": 1,
+      "document": 390,
+      "viewport": 390,
+      "zoom": "1"
+    },
+    {
+      "slug": "ancient-dragon",
+      "view": "Paylines",
+      "width": 390,
+      "height": 844,
+      "region": "graph-studio",
+      "y": 577.6
+    },
+    {
+      "slug": "ancient-dragon",
+      "view": "Paylines",
+      "width": 390,
+      "height": 844,
+      "region": "graph-studio",
+      "y": 705
+    },
+    {
+      "slug": "ancient-dragon",
+      "view": "Symbols",
+      "width": 390,
+      "height": 844,
+      "scale": 1,
+      "document": 390,
+      "viewport": 390,
+      "zoom": "1"
+    },
+    {
+      "slug": "ancient-dragon",
+      "view": "Symbols",
+      "width": 390,
+      "height": 844,
+      "region": "graph-studio",
+      "y": 577.6
+    },
+    {
+      "slug": "ancient-dragon",
+      "view": "Symbols",
+      "width": 390,
+      "height": 844,
+      "region": "graph-studio",
+      "y": 1155.2
+    },
+    {
+      "slug": "ancient-dragon",
+      "view": "Symbols",
+      "width": 390,
+      "height": 844,
+      "region": "graph-studio",
+      "y": 1732.8000000000002
+    },
+    {
+      "slug": "ancient-dragon",
+      "view": "Symbols",
+      "width": 390,
+      "height": 844,
+      "region": "graph-studio",
+      "y": 2310.4
+    },
+    {
+      "slug": "ancient-dragon",
+      "view": "Symbols",
+      "width": 390,
+      "height": 844,
+      "region": "graph-studio",
+      "y": 2888
+    },
+    {
+      "slug": "ancient-dragon",
+      "view": "Symbols",
+      "width": 390,
+      "height": 844,
+      "region": "graph-studio",
+      "y": 3309
+    },
+    {
+      "slug": "ancient-dragon",
+      "errors": []
+    },
+    {
+      "slug": "nine-lives-tgslots",
+      "view": "Sources",
+      "width": 1920,
+      "height": 1080,
+      "scale": 1,
+      "document": 1920,
+      "viewport": 1920,
+      "zoom": "1"
+    },
+    {
+      "slug": "nine-lives-tgslots",
+      "view": "Sources",
+      "width": 1920,
+      "height": 1080,
+      "region": "graph-studio",
+      "y": 452
+    },
+    {
+      "slug": "nine-lives-tgslots",
+      "view": "Paytables",
+      "width": 1920,
+      "height": 1080,
+      "scale": 1,
+      "document": 1920,
+      "viewport": 1920,
+      "zoom": "1"
+    },
+    {
+      "slug": "nine-lives-tgslots",
+      "view": "Paylines",
+      "width": 1920,
+      "height": 1080,
+      "scale": 1,
+      "document": 1920,
+      "viewport": 1920,
+      "zoom": "1"
+    },
+    {
+      "slug": "nine-lives-tgslots",
+      "view": "Symbols",
+      "width": 1920,
+      "height": 1080,
+      "scale": 1,
+      "document": 1920,
+      "viewport": 1920,
+      "zoom": "1"
+    },
+    {
+      "slug": "nine-lives-tgslots",
+      "view": "Symbols",
+      "width": 1920,
+      "height": 1080,
+      "region": "graph-studio",
+      "y": 285
+    },
+    {
+      "slug": "nine-lives-tgslots",
+      "view": "Sources",
+      "width": 1440,
+      "height": 900,
+      "scale": 1,
+      "document": 1440,
+      "viewport": 1440,
+      "zoom": "1"
+    },
+    {
+      "slug": "nine-lives-tgslots",
+      "view": "Sources",
+      "width": 1440,
+      "height": 900,
+      "region": "graph-studio",
+      "y": 585
+    },
+    {
+      "slug": "nine-lives-tgslots",
+      "view": "Sources",
+      "width": 1440,
+      "height": 900,
+      "region": "studio-matrix-scroll",
+      "y": 48
+    },
+    {
+      "slug": "nine-lives-tgslots",
+      "view": "Paytables",
+      "width": 1440,
+      "height": 900,
+      "scale": 1,
+      "document": 1440,
+      "viewport": 1440,
+      "zoom": "1"
+    },
+    {
+      "slug": "nine-lives-tgslots",
+      "view": "Paytables",
+      "width": 1440,
+      "height": 900,
+      "region": "graph-studio",
+      "y": 107
+    },
+    {
+      "slug": "nine-lives-tgslots",
+      "view": "Paylines",
+      "width": 1440,
+      "height": 900,
+      "scale": 1,
+      "document": 1440,
+      "viewport": 1440,
+      "zoom": "1"
+    },
+    {
+      "slug": "nine-lives-tgslots",
+      "view": "Symbols",
+      "width": 1440,
+      "height": 900,
+      "scale": 1,
+      "document": 1440,
+      "viewport": 1440,
+      "zoom": "1"
+    },
+    {
+      "slug": "nine-lives-tgslots",
+      "view": "Symbols",
+      "width": 1440,
+      "height": 900,
+      "region": "graph-studio",
+      "y": 484
+    },
+    {
+      "slug": "nine-lives-tgslots",
+      "view": "Sources",
+      "width": 1280,
+      "height": 800,
+      "scale": 1,
+      "document": 1280,
+      "viewport": 1280,
+      "zoom": "1"
+    },
+    {
+      "slug": "nine-lives-tgslots",
+      "view": "Sources",
+      "width": 1280,
+      "height": 800,
+      "region": "graph-studio",
+      "y": 585
+    },
+    {
+      "slug": "nine-lives-tgslots",
+      "view": "Sources",
+      "width": 1280,
+      "height": 800,
+      "region": "studio-matrix-scroll",
+      "y": 148
+    },
+    {
+      "slug": "nine-lives-tgslots",
+      "view": "Paytables",
+      "width": 1280,
+      "height": 800,
+      "scale": 1,
+      "document": 1280,
+      "viewport": 1280,
+      "zoom": "1"
+    },
+    {
+      "slug": "nine-lives-tgslots",
+      "view": "Paytables",
+      "width": 1280,
+      "height": 800,
+      "region": "graph-studio",
+      "y": 227
+    },
+    {
+      "slug": "nine-lives-tgslots",
+      "view": "Paylines",
+      "width": 1280,
+      "height": 800,
+      "scale": 1,
+      "document": 1280,
+      "viewport": 1280,
+      "zoom": "1"
+    },
+    {
+      "slug": "nine-lives-tgslots",
+      "view": "Symbols",
+      "width": 1280,
+      "height": 800,
+      "scale": 1,
+      "document": 1280,
+      "viewport": 1280,
+      "zoom": "1"
+    },
+    {
+      "slug": "nine-lives-tgslots",
+      "view": "Symbols",
+      "width": 1280,
+      "height": 800,
+      "region": "graph-studio",
+      "y": 584
+    },
+    {
+      "slug": "nine-lives-tgslots",
+      "view": "Sources",
+      "width": 390,
+      "height": 844,
+      "scale": 1,
+      "document": 390,
+      "viewport": 390,
+      "zoom": "1"
+    },
+    {
+      "slug": "nine-lives-tgslots",
+      "view": "Sources",
+      "width": 390,
+      "height": 844,
+      "region": "graph-studio",
+      "y": 577.6
+    },
+    {
+      "slug": "nine-lives-tgslots",
+      "view": "Sources",
+      "width": 390,
+      "height": 844,
+      "region": "graph-studio",
+      "y": 1052
+    },
+    {
+      "slug": "nine-lives-tgslots",
+      "view": "Sources",
+      "width": 390,
+      "height": 844,
+      "region": "studio-matrix-scroll",
+      "y": 384
+    },
+    {
+      "slug": "nine-lives-tgslots",
+      "view": "Sources",
+      "width": 390,
+      "height": 844,
+      "region": "studio-matrix-scroll",
+      "y": 477
+    },
+    {
+      "slug": "nine-lives-tgslots",
+      "view": "Paytables",
+      "width": 390,
+      "height": 844,
+      "scale": 1,
+      "document": 390,
+      "viewport": 390,
+      "zoom": "1"
+    },
+    {
+      "slug": "nine-lives-tgslots",
+      "view": "Paytables",
+      "width": 390,
+      "height": 844,
+      "region": "graph-studio",
+      "y": 471
+    },
+    {
+      "slug": "nine-lives-tgslots",
+      "view": "Paylines",
+      "width": 390,
+      "height": 844,
+      "scale": 1,
+      "document": 390,
+      "viewport": 390,
+      "zoom": "1"
+    },
+    {
+      "slug": "nine-lives-tgslots",
+      "view": "Paylines",
+      "width": 390,
+      "height": 844,
+      "region": "graph-studio",
+      "y": 228
+    },
+    {
+      "slug": "nine-lives-tgslots",
+      "view": "Symbols",
+      "width": 390,
+      "height": 844,
+      "scale": 1,
+      "document": 390,
+      "viewport": 390,
+      "zoom": "1"
+    },
+    {
+      "slug": "nine-lives-tgslots",
+      "view": "Symbols",
+      "width": 390,
+      "height": 844,
+      "region": "graph-studio",
+      "y": 577.6
+    },
+    {
+      "slug": "nine-lives-tgslots",
+      "view": "Symbols",
+      "width": 390,
+      "height": 844,
+      "region": "graph-studio",
+      "y": 1155.2
+    },
+    {
+      "slug": "nine-lives-tgslots",
+      "view": "Symbols",
+      "width": 390,
+      "height": 844,
+      "region": "graph-studio",
+      "y": 1732.8000000000002
+    },
+    {
+      "slug": "nine-lives-tgslots",
+      "view": "Symbols",
+      "width": 390,
+      "height": 844,
+      "region": "graph-studio",
+      "y": 1965
+    },
+    {
+      "slug": "nine-lives-tgslots",
+      "errors": []
+    }
+  ]
+}

@@ -16,6 +16,7 @@ const TABS = [
   { id: 'projects' as const, label: 'My projects', Icon: Ic.build },
   { id: 'overview' as const, label: 'Overview', Icon: Ic.build },
   { id: 'data' as const, path: 'model/data', label: 'Model data', Icon: Ic.draw },
+  { id: 'studio' as const, path: 'model/studio', label: 'Studio', Icon: Ic.evaluator },
   { id: 'features' as const, path: 'model/features', label: 'Features', Icon: Ic.loop },
   { id: 'build' as const, label: 'Build', Icon: Ic.build },
   { id: 'simulate' as const, label: 'Simulate', Icon: Ic.sim },
@@ -32,7 +33,7 @@ export default function Layout() {
   const location = useLocation();
   const tab = useAppStore((s) => s.tab);
   const setTab = useAppStore((s) => s.setTab);
-  const configName = useAppStore(s => !s.projectId ? null : s.graphTrail.length ? String(s.graphTrail[0].graph.name ?? s.configName ?? 'Untitled') : s.configName);
+  const configName = useAppStore(s => !s.projectId ? null : s.graphTrail.length ? String(s.graphTrail[0].graph.name ?? s.configName ?? 'Untitled model') : s.configName ?? 'Untitled model');
   const tweaks = useAppStore((s) => s.tweaks);
   const features = useFeaturesQuery().data ?? DEFAULT_FEATURES;
 
@@ -84,7 +85,7 @@ export default function Layout() {
           <span className="project-name">{configName ?? 'Choose a project'}</span>
         </NavLink>
 
-        <div className="topbar-right">{configName && <NavLink className="btn primary" to="/simulate">Run analysis</NavLink>}
+        <div className="topbar-right">{configName && location.pathname !== '/model/studio' && <NavLink className="btn primary" to="/simulate">Run analysis</NavLink>}
           {features.ai && <button className="btn" onClick={() => setShowAi(true)}>AI assist</button>}
           {/* The ported games are a page of their own: they play their graphs through the same endpoint as /play. */}
           {features.play && (

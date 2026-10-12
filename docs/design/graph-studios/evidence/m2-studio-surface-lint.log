@@ -1,0 +1,41 @@
+
+/home/terentiy/work/github-profile-audit/slot-math-lab-worktrees/precision-workbench-redesign/frontend/src/components/authoring/StudioShared.tsx
+   6:14  error  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+  11:17  error  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+
+/home/terentiy/work/github-profile-audit/slot-math-lab-worktrees/precision-workbench-redesign/frontend/src/pages/ReelPaytableStudio.tsx
+  47:40  error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+/home/terentiy/work/github-profile-audit/slot-math-lab-worktrees/precision-workbench-redesign/frontend/src/pages/ReelPaytableStudio.tsx:47:40
+  45 |   const [importSource, setImportSource] = useState<Source | null>(null), [importText, setImportText] = useState(''), [preview, setPreview] = useState<StudioPatch | null>(null), dialog = useRef<HTMLDialogElement>(null);
+  46 |   const canonical = canonicalJson(graph);
+> 47 |   useEffect(() => { let active = true; setHash(null); void configHash(JSON.parse(canonical)).then(value => { if (active) setHash(value); }); request.current?.abort(); return () => { active = false; request.current?.abort(); }; }, [canonical]);
+     |                                        ^^^^^^^ Avoid calling setState() directly within an effect
+  48 |   useEffect(() => {
+  49 |     if (!hash || hydrated.current) return; hydrated.current = true;
+  50 |     try { const loaded = readStudioDraft(projectId); draftRef.current = loaded; setDraft(loaded); } catch (error) { setStorageError(message(error)); }  react-hooks/set-state-in-effect
+  50:81  error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+/home/terentiy/work/github-profile-audit/slot-math-lab-worktrees/precision-workbench-redesign/frontend/src/pages/ReelPaytableStudio.tsx:50:81
+  48 |   useEffect(() => {
+  49 |     if (!hash || hydrated.current) return; hydrated.current = true;
+> 50 |     try { const loaded = readStudioDraft(projectId); draftRef.current = loaded; setDraft(loaded); } catch (error) { setStorageError(message(error)); }
+     |                                                                                 ^^^^^^^^ Avoid calling setState() directly within an effect
+  51 |   }, [hash, projectId]);
+  52 |   useEffect(() => { if (importSource) dialog.current?.showModal(); }, [importSource]);
+  53 |   const projection = useMemo(() => {                                                                                                                                                                                                                                                                                                                            react-hooks/set-state-in-effect
+
+✖ 4 problems (4 errors, 0 warnings)
+

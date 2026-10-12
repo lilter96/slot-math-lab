@@ -1,0 +1,32 @@
+
+Running 19 tests using 2 workers
+
+(node:181403) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:181404) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:181404) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:181403) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   2 unit/authoring-pay-bindings.spec.ts:9:1 › Exact payout text preserves long decimals/fractions and rejects incomplete or non-integral executable credits (11ms)
+  ✓   1 unit/authoring-pay-bindings.spec.ts:16:3 › Ancient Dragon: line edit synchronizes exact declared precision, runtime payout and derived wild while keeping other source (233ms)
+  ✓   3 unit/authoring-pay-bindings.spec.ts:16:3 › Woodland Whisper: line edit synchronizes exact declared precision, runtime payout and derived wild while keeping other source (296ms)
+  ✓   5 unit/authoring-pay-bindings.spec.ts:33:3 › Ancient Dragon: scatter total-bet units normalize to the actual round price (70ms)
+  ✓   4 unit/authoring-pay-bindings.spec.ts:16:3 › X7 Club: line edit synchronizes exact declared precision, runtime payout and derived wild while keeping other source (195ms)
+  ✓   7 unit/authoring-pay-bindings.spec.ts:42:1 › Explicit wild payouts remain authored; renamed tables are recognized and stale precision does not overwrite source (90ms)
+  ✓   6 unit/authoring-pay-bindings.spec.ts:33:3 › Woodland Whisper bought: scatter total-bet units normalize to the actual round price (135ms)
+  ✓   8 unit/authoring-payout-bounds.spec.ts:10:3 › Ancient Dragon: a highest payout increase updates the proven uncapped bound with the actual loop budget and price (86ms)
+  ✓   9 unit/authoring-payout-bounds.spec.ts:10:3 › Woodland Whisper: a highest payout increase updates the proven uncapped bound with the actual loop budget and price (90ms)
+  ✓  11 unit/authoring-payout-bounds.spec.ts:18:1 › Actual game-rule caps and unproven round accumulation stay unclassified and cannot be silently raised (104ms)
+  ✓  12 unit/authoring-payout-bounds.spec.ts:27:1 › Independent finite fixture has budget bound 15 and a six-credit payout needs bound 35 (21ms)
+  ✓  13 unit/authoring-source-index.spec.ts:10:1 › Source inventory keeps scoped string identities, inline reads, consumers and opaque source without mutation (5ms)
+  ✓  10 unit/authoring-payout-bounds.spec.ts:10:3 › Woodland bought: a highest payout increase updates the proven uncapped bound with the actual loop budget and price (195ms)
+  ✓  14 unit/authoring-source-index.spec.ts:18:1 › Source resolution follows IDs after ordering/renaming and refuses missing or duplicate edit targets (5ms)
+  ✓  16 unit/authoring-source-index.spec.ts:32:1 › PutState declares its actual StateKey write rather than a ModifyState outputKey alias (1ms)
+  ✓  15 unit/authoring-source-index.spec.ts:27:1 › External catalog operations and dynamic expressions stay explicit without inventing executable definitions (2ms)
+  ✓  17 unit/studio-edits.spec.ts:9:1 › A Studio draft composes source-local reel and weight edits into one untouched-base candidate (34ms)
+  ✓  19 unit/studio-edits.spec.ts:27:1 › Incomplete inputs stay in a draft, invalid candidates leave source untouched and replacing one coordinate retains other edits (64ms)
+  ✓  18 unit/studio-edits.spec.ts:18:1 › Batch payout edits share the original bound and regenerate the wild row once without order-dependent rejection (156ms)
+
+  19 passed (1.7s)
