@@ -93,3 +93,12 @@ Visible graph source 1973c4d enables native viewport filtering, with complete mo
 
 
 Source b752c03 improves working-text/field legibility, compact unsupported-board states and modal keyboard/focus behavior. Scoped Chromium 6/6 and Firefox/WebKit 4/4 pass; 20 actual viewport/AX observations have no overflow/unnamed audited controls, and the new link has 8.9245:1 contrast. [WORKBENCH_ACCESSIBILITY_REVIEW.md](qa/WORKBENCH_ACCESSIBILITY_REVIEW.md) states precise coverage and remaining acceptance limits. No complete suite was repeated or WCAG/practitioner acceptance claimed.
+
+
+## Compiler navigation and destructive graph follow-up
+
+286c257 adds authored root/nested node/edge focus and cancels obsolete compiler feedback by independent project identity/source. Scoped units 2/2, Chromium 3/3 plus added nested 1/1, Firefox/WebKit 6/6 pass; four actual viewport captures have no document overflow. See [validation review](qa/VALIDATION_NAVIGATION_REVIEW.md).
+
+e991928 adds explicit graph/inspector/outcome deletion confirmation. Chromium initial 3/4 and failed/new follow-up 2/2; Firefox/WebKit 7/8 and only failed WebKit rerun 1/1 pass after correcting test button naming/readiness. Build/touched lint pass. See [destructive graph review](qa/DESTRUCTIVE_GRAPH_REVIEW.md). No complete suite or math-backend test was run for these frontend changes; historical full counts above remain source-specific.
+
+The [requirement audit](REQUIREMENTS_AUDIT.md) records remaining table/keyboard/discovery/destructive-action work and release gates. The [practitioner review kit](PRACTITIONER_REVIEW_KIT.md) contains concrete tasks and scoring but no fabricated feedback. Required cleanup/full Core/human acceptance remain incomplete. This report does not claim the whole goal or release readiness is achieved.

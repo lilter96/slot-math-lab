@@ -121,3 +121,16 @@ Viewport filtering follow-up: scoped Reformat for SlotCanvas/new visibility test
 - `frontend/e2e/workbench-accessibility.spec.ts`
 
 Legibility/access follow-up: scoped Reformat for changed inspector/dialog/Overview/CSS/test files again exits 3. Frontend Full Cleanup remains unavailable; no required-pass success claimed. Logs: `workbench-legibility-rider.log`, `workbench-inspector-target-rider.log`, `workbench-legibility-layout-rider.log`.
+
+
+- `frontend/src/lib/validationSource.ts`
+- `frontend/unit/validation-source.spec.ts`
+- `frontend/e2e/validation-navigation.spec.ts`
+
+Validation navigation follow-up: GraphValidation and CanvasToolbar also require both passes. Scoped standalone attempts exit 3; frontend Full Cleanup cannot execute outside the solution. Actual evidence: `validation-navigation-rider.log`, `validation-navigation-test-rider.log`, `validation-navigation-nested-rider.log`.
+
+- `frontend/src/lib/confirmGraphDelete.ts`
+- `frontend/src/components/editor/NativeInspector.tsx`
+- `frontend/e2e/destructive-actions.spec.ts`
+
+Destructive-action follow-up: SlotCanvas, Inspector and subgraph-library tests also require both passes. Scoped standalone attempts exit 3; Full Cleanup remains unavailable. See `destructive-actions-rider.log` and `destructive-actions-native-rider.log`. This is not a successful cleanup claim.
