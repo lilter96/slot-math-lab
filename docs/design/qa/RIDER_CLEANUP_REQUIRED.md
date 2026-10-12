@@ -165,3 +165,5 @@ Keyboard connection follow-up (026e7e0): required Reformat/Full Cleanup remain u
 - `frontend/src/lib/graphConnections.ts`
 - `frontend/unit/graph-connections.spec.ts`
 - `frontend/e2e/keyboard-connections.spec.ts`
+
+Data execution follow-up (7191f0c): ProjectDataEditor.tsx above and new `frontend/e2e/data-execution-scope.spec.ts` require both passes. Actual Reformat attempts exit 3; Full Cleanup unavailable. Logs data-execution-rider.log and data-execution-test-recheck-rider.log.

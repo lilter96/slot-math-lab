@@ -133,3 +133,7 @@ Remaining keyboard/async/table/rubric/human and Core/Rider gates are tracked in 
 ## Keyboard connection authoring
 
 026e7e0 adds canonical typed handles and shared pointer/keyboard checks, independent IDs for distinct ports, a labelled keyboard dialog and project-scoped import/dialog/focus protection. Scoped units, Chromium 8+2 and Firefox/WebKit 14+4 pass; build/touched lint and four viewport captures pass. See [review and remaining race/cleanup limits](qa/KEYBOARD_CONNECTION_REVIEW.md). Whole-goal and release gates remain incomplete; no full suite was repeated.
+
+## Generic data execution isolation
+
+7191f0c aborts obsolete calculations and clears results on project/path/source changes or editor close. Build/touched lint, Chromium 4/4 and Firefox 4/4 pass; initial WebKit 2/4 followed by only failed cases 2/2 after switching the test observation to the actual fetch AbortSignal. Real held server responses never populate the changed workspace. See [execution review and remaining scope](qa/DATA_EXECUTION_REVIEW.md). Required cleanup and whole-goal gates remain open.
