@@ -1,0 +1,2 @@
+src/lib/authoring/reelShape.ts(37,76): error TS2339: Property 'map' does not exist on type '{}'.
+src/lib/authoring/reelShape.ts(37,80): error TS7006: Parameter 'edge' implicitly has an 'any' type.

@@ -1,0 +1,24 @@
+
+Running 11 tests using 2 workers
+
+(node:94017) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:94016) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:94017) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:94016) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   2 unit/authoring-reel-bindings.spec.ts:25:1 › Renamed weighted physical sources preserve retained stop identity, exact weights, payload metadata and untouched graph (37ms)
+  ✓   1 unit/authoring-reel-bindings.spec.ts:43:1 › Shared Le Militare refill stays bound and insert/delete policies are explicit before mutation (140ms)
+  ✓   4 unit/reel-commands.spec.ts:11:13 › Ancient Dragon strip edits preserve source and update every wrapped strip and shared stop domain (19ms)
+  ✓   5 unit/reel-commands.spec.ts:11:13 › Woodland Whisper strip edits preserve source and update every wrapped strip and shared stop domain (21ms)
+  ✓   6 unit/reel-commands.spec.ts:11:13 › Le Militare strip edits preserve source and update every wrapped strip and shared stop domain (59ms)
+  ✓   3 unit/authoring-reel-bindings.spec.ts:54:1 › Bought Woodland no-op retains AST and strip edits reject impossible conditioning without mutation (232ms)
+  ✓   8 unit/reel-commands.spec.ts:49:1 › Strip transactions reject empty, unknown, oversized and changed reel count before any mutation (5ms)
+  ✓   7 unit/reel-commands.spec.ts:36:1 › Physical reel mapping preserves weighted stops and rejects broken wrapping and geometry-only models; bought sources have a complete condition (83ms)
+  ✓  10 unit/reel-conditioning.spec.ts:26:1 › Condition is not guessed when materialized outputs are ambiguous; declared constants survive an all-symbol strip edit (7ms)
+  ✓   9 unit/reel-conditioning.spec.ts:9:1 › Bought feature rebuilds all coupled domains, preserves source metadata and retains its rule in canonical AST (86ms)
+  ✓  11 unit/reel-conditioning.spec.ts:48:1 › Conditioned changes reject impossible events, integer-budget overflow and loss of metadata on removed nodes (168ms)
+
+  11 passed (1.2s)

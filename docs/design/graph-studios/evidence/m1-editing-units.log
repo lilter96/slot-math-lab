@@ -1,0 +1,38 @@
+
+Running 25 tests using 2 workers
+
+(node:82734) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:82735) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:82734) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:82735) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   1 unit/authoring-transactions.spec.ts:29:1 › No-op preserves identity and avoids validation/store mutation; rejected candidate leaves source unchanged (9ms)
+  ✓   2 unit/authoring-transactions.spec.ts:16:1 › Atomic commit keeps nested context/layout/opaque source and one undo restores the complete graph (12ms)
+  ✓   3 unit/authoring-transactions.spec.ts:36:1 › Late validation cannot cross identical projects, source change-and-restore or explicit cancellation (8ms)
+  ✓   4 unit/authoring-transactions.spec.ts:49:1 › Undo refuses a newer edit or another project and malformed editor conversion is mutation-free (10ms)
+  ✓   6 unit/authoring-weight-bindings.spec.ts:6:1 › Binding declares exact values and shared callers without merging equal independent distributions (6ms)
+  ✓   7 unit/authoring-weight-bindings.spec.ts:14:1 › Stale definitions and changed shared-use scope refuse edits while invalid/dynamic sources remain visible (3ms)
+  ✓   8 unit/config-serialization.spec.ts:6:1 › Strict serialization rejects malformed legacy DSL without modifying its editable source (5ms)
+  ✓   9 unit/config-serialization.spec.ts:16:1 › Outgoing model serialization rejects unsupported numeric values before JSON can normalize them (5ms)
+  ✓  10 unit/model-commands.spec.ts:5:1 › Nine Lives table edit changes one source weight and preserves unknown metadata and all nested graph structures (6ms)
+  ✓  11 unit/model-commands.spec.ts:18:1 › Weights reject missing, fractional, negative, overflow and all-zero values; dynamic sources stay unsupported (2ms)
+  ✓  12 unit/model-commands.spec.ts:26:1 › Legal long weights and payloads survive source selection, edits and restoration without an Int32 limit (1ms)
+  ✓  13 unit/model-commands.spec.ts:35:1 › Exact browser integer bounds reject unsafe rows and unsafe totals rather than rounding them (1ms)
+  ✓  14 unit/reel-commands.spec.ts:11:13 › Ancient Dragon strip edits preserve source and update every wrapped strip and shared stop domain (26ms)
+  ✓  15 unit/reel-commands.spec.ts:11:13 › Woodland Whisper strip edits preserve source and update every wrapped strip and shared stop domain (13ms)
+  ✓  16 unit/reel-commands.spec.ts:11:13 › Le Militare strip edits preserve source and update every wrapped strip and shared stop domain (48ms)
+  ✓  17 unit/reel-commands.spec.ts:36:1 › Physical reel mapping rejects customized stops, broken wrapping and geometry-only models; bought sources have a complete condition (50ms)
+  ✓  18 unit/reel-commands.spec.ts:48:1 › Strip transactions reject empty, unknown, oversized and changed reel count before any mutation (4ms)
+  ✓  19 unit/reel-conditioning.spec.ts:9:1 › Bought feature rebuilds all coupled domains, preserves source metadata and retains its rule in canonical AST (104ms)
+  ✓  20 unit/reel-conditioning.spec.ts:26:1 › Condition is not guessed when materialized outputs are ambiguous; declared constants survive an all-symbol strip edit (7ms)
+  ✓  21 unit/reel-conditioning.spec.ts:48:1 › Conditioned changes reject impossible events, integer-budget overflow and loss of metadata on removed nodes (139ms)
+  ✓  22 unit/subgraph-composition.spec.ts:20:1 › Extraction keeps expressions, dependencies, data and external port connections (2ms)
+  ✓  23 unit/subgraph-composition.spec.ts:39:1 › Extraction rejects ambiguous boundaries, missing selections and name collisions without mutating the model (4ms)
+  ✓  24 unit/subgraph-composition.spec.ts:52:1 › Extraction closes transitive and inline dependencies and preserves nested library parameters (1ms)
+  ✓  25 unit/subgraph-composition.spec.ts:71:1 › Extraction rejects unresolved and cyclic dependencies before changing the runnable graph (1ms)
+  ✓   5 unit/authoring-transactions.spec.ts:56:1 › All 65 corpus graphs retain executable JSON through editor conversion without touching authored fixtures (669ms)
+
+  25 passed (1.4s)

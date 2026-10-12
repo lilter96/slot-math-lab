@@ -1,10 +1,11 @@
+import { catalogExamples } from '../../lib/catalogExamples';
 import { projectContentScope, inspectRootProject } from '../../lib/projectFiles';
 import { parseModelJson } from '../../lib/modelJson';
 import { useNavigate } from 'react-router-dom';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useReactFlow, useViewport } from '@xyflow/react';
 import { Ic } from '../Icons';
-import { loadProject, loadCoinExample, catalogExamples, switchProject } from '../../lib/projectFiles';
+import { loadProject, loadCoinExample, switchProject } from '../../lib/projectFiles';
 import AiGenerateModal from '../AiGenerateModal';
 import { useAppStore } from '../../store';
 import { DEFAULT_FEATURES, useFeaturesQuery } from '../../api/hooks';

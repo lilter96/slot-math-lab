@@ -2,7 +2,7 @@ import { canonicalJson } from './hash';
 import { assertModelNumbers } from './modelJson';
 import { useAppStore, type GraphNode, type GraphEdge, retainCurrentProject } from '../store';
 import { buildConfigPayload } from './configPayload';
-export function loadProject(config: Record<string, unknown>) {
+export function projectEditorState(config: Record<string, unknown>) {
   assertModelNumbers(config);
   if (!Array.isArray(config.nodes) || !Array.isArray(config.edges)) throw new Error('Project must contain nodes and edges');
   const frontendTypes: Record<string, GraphNode['data']['nodeType']> = { metricsSink: 'sink', getState: 'state', putState: 'state', modifyState: 'state', data: 'state' };
@@ -17,10 +17,14 @@ export function loadProject(config: Record<string, unknown>) {
     } };
   });
   const edges = config.edges.map((e): GraphEdge => ({ id: e.id, source: e.sourceNodeId, target: e.targetNodeId,
-    sourceHandle: e.sourcePort, targetHandle: e.targetPort }));
+    sourceHandle: e.sourcePort, targetHandle: e.targetPort, data: { backendEdge: e } }));
   const { nodes: _nodes, edges: _edges, name, ...tables } = config;
   void _nodes; void _edges;
-  useAppStore.setState({ nodes, edges, tables, configName: typeof name === 'string' ? name : 'Imported project', selectedNodeId: null, inspectorOpen: useAppStore.getState().inspectorPinned, liveRtp: null, liveProvenance: null });
+  return { nodes, edges, tables, configName: typeof name === 'string' ? name : null };
+}
+export function loadProject(config: Record<string, unknown>) {
+  const draft = projectEditorState(config);
+  useAppStore.setState({ ...draft, selectedNodeId: null, inspectorOpen: useAppStore.getState().inspectorPinned, liveRtp: null, liveProvenance: null });
 }
 export function openMechanic(name: string) {
   const graph = exportProject(); if (!graph) return;
@@ -68,7 +72,7 @@ export function reuseMechanic(name: string) {
 }
 export function exportProject() {
   const state = useAppStore.getState();
-  const name = state.configName ?? 'Untitled';
+  const name = state.configName ?? undefined;
   const config = buildConfigPayload(state.nodes, state.edges, { name, tables: state.tables });
   // An empty definition is a valid editing draft. Save it before returning to its
   // parent; otherwise rootProject repeatedly tries to close the same empty graph.
@@ -95,7 +99,6 @@ export function loadCoinExample() {
   ], edges: [{ id: 'coin-edge', sourceNodeId: 'coin-draw', sourcePort: 'out', targetNodeId: 'coin-sink', targetPort: 'in' }] });
 }
 
-export const catalogExamples = Object.fromEntries(Object.entries(import.meta.glob('../../../backend/SlotMath.Core.Tests/TestData/AuditCatalog/*.json', { eager: true, import: 'default' })).map(([path, config]) => [path.split('/').pop()!.replace('.json', ''), config as Record<string, unknown>]));
 
 /** Build the full current draft without navigating away from an open mechanic. */
 export function peekRootProject(): Record<string, unknown> | null {

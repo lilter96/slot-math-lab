@@ -79,7 +79,7 @@ export interface GraphNodeData {
 }
 
 export type GraphNode = Node<GraphNodeData>;
-export type GraphEdge = Edge<{ metric?: string }>;
+export type GraphEdge = Edge<{ metric?: string; backendEdge?: Record<string, unknown> }>;
 
 export interface GraphState {
   tables: Record<string, unknown>;

@@ -1,0 +1,13 @@
+TypeError: (intermediate value).glob is not a function
+
+   at ../src/lib/projectFiles.ts:102
+
+  100 | }
+  101 |
+> 102 | export const catalogExamples = Object.fromEntries(Object.entries(import.meta.glob('../../../backend/SlotMath.Core.Tests/TestData/AuditCatalog/*.json', { eager: true, import: 'default' })).map(([path, config]) => [path.split('/').pop()!.replace('.json', ''), config as Record<string, unknown>]));
+      |                                                                              ^
+  103 |
+  104 | /** Build the full current draft without navigating away from an open mechanic. */
+  105 | export function peekRootProject(): Record<string, unknown> | null {
+    at /home/terentiy/work/github-profile-audit/slot-math-lab-worktrees/precision-workbench-redesign/frontend/src/lib/projectFiles.ts:102:78
+

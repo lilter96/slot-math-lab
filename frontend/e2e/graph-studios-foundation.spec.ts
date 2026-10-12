@@ -3,7 +3,13 @@ import { Flow, Mechanics, gameGraph } from '../src/games/shared/graph/flow';
 import { reelState, spinReels } from '../src/games/shared/graph/mechanics/reels';
 import { and, at, eq, num, str, when } from '../src/games/shared/graph/expr';
 import { changeReels, reelSources } from '../src/lib/reelCommands';
-import { changeWeights, weightedSources } from '../src/lib/modelCommands';
+import { weightBindings, changeBoundWeights } from '../src/lib/authoring/weightBindings';
+import { reelBindings, changeBoundReels } from '../src/lib/authoring/reelBindings';
+import { lineBindings, changeBoundLines } from '../src/lib/authoring/lineBindings';
+import { linePayTable, paylines, paylineState } from '../src/games/shared/graph/mechanics/paylines';
+import { useAppStore } from '../src/store';
+import { loadProject, peekRootProject } from '../src/lib/projectFiles';
+import { prepareGraphEdit, commitGraphEdit, undoGraphEdit } from '../src/lib/authoring/transactions';
 import type { ModelGraph } from '../src/lib/modelProjection';
 async function exact(api: APIRequestContext, graph: ModelGraph, rtp: number) {
   const validation = await api.post('/api/validate', { data: { config: graph } }); expect(validation.ok()).toBe(true); expect((await validation.json()).isValid).toBe(true);
@@ -34,9 +40,62 @@ test('Foundation: independent outcome weights change real exact probability with
     { id: 'draw', nodeType: 'draw', drawWeights: [{ outcomeId: '001', weight: 3, value: 1, custom: 'keep' }, { outcomeId: 'zero', weight: 1, value: 0 }], outputs: { out: { name: 'out', type: 'Wins' } } },
     { id: 'sink', nodeType: 'metricsSink', winCap: 10, inputs: { in: { name: 'in', type: 'Wins' } } },
   ], edges: [{ id: 'edge', sourceNodeId: 'draw', sourcePort: 'out', targetNodeId: 'sink', targetPort: 'in' }] };
-  const before = JSON.stringify(graph), source = weightedSources(graph)[0];
-  const changed = changeWeights(graph, source.key, ['1', '3']);
+  const before = JSON.stringify(graph), source = weightBindings(graph)[0];
+  useAppStore.setState({ projectId: 'api-proof-project', graphTrail: [] }); loadProject(graph as Record<string, unknown>);
+  const edit = prepareGraphEdit('Change one draw', current => changeBoundWeights(current, source, new Map([['001', '1'], ['zero', '3']])));
+  const applied = await commitGraphEdit(edit, undefined, async config => {
+    const response = await request.post('/api/validate', { data: { config } }); expect(response.ok()).toBe(true); return response.json();
+  });
+  const changed = peekRootProject() as ModelGraph;
+  expect(changed).toEqual(edit.candidate);
   await exact(request, graph, 0.75); await exact(request, changed, 0.25);
   expect(changed.nodes![0].drawWeights).toEqual([{ outcomeId: '001', weight: 1, value: 1, custom: 'keep' }, { outcomeId: 'zero', weight: 3, value: 0 }]);
   expect(changed.edges).toEqual(graph.edges); expect(changed.opaque).toEqual(graph.opaque); expect(JSON.stringify(graph)).toBe(before);
+  undoGraphEdit(applied); expect(peekRootProject()).toEqual(graph); await exact(request, peekRootProject() as ModelGraph, 0.75);
+});
+
+test('Foundation: physical binding preserves weighted stops through real validation, apply and undo', async ({ request }) => {
+  const spec = { name: 'private-window', stripKey: 'privateStrip', rows: 2, strips: [['A', 'B', 'C']] };
+  const mechanics = new Mechanics(), root = new Flow().use('spin', 'Private window', mechanics.add(spinReels(spec)))
+    .write('award', 'AB pays one', 'coins', when(and(eq(at('board', num(0)), str('A')), eq(at('board', num(1)), str('B'))), num(1), num(0))).sink('sink', 'Payout', 'coins', 1);
+  const graph = gameGraph({ id: 'weighted-reel-proof', name: 'Weighted ordered source', description: 'AB at one of three weighted stops pays one.', root, mechanics, initialState: { coins: 0, ...reelState(spec) },
+    tables: { symbols: ['A', 'B', 'C'].map(id => ({ id, name: id, kind: 'Standard' })), boardConfig: { rows: 2, columns: 1 } } }) as ModelGraph;
+  const draw = graph.mechanics!['private-window'].nodes.find(node => node.nodeType === 'draw')!;
+  draw.drawWeights[0].weight = 2; draw.drawWeights[0].opaque = { keep: true };
+  const binding = reelBindings(graph)[0], stops = structuredClone(binding.stops); [stops[0][0], stops[0][1]] = [stops[0][1], stops[0][0]];
+  useAppStore.setState({ projectId: 'weighted-reel-project', graphTrail: [] }); loadProject(graph as Record<string, unknown>);
+  const edit = prepareGraphEdit('Reorder retained weighted stops', current => changeBoundReels(current, binding, stops));
+  const applied = await commitGraphEdit(edit, undefined, async config => {
+    const response = await request.post('/api/validate', { data: { config } }); expect(response.ok()).toBe(true); return response.json();
+  });
+  await exact(request, graph, 0.5); await exact(request, peekRootProject() as ModelGraph, 0);
+  expect((peekRootProject() as ModelGraph).mechanics!['private-window'].nodes.find(node => node.nodeType === 'draw')!.drawWeights[1]).toMatchObject({ outcomeId: '1', weight: 2, value: 0, opaque: { keep: true } });
+  undoGraphEdit(applied); expect(peekRootProject()).toEqual(graph); await exact(request, peekRootProject() as ModelGraph, 0.5);
+});
+
+test('Foundation: cell outcome identity drives board payout while numeric Draw payload remains zero', async ({ request }) => {
+  const root = new Flow().draw('cell', 'Independent symbol cell', 'symbol', [['001', 3], ['B', 1]])
+    .write('award', 'Symbol 001 pays one', 'coins', when(eq({ exprType: 'fieldAccess', target: 'state', path: ['symbol'] }, str('001')), num(1), num(0))).sink('sink', 'Payout', 'coins', 1);
+  const graph = gameGraph({ id: 'cell-identity-proof', name: 'Cell source proof', description: 'An outcome ID, rather than its numeric payload, selects the symbol payout.', root, mechanics: new Mechanics(), initialState: { symbol: '', coins: 0 },
+    tables: { symbols: [{ id: '001', name: 'A', kind: 'Standard' }, { id: 'B', name: 'B', kind: 'Standard' }], boardConfig: { rows: 1, columns: 1 } } }) as ModelGraph;
+  const binding = weightBindings(graph)[0]; expect(binding.rows.every(row => row.value === 0)).toBe(true);
+  useAppStore.setState({ projectId: 'cell-proof-project', graphTrail: [] }); loadProject(graph as Record<string, unknown>);
+  const edit = prepareGraphEdit('Change one cell', current => changeBoundWeights(current, binding, new Map([['001', '1'], ['B', '3']])));
+  await commitGraphEdit(edit, undefined, async config => { const response = await request.post('/api/validate', { data: { config } }); expect(response.ok()).toBe(true); return response.json(); });
+  await exact(request, graph, 0.75); await exact(request, peekRootProject() as ModelGraph, 0.25);
+  expect((peekRootProject() as ModelGraph).nodes![0].drawWeights.map((row: { value: number }) => row.value)).toEqual([0, 0]);
+});
+
+test('Foundation: payline board path edits the actual executable consumer and changes exact payout', async ({ request }) => {
+  const mechanics = new Mechanics(), root = new Flow().use('lines', 'Read the configured line', mechanics.add(paylines(mechanics, [[0, 0]], 2))).sink('sink', 'Line win', 'lineCoins', 10);
+  const graph = gameGraph({ id: 'custom-line-proof', name: 'Custom line proof', description: 'A fixed board pays one only on its top row.', root, mechanics,
+    initialState: { board: ['1', '2', '1', '2'], ...paylineState(0, linePayTable({ symbolCount: 3, wild: 0, pays: { 1: { 2: 1 } }, reels: 2 })) },
+    tables: { boardConfig: { rows: 2, columns: 2 }, paylineSets: [{ id: 'my-line-set', paylines: [{ positions: [0, 0], opaque: { keep: true } }] }] } }) as ModelGraph;
+  const binding = lineBindings(graph)[0]; expect(binding).toBeDefined();
+  useAppStore.setState({ projectId: 'line-proof-project', graphTrail: [] }); loadProject(graph as Record<string, unknown>);
+  const edit = prepareGraphEdit('Move the first line cell', current => changeBoundLines(current, binding, [[1, 0]]));
+  const applied = await commitGraphEdit(edit, undefined, async config => { const response = await request.post('/api/validate', { data: { config } }); expect(response.ok()).toBe(true); return response.json(); });
+  await exact(request, graph, 1); await exact(request, peekRootProject() as ModelGraph, 0);
+  expect((peekRootProject() as ModelGraph).paylineSets).toEqual([{ id: 'my-line-set', paylines: [{ positions: [1, 0], opaque: { keep: true } }] }]);
+  undoGraphEdit(applied); expect(peekRootProject()).toEqual(graph);
 });

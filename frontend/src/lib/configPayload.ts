@@ -18,7 +18,8 @@ export function mapNodeToBackend(n: GraphNode): Record<string, unknown> {
   const base = { id: n.id, label: n.data.label };
   if (n.data.backendNode && typeof n.data.backendNode === 'object') {
     const original = n.data.backendNode as Record<string, unknown>;
-    return { nodeType: original.nodeType, ...original, ...base,
+    return { nodeType: original.nodeType, ...original, id: n.id,
+      ...(n.data.label !== (original.label ?? n.id) ? { label: n.data.label } : {}),
       ...(original.nodeType === 'draw' && n.data.drawWeights ? { drawWeights: n.data.drawWeights } : {}),
       ...(original.nodeType === 'metricsSink' ? { winCap: n.data.winCap ?? original.winCap } : {}) };
   }
@@ -142,7 +143,7 @@ export function mapNodeToBackend(n: GraphNode): Record<string, unknown> {
 }
 
 export interface ConfigPayloadOptions {
-  name: string;
+  name?: string;
   expressions?: Record<string, string>;
   tables?: Record<string, unknown>;
 }
@@ -183,17 +184,18 @@ export function buildConfigPayload(
   }
   const config = {
     ...options.tables,
-    schemaVersion: '1.0.0',
-    name: options.name,
+    ...(options.tables?.schemaVersion !== undefined || !nodes.every(node => node.data.backendNode) ? { schemaVersion: options.tables?.schemaVersion ?? '1.0.0' } : {}),
+    ...(options.name !== undefined ? { name: options.name } : {}),
     nodes: mapped,
     edges: edges.map((e) => ({
+      ...e.data?.backendEdge,
       id: e.id,
       sourceNodeId: e.source,
       sourcePort: port(e.source, e.sourceHandle, 'out'),
       targetNodeId: e.target,
       targetPort: port(e.target, e.targetHandle, 'in'),
     })),
-    expressions: { ...(options.tables?.expressions as Record<string, unknown> ?? {}), ...expressions },
+    ...(options.tables?.expressions !== undefined || Object.keys(expressions).length ? { expressions: { ...(options.tables?.expressions as Record<string, unknown> ?? {}), ...expressions } } : {}),
   };
   assertModelNumbers(config);
   return config;

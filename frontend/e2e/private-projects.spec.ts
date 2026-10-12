@@ -25,7 +25,7 @@ test('Personal projects retain nested edits, independent copies and different ga
   await expect(page.getByTestId('model-navigation')).toContainText('free-spin');
   await page.getByRole('tab', { name: 'My projects', exact: true }).click();
   await page.getByRole('button', { name: 'Create Ancient Dragon project', exact: true }).click();
-  await expect(page.getByRole('heading', { name: 'Ancient Dragon', exact: true })).toBeVisible();
+  await expect(page.locator('.overview-page').getByRole('heading', { name: 'Ancient Dragon', exact: true })).toBeVisible();
   await expect(page.locator('.structure-board > span')).toHaveCount(15);
   await page.getByRole('tab', { name: 'My projects', exact: true }).click();
   await page.getByRole('button', { name: 'Create Nine Lives · reference project', exact: true }).click();

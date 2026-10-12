@@ -3,6 +3,8 @@ import { reelState, spinReels, type ReelSet } from '../games/shared/graph/mechan
 import { canonicalJson } from './hash';
 import type { ModelGraph, ModelNode } from './modelProjection';
 import { applyReelCondition, findReelCondition, type ReelCondition } from './reelConditioning';
+import { matchReelShape } from './authoring/reelShape';
+import { validateWeights } from './modelCommands';
 
 interface StopSource { scope: string; nodeId: string; reel: number }
 export interface ReelSource { key: string; label: string; rows: number; stripKeys: string[]; strips: string[][]; stops: StopSource[]; conditions?: ReelCondition[] }
@@ -51,12 +53,18 @@ export function reelSources(graph: ModelGraph): ReelSource[] {
     for (const shared of [false, true]) {
       const mechanics = shared ? new Mechanics() : undefined;
       const expected = spinReels(spec, mechanics) as unknown as ModelGraph;
-      if (!sameScope(definition, expected)) continue;
+      const shape = matchReelShape(definition, expected);
+      if (!shape) continue;
       if (mechanics) {
         const definitions = mechanics.all();
-        if (Object.entries(definitions).some(([name, stop]) => !graph.mechanics?.[name] || !sameScope(graph.mechanics[name], stop as unknown as ModelGraph))) continue;
-        Object.entries(definitions).forEach(([name, stop], reel) => stops.push({ scope: name, nodeId: stop.nodes[0].id, reel }));
-      } else definition.nodes.filter(node => node.nodeType === 'draw').forEach((node, reel) => stops.push({ scope, nodeId: node.id, reel }));
+        const mapped = Object.entries(definitions).map(([name, stop], reel) => {
+          const actualName = shape.libraries.get(name), actual = actualName && graph.mechanics?.[actualName];
+          const match = actual && matchReelShape(actual, stop as unknown as ModelGraph);
+          return actualName && match ? { scope: actualName, nodeId: match.nodes.get(stop.nodes[0].id)!.id, reel } : null;
+        });
+        if (mapped.some(stop => !stop)) continue;
+        stops.push(...mapped as StopSource[]);
+      } else expected.nodes!.filter(node => node.nodeType === 'draw').forEach((node, reel) => stops.push({ scope, nodeId: shape.nodes.get(node.id)!.id, reel }));
       matched = true; break;
     }
     const conditional = definition.nodes.some(node => node.nodeType === 'draw' && node.stateWriteKey === 'showPattern');
@@ -103,11 +111,15 @@ export function validateReels(graph: ModelGraph, strips: string[][]): string | n
   return null;
 }
 
-export function changeReels(graph: ModelGraph, sourceKey: string, strips: string[][]): ModelGraph {
+export interface ReelStopPolicy { identities?: (string | null)[][]; addedWeight?: string; removedStops?: 'discard' }
+export function changeReels(graph: ModelGraph, sourceKey: string, strips: string[][], policy: ReelStopPolicy = {}): ModelGraph {
   const source = reelSources(graph).find(item => item.key === sourceKey);
   if (!source) throw new Error('No proven reel/stop mapping. Inspect the source graph before editing.');
   if (strips.length !== source.strips.length) throw new Error('Keep the authored reel count unchanged.');
   const invalid = validateReels(graph, strips); if (invalid) throw new Error(invalid);
+  if (canonicalJson(strips) === canonicalJson(source.strips) && (!policy.identities || policy.identities.every(ids => ids.every((id, position) => id === String(position))))) return structuredClone(graph);
+  if (source.conditions?.length && source.stops.filter(stop => !source.conditions?.some(condition => condition.scope === stop.scope)).some(stop => (graph.mechanics![stop.scope].nodes.find(node => node.id === stop.nodeId)!.drawWeights as Value[]).some(row => row.weight !== 1))) throw new Error('The retained conditioned fragment describes uniform ordinary stops. Reconcile the weighted conditioning contract before editing.');
+  if (policy.identities && (policy.identities.length !== strips.length || policy.identities.some((ids, reel) => ids.length !== strips[reel].length || new Set(ids.filter(id => id !== null)).size !== ids.filter(id => id !== null).length))) throw new Error('Every retained physical stop needs one unique identity within its reel.');
   const next = structuredClone(graph), state = next.initialState as Value;
   for (let reel = 0; reel < strips.length; reel++) {
     const strip = strips[reel];
@@ -117,7 +129,20 @@ export function changeReels(graph: ModelGraph, sourceKey: string, strips: string
     if (source.conditions?.some(condition => condition.scope === stop.scope)) continue;
     const node = next.mechanics![stop.scope].nodes.find(node => node.id === stop.nodeId)!;
     const previous = node.drawWeights as Value[];
-    node.drawWeights = strips[stop.reel].map((_, index) => ({ ...previous.find(row => row.outcomeId === String(index)), outcomeId: String(index), weight: 1, value: 0 }));
+    const identities = policy.identities?.[stop.reel] ?? strips[stop.reel].map((_, index) => index < source.strips[stop.reel].length ? String(index) : null);
+    if (identities.some(id => id !== null && !previous.some(row => row.outcomeId === id))) throw new Error('A retained stop identity is absent from the original distribution.');
+    const nonuniform = previous.some(row => row.weight !== 1);
+    const removed = previous.some(row => !identities.includes(String(row.outcomeId)));
+    if (nonuniform && removed && policy.removedStops !== 'discard') throw new Error('Choose an explicit discard policy for removed weighted stops.');
+    if (nonuniform && identities.includes(null) && policy.addedWeight === undefined) throw new Error('Specify the exact weight for new stops; retained stop weights are preserved.');
+    const addedWeight = policy.addedWeight ?? '1';
+    if (!/^\d+$/.test(addedWeight) || !Number.isSafeInteger(Number(addedWeight))) throw new Error('New stop weight must be an exact non-negative integer.');
+    const rows = identities.map((identity, index) => {
+      const retained = previous.find(row => row.outcomeId === identity);
+      return { ...retained, outcomeId: String(index), weight: retained?.weight ?? Number(addedWeight), value: 0 };
+    });
+    const error = validateWeights(rows.map(row => String(row.weight))); if (error) throw new Error(error);
+    node.drawWeights = rows;
   }
   for (const condition of source.conditions ?? []) applyReelCondition(next, source, condition, strips);
   return next;

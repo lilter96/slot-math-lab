@@ -1,0 +1,18 @@
+
+Running 5 tests using 2 workers
+
+(node:101874) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:101873) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:101874) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:101873) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  2 unit/authoring-line-bindings.spec.ts:10:3 › Ancient Dragon: payline paths update column-major execution parameters and preserve stake, metadata and other lines (105ms)
+  ✓  1 unit/authoring-line-bindings.spec.ts:10:3 › Woodland Whisper: payline paths update column-major execution parameters and preserve stake, metadata and other lines (135ms)
+  ✓  4 unit/authoring-line-bindings.spec.ts:21:1 › Renamed shared payline fragments remain editable; stale geometry and inconsistent metadata stay locally unavailable (25ms)
+  ✓  3 unit/authoring-line-bindings.spec.ts:10:3 › X7 Club: payline paths update column-major execution parameters and preserve stake, metadata and other lines (87ms)
+  ✓  5 unit/authoring-line-bindings.spec.ts:37:1 › Duplicated execution definitions linked to one declared line set change together without merging unrelated state (62ms)
+
+  5 passed (685ms)
