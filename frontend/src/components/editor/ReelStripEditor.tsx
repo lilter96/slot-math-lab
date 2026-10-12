@@ -57,6 +57,8 @@ function ReelTransaction({ graph, source, projectId }: { graph: ModelGraph; sour
   };
   return <section ref={panel} className="reel-editor" aria-label="Physical reel strip editor">
     <p className="source-path"><strong>Source</strong> initialState: {source.stripKeys.join(', ')}. {source.stops.length} mapped stop draws; {source.rows - 1} repeated wrap symbols per strip.</p>
+    {source.conditions?.map(condition => <p className="hint" key={condition.scope}>Conditioned source {condition.scope}: at least {condition.atLeast} {condition.symbolName} symbols (ID {condition.symbol}) in the window. Applying also rebuilds showing patterns, their exact integer weights and every conditional stop subset; the original rule is retained as typed AST constants for export/reload.</p>)}
+    {invalid && <p className="inline-validation" role="alert">{invalid}</p>}{error && <p className="inline-validation" role="alert">{error}</p>}
     <div className="editor-actions">
       <button className="btn primary" disabled={busy || !changed || !!invalid} onClick={() => void commit()}>{busy ? 'Validating…' : 'Validate & apply strips'}</button>
       <button className="btn" disabled={busy} onClick={() => { if (changed && !window.confirm('Discard unapplied strip edits and reset to the current model?')) return; csvTask.current++; const updated = { base: graph, strips: source.strips }; setDraft(updated); drafts.delete(key); setError(''); }}>Reset strips</button>
@@ -70,7 +72,7 @@ function ReelTransaction({ graph, source, projectId }: { graph: ModelGraph; sour
       }}>Undo strip change</button>}
       <Link className="btn" to="/build">Inspect source graph</Link>
     </div>
-    <p className="hint">Edit the circular period, not its repeated tail. Applying updates the wrap data and every mapped uniform stop domain together. Frequencies below describe raw strip symbols, not RTP or final-board wins.</p>
+    <p className="hint">Edit the circular period, not its repeated tail. Applying updates wrap data and all mapped stop rules together. Frequencies below describe ordinary raw strips before conditioning; they are not conditioned stop probabilities, RTP or final-board wins.</p>
     <div className="editor-actions">
       <button className="btn" disabled={busy || !!invalid} onClick={() => {
         const url = URL.createObjectURL(new Blob([reelsCsv(draft.strips)], { type: 'text/csv' })), link = document.createElement('a');
@@ -94,7 +96,7 @@ function ReelTransaction({ graph, source, projectId }: { graph: ModelGraph; sour
       <span className="hint">25 indices per page; all stops remain in the model.</span>
     </div>
     <div className="reel-selection-tools" aria-label="Selected strip stop">
-      <p className="hint">Reel {active.reel + 1}, index {activeIndex} · raw ID <code>{activeStrip[activeIndex] ?? '—'}</code> · {activeStrip.length ? `stop probability 1/${activeStrip.length}; cumulative ${((activeIndex + 1) / activeStrip.length * 100).toFixed(2)}%` : 'Empty strip'}{source.strips[active.reel][activeIndex] !== activeStrip[activeIndex] && ` · was ${source.strips[active.reel][activeIndex] ?? 'absent'}`}</p>
+      <p className="hint">Reel {active.reel + 1}, index {activeIndex} · raw ID <code>{activeStrip[activeIndex] ?? '—'}</code> · {activeStrip.length ? `ordinary raw stop share 1/${activeStrip.length}; raw cumulative ${((activeIndex + 1) / activeStrip.length * 100).toFixed(2)}%` : 'Empty strip'}{source.strips[active.reel][activeIndex] !== activeStrip[activeIndex] && ` · was ${source.strips[active.reel][activeIndex] ?? 'absent'}`}</p>
       <div className="reel-cell-actions">
         <button className="btn" aria-label={`Move reel ${active.reel + 1} index ${activeIndex} up`} disabled={busy || activeIndex === 0} onClick={() => { move(active.reel, activeIndex, -1); focusCell(active.reel, activeIndex - 1); }}>Move up</button>
         <button className="btn" aria-label={`Move reel ${active.reel + 1} index ${activeIndex} down`} disabled={busy || activeIndex >= activeStrip.length - 1} onClick={() => { move(active.reel, activeIndex, 1); focusCell(active.reel, activeIndex + 1); }}>Move down</button>
@@ -117,7 +119,6 @@ function ReelTransaction({ graph, source, projectId }: { graph: ModelGraph; sour
       const values = draft.strips[reel], differences = Array.from({ length: Math.max(strip.length, values.length) }, (_, i) => i).filter(i => strip[i] !== values[i]).length;
       return `Reel ${reel + 1}: ${strip.length} → ${values.length} stops, ${differences} changed indices`;
     }).join('; ')}. Values/order, wrap tails and mapped stop domains are included. Draft retained in this session when switching modes/projects.</p>}
-    {invalid && <p role="alert">{invalid}</p>}{error && <p role="alert">{error}</p>}
     {draft.undo && <p role="status">Strip period, wrap data and stop draws applied to the canonical model. Export and analysis use these inputs.</p>}
   </section>;
 }

@@ -33,7 +33,7 @@ for (const [name, create, groups] of [
   for (const other of sources.slice(1)) for (const key of other.stripKeys) expect((next.initialState as Record<string, unknown>)[key]).toEqual((graph.initialState as Record<string, unknown>)[key]);
 });
 
-test('Physical reel mapping rejects customized stops, broken wrapping, geometry-only models and conditioned domains', () => {
+test('Physical reel mapping rejects customized stops, broken wrapping and geometry-only models; bought sources have a complete condition', () => {
   const graph = createAncientDragonGraph() as ModelGraph, source = reelSources(graph)[0];
   const customized = structuredClone(graph), ref = source.stops[0];
   (customized.mechanics![ref.scope].nodes.find(node => node.id === ref.nodeId)!.drawWeights as { weight: number }[])[0].weight = 2;
@@ -42,7 +42,7 @@ test('Physical reel mapping rejects customized stops, broken wrapping, geometry-
   (broken.initialState as Record<string, string[]>)[source.stripKeys[0]].push('unknown');
   expect(reelSources(broken)).toEqual([]);
   expect(reelSources(createNineLivesGraph() as ModelGraph)).toEqual([]);
-  expect(reelSources(createWoodlandWhisperGraph(undefined, { buy: true }) as ModelGraph)).toEqual([]);
+  expect(reelSources(createWoodlandWhisperGraph(undefined, { buy: true }) as ModelGraph)[0].conditions).toEqual([{ scope: 'spin-reels-triggering', symbol: '11', symbolName: 'COIN', atLeast: 3 }]);
 });
 
 test('Strip transactions reject empty, unknown, oversized and changed reel count before any mutation', () => {

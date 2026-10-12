@@ -1,6 +1,6 @@
 import { test, expect, type APIRequestContext, type Page } from './fixtures';
 import { Flow, Mechanics, gameGraph } from '../src/games/shared/graph/flow';
-import { reelState, spinReels } from '../src/games/shared/graph/mechanics/reels';
+import { reelState, spinReels, showingState, spinReelsShowing } from '../src/games/shared/graph/mechanics/reels';
 import { at, num, toNumber } from '../src/games/shared/graph/expr';
 import { createWoodlandWhisperGraph } from '../src/games/woodland-whisper/graph';
 import { createAncientDragonGraph } from '../src/games/ancient-dragon/graph';
@@ -129,14 +129,67 @@ test('Real game strip sets, pagination and responsive tables preserve all source
   }
 });
 
-test('Conditioned bought-feature reels remain explicit and their source is preserved', async ({ page }) => {
+test('Conditioned bought-feature strip edits preserve all rules, compile, Undo and remain editable after import', async ({ page }) => {
+  test.setTimeout(180000);
   const graph = createWoodlandWhisperGraph(undefined, { buy: true });
   await page.goto('/build');
   await page.getByLabel('Import project file', { exact: true }).setInputFiles({ name: 'bought.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(graph)) });
   const original = await exported(page);
   await openReels(page);
-  await expect(page.getByRole('heading', { name: 'No proven reel-strip mapping', exact: true })).toBeVisible();
+  await expect(page.getByText(/at least 3 COIN symbols/)).toBeVisible();
+  await page.getByRole('button', { name: 'Add symbol to reel 1', exact: true }).click();
+  const index = original.initialState.reel0.length - 2;
+  await page.getByLabel(`Reel 1 symbol at ${index}`, { exact: true }).selectOption('11');
+  await page.getByRole('button', { name: 'Validate & apply strips', exact: true }).click();
+  await expect(page.getByRole('button', { name: 'Undo strip change', exact: true })).toBeVisible();
+  const changed = await exported(page);
+  expect(changed.initialState.reel0).toHaveLength(original.initialState.reel0.length + 1);
+  expect(changed.mechanics['spin-reels-triggering'].expressions.__reelEditorAtLeast.value).toBe('3');
+  await openReels(page);
+  await page.getByRole('button', { name: 'Undo strip change', exact: true }).click();
   expect(await exported(page)).toEqual(original);
+  await page.getByRole('tab', { name: 'Build', exact: true }).click();
+  await page.getByLabel('Import project file', { exact: true }).setInputFiles({ name: 'changed-buy.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(changed)) });
+  await openReels(page);
+  await expect(page.getByText(/at least 3 COIN symbols/)).toBeVisible();
+  await expect(page.getByLabel('Reel set', { exact: true })).toBeVisible();
+});
+
+test('Conditional strip edits follow independently enumerated conditioning and seeded Undo without extra RNG draws', async ({ page, request }) => {
+  test.setTimeout(180000);
+  const spec = { name: 'raw', stripKey: 'strip', strips: [['0', '1'], ['0', '1']], rows: 1 };
+  const condition = { name: 'conditioned', symbol: '1', symbolName: 'One', atLeast: 1 }, graphMechanics = new Mechanics();
+  const graph = gameGraph({ id: 'conditional-oracle', name: 'Conditional arithmetic oracle', mechanics: graphMechanics,
+    root: new Flow().use('spin', 'At least one One', graphMechanics.add(spinReelsShowing(spec, condition))).write('win', 'First reel', 'win', toNumber(at('board', num(0)))).sink('sink', 'Payout', 'win', 2),
+    initialState: { ...reelState(spec), ...showingState(spec, condition), win: 0 }, tables: { boardConfig: { columns: 2, rows: 1 }, symbols: [{ id: '0', name: 'Zero' }, { id: '1', name: 'One' }] } });
+  await page.goto(link(graph)); const original = await exported(page);
+  // Independent Cartesian enumeration: 01/10/11 qualify; two of three have first=1.
+  expect((await post(request, '/api/evaluate/light', { config: original })).rtp).toBeCloseTo(2 / 3, 12);
+  const before = await post(request, '/api/play/round', { config: original, seed: 7, trace: true });
+  await openReels(page);
+  await page.getByRole('button', { name: 'Add symbol to reel 1', exact: true }).click();
+  await page.getByRole('button', { name: 'Validate & apply strips', exact: true }).click();
+  await expect(page.getByRole('button', { name: 'Undo strip change', exact: true })).toBeVisible();
+  const changed = await exported(page);
+  // 00/01/10/11/00/01: four qualify, two have first=1. Raw first frequency is 1/3, not 1/2.
+  expect((await post(request, '/api/evaluate/light', { config: changed })).rtp).toBe(.5);
+  expect(changed.mechanics.conditioned.expressions.__reelEditorSymbol.value).toBe('1');
+  await openReels(page);
+  await page.getByRole('button', { name: 'Undo strip change', exact: true }).click();
+  const restored = await exported(page);
+  expect(restored).toEqual(original);
+  expect(await post(request, '/api/play/round', { config: restored, seed: 7, trace: true })).toEqual(before);
+  await openReels(page);
+  for (const reel of [1, 2]) await page.getByLabel(`Reel ${reel} symbol at 0`, { exact: true }).selectOption('1');
+  await page.getByRole('button', { name: 'Validate & apply strips', exact: true }).click();
+  await expect(page.getByRole('button', { name: 'Undo strip change', exact: true })).toBeVisible();
+  const allOnes = await exported(page);
+  expect((await post(request, '/api/evaluate/light', { config: allOnes })).rtp).toBe(1);
+  await page.getByRole('tab', { name: 'Build', exact: true }).click();
+  await page.getByLabel('Import project file', { exact: true }).setInputFiles({ name: 'all-ones.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(allOnes)) });
+  await openReels(page);
+  await expect(page.getByText(/at least 1 One symbols/)).toBeVisible();
+  await expect(page.getByLabel('Reel 1 symbol at 0', { exact: true })).toHaveValue('1');
 });
 
 test('A late strip CSV read cannot overwrite newer manual edits', async ({ page }) => {
