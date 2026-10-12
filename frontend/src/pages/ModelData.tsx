@@ -8,6 +8,7 @@ import { rootProject } from '../lib/projectFiles';
 import { useAppStore } from '../store';
 export default function ModelData() {
   const projectName = useAppStore(state => String(state.graphTrail[0]?.graph.name ?? state.configName));
+  const density = useAppStore(state => state.tweaks.density);
   const [showRaw, setShowRaw] = useState(false);
   const [params, setParams] = useSearchParams();
   const requested = params.get('view');
@@ -21,6 +22,7 @@ export default function ModelData() {
       const index = event.key === 'Home' ? 0 : event.key === 'End' ? views.length - 1 : (views.findIndex(item => item.id === view) + (event.key === 'ArrowLeft' ? -1 : 1) + views.length) % views.length;
       setView(views[index].id); event.currentTarget.querySelectorAll<HTMLButtonElement>('button')[index]?.focus();
     }}>{views.map(item => <button key={item.id} className="btn" role="tab" tabIndex={view === item.id ? 0 : -1} aria-selected={view === item.id} onClick={() => setView(item.id)}>{item.name}</button>)}</div>
+    <label className="table-density">Table density<select className="inp" aria-label="Table density" value={density} onChange={event => useAppStore.getState().setTweak('density', event.target.value as 'regular' | 'compact')}><option value="regular">Regular</option><option value="compact">Compact</option></select></label>
     {view === 'weights' ? <WeightedDrawEditor /> : view === 'reels' ? <ReelStripEditor /> : <ClusterPayoutEditor />}
     <details className="data-capability-notice"><summary>Other model capabilities</summary><p>Finite inline draws, guarded uniform reel/stop mappings and a guarded cluster payout mapping are supported. Customized or conditioned sources require a complete source mapping. The generic state and expression editor remains available.</p><Link className="btn" to="/build">Inspect logic graph</Link></details>
     {showRaw && <ProjectDataEditor onClose={() => setShowRaw(false)} />}

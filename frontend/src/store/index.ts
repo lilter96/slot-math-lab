@@ -15,6 +15,11 @@ import {
 } from '@xyflow/react';
 
 const INSPECTOR_PIN_KEY = browserStorageKey('slotmath-inspector-pinned');
+const TABLE_DENSITY_KEY = browserStorageKey('slotmath-table-density');
+function initialDensity(): Density {
+  try { return typeof window !== 'undefined' && localStorage.getItem(TABLE_DENSITY_KEY) === 'compact' ? 'compact' : 'regular'; }
+  catch { return 'regular'; }
+}
 const initialInspectorPinned = (() => {
   try { return typeof window !== 'undefined' && localStorage.getItem(INSPECTOR_PIN_KEY) === 'true'; }
   catch { return false; }
@@ -240,10 +245,12 @@ export const useAppStore = create<AppState>((set, get) => ({
     mood: 'slate',
     grid: true,
     flow: true,
-    density: 'regular',
+    density: initialDensity(),
   },
-  setTweak: (key, value) =>
-    set((s) => ({ tweaks: { ...s.tweaks, [key]: value } })),
+  setTweak: (key, value) => {
+    set((s) => ({ tweaks: { ...s.tweaks, [key]: value } }));
+    if (key === 'density') { try { localStorage.setItem(TABLE_DENSITY_KEY, String(value)); } catch { /* The preference remains usable in memory. */ } }
+  },
 
   // ── Live metrics ─────────────────────────────────────────────────
   liveRtp: null,

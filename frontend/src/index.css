@@ -703,6 +703,35 @@ body { font-size: 14px; line-height: 1.5; }
 .math-data-table small { display: block; color: var(--muted); margin-top: 3px; font: 12px var(--sans); }
 .math-data-table input { width: 140px; text-align: right; font-variant-numeric: tabular-nums; }
 .math-data-table tfoot { background: var(--bg-1); }
+/* Dense authored tables retain full-size controls and bounded scrolling. */
+.table-density { display: flex; align-items: center; gap: 12px; margin: 0 0 16px; font-size: 13px; }
+.table-density select { width: auto; }
+.model-data-page select.inp {
+  appearance: none; color-scheme: dark; color: var(--text); background-color: var(--bg-1); padding-right: 30px;
+  background-image: linear-gradient(45deg, transparent 50%, var(--muted) 50%), linear-gradient(135deg, var(--muted) 50%, transparent 50%);
+  background-position: calc(100% - 15px) center, calc(100% - 10px) center;
+  background-size: 5px 5px; background-repeat: no-repeat;
+}
+.weighted-editor .math-table-scroll { max-height: 65vh; overflow: auto; scroll-padding-block: 60px 8px; }
+.weighted-editor .math-data-table { border-collapse: separate; border-spacing: 0; }
+.weighted-editor .math-data-table tbody th, .weighted-editor .math-data-table tbody td { height: 44px; padding: 0 10px; line-height: 16px; }
+.weighted-editor .math-data-table small { line-height: 14px; margin-top: 0; }
+.weighted-editor .math-data-table tbody th { position: sticky; left: 0; background: var(--bg-1); z-index: 1; min-width: 120px; max-width: 220px; overflow-wrap: anywhere; }
+.weighted-editor .math-data-table thead th { z-index: 2; }
+.weighted-editor .math-data-table thead th:first-child { left: 0; z-index: 3; }
+.weighted-editor .math-data-table .inp { height: 36px; min-height: 36px; padding: 4px 8px; }
+body.compact .weighted-editor .math-data-table tbody th, body.compact .weighted-editor .math-data-table tbody td { height: 38px; padding: 0 6px; }
+.math-data-table input[data-changed="true"] { border-color: var(--epsilon); background: var(--epsilon-dim); }
+.raw-number { display: inline-flex; align-items: center; justify-content: end; gap: 6px; position: relative; white-space: nowrap; }
+.raw-copy { display: inline-flex; justify-content: center; align-items: center; min-width: 36px; min-height: 36px; border: 1px solid transparent; border-radius: 4px; background: transparent; color: var(--muted); cursor: pointer; }
+.raw-copy:hover, .raw-copy:focus-visible { border-color: var(--line); background: var(--bg-2); color: var(--text); }
+.raw-copy svg { width: 14px; height: 14px; }
+.raw-copy-status { position: absolute; top: 100%; right: 0; z-index: 4; padding: 8px; background: var(--bg-2); border: 1px solid var(--line); border-radius: 4px; font: 12px var(--sans); white-space: normal; min-width: 100px; }
+.raw-copy-status input { display: block; margin-top: 6px; }
+@media (max-width: 767px) {
+  .weighted-editor .math-data-table .inp, .raw-copy, .table-density select { min-height: 44px; }
+  .raw-copy { min-width: 44px; }
+}
 .editor-actions { display: flex; gap: 8px; margin-top: 20px; flex-wrap: wrap; }
 .inline-validation { color: var(--danger); padding: 12px; border-left: 3px solid var(--danger); background: var(--danger-dim); overflow-wrap: anywhere; }
 .data-capability-notice { margin-top: 28px; border-top: 1px solid var(--line); padding-top: 16px; color: var(--muted); }
