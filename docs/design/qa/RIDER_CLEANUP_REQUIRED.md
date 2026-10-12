@@ -188,3 +188,11 @@ Scored-view follow-up (6fa0468/cf40f6c/d96a4ae): existing Layout.tsx, index.css,
 - `frontend/e2e/evidence-legibility.spec.ts`
 
 Actual project-header-*, evidence-legibility-*, evidence-select-*, phone-graph-*, trace-index-*-rider.log attempts exit 3. No Full Cleanup success.
+
+Reference/wide weights (ac65826/43f32ce/626ad84): existing NineLives.tsx, launch.ts, WeightedDrawEditor.tsx, modelCommands.ts and model-commands.spec.ts entries plus these files require both passes:
+
+- `frontend/src/games/nine-lives/style.css`
+- `frontend/e2e/reference-legibility.spec.ts`
+- `frontend/e2e/wide-weights.spec.ts`
+
+Scoped reference-*-rider.log and wide-weights-*-rider.log attempts exit 3; Full Cleanup remains unavailable.
