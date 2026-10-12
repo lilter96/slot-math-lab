@@ -152,3 +152,9 @@ Circular reel follow-up: all touched files below require Reformat then Full Clea
 - `frontend/unit/reel-commands.spec.ts`
 - `frontend/unit/reel-csv.spec.ts`
 - `frontend/e2e/reel-strips.spec.ts`
+
+- `frontend/src/lib/reelConditioning.ts`
+
+- `frontend/unit/reel-conditioning.spec.ts`
+
+Conditioned-reel follow-up also changes reelCommands, ReelStripEditor, reel-commands units and reel-strips browser tests. Reformat attempts exit 3; Full Cleanup remains unavailable. Actual logs: reel-conditioning-rider.log and conditioning-*-rider.log. Build/lint/scoped checks do not replace required cleanup.

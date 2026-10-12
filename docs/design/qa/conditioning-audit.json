@@ -1,0 +1,115 @@
+{
+  "capturedAt": "2026-10-12T02:19:31.380Z",
+  "fixture": "Actual bought Woodland graph, actual compiler validation; impossible CSV rejected before canonical mutation",
+  "viewports": [
+    {
+      "state": "before",
+      "width": 1440,
+      "height": 900,
+      "overflow": false,
+      "renderedCells": 125,
+      "proofBadges": 0,
+      "fieldHeight": 36
+    },
+    {
+      "state": "before",
+      "width": 1280,
+      "height": 800,
+      "overflow": false,
+      "renderedCells": 125,
+      "proofBadges": 0,
+      "fieldHeight": 36
+    },
+    {
+      "state": "before",
+      "width": 1024,
+      "height": 768,
+      "overflow": false,
+      "renderedCells": 125,
+      "proofBadges": 0,
+      "fieldHeight": 36
+    },
+    {
+      "state": "before",
+      "width": 390,
+      "height": 844,
+      "overflow": false,
+      "renderedCells": 125,
+      "proofBadges": 0,
+      "fieldHeight": 44
+    },
+    {
+      "state": "applied",
+      "width": 1440,
+      "height": 900,
+      "overflow": false,
+      "renderedCells": 94,
+      "proofBadges": 0,
+      "fieldHeight": 36
+    },
+    {
+      "state": "applied",
+      "width": 1280,
+      "height": 800,
+      "overflow": false,
+      "renderedCells": 94,
+      "proofBadges": 0,
+      "fieldHeight": 36
+    },
+    {
+      "state": "applied",
+      "width": 1024,
+      "height": 768,
+      "overflow": false,
+      "renderedCells": 94,
+      "proofBadges": 0,
+      "fieldHeight": 36
+    },
+    {
+      "state": "applied",
+      "width": 390,
+      "height": 844,
+      "overflow": false,
+      "renderedCells": 94,
+      "proofBadges": 0,
+      "fieldHeight": 44
+    },
+    {
+      "state": "impossible",
+      "width": 1440,
+      "height": 900,
+      "overflow": false,
+      "renderedCells": 5,
+      "proofBadges": 0,
+      "fieldHeight": 36
+    },
+    {
+      "state": "impossible",
+      "width": 1280,
+      "height": 800,
+      "overflow": false,
+      "renderedCells": 5,
+      "proofBadges": 0,
+      "fieldHeight": 36
+    },
+    {
+      "state": "impossible",
+      "width": 1024,
+      "height": 768,
+      "overflow": false,
+      "renderedCells": 5,
+      "proofBadges": 0,
+      "fieldHeight": 36
+    },
+    {
+      "state": "impossible",
+      "width": 390,
+      "height": 844,
+      "overflow": false,
+      "renderedCells": 5,
+      "proofBadges": 0,
+      "fieldHeight": 44
+    }
+  ],
+  "source": "c4d4c9e"
+}

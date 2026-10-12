@@ -120,3 +120,12 @@ The [complete model inventory](MODEL_CAPABILITY_INVENTORY.md) found physical str
 Scoped mapping units 5/5 and CSV units 4/4 pass. Initial Chromium 8/8; post-density checks 6/7 exposed a genuine focus race, then only failed/new/affected checks 4/4 pass. Final Firefox/WebKit 12/12 pass. Actual compiler/evaluation/round endpoints prove a small independent expectation 0.5 → 1 and exact seeded restoration; all ordinary game sets Apply/Undo compile. Sixteen final captures have no document overflow and 44px phone controls. Final caption copy received build/lint/render review, no suite repeat. [Reel review](qa/REEL_EDITOR_REVIEW.md) retains scope, failures and cleanup blockers.
 
 The conditioned bought-feature mapping is still required. Its materialized patterns/weights/stop subsets are preserved read-only until a complete guarded update exists. This does not complete that known-schema requirement. No kernel/PRNG/backend changes, full suites, publication or deployment occurred.
+
+
+## Coupled conditioned reels
+
+c4d4c9e closes the known bought-feature strip mapping: showing patterns, their exact weights, conditional subsets and ordinary/tail data rebuild together. Original recovered constraints persist as existing typed AST constants, validated against complete source, so ambiguous all-symbol outputs still export/import correctly. Unknown/customized coupling, metadata loss and unsupported integer/combination budgets fail closed; no kernel/PRNG/new-atom changes.
+
+Affected/new units initially 8/8; changed guard/budget checks 3/3, final recovery rejection 1/1. Chromium 7/7 and only strengthened degeneration 1/1; Firefox/WebKit changed/new conditional 4/4. Actual API oracle confirms 2/3 → 1/2, raw share 1/3, all-symbol result 1, exact seeded/authored Undo and real bought-game compiler/reimport. Twelve final real before/applied/impossible captures have no document overflow/editor proof badges. [Conditional review](qa/CONDITIONED_REEL_REVIEW.md) documents AST contract, exact scope, recovery, guard limits and required cleanup. No full suite was repeated.
+
+Remaining keyboard/async/table/rubric/human and Core/Rider gates are tracked in the requirement audit; this feature does not prove whole-goal completion or release readiness.
