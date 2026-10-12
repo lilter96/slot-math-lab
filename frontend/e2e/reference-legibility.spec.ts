@@ -7,6 +7,7 @@ test('Reference demo labels and replay/game controls meet legibility and target 
   await expect(page.locator('.nl-play > .hint')).toContainText('own authored model');
   for (const [width, height] of [[1440, 900], [1280, 800], [1024, 768], [390, 844]]) {
     await page.setViewportSize({ width, height });
+    await page.evaluate(() => new Promise<void>(resolve => { let frames = 0; const settle = () => { if (++frames === 4) resolve(); else requestAnimationFrame(settle); }; requestAnimationFrame(settle); }));
     const sizes = await page.locator('.nl-top > span, .nl-marquee span, .nl-feature span, .nl-controls > div > span, .nl-lives small, .nl-multiplier small, .nl-buy small, .nl-bottom button').evaluateAll(elements => elements.filter(element => element.getBoundingClientRect().height > 0).map(element => parseFloat(getComputedStyle(element).fontSize)));
     expect(sizes.length).toBeGreaterThan(0); expect(Math.min(...sizes)).toBeGreaterThanOrEqual(12);
     const targets = await page.locator('.nl-graph-tools button, .nl-graph-tools input:not([type=checkbox]), .nl-game button, .nl-game a').evaluateAll(elements => elements.filter(element => element.getBoundingClientRect().height > 0).map(element => element.getBoundingClientRect().height));
