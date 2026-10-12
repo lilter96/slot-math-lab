@@ -9,6 +9,18 @@ plus a Monte Carlo sampling fallback — live, per edge.
 
 ---
 
+## Private users and multiple projects
+
+The product hierarchy is **user → many private projects → each project's model and editing context**. Users can also own personal materials, associated with a project where applicable. A general-purpose material library remains a product requirement, not an implemented storage capability.
+
+The entry point is **My projects** (`/projects`), including an empty collection for a fresh workspace. Nine Lives is one reference model. Geometry, symbols, mechanics and editor capabilities come from the selected graph; the generic compiler and interpreters serve all projects.
+
+Keep verified user identity, local project identity, authored model/template ID and server configuration/version identity separate. Template copies receive independent project and storage identities. Switching projects preserves their own drafts and nested context; asynchronous responses and calculation evidence must match the current source.
+
+Browser drafts autosave locally under verified user namespaces. Server version saving is explicit. The API enforces ownership of configurations, runs, experiments and realtime access. Sharing, invitations, teams and publication are deferred. Owner isolation does not establish capacity for a large hosted service or safe multi-instance snapshot writes.
+
+See [private workspace behavior and limits](design/PRIVATE_WORKSPACES.md), [product requirements](PRD.md) and [migration guidance](design/MIGRATION_ROLLBACK.md) for the implemented boundaries.
+
 ## Substrate: the free monad
 
 Every game is a **free monad** over a small effect algebra:

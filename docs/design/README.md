@@ -5,6 +5,9 @@ The product supports **many users, each with many private projects**. A project 
 Use these documents together:
 
 - [Product requirements](../PRD.md): ownership, separate project identities and mathematical contracts.
+- [Architecture](../architecture.md): user/project/model boundaries and the shared generic math engine.
+- [Authoring guide](../authoring-guide.md): starting with a private project and editing the selected model.
+- [Operations](../PRODUCTION.md): multiple configured accounts, archive ownership and deployment limits.
 - [UX masterplan](UX_MASTERPLAN.md): project library, navigation and selected-model editing.
 - [Private workspaces](PRIVATE_WORKSPACES.md): implemented persistence, account isolation and current limits.
 - [Design system](DESIGN_SYSTEM.md): interface requirements for the project library and workbench.

@@ -1,8 +1,28 @@
 # Slot Math Lab: operating the audited build
 
-The supported deployment is one API instance for one studio/operator, with HTTPS,
-encrypted config/run snapshots and PostgreSQL/Redis on a private container network.
-This is not a multi-tenant SaaS deployment or a certification claim.
+The current storage deployment uses one API writer, with HTTPS, encrypted config/run
+snapshots and PostgreSQL/Redis on a private container network. The product supports
+multiple configured user accounts, each owning many private game/model projects.
+This is not evidence of large-scale SaaS capacity or a certification claim.
+
+## Private accounts and projects
+
+**My projects** is the entry point. Browser drafts are scoped to verified user identity;
+server configurations, runs, experiments and realtime evidence are owner-only.
+Copies of the same game template have independent storage/version identities.
+Sharing, collaboration, teams, invitations and publication are deferred.
+
+The bootstrap below provisions one `operator` account. Additional accounts can be
+configured through `Auth:Users` (`Auth__Users__0__UserId` and
+`Auth__Users__0__PasswordHash`, etc.), using provisioned PBKDF2 hashes. The existing
+`Auth:User` / `Auth:PasswordHash` pair remains supported. Public registration,
+password reset and automatic cross-device draft synchronization are not implemented.
+
+Read [account configuration and ownership limits](design/PRIVATE_WORKSPACES.md) and
+[migration/rollback guidance](design/MIGRATION_ROLLBACK.md) before upgrading an
+existing archive. Ownerless legacy records require explicit legacy ownership
+mapping; they must not be assigned to the first new account. Multiple accounts do
+not remove the single-writer storage constraint described below.
 
 ## Start
 
