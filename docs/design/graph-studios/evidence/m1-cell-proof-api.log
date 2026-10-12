@@ -1,0 +1,10 @@
+
+Running 1 test using 1 worker
+
+(node:111304) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:111304) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  1 [chromium] › e2e/graph-studios-foundation.spec.ts:137:1 › Foundation: editing one independent board cell changes only its draw law through the real compiler (138ms)
+
+  1 passed (813ms)

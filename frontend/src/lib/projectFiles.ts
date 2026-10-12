@@ -2,6 +2,7 @@ import { canonicalJson } from './hash';
 import { assertModelNumbers } from './modelJson';
 import { useAppStore, type GraphNode, type GraphEdge, retainCurrentProject } from '../store';
 import { buildConfigPayload } from './configPayload';
+import { parseAuthoringViews, type AuthoringViews } from './authoring/viewMetadata';
 export function projectEditorState(config: Record<string, unknown>) {
   assertModelNumbers(config);
   if (!Array.isArray(config.nodes) || !Array.isArray(config.edges)) throw new Error('Project must contain nodes and edges');
@@ -79,16 +80,15 @@ export function exportProject() {
   return config ?? (state.graphTrail.length ? { ...state.tables, schemaVersion: '1.0.0', name, nodes: [], edges: [] } : null);
 }
 /** Switch examples/imports while retaining a restorable canonical editor draft. */
-export function switchProject(config: Record<string, unknown>) {
-  assertModelNumbers(config);
+export function switchProject(config: Record<string, unknown>, views: AuthoringViews | null = null) {
+  const draft = projectEditorState(config), authoringViews = parseAuthoringViews(views);
   retainCurrentProject();
   const current = useAppStore.getState();
   if (!current.authoringDraft && current.nodes.length) {
     const { nodes, edges, tables, graphTrail, verificationSource, configName, selectedNodeId, projectId } = current;
     useAppStore.setState({ authoringDraft: { nodes, edges, tables, graphTrail, verificationSource, configName, selectedNodeId, projectId } });
   }
-  loadProject(config);
-  useAppStore.setState({ projectId: crypto.randomUUID(), graphTrail: [], verificationSource: null, resultsDraft: null, liveRtp: null, liveProvenance: null });
+  useAppStore.setState({ ...draft, authoringViews, projectId: crypto.randomUUID(), graphTrail: [], selectedNodeId: null, inspectorOpen: current.inspectorPinned, verificationSource: null, resultsDraft: null, liveRtp: null, liveProvenance: null });
 }
 export function loadCoinExample() {
   switchProject({ schemaVersion: '1.0.0', name: 'REF-A Coin', nodes: [

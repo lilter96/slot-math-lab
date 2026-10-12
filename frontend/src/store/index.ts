@@ -1,6 +1,7 @@
 import { assertModelNumbers, parseModelJson } from '../lib/modelJson';
 import { create } from 'zustand';
 import { browserStorageKey } from '../lib/browserIdentity';
+import { parseAuthoringViews, type AuthoringViews } from '../lib/authoring/viewMetadata';
 import { LIMITS } from '../lib/limits';
 import { connectionError, nodePorts } from '../lib/graphConnections';
 import {
@@ -203,10 +204,11 @@ export interface MechanicsSyncState {
 
 // ── Store ──────────────────────────────────────────────────────────
 
-export type ProjectDraft = Pick<AppState, 'nodes' | 'edges' | 'tables' | 'graphTrail' | 'verificationSource' | 'configName' | 'authoringDraft' | 'resultsDraft'> & { updatedAt: string };
+export type ProjectDraft = Pick<AppState, 'nodes' | 'edges' | 'tables' | 'graphTrail' | 'verificationSource' | 'configName' | 'authoringDraft' | 'resultsDraft'> & { updatedAt: string; authoringViews?: AuthoringViews | null };
 export interface AppState extends GraphState, MechanicsState, PluginsState, MechanicsSyncState {
   projectId: string | null;
   projects: Record<string, ProjectDraft>;
+  authoringViews: AuthoringViews | null;
   authoringDraft: Pick<AppState, 'nodes' | 'edges' | 'tables' | 'graphTrail' | 'verificationSource' | 'configName' | 'selectedNodeId'> & { projectId?: string | null } | null;
   resultsDraft: Pick<AppState, 'nodes' | 'edges' | 'tables' | 'graphTrail' | 'verificationSource' | 'configName'> & { projectId?: string | null } | null;
   graphTrail: { graph: Record<string, unknown>; mechanic: string }[];
@@ -233,6 +235,7 @@ export const MOOD_HUE: Record<Mood, number> = {
 export const useAppStore = create<AppState>((set, get) => ({
   projectId: null,
   projects: {},
+  authoringViews: null,
   authoringDraft: null,
   resultsDraft: null,
   graphTrail: [],
@@ -424,8 +427,8 @@ export function withoutSelection<T extends { selected?: boolean }>(items: T[] | 
 
 /** Preserve editor positions and an open mechanic as well as the canonical model. */
 export function captureProjectDraft(s = useAppStore.getState()): ProjectDraft {
-  const { nodes, edges, tables, graphTrail, verificationSource, configName, authoringDraft, resultsDraft } = s;
-  return { nodes: withoutSelection(nodes) ?? [], edges, tables, graphTrail, verificationSource, configName, authoringDraft, resultsDraft, updatedAt: new Date().toISOString() };
+  const { nodes, edges, tables, graphTrail, verificationSource, configName, authoringDraft, resultsDraft, authoringViews } = s;
+  return { nodes: withoutSelection(nodes) ?? [], edges, tables, graphTrail, verificationSource, configName, authoringDraft, resultsDraft, ...(authoringViews ? { authoringViews: parseAuthoringViews(authoringViews) } : {}), updatedAt: new Date().toISOString() };
 }
 export function retainCurrentProject() {
   const s = useAppStore.getState();
@@ -435,11 +438,20 @@ export function activateProject(id: string) {
   retainCurrentProject();
   const project = useAppStore.getState().projects[id];
   if (!project) throw new Error('Project not found in this workspace');
-  useAppStore.setState({ ...project, projectId: id, selectedNodeId: null, inspectorOpen: useAppStore.getState().inspectorPinned, liveRtp: null, liveProvenance: null });
+  useAppStore.setState({ ...project, authoringViews: parseAuthoringViews(project.authoringViews), projectId: id, selectedNodeId: null, inspectorOpen: useAppStore.getState().inspectorPinned, liveRtp: null, liveProvenance: null });
 }
 
 let draftStorageError: string | null = null;
 let draftRecovery: string | null = null;
+export interface DraftSaveState { status: 'idle' | 'pending' | 'saved' | 'error'; projectId: string | null; error: string | null }
+let draftSaveState: DraftSaveState = { status: 'idle', projectId: null, error: null };
+export function getDraftSaveState() { return draftSaveState; }
+function reportDraftSave(status: DraftSaveState['status'], error: string | null = null) {
+  const projectId = useAppStore.getState().projectId;
+  if (draftSaveState.status === status && draftSaveState.projectId === projectId && draftSaveState.error === error) return;
+  draftSaveState = { status, projectId, error };
+  window.dispatchEvent(new CustomEvent('slotmath:draft-save', { detail: draftSaveState }));
+}
 export function getDraftRecovery() { return draftRecovery; }
 const recoveryMessage = 'A stored workspace could not be opened safely. Its original JSON is retained as a recovery copy; new projects can be edited separately.';
 export function getDraftStorageError() { return draftStorageError; }
@@ -467,6 +479,7 @@ if (typeof window !== 'undefined') {
     try {
       const snapshot = {
         projectId: s.projectId,
+        authoringViews: s.authoringViews,
         projects: s.projectId ? { ...s.projects, [s.projectId]: captureProjectDraft(s) } : s.projects,
         nodes: withoutSelection(s.nodes),
         edges: s.edges,
@@ -484,12 +497,18 @@ if (typeof window !== 'undefined') {
       assertModelNumbers(snapshot);
       localStorage.setItem(DRAFT_KEY, JSON.stringify(snapshot));
       reportDraftStorageError(draftRecovery !== null ? recoveryMessage : null);
-    } catch { reportDraftStorageError('Browser storage could not save the latest edits. Keep this page open and download JSON or save a server version from Export.'); }
+      reportDraftSave('saved');
+    } catch {
+      const error = 'Browser storage could not save the latest edits. Keep this page open and download JSON or save a server version from Export.';
+      reportDraftStorageError(error); reportDraftSave('error', error);
+    }
   };
 
   const schedulePersist = () => {
     const s = useAppStore.getState();
     if (!s.projectId && s.nodes.length) { useAppStore.setState({ projectId: crypto.randomUUID() }); return; }
+    if (writesBlocked) { reportDraftSave('error', draftStorageError); return; }
+    reportDraftSave('pending');
     if (saveTimer !== undefined) clearTimeout(saveTimer);
     saveTimer = window.setTimeout(() => {
       saveTimer = undefined;
@@ -503,7 +522,8 @@ if (typeof window !== 'undefined') {
     if (stored !== null && stored !== 'null') {
       const draft = parseModelJson(stored) as Partial<AppState>;
       if (!Array.isArray(draft.nodes) || !Array.isArray(draft.edges)) throw new Error('Stored workspace is missing graph arrays.');
-      useAppStore.setState({ projectId: draft.projectId ?? (draft.nodes.length ? crypto.randomUUID() : null), projects: draft.projects ?? {}, nodes: withoutSelection(draft.nodes) ?? [], edges: draft.edges, tables: draft.tables ?? {}, graphTrail: draft.graphTrail ?? [], verificationSource: draft.verificationSource ?? null, configName: draft.configName ?? 'Untitled', resultsDraft: draft.resultsDraft ?? null, authoringDraft: draft.authoringDraft ?? null });
+      useAppStore.setState({ projectId: draft.projectId ?? (draft.nodes.length ? crypto.randomUUID() : null), projects: draft.projects ?? {}, authoringViews: parseAuthoringViews(draft.authoringViews), nodes: withoutSelection(draft.nodes) ?? [], edges: draft.edges, tables: draft.tables ?? {}, graphTrail: draft.graphTrail ?? [], verificationSource: draft.verificationSource ?? null, configName: draft.configName === null ? null : draft.configName ?? 'Untitled', resultsDraft: draft.resultsDraft ?? null, authoringDraft: draft.authoringDraft ?? null });
+      reportDraftSave('saved');
     }
   } catch {
     if (stored !== null) {
@@ -529,6 +549,7 @@ if (typeof window !== 'undefined') {
     }
   }
 
+  if (writesBlocked) reportDraftSave('error', draftStorageError);
   useAppStore.subscribe(schedulePersist);
   window.addEventListener('beforeunload', () => {
     // Only flush when this tab actually has a pending write. Unconditionally

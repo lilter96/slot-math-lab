@@ -1,0 +1,16 @@
+
+Running 3 tests using 2 workers
+
+(node:120461) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:120462) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:120461) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:120462) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  2 unit/authoring-view-metadata.spec.ts:20:1 › Independent projects retain their own layout and pins while a raw graph import starts without view metadata (7ms)
+  ✓  1 unit/authoring-view-metadata.spec.ts:10:1 › Versioned envelope contains exactly one executable graph and preserves non-executable metadata through import/export (8ms)
+  ✓  3 unit/authoring-view-metadata.spec.ts:26:1 › Unknown metadata, numerical math copies and malformed imports are refused before replacing a private project (10ms)
+
+  3 passed (610ms)

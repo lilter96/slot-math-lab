@@ -1,5 +1,6 @@
 import type { ProjectDraft } from '../store';
 import { parseModelJson } from './modelJson';
+import { parseAuthoringViews } from './authoring/viewMetadata';
 
 const record = (value: unknown): value is Record<string, unknown> => !!value && typeof value === 'object' && !Array.isArray(value);
 
@@ -25,5 +26,6 @@ export function parseEditableDraft(text: string): ProjectDraft {
     nodes: draft.nodes as ProjectDraft['nodes'], edges: draft.edges as ProjectDraft['edges'], tables: draft.tables,
     graphTrail: draft.graphTrail as ProjectDraft['graphTrail'], configName: draft.configName as string | null,
     verificationSource: null, authoringDraft: null, resultsDraft: null, updatedAt: new Date().toISOString(),
+    authoringViews: parseAuthoringViews(draft.authoringViews),
   };
 }

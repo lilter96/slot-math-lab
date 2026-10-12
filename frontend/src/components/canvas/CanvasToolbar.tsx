@@ -1,6 +1,6 @@
 import { catalogExamples } from '../../lib/catalogExamples';
 import { projectContentScope, inspectRootProject } from '../../lib/projectFiles';
-import { parseModelJson } from '../../lib/modelJson';
+import { importProjectFile } from '../../lib/authoring/projectEnvelope';
 import { useNavigate } from 'react-router-dom';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useReactFlow, useViewport } from '@xyflow/react';
@@ -85,7 +85,7 @@ export default function CanvasToolbar({ canConnect = true }: { canConnect?: bool
             const content = await file.text();
             if (token !== importTask.current || origin !== graphScope()) return;
             if (base !== projectContentScope()) { setFileError('The model changed while reading this file. Select the file again to import it.'); return; }
-            switchProject(parseModelJson(content)); setFileError(null);
+            importProjectFile(content); setFileError(null);
           } catch (err) { if (token === importTask.current && origin === graphScope()) setFileError(err instanceof Error ? err.message : 'Invalid project'); }
         }} />
         <select aria-label="Load catalog example" value="" onChange={e => { if (e.target.value) switchProject(catalogExamples[e.target.value]); }}>

@@ -1,4 +1,6 @@
 import { test, expect } from '@playwright/test';
+import { createWoodlandWhisperGraph } from '../src/games/woodland-whisper/graph';
+import { reelBindings } from '../src/lib/authoring/reelBindings';
 import { weightBindings, changeBoundWeights } from '../src/lib/authoring/weightBindings';
 import type { ModelGraph } from '../src/lib/modelProjection';
 const rows = [{ outcomeId: '001', weight: 3, value: 0, opaque: true }, { outcomeId: 'zero', weight: 1, value: 0 }];
@@ -18,4 +20,15 @@ test('Stale definitions and changed shared-use scope refuse edits while invalid/
   expect(weightBindings(dynamic).map(item => item.capability)).toEqual(['dynamic', 'custom']);
   expect(weightBindings(dynamic).every(item => !item.writes.length)).toBe(true);
   expect(() => changeBoundWeights(graph, binding, new Map([['001', ''], ['zero', '1']]))).toThrow('whole weights');
+});
+test('Conditioned reel distributions remain visible but cannot bypass their dependency contract through a generic weight edit', () => {
+  const graph = createWoodlandWhisperGraph(undefined, { buy: true }) as ModelGraph, source = reelBindings(graph)[0];
+  const scopes = new Set([...source.source.stops.map(stop => stop.scope), ...source.source.conditions!.map(condition => condition.scope)]);
+  const generated = weightBindings(graph).filter(binding => binding.source.scope !== null && scopes.has(binding.source.scope)); expect(generated.length).toBeGreaterThan(0);
+  const before = structuredClone(graph);
+  for (const binding of generated) {
+    expect(binding.capability).toBe('computed'); expect(binding.writes).toEqual([]);
+    expect(() => changeBoundWeights(graph, binding, new Map(binding.rows.map(row => [row.outcomeId, String(row.weight + 1)])))).toThrow('conditioned reel');
+  }
+  expect(graph).toEqual(before);
 });

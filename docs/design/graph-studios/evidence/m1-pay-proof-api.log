@@ -1,0 +1,11 @@
+
+Running 2 tests using 1 worker
+
+(node:108291) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:108291) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  1 [chromium] › e2e/graph-studios-foundation.spec.ts:105:1 › Foundation: line payout edit synchronizes a rational precision declaration and the real exact win (107ms)
+  ✓  2 [chromium] › e2e/graph-studios-foundation.spec.ts:121:1 › Foundation: scatter edit keeps total-bet units distinct from a bought round price (73ms)
+
+  2 passed (865ms)
