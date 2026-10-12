@@ -1,0 +1,3205 @@
+{
+  "capturedAt": "2026-10-12T00:35:04.635Z",
+  "method": "Invoke every bundled pure graph factory through TypeScript CommonJS transpilation; inspect authored source, not execution",
+  "models": [
+    {
+      "name": "Nine Lives reference",
+      "id": "nine-lives-base",
+      "rootNodes": 4,
+      "rootEdges": 3,
+      "definitions": 40,
+      "authoredNodes": 382,
+      "geometry": {
+        "rows": 5,
+        "columns": 6
+      },
+      "topLevelFields": [
+        "boardConfig",
+        "description",
+        "edges",
+        "expressions",
+        "id",
+        "initialState",
+        "mechanics",
+        "name",
+        "nodes",
+        "paytables",
+        "schemaVersion",
+        "stateSchema",
+        "symbols"
+      ],
+      "weightedEditorSources": 95,
+      "stateArrays": [
+        {
+          "key": "emptyArray",
+          "length": 0,
+          "valueTypes": [],
+          "uniqueValues": 0,
+          "referencingScopes": [
+            "connected-component",
+            "symbol-components",
+            "evaluate-ordered-components",
+            "evaluate-mask-components",
+            "gravity-column",
+            "compact-and-refill",
+            "base-spin",
+            "free-spin"
+          ]
+        },
+        {
+          "key": "positions",
+          "length": 30,
+          "valueTypes": [
+            "number"
+          ],
+          "uniqueValues": 30,
+          "referencingScopes": [
+            "claim-component",
+            "evaluate-mask-components",
+            "restore-row-major",
+            "collect-coins",
+            "base-spin",
+            "free-spin"
+          ]
+        },
+        {
+          "key": "scanOrder",
+          "length": 30,
+          "valueTypes": [
+            "number"
+          ],
+          "uniqueValues": 30,
+          "referencingScopes": [
+            "vanish-paying-types",
+            "evaluate-ordered-components",
+            "mask-symbol",
+            "mask-symbol-without-wilds",
+            "evaluate-mask-components"
+          ]
+        },
+        {
+          "key": "survivorRowCodes",
+          "length": 32,
+          "valueTypes": [
+            "number"
+          ],
+          "uniqueValues": 16,
+          "referencingScopes": [
+            "gravity-column"
+          ]
+        },
+        {
+          "key": "columnPositionsByIndex",
+          "length": 6,
+          "valueTypes": [
+            "array"
+          ],
+          "uniqueValues": 6,
+          "referencingScopes": []
+        },
+        {
+          "key": "boardColumns",
+          "length": 30,
+          "valueTypes": [
+            "number"
+          ],
+          "uniqueValues": 6,
+          "referencingScopes": [
+            "restore-row-major"
+          ]
+        },
+        {
+          "key": "bottomRows",
+          "length": 30,
+          "valueTypes": [
+            "number"
+          ],
+          "uniqueValues": 5,
+          "referencingScopes": [
+            "restore-row-major"
+          ]
+        },
+        {
+          "key": "neighborPositions0",
+          "length": 30,
+          "valueTypes": [
+            "number"
+          ],
+          "uniqueValues": 25,
+          "referencingScopes": [
+            "component-scan-step",
+            "evaluate-ordered-components"
+          ]
+        },
+        {
+          "key": "neighborPositions1",
+          "length": 30,
+          "valueTypes": [
+            "number"
+          ],
+          "uniqueValues": 25,
+          "referencingScopes": [
+            "component-scan-step",
+            "evaluate-ordered-components"
+          ]
+        },
+        {
+          "key": "neighborPositions2",
+          "length": 30,
+          "valueTypes": [
+            "number"
+          ],
+          "uniqueValues": 26,
+          "referencingScopes": [
+            "component-scan-step",
+            "evaluate-ordered-components"
+          ]
+        },
+        {
+          "key": "neighborPositions3",
+          "length": 30,
+          "valueTypes": [
+            "number"
+          ],
+          "uniqueValues": 26,
+          "referencingScopes": [
+            "component-scan-step",
+            "evaluate-ordered-components"
+          ]
+        },
+        {
+          "key": "positionBits",
+          "length": 30,
+          "valueTypes": [
+            "number"
+          ],
+          "uniqueValues": 30,
+          "referencingScopes": [
+            "evaluate-mask-components",
+            "evaluate-components"
+          ]
+        },
+        {
+          "key": "triplePlaneCodes",
+          "length": 8,
+          "valueTypes": [
+            "number"
+          ],
+          "uniqueValues": 8,
+          "referencingScopes": [
+            "evaluate-mask-components"
+          ]
+        },
+        {
+          "key": "planePositions0",
+          "length": 15,
+          "valueTypes": [
+            "number"
+          ],
+          "uniqueValues": 15,
+          "referencingScopes": [
+            "evaluate-mask-components"
+          ]
+        },
+        {
+          "key": "planePositions1",
+          "length": 15,
+          "valueTypes": [
+            "number"
+          ],
+          "uniqueValues": 15,
+          "referencingScopes": [
+            "evaluate-mask-components"
+          ]
+        },
+        {
+          "key": "neighborDegrees",
+          "length": 30,
+          "valueTypes": [
+            "number"
+          ],
+          "uniqueValues": 1,
+          "referencingScopes": [
+            "component-scan-step",
+            "component-edge-bound",
+            "evaluate-ordered-components"
+          ]
+        },
+        {
+          "key": "potentialPositions",
+          "length": 0,
+          "valueTypes": [],
+          "uniqueValues": 0,
+          "referencingScopes": [
+            "symbol-components"
+          ]
+        },
+        {
+          "key": "directions",
+          "length": 4,
+          "valueTypes": [
+            "number"
+          ],
+          "uniqueValues": 4,
+          "referencingScopes": [
+            "queue-neighbors"
+          ]
+        },
+        {
+          "key": "adjacentPositions",
+          "length": 120,
+          "valueTypes": [
+            "number"
+          ],
+          "uniqueValues": 31,
+          "referencingScopes": [
+            "queue-neighbors"
+          ]
+        },
+        {
+          "key": "clusterPaytable",
+          "length": 130,
+          "valueTypes": [
+            "string"
+          ],
+          "uniqueValues": 59,
+          "referencingScopes": [
+            "connected-component",
+            "mask-component"
+          ]
+        },
+        {
+          "key": "board",
+          "length": 30,
+          "valueTypes": [
+            "string"
+          ],
+          "uniqueValues": 1,
+          "referencingScopes": [
+            "queue-neighbors",
+            "claim-component",
+            "component-scan-step",
+            "symbol-components",
+            "vanish-paying-types",
+            "evaluate-ordered-components",
+            "mask-symbol",
+            "mask-symbol-without-wilds",
+            "evaluate-mask-components",
+            "compact-and-refill",
+            "cascade-step",
+            "collect-coins",
+            "base-spin",
+            "free-spin"
+          ]
+        },
+        {
+          "key": "initialBoard",
+          "length": 0,
+          "valueTypes": [],
+          "uniqueValues": 0,
+          "referencingScopes": [
+            "base-spin",
+            "free-spin"
+          ]
+        },
+        {
+          "key": "gravityOriginal",
+          "length": 30,
+          "valueTypes": [
+            "string"
+          ],
+          "uniqueValues": 1,
+          "referencingScopes": [
+            "gravity-column"
+          ]
+        },
+        {
+          "key": "queue",
+          "length": 0,
+          "valueTypes": [],
+          "uniqueValues": 0,
+          "referencingScopes": [
+            "queue-neighbors",
+            "claim-component",
+            "connected-component"
+          ]
+        },
+        {
+          "key": "visited",
+          "length": 0,
+          "valueTypes": [],
+          "uniqueValues": 0,
+          "referencingScopes": [
+            "queue-neighbors",
+            "connected-component",
+            "component-scan-step",
+            "symbol-components"
+          ]
+        },
+        {
+          "key": "winningPositions",
+          "length": 0,
+          "valueTypes": [],
+          "uniqueValues": 0,
+          "referencingScopes": [
+            "claim-component",
+            "vanish-paying-types",
+            "evaluate-components",
+            "cascade-step"
+          ]
+        },
+        {
+          "key": "usedWilds",
+          "length": 0,
+          "valueTypes": [],
+          "uniqueValues": 0,
+          "referencingScopes": [
+            "queue-neighbors",
+            "claim-component",
+            "symbol-components",
+            "vanish-paying-types"
+          ]
+        },
+        {
+          "key": "hitSymbols",
+          "length": 0,
+          "valueTypes": [],
+          "uniqueValues": 0,
+          "referencingScopes": [
+            "claim-component",
+            "vanish-paying-types",
+            "cascade-step"
+          ]
+        },
+        {
+          "key": "hitSizes",
+          "length": 0,
+          "valueTypes": [],
+          "uniqueValues": 0,
+          "referencingScopes": [
+            "claim-component",
+            "cascade-step"
+          ]
+        },
+        {
+          "key": "hitPayouts",
+          "length": 0,
+          "valueTypes": [],
+          "uniqueValues": 0,
+          "referencingScopes": [
+            "claim-component",
+            "cascade-step"
+          ]
+        },
+        {
+          "key": "hitPositions",
+          "length": 0,
+          "valueTypes": [],
+          "uniqueValues": 0,
+          "referencingScopes": [
+            "claim-component",
+            "cascade-step"
+          ]
+        },
+        {
+          "key": "symbolCells",
+          "length": 0,
+          "valueTypes": [],
+          "uniqueValues": 0,
+          "referencingScopes": [
+            "evaluate-ordered-components"
+          ]
+        },
+        {
+          "key": "symbolOrder",
+          "length": 0,
+          "valueTypes": [],
+          "uniqueValues": 0,
+          "referencingScopes": [
+            "symbol-scan-step",
+            "evaluate-ordered-components"
+          ]
+        },
+        {
+          "key": "symbolCandidates",
+          "length": 0,
+          "valueTypes": [],
+          "uniqueValues": 0,
+          "referencingScopes": [
+            "component-scan-step",
+            "candidate-components",
+            "component-edge-bound",
+            "symbol-components"
+          ]
+        },
+        {
+          "key": "matchingPositions",
+          "length": 0,
+          "valueTypes": [],
+          "uniqueValues": 0,
+          "referencingScopes": [
+            "vanish-paying-types"
+          ]
+        },
+        {
+          "key": "survivors",
+          "length": 0,
+          "valueTypes": [],
+          "uniqueValues": 0,
+          "referencingScopes": []
+        },
+        {
+          "key": "columnPositions",
+          "length": 0,
+          "valueTypes": [],
+          "uniqueValues": 0,
+          "referencingScopes": []
+        },
+        {
+          "key": "columnValues",
+          "length": 5,
+          "valueTypes": [
+            "string"
+          ],
+          "uniqueValues": 1,
+          "referencingScopes": [
+            "gravity-column"
+          ]
+        },
+        {
+          "key": "gravityColumns",
+          "length": 6,
+          "valueTypes": [
+            "array"
+          ],
+          "uniqueValues": 1,
+          "referencingScopes": [
+            "gravity-column",
+            "restore-row-major"
+          ]
+        },
+        {
+          "key": "coinPositions",
+          "length": 0,
+          "valueTypes": [],
+          "uniqueValues": 0,
+          "referencingScopes": [
+            "collect-coins",
+            "base-spin",
+            "free-spin"
+          ]
+        },
+        {
+          "key": "coinValues",
+          "length": 0,
+          "valueTypes": [],
+          "uniqueValues": 0,
+          "referencingScopes": [
+            "collect-coins",
+            "base-spin",
+            "free-spin"
+          ]
+        },
+        {
+          "key": "prizes",
+          "length": 0,
+          "valueTypes": [],
+          "uniqueValues": 0,
+          "referencingScopes": [
+            "collect-coins",
+            "free-spin"
+          ]
+        },
+        {
+          "key": "boards",
+          "length": 0,
+          "valueTypes": [],
+          "uniqueValues": 0,
+          "referencingScopes": [
+            "base-spin",
+            "free-spin"
+          ]
+        },
+        {
+          "key": "finalBoards",
+          "length": 0,
+          "valueTypes": [],
+          "uniqueValues": 0,
+          "referencingScopes": [
+            "base-spin",
+            "free-spin"
+          ]
+        },
+        {
+          "key": "winHistory",
+          "length": 0,
+          "valueTypes": [],
+          "uniqueValues": 0,
+          "referencingScopes": [
+            "base-spin",
+            "free-spin"
+          ]
+        },
+        {
+          "key": "clusterWinHistory",
+          "length": 0,
+          "valueTypes": [],
+          "uniqueValues": 0,
+          "referencingScopes": [
+            "base-spin",
+            "free-spin"
+          ]
+        },
+        {
+          "key": "collectionWinHistory",
+          "length": 0,
+          "valueTypes": [],
+          "uniqueValues": 0,
+          "referencingScopes": [
+            "base-spin",
+            "free-spin"
+          ]
+        },
+        {
+          "key": "coinPositionHistory",
+          "length": 0,
+          "valueTypes": [],
+          "uniqueValues": 0,
+          "referencingScopes": [
+            "base-spin",
+            "free-spin"
+          ]
+        },
+        {
+          "key": "coinValueHistory",
+          "length": 0,
+          "valueTypes": [],
+          "uniqueValues": 0,
+          "referencingScopes": [
+            "base-spin",
+            "free-spin"
+          ]
+        },
+        {
+          "key": "multiplierHistory",
+          "length": 0,
+          "valueTypes": [],
+          "uniqueValues": 0,
+          "referencingScopes": [
+            "base-spin",
+            "free-spin"
+          ]
+        },
+        {
+          "key": "remainingHistory",
+          "length": 0,
+          "valueTypes": [],
+          "uniqueValues": 0,
+          "referencingScopes": [
+            "base-spin",
+            "free-spin"
+          ]
+        },
+        {
+          "key": "roundWinHistory",
+          "length": 0,
+          "valueTypes": [],
+          "uniqueValues": 0,
+          "referencingScopes": [
+            "base-spin",
+            "free-spin"
+          ]
+        },
+        {
+          "key": "stepSpins",
+          "length": 0,
+          "valueTypes": [],
+          "uniqueValues": 0,
+          "referencingScopes": [
+            "cascade-step"
+          ]
+        },
+        {
+          "key": "stepBoardsBefore",
+          "length": 0,
+          "valueTypes": [],
+          "uniqueValues": 0,
+          "referencingScopes": [
+            "cascade-step"
+          ]
+        },
+        {
+          "key": "stepBoardsAfter",
+          "length": 0,
+          "valueTypes": [],
+          "uniqueValues": 0,
+          "referencingScopes": [
+            "cascade-step"
+          ]
+        },
+        {
+          "key": "stepMultipliers",
+          "length": 0,
+          "valueTypes": [],
+          "uniqueValues": 0,
+          "referencingScopes": [
+            "cascade-step"
+          ]
+        },
+        {
+          "key": "stepWins",
+          "length": 0,
+          "valueTypes": [],
+          "uniqueValues": 0,
+          "referencingScopes": [
+            "cascade-step"
+          ]
+        },
+        {
+          "key": "stepHitSymbols",
+          "length": 0,
+          "valueTypes": [],
+          "uniqueValues": 0,
+          "referencingScopes": [
+            "cascade-step"
+          ]
+        },
+        {
+          "key": "stepHitSizes",
+          "length": 0,
+          "valueTypes": [],
+          "uniqueValues": 0,
+          "referencingScopes": [
+            "cascade-step"
+          ]
+        },
+        {
+          "key": "stepHitPayouts",
+          "length": 0,
+          "valueTypes": [],
+          "uniqueValues": 0,
+          "referencingScopes": [
+            "cascade-step"
+          ]
+        },
+        {
+          "key": "stepHitTotals",
+          "length": 0,
+          "valueTypes": [],
+          "uniqueValues": 0,
+          "referencingScopes": [
+            "cascade-step"
+          ]
+        },
+        {
+          "key": "stepHitPositions",
+          "length": 0,
+          "valueTypes": [],
+          "uniqueValues": 0,
+          "referencingScopes": [
+            "cascade-step"
+          ]
+        },
+        {
+          "key": "stepVanished",
+          "length": 0,
+          "valueTypes": [],
+          "uniqueValues": 0,
+          "referencingScopes": [
+            "cascade-step"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Nine Lives",
+      "id": "nine-lives",
+      "rootNodes": 5,
+      "rootEdges": 5,
+      "definitions": 21,
+      "authoredNodes": 225,
+      "geometry": {
+        "rows": 5,
+        "columns": 6
+      },
+      "topLevelFields": [
+        "boardConfig",
+        "description",
+        "edges",
+        "expressions",
+        "id",
+        "initialState",
+        "mechanics",
+        "name",
+        "nodes",
+        "paytables",
+        "schemaVersion",
+        "symbols"
+      ],
+      "weightedEditorSources": 91,
+      "stateArrays": [
+        {
+          "key": "emptyArray",
+          "length": 0,
+          "valueTypes": [],
+          "uniqueValues": 0,
+          "referencingScopes": [
+            "cluster-pays",
+            "tumble"
+          ]
+        },
+        {
+          "key": "boardPositions",
+          "length": 30,
+          "valueTypes": [
+            "number"
+          ],
+          "uniqueValues": 30,
+          "referencingScopes": [
+            "free-board",
+            "paid-board"
+          ]
+        },
+        {
+          "key": "board",
+          "length": 30,
+          "valueTypes": [
+            "string"
+          ],
+          "uniqueValues": 1,
+          "referencingScopes": [
+            "read-board",
+            "claim-group",
+            "symbol-clusters",
+            "tumble",
+            "cascade-step",
+            "free-board",
+            "coin-prizes",
+            "free-spin",
+            "paid-board",
+            "paid-spin"
+          ]
+        },
+        {
+          "key": "coins",
+          "length": 30,
+          "valueTypes": [
+            "number"
+          ],
+          "uniqueValues": 1,
+          "referencingScopes": [
+            "coin-prizes",
+            "free-spin",
+            "paid-spin"
+          ]
+        },
+        {
+          "key": "clusterPays",
+          "length": 248,
+          "valueTypes": [
+            "number"
+          ],
+          "uniqueValues": 60,
+          "referencingScopes": [
+            "pay-group"
+          ]
+        },
+        {
+          "key": "symbolDigits",
+          "length": 8,
+          "valueTypes": [
+            "number"
+          ],
+          "uniqueValues": 8,
+          "referencingScopes": [
+            "read-board"
+          ]
+        },
+        {
+          "key": "boardPart0",
+          "length": 17,
+          "valueTypes": [
+            "number"
+          ],
+          "uniqueValues": 17,
+          "referencingScopes": [
+            "read-board"
+          ]
+        },
+        {
+          "key": "boardPart1",
+          "length": 13,
+          "valueTypes": [
+            "number"
+          ],
+          "uniqueValues": 13,
+          "referencingScopes": [
+            "read-board"
+          ]
+        },
+        {
+          "key": "hitSymbols",
+          "length": 0,
+          "valueTypes": [],
+          "uniqueValues": 0,
+          "referencingScopes": [
+            "claim-group",
+            "pay-step"
+          ]
+        },
+        {
+          "key": "hitSizes",
+          "length": 0,
+          "valueTypes": [],
+          "uniqueValues": 0,
+          "referencingScopes": [
+            "claim-group",
+            "pay-step"
+          ]
+        },
+        {
+          "key": "hitPays",
+          "length": 0,
+          "valueTypes": [],
+          "uniqueValues": 0,
+          "referencingScopes": [
+            "claim-group",
+            "pay-step"
+          ]
+        },
+        {
+          "key": "hitCells",
+          "length": 0,
+          "valueTypes": [],
+          "uniqueValues": 0,
+          "referencingScopes": [
+            "claim-group",
+            "pay-step"
+          ]
+        },
+        {
+          "key": "survivors",
+          "length": 1,
+          "valueTypes": [
+            "string"
+          ],
+          "uniqueValues": 1,
+          "referencingScopes": []
+        },
+        {
+          "key": "drops",
+          "length": 1,
+          "valueTypes": [
+            "string"
+          ],
+          "uniqueValues": 1,
+          "referencingScopes": [
+            "drop-symbol",
+            "tumble"
+          ]
+        },
+        {
+          "key": "columnStart",
+          "length": 30,
+          "valueTypes": [
+            "number"
+          ],
+          "uniqueValues": 6,
+          "referencingScopes": [
+            "tumble"
+          ]
+        },
+        {
+          "key": "cellColumn",
+          "length": 30,
+          "valueTypes": [
+            "number"
+          ],
+          "uniqueValues": 6,
+          "referencingScopes": [
+            "tumble"
+          ]
+        },
+        {
+          "key": "columnsBefore",
+          "length": 7,
+          "valueTypes": [
+            "number"
+          ],
+          "uniqueValues": 7,
+          "referencingScopes": [
+            "tumble"
+          ]
+        },
+        {
+          "key": "emptyBefore",
+          "length": 7,
+          "valueTypes": [
+            "number"
+          ],
+          "uniqueValues": 1,
+          "referencingScopes": [
+            "tumble"
+          ]
+        },
+        {
+          "key": "columnOffsets",
+          "length": 6,
+          "valueTypes": [
+            "number"
+          ],
+          "uniqueValues": 6,
+          "referencingScopes": [
+            "tumble"
+          ]
+        },
+        {
+          "key": "columnRemoved",
+          "length": 6,
+          "valueTypes": [
+            "number"
+          ],
+          "uniqueValues": 1,
+          "referencingScopes": [
+            "tumble"
+          ]
+        },
+        {
+          "key": "boardRows",
+          "length": 30,
+          "valueTypes": [
+            "number"
+          ],
+          "uniqueValues": 5,
+          "referencingScopes": [
+            "tumble"
+          ]
+        },
+        {
+          "key": "settledSources",
+          "length": 160,
+          "valueTypes": [
+            "number"
+          ],
+          "uniqueValues": 10,
+          "referencingScopes": [
+            "tumble"
+          ]
+        },
+        {
+          "key": "cascadeBoards",
+          "length": 0,
+          "valueTypes": [],
+          "uniqueValues": 0,
+          "referencingScopes": [
+            "cascade-step"
+          ]
+        },
+        {
+          "key": "cascadeRemoved",
+          "length": 0,
+          "valueTypes": [],
+          "uniqueValues": 0,
+          "referencingScopes": [
+            "cascade-step"
+          ]
+        },
+        {
+          "key": "cascadeAfter",
+          "length": 0,
+          "valueTypes": [],
+          "uniqueValues": 0,
+          "referencingScopes": [
+            "cascade-step"
+          ]
+        },
+        {
+          "key": "spinBoards",
+          "length": 0,
+          "valueTypes": [],
+          "uniqueValues": 0,
+          "referencingScopes": [
+            "pay-step",
+            "free-spin",
+            "paid-spin"
+          ]
+        },
+        {
+          "key": "spinCoins",
+          "length": 0,
+          "valueTypes": [],
+          "uniqueValues": 0,
+          "referencingScopes": [
+            "free-spin",
+            "paid-spin"
+          ]
+        },
+        {
+          "key": "spinMultipliers",
+          "length": 0,
+          "valueTypes": [],
+          "uniqueValues": 0,
+          "referencingScopes": [
+            "free-spin",
+            "paid-spin"
+          ]
+        },
+        {
+          "key": "spinCollected",
+          "length": 0,
+          "valueTypes": [],
+          "uniqueValues": 0,
+          "referencingScopes": [
+            "free-spin",
+            "paid-spin"
+          ]
+        },
+        {
+          "key": "spinFinalBoards",
+          "length": 0,
+          "valueTypes": [],
+          "uniqueValues": 0,
+          "referencingScopes": [
+            "free-spin",
+            "paid-spin"
+          ]
+        },
+        {
+          "key": "stepSpins",
+          "length": 0,
+          "valueTypes": [],
+          "uniqueValues": 0,
+          "referencingScopes": [
+            "pay-step"
+          ]
+        },
+        {
+          "key": "stepMultipliers",
+          "length": 0,
+          "valueTypes": [],
+          "uniqueValues": 0,
+          "referencingScopes": [
+            "pay-step"
+          ]
+        },
+        {
+          "key": "stepWins",
+          "length": 0,
+          "valueTypes": [],
+          "uniqueValues": 0,
+          "referencingScopes": [
+            "pay-step"
+          ]
+        },
+        {
+          "key": "stepHitSymbols",
+          "length": 0,
+          "valueTypes": [],
+          "uniqueValues": 0,
+          "referencingScopes": [
+            "pay-step"
+          ]
+        },
+        {
+          "key": "stepHitSizes",
+          "length": 0,
+          "valueTypes": [],
+          "uniqueValues": 0,
+          "referencingScopes": [
+            "pay-step"
+          ]
+        },
+        {
+          "key": "stepHitPays",
+          "length": 0,
+          "valueTypes": [],
+          "uniqueValues": 0,
+          "referencingScopes": [
+            "pay-step"
+          ]
+        },
+        {
+          "key": "stepHitCells",
+          "length": 0,
+          "valueTypes": [],
+          "uniqueValues": 0,
+          "referencingScopes": [
+            "pay-step"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Ancient Dragon",
+      "id": "ancient-dragon",
+      "rootNodes": 6,
+      "rootEdges": 6,
+      "definitions": 7,
+      "authoredNodes": 72,
+      "geometry": {
+        "rows": 3,
+        "columns": 5
+      },
+      "topLevelFields": [
+        "boardConfig",
+        "description",
+        "edges",
+        "expressions",
+        "id",
+        "initialState",
+        "mechanics",
+        "name",
+        "nodes",
+        "paylineSets",
+        "paytables",
+        "schemaVersion",
+        "symbols"
+      ],
+      "weightedEditorSources": 6,
+      "stateArrays": [
+        {
+          "key": "emptyArray",
+          "length": 0,
+          "valueTypes": [],
+          "uniqueValues": 0,
+          "referencingScopes": [
+            "spin-reels",
+            "paylines"
+          ]
+        },
+        {
+          "key": "scatterPays",
+          "length": 16,
+          "valueTypes": [
+            "number"
+          ],
+          "uniqueValues": 5,
+          "referencingScopes": [
+            "scatter-pay"
+          ]
+        },
+        {
+          "key": "spinFreeSpinsLeft",
+          "length": 0,
+          "valueTypes": [],
+          "uniqueValues": 0,
+          "referencingScopes": [
+            "root",
+            "free-spin"
+          ]
+        },
+        {
+          "key": "reel0",
+          "length": 45,
+          "valueTypes": [
+            "string"
+          ],
+          "uniqueValues": 12,
+          "referencingScopes": [
+            "spin-reels"
+          ]
+        },
+        {
+          "key": "reel1",
+          "length": 45,
+          "valueTypes": [
+            "string"
+          ],
+          "uniqueValues": 13,
+          "referencingScopes": [
+            "spin-reels"
+          ]
+        },
+        {
+          "key": "reel2",
+          "length": 51,
+          "valueTypes": [
+            "string"
+          ],
+          "uniqueValues": 13,
+          "referencingScopes": [
+            "spin-reels"
+          ]
+        },
+        {
+          "key": "reel3",
+          "length": 44,
+          "valueTypes": [
+            "string"
+          ],
+          "uniqueValues": 13,
+          "referencingScopes": [
+            "spin-reels"
+          ]
+        },
+        {
+          "key": "reel4",
+          "length": 44,
+          "valueTypes": [
+            "string"
+          ],
+          "uniqueValues": 13,
+          "referencingScopes": [
+            "spin-reels"
+          ]
+        },
+        {
+          "key": "linePays",
+          "length": 14,
+          "valueTypes": [
+            "array"
+          ],
+          "uniqueValues": 7,
+          "referencingScopes": [
+            "payline"
+          ]
+        },
+        {
+          "key": "linePayouts",
+          "length": 0,
+          "valueTypes": [],
+          "uniqueValues": 0,
+          "referencingScopes": [
+            "payline",
+            "spin"
+          ]
+        },
+        {
+          "key": "lineSymbols",
+          "length": 0,
+          "valueTypes": [],
+          "uniqueValues": 0,
+          "referencingScopes": [
+            "payline",
+            "spin"
+          ]
+        },
+        {
+          "key": "lineCounts",
+          "length": 0,
+          "valueTypes": [],
+          "uniqueValues": 0,
+          "referencingScopes": [
+            "payline",
+            "spin"
+          ]
+        },
+        {
+          "key": "board",
+          "length": 0,
+          "valueTypes": [],
+          "uniqueValues": 0,
+          "referencingScopes": [
+            "payline",
+            "scatter-pay",
+            "spin"
+          ]
+        },
+        {
+          "key": "spinBoards",
+          "length": 0,
+          "valueTypes": [],
+          "uniqueValues": 0,
+          "referencingScopes": [
+            "spin"
+          ]
+        },
+        {
+          "key": "spinLinePayouts",
+          "length": 0,
+          "valueTypes": [],
+          "uniqueValues": 0,
+          "referencingScopes": [
+            "spin"
+          ]
+        },
+        {
+          "key": "spinLineSymbols",
+          "length": 0,
+          "valueTypes": [],
+          "uniqueValues": 0,
+          "referencingScopes": [
+            "spin"
+          ]
+        },
+        {
+          "key": "spinLineCounts",
+          "length": 0,
+          "valueTypes": [],
+          "uniqueValues": 0,
+          "referencingScopes": [
+            "spin"
+          ]
+        },
+        {
+          "key": "spinScatters",
+          "length": 0,
+          "valueTypes": [],
+          "uniqueValues": 0,
+          "referencingScopes": [
+            "spin"
+          ]
+        },
+        {
+          "key": "spinScatterWins",
+          "length": 0,
+          "valueTypes": [],
+          "uniqueValues": 0,
+          "referencingScopes": [
+            "spin"
+          ]
+        },
+        {
+          "key": "spinWins",
+          "length": 0,
+          "valueTypes": [],
+          "uniqueValues": 0,
+          "referencingScopes": [
+            "spin"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Woodland Whisper",
+      "id": "woodland-whisper",
+      "rootNodes": 5,
+      "rootEdges": 5,
+      "definitions": 10,
+      "authoredNodes": 89,
+      "geometry": {
+        "rows": 3,
+        "columns": 5
+      },
+      "topLevelFields": [
+        "boardConfig",
+        "description",
+        "edges",
+        "expressions",
+        "id",
+        "initialState",
+        "mechanics",
+        "name",
+        "nodes",
+        "paylineSets",
+        "paytables",
+        "schemaVersion",
+        "symbols"
+      ],
+      "weightedEditorSources": 7,
+      "stateArrays": [
+        {
+          "key": "emptyArray",
+          "length": 0,
+          "valueTypes": [],
+          "uniqueValues": 0,
+          "referencingScopes": [
+            "paylines",
+            "spin-reels"
+          ]
+        },
+        {
+          "key": "scatterPays",
+          "length": 16,
+          "valueTypes": [
+            "number"
+          ],
+          "uniqueValues": 5,
+          "referencingScopes": [
+            "scatter-pay"
+          ]
+        },
+        {
+          "key": "pickSpins",
+          "length": 0,
+          "valueTypes": [],
+          "uniqueValues": 0,
+          "referencingScopes": [
+            "award-free-spins"
+          ]
+        },
+        {
+          "key": "reel0",
+          "length": 45,
+          "valueTypes": [
+            "string"
+          ],
+          "uniqueValues": 12,
+          "referencingScopes": [
+            "spin-reels"
+          ]
+        },
+        {
+          "key": "reel1",
+          "length": 44,
+          "valueTypes": [
+            "string"
+          ],
+          "uniqueValues": 13,
+          "referencingScopes": [
+            "spin-reels"
+          ]
+        },
+        {
+          "key": "reel2",
+          "length": 51,
+          "valueTypes": [
+            "string"
+          ],
+          "uniqueValues": 13,
+          "referencingScopes": [
+            "spin-reels"
+          ]
+        },
+        {
+          "key": "reel3",
+          "length": 44,
+          "valueTypes": [
+            "string"
+          ],
+          "uniqueValues": 13,
+          "referencingScopes": [
+            "spin-reels"
+          ]
+        },
+        {
+          "key": "reel4",
+          "length": 44,
+          "valueTypes": [
+            "string"
+          ],
+          "uniqueValues": 13,
+          "referencingScopes": [
+            "spin-reels"
+          ]
+        },
+        {
+          "key": "linePays",
+          "length": 13,
+          "valueTypes": [
+            "array"
+          ],
+          "uniqueValues": 5,
+          "referencingScopes": [
+            "payline"
+          ]
+        },
+        {
+          "key": "linePayouts",
+          "length": 0,
+          "valueTypes": [],
+          "uniqueValues": 0,
+          "referencingScopes": [
+            "payline",
+            "spin"
+          ]
+        },
+        {
+          "key": "lineSymbols",
+          "length": 0,
+          "valueTypes": [],
+          "uniqueValues": 0,
+          "referencingScopes": [
+            "payline",
+            "spin"
+          ]
+        },
+        {
+          "key": "lineCounts",
+          "length": 0,
+          "valueTypes": [],
+          "uniqueValues": 0,
+          "referencingScopes": [
+            "payline",
+            "spin"
+          ]
+        },
+        {
+          "key": "board",
+          "length": 0,
+          "valueTypes": [],
+          "uniqueValues": 0,
+          "referencingScopes": [
+            "payline",
+            "scatter-pay",
+            "spin"
+          ]
+        },
+        {
+          "key": "spinBoards",
+          "length": 0,
+          "valueTypes": [],
+          "uniqueValues": 0,
+          "referencingScopes": [
+            "spin"
+          ]
+        },
+        {
+          "key": "spinLinePayouts",
+          "length": 0,
+          "valueTypes": [],
+          "uniqueValues": 0,
+          "referencingScopes": [
+            "spin"
+          ]
+        },
+        {
+          "key": "spinLineSymbols",
+          "length": 0,
+          "valueTypes": [],
+          "uniqueValues": 0,
+          "referencingScopes": [
+            "spin"
+          ]
+        },
+        {
+          "key": "spinLineCounts",
+          "length": 0,
+          "valueTypes": [],
+          "uniqueValues": 0,
+          "referencingScopes": [
+            "spin"
+          ]
+        },
+        {
+          "key": "spinScatters",
+          "length": 0,
+          "valueTypes": [],
+          "uniqueValues": 0,
+          "referencingScopes": [
+            "spin"
+          ]
+        },
+        {
+          "key": "spinScatterWins",
+          "length": 0,
+          "valueTypes": [],
+          "uniqueValues": 0,
+          "referencingScopes": [
+            "spin"
+          ]
+        },
+        {
+          "key": "spinWins",
+          "length": 0,
+          "valueTypes": [],
+          "uniqueValues": 0,
+          "referencingScopes": [
+            "spin",
+            "award-free-spins"
+          ]
+        },
+        {
+          "key": "pickAmounts",
+          "length": 10,
+          "valueTypes": [
+            "number"
+          ],
+          "uniqueValues": 10,
+          "referencingScopes": [
+            "turn-card"
+          ]
+        },
+        {
+          "key": "pickFaceDown",
+          "length": 10,
+          "valueTypes": [
+            "number"
+          ],
+          "uniqueValues": 1,
+          "referencingScopes": [
+            "pick-bonus"
+          ]
+        },
+        {
+          "key": "pickSeen",
+          "length": 10,
+          "valueTypes": [
+            "number"
+          ],
+          "uniqueValues": 1,
+          "referencingScopes": [
+            "turn-card"
+          ]
+        },
+        {
+          "key": "pickAwards",
+          "length": 0,
+          "valueTypes": [],
+          "uniqueValues": 0,
+          "referencingScopes": [
+            "pick-bonus"
+          ]
+        },
+        {
+          "key": "pickReveals",
+          "length": 0,
+          "valueTypes": [],
+          "uniqueValues": 0,
+          "referencingScopes": [
+            "turn-card"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "X7 Club",
+      "id": "x7-club",
+      "rootNodes": 5,
+      "rootEdges": 5,
+      "definitions": 10,
+      "authoredNodes": 148,
+      "geometry": {
+        "rows": 3,
+        "columns": 5
+      },
+      "topLevelFields": [
+        "boardConfig",
+        "description",
+        "edges",
+        "expressions",
+        "id",
+        "initialState",
+        "mechanics",
+        "name",
+        "nodes",
+        "paylineSets",
+        "paytables",
+        "schemaVersion",
+        "symbols"
+      ],
+      "weightedEditorSources": 61,
+      "stateArrays": [
+        {
+          "key": "emptyArray",
+          "length": 0,
+          "valueTypes": [],
+          "uniqueValues": 0,
+          "referencingScopes": [
+            "paylines"
+          ]
+        },
+        {
+          "key": "coins",
+          "length": 15,
+          "valueTypes": [
+            "number"
+          ],
+          "uniqueValues": 1,
+          "referencingScopes": [
+            "boost-pull",
+            "column-boosts",
+            "respin",
+            "hold-and-spin",
+            "coin-prizes",
+            "spin"
+          ]
+        },
+        {
+          "key": "holdEvents",
+          "length": 0,
+          "valueTypes": [],
+          "uniqueValues": 0,
+          "referencingScopes": [
+            "boost-pull",
+            "respin",
+            "hold-and-spin"
+          ]
+        },
+        {
+          "key": "holdColumns",
+          "length": 0,
+          "valueTypes": [],
+          "uniqueValues": 0,
+          "referencingScopes": [
+            "boost-pull",
+            "respin",
+            "hold-and-spin"
+          ]
+        },
+        {
+          "key": "holdCoins",
+          "length": 0,
+          "valueTypes": [],
+          "uniqueValues": 0,
+          "referencingScopes": [
+            "boost-pull",
+            "respin",
+            "hold-and-spin"
+          ]
+        },
+        {
+          "key": "holdRespins",
+          "length": 0,
+          "valueTypes": [],
+          "uniqueValues": 0,
+          "referencingScopes": [
+            "boost-pull",
+            "respin",
+            "hold-and-spin"
+          ]
+        },
+        {
+          "key": "boostNames",
+          "length": 4,
+          "valueTypes": [
+            "string"
+          ],
+          "uniqueValues": 4,
+          "referencingScopes": [
+            "boost-pull"
+          ]
+        },
+        {
+          "key": "boostAdds",
+          "length": 4,
+          "valueTypes": [
+            "number"
+          ],
+          "uniqueValues": 3,
+          "referencingScopes": [
+            "boost-pull"
+          ]
+        },
+        {
+          "key": "boostTimes",
+          "length": 4,
+          "valueTypes": [
+            "number"
+          ],
+          "uniqueValues": 2,
+          "referencingScopes": [
+            "boost-pull"
+          ]
+        },
+        {
+          "key": "boostEnds",
+          "length": 4,
+          "valueTypes": [
+            "number"
+          ],
+          "uniqueValues": 2,
+          "referencingScopes": [
+            "boost-pull"
+          ]
+        },
+        {
+          "key": "boostedColumns",
+          "length": 5,
+          "valueTypes": [
+            "number"
+          ],
+          "uniqueValues": 1,
+          "referencingScopes": [
+            "boost-column",
+            "column-boosts"
+          ]
+        },
+        {
+          "key": "spinBoards",
+          "length": 0,
+          "valueTypes": [],
+          "uniqueValues": 0,
+          "referencingScopes": [
+            "spin"
+          ]
+        },
+        {
+          "key": "spinCoins",
+          "length": 0,
+          "valueTypes": [],
+          "uniqueValues": 0,
+          "referencingScopes": [
+            "spin"
+          ]
+        },
+        {
+          "key": "boardPositions",
+          "length": 15,
+          "valueTypes": [
+            "number"
+          ],
+          "uniqueValues": 15,
+          "referencingScopes": [
+            "board"
+          ]
+        },
+        {
+          "key": "board",
+          "length": 15,
+          "valueTypes": [
+            "string"
+          ],
+          "uniqueValues": 1,
+          "referencingScopes": [
+            "board",
+            "coin-prizes",
+            "payline",
+            "spin"
+          ]
+        },
+        {
+          "key": "linePays",
+          "length": 7,
+          "valueTypes": [
+            "array"
+          ],
+          "uniqueValues": 6,
+          "referencingScopes": [
+            "payline"
+          ]
+        },
+        {
+          "key": "linePayouts",
+          "length": 0,
+          "valueTypes": [],
+          "uniqueValues": 0,
+          "referencingScopes": [
+            "payline"
+          ]
+        },
+        {
+          "key": "lineSymbols",
+          "length": 0,
+          "valueTypes": [],
+          "uniqueValues": 0,
+          "referencingScopes": [
+            "payline"
+          ]
+        },
+        {
+          "key": "lineCounts",
+          "length": 0,
+          "valueTypes": [],
+          "uniqueValues": 0,
+          "referencingScopes": [
+            "payline"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Le Militare",
+      "id": "le-militare",
+      "rootNodes": 6,
+      "rootEdges": 6,
+      "definitions": 38,
+      "authoredNodes": 254,
+      "geometry": {
+        "rows": 5,
+        "columns": 6
+      },
+      "topLevelFields": [
+        "boardConfig",
+        "description",
+        "edges",
+        "expressions",
+        "id",
+        "initialState",
+        "mechanics",
+        "name",
+        "nodes",
+        "paytables",
+        "schemaVersion",
+        "symbols"
+      ],
+      "weightedEditorSources": 18,
+      "stateArrays": [
+        {
+          "key": "emptyArray",
+          "length": 0,
+          "valueTypes": [],
+          "uniqueValues": 0,
+          "referencingScopes": [
+            "combat",
+            "cluster-pays",
+            "air-raid"
+          ]
+        },
+        {
+          "key": "drawnMultipliers",
+          "length": 0,
+          "valueTypes": [],
+          "uniqueValues": 0,
+          "referencingScopes": [
+            "add-multiplier",
+            "combat",
+            "air-raid"
+          ]
+        },
+        {
+          "key": "held",
+          "length": 30,
+          "valueTypes": [
+            "number"
+          ],
+          "uniqueValues": 1,
+          "referencingScopes": [
+            "combat",
+            "combat-pays",
+            "paid-tumble",
+            "paid-refill",
+            "free-tumble",
+            "free-refill",
+            "free-spin"
+          ]
+        },
+        {
+          "key": "armed",
+          "length": 6,
+          "valueTypes": [
+            "number"
+          ],
+          "uniqueValues": 1,
+          "referencingScopes": [
+            "combat",
+            "paid-spin",
+            "free-spin",
+            "free-spins"
+          ]
+        },
+        {
+          "key": "newlyArmed",
+          "length": 6,
+          "valueTypes": [
+            "number"
+          ],
+          "uniqueValues": 1,
+          "referencingScopes": [
+            "combat"
+          ]
+        },
+        {
+          "key": "cellCounts",
+          "length": 30,
+          "valueTypes": [
+            "number"
+          ],
+          "uniqueValues": 1,
+          "referencingScopes": [
+            "combat",
+            "pay-group",
+            "free-spin"
+          ]
+        },
+        {
+          "key": "startArmed",
+          "length": 6,
+          "valueTypes": [
+            "number"
+          ],
+          "uniqueValues": 1,
+          "referencingScopes": [
+            "free-spins"
+          ]
+        },
+        {
+          "key": "freeSpinAwards",
+          "length": 8,
+          "valueTypes": [
+            "number"
+          ],
+          "uniqueValues": 5,
+          "referencingScopes": [
+            "root",
+            "free-spin"
+          ]
+        },
+        {
+          "key": "board",
+          "length": 30,
+          "valueTypes": [
+            "string"
+          ],
+          "uniqueValues": 1,
+          "referencingScopes": [
+            "combat",
+            "read-board",
+            "claim-group",
+            "symbol-clusters",
+            "raid-plane",
+            "air-raid",
+            "paid-tumble",
+            "paid-refill",
+            "paid-cascade-step",
+            "paid-spin",
+            "free-tumble",
+            "free-refill",
+            "free-cascade-step",
+            "free-spin"
+          ]
+        },
+        {
+          "key": "paidStrip0",
+          "length": 142,
+          "valueTypes": [
+            "string"
+          ],
+          "uniqueValues": 9,
+          "referencingScopes": [
+            "paid-reels",
+            "paid-tumble"
+          ]
+        },
+        {
+          "key": "paidStrip1",
+          "length": 150,
+          "valueTypes": [
+            "string"
+          ],
+          "uniqueValues": 10,
+          "referencingScopes": [
+            "paid-reels",
+            "paid-tumble"
+          ]
+        },
+        {
+          "key": "paidStrip2",
+          "length": 142,
+          "valueTypes": [
+            "string"
+          ],
+          "uniqueValues": 9,
+          "referencingScopes": [
+            "paid-reels",
+            "paid-tumble"
+          ]
+        },
+        {
+          "key": "paidStrip3",
+          "length": 150,
+          "valueTypes": [
+            "string"
+          ],
+          "uniqueValues": 10,
+          "referencingScopes": [
+            "paid-reels",
+            "paid-tumble"
+          ]
+        },
+        {
+          "key": "paidStrip4",
+          "length": 142,
+          "valueTypes": [
+            "string"
+          ],
+          "uniqueValues": 9,
+          "referencingScopes": [
+            "paid-reels",
+            "paid-tumble"
+          ]
+        },
+        {
+          "key": "paidStrip5",
+          "length": 150,
+          "valueTypes": [
+            "string"
+          ],
+          "uniqueValues": 10,
+          "referencingScopes": [
+            "paid-reels",
+            "paid-tumble"
+          ]
+        },
+        {
+          "key": "windowReels6x5",
+          "length": 30,
+          "valueTypes": [
+            "number"
+          ],
+          "uniqueValues": 6,
+          "referencingScopes": [
+            "paid-reels",
+            "free-reels"
+          ]
+        },
+        {
+          "key": "freeStrip0",
+          "length": 177,
+          "valueTypes": [
+            "string"
+          ],
+          "uniqueValues": 10,
+          "referencingScopes": [
+            "free-reels",
+            "free-tumble"
+          ]
+        },
+        {
+          "key": "freeStrip1",
+          "length": 181,
+          "valueTypes": [
+            "string"
+          ],
+          "uniqueValues": 10,
+          "referencingScopes": [
+            "free-reels",
+            "free-tumble"
+          ]
+        },
+        {
+          "key": "freeStrip2",
+          "length": 177,
+          "valueTypes": [
+            "string"
+          ],
+          "uniqueValues": 10,
+          "referencingScopes": [
+            "free-reels",
+            "free-tumble"
+          ]
+        },
+        {
+          "key": "freeStrip3",
+          "length": 181,
+          "valueTypes": [
+            "string"
+          ],
+          "uniqueValues": 10,
+          "referencingScopes": [
+            "free-reels",
+            "free-tumble"
+          ]
+        },
+        {
+          "key": "freeStrip4",
+          "length": 177,
+          "valueTypes": [
+            "string"
+          ],
+          "uniqueValues": 10,
+          "referencingScopes": [
+            "free-reels",
+            "free-tumble"
+          ]
+        },
+        {
+          "key": "freeStrip5",
+          "length": 181,
+          "valueTypes": [
+            "string"
+          ],
+          "uniqueValues": 10,
+          "referencingScopes": [
+            "free-reels",
+            "free-tumble"
+          ]
+        },
+        {
+          "key": "clusterPays",
+          "length": 372,
+          "valueTypes": [
+            "number"
+          ],
+          "uniqueValues": 44,
+          "referencingScopes": [
+            "pay-group"
+          ]
+        },
+        {
+          "key": "symbolDigits",
+          "length": 12,
+          "valueTypes": [
+            "number"
+          ],
+          "uniqueValues": 12,
+          "referencingScopes": [
+            "read-board"
+          ]
+        },
+        {
+          "key": "boardPart0",
+          "length": 13,
+          "valueTypes": [
+            "number"
+          ],
+          "uniqueValues": 13,
+          "referencingScopes": [
+            "read-board"
+          ]
+        },
+        {
+          "key": "boardPart1",
+          "length": 13,
+          "valueTypes": [
+            "number"
+          ],
+          "uniqueValues": 13,
+          "referencingScopes": [
+            "read-board"
+          ]
+        },
+        {
+          "key": "boardPart2",
+          "length": 4,
+          "valueTypes": [
+            "number"
+          ],
+          "uniqueValues": 4,
+          "referencingScopes": [
+            "read-board"
+          ]
+        },
+        {
+          "key": "hitSymbols",
+          "length": 0,
+          "valueTypes": [],
+          "uniqueValues": 0,
+          "referencingScopes": [
+            "claim-group",
+            "pay-step"
+          ]
+        },
+        {
+          "key": "hitSizes",
+          "length": 0,
+          "valueTypes": [],
+          "uniqueValues": 0,
+          "referencingScopes": [
+            "claim-group",
+            "pay-step"
+          ]
+        },
+        {
+          "key": "hitPays",
+          "length": 0,
+          "valueTypes": [],
+          "uniqueValues": 0,
+          "referencingScopes": [
+            "claim-group",
+            "pay-step"
+          ]
+        },
+        {
+          "key": "hitCells",
+          "length": 0,
+          "valueTypes": [],
+          "uniqueValues": 0,
+          "referencingScopes": [
+            "claim-group",
+            "pay-step"
+          ]
+        },
+        {
+          "key": "survivors",
+          "length": 1,
+          "valueTypes": [
+            "string"
+          ],
+          "uniqueValues": 1,
+          "referencingScopes": [
+            "paid-tumble",
+            "paid-refill",
+            "free-tumble",
+            "free-refill"
+          ]
+        },
+        {
+          "key": "drops",
+          "length": 1,
+          "valueTypes": [
+            "string"
+          ],
+          "uniqueValues": 1,
+          "referencingScopes": []
+        },
+        {
+          "key": "columnStart",
+          "length": 30,
+          "valueTypes": [
+            "number"
+          ],
+          "uniqueValues": 6,
+          "referencingScopes": [
+            "paid-tumble",
+            "free-tumble"
+          ]
+        },
+        {
+          "key": "cellColumn",
+          "length": 30,
+          "valueTypes": [
+            "number"
+          ],
+          "uniqueValues": 6,
+          "referencingScopes": [
+            "paid-tumble",
+            "free-tumble"
+          ]
+        },
+        {
+          "key": "columnsBefore",
+          "length": 7,
+          "valueTypes": [
+            "number"
+          ],
+          "uniqueValues": 7,
+          "referencingScopes": [
+            "paid-tumble",
+            "free-tumble"
+          ]
+        },
+        {
+          "key": "emptyBefore",
+          "length": 7,
+          "valueTypes": [
+            "number"
+          ],
+          "uniqueValues": 1,
+          "referencingScopes": [
+            "paid-tumble",
+            "free-tumble"
+          ]
+        },
+        {
+          "key": "columnOffsets",
+          "length": 6,
+          "valueTypes": [
+            "number"
+          ],
+          "uniqueValues": 6,
+          "referencingScopes": [
+            "paid-tumble",
+            "free-tumble"
+          ]
+        },
+        {
+          "key": "columnRemoved",
+          "length": 6,
+          "valueTypes": [
+            "number"
+          ],
+          "uniqueValues": 1,
+          "referencingScopes": [
+            "paid-tumble",
+            "free-tumble"
+          ]
+        },
+        {
+          "key": "boardRows",
+          "length": 30,
+          "valueTypes": [
+            "number"
+          ],
+          "uniqueValues": 5,
+          "referencingScopes": [
+            "paid-tumble",
+            "free-tumble"
+          ]
+        },
+        {
+          "key": "settledSources",
+          "length": 160,
+          "valueTypes": [
+            "number"
+          ],
+          "uniqueValues": 10,
+          "referencingScopes": [
+            "paid-tumble",
+            "free-tumble"
+          ]
+        },
+        {
+          "key": "heldSurvivors",
+          "length": 1,
+          "valueTypes": [
+            "number"
+          ],
+          "uniqueValues": 1,
+          "referencingScopes": []
+        },
+        {
+          "key": "cascadeBoards",
+          "length": 0,
+          "valueTypes": [],
+          "uniqueValues": 0,
+          "referencingScopes": [
+            "paid-cascade-step",
+            "free-cascade-step"
+          ]
+        },
+        {
+          "key": "cascadeRemoved",
+          "length": 0,
+          "valueTypes": [],
+          "uniqueValues": 0,
+          "referencingScopes": [
+            "paid-cascade-step",
+            "free-cascade-step"
+          ]
+        },
+        {
+          "key": "cascadeAfter",
+          "length": 0,
+          "valueTypes": [],
+          "uniqueValues": 0,
+          "referencingScopes": [
+            "paid-cascade-step",
+            "free-cascade-step"
+          ]
+        },
+        {
+          "key": "spinBoards",
+          "length": 0,
+          "valueTypes": [],
+          "uniqueValues": 0,
+          "referencingScopes": [
+            "combat",
+            "pay-step",
+            "paid-spin",
+            "free-spin"
+          ]
+        },
+        {
+          "key": "spinScatters",
+          "length": 0,
+          "valueTypes": [],
+          "uniqueValues": 0,
+          "referencingScopes": [
+            "paid-spin",
+            "free-spin"
+          ]
+        },
+        {
+          "key": "spinGroupCoins",
+          "length": 0,
+          "valueTypes": [],
+          "uniqueValues": 0,
+          "referencingScopes": [
+            "paid-spin",
+            "free-spin"
+          ]
+        },
+        {
+          "key": "spinMultipliers",
+          "length": 0,
+          "valueTypes": [],
+          "uniqueValues": 0,
+          "referencingScopes": [
+            "paid-spin",
+            "free-spin"
+          ]
+        },
+        {
+          "key": "spinWins",
+          "length": 0,
+          "valueTypes": [],
+          "uniqueValues": 0,
+          "referencingScopes": [
+            "paid-spin",
+            "free-spin"
+          ]
+        },
+        {
+          "key": "spinTotals",
+          "length": 0,
+          "valueTypes": [],
+          "uniqueValues": 0,
+          "referencingScopes": [
+            "paid-spin",
+            "free-spin"
+          ]
+        },
+        {
+          "key": "spinArmed",
+          "length": 0,
+          "valueTypes": [],
+          "uniqueValues": 0,
+          "referencingScopes": [
+            "paid-spin",
+            "free-spin"
+          ]
+        },
+        {
+          "key": "lookSpins",
+          "length": 0,
+          "valueTypes": [],
+          "uniqueValues": 0,
+          "referencingScopes": [
+            "combat"
+          ]
+        },
+        {
+          "key": "lookBefore",
+          "length": 0,
+          "valueTypes": [],
+          "uniqueValues": 0,
+          "referencingScopes": [
+            "combat"
+          ]
+        },
+        {
+          "key": "lookAfter",
+          "length": 0,
+          "valueTypes": [],
+          "uniqueValues": 0,
+          "referencingScopes": [
+            "combat"
+          ]
+        },
+        {
+          "key": "lookShots",
+          "length": 0,
+          "valueTypes": [],
+          "uniqueValues": 0,
+          "referencingScopes": [
+            "combat"
+          ]
+        },
+        {
+          "key": "lookArmed",
+          "length": 0,
+          "valueTypes": [],
+          "uniqueValues": 0,
+          "referencingScopes": [
+            "combat"
+          ]
+        },
+        {
+          "key": "lookHeld",
+          "length": 0,
+          "valueTypes": [],
+          "uniqueValues": 0,
+          "referencingScopes": [
+            "combat"
+          ]
+        },
+        {
+          "key": "stepSpins",
+          "length": 0,
+          "valueTypes": [],
+          "uniqueValues": 0,
+          "referencingScopes": [
+            "pay-step"
+          ]
+        },
+        {
+          "key": "stepWins",
+          "length": 0,
+          "valueTypes": [],
+          "uniqueValues": 0,
+          "referencingScopes": [
+            "pay-step"
+          ]
+        },
+        {
+          "key": "stepHeld",
+          "length": 0,
+          "valueTypes": [],
+          "uniqueValues": 0,
+          "referencingScopes": [
+            "paid-refill",
+            "free-refill"
+          ]
+        },
+        {
+          "key": "stepHitSymbols",
+          "length": 0,
+          "valueTypes": [],
+          "uniqueValues": 0,
+          "referencingScopes": [
+            "pay-step"
+          ]
+        },
+        {
+          "key": "stepHitSizes",
+          "length": 0,
+          "valueTypes": [],
+          "uniqueValues": 0,
+          "referencingScopes": [
+            "pay-step"
+          ]
+        },
+        {
+          "key": "stepHitPays",
+          "length": 0,
+          "valueTypes": [],
+          "uniqueValues": 0,
+          "referencingScopes": [
+            "pay-step"
+          ]
+        },
+        {
+          "key": "stepHitCells",
+          "length": 0,
+          "valueTypes": [],
+          "uniqueValues": 0,
+          "referencingScopes": [
+            "pay-step"
+          ]
+        },
+        {
+          "key": "raidBoards",
+          "length": 0,
+          "valueTypes": [],
+          "uniqueValues": 0,
+          "referencingScopes": [
+            "air-raid"
+          ]
+        },
+        {
+          "key": "raidSquadrons",
+          "length": 0,
+          "valueTypes": [],
+          "uniqueValues": 0,
+          "referencingScopes": [
+            "air-raid"
+          ]
+        },
+        {
+          "key": "raidCells",
+          "length": 0,
+          "valueTypes": [],
+          "uniqueValues": 0,
+          "referencingScopes": [
+            "raid-plane"
+          ]
+        },
+        {
+          "key": "raidMultipliers",
+          "length": 0,
+          "valueTypes": [],
+          "uniqueValues": 0,
+          "referencingScopes": []
+        }
+      ]
+    },
+    {
+      "name": "Cluster pays",
+      "id": "starter-clusters",
+      "rootNodes": 3,
+      "rootEdges": 2,
+      "definitions": 9,
+      "authoredNodes": 96,
+      "geometry": {
+        "rows": 5,
+        "columns": 6
+      },
+      "topLevelFields": [
+        "boardConfig",
+        "description",
+        "edges",
+        "expressions",
+        "id",
+        "initialState",
+        "mechanics",
+        "name",
+        "nodes",
+        "paytables",
+        "schemaVersion",
+        "symbols"
+      ],
+      "weightedEditorSources": 30,
+      "stateArrays": [
+        {
+          "key": "emptyArray",
+          "length": 0,
+          "valueTypes": [],
+          "uniqueValues": 0,
+          "referencingScopes": [
+            "cluster-pays"
+          ]
+        },
+        {
+          "key": "boardPositions",
+          "length": 30,
+          "valueTypes": [
+            "number"
+          ],
+          "uniqueValues": 30,
+          "referencingScopes": [
+            "draw-cells"
+          ]
+        },
+        {
+          "key": "board",
+          "length": 30,
+          "valueTypes": [
+            "string"
+          ],
+          "uniqueValues": 1,
+          "referencingScopes": [
+            "read-board",
+            "claim-group",
+            "symbol-clusters",
+            "draw-cells"
+          ]
+        },
+        {
+          "key": "clusterPays",
+          "length": 186,
+          "valueTypes": [
+            "number"
+          ],
+          "uniqueValues": 78,
+          "referencingScopes": [
+            "pay-group"
+          ]
+        },
+        {
+          "key": "symbolDigits",
+          "length": 6,
+          "valueTypes": [
+            "number"
+          ],
+          "uniqueValues": 6,
+          "referencingScopes": [
+            "read-board"
+          ]
+        },
+        {
+          "key": "boardPart0",
+          "length": 17,
+          "valueTypes": [
+            "number"
+          ],
+          "uniqueValues": 17,
+          "referencingScopes": [
+            "read-board"
+          ]
+        },
+        {
+          "key": "boardPart1",
+          "length": 13,
+          "valueTypes": [
+            "number"
+          ],
+          "uniqueValues": 13,
+          "referencingScopes": [
+            "read-board"
+          ]
+        },
+        {
+          "key": "hitSymbols",
+          "length": 0,
+          "valueTypes": [],
+          "uniqueValues": 0,
+          "referencingScopes": [
+            "claim-group"
+          ]
+        },
+        {
+          "key": "hitSizes",
+          "length": 0,
+          "valueTypes": [],
+          "uniqueValues": 0,
+          "referencingScopes": [
+            "claim-group"
+          ]
+        },
+        {
+          "key": "hitPays",
+          "length": 0,
+          "valueTypes": [],
+          "uniqueValues": 0,
+          "referencingScopes": [
+            "claim-group"
+          ]
+        },
+        {
+          "key": "hitCells",
+          "length": 0,
+          "valueTypes": [],
+          "uniqueValues": 0,
+          "referencingScopes": [
+            "claim-group"
+          ]
+        },
+        {
+          "key": "survivors",
+          "length": 1,
+          "valueTypes": [
+            "string"
+          ],
+          "uniqueValues": 1,
+          "referencingScopes": []
+        },
+        {
+          "key": "drops",
+          "length": 1,
+          "valueTypes": [
+            "string"
+          ],
+          "uniqueValues": 1,
+          "referencingScopes": []
+        },
+        {
+          "key": "columnStart",
+          "length": 30,
+          "valueTypes": [
+            "number"
+          ],
+          "uniqueValues": 6,
+          "referencingScopes": []
+        },
+        {
+          "key": "cellColumn",
+          "length": 30,
+          "valueTypes": [
+            "number"
+          ],
+          "uniqueValues": 6,
+          "referencingScopes": []
+        },
+        {
+          "key": "columnsBefore",
+          "length": 7,
+          "valueTypes": [
+            "number"
+          ],
+          "uniqueValues": 7,
+          "referencingScopes": []
+        },
+        {
+          "key": "emptyBefore",
+          "length": 7,
+          "valueTypes": [
+            "number"
+          ],
+          "uniqueValues": 1,
+          "referencingScopes": []
+        },
+        {
+          "key": "columnOffsets",
+          "length": 6,
+          "valueTypes": [
+            "number"
+          ],
+          "uniqueValues": 6,
+          "referencingScopes": []
+        },
+        {
+          "key": "columnRemoved",
+          "length": 6,
+          "valueTypes": [
+            "number"
+          ],
+          "uniqueValues": 1,
+          "referencingScopes": []
+        },
+        {
+          "key": "boardRows",
+          "length": 30,
+          "valueTypes": [
+            "number"
+          ],
+          "uniqueValues": 5,
+          "referencingScopes": []
+        },
+        {
+          "key": "settledSources",
+          "length": 160,
+          "valueTypes": [
+            "number"
+          ],
+          "uniqueValues": 10,
+          "referencingScopes": []
+        },
+        {
+          "key": "cascadeBoards",
+          "length": 0,
+          "valueTypes": [],
+          "uniqueValues": 0,
+          "referencingScopes": []
+        },
+        {
+          "key": "cascadeRemoved",
+          "length": 0,
+          "valueTypes": [],
+          "uniqueValues": 0,
+          "referencingScopes": []
+        },
+        {
+          "key": "cascadeAfter",
+          "length": 0,
+          "valueTypes": [],
+          "uniqueValues": 0,
+          "referencingScopes": []
+        }
+      ]
+    },
+    {
+      "name": "Cascading clusters",
+      "id": "starter-cascade",
+      "rootNodes": 3,
+      "rootEdges": 2,
+      "definitions": 14,
+      "authoredNodes": 119,
+      "geometry": {
+        "rows": 5,
+        "columns": 6
+      },
+      "topLevelFields": [
+        "boardConfig",
+        "description",
+        "edges",
+        "expressions",
+        "id",
+        "initialState",
+        "mechanics",
+        "name",
+        "nodes",
+        "paytables",
+        "schemaVersion",
+        "symbols"
+      ],
+      "weightedEditorSources": 31,
+      "stateArrays": [
+        {
+          "key": "emptyArray",
+          "length": 0,
+          "valueTypes": [],
+          "uniqueValues": 0,
+          "referencingScopes": [
+            "cluster-pays",
+            "tumble"
+          ]
+        },
+        {
+          "key": "boardPositions",
+          "length": 30,
+          "valueTypes": [
+            "number"
+          ],
+          "uniqueValues": 30,
+          "referencingScopes": [
+            "draw-cells"
+          ]
+        },
+        {
+          "key": "board",
+          "length": 30,
+          "valueTypes": [
+            "string"
+          ],
+          "uniqueValues": 1,
+          "referencingScopes": [
+            "read-board",
+            "claim-group",
+            "symbol-clusters",
+            "draw-cells",
+            "tumble",
+            "cascade-step"
+          ]
+        },
+        {
+          "key": "clusterPays",
+          "length": 186,
+          "valueTypes": [
+            "number"
+          ],
+          "uniqueValues": 78,
+          "referencingScopes": [
+            "pay-group"
+          ]
+        },
+        {
+          "key": "symbolDigits",
+          "length": 6,
+          "valueTypes": [
+            "number"
+          ],
+          "uniqueValues": 6,
+          "referencingScopes": [
+            "read-board"
+          ]
+        },
+        {
+          "key": "boardPart0",
+          "length": 17,
+          "valueTypes": [
+            "number"
+          ],
+          "uniqueValues": 17,
+          "referencingScopes": [
+            "read-board"
+          ]
+        },
+        {
+          "key": "boardPart1",
+          "length": 13,
+          "valueTypes": [
+            "number"
+          ],
+          "uniqueValues": 13,
+          "referencingScopes": [
+            "read-board"
+          ]
+        },
+        {
+          "key": "hitSymbols",
+          "length": 0,
+          "valueTypes": [],
+          "uniqueValues": 0,
+          "referencingScopes": [
+            "claim-group"
+          ]
+        },
+        {
+          "key": "hitSizes",
+          "length": 0,
+          "valueTypes": [],
+          "uniqueValues": 0,
+          "referencingScopes": [
+            "claim-group"
+          ]
+        },
+        {
+          "key": "hitPays",
+          "length": 0,
+          "valueTypes": [],
+          "uniqueValues": 0,
+          "referencingScopes": [
+            "claim-group"
+          ]
+        },
+        {
+          "key": "hitCells",
+          "length": 0,
+          "valueTypes": [],
+          "uniqueValues": 0,
+          "referencingScopes": [
+            "claim-group"
+          ]
+        },
+        {
+          "key": "survivors",
+          "length": 1,
+          "valueTypes": [
+            "string"
+          ],
+          "uniqueValues": 1,
+          "referencingScopes": []
+        },
+        {
+          "key": "drops",
+          "length": 1,
+          "valueTypes": [
+            "string"
+          ],
+          "uniqueValues": 1,
+          "referencingScopes": [
+            "drop-symbol",
+            "tumble"
+          ]
+        },
+        {
+          "key": "columnStart",
+          "length": 30,
+          "valueTypes": [
+            "number"
+          ],
+          "uniqueValues": 6,
+          "referencingScopes": [
+            "tumble"
+          ]
+        },
+        {
+          "key": "cellColumn",
+          "length": 30,
+          "valueTypes": [
+            "number"
+          ],
+          "uniqueValues": 6,
+          "referencingScopes": [
+            "tumble"
+          ]
+        },
+        {
+          "key": "columnsBefore",
+          "length": 7,
+          "valueTypes": [
+            "number"
+          ],
+          "uniqueValues": 7,
+          "referencingScopes": [
+            "tumble"
+          ]
+        },
+        {
+          "key": "emptyBefore",
+          "length": 7,
+          "valueTypes": [
+            "number"
+          ],
+          "uniqueValues": 1,
+          "referencingScopes": [
+            "tumble"
+          ]
+        },
+        {
+          "key": "columnOffsets",
+          "length": 6,
+          "valueTypes": [
+            "number"
+          ],
+          "uniqueValues": 6,
+          "referencingScopes": [
+            "tumble"
+          ]
+        },
+        {
+          "key": "columnRemoved",
+          "length": 6,
+          "valueTypes": [
+            "number"
+          ],
+          "uniqueValues": 1,
+          "referencingScopes": [
+            "tumble"
+          ]
+        },
+        {
+          "key": "boardRows",
+          "length": 30,
+          "valueTypes": [
+            "number"
+          ],
+          "uniqueValues": 5,
+          "referencingScopes": [
+            "tumble"
+          ]
+        },
+        {
+          "key": "settledSources",
+          "length": 160,
+          "valueTypes": [
+            "number"
+          ],
+          "uniqueValues": 10,
+          "referencingScopes": [
+            "tumble"
+          ]
+        },
+        {
+          "key": "cascadeBoards",
+          "length": 0,
+          "valueTypes": [],
+          "uniqueValues": 0,
+          "referencingScopes": [
+            "cascade-step"
+          ]
+        },
+        {
+          "key": "cascadeRemoved",
+          "length": 0,
+          "valueTypes": [],
+          "uniqueValues": 0,
+          "referencingScopes": [
+            "cascade-step"
+          ]
+        },
+        {
+          "key": "cascadeAfter",
+          "length": 0,
+          "valueTypes": [],
+          "uniqueValues": 0,
+          "referencingScopes": [
+            "cascade-step"
+          ]
+        }
+      ]
+    }
+  ],
+  "source": "f4cce7f"
+}

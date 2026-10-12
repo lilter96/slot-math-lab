@@ -102,3 +102,12 @@ Source b752c03 improves working-text/field legibility, compact unsupported-board
 e991928 adds explicit graph/inspector/outcome deletion confirmation. Chromium initial 3/4 and failed/new follow-up 2/2; Firefox/WebKit 7/8 and only failed WebKit rerun 1/1 pass after correcting test button naming/readiness. Build/touched lint pass. See [destructive graph review](qa/DESTRUCTIVE_GRAPH_REVIEW.md). No complete suite or math-backend test was run for these frontend changes; historical full counts above remain source-specific.
 
 The [requirement audit](REQUIREMENTS_AUDIT.md) records remaining table/keyboard/discovery/destructive-action work and release gates. The [practitioner review kit](PRACTITIONER_REVIEW_KIT.md) contains concrete tasks and scoring but no fabricated feedback. Required cleanup/full Core/human acceptance remain incomplete. This report does not claim the whole goal or release readiness is achieved.
+
+
+## Data/evidence safety and model-inventory follow-up
+
+f4cce7f adds raw-row/evidence deletion confirmation, prevents silent duplicate-field/expression overwrite and protects delayed file hashing from removed/reindexed inputs, another project, editor closure and newer uploads. Actual per-file/aggregate byte limits are enforced. Plugin registry operations now match the available API; unsupported registration/removal and missing evaluation compatibility are explicit.
+
+Scoped Chromium 11/11 and Firefox/WebKit 18/18 passed; afterward only the strengthened embedded-byte/export test reran (Chromium 1/1, Firefox/WebKit 2/2). Build/touched ESLint pass. Sixteen four-size captures have no document/tab overflow and no plugin-panel proof badges; [review](qa/DATA_INPUT_SAFETY_REVIEW.md) records real hashing, actual empty registry, fault injection, source scope and cleanup limits. No full suites or backend/math tests ran for this frontend slice.
+
+The [complete model inventory](MODEL_CAPABILITY_INVENTORY.md) found physical strips in Ancient Dragon, Woodland Whisper and Le Militare's initialState. The top-level-only capability detector missed them. A guarded physical reel editor is still required; raw-array editing or an 'unsupported' message does not complete the known-schema roadmap requirement. Its wrap suffix, stop distributions and conditioned/refill dependencies must round-trip together. Goal completion and release readiness remain unproven.

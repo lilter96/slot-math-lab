@@ -134,3 +134,10 @@ Validation navigation follow-up: GraphValidation and CanvasToolbar also require 
 - `frontend/e2e/destructive-actions.spec.ts`
 
 Destructive-action follow-up: SlotCanvas, Inspector and subgraph-library tests also require both passes. Scoped standalone attempts exit 3; Full Cleanup remains unavailable. See `destructive-actions-rider.log` and `destructive-actions-native-rider.log`. This is not a successful cleanup claim.
+
+
+- `frontend/src/components/editor/EvidenceInputsEditor.tsx`
+- `frontend/src/components/mechanics/PluginManager.tsx`
+- `frontend/e2e/data-input-safety.spec.ts`
+
+Data/evidence follow-up also touches ProjectDataEditor and api/hooks. Reformat attempts exit 3; frontend Full Cleanup remains unavailable. Actual logs: `data-input-safety-rider.log`, `data-input-safety-hook-rider.log`, `data-input-safety-export-rider.log`. Scoped lint/build/browser checks do not replace required cleanup.

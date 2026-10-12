@@ -1,0 +1,135 @@
+{
+  "capturedAt": "2026-10-12T00:36:47.594Z",
+  "fixture": "Authored small graph, actual file hashing, real empty registry, injected HTTP503 failure",
+  "viewports": [
+    {
+      "state": "duplicate-data",
+      "width": 1440,
+      "height": 900,
+      "overflow": false,
+      "dialogTabOverflow": false,
+      "proofBadges": 0
+    },
+    {
+      "state": "duplicate-data",
+      "width": 1280,
+      "height": 800,
+      "overflow": false,
+      "dialogTabOverflow": false,
+      "proofBadges": 0
+    },
+    {
+      "state": "duplicate-data",
+      "width": 1024,
+      "height": 768,
+      "overflow": false,
+      "dialogTabOverflow": false,
+      "proofBadges": 0
+    },
+    {
+      "state": "duplicate-data",
+      "width": 390,
+      "height": 844,
+      "overflow": false,
+      "dialogTabOverflow": false,
+      "proofBadges": 0
+    },
+    {
+      "state": "evidence",
+      "width": 1440,
+      "height": 900,
+      "overflow": false,
+      "dialogTabOverflow": false,
+      "proofBadges": 0
+    },
+    {
+      "state": "evidence",
+      "width": 1280,
+      "height": 800,
+      "overflow": false,
+      "dialogTabOverflow": false,
+      "proofBadges": 0
+    },
+    {
+      "state": "evidence",
+      "width": 1024,
+      "height": 768,
+      "overflow": false,
+      "dialogTabOverflow": false,
+      "proofBadges": 0
+    },
+    {
+      "state": "evidence",
+      "width": 390,
+      "height": 844,
+      "overflow": false,
+      "dialogTabOverflow": false,
+      "proofBadges": 0
+    },
+    {
+      "state": "plugin-empty",
+      "width": 1440,
+      "height": 900,
+      "overflow": false,
+      "dialogTabOverflow": false,
+      "proofBadges": 0
+    },
+    {
+      "state": "plugin-empty",
+      "width": 1280,
+      "height": 800,
+      "overflow": false,
+      "dialogTabOverflow": false,
+      "proofBadges": 0
+    },
+    {
+      "state": "plugin-empty",
+      "width": 1024,
+      "height": 768,
+      "overflow": false,
+      "dialogTabOverflow": false,
+      "proofBadges": 0
+    },
+    {
+      "state": "plugin-empty",
+      "width": 390,
+      "height": 844,
+      "overflow": false,
+      "dialogTabOverflow": false,
+      "proofBadges": 0
+    },
+    {
+      "state": "plugin-failed",
+      "width": 1440,
+      "height": 900,
+      "overflow": false,
+      "dialogTabOverflow": false,
+      "proofBadges": 0
+    },
+    {
+      "state": "plugin-failed",
+      "width": 1280,
+      "height": 800,
+      "overflow": false,
+      "dialogTabOverflow": false,
+      "proofBadges": 0
+    },
+    {
+      "state": "plugin-failed",
+      "width": 1024,
+      "height": 768,
+      "overflow": false,
+      "dialogTabOverflow": false,
+      "proofBadges": 0
+    },
+    {
+      "state": "plugin-failed",
+      "width": 390,
+      "height": 844,
+      "overflow": false,
+      "dialogTabOverflow": false,
+      "proofBadges": 0
+    }
+  ],
+  "source": "f4cce7f"
+}
