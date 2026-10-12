@@ -21,3 +21,9 @@ test('Malformed JSON stays invalid and programmatic model numbers are guarded', 
   for (const value of [Infinity, NaN, 2 ** 53]) expect(() => assertModelNumbers({ nested: [value] })).toThrow(/exact browser range/);
   expect(() => assertModelNumbers({ nested: [0.05, 10000000000, '9223372036854775807'] })).not.toThrow();
 });
+
+test('Editable decimal text is checked before conversion, including incomplete and rounded-boundary forms', async () => {
+  const { parseModelNumber } = await import('../src/lib/modelJson');
+  for (const text of ['', '-', '1e', 'NaN', 'Infinity', '0x10', '9007199254740993', '9007199254740991.1']) expect(() => parseModelNumber(text), text).toThrow();
+  for (const [text, value] of [['.05', 0.05], ['+0010.', 10], ['-1e10', -10000000000], ['9007199254740991', Number.MAX_SAFE_INTEGER]] as const) expect(parseModelNumber(text)).toBe(value);
+});

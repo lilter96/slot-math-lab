@@ -1,7 +1,7 @@
 /** Browser model numbers use IEEE-754; reject unsupported magnitudes before authoring. */
 export class ModelNumberError extends Error {
   constructor() {
-    super('This model contains a number outside the exact browser range (±9007199254740991). It was not opened; keep the original JSON for lossless storage.');
+    super('This number is outside the exact browser range (±9007199254740991). It has not been applied; keep the original JSON for lossless storage.');
     this.name = 'ModelNumberError';
   }
 }
@@ -34,4 +34,14 @@ export function parseModelJson(text: string): Record<string, unknown> {
   }
   if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) throw new Error('Choose a JSON model object.');
   return parsed as Record<string, unknown>;
+}
+
+/** Validate the user's original decimal text before any Number conversion reaches the model. */
+export function parseModelNumber(text: string): number {
+  const match = text.trim().match(/^([+-]?)(?:(\d+)(?:\.(\d*))?|\.(\d+))([eE][+-]?\d+)?$/);
+  if (!match) throw new Error('Enter a complete finite number. This edit has not been applied.');
+  const whole = (match[2] ?? '0').replace(/^0+(?=\d)/, '');
+  const fraction = match[3] ?? match[4];
+  const token = `${match[1] === '-' ? '-' : ''}${whole}${fraction === undefined ? '' : '.' + (fraction || '0')}${match[5] ?? ''}`;
+  return parseModelJson(`{"value":${token}}`).value as number;
 }

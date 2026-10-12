@@ -1,3 +1,4 @@
+import ModelNumberInput from './ModelNumberInput';
 import { EvidenceInputsEditor } from './EvidenceInputsEditor';
 import { useEffect, useRef, useState } from 'react';
 import { useAppStore } from '../../store';
@@ -37,6 +38,7 @@ export default function ProjectDataEditor({ onClose, initialTable }: { onClose: 
     return () => { unsubscribe(); execution.current?.controller.abort(); execution.current = null; };
   }, []);
   const update = (value: unknown) => useAppStore.setState({ tables: { ...tables, initialState: { ...state, [key]: value } } });
+  const inputScope = useAppStore(s => JSON.stringify([s.projectId, s.graphTrail.map(entry => entry.mechanic)]));
   const value = state[key];
   const readOnlyState = value === null || (value != null && typeof value === 'object' && !Array.isArray(value)) || (Array.isArray(value) && value.some(entry => typeof entry !== 'string' && typeof entry !== 'number'));
   return <GameDialog title="Project data & expressions" onClose={onClose} wide>
@@ -44,10 +46,10 @@ export default function ProjectDataEditor({ onClose, initialTable }: { onClose: 
     {kind === 'data' ? <>
       <label>State field / data table<select className="inp" aria-label="Data table" value={key} onChange={e => setKey(e.target.value)}>{Object.keys(state).map(k => <option key={k}>{k}</option>)}</select></label>
       <p className="hint">These are the actual inputs serialized with the graph, including reel strips, paytable values and initial mechanic state.</p>
-      {readOnlyState ? <><p className="hint">Structured state, null values and arrays with boolean or nested values are read only here to preserve their types. Use the source graph or a supported data adapter to edit them.</p><pre className="code-block">{JSON.stringify(value, null, 2)}</pre></> : Array.isArray(value) ? <div className="data-grid">{value.map((entry, i) => <label key={i}>{i}<input className="inp" aria-label={`Data row ${i + 1}`} value={String(entry)} onChange={e => update(value.map((x, j) => j === i ? (typeof entry === 'number' ? Number(e.target.value) : e.target.value) : x))} /><button className="btn sm" aria-label={`Delete data row ${i + 1}`} onClick={() => { if (window.confirm(`Delete row ${i + 1} from ${key}? Following rows will shift index.`)) update(value.filter((_, j) => i !== j)); }}>×</button></label>)}
+      {readOnlyState ? <><p className="hint">Structured state, null values and arrays with boolean or nested values are read only here to preserve their types. Use the source graph or a supported data adapter to edit them.</p><pre className="code-block">{JSON.stringify(value, null, 2)}</pre></> : Array.isArray(value) ? <div className="data-grid" style={{ alignItems: 'start' }}>{value.map((entry, i) => <label key={i}>{i}{typeof entry === 'number' ? <ModelNumberInput key={`${inputScope}:${key}:${i}`} label={`Data row ${i + 1}`} value={entry} onChange={next => update(value.map((x, j) => j === i ? next : x))} /> : <input className="inp" aria-label={`Data row ${i + 1}`} value={entry} onChange={e => update(value.map((x, j) => j === i ? e.target.value : x))} />}<button className="btn sm" aria-label={`Delete data row ${i + 1}`} onClick={() => { if (window.confirm(`Delete row ${i + 1} from ${key}? Following rows will shift index.`)) update(value.filter((_, j) => i !== j)); }}>×</button></label>)}
         <button className="btn" onClick={() => update([...value, value.length && value.every(entry => typeof entry === 'number') ? 0 : '0'])}>Add data row</button></div>
         : typeof value === 'boolean' ? <label><input aria-label="State field value" type="checkbox" checked={value} onChange={e => update(e.target.checked)} />Enabled</label>
-        : <label>Value<input className="inp" aria-label="State field value" type={typeof value === 'number' ? 'number' : 'text'} value={String(value ?? '')} onChange={e => update(typeof value === 'number' ? Number(e.target.value) : e.target.value)} /></label>}
+        : <label>Value{typeof value === 'number' ? <ModelNumberInput key={`${inputScope}:${key}`} label="State field value" value={value} onChange={update} /> : <input className="inp" aria-label="State field value" value={String(value ?? '')} onChange={e => update(e.target.value)} />}</label>}
       <div className="data-editor-tabs"><input className="inp" aria-label="New data field" value={newKey} onChange={e => setNewKey(e.target.value)} placeholder="New state field" /><button className="btn" disabled={!newKey.trim() || Object.hasOwn(state, newKey)} onClick={() => {
         useAppStore.setState({ tables: { ...tables, initialState: { ...state, [newKey]: [] } } }); setKey(newKey); setNewKey('');
       }}>Add array field</button></div>

@@ -90,13 +90,13 @@ test('Recovery lookup cannot read another verified owner namespace', async ({ pa
   expect(await page.evaluate(() => localStorage.getItem('slotmath-draft-v1:user:recovery-alice:recovery:original'))).toBe(source);
 });
 
-test('Unsupported outgoing workspace numbers keep the last safe draft and valid edits resume autosave', async ({ page }) => {
+test('Unsupported raw numeric edits keep the last safe draft and valid edits resume autosave', async ({ page }) => {
   const safe = '{"projectId":"numeric-write","configName":"Numeric write","nodes":[{"id":"sink","type":"sink","position":{"x":0,"y":0},"data":{"nodeType":"sink","label":"Sink"}}],"edges":[],"tables":{"initialState":{"count":1}}}';
   await seed(page, safe); await page.goto('/build');
   await page.getByRole('button', { name: 'Edit project data and expressions', exact: true }).click();
   const field = page.getByLabel('State field value', { exact: true });
   await field.fill('9007199254740993');
-  await expect(page.getByRole('alert')).toContainText('could not save the latest edits');
+  await expect(page.getByRole('alert')).toContainText('exact browser range');
   expect(await page.evaluate(key => JSON.parse(localStorage.getItem(key)!).tables.initialState.count, key)).toBe(1);
   await field.fill('2');
   await expect.poll(() => page.evaluate(key => JSON.parse(localStorage.getItem(key)!).tables.initialState.count, key)).toBe(2);
