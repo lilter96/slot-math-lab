@@ -81,6 +81,6 @@ export default function WeightedDrawEditor() {
   const [sourceKey, setSourceKey] = useState('');
   const sources = graph ? weightedSources(graph) : [];
   const source = sources.find(item => item.key === sourceKey) ?? sources[0];
-  if (!graph || !source) return <div className="model-notice"><h2>No supported weighted table</h2><p>This model has no finite inline draw weights. Dynamic expressions and other structures remain editable in the logic graph.</p><Link className="btn" to="/build">Open logic graph</Link></div>;
+  if (!graph || !source) return <div className="model-notice"><h2>No supported weighted table</h2><p>This editor needs finite inline integer weights and payloads representable exactly in the browser. Dynamic expressions and other numeric representations need a compatible source editor.</p><Link className="btn" to="/build">Open logic graph</Link></div>;
   return <><label className="draw-source-select">Weighted draw<select className="inp" aria-label="Weighted draw source" value={source.key} onChange={event => setSourceKey(event.target.value)}>{sources.map(item => <option key={item.key} value={item.key}>{item.label}</option>)}</select></label><DrawTransaction key={`${projectId}:${source.key}`} graph={graph} source={source} /></>;
 }

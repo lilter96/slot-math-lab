@@ -4,8 +4,8 @@ export interface DrawSource { key: string; scope: string | null; nodeId: string;
 function validRow(value: unknown): value is DrawRow {
   if (!value || typeof value !== 'object') return false;
   const row = value as DrawRow;
-  return typeof row.outcomeId === 'string' && Number.isInteger(row.weight) && row.weight >= 0
-    && Number.isInteger(row.value) && row.value >= -2147483648 && row.value <= 2147483647;
+  return typeof row.outcomeId === 'string' && Number.isSafeInteger(row.weight) && row.weight >= 0
+    && Number.isSafeInteger(row.value);
 }
 export function weightedSources(graph: ModelGraph): DrawSource[] {
   const scan = (nodes: ModelNode[], scope: string | null) => nodes.flatMap(node => {
@@ -15,10 +15,10 @@ export function weightedSources(graph: ModelGraph): DrawSource[] {
   return [...scan(graph.nodes ?? [], null), ...Object.entries(graph.mechanics ?? {}).flatMap(([id, definition]) => scan(definition.nodes, id))];
 }
 export function validateWeights(weights: string[]): string | null {
-  if (weights.some(weight => !/^\d+$/.test(weight.trim()) || !Number.isSafeInteger(Number(weight)) || Number(weight) > 2147483647)) return 'Weights must be whole numbers from 0 to 2,147,483,647.';
-  const sum = weights.reduce((total, weight) => total + Number(weight), 0);
-  if (sum <= 0) return 'At least one outcome needs a positive weight.';
-  if (sum > 2147483647) return 'The total weight exceeds the supported integer range.';
+  if (weights.some(weight => !/^\d+$/.test(weight.trim()) || !Number.isSafeInteger(Number(weight)))) return 'Use non-negative whole weights up to 9,007,199,254,740,991, the exact integer limit of this browser editor.';
+  const sum = weights.reduce((total, weight) => total + BigInt(weight.trim()), 0n);
+  if (sum <= 0n) return 'At least one outcome needs a positive weight.';
+  if (sum > BigInt(Number.MAX_SAFE_INTEGER)) return 'The total weight exceeds the exact integer limit of this browser editor. Keep the total at most 9,007,199,254,740,991.';
   return null;
 }
 export function changeWeights(graph: ModelGraph, sourceKey: string, weights: string[]): ModelGraph {
