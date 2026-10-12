@@ -59,8 +59,10 @@ test('Primitive outcome removal and primitive node deletion can be cancelled', a
 
 test('Keyboard node deletion preserves connected source on cancel and removes incident edges on confirmation', async ({ page }) => {
   await page.goto(link);
+  await expect(page.locator('.react-flow__node[data-id="sink"]')).toBeInViewport();
   const node = page.locator('.react-flow__node[data-id="draw"]');
   await node.focus();
+  await expect(node).toBeFocused();
   await page.keyboard.press('Enter');
   await expect(node).toHaveClass(/selected/);
   page.once('dialog', dialog => dialog.dismiss());
