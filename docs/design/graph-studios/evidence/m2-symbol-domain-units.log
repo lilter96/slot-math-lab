@@ -1,0 +1,60 @@
+
+Running 22 tests using 2 workers
+
+(node:373603) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:373602) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:373602) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:373603) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   2 unit/authoring-cluster-pay-bindings.spec.ts:19:3 › TGSlots: exact payout edits synchronize the real lookup and precision while preserving unrelated control, rule caps and input (162ms)
+  ✓   3 unit/authoring-cluster-pay-bindings.spec.ts:19:3 › weighted Le Militare: exact payout edits synchronize the real lookup and precision while preserving unrelated control, rule caps and input (276ms)
+  ✓   4 unit/authoring-cluster-pay-bindings.spec.ts:19:3 › reference: exact payout edits synchronize the real lookup and precision while preserving unrelated control, rule caps and input (46ms)
+  ✓   5 unit/authoring-cluster-pay-bindings.spec.ts:31:1 › Minimum crosses five and one in both directions: pruning, isolated-cell handling and shared callers reconcile without replacing the game (211ms)
+  ✓   6 unit/authoring-cluster-pay-bindings.spec.ts:45:1 › Runtime overrides, extra lookup consumers, mismatched metadata and stale revisions reject before mutation (78ms)
+  ✓   7 unit/authoring-cluster-pay-bindings.spec.ts:52:1 › Alpha-renamed cluster definitions, nodes and expressions retain authored IDs and opaque node/edge fields through minimum changes (121ms)
+  ✓   8 unit/authoring-pay-bindings.spec.ts:9:1 › Exact payout text preserves long decimals/fractions and rejects incomplete or non-integral executable credits (7ms)
+  ✓   9 unit/authoring-pay-bindings.spec.ts:16:3 › Ancient Dragon: line edit synchronizes exact declared precision, runtime payout and derived wild while keeping other source (121ms)
+  ✓  10 unit/authoring-pay-bindings.spec.ts:16:3 › Woodland Whisper: line edit synchronizes exact declared precision, runtime payout and derived wild while keeping other source (156ms)
+  ✓  11 unit/authoring-pay-bindings.spec.ts:16:3 › X7 Club: line edit synchronizes exact declared precision, runtime payout and derived wild while keeping other source (146ms)
+  ✓  12 unit/authoring-pay-bindings.spec.ts:33:3 › Ancient Dragon: scatter total-bet units normalize to the actual round price (46ms)
+  ✓  13 unit/authoring-pay-bindings.spec.ts:33:3 › Woodland Whisper bought: scatter total-bet units normalize to the actual round price (117ms)
+  ✓  14 unit/authoring-pay-bindings.spec.ts:42:1 › Explicit wild payouts remain authored; renamed tables are recognized and stale precision does not overwrite source (79ms)
+  ✓  15 unit/authoring-pay-bindings.spec.ts:53:1 › Runtime Data/PutState writes and mutable wild rules do not expose an initial-state lookup as an editable static paytable (21ms)
+  ✓   1 unit/authoring-cluster-pay-bindings.spec.ts:10:1 › Every TGSlots entry, all eighteen Le Militare variants and the separate reference expose executable cluster bindings without no-op rewriting (2.0s)
+  ✓  17 unit/authoring-symbol-lifecycle.spec.ts:20:1 › Cluster eligibility synchronizes runtime lookup, minimum and complete helper closure including weighted counting (120ms)
+  ✓  18 unit/authoring-symbol-lifecycle.spec.ts:29:1 › Line/scatter sizes and explicit all-wild eligibility preserve exact units and reconcile computed caps (28ms)
+  ✘  19 unit/authoring-symbol-lifecycle.spec.ts:35:1 › Dictionary removal reports actual and unresolved references, keeps stable numeric IDs and never changes unrelated literals (11ms)
+(node:373667) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:373667) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  20 unit/studio-edits.spec.ts:9:1 › A Studio draft composes source-local reel and weight edits into one untouched-base candidate (68ms)
+  ✓  21 unit/studio-edits.spec.ts:18:1 › Batch payout edits share the original bound and regenerate the wild row once without order-dependent rejection (217ms)
+  ✓  22 unit/studio-edits.spec.ts:27:1 › Incomplete inputs stay in a draft, invalid candidates leave source untouched and replacing one coordinate retains other edits (84ms)
+  ✓  16 unit/authoring-symbol-lifecycle.spec.ts:10:1 › All five bundled ordinary families and separate reference retain payout/source contracts on a stable dictionary extension (4.2s)
+
+
+  1) unit/authoring-symbol-lifecycle.spec.ts:35:1 › Dictionary removal reports actual and unresolved references, keeps stable numeric IDs and never changes unrelated literals 
+
+    Error: Symbol 3 is still referenced: Expression literal mechanics.feature.expressions.multiplier. Resolve those uses first.
+
+       at ../src/lib/authoring/symbolLifecycle.ts:65
+
+      63 | export function removeDictionarySymbol(graph: ModelGraph, id: string): ModelGraph {
+      64 |   const symbols = dictionary(graph); if (symbols.filter(symbol => symbol.id === id).length !== 1 || symbols.length <= 1) throw new Error('Keep at least one unambiguous dictionary symbol.');
+    > 65 |   const references = symbolReferences(graph, id); if (references.length) throw new Error(`Symbol ${id} is still referenced: ${references.slice(0, 3).map(reference => reference.label).join('; ')}. Resolve those uses first.`);
+         |                                                                                ^
+      66 |   if (denseDictionary(symbols) && symbols.at(-1)!.id !== id) throw new Error('Removing this numeric index would move other symbol IDs. Only an unreferenced final index can be removed.');
+      67 |   const next = structuredClone(graph); next.symbols = symbols.filter(symbol => symbol.id !== id); reconcileDictionary(graph, next); return next;
+      68 | }
+        at removeDictionarySymbol (/home/terentiy/work/github-profile-audit/slot-math-lab-worktrees/precision-workbench-redesign/frontend/src/lib/authoring/symbolLifecycle.ts:65:80)
+        at /home/terentiy/work/github-profile-audit/slot-math-lab-worktrees/precision-workbench-redesign/frontend/unit/authoring-symbol-lifecycle.spec.ts:40:105
+
+    Error Context: test-results/authoring-symbol-lifecycle-6c4bd--changes-unrelated-literals/error-context.md
+
+  1 failed
+    unit/authoring-symbol-lifecycle.spec.ts:35:1 › Dictionary removal reports actual and unresolved references, keeps stable numeric IDs and never changes unrelated literals 
+  21 passed (6.8s)

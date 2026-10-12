@@ -121,11 +121,18 @@ function referenceLookup() {
 }
 function referenceCredits(cost: number) { return { exprType: 'binary', op: 'Div', left: { exprType: 'fieldAccess', target: 'state', path: ['roundCoins'] }, right: { exprType: 'constant', kind: 'Integer', value: String(cost) } }; }
 
-export function changeBoundClusterPayouts(graph: ModelGraph, binding: PayBinding, edits: PayoutCellEdit[]): ModelGraph {
+export function changeBoundClusterPayouts(graph: ModelGraph, binding: PayBinding, edits: PayoutCellEdit[], domain?: PayBinding['rows']): ModelGraph {
   const current = clusterPayBindings(graph).find(value => value.key === binding.key);
   if (!current || current.revision !== binding.revision) throw new Error('The cluster lookup, traversal or precision declaration changed. Reconcile this draft.');
   const next = structuredClone(graph), table = (next.paytables as Table[]).find(value => value.id === current.tableId)!, seen = new Set<string>();
   let changed = false;
+  if (domain) {
+    if (current.cluster!.encoding === 'reference-offset') throw new Error('The independent reference keeps its fixed eligible symbols and sizes. Zero a payout to remove its reward.');
+    const symbols = graph.symbols as { id: string; kind: string }[];
+    if (!domain.length || new Set(domain.map(row => row.symbolId)).size !== domain.length || domain.some(row => !symbols.some(symbol => symbol.id === row.symbolId) || !row.counts.length || row.counts.length !== row.values.length || new Set(row.counts).size !== row.counts.length || row.counts.some(count => !Number.isSafeInteger(count) || count < 1 || count > current.columns))) throw new Error('Choose distinct dictionary symbols and in-bounds paying sizes.');
+    const entries = domain.map(row => ({ ...table.entries.find(entry => entry.symbolId === row.symbolId), symbolId: row.symbolId, counts: [...row.counts], payouts: row.values.map(value => normalizedCredits(exactInteger(value), current.roundCost)) }));
+    changed = !same(entries, table.entries); table.entries = entries;
+  }
   for (const edit of edits) {
     const identity = JSON.stringify([edit.symbolId, edit.count]); if (seen.has(identity)) throw new Error('A cluster payout cell occurs twice in this batch.'); seen.add(identity);
     const row = table.entries.find(row => row.symbolId === edit.symbolId), position = row?.counts.indexOf(edit.count) ?? -1;
@@ -141,7 +148,14 @@ export function changeBoundClusterPayouts(graph: ModelGraph, binding: PayBinding
     if (value !== exactInteger(row.payouts[position], current.roundCost)) { row.payouts[position] = normalizedCredits(value, current.roundCost); changed = true; }
   }
   if (!changed) return next;
-  const state = next.initialState as Record<string, unknown>;
+  reconcileClusterTable(graph, next, current);
+  if (!clusterPayBindings(next).some(value => value.key === current.key)) throw new Error('The cluster dependency closure could not be reconciled. The original graph is unchanged.');
+  return next;
+}
+
+/** Shared authoring reconciliation for eligibility and stable dictionary extension; never executed by the runtime. */
+export function reconcileClusterTable(graph: ModelGraph, next: ModelGraph, current: PayBinding): void {
+  const state = next.initialState as Record<string, unknown>, table = (next.paytables as Table[]).find(table => table.id === current.tableId)!;
   if (current.cluster!.encoding === 'reference-offset') state.clusterPaytable = table.entries.flatMap(row => row.payouts.map(value => String(exactInteger(value, current.roundCost))));
   else {
     const pays = Object.fromEntries(table.entries.map(row => [Number(row.symbolId), Object.fromEntries(row.counts.map((count, i) => [count, exactInteger(row.payouts[i], current.roundCost)]))]));
@@ -155,13 +169,11 @@ export function changeBoundClusterPayouts(graph: ModelGraph, binding: PayBinding
       }))];
       for (const weightsKey of weights) original.push(...closures(graph, { ...originalBoard, weights: weightsKey }));
     }
-    const updatedState = clusterState({ ...originalBoard, pays });
+    const updatedBoard = { ...originalBoard, pays, symbolCount: (next.symbols as unknown[]).length }, updatedState = clusterState(updatedBoard);
     if (!Number.isFinite(updatedState.clusterMinSize)) throw new Error('At least one positive cluster payout is required by this traversal contract.');
     state.clusterPays = updatedState.clusterPays; state.clusterMinSize = updatedState.clusterMinSize;
-    for (const match of original) reconcileClosure(next, match, { ...match.board, pays });
+    for (const match of original) reconcileClosure(next, match, { ...match.board, pays, symbolCount: updatedBoard.symbolCount });
   }
-  if (!clusterPayBindings(next).some(value => value.key === current.key)) throw new Error('The cluster dependency closure could not be reconciled. The original graph is unchanged.');
-  return next;
 }
 
 /** Patch only verified template differences; existing IDs, labels, edge data and custom envelope fields survive. */

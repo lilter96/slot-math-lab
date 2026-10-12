@@ -1,0 +1,141 @@
+{
+  "base": "http://127.0.0.1:4187",
+  "records": [
+    {
+      "slug": "tg",
+      "width": 1920,
+      "height": 1080,
+      "state": "eligibility",
+      "max": 432,
+      "document": 1920,
+      "viewport": 1920,
+      "zoom": "1",
+      "scale": 1
+    },
+    {
+      "slug": "tg",
+      "width": 1920,
+      "height": 1080,
+      "state": "eligibility-dirty",
+      "max": 477,
+      "document": 1920,
+      "viewport": 1920,
+      "zoom": "1",
+      "scale": 1
+    },
+    {
+      "slug": "tg",
+      "width": 1920,
+      "height": 1080,
+      "state": "eligibility-invalid",
+      "max": 534,
+      "document": 1920,
+      "viewport": 1920,
+      "zoom": "1",
+      "scale": 1
+    },
+    {
+      "slug": "tg",
+      "width": 1440,
+      "height": 900,
+      "state": "eligibility",
+      "max": 631,
+      "document": 1440,
+      "viewport": 1440,
+      "zoom": "1",
+      "scale": 1
+    },
+    {
+      "slug": "tg",
+      "width": 1440,
+      "height": 900,
+      "state": "eligibility-dirty",
+      "max": 676,
+      "document": 1440,
+      "viewport": 1440,
+      "zoom": "1",
+      "scale": 1
+    },
+    {
+      "slug": "tg",
+      "width": 1440,
+      "height": 900,
+      "state": "eligibility-invalid",
+      "max": 734,
+      "document": 1440,
+      "viewport": 1440,
+      "zoom": "1",
+      "scale": 1
+    },
+    {
+      "slug": "tg",
+      "width": 1280,
+      "height": 800,
+      "state": "eligibility",
+      "max": 770,
+      "document": 1280,
+      "viewport": 1280,
+      "zoom": "1",
+      "scale": 1
+    },
+    {
+      "slug": "tg",
+      "width": 1280,
+      "height": 800,
+      "state": "eligibility-dirty",
+      "max": 815,
+      "document": 1280,
+      "viewport": 1280,
+      "zoom": "1",
+      "scale": 1
+    },
+    {
+      "slug": "tg",
+      "width": 1280,
+      "height": 800,
+      "state": "eligibility-invalid",
+      "max": 873,
+      "document": 1280,
+      "viewport": 1280,
+      "zoom": "1",
+      "scale": 1
+    },
+    {
+      "slug": "tg",
+      "width": 390,
+      "height": 844,
+      "state": "eligibility",
+      "max": 1466,
+      "document": 390,
+      "viewport": 390,
+      "zoom": "1",
+      "scale": 1
+    },
+    {
+      "slug": "tg",
+      "width": 390,
+      "height": 844,
+      "state": "eligibility-dirty",
+      "max": 1569,
+      "document": 390,
+      "viewport": 390,
+      "zoom": "1",
+      "scale": 1
+    },
+    {
+      "slug": "tg",
+      "width": 390,
+      "height": 844,
+      "state": "eligibility-invalid",
+      "max": 1642,
+      "document": 390,
+      "viewport": 390,
+      "zoom": "1",
+      "scale": 1
+    },
+    {
+      "slug": "tg",
+      "errors": []
+    }
+  ]
+}

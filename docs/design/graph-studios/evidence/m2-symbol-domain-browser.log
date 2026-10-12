@@ -1,0 +1,73 @@
+
+Running 4 tests using 1 worker
+
+(node:376114) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:376114) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  1 [chromium] › e2e/studio-symbol-lifecycle.spec.ts:11:1 › Studio dictionary: stable extension preserves real payout, pending reload and referenced deletion shows its blockers (2.4s)
+  ✘  2 [chromium] › e2e/studio-symbol-lifecycle.spec.ts:17:39 › Studio ordinary cluster eligibility: new B row becomes a real one-cell payout, removal retains drawing/dictionary source (30.0s)
+(node:376642) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:376642) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  3 [chromium] › e2e/studio-symbol-lifecycle.spec.ts:17:39 › Studio weighted cluster eligibility: new B row becomes a real one-cell payout, removal retains drawing/dictionary source (30.0s)
+(node:377268) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:377268) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  4 [chromium] › e2e/studio-symbol-lifecycle.spec.ts:22:1 › Studio line eligibility: authored wild row reconciles computed bound and can be removed to restore its derived rule (1.6s)
+
+
+  1) [chromium] › e2e/studio-symbol-lifecycle.spec.ts:17:39 › Studio ordinary cluster eligibility: new B row becomes a real one-cell payout, removal retains drawing/dictionary source 
+
+    [31mTest timeout of 30000ms exceeded.[39m
+
+    Error: locator.click: Test timeout of 30000ms exceeded.
+    Call log:
+    [2m  - waiting for getByRole('button', { name: 'Remove paying symbol 1', exact: true })[22m
+
+
+      18 |   const graph = clusterStudioProof(weighted); await open(page, graph); await page.getByRole('tab', { name: 'Paytables', exact: true }).click(); await page.locator('.studio-paying-domain summary').click(); await page.getByLabel('Domain new paying size').fill('1'); await page.getByRole('button', { name: 'Add paying size', exact: true }).click(); await page.getByLabel('New paying symbol').selectOption('2'); await page.getByRole('button', { name: 'Add paying symbol', exact: true }).click(); await page.getByLabel('Domain payout 2 count 1').fill('4'); await page.reload(); await apply(page);
+      19 |   const added = await backup(page); await exact(request, added, 4); expect(added.symbols).toEqual(graph.symbols); expect((added.initialState as Record<string, unknown>).board).toEqual((graph.initialState as Record<string, unknown>).board);
+    > 20 |   await page.getByRole('button', { name: 'Remove paying symbol 1', exact: true }).click(); await apply(page); const removed = await backup(page); await exact(request, removed, 4); expect((removed.paytables as { entries: { symbolId: string }[] }[])[0].entries.map(row => row.symbolId)).toEqual(['2']); expect(removed.opaque).toEqual(graph.opaque);
+         |                                                                                   ^
+      21 | });
+      22 | test('Studio line eligibility: authored wild row reconciles computed bound and can be removed to restore its derived rule', async ({ page, request }) => {
+      23 |   const graph = computedLineBoundProof(); await open(page, graph); await page.getByRole('tab', { name: 'Paytables', exact: true }).click(); await page.locator('.studio-paying-domain summary').click(); await page.getByLabel('New paying symbol').selectOption('0'); await page.getByRole('button', { name: 'Add paying symbol', exact: true }).click(); await page.getByLabel('Domain payout 0 count 2').fill('6'); await apply(page);
+        at /home/terentiy/work/github-profile-audit/slot-math-lab-worktrees/precision-workbench-redesign/frontend/e2e/studio-symbol-lifecycle.spec.ts:20:83
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/studio-symbol-lifecycle-St-6a46a-s-drawing-dictionary-source-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/studio-symbol-lifecycle-St-6a46a-s-drawing-dictionary-source-chromium/error-context.md
+
+  2) [chromium] › e2e/studio-symbol-lifecycle.spec.ts:17:39 › Studio weighted cluster eligibility: new B row becomes a real one-cell payout, removal retains drawing/dictionary source 
+
+    [31mTest timeout of 30000ms exceeded.[39m
+
+    Error: locator.click: Test timeout of 30000ms exceeded.
+    Call log:
+    [2m  - waiting for getByRole('button', { name: 'Remove paying symbol 1', exact: true })[22m
+
+
+      18 |   const graph = clusterStudioProof(weighted); await open(page, graph); await page.getByRole('tab', { name: 'Paytables', exact: true }).click(); await page.locator('.studio-paying-domain summary').click(); await page.getByLabel('Domain new paying size').fill('1'); await page.getByRole('button', { name: 'Add paying size', exact: true }).click(); await page.getByLabel('New paying symbol').selectOption('2'); await page.getByRole('button', { name: 'Add paying symbol', exact: true }).click(); await page.getByLabel('Domain payout 2 count 1').fill('4'); await page.reload(); await apply(page);
+      19 |   const added = await backup(page); await exact(request, added, 4); expect(added.symbols).toEqual(graph.symbols); expect((added.initialState as Record<string, unknown>).board).toEqual((graph.initialState as Record<string, unknown>).board);
+    > 20 |   await page.getByRole('button', { name: 'Remove paying symbol 1', exact: true }).click(); await apply(page); const removed = await backup(page); await exact(request, removed, 4); expect((removed.paytables as { entries: { symbolId: string }[] }[])[0].entries.map(row => row.symbolId)).toEqual(['2']); expect(removed.opaque).toEqual(graph.opaque);
+         |                                                                                   ^
+      21 | });
+      22 | test('Studio line eligibility: authored wild row reconciles computed bound and can be removed to restore its derived rule', async ({ page, request }) => {
+      23 |   const graph = computedLineBoundProof(); await open(page, graph); await page.getByRole('tab', { name: 'Paytables', exact: true }).click(); await page.locator('.studio-paying-domain summary').click(); await page.getByLabel('New paying symbol').selectOption('0'); await page.getByRole('button', { name: 'Add paying symbol', exact: true }).click(); await page.getByLabel('Domain payout 0 count 2').fill('6'); await apply(page);
+        at /home/terentiy/work/github-profile-audit/slot-math-lab-worktrees/precision-workbench-redesign/frontend/e2e/studio-symbol-lifecycle.spec.ts:20:83
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/studio-symbol-lifecycle-St-47c77-s-drawing-dictionary-source-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/studio-symbol-lifecycle-St-47c77-s-drawing-dictionary-source-chromium/error-context.md
+
+  2 failed
+    [chromium] › e2e/studio-symbol-lifecycle.spec.ts:17:39 › Studio ordinary cluster eligibility: new B row becomes a real one-cell payout, removal retains drawing/dictionary source 
+    [chromium] › e2e/studio-symbol-lifecycle.spec.ts:17:39 › Studio weighted cluster eligibility: new B row becomes a real one-cell payout, removal retains drawing/dictionary source 
+  2 passed (1.1m)

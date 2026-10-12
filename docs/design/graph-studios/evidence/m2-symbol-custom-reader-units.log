@@ -1,0 +1,18 @@
+
+Running 5 tests using 2 workers
+
+(node:381587) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:381593) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:381587) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:381593) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  1 unit/authoring-symbol-lifecycle.spec.ts:20:1 › Cluster eligibility synchronizes runtime lookup, minimum and complete helper closure including weighted counting (151ms)
+  ✓  3 unit/authoring-symbol-lifecycle.spec.ts:29:1 › Line/scatter sizes and explicit all-wild eligibility preserve exact units and reconcile computed caps (40ms)
+  ✓  4 unit/authoring-symbol-lifecycle.spec.ts:35:1 › Dictionary removal reports actual and unresolved references, keeps stable numeric IDs and never changes unrelated literals (30ms)
+  ✓  5 unit/authoring-symbol-lifecycle.spec.ts:43:1 › An additional custom payout reader prevents domain edits and retains its complete source (13ms)
+  ✓  2 unit/authoring-symbol-lifecycle.spec.ts:10:1 › All five bundled families/entries and separate reference retain payout/source contracts on a stable dictionary extension (4.8s)
+
+  5 passed (5.4s)
