@@ -58,3 +58,7 @@ The main [UX plan](UX_MASTERPLAN.md), [design system](DESIGN_SYSTEM.md), [design
 ## Verification
 
 PrivateWorkspaceTests exercise two real JWT identities, independent copies, config CRUD/version denial, run launch/read/evidence/cancel denial, witness/verification denial, real SignalR subscription/snapshot rejection, owner worker completion, experiment child isolation, encrypted restart, explicit legacy ownership and multiple production credential accounts. Browser tests cover nested edits across different games, same-template independence, staged form isolation, verified-account changes, unavailable/unsigned session boot and validation finishing after a project switch.
+
+## Browser model-number limits
+
+Personal JSON imports (Projects, toolbar, Export and legacy inbound links) and saved-config response guards reject original number tokens outside ±9007199254740991, as well as nonfinite overflow. This prevents silent Int64 rounding during those reads; string metadata is preserved. Project-opening failures leave the current model available and display a specific error. Keep unsupported models as original JSON; full-Int64 browser authoring/read-only viewing is not implemented. Ordinary fractional values retain existing IEEE-754 semantics. Persisted draft hydration, raw numeric input, outgoing/export guards and AI/measurement input boundaries remain under audit. See [current precision evidence](qa/MODEL_JSON_PRECISION_REVIEW.md).

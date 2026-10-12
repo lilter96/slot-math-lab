@@ -1,3 +1,4 @@
+import { parseModelJson } from '../lib/modelJson';
 import { useQuery } from '@tanstack/react-query';
 import { BASE_URL } from '../api/client';
 import { useEffect, useMemo, useRef, useState } from 'react';
@@ -55,12 +56,12 @@ export default function Projects() {
       {server.isError && <p role="alert">{server.error.message} <button className="btn" onClick={() => void server.refetch()}>Retry saved projects</button></p>}
       <div className="project-list">{server.data?.filter(p => `${p.name} ${p.id}`.toLowerCase().includes(search.toLowerCase())).map(p => <div className="project-row" key={p.id}><div><h2>{p.name}</h2><p>Version {p.latestVersion} · {p.id}</p></div><button className="btn" disabled={!!loadingId} onClick={async () => {
         const token = ++task.current; pending.current?.abort(); const controller = new AbortController(); pending.current = controller; const current = () => mounted.current && token === task.current && !controller.signal.aborted; setLoadingId(p.id); setError('');
-        try { const response = await fetch(`${BASE_URL}/api/configs/${encodeURIComponent(p.id)}`, { signal: controller.signal }); if (!response.ok) throw new Error(`Unable to open saved project (HTTP ${response.status}).`); const detail = await response.json(); if (current()) create(detail.config); }
+        try { const response = await fetch(`${BASE_URL}/api/configs/${encodeURIComponent(p.id)}`, { signal: controller.signal }); if (!response.ok) throw new Error(`Unable to open saved project (HTTP ${response.status}).`); const detail = parseModelJson(await response.text()); if (current()) create(detail.config as Record<string, unknown>); }
         catch (reason) { if (current()) setError(reason instanceof Error ? reason.message : 'Unable to open saved project'); }
         finally { if (current()) setLoadingId(null); }
       }}>{loadingId === p.id ? 'Opening…' : 'Open saved version'}</button></div>)}</div>
       {server.data?.length === 0 && <p className="hint">No server versions saved yet. Save a project from Export.</p>}
     </section>
-    <section className="project-import"><h2>Import a personal model</h2><label className="btn">Choose JSON file<input type="file" accept=".json,application/json" onChange={async e => { const file = e.target.files?.[0]; if (!file) return; e.target.value = ''; const token = ++task.current; pending.current?.abort(); pending.current = null; setLoadingId(null); const current = () => mounted.current && token === task.current; try { const text = await file.text(); if (!current()) return; const config = JSON.parse(text); if (!config.schemaVersion || !Array.isArray(config.nodes) || !Array.isArray(config.edges)) throw new Error('Choose an executable graph JSON with schemaVersion, nodes and edges.'); create(config); } catch (err) { if (current()) setError(err instanceof Error ? err.message : 'Unable to import this file'); } }} /></label>{error && <p role="alert">{error}</p>}</section>
+    <section className="project-import"><h2>Import a personal model</h2><label className="btn">Choose JSON file<input type="file" accept=".json,application/json" onChange={async e => { const file = e.target.files?.[0]; if (!file) return; e.target.value = ''; const token = ++task.current; pending.current?.abort(); pending.current = null; setLoadingId(null); const current = () => mounted.current && token === task.current; try { const text = await file.text(); if (!current()) return; const config = parseModelJson(text); if (!config.schemaVersion || !Array.isArray(config.nodes) || !Array.isArray(config.edges)) throw new Error('Choose an executable graph JSON with schemaVersion, nodes and edges.'); create(config); } catch (err) { if (current()) setError(err instanceof Error ? err.message : 'Unable to import this file'); } }} /></label>{error && <p role="alert">{error}</p>}</section>
   </section>;
 }

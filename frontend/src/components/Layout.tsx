@@ -24,7 +24,7 @@ const TABS = [
 ];
 
 export default function Layout() {
-  useProjectInitialization();
+  const importError = useProjectInitialization();
   useSimulationConnection();
   const location = useLocation();
   const tab = useAppStore((s) => s.tab);
@@ -125,7 +125,7 @@ export default function Layout() {
 
 
         </aside>
-        <main className="body" id="main-content" tabIndex={-1}><Outlet /></main>
+        <main className="body" id="main-content" tabIndex={-1}>{importError && <p role="alert">{importError}</p>}<Outlet /></main>
       </div>
     </div>
   );

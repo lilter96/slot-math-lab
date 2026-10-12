@@ -1,6 +1,8 @@
+import { assertModelNumbers } from './modelJson';
 import { useAppStore, type GraphNode, type GraphEdge, retainCurrentProject } from '../store';
 import { buildConfigPayload } from './configPayload';
 export function loadProject(config: Record<string, unknown>) {
+  assertModelNumbers(config);
   if (!Array.isArray(config.nodes) || !Array.isArray(config.edges)) throw new Error('Project must contain nodes and edges');
   const frontendTypes: Record<string, GraphNode['data']['nodeType']> = { metricsSink: 'sink', getState: 'state', putState: 'state', modifyState: 'state', data: 'state' };
   const nodes = config.nodes.map((n, i): GraphNode => {
@@ -73,6 +75,7 @@ export function exportProject() {
 }
 /** Switch examples/imports while retaining a restorable canonical editor draft. */
 export function switchProject(config: Record<string, unknown>) {
+  assertModelNumbers(config);
   retainCurrentProject();
   const current = useAppStore.getState();
   if (!current.authoringDraft && current.nodes.length) {

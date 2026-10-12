@@ -1,3 +1,4 @@
+import { parseModelJson } from '../lib/modelJson';
 import { useState, useCallback, useRef, useMemo, useEffect } from 'react';
 import { useAppStore } from '../store';
 import { useSaveConfig } from '../api/hooks';
@@ -119,7 +120,7 @@ export default function Export() {
     const reader = new FileReader();
     reader.onload = async () => {
       try {
-        const data = JSON.parse(reader.result as string);
+        const data = parseModelJson(reader.result as string);
         if (!data.schemaVersion) {
           setImportError('Invalid config: missing schemaVersion');
           setImported(null);
@@ -129,8 +130,8 @@ export default function Export() {
         setImported(data);
         setImportError(null);
         setImportHash(await configHash(data));
-      } catch {
-        setImportError('Invalid JSON file');
+      } catch (error) {
+        setImportError(error instanceof Error ? error.message : 'Invalid JSON file');
         setImported(null);
         setImportHash(null);
       }
