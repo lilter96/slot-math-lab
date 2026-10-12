@@ -60,9 +60,17 @@ export function usePluginsQuery() {
   return useQuery({
     queryKey: PLUGINS_KEY,
     queryFn: async () => {
-      const { data, error } = await apiClient.GET('/api/plugins');
-      if (error) throw new Error(`Failed to load plugins: ${error}`);
-      return data ?? [];
+      const { data, error, response } = await apiClient.GET('/api/plugins');
+      if (!response.ok || error) throw new Error(`Plugin registry unavailable (HTTP ${response.status}).`);
+      const payload: unknown = data;
+      if (!Array.isArray(payload)) throw new Error('No plugin registry returned. Retry when the API is available.');
+      return payload.map((value: unknown) => {
+        if (!value || typeof value !== 'object') throw new Error('Invalid plugin registry entry. Retry when the API is available.');
+        const entry = value as Record<string, unknown>, version = entry.version;
+        if (typeof entry.pluginId !== 'string' || typeof entry.contract !== 'string' || typeof entry.isConformant !== 'boolean'
+          || (version != null && typeof version !== 'string')) throw new Error('Invalid plugin registry entry. Retry when the API is available.');
+        return { pluginId: entry.pluginId, contract: entry.contract, isConformant: entry.isConformant, version };
+      });
     },
     staleTime: 10_000,
   });
@@ -121,23 +129,6 @@ export function useRegisterPlugin() {
         isConformant: true,
         forcesSampledRegime: true,
       });
-    },
-  });
-}
-
-/** Remove a plugin via the backend. Note: backend may not support DELETE on plugins, so this is optimistic. */
-export function useRemovePlugin() {
-  const queryClient = useQueryClient();
-  const removeFromStore = useAppStore((s) => s.removePlugin);
-
-  return useMutation({
-    mutationFn: async (pluginId: string) => {
-      // Backend doesn't have DELETE /api/plugins/{id}, so we just invalidate
-      return pluginId;
-    },
-    onSuccess: (pluginId) => {
-      queryClient.invalidateQueries({ queryKey: PLUGINS_KEY });
-      removeFromStore(pluginId);
     },
   });
 }

@@ -1,196 +1,28 @@
-import { useState, useCallback } from 'react';
-import { useAppStore, type PluginContract } from '../../store';
-import { useRegisterPlugin, useRemovePlugin, useSyncPluginsFromBackend } from '../../api/hooks';
-import { Ic } from '../Icons';
+import { useState } from 'react';
+import { usePluginsQuery } from '../../api/hooks';
 
 export default function PluginManager() {
-  const plugins = useAppStore((s) => s.plugins);
-  const backendAvailable = useAppStore((s) => s.backendAvailable);
-  const registerMutation = useRegisterPlugin();
-  const removeMutation = useRemovePlugin();
+  const registry = usePluginsQuery();
   const [selected, setSelected] = useState<string | null>(null);
-  const [newPlugin, setNewPlugin] = useState({ pluginId: '', contract: 'IEvaluator' as PluginContract, version: '1.0.0' });
-  const [error, setError] = useState<string | null>(null);
-
-  // Sync plugins from backend on mount
-  useSyncPluginsFromBackend();
-
-  const selectedPlugin = plugins.find((p) => p.pluginId === selected) ?? null;
-
-  const handleRegister = useCallback(() => {
-    if (!newPlugin.pluginId.trim()) {
-      setError('Plugin ID is required');
-      return;
-    }
-    if (plugins.some((p) => p.pluginId === newPlugin.pluginId)) {
-      setError(`Plugin "${newPlugin.pluginId}" is already registered`);
-      return;
-    }
-    registerMutation.mutate(newPlugin);
-    setNewPlugin({ pluginId: '', contract: 'IEvaluator', version: '1.0.0' });
-    setError(null);
-  }, [newPlugin, plugins, registerMutation]);
-
-  return (
-    <div>
-      <div className="panel-h">
-        <span className="t">Plugin Management</span>
-        <span className="s">
-          {backendAvailable ? (
-            <span style={{ color: 'var(--exact)' }}>● connected</span>
-          ) : (
-            <span style={{ color: 'var(--faint)' }}>○ offline</span>
-          )}
-          {' · '}{plugins.length} plugins
-        </span>
-      </div>
-      <div className="panel-body">
-        {/* ── Plugin list ── */}
-        <div className="section-label">Registered Plugins</div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-          {plugins.map((p) => (
-            <div
-              key={p.pluginId}
-              className="pal-item"
-              style={{ cursor: 'pointer', margin: 0 }}
-              onClick={() => setSelected(p.pluginId)}
-            >
-              <div className="pic" style={{
-                color: p.isConformant ? 'var(--exact)' : 'var(--danger)',
-                background: p.isConformant ? 'var(--exact-dim)' : 'var(--danger-dim)',
-              }}>
-                {p.isConformant ? <Ic.check /> : <Ic.x />}
-              </div>
-              <div style={{ flex: 1 }}>
-                <div className="pt" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                  {p.pluginId}
-                  {p.forcesSampledRegime && (
-                    <span className="prov sampled" style={{ fontSize: 9 }} title="Forces sampled regime">
-                      <span className="pdot" />Sampled
-                    </span>
-                  )}
-                </div>
-                <div className="ps">{p.contract} · v{p.version || '1.0.0'}</div>
-              </div>
-              <button
-                className="btn ghost sm icon"
-                onClick={(e) => { e.stopPropagation(); removeMutation.mutate(p.pluginId); if (selected === p.pluginId) setSelected(null); }}
-                title="Remove plugin"
-              >
-                <Ic.x style={{ width: 12, height: 12 }} />
-              </button>
-            </div>
-          ))}
-        </div>
-
-        {/* ── Plugin detail ── */}
-        {selectedPlugin && (
-          <div style={{ marginTop: 14, padding: 12, background: 'var(--bg)', borderRadius: 8, border: '1px solid var(--line)' }}>
-            <div className="section-label">Plugin Details</div>
-            <div className="mini-row" style={{ padding: '4px 0' }}>
-              <span className="k">ID</span>
-              <span className="v">{selectedPlugin.pluginId}</span>
-            </div>
-            <div className="mini-row" style={{ padding: '4px 0' }}>
-              <span className="k">Contract</span>
-              <span className="v">{selectedPlugin.contract}</span>
-            </div>
-            <div className="mini-row" style={{ padding: '4px 0' }}>
-              <span className="k">Version</span>
-              <span className="v">{selectedPlugin.version || '1.0.0'}</span>
-            </div>
-            <div className="mini-row" style={{ padding: '4px 0' }}>
-              <span className="k">Conformance</span>
-              <span className="v" style={{ color: selectedPlugin.isConformant ? 'var(--exact)' : 'var(--danger)' }}>
-                {selectedPlugin.isConformant ? 'Passed' : 'Failed'}
-              </span>
-            </div>
-            {selectedPlugin.conformanceNote && (
-              <div className="mini-row" style={{ padding: '4px 0' }}>
-                <span className="k">Note</span>
-                <span className="v" style={{ color: 'var(--danger)' }}>{selectedPlugin.conformanceNote}</span>
-              </div>
-            )}
-            <div className="mini-row" style={{ padding: '4px 0' }}>
-              <span className="k">Regime</span>
-              <span className="v">
-                {selectedPlugin.forcesSampledRegime ? (
-                  <span className="prov sampled" style={{ fontSize: 10 }}>
-                    <span className="pdot" />Sampled
-                  </span>
-                ) : (
-                  <span className="prov exact" style={{ fontSize: 10 }}>
-                    <span className="pdot" />Exact-compatible
-                  </span>
-                )}
-              </span>
-            </div>
-
-            {!selectedPlugin.isConformant && (
-              <div style={{
-                marginTop: 10,
-                padding: '8px 12px',
-                background: 'var(--danger-dim)',
-                border: '1px solid var(--danger)',
-                borderRadius: 6,
-                color: 'var(--danger)',
-                fontSize: 11,
-                fontFamily: 'var(--mono)',
-              }}>
-                ⚠️ Cannot use: {selectedPlugin.conformanceNote || 'Plugin failed conformance tests'}
-              </div>
-            )}
-
-            {selectedPlugin.isConformant && (
-              <div style={{
-                marginTop: 10,
-                padding: '8px 12px',
-                background: selectedPlugin.forcesSampledRegime ? 'var(--sampled-dim)' : 'var(--exact-dim)',
-                border: '1px solid ' + (selectedPlugin.forcesSampledRegime ? 'var(--sampled)' : 'var(--exact)'),
-                borderRadius: 6,
-                color: 'var(--text)',
-                fontSize: 11,
-              }}>
-                ✅ Can use — {selectedPlugin.forcesSampledRegime
-                  ? 'This plugin forces the sampled regime. Exact results unavailable.'
-                  : 'This plugin is exact-compatible.'}
-              </div>
-            )}
-          </div>
-        )}
-
-        <div className="divider" />
-
-        {/* ── Register new plugin ── */}
-        <div className="section-label">Register Plugin</div>
-        <div className="field">
-          <label>Plugin ID</label>
-          <input
-            className="inp"
-            value={newPlugin.pluginId}
-            onChange={(e) => setNewPlugin({ ...newPlugin, pluginId: e.target.value })}
-            placeholder="e.g. megaways-evaluator"
-          />
-        </div>
-        <div className="field">
-          <label>Contract</label>
-          <select
-            className="inp"
-            value={newPlugin.contract}
-            onChange={(e) => setNewPlugin({ ...newPlugin, contract: e.target.value as PluginContract })}
-          >
-            <option value="IEvaluator">IEvaluator</option>
-            <option value="ITransform">ITransform</option>
-            <option value="WeightSource">WeightSource</option>
-          </select>
-        </div>
-        {error && (
-          <div style={{ color: 'var(--danger)', fontSize: 11, marginBottom: 8 }}>{error}</div>
-        )}
-        <button className="btn primary sm" onClick={handleRegister} disabled={!newPlugin.pluginId.trim()}>
-          <Ic.plus style={{ width: 12, height: 12 }} /> Register
-        </button>
-      </div>
+  const plugins = registry.isError || registry.isFetching ? [] : registry.data ?? [];
+  const selectedPlugin = plugins.find(plugin => plugin.pluginId === selected);
+  return <div>
+    <div className="panel-h"><span className="t">Plugin registry</span></div>
+    <div className="panel-body">
+      <p className="hint">Plugins are managed by the server configuration. Registration and removal are unavailable in this workbench.</p>
+      {registry.isFetching && <p role="status">Loading plugin registry…</p>}
+      {registry.isError && <p role="alert">{registry.error.message} <button className="btn" onClick={() => void registry.refetch()}>Retry plugin registry</button></p>}
+      {!registry.isPending && !registry.isFetching && !registry.isError && !plugins.length && <p className="hint">No server plugins are registered. Your graph remains available for editing.</p>}
+      {plugins.map(plugin => <div className="field" key={plugin.pluginId}>
+        <button className="btn" aria-label={`Inspect plugin ${plugin.pluginId}`} onClick={() => setSelected(plugin.pluginId)}>{plugin.pluginId}</button>
+        <p className="hint">{plugin.contract} · {plugin.version ? `v${plugin.version}` : 'Version not provided'} · {plugin.isConformant ? 'Contract checks passed' : 'Contract checks failed'}</p>
+        <button className="btn" disabled aria-label={`Remove plugin ${plugin.pluginId}`} title="Server plugin removal is unavailable">Remove plugin</button>
+      </div>)}
+      {selectedPlugin && <section aria-label="Selected plugin details">
+        <h3>{selectedPlugin.pluginId}</h3>
+        <dl><dt>Contract</dt><dd>{selectedPlugin.contract}</dd><dt>Version</dt><dd>{selectedPlugin.version ?? 'Not provided'}</dd><dt>Contract checks</dt><dd>{selectedPlugin.isConformant ? 'Passed' : 'Failed'}</dd></dl>
+        <p className="hint">The registry does not provide evaluation-method compatibility. A completed run supplies its own mathematical evidence.</p>
+      </section>}
     </div>
-  );
+  </div>;
 }
