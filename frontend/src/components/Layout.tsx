@@ -5,7 +5,7 @@ import AiGenerateModal from './AiGenerateModal';
 import { getBrowserIdentity } from '../lib/browserIdentity';
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
 import { useEffect, useState } from 'react';
-import { useAppStore, getDraftStorageError, MOOD_HUE, type Mood } from '../store';
+import { useAppStore, getDraftStorageError, getDraftRecovery, MOOD_HUE, type Mood } from '../store';
 import { Ic } from './Icons';
 import { useSimulationConnection } from '../hooks/useSimulation';
 import { DEFAULT_FEATURES, useFeaturesQuery } from '../api/hooks';
@@ -95,7 +95,11 @@ export default function Layout() {
         </div>
       </div>
 
-      {storageError && <div className="draft-storage-warning" role="alert">{storageError} <NavLink className="btn" to="/export">Back up this project</NavLink></div>}
+      {storageError && <div className="draft-storage-warning" role="alert">{storageError} <NavLink className="btn" to="/export">Back up this project</NavLink>{getDraftRecovery() !== null && <button className="btn" onClick={() => {
+        const original = getDraftRecovery(); if (original === null) return;
+        const url = URL.createObjectURL(new Blob([original], { type: 'application/json' }));
+        const link = document.createElement('a'); link.href = url; link.download = 'slotmath-workspace-recovery.json'; link.click(); URL.revokeObjectURL(url);
+      }}>Download stored workspace</button>}</div>}
       <div className={'workspace-shell' + (collapsed ? ' nav-collapsed' : '')}>
         <aside className="workspace-nav" aria-label="Workspace">
           <button className="btn nav-toggle" aria-label={collapsed ? 'Expand navigation' : 'Collapse navigation'} aria-expanded={!collapsed} onClick={toggleNav}>{collapsed ? '☰' : 'Collapse navigation'}</button>

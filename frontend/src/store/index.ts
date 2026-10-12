@@ -1,3 +1,4 @@
+import { assertModelNumbers, parseModelJson } from '../lib/modelJson';
 import { create } from 'zustand';
 import { browserStorageKey } from '../lib/browserIdentity';
 import { LIMITS } from '../lib/limits';
@@ -438,6 +439,9 @@ export function activateProject(id: string) {
 }
 
 let draftStorageError: string | null = null;
+let draftRecovery: string | null = null;
+export function getDraftRecovery() { return draftRecovery; }
+const recoveryMessage = 'A stored workspace could not be opened safely. Its original JSON is retained as a recovery copy; new projects can be edited separately.';
 export function getDraftStorageError() { return draftStorageError; }
 function reportDraftStorageError(message: string | null) {
   if (draftStorageError === message) return;
@@ -449,11 +453,19 @@ if (typeof window !== 'undefined') {
   const DRAFT_KEY = browserStorageKey('slotmath-draft-v1');
   const SAVE_DEBOUNCE_MS = 400;
   let saveTimer: number | undefined;
+  let writesBlocked = false;
+  const RECOVERY_POINTER = `${DRAFT_KEY}:recovery-current`;
+  try {
+    const key = localStorage.getItem(RECOVERY_POINTER);
+    if (key?.startsWith(`${DRAFT_KEY}:recovery:`)) draftRecovery = localStorage.getItem(key);
+    if (draftRecovery !== null) reportDraftStorageError(recoveryMessage);
+  } catch { /* Recovery lookup never prevents opening an in-memory workspace. */ }
 
   const persistNow = () => {
+    if (writesBlocked) return;
     const s = useAppStore.getState();
     try {
-      localStorage.setItem(DRAFT_KEY, JSON.stringify({
+      const snapshot = {
         projectId: s.projectId,
         projects: s.projectId ? { ...s.projects, [s.projectId]: captureProjectDraft(s) } : s.projects,
         nodes: withoutSelection(s.nodes),
@@ -468,8 +480,10 @@ if (typeof window !== 'undefined') {
         resultsDraft: s.resultsDraft
           ? { ...s.resultsDraft, nodes: withoutSelection(s.resultsDraft.nodes) }
           : s.resultsDraft,
-      }));
-      reportDraftStorageError(null);
+      };
+      assertModelNumbers(snapshot);
+      localStorage.setItem(DRAFT_KEY, JSON.stringify(snapshot));
+      reportDraftStorageError(draftRecovery !== null ? recoveryMessage : null);
     } catch { reportDraftStorageError('Browser storage could not save the latest edits. Keep this page open and download JSON or save a server version from Export.'); }
   };
 
@@ -483,10 +497,37 @@ if (typeof window !== 'undefined') {
     }, SAVE_DEBOUNCE_MS);
   };
 
+  let stored: string | null = null;
   try {
-    const draft = JSON.parse(localStorage.getItem(DRAFT_KEY) ?? 'null');
-    if (draft && Array.isArray(draft.nodes) && Array.isArray(draft.edges)) useAppStore.setState({ projectId: draft.projectId ?? (draft.nodes.length ? crypto.randomUUID() : null), projects: draft.projects ?? {}, nodes: withoutSelection(draft.nodes) ?? [], edges: draft.edges, tables: draft.tables ?? {}, graphTrail: draft.graphTrail ?? [], verificationSource: draft.verificationSource ?? null, configName: draft.configName ?? 'Untitled', resultsDraft: draft.resultsDraft ?? null, authoringDraft: draft.authoringDraft ?? null });
-  } catch { /* a corrupt draft never prevents opening the editor */ }
+    stored = localStorage.getItem(DRAFT_KEY);
+    if (stored !== null && stored !== 'null') {
+      const draft = parseModelJson(stored) as Partial<AppState>;
+      if (!Array.isArray(draft.nodes) || !Array.isArray(draft.edges)) throw new Error('Stored workspace is missing graph arrays.');
+      useAppStore.setState({ projectId: draft.projectId ?? (draft.nodes.length ? crypto.randomUUID() : null), projects: draft.projects ?? {}, nodes: withoutSelection(draft.nodes) ?? [], edges: draft.edges, tables: draft.tables ?? {}, graphTrail: draft.graphTrail ?? [], verificationSource: draft.verificationSource ?? null, configName: draft.configName ?? 'Untitled', resultsDraft: draft.resultsDraft ?? null, authoringDraft: draft.authoringDraft ?? null });
+    }
+  } catch {
+    if (stored !== null) {
+      const original = stored;
+      const alreadyRetained = draftRecovery === original;
+      draftRecovery = original;
+      try {
+        if (!alreadyRetained) {
+          const key = `${DRAFT_KEY}:recovery:${crypto.randomUUID()}`;
+          localStorage.setItem(key, original);
+          if (localStorage.getItem(key) !== original) throw new Error('Recovery write failed.');
+          localStorage.setItem(RECOVERY_POINTER, key);
+          if (localStorage.getItem(RECOVERY_POINTER) !== key) throw new Error('Recovery pointer write failed.');
+        }
+        reportDraftStorageError(recoveryMessage);
+      } catch {
+        writesBlocked = true;
+        reportDraftStorageError('Stored workspace could not be opened or backed up in browser storage. Autosave is paused to preserve the original. Download its JSON below; new edits remain in memory.');
+      }
+    } else {
+      writesBlocked = true;
+      reportDraftStorageError('Browser storage could not be read. New edits remain in memory; download JSON from Export.');
+    }
+  }
 
   useAppStore.subscribe(schedulePersist);
   window.addEventListener('beforeunload', () => {
