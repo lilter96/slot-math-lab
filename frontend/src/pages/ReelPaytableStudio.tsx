@@ -1,125 +1,570 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-import { flushProjectDraftSave, useAppStore } from '../store';
-import { useModelSnapshot } from '../hooks/useModelProjection';
-import { useDraftSave } from '../hooks/useDraftSave';
-import { canonicalJson, configHash } from '../lib/hash';
-import { downloadJson, graphRequest, type GraphRound } from '../lib/graphApi';
-import { openMechanic, rootProject } from '../lib/projectFiles';
-import type { ModelGraph } from '../lib/modelProjection';
-import { reelBindings, type ReelBinding } from '../lib/authoring/reelBindings';
-import { cellBindings, type CellBinding } from '../lib/authoring/cellBindings';
-import { weightBindings, type WeightBinding } from '../lib/authoring/weightBindings';
-import { payBindings } from '../lib/authoring/payBindings';
-import { lineBindings } from '../lib/authoring/lineBindings';
-import { sourceKey, type NodeSource } from '../lib/authoring/sourceIndex';
-import { commitGraphEdit, prepareGraphEdit, undoGraphEdit, type AppliedGraphEdit } from '../lib/authoring/transactions';
-import { applyStudioPatches, clearStudioDraft, patchKey, readStudioDraft, replaceStudioPatch, saveStudioDraft, storedStudioDraft, studioCandidate, type StudioDraft, type StudioPatch } from '../lib/authoring/studioEdits';
-import { projectEnvelope } from '../lib/authoring/projectEnvelope';
-import type { AuthoringViews } from '../lib/authoring/viewMetadata';
-import { ReelSurface, WeightSurface } from '../components/authoring/StudioSources';
-import { DeclaredTableSurface, PayoutSurface, PrizeSurface, PaylineSurface, SymbolSurface } from '../components/authoring/StudioTables';
-import type { StudioContext, StudioSymbol } from '../components/authoring/StudioShared';
-import { readable, downloadText } from '../lib/authoring/studioPresentation';
-import { Ic } from '../components/Icons';
-import { SourceCreateButton, SourceCopyControls } from '../components/authoring/StudioSourceLifecycle';
-import { StudioTableImport, StudioTableTools } from '../components/authoring/StudioTableImport';
-import { tableTargetKey, type TableTarget } from '../lib/authoring/studioTabular';
+import {useEffect, useMemo, useRef, useState} from 'react';
+import {Link, useNavigate, useSearchParams} from 'react-router-dom';
+import {flushProjectDraftSave, useAppStore} from '../store';
+import {useModelSnapshot} from '../hooks/useModelProjection';
+import {useDraftSave} from '../hooks/useDraftSave';
+import {canonicalJson, configHash} from '../lib/hash';
+import {downloadJson, graphRequest, type GraphRound} from '../lib/graphApi';
+import {openMechanic, rootProject} from '../lib/projectFiles';
+import type {ModelGraph} from '../lib/modelProjection';
+import {type ReelBinding, reelBindings} from '../lib/authoring/reelBindings';
+import {type CellBinding, cellBindings} from '../lib/authoring/cellBindings';
+import {type WeightBinding, weightBindings} from '../lib/authoring/weightBindings';
+import {payBindings} from '../lib/authoring/payBindings';
+import {lineBindings} from '../lib/authoring/lineBindings';
+import {type NodeSource, sourceKey} from '../lib/authoring/sourceIndex';
+import {type AppliedGraphEdit, commitGraphEdit, prepareGraphEdit, undoGraphEdit} from '../lib/authoring/transactions';
+import {
+    applyStudioPatches,
+    clearStudioDraft,
+    patchKey,
+    readStudioDraft,
+    replaceStudioPatch,
+    saveStudioDraft,
+    storedStudioDraft,
+    studioCandidate,
+    type StudioDraft,
+    type StudioPatch
+} from '../lib/authoring/studioEdits';
+import {projectEnvelope} from '../lib/authoring/projectEnvelope';
+import type {AuthoringViews} from '../lib/authoring/viewMetadata';
+import {ReelSurface, WeightSurface} from '../components/authoring/StudioSources';
+import {
+    DeclaredTableSurface,
+    PaylineSurface,
+    PayoutSurface,
+    PrizeSurface,
+    SymbolSurface
+} from '../components/authoring/StudioTables';
+import type {StudioContext, StudioSymbol} from '../components/authoring/StudioShared';
+import {downloadText, readable} from '../lib/authoring/studioPresentation';
+import {Ic} from '../components/Icons';
+import {SourceCopyControls, SourceCreateButton} from '../components/authoring/StudioSourceLifecycle';
+import {StudioTableImport, StudioTableTools} from '../components/authoring/StudioTableImport';
+import {type TableTarget, tableTargetKey} from '../lib/authoring/studioTabular';
 import './reel-paytable-studio.css';
 
 type View = 'sources' | 'paytables' | 'paylines' | 'symbols';
-type Source = { kind: 'reels'; key: string; label: string; detail: string; binding: ReelBinding } | { kind: 'cells'; key: string; label: string; detail: string; binding: CellBinding } | { kind: 'weights'; key: string; label: string; detail: string; binding: WeightBinding; siblings?: WeightBinding[] };
-const tabs: { id: View; label: string }[] = [{ id: 'sources', label: 'Sources' }, { id: 'paytables', label: 'Paytables' }, { id: 'paylines', label: 'Paylines' }, { id: 'symbols', label: 'Symbols' }];
+type Source = { kind: 'reels'; key: string; label: string; detail: string; binding: ReelBinding } | {
+    kind: 'cells';
+    key: string;
+    label: string;
+    detail: string;
+    binding: CellBinding
+} | { kind: 'weights'; key: string; label: string; detail: string; binding: WeightBinding; siblings?: WeightBinding[] };
+const tabs: { id: View; label: string }[] = [{id: 'sources', label: 'Sources'}, {
+    id: 'paytables',
+    label: 'Paytables'
+}, {id: 'paylines', label: 'Paylines'}, {id: 'symbols', label: 'Symbols'}];
 const message = (error: unknown) => error instanceof Error ? error.message : 'The operation could not be completed.';
 const emptyPatches: StudioPatch[] = [];
+
 function restoredSelection(value: string | null | undefined, kind: string, detail = false): string | null {
-  try { const decoded = value ? JSON.parse(value) : null, position = detail ? 2 : 1; return Array.isArray(decoded) && [2, 3].includes(decoded.length) && decoded[0] === kind && typeof decoded[position] === 'string' ? decoded[position] : null; } catch { return null; }
+    try {
+        const decoded = value ? JSON.parse(value) : null, position = detail ? 2 : 1;
+        return Array.isArray(decoded) && [2, 3].includes(decoded.length) && decoded[0] === kind && typeof decoded[position] === 'string' ? decoded[position] : null;
+    } catch {
+        return null;
+    }
 }
+
 export default function ReelPaytableStudio() {
-  const projectId = useAppStore(state => state.projectId), snapshot = useModelSnapshot();
-  if (!projectId || !snapshot.config || snapshot.error) return <section className="graph-studio studio-unavailable"><Ic.evaluator /><h1>Reel & Paytable Studio</h1><p>{snapshot.error ?? 'Choose a private project to edit its drawing sources and payouts.'}</p><Link to={snapshot.error ? '/build' : '/projects'} className="studio-primary">{snapshot.error ? 'Repair the source graph' : 'Choose a project'}</Link></section>;
-  return <StudioWorkspace key={projectId} projectId={projectId} graph={snapshot.config as ModelGraph} />;
+    const projectId = useAppStore(state => state.projectId), snapshot = useModelSnapshot();
+    if (!projectId || !snapshot.config || snapshot.error) return <section className="graph-studio studio-unavailable">
+        <Ic.evaluator/><h1>Reel & Paytable Studio</h1>
+        <p>{snapshot.error ?? 'Choose a private project to edit its drawing sources and payouts.'}</p><Link
+        to={snapshot.error ? '/build' : '/projects'}
+        className="studio-primary">{snapshot.error ? 'Repair the source graph' : 'Choose a project'}</Link></section>;
+    return <StudioWorkspace key={projectId} projectId={projectId} graph={snapshot.config as ModelGraph}/>;
 }
-function StudioWorkspace({ projectId, graph }: { projectId: string; graph: ModelGraph }) {
-  const navigate = useNavigate(), [params, setParams] = useSearchParams(), views = useAppStore(state => state.authoringViews), saved = useDraftSave();
-  const query = params.get('view'), view: View = tabs.some(tab => tab.id === query) ? query as View : views?.studio?.tab ?? 'sources';
-  const [loaded] = useState(() => { try { return { draft: readStudioDraft(projectId), error: null }; } catch (error) { return { draft: null, error: message(error) }; } });
-  const [digest, setDigest] = useState<{ source: string; hash: string } | null>(null), [draft, setDraft] = useState<StudioDraft | null>(loaded.draft), draftRef = useRef<StudioDraft | null>(loaded.draft);
-  const [search, setSearch] = useState(''), [selectedKey, setSelectedKey] = useState<string | null>(views?.studio?.selectedSource ?? null), [inspector, setInspector] = useState(false), [mobileSources, setMobileSources] = useState(false);
-  const [busy, setBusy] = useState<'validating' | 'playing' | null>(null), [error, setError] = useState<string | null>(null), [storageError, setStorageError] = useState<string | null>(loaded.error), [recoveryBlocked, setRecoveryBlocked] = useState(!!loaded.error), [applied, setApplied] = useState<AppliedGraphEdit | null>(null), [round, setRound] = useState<{ hash: string; result: GraphRound } | null>(null);
-  const [seed, setSeed] = useState('42'), request = useRef<AbortController | null>(null);
-  const [importTarget, setImportTarget] = useState<TableTarget | null>(null);
-  const canonical = canonicalJson(graph);
-  const hash = digest?.source === canonical ? digest.hash : null;
-  useEffect(() => { let active = true; void configHash(JSON.parse(canonical)).then(value => { if (active) setDigest({ source: canonical, hash: value }); }); request.current?.abort(); return () => { active = false; request.current?.abort(); }; }, [canonical]);
-  useEffect(() => { const escape = (event: KeyboardEvent) => { if (event.key === 'Escape' && inspector && !document.querySelector('.studio-tabular-dialog[open]')) setInspector(false); }; document.addEventListener('keydown', escape); return () => document.removeEventListener('keydown', escape); }, [inspector]);
-  const projection = useMemo(() => {
-    const reels = reelBindings(graph), cells = cellBindings(graph), weights = weightBindings(graph), owned = new Set([...reels.flatMap(source => source.source.stops.map(stop => sourceKey(stop.scope, stop.nodeId))), ...cells.flatMap(source => source.cells.map(cell => cell.source.key))]);
-    const conditionScopes = new Set(reels.flatMap(binding => binding.source.conditions?.map(condition => condition.scope) ?? []));
-    const scopes = new Map<string | null, WeightBinding[]>();
-    for (const binding of weights.filter(binding => !owned.has(binding.key) && !conditionScopes.has(binding.source.scope ?? ''))) scopes.set(binding.source.scope, [...scopes.get(binding.source.scope) ?? [], binding]);
-    const sources: Source[] = [...reels.map(binding => ({ kind: 'reels' as const, key: binding.key, label: readable(binding.source.label), detail: `${binding.stops.length} reels · ${binding.source.rows} rows`, binding })), ...cells.map(binding => ({ kind: 'cells' as const, key: binding.key, label: readable(binding.scope), detail: `${binding.cells.length} independent cells`, binding })), ...[...scopes].map(([scope, siblings]) => ({ kind: 'weights' as const, key: siblings.length === 1 ? siblings[0].key : JSON.stringify(['draw-group', scope]), label: siblings.length === 1 ? String(siblings[0].source.node.label ?? siblings[0].source.id) : readable(scope ?? 'Root graph draws'), detail: siblings.length === 1 ? readable(scope ?? 'Root graph') : `${siblings.length} separate draws`, binding: siblings[0], siblings }))];
-    const order = new Map<string | null, number>([[null, 0]]);
-    const visit = (model: ModelGraph) => { for (const node of model.nodes ?? []) if (node.nodeType === 'library' && node.mechanicName && !order.has(node.mechanicName)) { order.set(node.mechanicName, order.size); const definition = graph.mechanics?.[node.mechanicName]; if (definition) visit(definition); } }; visit(graph);
-    const rank = (source: Source) => source.kind === 'reels' ? Math.min(...source.binding.source.stops.map(stop => order.get(stop.scope) ?? Number.MAX_SAFE_INTEGER)) : order.get(source.kind === 'cells' ? source.binding.scope : source.binding.source.scope) ?? Number.MAX_SAFE_INTEGER;
-    sources.sort((left, right) => Number(left.kind === 'weights') - Number(right.kind === 'weights') || rank(left) - rank(right));
-    return { sources, pays: payBindings(graph), lines: lineBindings(graph), symbols: Array.isArray(graph.symbols) ? graph.symbols as StudioSymbol[] : [], tables: Array.isArray(graph.paytables) ? graph.paytables as { id: string; entries: { symbolId: string; counts: number[]; payouts: string[] }[] }[] : [] };
-  }, [graph]);
-  const patches = draft?.patches ?? emptyPatches, conflict = !!draft && !!hash && draft.baseHash !== hash;
-  const candidate = useMemo(() => studioCandidate(graph, patches), [graph, patches]);
-  const selected = projection.sources.find(source => source.key === selectedKey) ?? projection.sources[0];
-  const [tableId, setTableId] = useState<string | null>(restoredSelection(views?.studio?.selectedSource, 'paytable')), pay = projection.pays.find(binding => binding.tableId === tableId) ?? (tableId === null ? projection.pays[0] : undefined), table = projection.tables.find(table => table.id === (tableId ?? pay?.tableId)) ?? projection.tables[0];
-  const [lineKey, setLineKey] = useState<string | null>(restoredSelection(views?.studio?.selectedSource, 'line-set')), line = projection.lines.find(line => line.key === lineKey) ?? projection.lines[0];
-  const metadata = (update: (views: AuthoringViews) => AuthoringViews) => { useAppStore.setState(state => ({ authoringViews: update(state.authoringViews ?? { version: 1 }) })); flushProjectDraftSave(); };
-  const persist = (next: StudioDraft) => { draftRef.current = next; setDraft(next); try { saveStudioDraft(next); setStorageError(null); } catch { setStorageError('The staged inputs could not be saved in this browser. Keep the page open and download the staged draft.'); } };
-  const stage = (updates: StudioPatch[]) => {
-    if (!hash || busy || conflict || recoveryBlocked) return;
-    const current = draftRef.current; let next = current?.patches ?? []; for (const patch of updates) { if (patch.kind === 'outcomes') next = next.filter(previous => !(previous.kind === 'weights' && previous.key === patch.key)); if (patch.kind === 'prize-domain') next = next.filter(previous => !(previous.kind === 'payout' && previous.key === patch.key)); next = replaceStudioPatch(next, patch); } persist({ version: 1, projectId, baseHash: current?.baseHash ?? hash, patches: next }); setError(null);
-  };
-  const discard = () => { try { clearStudioDraft(projectId); setStorageError(null); setRecoveryBlocked(false); } catch { setStorageError('The stored draft could not be removed. It may appear again after reload.'); } draftRef.current = null; setDraft(null); setError(null); };
-  const context: StudioContext = { graph, preview: candidate.graph, patches, stage, symbols: view === 'symbols' ? projection.symbols.filter(symbol => `${symbol.id} ${symbol.name}`.toLowerCase().includes(search.toLowerCase())) : projection.symbols, assets: views?.symbolAssets ?? {}, disabled: !hash || !!busy || conflict || recoveryBlocked };
-  const selectionForView = (tab: View) => tab === 'paytables' ? table ? JSON.stringify(['paytable', table.id]) : null : tab === 'paylines' ? line ? JSON.stringify(['line-set', line.key]) : null : tab === 'sources' ? selected?.key ?? null : null;
-  const chooseView = (tab: View) => { setParams(previous => { const next = new URLSearchParams(previous); next.set('view', tab); return next; }); metadata(current => ({ ...current, studio: { tab, selectedSource: selectionForView(tab), pinnedSources: current.studio?.pinnedSources ?? [] } })); };
-  const chooseSource = (source: Source) => { setSelectedKey(source.key); setMobileSources(false); metadata(current => ({ ...current, studio: { tab: view, selectedSource: source.key, pinnedSources: current.studio?.pinnedSources ?? [] } })); };
-  const apply = async () => {
-    if (!candidate.graph || conflict || !candidate.changed || !hash) return;
-    const controller = new AbortController(); request.current = controller; setBusy('validating'); setError(null);
-    try { const edit = prepareGraphEdit('Studio inputs', graph => applyStudioPatches(graph, patches)); const result = await commitGraphEdit(edit, controller.signal); setApplied(result); discard(); setRound(null); }
-    catch (error) { if (!controller.signal.aborted) setError(message(error)); }
-    finally { if (request.current === controller) { request.current = null; setBusy(null); } }
-  };
-  const inspectGraph = (scope: string | null, id?: string) => { try { rootProject(); if (scope) openMechanic(scope); if (id) useAppStore.getState().selectNode(id); navigate('/build'); } catch (error) { setError(message(error)); } };
-  const play = async () => {
-    if (!hash || !/^-?\d+$/.test(seed) || Number(seed) < -2147483648 || Number(seed) > 2147483647) { setError('Use a whole seed within the 32-bit signed range.'); return; }
-    const controller = new AbortController(); request.current = controller; setBusy('playing'); setError(null);
-    try { const result = await graphRequest<GraphRound>('play/round', { config: graph, seed: Number(seed), roundIndex: 0 }, controller.signal); if (!controller.signal.aborted) setRound({ hash, result }); }
-    catch (error) { if (!controller.signal.aborted) setError(message(error)); }
-    finally { if (request.current === controller) { request.current = null; setBusy(null); } }
-  };
-  const sourceTarget = (source: Source): TableTarget => source.kind === 'reels' ? { kind: 'reels', label: source.label, binding: source.binding } : { kind: 'weights', label: source.label, bindings: source.kind === 'cells' ? source.binding.cells.map(cell => cell.source) : source.siblings ?? [source.binding] };
-  const openImport = (source: Source) => setImportTarget(sourceTarget(source));
-  const activeTable: TableTarget | null = view === 'sources' && selected ? sourceTarget(selected) : view === 'paytables' && pay ? { kind: 'paytable', label: readable(pay.tableId), binding: pay } : view === 'paylines' && line ? { kind: 'lines', label: readable(line.setId), binding: line } : null;
-  const uses: NodeSource[] = view === 'paytables' ? pay?.uses ?? [] : view === 'paylines' ? line?.uses ?? [] : view === 'symbols' ? [] : selected?.binding.uses ?? [];
-  const inspectorTitle = view === 'paytables' ? table?.id : view === 'paylines' ? line?.setId : view === 'symbols' ? 'Symbol dictionary' : selected?.label;
-  const inspectorKey = view === 'paytables' ? pay?.key ?? table?.id : view === 'paylines' ? line?.key : view === 'symbols' ? 'symbols' : selected?.key;
-  const inspectorSource = view === 'paytables' ? pay?.reads : view === 'paylines' ? line?.reads : view === 'symbols' ? ['symbols'] : selected?.kind === 'weights' ? selected.binding.source.node : selected?.kind === 'reels' ? selected.binding.reads.map(read => read.path) : selected?.binding.reads;
-  const inspectorScope = view === 'paytables' ? pay?.scopes[0] ?? null : view === 'paylines' ? line?.scope ?? null : view === 'symbols' ? null : selected?.kind === 'weights' ? selected.binding.source.scope : selected?.kind === 'cells' ? selected.binding.scope : selected?.binding.source.stops[0]?.scope ?? null;
-  const undoEnabled = !!applied && canonicalJson(graph) === applied.committedSource && !candidate.changed;
-  const badge = busy === 'validating' ? 'Validating complete graph…' : conflict ? 'Source changed · review draft' : candidate.error ? 'Draft needs attention' : candidate.changed ? `${patches.length} pending change${patches.length === 1 ? '' : 's'}` : applied?.committedSource === canonical ? 'Applied to graph' : 'Current source';
-  return <section className="graph-studio" aria-labelledby="studio-title"><header className="studio-page-heading"><div><p className="studio-project-context">{String(graph.name ?? 'Untitled model')}<span>Private project</span></p><h1 id="studio-title">Reel & Paytable Studio</h1></div><div className="studio-actions">{view === 'sources' && <SourceCreateButton context={context} />}<button disabled={!undoEnabled || !!busy} onClick={() => { try { undoGraphEdit(applied!); setApplied(null); setRound(null); } catch (error) { setError(message(error)); } }}>Undo</button><button className="studio-primary" disabled={!candidate.changed || !!candidate.error || conflict || !!busy || !hash} onClick={() => void apply()}>Validate & apply</button><Link className="studio-analysis" to="/simulate" aria-disabled={candidate.changed || !!busy} onClick={event => { if (candidate.changed || busy) event.preventDefault(); }}>Run analysis <span>↗</span></Link></div></header>
-    <div className="studio-view-bar"><div role="tablist" aria-label="Studio views" onKeyDown={event => { if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return; event.preventDefault(); const index = event.key === 'Home' ? 0 : event.key === 'End' ? tabs.length - 1 : (tabs.findIndex(tab => tab.id === view) + (event.key === 'ArrowLeft' ? -1 : 1) + tabs.length) % tabs.length; chooseView(tabs[index].id); event.currentTarget.querySelectorAll<HTMLButtonElement>('button')[index]?.focus(); }}>{tabs.map(tab => <button key={tab.id} role="tab" aria-selected={tab.id === view} tabIndex={tab.id === view ? 0 : -1} onClick={() => chooseView(tab.id)}>{tab.label}</button>)}</div><span className={'studio-status ' + (candidate.error || conflict ? 'needs-attention' : candidate.changed ? 'pending' : '')}>{badge}</span></div>
-    <div className="studio-workspace"><aside className={'studio-source-explorer' + (mobileSources ? ' mobile-open' : '')}><header><h2>{view === 'sources' ? 'Drawing sources' : view === 'paytables' ? 'Payout tables' : view === 'paylines' ? 'Line sets' : 'Project symbols'}</h2><input type="search" aria-label="Search Studio sources" placeholder="Search name or ID" value={search} onChange={event => setSearch(event.target.value)} /></header>
-      {view === 'sources' ? (['reels', 'cells', 'weights'] as const).map(kind => { const sources = projection.sources.filter(source => source.kind === kind && `${source.label} ${source.detail}`.toLowerCase().includes(search.toLowerCase())).sort((left, right) => Number(views?.studio?.pinnedSources.includes(right.key) ?? false) - Number(views?.studio?.pinnedSources.includes(left.key) ?? false)); return sources.length ? <div className="studio-source-group" key={kind}><h3>{kind === 'reels' ? 'Physical reels' : kind === 'cells' ? 'Cell boards' : 'Outcomes & prizes'}<span>{sources.length}</span></h3>{sources.map(source => <div className="studio-source-entry" key={source.key}><button aria-pressed={selected?.key === source.key} onClick={() => chooseSource(source)}><span className="source-icon">{kind === 'reels' ? <Ic.draw /> : kind === 'cells' ? <Ic.evaluator /> : <Ic.predicate />}</span><span><b>{source.label}</b><small>{source.detail}</small></span></button><button className={'source-pin' + (views?.studio?.pinnedSources.includes(source.key) ? ' pinned' : '')} aria-label={`Pin ${source.label}`} aria-pressed={views?.studio?.pinnedSources.includes(source.key) ?? false} onClick={() => metadata(current => ({ ...current, studio: { tab: view, selectedSource: selected?.key ?? null, pinnedSources: current.studio?.pinnedSources.includes(source.key) ? current.studio.pinnedSources.filter(key => key !== source.key) : [...current.studio?.pinnedSources ?? [], source.key] } }))}>◇</button></div>)}</div> : null; }) : view === 'paytables' ? projection.tables.filter(table => table.id.toLowerCase().includes(search.toLowerCase())).map(item => <button className="studio-list-item" key={item.id} aria-pressed={table?.id === item.id} onClick={() => { setTableId(item.id); metadata(current => ({ ...current, studio: { tab: view, selectedSource: JSON.stringify(['paytable', item.id]), pinnedSources: current.studio?.pinnedSources ?? [] } })); }}><Ic.evaluator /><span><b>{readable(item.id)}</b><small>{item.entries.length} symbol rows</small></span></button>) : view === 'paylines' ? projection.lines.filter(item => item.setId.toLowerCase().includes(search.toLowerCase())).map(item => <button className="studio-list-item" key={item.key} aria-pressed={line?.key === item.key} onClick={() => { setLineKey(item.key); metadata(current => ({ ...current, studio: { tab: view, selectedSource: JSON.stringify(['line-set', item.key]), pinnedSources: current.studio?.pinnedSources ?? [] } })); }}><Ic.build /><span><b>{readable(item.setId)}</b><small>{item.lines.length} paths</small></span></button>) : <div className="studio-explorer-note"><b>{projection.symbols.length} authored symbols</b><p>Names and artwork belong to this project. Symbol IDs retain their references.</p></div>}
-      <footer><button onClick={() => downloadJson('slotmath-project-with-views.json', projectEnvelope())}><Ic.export />Back up project</button><Link to="/projects">Switch private project</Link></footer></aside>
-      <main className="studio-main"><div className="studio-editor-context"><button className="studio-mobile-source-toggle" onClick={() => setMobileSources(value => !value)}>Choose source</button><div><b>{view === 'sources' ? selected?.label ?? 'No drawing source' : view === 'paytables' ? readable(table?.id ?? 'No declared paytable') : view === 'paylines' ? readable(line?.setId ?? 'No paylines') : 'Symbols'}</b><span>{view === 'sources' ? selected?.detail : view === 'paytables' ? 'Exact authored payouts' : view === 'paylines' ? 'Executable board paths' : 'Display identity'}</span></div><button onClick={() => setInspector(value => !value)} aria-expanded={inspector}>Source details <Ic.expr /></button></div>
-        {view === 'sources' && selected && <SourceCopyControls context={context} uses={selected.binding.uses} />}
-        {activeTable && <StudioTableTools key={`table-tools:${tableTargetKey(activeTable)}`} context={context} target={activeTable} onImport={() => setImportTarget(activeTable)} />}
-        {view === 'sources' ? selected?.kind === 'reels' ? <ReelSurface key={selected.key} context={context} binding={selected.binding} onImport={() => openImport(selected)} /> : selected?.kind === 'cells' ? <WeightSurface key={selected.key} context={context} board={selected.binding} sources={selected.binding.cells.map(cell => cell.source)} onImport={binding => openImport({ kind: 'weights', key: binding.key, label: selected.label, detail: 'One selected cell', binding })} /> : selected ? <WeightSurface key={selected.key} context={context} sources={selected.siblings ?? [selected.binding]} onImport={binding => openImport({ ...selected, key: binding.key, binding, siblings: undefined })} /> : <div className="studio-empty"><Ic.draw /><h2>No inline drawing source</h2><p>This model’s source is retained. Open the graph to inspect custom or externally provided inputs.</p><Link to="/build">Inspect graph</Link></div> : view === 'paytables' ? pay && table?.id === pay.tableId ? pay.kind === 'prize' ? <PrizeSurface key={pay.key} context={context} binding={pay} initialSource={restoredSelection(views?.studio?.selectedSource, 'paytable', true)} onSourceChange={key => metadata(current => ({ ...current, studio: { tab: view, selectedSource: JSON.stringify(['paytable', pay.tableId, key]), pinnedSources: current.studio?.pinnedSources ?? [] } }))} /> : <PayoutSurface key={pay.key} context={context} binding={pay} /> : table ? <DeclaredTableSurface key={table.id} context={context} table={table} /> : <div className="studio-empty"><Ic.evaluator /><h2>No declared paytable</h2><p>The graph may produce payouts directly. Its weighted sources remain available in Sources.</p></div> : view === 'paylines' ? line ? <PaylineSurface key={line.key} context={context} binding={line} /> : <div className="studio-empty"><Ic.build /><h2>No applicable paylines</h2><p>Cluster and direct-outcome models do not need a line set. Continue with their sources and paytables.</p></div> : <SymbolSurface context={context} setAsset={(id, url) => metadata(current => ({ ...current, symbolAssets: { ...current.symbolAssets, [id]: url } }))} />}
-        <div className="studio-round-workbench"><div><b>Test the applied source</b><p>A real round through the existing execution API. A single round does not estimate RTP.</p></div><label>Seed<input value={seed} aria-label="Test round seed" inputMode="numeric" onChange={event => setSeed(event.target.value)} /></label><button disabled={!!busy || candidate.changed || !hash} onClick={() => void play()}><Ic.play />{busy === 'playing' ? 'Playing…' : 'Play test round'}</button>{round?.hash === hash && <output>Seed {round.result.seed} · payout {round.result.winNumerator}/{round.result.winDenominator}</output>}</div>
-      </main>
-      {inspector && <aside className="studio-source-inspector" aria-label="Source details"><header><h2>Source details</h2><button aria-label="Close source details" onClick={() => setInspector(false)}>×</button></header><h3>{inspectorTitle ?? 'Current project'}</h3><p>{uses.length} known Library references. Definition edits affect all verified uses.</p><ul>{uses.map(use => <li key={use.key}><button onClick={() => inspectGraph(use.scope, use.id)}>{String(use.node.label ?? use.id)}<small>{use.scope ?? 'Root graph'}</small></button></li>)}</ul><details><summary>Exact binding and graph source</summary><code>{inspectorKey ?? 'Current graph'}</code><pre>{JSON.stringify(inspectorSource, null, 2)}</pre></details><button className="studio-inspect-link" onClick={() => inspectGraph(inspectorScope, view === 'sources' && selected?.kind === 'weights' ? selected.binding.source.id : undefined)}>Open in logic graph ↗</button></aside>}
-    </div>
-    <footer className="studio-commit-bar"><div><b>{badge}</b><span>{storageError ?? (patches.length ? 'Staged inputs save separately; the applied graph stays unchanged until validation succeeds.' : saved.projectId === projectId && saved.status === 'saved' ? 'Applied graph saved in this browser' : saved.status === 'error' ? saved.error : 'Browser save pending')}</span></div><div className="studio-actions">{recoveryBlocked && <><button onClick={() => { try { const original = storedStudioDraft(projectId); if (original) downloadText('slotmath-studio-recovery.json', original, 'application/json'); } catch (error) { setError(message(error)); } }}>Download stored draft</button><button onClick={discard}>Discard stored draft</button></>}{patches.length > 0 && <><button onClick={() => downloadJson('slotmath-studio-staged-draft.json', { format: 'slotmath-studio-draft-v1', graph, draft })}>Download staged draft</button><button disabled={!!busy} onClick={discard}>Discard changes</button></>}{busy && <button onClick={() => { request.current?.abort(); setBusy(null); setError('Cancelled. The applied graph is unchanged; staged inputs are retained.'); }}>Cancel</button>}</div>{patches.length > 0 && <details className="studio-pending-list"><summary>Review {patches.length} staged changes</summary><ul>{patches.map(patch => <li key={patchKey(patch)}><span>{patch.kind === 'payout' ? `${patch.kind} · symbol ${patch.symbolId}, count ${patch.count}: ${patch.value}` : patch.kind === 'symbol' ? `Symbol ${patch.key}: ${patch.name}` : `${patch.kind} source edit`}</span><button disabled={!!busy} onClick={() => { const next = patches.filter(item => patchKey(item) !== patchKey(patch)); if (!next.length) discard(); else persist({ ...draft!, patches: next }); }}>Remove this change</button></li>)}</ul></details>}{conflict && <div className="studio-conflict"><p>The applied source changed after this draft was staged. Its inputs have been retained for review.</p><button disabled={!hash} onClick={() => persist({ ...draft!, baseHash: hash! })}>Review against current source</button></div>}{(candidate.error || error || storageError) && <p className="studio-error" role="alert">{candidate.error ?? error ?? storageError}</p>}</footer>
-    {importTarget && <StudioTableImport key={tableTargetKey(importTarget)} context={context} target={importTarget} close={() => setImportTarget(null)} />}
-  </section>;
+
+function StudioWorkspace({projectId, graph}: { projectId: string; graph: ModelGraph }) {
+    const navigate = useNavigate(), [params, setParams] = useSearchParams(),
+        views = useAppStore(state => state.authoringViews), saved = useDraftSave();
+    const query = params.get('view'),
+        view: View = tabs.some(tab => tab.id === query) ? query as View : views?.studio?.tab ?? 'sources';
+    const [loaded] = useState(() => {
+        try {
+            return {draft: readStudioDraft(projectId), error: null};
+        } catch (error) {
+            return {draft: null, error: message(error)};
+        }
+    });
+    const [digest, setDigest] = useState<{
+            source: string;
+            hash: string
+        } | null>(null), [draft, setDraft] = useState<StudioDraft | null>(loaded.draft),
+        draftRef = useRef<StudioDraft | null>(loaded.draft);
+    const [search, setSearch] = useState(''), [selectedKey, setSelectedKey] = useState<string | null>(views?.studio?.selectedSource ?? null), [inspector, setInspector] = useState(false), [mobileSources, setMobileSources] = useState(false);
+    const [busy, setBusy] = useState<'validating' | 'playing' | null>(null), [error, setError] = useState<string | null>(null), [storageError, setStorageError] = useState<string | null>(loaded.error), [recoveryBlocked, setRecoveryBlocked] = useState(!!loaded.error), [applied, setApplied] = useState<AppliedGraphEdit | null>(null), [round, setRound] = useState<{
+        hash: string;
+        result: GraphRound
+    } | null>(null);
+    const [seed, setSeed] = useState('42'), request = useRef<AbortController | null>(null);
+    const [importTarget, setImportTarget] = useState<TableTarget | null>(null);
+    const canonical = canonicalJson(graph);
+    const hash = digest?.source === canonical ? digest.hash : null;
+    useEffect(() => {
+        let active = true;
+        void configHash(JSON.parse(canonical)).then(value => {
+            if (active) setDigest({source: canonical, hash: value});
+        });
+        request.current?.abort();
+        return () => {
+            active = false;
+            request.current?.abort();
+        };
+    }, [canonical]);
+    useEffect(() => {
+        const escape = (event: KeyboardEvent) => {
+            if (event.key === 'Escape' && inspector && !document.querySelector('.studio-tabular-dialog[open]')) setInspector(false);
+        };
+        document.addEventListener('keydown', escape);
+        return () => document.removeEventListener('keydown', escape);
+    }, [inspector]);
+    const projection = useMemo(() => {
+        const reels = reelBindings(graph), cells = cellBindings(graph), weights = weightBindings(graph),
+            owned = new Set([...reels.flatMap(source => source.source.stops.map(stop => sourceKey(stop.scope, stop.nodeId))), ...cells.flatMap(source => source.cells.map(cell => cell.source.key))]);
+        const conditionScopes = new Set(reels.flatMap(binding => binding.source.conditions?.map(condition => condition.scope) ?? []));
+        const scopes = new Map<string | null, WeightBinding[]>();
+        for (const binding of weights.filter(binding => !owned.has(binding.key) && !conditionScopes.has(binding.source.scope ?? ''))) scopes.set(binding.source.scope, [...scopes.get(binding.source.scope) ?? [], binding]);
+        const sources: Source[] = [...reels.map(binding => ({
+            kind: 'reels' as const,
+            key: binding.key,
+            label: readable(binding.source.label),
+            detail: `${binding.stops.length} reels · ${binding.source.rows} rows`,
+            binding
+        })), ...cells.map(binding => ({
+            kind: 'cells' as const,
+            key: binding.key,
+            label: readable(binding.scope),
+            detail: `${binding.cells.length} independent cells`,
+            binding
+        })), ...[...scopes].map(([scope, siblings]) => ({
+            kind: 'weights' as const,
+            key: siblings.length === 1 ? siblings[0].key : JSON.stringify(['draw-group', scope]),
+            label: siblings.length === 1 ? String(siblings[0].source.node.label ?? siblings[0].source.id) : readable(scope ?? 'Root graph draws'),
+            detail: siblings.length === 1 ? readable(scope ?? 'Root graph') : `${siblings.length} separate draws`,
+            binding: siblings[0],
+            siblings
+        }))];
+        const order = new Map<string | null, number>([[null, 0]]);
+        const visit = (model: ModelGraph) => {
+            for (const node of model.nodes ?? []) if (node.nodeType === 'library' && node.mechanicName && !order.has(node.mechanicName)) {
+                order.set(node.mechanicName, order.size);
+                const definition = graph.mechanics?.[node.mechanicName];
+                if (definition) visit(definition);
+            }
+        };
+        visit(graph);
+        const rank = (source: Source) => source.kind === 'reels' ? Math.min(...source.binding.source.stops.map(stop => order.get(stop.scope) ?? Number.MAX_SAFE_INTEGER)) : order.get(source.kind === 'cells' ? source.binding.scope : source.binding.source.scope) ?? Number.MAX_SAFE_INTEGER;
+        sources.sort((left, right) => Number(left.kind === 'weights') - Number(right.kind === 'weights') || rank(left) - rank(right));
+        return {
+            sources,
+            pays: payBindings(graph),
+            lines: lineBindings(graph),
+            symbols: Array.isArray(graph.symbols) ? graph.symbols as StudioSymbol[] : [],
+            tables: Array.isArray(graph.paytables) ? graph.paytables as {
+                id: string;
+                entries: { symbolId: string; counts: number[]; payouts: string[] }[]
+            }[] : []
+        };
+    }, [graph]);
+    const patches = draft?.patches ?? emptyPatches, conflict = !!draft && !!hash && draft.baseHash !== hash;
+    const candidate = useMemo(() => studioCandidate(graph, patches), [graph, patches]);
+    const selected = projection.sources.find(source => source.key === selectedKey) ?? projection.sources[0];
+    const [tableId, setTableId] = useState<string | null>(restoredSelection(views?.studio?.selectedSource, 'paytable')),
+        pay = projection.pays.find(binding => binding.tableId === tableId) ?? (tableId === null ? projection.pays[0] : undefined),
+        table = projection.tables.find(table => table.id === (tableId ?? pay?.tableId)) ?? projection.tables[0];
+    const [lineKey, setLineKey] = useState<string | null>(restoredSelection(views?.studio?.selectedSource, 'line-set')),
+        line = projection.lines.find(line => line.key === lineKey) ?? projection.lines[0];
+    const metadata = (update: (views: AuthoringViews) => AuthoringViews) => {
+        useAppStore.setState(state => ({authoringViews: update(state.authoringViews ?? {version: 1})}));
+        flushProjectDraftSave();
+    };
+    const persist = (next: StudioDraft) => {
+        draftRef.current = next;
+        setDraft(next);
+        try {
+            saveStudioDraft(next);
+            setStorageError(null);
+        } catch {
+            setStorageError('The staged inputs could not be saved in this browser. Keep the page open and download the staged draft.');
+        }
+    };
+    const stage = (updates: StudioPatch[]) => {
+        if (!hash || busy || conflict || recoveryBlocked) return;
+        const current = draftRef.current;
+        let next = current?.patches ?? [];
+        for (const patch of updates) {
+            if (patch.kind === 'outcomes') next = next.filter(previous => !(previous.kind === 'weights' && previous.key === patch.key));
+            if (patch.kind === 'prize-domain') next = next.filter(previous => !(previous.kind === 'payout' && previous.key === patch.key));
+            next = replaceStudioPatch(next, patch);
+        }
+        persist({version: 1, projectId, baseHash: current?.baseHash ?? hash, patches: next});
+        setError(null);
+    };
+    const discard = () => {
+        try {
+            clearStudioDraft(projectId);
+            setStorageError(null);
+            setRecoveryBlocked(false);
+        } catch {
+            setStorageError('The stored draft could not be removed. It may appear again after reload.');
+        }
+        draftRef.current = null;
+        setDraft(null);
+        setError(null);
+    };
+    const context: StudioContext = {
+        graph,
+        preview: candidate.graph,
+        patches,
+        stage,
+        symbols: view === 'symbols' ? projection.symbols.filter(symbol => `${symbol.id} ${symbol.name}`.toLowerCase().includes(search.toLowerCase())) : projection.symbols,
+        assets: views?.symbolAssets ?? {},
+        disabled: !hash || !!busy || conflict || recoveryBlocked
+    };
+    const selectionForView = (tab: View) => tab === 'paytables' ? table ? JSON.stringify(['paytable', table.id]) : null : tab === 'paylines' ? line ? JSON.stringify(['line-set', line.key]) : null : tab === 'sources' ? selected?.key ?? null : null;
+    const chooseView = (tab: View) => {
+        setParams(previous => {
+            const next = new URLSearchParams(previous);
+            next.set('view', tab);
+            return next;
+        });
+        metadata(current => ({
+            ...current,
+            studio: {tab, selectedSource: selectionForView(tab), pinnedSources: current.studio?.pinnedSources ?? []}
+        }));
+    };
+    const chooseSource = (source: Source) => {
+        setSelectedKey(source.key);
+        setMobileSources(false);
+        metadata(current => ({
+            ...current,
+            studio: {tab: view, selectedSource: source.key, pinnedSources: current.studio?.pinnedSources ?? []}
+        }));
+    };
+    const apply = async () => {
+        if (!candidate.graph || conflict || !candidate.changed || !hash) return;
+        const controller = new AbortController();
+        request.current = controller;
+        setBusy('validating');
+        setError(null);
+        try {
+            const edit = prepareGraphEdit('Studio inputs', graph => applyStudioPatches(graph, patches));
+            const result = await commitGraphEdit(edit, controller.signal);
+            setApplied(result);
+            discard();
+            setRound(null);
+        } catch (error) {
+            if (!controller.signal.aborted) setError(message(error));
+        } finally {
+            if (request.current === controller) {
+                request.current = null;
+                setBusy(null);
+            }
+        }
+    };
+    const inspectGraph = (scope: string | null, id?: string) => {
+        try {
+            rootProject();
+            if (scope) openMechanic(scope);
+            if (id) useAppStore.getState().selectNode(id);
+            navigate('/build');
+        } catch (error) {
+            setError(message(error));
+        }
+    };
+    const play = async () => {
+        if (!hash || !/^-?\d+$/.test(seed) || Number(seed) < -2147483648 || Number(seed) > 2147483647) {
+            setError('Use a whole seed within the 32-bit signed range.');
+            return;
+        }
+        const controller = new AbortController();
+        request.current = controller;
+        setBusy('playing');
+        setError(null);
+        try {
+            const result = await graphRequest<GraphRound>('play/round', {
+                config: graph,
+                seed: Number(seed),
+                roundIndex: 0
+            }, controller.signal);
+            if (!controller.signal.aborted) setRound({hash, result});
+        } catch (error) {
+            if (!controller.signal.aborted) setError(message(error));
+        } finally {
+            if (request.current === controller) {
+                request.current = null;
+                setBusy(null);
+            }
+        }
+    };
+    const sourceTarget = (source: Source): TableTarget => source.kind === 'reels' ? {
+        kind: 'reels',
+        label: source.label,
+        binding: source.binding
+    } : {
+        kind: 'weights',
+        label: source.label,
+        bindings: source.kind === 'cells' ? source.binding.cells.map(cell => cell.source) : source.siblings ?? [source.binding]
+    };
+    const openImport = (source: Source) => setImportTarget(sourceTarget(source));
+    const activeTable: TableTarget | null = view === 'sources' && selected ? sourceTarget(selected) : view === 'paytables' && pay ? {
+        kind: 'paytable',
+        label: readable(pay.tableId),
+        binding: pay
+    } : view === 'paylines' && line ? {kind: 'lines', label: readable(line.setId), binding: line} : null;
+    const uses: NodeSource[] = view === 'paytables' ? pay?.uses ?? [] : view === 'paylines' ? line?.uses ?? [] : view === 'symbols' ? [] : selected?.binding.uses ?? [];
+    const inspectorTitle = view === 'paytables' ? table?.id : view === 'paylines' ? line?.setId : view === 'symbols' ? 'Symbol dictionary' : selected?.label;
+    const inspectorKey = view === 'paytables' ? pay?.key ?? table?.id : view === 'paylines' ? line?.key : view === 'symbols' ? 'symbols' : selected?.key;
+    const inspectorSource = view === 'paytables' ? pay?.reads : view === 'paylines' ? line?.reads : view === 'symbols' ? ['symbols'] : selected?.kind === 'weights' ? selected.binding.source.node : selected?.kind === 'reels' ? selected.binding.reads.map(read => read.path) : selected?.binding.reads;
+    const inspectorScope = view === 'paytables' ? pay?.scopes[0] ?? null : view === 'paylines' ? line?.scope ?? null : view === 'symbols' ? null : selected?.kind === 'weights' ? selected.binding.source.scope : selected?.kind === 'cells' ? selected.binding.scope : selected?.binding.source.stops[0]?.scope ?? null;
+    const undoEnabled = !!applied && canonicalJson(graph) === applied.committedSource && !candidate.changed;
+    const badge = busy === 'validating' ? 'Validating complete graph…' : conflict ? 'Source changed · review draft' : candidate.error ? 'Draft needs attention' : candidate.changed ? `${patches.length} pending change${patches.length === 1 ? '' : 's'}` : applied?.committedSource === canonical ? 'Applied to graph' : 'Current source';
+    return <section className="graph-studio" aria-labelledby="studio-title">
+        <header className="studio-page-heading">
+            <div><p
+                className="studio-project-context">{String(graph.name ?? 'Untitled model')}<span>Private project</span>
+            </p><h1 id="studio-title">Reel & Paytable Studio</h1></div>
+            <div className="studio-actions">{view === 'sources' && <SourceCreateButton context={context}/>}
+                <button disabled={!undoEnabled || !!busy} onClick={() => {
+                    try {
+                        undoGraphEdit(applied!);
+                        setApplied(null);
+                        setRound(null);
+                    } catch (error) {
+                        setError(message(error));
+                    }
+                }}>Undo
+                </button>
+                <button className="studio-primary"
+                        disabled={!candidate.changed || !!candidate.error || conflict || !!busy || !hash}
+                        onClick={() => void apply()}>Validate & apply
+                </button>
+                <Link className="studio-analysis" to="/simulate" aria-disabled={candidate.changed || !!busy}
+                      onClick={event => {
+                          if (candidate.changed || busy) event.preventDefault();
+                      }}>Run analysis <span>↗</span></Link></div>
+        </header>
+        <div className="studio-view-bar">
+            <div role="tablist" aria-label="Studio views" onKeyDown={event => {
+                if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
+                event.preventDefault();
+                const index = event.key === 'Home' ? 0 : event.key === 'End' ? tabs.length - 1 : (tabs.findIndex(tab => tab.id === view) + (event.key === 'ArrowLeft' ? -1 : 1) + tabs.length) % tabs.length;
+                chooseView(tabs[index].id);
+                event.currentTarget.querySelectorAll<HTMLButtonElement>('button')[index]?.focus();
+            }}>{tabs.map(tab => <button key={tab.id} role="tab" aria-selected={tab.id === view}
+                                        tabIndex={tab.id === view ? 0 : -1}
+                                        onClick={() => chooseView(tab.id)}>{tab.label}</button>)}</div>
+            <span
+                className={'studio-status ' + (candidate.error || conflict ? 'needs-attention' : candidate.changed ? 'pending' : '')}>{badge}</span>
+        </div>
+        <div className="studio-workspace">
+            <aside className={'studio-source-explorer' + (mobileSources ? ' mobile-open' : '')}>
+                <header>
+                    <h2>{view === 'sources' ? 'Drawing sources' : view === 'paytables' ? 'Payout tables' : view === 'paylines' ? 'Line sets' : 'Project symbols'}</h2>
+                    <input type="search" aria-label="Search Studio sources" placeholder="Search name or ID"
+                           value={search} onChange={event => setSearch(event.target.value)}/></header>
+                {view === 'sources' ? (['reels', 'cells', 'weights'] as const).map(kind => {
+                    const sources = projection.sources.filter(source => source.kind === kind && `${source.label} ${source.detail}`.toLowerCase().includes(search.toLowerCase())).sort((left, right) => Number(views?.studio?.pinnedSources.includes(right.key) ?? false) - Number(views?.studio?.pinnedSources.includes(left.key) ?? false));
+                    return sources.length ? <div className="studio-source-group" key={kind}>
+                        <h3>{kind === 'reels' ? 'Physical reels' : kind === 'cells' ? 'Cell boards' : 'Outcomes & prizes'}<span>{sources.length}</span>
+                        </h3>{sources.map(source => <div className="studio-source-entry" key={source.key}>
+                        <button aria-pressed={selected?.key === source.key} onClick={() => chooseSource(source)}><span
+                            className="source-icon">{kind === 'reels' ? <Ic.draw/> : kind === 'cells' ?
+                            <Ic.evaluator/> :
+                            <Ic.predicate/>}</span><span><b>{source.label}</b><small>{source.detail}</small></span>
+                        </button>
+                        <button
+                            className={'source-pin' + (views?.studio?.pinnedSources.includes(source.key) ? ' pinned' : '')}
+                            aria-label={`Pin ${source.label}`}
+                            aria-pressed={views?.studio?.pinnedSources.includes(source.key) ?? false}
+                            onClick={() => metadata(current => ({
+                                ...current,
+                                studio: {
+                                    tab: view,
+                                    selectedSource: selected?.key ?? null,
+                                    pinnedSources: current.studio?.pinnedSources.includes(source.key) ? current.studio.pinnedSources.filter(key => key !== source.key) : [...current.studio?.pinnedSources ?? [], source.key]
+                                }
+                            }))}>◇
+                        </button>
+                    </div>)}</div> : null;
+                }) : view === 'paytables' ? projection.tables.filter(table => table.id.toLowerCase().includes(search.toLowerCase())).map(item =>
+                    <button className="studio-list-item" key={item.id} aria-pressed={table?.id === item.id}
+                            onClick={() => {
+                                setTableId(item.id);
+                                metadata(current => ({
+                                    ...current,
+                                    studio: {
+                                        tab: view,
+                                        selectedSource: JSON.stringify(['paytable', item.id]),
+                                        pinnedSources: current.studio?.pinnedSources ?? []
+                                    }
+                                }));
+                            }}>
+                        <Ic.evaluator/><span><b>{readable(item.id)}</b><small>{item.entries.length} symbol rows</small></span>
+                    </button>) : view === 'paylines' ? projection.lines.filter(item => item.setId.toLowerCase().includes(search.toLowerCase())).map(item =>
+                        <button className="studio-list-item" key={item.key} aria-pressed={line?.key === item.key}
+                                onClick={() => {
+                                    setLineKey(item.key);
+                                    metadata(current => ({
+                                        ...current,
+                                        studio: {
+                                            tab: view,
+                                            selectedSource: JSON.stringify(['line-set', item.key]),
+                                            pinnedSources: current.studio?.pinnedSources ?? []
+                                        }
+                                    }));
+                                }}>
+                            <Ic.build/><span><b>{readable(item.setId)}</b><small>{item.lines.length} paths</small></span>
+                        </button>) :
+                    <div className="studio-explorer-note"><b>{projection.symbols.length} authored symbols</b><p>Names
+                        and artwork belong to this project. Symbol IDs retain their references.</p></div>}
+                <footer>
+                    <button onClick={() => downloadJson('slotmath-project-with-views.json', projectEnvelope())}>
+                        <Ic.export/>Back up project
+                    </button>
+                    <Link to="/projects">Switch private project</Link></footer>
+            </aside>
+            <main className="studio-main">
+                <div className="studio-editor-context">
+                    <button className="studio-mobile-source-toggle"
+                            onClick={() => setMobileSources(value => !value)}>Choose source
+                    </button>
+                    <div>
+                        <b>{view === 'sources' ? selected?.label ?? 'No drawing source' : view === 'paytables' ? readable(table?.id ?? 'No declared paytable') : view === 'paylines' ? readable(line?.setId ?? 'No paylines') : 'Symbols'}</b><span>{view === 'sources' ? selected?.detail : view === 'paytables' ? 'Exact authored payouts' : view === 'paylines' ? 'Executable board paths' : 'Display identity'}</span>
+                    </div>
+                    <button onClick={() => setInspector(value => !value)} aria-expanded={inspector}>Source
+                        details <Ic.expr/></button>
+                </div>
+                {view === 'sources' && selected && <SourceCopyControls context={context} uses={selected.binding.uses}/>}
+                {activeTable && <StudioTableTools key={`table-tools:${tableTargetKey(activeTable)}`} context={context}
+                                                  target={activeTable} onImport={() => setImportTarget(activeTable)}/>}
+                {view === 'sources' ? selected?.kind === 'reels' ?
+                    <ReelSurface key={selected.key} context={context} binding={selected.binding}
+                                 onImport={() => openImport(selected)}/> : selected?.kind === 'cells' ?
+                        <WeightSurface key={selected.key} context={context} board={selected.binding}
+                                       sources={selected.binding.cells.map(cell => cell.source)}
+                                       onImport={binding => openImport({
+                                           kind: 'weights',
+                                           key: binding.key,
+                                           label: selected.label,
+                                           detail: 'One selected cell',
+                                           binding
+                                       })}/> : selected ? <WeightSurface key={selected.key} context={context}
+                                                                         sources={selected.siblings ?? [selected.binding]}
+                                                                         onImport={binding => openImport({
+                                                                             ...selected,
+                                                                             key: binding.key,
+                                                                             binding,
+                                                                             siblings: undefined
+                                                                         })}/> :
+                            <div className="studio-empty"><Ic.draw/><h2>No inline drawing source</h2><p>This model’s
+                                source is retained. Open the graph to inspect custom or externally provided inputs.</p>
+                                <Link to="/build">Inspect graph</Link>
+                            </div> : view === 'paytables' ? pay && table?.id === pay.tableId ? pay.kind === 'prize' ?
+                    <PrizeSurface key={pay.key} context={context} binding={pay}
+                                  initialSource={restoredSelection(views?.studio?.selectedSource, 'paytable', true)}
+                                  onSourceChange={key => metadata(current => ({
+                                      ...current,
+                                      studio: {
+                                          tab: view,
+                                          selectedSource: JSON.stringify(['paytable', pay.tableId, key]),
+                                          pinnedSources: current.studio?.pinnedSources ?? []
+                                      }
+                                  }))}/> : <PayoutSurface key={pay.key} context={context} binding={pay}/> : table ?
+                    <DeclaredTableSurface key={table.id} context={context} table={table}/> :
+                    <div className="studio-empty"><Ic.evaluator/><h2>No declared paytable</h2><p>The graph may produce
+                        payouts directly. Its weighted sources remain available in Sources.</p>
+                    </div> : view === 'paylines' ? line ?
+                    <PaylineSurface key={line.key} context={context} binding={line}/> :
+                    <div className="studio-empty"><Ic.build/><h2>No applicable paylines</h2><p>Cluster and
+                        direct-outcome models do not need a line set. Continue with their sources and paytables.</p>
+                    </div> : <SymbolSurface context={context} setAsset={(id, url) => metadata(current => ({
+                    ...current,
+                    symbolAssets: {...current.symbolAssets, [id]: url}
+                }))}/>}
+                <div className="studio-round-workbench">
+                    <div><b>Test the applied source</b><p>A real round through the existing execution API. A single
+                        round does not estimate RTP.</p></div>
+                    <label>Seed<input value={seed} aria-label="Test round seed" inputMode="numeric"
+                                      onChange={event => setSeed(event.target.value)}/></label>
+                    <button disabled={!!busy || candidate.changed || !hash} onClick={() => void play()}>
+                        <Ic.play/>{busy === 'playing' ? 'Playing…' : 'Play test round'}</button>
+                    {round?.hash === hash && <output>Seed {round.result.seed} ·
+                        payout {round.result.winNumerator}/{round.result.winDenominator}</output>}</div>
+            </main>
+            {inspector && <aside className="studio-source-inspector" aria-label="Source details">
+                <header><h2>Source details</h2>
+                    <button aria-label="Close source details" onClick={() => setInspector(false)}>×</button>
+                </header>
+                <h3>{inspectorTitle ?? 'Current project'}</h3><p>{uses.length} known Library references. Definition
+                edits affect all verified uses.</p>
+                <ul>{uses.map(use => <li key={use.key}>
+                    <button
+                        onClick={() => inspectGraph(use.scope, use.id)}>{String(use.node.label ?? use.id)}<small>{use.scope ?? 'Root graph'}</small>
+                    </button>
+                </li>)}</ul>
+                <details>
+                    <summary>Exact binding and graph source</summary>
+                    <code>{inspectorKey ?? 'Current graph'}</code>
+                    <pre>{JSON.stringify(inspectorSource, null, 2)}</pre>
+                </details>
+                <button className="studio-inspect-link"
+                        onClick={() => inspectGraph(inspectorScope, view === 'sources' && selected?.kind === 'weights' ? selected.binding.source.id : undefined)}>Open
+                    in logic graph ↗
+                </button>
+            </aside>}
+        </div>
+        <footer className="studio-commit-bar">
+            <div>
+                <b>{badge}</b><span>{storageError ?? (patches.length ? 'Staged inputs save separately; the applied graph stays unchanged until validation succeeds.' : saved.projectId === projectId && saved.status === 'saved' ? 'Applied graph saved in this browser' : saved.status === 'error' ? saved.error : 'Browser save pending')}</span>
+            </div>
+            <div className="studio-actions">{recoveryBlocked && <>
+                <button onClick={() => {
+                    try {
+                        const original = storedStudioDraft(projectId);
+                        if (original) downloadText('slotmath-studio-recovery.json', original, 'application/json');
+                    } catch (error) {
+                        setError(message(error));
+                    }
+                }}>Download stored draft
+                </button>
+                <button onClick={discard}>Discard stored draft</button>
+            </>}{patches.length > 0 && <>
+                <button onClick={() => downloadJson('slotmath-studio-staged-draft.json', {
+                    format: 'slotmath-studio-draft-v1',
+                    graph,
+                    draft
+                })}>Download staged draft
+                </button>
+                <button disabled={!!busy} onClick={discard}>Discard changes</button>
+            </>}{busy && <button onClick={() => {
+                request.current?.abort();
+                setBusy(null);
+                setError('Cancelled. The applied graph is unchanged; staged inputs are retained.');
+            }}>Cancel</button>}</div>
+            {patches.length > 0 && <details className="studio-pending-list">
+                <summary>Review {patches.length} staged changes</summary>
+                <ul>{patches.map(patch => <li key={patchKey(patch)}>
+                    <span>{patch.kind === 'payout' ? `${patch.kind} · symbol ${patch.symbolId}, count ${patch.count}: ${patch.value}` : patch.kind === 'symbol' ? `Symbol ${patch.key}: ${patch.name}` : `${patch.kind} source edit`}</span>
+                    <button disabled={!!busy} onClick={() => {
+                        const next = patches.filter(item => patchKey(item) !== patchKey(patch));
+                        if (!next.length) discard(); else persist({...draft!, patches: next});
+                    }}>Remove this change
+                    </button>
+                </li>)}</ul>
+            </details>}{conflict &&
+            <div className="studio-conflict"><p>The applied source changed after this draft was staged. Its inputs have
+                been retained for review.</p>
+                <button disabled={!hash} onClick={() => persist({...draft!, baseHash: hash!})}>Review against current
+                    source
+                </button>
+            </div>}{(candidate.error || error || storageError) &&
+            <p className="studio-error" role="alert">{candidate.error ?? error ?? storageError}</p>}</footer>
+        {importTarget && <StudioTableImport key={tableTargetKey(importTarget)} context={context} target={importTarget}
+                                            close={() => setImportTarget(null)}/>}
+    </section>;
 }

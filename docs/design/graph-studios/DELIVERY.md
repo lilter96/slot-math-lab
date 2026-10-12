@@ -4,6 +4,8 @@ Reel & Paytable Studio and State Machine Designer edit the selected private proj
 
 Implementation commit: `b6dfd81` (Designer); Studio checkpoint: `6e98807`. Branch: `feat/precision-workbench-redesign`. Base audit/fetched main: `b81e71c82cb0314d066d7134278751b85676f356`; old work and the Simulate checkpoint were preserved. No push/merge/deployment.
 
+**M0–M5 are complete locally.** The final Rider cleanup blocker was resolved on 2026-10-12 using a real solution context; both required profiles succeeded on all 92 task source/test files. The previous failed attempts remain retained.
+
 Live development: http://localhost:4187/model/studio and http://localhost:4187/model/machine. API: 5166; built preview: 4186. Polling HMR remains enabled. Open **My projects**, select/create/import a model, then use Studio or State machine in the navigation.
 
 Studio delivers source, payout, payline and symbol editing, exact input and spreadsheet import, supported source/data copies, whole-graph validation/apply, complete undo and private browser recovery. Designer delivers existing graph projection, a diagram and equivalent transition table, source operations, typed actions/guards/effects, priority, states/start/terminal, variables, explicit ownership, connected new/reused definitions, nested independent copies, coupled respin rules, pan/layout, raw graph portability, seeded execution evidence and project backups.
@@ -61,19 +63,15 @@ npx playwright test -c .workbench-playwright.config.ts e2e/machine-lowering.spec
 npx playwright test -c .workbench-playwright.config.ts e2e/state-machine-designer.spec.ts --grep <affected-cases>
 ```
 
-## Required cleanup limitation
+## Required cleanup — completed
 
-[AGENTS.md](../../../AGENTS.md) requires scoped Rider Reformat Code and Built-in Full Cleanup. The available Rider formatter repeatedly fails while opening this frontend context: `solution can't be null` (exit 3; one earlier control-edits attempt exited 6). Reformat and Full Cleanup are **not certified**. Build/lint/tests do not replace those passes. Attempts, including final changed-file attempts, remain in `m3-*-rider.log`, `m4-*-rider.log` and `m5-*-rider.log`.
+[AGENTS.md](../../../AGENTS.md)'s two required passes now succeed. Rider 2026.1.2 opened a temporary `.slnx` containing an existing C# project for context and exactly 92 graph-studios source/test files as solution items. Only the **Studios** folder was selected; the backend project and unrelated source were excluded. **Built-in: Reformat Code** completed successfully at 23:33:26, followed by **Built-in: Full Cleanup** at 23:33:58. Owner settings and applicable EditorConfig were retained in an isolated IDE instance.
 
-Uncleaned M3/M4/M5 source files:
+The [cleanup manifest](evidence/m5-rider-cleanup.json) records every path, before/after SHA-256, profiles and semantic diff review; the [Rider log excerpt](evidence/m5-rider-cleanup.log) contains both `Success` results and selected frontend files. Scope/profile screenshots remain local in `evidence/m5-rider-cleanup-visual/`. Earlier `m0`–`m5` CLI failure logs are historical evidence, superseded by these successful passes.
 
-- `frontend/src/lib/authoring/{machineIR,machineLowering,machineSource,machineLifecycle,controlProjection,controlEdits,respinContract,viewMetadata}.ts`
-- `frontend/src/pages/StateMachineDesigner.tsx`, `frontend/src/pages/state-machine-designer.css`
-- `frontend/src/components/authoring/MachineForms.tsx`, `frontend/src/components/Layout.tsx`, `frontend/src/App.tsx`, `frontend/src/store/index.ts`
-- `frontend/unit/{authoring-machine-lowering,authoring-machine-lifecycle,authoring-control-projection}.spec.ts`, `frontend/unit/fixtures/machineProofs.ts`
-- `frontend/e2e/{machine-lowering,state-machine-designer}.spec.ts`
+All 90 TypeScript/TSX/JavaScript files retain equivalent emitted executable AST after normalizing named imports and consolidation of duplicate imports without changing first module evaluation order. Both CSS files retain their rules, declarations and media queries; changes are formatting only. Post-cleanup checks: production build and scoped ESLint pass, **19/19** affected units pass, and **2/2** real-API browser journeys pass (Studio reel edit/reload/validate/undo and Designer action edit/play/export/reimport/undo). See `m5-cleanup-{build,lint,units,browser}.log`. No full suites were rerun.
 
-M2's earlier cleanup limitation and exact source attempts remain in its STATUS checkpoint. No successful cleanup is claimed for either workspace.
+The working procedure is documented in [RIDER_FRONTEND_CLEANUP.md](../../RIDER_FRONTEND_CLEANUP.md) and linked from AGENTS.md, so subsequent frontend work can use solution context directly instead of repeating the failing standalone formatter.
 
 ## Scope limits and review
 

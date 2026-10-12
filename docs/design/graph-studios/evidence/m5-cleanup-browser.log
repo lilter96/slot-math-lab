@@ -1,0 +1,11 @@
+
+Running 2 tests using 1 worker
+
+(node:592783) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:592783) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  1 [chromium] › e2e/reel-paytable-studio.spec.ts:109:1 › Studio: ordered reel changes stay staged, survive immediate reload, validate against the real compiler and undo completely (2.3s)
+  ✓  2 [chromium] › e2e/state-machine-designer.spec.ts:53:1 › Authored action edit survives reload, applies once, runs raw graph, exports/reimports and undoes the whole source (3.4s)
+
+  2 passed (6.4s)

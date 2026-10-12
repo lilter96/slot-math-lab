@@ -72,7 +72,7 @@ dotnet jb cleanupcode backend/SlotMathLab.slnx \
   --include="SlotMath.Core/Example.cs;SlotMath.Api/Example.cs"
 ```
 
-Include paths are relative to the solution directory. Full Cleanup requires solution context; standalone file mode only reformats. `dotnet format` alone does not satisfy this requirement. For frontend files outside the .NET solution, run Rider's Reformat Code and Full Cleanup on the selected files, then scoped ESLint checks. If Rider/tooling cannot execute a required pass, explicitly report the blocker and the uncleaned files; never claim cleanup succeeded. Review cleanup diffs for behavior changes, then run relevant tests and formatting checks.
+Include paths are relative to the solution directory. Full Cleanup requires solution context; standalone file mode only reformats. `dotnet format` alone does not satisfy this requirement. For frontend files outside the .NET solution, run Rider's Reformat Code and Full Cleanup on the selected files, then scoped ESLint checks. Rider 2026.1.2's standalone `format.sh` fails with `solution can't be null` in this workspace; do not repeatedly retry that command. Use the verified solution-context workflow in [docs/RIDER_FRONTEND_CLEANUP.md](docs/RIDER_FRONTEND_CLEANUP.md), with an exact task-file manifest and both built-in profiles. If Rider/tooling cannot execute a required pass, explicitly report the blocker and the uncleaned files; never claim cleanup succeeded. Review cleanup diffs for behavior changes, then run relevant tests and formatting checks.
 
 ## Testing Guidelines
 

@@ -1,41 +1,200 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
-import type { StudioContext, StudioSymbol } from './StudioShared';
-import type { PayBinding } from '../../lib/authoring/payBindings';
-import { symbolReferences } from '../../lib/authoring/symbolLifecycle';
-import { replaceStudioPatch, studioCandidate, type StudioPatch } from '../../lib/authoring/studioEdits';
-import { useMatrixClipboard } from './useMatrixClipboard';
+import {useEffect, useMemo, useRef, useState} from 'react';
+import type {StudioContext, StudioSymbol} from './StudioShared';
+import type {PayBinding} from '../../lib/authoring/payBindings';
+import {symbolReferences} from '../../lib/authoring/symbolLifecycle';
+import {replaceStudioPatch, studioCandidate, type StudioPatch} from '../../lib/authoring/studioEdits';
+import {useMatrixClipboard} from './useMatrixClipboard';
 
-export function AddSymbolButton({ context }: { context: StudioContext }) {
-  const [open, setOpen] = useState(false);
-  return <><button disabled={context.disabled} onClick={() => setOpen(true)}>Add symbol</button>{open && <AddSymbolDialog context={context} close={() => setOpen(false)} />}</>;
-}
-function AddSymbolDialog({ context, close }: { context: StudioContext; close: () => void }) {
-  const existing = Array.isArray(context.graph.symbols) ? context.graph.symbols as StudioSymbol[] : [], indexed = existing.length > 0 && existing.every((symbol, index) => symbol.id === String(index));
-  const [id, setId] = useState(indexed ? String(existing.length) : ''), [name, setName] = useState(''), [kind, setKind] = useState('Standard'), [error, setError] = useState<string | null>(null), dialog = useRef<HTMLDialogElement>(null);
-  useEffect(() => { dialog.current?.showModal(); }, []);
-  const stage = () => {
-    const patch: StudioPatch = { kind: 'add-symbol', key: id, symbol: { id, name, kind } }, result = studioCandidate(context.graph, replaceStudioPatch(context.patches, patch));
-    if (result.error) { setError(result.error); return; } context.stage([patch]); close();
-  };
-  return <dialog ref={dialog} className="studio-import-dialog studio-tabular-dialog studio-symbol-dialog" onCancel={close}><header><div><h2>Add a dictionary symbol</h2><p>Keep existing IDs, drawing probabilities and payouts intact.</p></div><button aria-label="Close symbol creation" onClick={close}>×</button></header><div className="studio-import-mapping"><label>Stable symbol ID<input aria-label="New symbol ID" value={id} disabled={indexed} onChange={event => setId(event.target.value)} /></label><label>Display name<input aria-label="New symbol name" value={name} onChange={event => setName(event.target.value)} /></label><label>Symbol kind<select aria-label="New symbol kind" value={kind} onChange={event => setKind(event.target.value)}><option value="Standard">Standard</option><option value="Scatter">Scatter</option><option value="Special">Special</option>{!existing.some(symbol => symbol.kind === 'Wild') && <option value="Wild">Wild</option>}</select></label></div><div className="studio-derived"><b>New symbol starts without drawing weight or payout</b><span>Verified numeric payout lookups expand together. Add this symbol to a strip/cell source and to a paying row in separate explicit edits after applying.</span>{indexed && <span>This dictionary uses lookup indices. The next ID is {existing.length}; previous IDs stay in their original positions.</span>}</div>{error && <p role="alert" className="studio-error">{error}</p>}<footer className="studio-import-actions"><button onClick={close}>Cancel</button><button className="studio-primary" disabled={context.disabled} onClick={stage}>Stage symbol</button></footer></dialog>;
+export function AddSymbolButton({context}: { context: StudioContext }) {
+    const [open, setOpen] = useState(false);
+    return <>
+        <button disabled={context.disabled} onClick={() => setOpen(true)}>Add symbol</button>
+        {open && <AddSymbolDialog context={context} close={() => setOpen(false)}/>}</>;
 }
 
-export function SymbolRemoval({ context, symbol }: { context: StudioContext; symbol: StudioSymbol }) {
-  const references = useMemo(() => symbolReferences(context.graph, symbol.id), [context.graph, symbol.id]), pending = context.patches.some(patch => patch.kind === 'remove-symbol' && patch.key === symbol.id);
-  const [error, setError] = useState<string | null>(null);
-  return <details className="studio-symbol-references"><summary>{references.length ? `${references.length} references · review before removal` : 'No detected references · removal'}</summary>{references.length > 0 && <><p>Resolve these uses before deleting the dictionary entry. Unresolved literals are retained until their meaning is known.</p><ul>{references.map((reference, index) => <li key={index}><b>{reference.label}</b>{reference.potential && <span>Unresolved symbol meaning</span>}</li>)}</ul></>}<button disabled={context.disabled || references.length > 0 || pending} onClick={() => { const patch: StudioPatch = { kind: 'remove-symbol', key: symbol.id }, result = studioCandidate(context.graph, replaceStudioPatch(context.patches, patch)); if (result.error) setError(result.error); else { context.stage([patch]); setError(null); } }} aria-label={`Remove dictionary symbol ${symbol.id}`}>{pending ? 'Removal staged' : 'Remove symbol'}</button>{error && <p className="studio-error" role="alert">{error}</p>}</details>;
+function AddSymbolDialog({context, close}: { context: StudioContext; close: () => void }) {
+    const existing = Array.isArray(context.graph.symbols) ? context.graph.symbols as StudioSymbol[] : [],
+        indexed = existing.length > 0 && existing.every((symbol, index) => symbol.id === String(index));
+    const [id, setId] = useState(indexed ? String(existing.length) : ''), [name, setName] = useState(''), [kind, setKind] = useState('Standard'), [error, setError] = useState<string | null>(null),
+        dialog = useRef<HTMLDialogElement>(null);
+    useEffect(() => {
+        dialog.current?.showModal();
+    }, []);
+    const stage = () => {
+        const patch: StudioPatch = {kind: 'add-symbol', key: id, symbol: {id, name, kind}},
+            result = studioCandidate(context.graph, replaceStudioPatch(context.patches, patch));
+        if (result.error) {
+            setError(result.error);
+            return;
+        }
+        context.stage([patch]);
+        close();
+    };
+    return <dialog ref={dialog} className="studio-import-dialog studio-tabular-dialog studio-symbol-dialog"
+                   onCancel={close}>
+        <header>
+            <div><h2>Add a dictionary symbol</h2><p>Keep existing IDs, drawing probabilities and payouts intact.</p>
+            </div>
+            <button aria-label="Close symbol creation" onClick={close}>×</button>
+        </header>
+        <div className="studio-import-mapping"><label>Stable symbol ID<input aria-label="New symbol ID" value={id}
+                                                                             disabled={indexed}
+                                                                             onChange={event => setId(event.target.value)}/></label><label>Display
+            name<input aria-label="New symbol name" value={name}
+                       onChange={event => setName(event.target.value)}/></label><label>Symbol kind<select
+            aria-label="New symbol kind" value={kind} onChange={event => setKind(event.target.value)}>
+            <option value="Standard">Standard</option>
+            <option value="Scatter">Scatter</option>
+            <option value="Special">Special</option>
+            {!existing.some(symbol => symbol.kind === 'Wild') && <option value="Wild">Wild</option>}</select></label>
+        </div>
+        <div className="studio-derived"><b>New symbol starts without drawing weight or payout</b><span>Verified numeric payout lookups expand together. Add this symbol to a strip/cell source and to a paying row in separate explicit edits after applying.</span>{indexed &&
+            <span>This dictionary uses lookup indices. The next ID is {existing.length}; previous IDs stay in their original positions.</span>}
+        </div>
+        {error && <p role="alert" className="studio-error">{error}</p>}
+        <footer className="studio-import-actions">
+            <button onClick={close}>Cancel</button>
+            <button className="studio-primary" disabled={context.disabled} onClick={stage}>Stage symbol</button>
+        </footer>
+    </dialog>;
 }
 
-export function PayingDomainEditor({ context, binding, capPolicy, onToggle }: { context: StudioContext; binding: PayBinding; capPolicy: 'keep' | 'recompute'; onToggle: (open: boolean) => void }) {
-  const patch = context.patches.find(patch => patch.kind === 'pay-domain' && patch.key === binding.key), rows = patch?.kind === 'pay-domain' ? patch.rows : binding.rows;
-  const pendingCells = context.patches.some(patch => patch.kind === 'payout' && patch.key === binding.key), disabled = context.disabled || pendingCells;
-  const [symbolId, setSymbolId] = useState(''), [size, setSize] = useState(''), [removedSize, setRemovedSize] = useState(''), [localError, setLocalError] = useState<string | null>(null);
-  const symbols = context.symbols.filter(symbol => !rows.some(row => row.symbolId === symbol.id)), counts = [...new Set(rows.flatMap(row => row.counts))].sort((a, b) => a - b);
-  const [open, setOpen] = useState(false);
-  const removeCount = counts.includes(Number(removedSize)) ? Number(removedSize) : counts[0];
-  const stage = (rows: PayBinding['rows']) => context.stage([{ kind: 'pay-domain', key: binding.key, rows, capPolicy }]);
-  const matrix = useMatrixClipboard(rows.map(row => counts.map(count => { const position = row.counts.indexOf(count); return position < 0 ? null : row.values[position]; })), cells => stage(rows.map((row, rowIndex) => ({ ...row, values: row.values.map((value, position) => cells.find(cell => cell.row === rowIndex && counts[cell.column] === row.counts[position])?.value ?? value) }))), disabled);
-  if (binding.kind === 'prize') return null;
-  if (binding.cluster?.encoding === 'reference-offset') return <div className="studio-derived"><b>Reference symbol/size domain stays fixed</b><span>Zero any payout to remove its reward. The independently authored reference traversal retains its five paying symbols and size-five through size-thirty lookup.</span></div>;
-  return <details className="studio-outcome-domain studio-paying-domain" onToggle={event => { setOpen(event.currentTarget.open); onToggle(event.currentTarget.open); }}><summary>Paying symbols & sizes · {rows.length} rows</summary>{open && <><p>{pendingCells ? 'Apply or discard pending payout-cell edits before changing the paying domain.' : 'Edit the complete paying domain here. Applying reconciles runtime eligibility, lookup values, declared precision and supported bounds together.'}</p><div className="studio-matrix-scroll" {...matrix.handlers}><table className="studio-matrix"><thead><tr><th>Paying symbol</th>{counts.map(count => <th key={count}>{count}</th>)}<th>Remove row</th></tr></thead><tbody>{rows.map((row, rowIndex) => <tr key={row.symbolId}><th>{context.symbols.find(symbol => symbol.id === row.symbolId)?.name ?? row.symbolId}</th>{counts.map(count => { const position = row.counts.indexOf(count); return <td key={count} data-selected={matrix.selected(rowIndex, counts.indexOf(count))}>{position < 0 ? 'Not authored' : <input data-matrix-row={rowIndex} data-matrix-column={counts.indexOf(count)} aria-label={`Domain payout ${row.symbolId} count ${count}`} value={row.values[position]} disabled={disabled} onChange={event => stage(rows.map((row, index) => index === rowIndex ? { ...row, values: row.values.map((value, index) => index === position ? event.target.value : value) } : row))} />}</td>; })}<td><button aria-label={`Remove paying symbol ${row.symbolId}`} disabled={disabled || rows.length === 1 || binding.kind === 'scatter'} onClick={() => stage(rows.filter((_, index) => index !== rowIndex))}>Remove row</button></td></tr>)}</tbody></table></div><p className="studio-matrix-keyboard">{matrix.description}</p>{matrix.error && <p className="studio-error" role="alert">{matrix.error}</p>}<div className="studio-domain-add"><label>Dictionary symbol<select aria-label="New paying symbol" value={symbolId} onChange={event => setSymbolId(event.target.value)} disabled={disabled || binding.kind === 'scatter'}><option value="">Choose a symbol</option>{symbols.map(symbol => <option key={symbol.id} value={symbol.id}>{symbol.name} · {symbol.id}</option>)}</select></label><button disabled={disabled || !symbolId || !symbols.some(symbol => symbol.id === symbolId) || binding.kind === 'scatter'} onClick={() => { stage([...rows, { symbolId, counts, values: counts.map(() => '0') }]); setSymbolId(''); }}>Add paying symbol</button><label>New paying size<input aria-label="Domain new paying size" value={size} inputMode="numeric" onChange={event => setSize(event.target.value)} /></label><button disabled={disabled || !size} onClick={() => { const count = Number(size); if (!/^\d+$/.test(size) || count < 1 || count > binding.columns || counts.includes(count)) { setLocalError(`Choose a new whole size from 1 to ${binding.columns}.`); return; } setLocalError(null); stage(rows.map(row => ({ ...row, counts: [...row.counts, count], values: [...row.values, '0'] }))); }}>Add paying size</button></div><div className="studio-domain-remove-sizes"><label>Paying size to remove<select aria-label="Paying size to remove" value={removeCount} disabled={disabled} onChange={event => setRemovedSize(event.target.value)}>{counts.map(count => <option key={count} value={count}>{count}</option>)}</select></label><button aria-label={`Remove paying size ${removeCount}`} disabled={disabled || rows.some(row => row.counts.includes(removeCount) && row.counts.length === 1)} onClick={() => stage(rows.map(row => ({ ...row, counts: row.counts.filter(value => value !== removeCount), values: row.values.filter((_, index) => row.counts[index] !== removeCount) })))}>Remove paying size</button></div>{localError && <p className="studio-error" role="alert">{localError}</p>}<p>New rows and sizes start at zero. Removing a paying row changes eligibility; it keeps the symbol in the dictionary and drawing sources.</p></>}</details>;
+export function SymbolRemoval({context, symbol}: { context: StudioContext; symbol: StudioSymbol }) {
+    const references = useMemo(() => symbolReferences(context.graph, symbol.id), [context.graph, symbol.id]),
+        pending = context.patches.some(patch => patch.kind === 'remove-symbol' && patch.key === symbol.id);
+    const [error, setError] = useState<string | null>(null);
+    return <details className="studio-symbol-references">
+        <summary>{references.length ? `${references.length} references · review before removal` : 'No detected references · removal'}</summary>
+        {references.length > 0 && <><p>Resolve these uses before deleting the dictionary entry. Unresolved literals are
+            retained until their meaning is known.</p>
+            <ul>{references.map((reference, index) => <li key={index}><b>{reference.label}</b>{reference.potential &&
+                <span>Unresolved symbol meaning</span>}</li>)}</ul>
+        </>}
+        <button disabled={context.disabled || references.length > 0 || pending} onClick={() => {
+            const patch: StudioPatch = {kind: 'remove-symbol', key: symbol.id},
+                result = studioCandidate(context.graph, replaceStudioPatch(context.patches, patch));
+            if (result.error) setError(result.error); else {
+                context.stage([patch]);
+                setError(null);
+            }
+        }} aria-label={`Remove dictionary symbol ${symbol.id}`}>{pending ? 'Removal staged' : 'Remove symbol'}</button>
+        {error && <p className="studio-error" role="alert">{error}</p>}</details>;
+}
+
+export function PayingDomainEditor({context, binding, capPolicy, onToggle}: {
+    context: StudioContext;
+    binding: PayBinding;
+    capPolicy: 'keep' | 'recompute';
+    onToggle: (open: boolean) => void
+}) {
+    const patch = context.patches.find(patch => patch.kind === 'pay-domain' && patch.key === binding.key),
+        rows = patch?.kind === 'pay-domain' ? patch.rows : binding.rows;
+    const pendingCells = context.patches.some(patch => patch.kind === 'payout' && patch.key === binding.key),
+        disabled = context.disabled || pendingCells;
+    const [symbolId, setSymbolId] = useState(''), [size, setSize] = useState(''), [removedSize, setRemovedSize] = useState(''), [localError, setLocalError] = useState<string | null>(null);
+    const symbols = context.symbols.filter(symbol => !rows.some(row => row.symbolId === symbol.id)),
+        counts = [...new Set(rows.flatMap(row => row.counts))].sort((a, b) => a - b);
+    const [open, setOpen] = useState(false);
+    const removeCount = counts.includes(Number(removedSize)) ? Number(removedSize) : counts[0];
+    const stage = (rows: PayBinding['rows']) => context.stage([{
+        kind: 'pay-domain',
+        key: binding.key,
+        rows,
+        capPolicy
+    }]);
+    const matrix = useMatrixClipboard(rows.map(row => counts.map(count => {
+        const position = row.counts.indexOf(count);
+        return position < 0 ? null : row.values[position];
+    })), cells => stage(rows.map((row, rowIndex) => ({
+        ...row,
+        values: row.values.map((value, position) => cells.find(cell => cell.row === rowIndex && counts[cell.column] === row.counts[position])?.value ?? value)
+    }))), disabled);
+    if (binding.kind === 'prize') return null;
+    if (binding.cluster?.encoding === 'reference-offset') return <div className="studio-derived"><b>Reference
+        symbol/size domain stays fixed</b><span>Zero any payout to remove its reward. The independently authored reference traversal retains its five paying symbols and size-five through size-thirty lookup.</span>
+    </div>;
+    return <details className="studio-outcome-domain studio-paying-domain" onToggle={event => {
+        setOpen(event.currentTarget.open);
+        onToggle(event.currentTarget.open);
+    }}>
+        <summary>Paying symbols & sizes · {rows.length} rows</summary>
+        {open && <>
+            <p>{pendingCells ? 'Apply or discard pending payout-cell edits before changing the paying domain.' : 'Edit the complete paying domain here. Applying reconciles runtime eligibility, lookup values, declared precision and supported bounds together.'}</p>
+            <div className="studio-matrix-scroll" {...matrix.handlers}>
+                <table className="studio-matrix">
+                    <thead>
+                    <tr>
+                        <th>Paying symbol</th>
+                        {counts.map(count => <th key={count}>{count}</th>)}
+                        <th>Remove row</th>
+                    </tr>
+                    </thead>
+                    <tbody>{rows.map((row, rowIndex) => <tr key={row.symbolId}>
+                        <th>{context.symbols.find(symbol => symbol.id === row.symbolId)?.name ?? row.symbolId}</th>
+                        {counts.map(count => {
+                            const position = row.counts.indexOf(count);
+                            return <td key={count}
+                                       data-selected={matrix.selected(rowIndex, counts.indexOf(count))}>{position < 0 ? 'Not authored' :
+                                <input data-matrix-row={rowIndex} data-matrix-column={counts.indexOf(count)}
+                                       aria-label={`Domain payout ${row.symbolId} count ${count}`}
+                                       value={row.values[position]} disabled={disabled}
+                                       onChange={event => stage(rows.map((row, index) => index === rowIndex ? {
+                                           ...row,
+                                           values: row.values.map((value, index) => index === position ? event.target.value : value)
+                                       } : row))}/>}</td>;
+                        })}
+                        <td>
+                            <button aria-label={`Remove paying symbol ${row.symbolId}`}
+                                    disabled={disabled || rows.length === 1 || binding.kind === 'scatter'}
+                                    onClick={() => stage(rows.filter((_, index) => index !== rowIndex))}>Remove row
+                            </button>
+                        </td>
+                    </tr>)}</tbody>
+                </table>
+            </div>
+            <p className="studio-matrix-keyboard">{matrix.description}</p>{matrix.error &&
+            <p className="studio-error" role="alert">{matrix.error}</p>}
+            <div className="studio-domain-add"><label>Dictionary symbol<select aria-label="New paying symbol"
+                                                                               value={symbolId}
+                                                                               onChange={event => setSymbolId(event.target.value)}
+                                                                               disabled={disabled || binding.kind === 'scatter'}>
+                <option value="">Choose a symbol</option>
+                {symbols.map(symbol => <option key={symbol.id} value={symbol.id}>{symbol.name} · {symbol.id}</option>)}
+            </select></label>
+                <button
+                    disabled={disabled || !symbolId || !symbols.some(symbol => symbol.id === symbolId) || binding.kind === 'scatter'}
+                    onClick={() => {
+                        stage([...rows, {symbolId, counts, values: counts.map(() => '0')}]);
+                        setSymbolId('');
+                    }}>Add paying symbol
+                </button>
+                <label>New paying size<input aria-label="Domain new paying size" value={size} inputMode="numeric"
+                                             onChange={event => setSize(event.target.value)}/></label>
+                <button disabled={disabled || !size} onClick={() => {
+                    const count = Number(size);
+                    if (!/^\d+$/.test(size) || count < 1 || count > binding.columns || counts.includes(count)) {
+                        setLocalError(`Choose a new whole size from 1 to ${binding.columns}.`);
+                        return;
+                    }
+                    setLocalError(null);
+                    stage(rows.map(row => ({...row, counts: [...row.counts, count], values: [...row.values, '0']})));
+                }}>Add paying size
+                </button>
+            </div>
+            <div className="studio-domain-remove-sizes"><label>Paying size to remove<select
+                aria-label="Paying size to remove" value={removeCount} disabled={disabled}
+                onChange={event => setRemovedSize(event.target.value)}>{counts.map(count => <option key={count}
+                                                                                                    value={count}>{count}</option>)}</select></label>
+                <button aria-label={`Remove paying size ${removeCount}`}
+                        disabled={disabled || rows.some(row => row.counts.includes(removeCount) && row.counts.length === 1)}
+                        onClick={() => stage(rows.map(row => ({
+                            ...row,
+                            counts: row.counts.filter(value => value !== removeCount),
+                            values: row.values.filter((_, index) => row.counts[index] !== removeCount)
+                        })))}>Remove paying size
+                </button>
+            </div>
+            {localError && <p className="studio-error" role="alert">{localError}</p>}<p>New rows and sizes start at
+            zero. Removing a paying row changes eligibility; it keeps the symbol in the dictionary and drawing
+            sources.</p></>}</details>;
 }

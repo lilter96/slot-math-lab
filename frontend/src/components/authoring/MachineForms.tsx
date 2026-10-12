@@ -1,28 +1,289 @@
-import { useState } from 'react';
-import type { Expr } from '../../games/shared/graph/expr';
-import { num } from '../../games/shared/graph/expr';
-import { parseExpression } from '../../lib/expressionParser';
-import { parseModelJson } from '../../lib/modelJson';
-import { machineExpressionText } from '../../lib/authoring/machineLowering';
-import type { MachineAction, MachineIR, MachineState } from '../../lib/authoring/machineIR';
+import {useState} from 'react';
+import type {Expr} from '../../games/shared/graph/expr';
+import {num} from '../../games/shared/graph/expr';
+import {parseExpression} from '../../lib/expressionParser';
+import {parseModelJson} from '../../lib/modelJson';
+import {machineExpressionText} from '../../lib/authoring/machineLowering';
+import type {MachineAction, MachineIR, MachineState} from '../../lib/authoring/machineIR';
+
 const newIdentity = (prefix: string) => `${prefix}-${crypto.randomUUID().slice(0, 8)}`;
-export function ExpressionInput({ label, value, change, disabled = false }: { label: string; value: Expr; change: (value: Expr) => void; disabled?: boolean }) {
-  let initial: string; try { initial = machineExpressionText(value); } catch { initial = JSON.stringify(value, null, 2); }
-  const [text, setText] = useState(initial), [error, setError] = useState<string | null>(null), [mode, setMode] = useState(initial.startsWith('{') ? 'ast' : 'text');
-  const use = () => { try { const ast = mode === 'ast' ? parseModelJson(text) : parseExpression(text); if (!ast || typeof ast.exprType !== 'string') throw new Error('Use an expression object with exprType.'); change(ast as Expr); setError(null); } catch (error) { setError(error instanceof Error ? error.message : 'Invalid expression.'); } };
-  return <div className="machine-expression"><label>{label}<textarea aria-label={label} rows={mode === 'ast' ? 6 : 2} value={text} disabled={disabled} onChange={event => setText(event.target.value)} spellCheck={false} /></label><div><select aria-label={`${label} format`} value={mode} disabled={disabled} onChange={event => { setMode(event.target.value); setText(event.target.value === 'ast' ? JSON.stringify(value, null, 2) : initial); }}><option value="text">Expression</option><option value="ast">Typed source AST</option></select><button disabled={disabled} onClick={use}>Use expression</button></div>{error && <p role="alert" className="studio-error">{error}</p>}<small>Use the button to stage this expression. Unsupported expressions keep their typed source.</small></div>;
+
+export function ExpressionInput({label, value, change, disabled = false}: {
+    label: string;
+    value: Expr;
+    change: (value: Expr) => void;
+    disabled?: boolean
+}) {
+    let initial: string;
+    try {
+        initial = machineExpressionText(value);
+    } catch {
+        initial = JSON.stringify(value, null, 2);
+    }
+    const [text, setText] = useState(initial), [error, setError] = useState<string | null>(null), [mode, setMode] = useState(initial.startsWith('{') ? 'ast' : 'text');
+    const use = () => {
+        try {
+            const ast = mode === 'ast' ? parseModelJson(text) : parseExpression(text);
+            if (!ast || typeof ast.exprType !== 'string') throw new Error('Use an expression object with exprType.');
+            change(ast as Expr);
+            setError(null);
+        } catch (error) {
+            setError(error instanceof Error ? error.message : 'Invalid expression.');
+        }
+    };
+    return <div className="machine-expression"><label>{label}<textarea aria-label={label} rows={mode === 'ast' ? 6 : 2}
+                                                                       value={text} disabled={disabled}
+                                                                       onChange={event => setText(event.target.value)}
+                                                                       spellCheck={false}/></label>
+        <div><select aria-label={`${label} format`} value={mode} disabled={disabled} onChange={event => {
+            setMode(event.target.value);
+            setText(event.target.value === 'ast' ? JSON.stringify(value, null, 2) : initial);
+        }}>
+            <option value="text">Expression</option>
+            <option value="ast">Typed source AST</option>
+        </select>
+            <button disabled={disabled} onClick={use}>Use expression</button>
+        </div>
+        {error && <p role="alert" className="studio-error">{error}</p>}<small>Use the button to stage this expression.
+            Unsupported expressions keep their typed source.</small></div>;
 }
-function JsonInput({ label, value, change, disabled }: { label: string; value: unknown; change: (value: unknown) => void; disabled: boolean }) {
-  const [text, setText] = useState(JSON.stringify(value, null, 2)), [error, setError] = useState<string | null>(null);
-  return <div className="machine-expression"><label>{label}<textarea aria-label={label} rows={4} value={text} disabled={disabled} onChange={event => setText(event.target.value)} /></label><button disabled={disabled} onClick={() => { try { change(JSON.parse(text)); setError(null); } catch (error) { setError(error instanceof Error ? error.message : 'Invalid input.'); } }}>Use values</button>{error && <p className="studio-error" role="alert">{error}</p>}</div>;
+
+function JsonInput({label, value, change, disabled}: {
+    label: string;
+    value: unknown;
+    change: (value: unknown) => void;
+    disabled: boolean
+}) {
+    const [text, setText] = useState(JSON.stringify(value, null, 2)), [error, setError] = useState<string | null>(null);
+    return <div className="machine-expression"><label>{label}<textarea aria-label={label} rows={4} value={text}
+                                                                       disabled={disabled}
+                                                                       onChange={event => setText(event.target.value)}/></label>
+        <button disabled={disabled} onClick={() => {
+            try {
+                change(JSON.parse(text));
+                setError(null);
+            } catch (error) {
+                setError(error instanceof Error ? error.message : 'Invalid input.');
+            }
+        }}>Use values
+        </button>
+        {error && <p className="studio-error" role="alert">{error}</p>}</div>;
 }
-export function MachineActions({ actions, machine, definitions, change, disabled, label = 'Entry actions' }: { actions: MachineAction[]; machine: MachineIR; definitions: string[]; change: (actions: MachineAction[]) => void; disabled: boolean; label?: string }) {
-  const replace = (index: number, action: MachineAction) => change(actions.map((value, position) => position === index ? action : value));
-  return <section className="machine-form-section"><header><h3>{label}</h3><span>{actions.length}</span></header>{actions.map((action, index) => <details key={action.id} className="machine-action-row" open={actions.length === 1}><summary><b>{index + 1}</b><span>{action.label}</span><small>{action.kind === 'assign' ? `Set ${action.key}` : action.kind === 'draw' ? `Draw ${action.key}` : 'Reusable operation'}</small></summary><div className="machine-action-fields"><label>Action name<input value={action.label} disabled={disabled} onChange={event => replace(index, { ...action, label: event.target.value })} /></label>{action.kind === 'library' ? <><label>Operation<select value={action.definition} disabled={disabled} onChange={event => replace(index, { ...action, definition: event.target.value })}><option value="">Choose a definition</option>{definitions.map(name => <option key={name}>{name}</option>)}</select></label><JsonInput label={`Literal parameters for ${action.label}`} value={action.parameters} disabled={disabled} change={value => { if (!value || Array.isArray(value) || typeof value !== 'object' || Object.values(value).some(value => typeof value !== 'string')) throw new Error('Parameters are an object of literal string values.'); replace(index, { ...action, parameters: value as Record<string, string> }); }} /><JsonInput label={`Variable bindings for ${action.label}`} value={action.parameterBindings ?? {}} disabled={disabled} change={value => { if (!value || Array.isArray(value) || typeof value !== 'object' || Object.values(value).some(value => typeof value !== 'string' || ![...machine.variables.map(variable => variable.key), ...machine.reads ?? []].includes(value))) throw new Error('Bind parameters to declared variable/read-only field names.'); replace(index, { ...action, parameterBindings: value as Record<string, string> }); }} /><small>Literal parameters stay constants. Variable bindings explicitly read declared fields.</small></> : <><label>Write variable<select value={action.key} disabled={disabled} onChange={event => replace(index, { ...action, key: event.target.value })}>{machine.variables.map(variable => <option key={variable.key} value={variable.key}>{variable.key} ({variable.scope})</option>)}</select></label>{action.kind === 'assign' ? <ExpressionInput key={JSON.stringify(action.expression)} label={`Expression for ${action.label}`} value={action.expression} disabled={disabled} change={expression => replace(index, { ...action, expression })} /> : <div className="machine-draw-rows"><p>One draw per visit. Weights select outcome IDs; arrows do not add probability.</p>{action.outcomes.map((outcome, row) => <div key={row}><label>Outcome<input value={outcome.id} disabled={disabled} onChange={event => replace(index, { ...action, outcomes: action.outcomes.map((value, position) => position === row ? { ...value, id: event.target.value } : value) })} /></label><label>Weight<input type="number" min="0" step="1" value={outcome.weight} disabled={disabled} onChange={event => replace(index, { ...action, outcomes: action.outcomes.map((value, position) => position === row ? { ...value, weight: Number(event.target.value) } : value) })} /></label><label>Payload<input type="number" step="1" value={outcome.payload} disabled={disabled} onChange={event => replace(index, { ...action, outcomes: action.outcomes.map((value, position) => position === row ? { ...value, payload: Number(event.target.value) } : value) })} /></label><button aria-label={`Remove outcome ${row + 1}`} disabled={disabled} onClick={() => replace(index, { ...action, outcomes: action.outcomes.filter((_, position) => position !== row) })}>×</button></div>)}<button disabled={disabled} onClick={() => replace(index, { ...action, outcomes: [...action.outcomes, { id: newIdentity('outcome'), weight: 1, payload: 0 }] })}>Add outcome</button></div>}</>}
-      <div className="machine-reorder"><button aria-label={`Move ${action.label} up`} disabled={disabled || index === 0} onClick={() => { const next = [...actions]; [next[index - 1], next[index]] = [next[index], next[index - 1]]; change(next); }}>Move up</button><button aria-label={`Move ${action.label} down`} disabled={disabled || index === actions.length - 1} onClick={() => { const next = [...actions]; [next[index + 1], next[index]] = [next[index], next[index + 1]]; change(next); }}>Move down</button><button disabled={disabled} onClick={() => change(actions.filter((_, position) => position !== index))}>Remove action</button></div></div></details>)}<div className="machine-reorder"><button disabled={disabled || !machine.variables.length} onClick={() => change([...actions, { id: newIdentity('assign'), label: 'Set variable', kind: 'assign', key: machine.variables[0].key, expression: num(0) }])}>Add assignment</button><button disabled={disabled || !machine.variables.some(variable => typeof variable.initial === 'string')} onClick={() => change([...actions, { id: newIdentity('draw'), label: 'Choose an outcome', kind: 'draw', key: machine.variables.find(variable => typeof variable.initial === 'string')!.key, outcomes: [{ id: 'one', weight: 1, payload: 0 }, { id: 'two', weight: 1, payload: 0 }] }])}>Add draw</button><button disabled={disabled || !definitions.length} onClick={() => change([...actions, { id: newIdentity('operation'), label: 'Run operation', kind: 'library', definition: definitions[0], parameters: {} }])}>Add operation</button></div></section>;
+
+export function MachineActions({actions, machine, definitions, change, disabled, label = 'Entry actions'}: {
+    actions: MachineAction[];
+    machine: MachineIR;
+    definitions: string[];
+    change: (actions: MachineAction[]) => void;
+    disabled: boolean;
+    label?: string
+}) {
+    const replace = (index: number, action: MachineAction) => change(actions.map((value, position) => position === index ? action : value));
+    return <section className="machine-form-section">
+        <header><h3>{label}</h3><span>{actions.length}</span></header>
+        {actions.map((action, index) => <details key={action.id} className="machine-action-row"
+                                                 open={actions.length === 1}>
+            <summary>
+                <b>{index + 1}</b><span>{action.label}</span><small>{action.kind === 'assign' ? `Set ${action.key}` : action.kind === 'draw' ? `Draw ${action.key}` : 'Reusable operation'}</small>
+            </summary>
+            <div className="machine-action-fields"><label>Action name<input value={action.label} disabled={disabled}
+                                                                            onChange={event => replace(index, {
+                                                                                ...action,
+                                                                                label: event.target.value
+                                                                            })}/></label>{action.kind === 'library' ? <>
+                <label>Operation<select value={action.definition} disabled={disabled}
+                                        onChange={event => replace(index, {...action, definition: event.target.value})}>
+                    <option value="">Choose a definition</option>
+                    {definitions.map(name => <option key={name}>{name}</option>)}</select></label><JsonInput
+                label={`Literal parameters for ${action.label}`} value={action.parameters} disabled={disabled}
+                change={value => {
+                    if (!value || Array.isArray(value) || typeof value !== 'object' || Object.values(value).some(value => typeof value !== 'string')) throw new Error('Parameters are an object of literal string values.');
+                    replace(index, {...action, parameters: value as Record<string, string>});
+                }}/><JsonInput label={`Variable bindings for ${action.label}`} value={action.parameterBindings ?? {}}
+                               disabled={disabled} change={value => {
+                if (!value || Array.isArray(value) || typeof value !== 'object' || Object.values(value).some(value => typeof value !== 'string' || ![...machine.variables.map(variable => variable.key), ...machine.reads ?? []].includes(value))) throw new Error('Bind parameters to declared variable/read-only field names.');
+                replace(index, {...action, parameterBindings: value as Record<string, string>});
+            }}/><small>Literal parameters stay constants. Variable bindings explicitly read declared
+                fields.</small></> : <><label>Write variable<select value={action.key} disabled={disabled}
+                                                                    onChange={event => replace(index, {
+                                                                        ...action,
+                                                                        key: event.target.value
+                                                                    })}>{machine.variables.map(variable => <option
+                key={variable.key}
+                value={variable.key}>{variable.key} ({variable.scope})</option>)}</select></label>{action.kind === 'assign' ?
+                <ExpressionInput key={JSON.stringify(action.expression)} label={`Expression for ${action.label}`}
+                                 value={action.expression} disabled={disabled}
+                                 change={expression => replace(index, {...action, expression})}/> :
+                <div className="machine-draw-rows"><p>One draw per visit. Weights select outcome IDs; arrows do not add
+                    probability.</p>{action.outcomes.map((outcome, row) => <div key={row}><label>Outcome<input
+                    value={outcome.id} disabled={disabled} onChange={event => replace(index, {
+                    ...action,
+                    outcomes: action.outcomes.map((value, position) => position === row ? {
+                        ...value,
+                        id: event.target.value
+                    } : value)
+                })}/></label><label>Weight<input type="number" min="0" step="1" value={outcome.weight}
+                                                 disabled={disabled} onChange={event => replace(index, {
+                    ...action,
+                    outcomes: action.outcomes.map((value, position) => position === row ? {
+                        ...value,
+                        weight: Number(event.target.value)
+                    } : value)
+                })}/></label><label>Payload<input type="number" step="1" value={outcome.payload} disabled={disabled}
+                                                  onChange={event => replace(index, {
+                                                      ...action,
+                                                      outcomes: action.outcomes.map((value, position) => position === row ? {
+                                                          ...value,
+                                                          payload: Number(event.target.value)
+                                                      } : value)
+                                                  })}/></label>
+                    <button aria-label={`Remove outcome ${row + 1}`} disabled={disabled} onClick={() => replace(index, {
+                        ...action,
+                        outcomes: action.outcomes.filter((_, position) => position !== row)
+                    })}>×
+                    </button>
+                </div>)}
+                    <button disabled={disabled} onClick={() => replace(index, {
+                        ...action,
+                        outcomes: [...action.outcomes, {id: newIdentity('outcome'), weight: 1, payload: 0}]
+                    })}>Add outcome
+                    </button>
+                </div>}</>}
+                <div className="machine-reorder">
+                    <button aria-label={`Move ${action.label} up`} disabled={disabled || index === 0} onClick={() => {
+                        const next = [...actions];
+                        [next[index - 1], next[index]] = [next[index], next[index - 1]];
+                        change(next);
+                    }}>Move up
+                    </button>
+                    <button aria-label={`Move ${action.label} down`} disabled={disabled || index === actions.length - 1}
+                            onClick={() => {
+                                const next = [...actions];
+                                [next[index + 1], next[index]] = [next[index], next[index + 1]];
+                                change(next);
+                            }}>Move down
+                    </button>
+                    <button disabled={disabled}
+                            onClick={() => change(actions.filter((_, position) => position !== index))}>Remove action
+                    </button>
+                </div>
+            </div>
+        </details>)}
+        <div className="machine-reorder">
+            <button disabled={disabled || !machine.variables.length} onClick={() => change([...actions, {
+                id: newIdentity('assign'),
+                label: 'Set variable',
+                kind: 'assign',
+                key: machine.variables[0].key,
+                expression: num(0)
+            }])}>Add assignment
+            </button>
+            <button disabled={disabled || !machine.variables.some(variable => typeof variable.initial === 'string')}
+                    onClick={() => change([...actions, {
+                        id: newIdentity('draw'),
+                        label: 'Choose an outcome',
+                        kind: 'draw',
+                        key: machine.variables.find(variable => typeof variable.initial === 'string')!.key,
+                        outcomes: [{id: 'one', weight: 1, payload: 0}, {id: 'two', weight: 1, payload: 0}]
+                    }])}>Add draw
+            </button>
+            <button disabled={disabled || !definitions.length} onClick={() => change([...actions, {
+                id: newIdentity('operation'),
+                label: 'Run operation',
+                kind: 'library',
+                definition: definitions[0],
+                parameters: {}
+            }])}>Add operation
+            </button>
+        </div>
+    </section>;
 }
-export function MachineStateForm({ state, machine, change, definitions, disabled, openTransition }: { state: MachineState; machine: MachineIR; change: (state: MachineState) => void; definitions: string[]; disabled: boolean; openTransition?: string | null }) {
-  const transitions = state.transitions, replace = (index: number, update: Partial<MachineState['transitions'][number]>) => change({ ...state, transitions: transitions.map((value, position) => position === index ? { ...value, ...update } : value) });
-  return <><label>State name<input aria-label="State name" value={state.label} disabled={disabled} onChange={event => change({ ...state, label: event.target.value })} /></label><p className="machine-source-id">Stable ID: {state.id}</p><label>State role<select aria-label="State role" value={state.terminal ? 'terminal' : 'active'} disabled={disabled} onChange={event => change({ ...state, terminal: event.target.value === 'terminal', transitions: event.target.value === 'terminal' ? [] : [{ id: newIdentity('fallback'), label: 'Otherwise', guard: null, target: machine.states.find(value => value.id !== state.id)?.id ?? state.id, effects: [] }] })}><option value="active">Active state</option><option value="terminal">Terminal · entry actions once, then return</option></select></label><MachineActions actions={state.actions} machine={machine} definitions={definitions} change={actions => change({ ...state, actions })} disabled={disabled} />
-    <section className="machine-form-section"><header><h3>Outgoing transitions</h3><span>{transitions.length}</span></header>{!state.terminal && <p>First true guard wins after entry actions. The final fallback has no guard.</p>}{transitions.map((transition, index) => <details className="machine-action-row" key={transition.id} open={transitions.length === 1 || transition.id === openTransition}><summary><b>{index + 1}</b><span>{transition.label || 'Transition'}</span><small>{transition.guard === null ? 'Fallback' : 'Guard'}</small></summary><div className="machine-action-fields"><label>Transition name<input value={transition.label} disabled={disabled} onChange={event => replace(index, { label: event.target.value })} /></label><label>Destination<select value={transition.target} disabled={disabled} onChange={event => replace(index, { target: event.target.value })}>{machine.states.map(state => <option key={state.id} value={state.id}>{state.label}</option>)}</select></label>{transition.guard !== null && <ExpressionInput key={JSON.stringify(transition.guard)} label={`Guard for ${transition.label}`} value={transition.guard} change={guard => replace(index, { guard })} disabled={disabled} />}<MachineActions label="Transition effects" actions={transition.effects} machine={machine} definitions={definitions} change={effects => replace(index, { effects })} disabled={disabled} /><div className="machine-reorder"><button disabled={disabled || index === 0 || transition.guard === null} onClick={() => { const next = [...transitions]; [next[index - 1], next[index]] = [next[index], next[index - 1]]; change({ ...state, transitions: next }); }}>Raise priority</button><button disabled={disabled || index >= transitions.length - 2 || transition.guard === null} onClick={() => { const next = [...transitions]; [next[index + 1], next[index]] = [next[index], next[index + 1]]; change({ ...state, transitions: next }); }}>Lower priority</button><button disabled={disabled || transition.guard === null} onClick={() => change({ ...state, transitions: transitions.filter((_, position) => position !== index) })}>Remove transition</button></div></div></details>)}{!state.terminal && <button disabled={disabled} onClick={() => change({ ...state, transitions: [...transitions.slice(0, -1), { id: newIdentity('guard'), label: 'New condition', target: machine.states.find(value => value.id !== state.id)?.id ?? state.id, guard: { exprType: 'constant', kind: 'Boolean', value: 'false' }, effects: [] }, ...transitions.slice(-1)] })}>Add guarded transition</button>}</section></>;
+
+export function MachineStateForm({state, machine, change, definitions, disabled, openTransition}: {
+    state: MachineState;
+    machine: MachineIR;
+    change: (state: MachineState) => void;
+    definitions: string[];
+    disabled: boolean;
+    openTransition?: string | null
+}) {
+    const transitions = state.transitions,
+        replace = (index: number, update: Partial<MachineState['transitions'][number]>) => change({
+            ...state,
+            transitions: transitions.map((value, position) => position === index ? {...value, ...update} : value)
+        });
+    return <><label>State name<input aria-label="State name" value={state.label} disabled={disabled}
+                                     onChange={event => change({...state, label: event.target.value})}/></label><p
+        className="machine-source-id">Stable ID: {state.id}</p><label>State role<select aria-label="State role"
+                                                                                        value={state.terminal ? 'terminal' : 'active'}
+                                                                                        disabled={disabled}
+                                                                                        onChange={event => change({
+                                                                                            ...state,
+                                                                                            terminal: event.target.value === 'terminal',
+                                                                                            transitions: event.target.value === 'terminal' ? [] : [{
+                                                                                                id: newIdentity('fallback'),
+                                                                                                label: 'Otherwise',
+                                                                                                guard: null,
+                                                                                                target: machine.states.find(value => value.id !== state.id)?.id ?? state.id,
+                                                                                                effects: []
+                                                                                            }]
+                                                                                        })}>
+        <option value="active">Active state</option>
+        <option value="terminal">Terminal · entry actions once, then return</option>
+    </select></label><MachineActions actions={state.actions} machine={machine} definitions={definitions}
+                                     change={actions => change({...state, actions})} disabled={disabled}/>
+        <section className="machine-form-section">
+            <header><h3>Outgoing transitions</h3><span>{transitions.length}</span></header>
+            {!state.terminal && <p>First true guard wins after entry actions. The final fallback has no
+                guard.</p>}{transitions.map((transition, index) => <details className="machine-action-row"
+                                                                            key={transition.id}
+                                                                            open={transitions.length === 1 || transition.id === openTransition}>
+            <summary>
+                <b>{index + 1}</b><span>{transition.label || 'Transition'}</span><small>{transition.guard === null ? 'Fallback' : 'Guard'}</small>
+            </summary>
+            <div className="machine-action-fields"><label>Transition name<input value={transition.label}
+                                                                                disabled={disabled}
+                                                                                onChange={event => replace(index, {label: event.target.value})}/></label><label>Destination<select
+                value={transition.target} disabled={disabled}
+                onChange={event => replace(index, {target: event.target.value})}>{machine.states.map(state => <option
+                key={state.id} value={state.id}>{state.label}</option>)}</select></label>{transition.guard !== null &&
+                <ExpressionInput key={JSON.stringify(transition.guard)} label={`Guard for ${transition.label}`}
+                                 value={transition.guard} change={guard => replace(index, {guard})}
+                                 disabled={disabled}/>}<MachineActions label="Transition effects"
+                                                                       actions={transition.effects} machine={machine}
+                                                                       definitions={definitions}
+                                                                       change={effects => replace(index, {effects})}
+                                                                       disabled={disabled}/>
+                <div className="machine-reorder">
+                    <button disabled={disabled || index === 0 || transition.guard === null} onClick={() => {
+                        const next = [...transitions];
+                        [next[index - 1], next[index]] = [next[index], next[index - 1]];
+                        change({...state, transitions: next});
+                    }}>Raise priority
+                    </button>
+                    <button disabled={disabled || index >= transitions.length - 2 || transition.guard === null}
+                            onClick={() => {
+                                const next = [...transitions];
+                                [next[index + 1], next[index]] = [next[index], next[index + 1]];
+                                change({...state, transitions: next});
+                            }}>Lower priority
+                    </button>
+                    <button disabled={disabled || transition.guard === null} onClick={() => change({
+                        ...state,
+                        transitions: transitions.filter((_, position) => position !== index)
+                    })}>Remove transition
+                    </button>
+                </div>
+            </div>
+        </details>)}{!state.terminal && <button disabled={disabled} onClick={() => change({
+            ...state,
+            transitions: [...transitions.slice(0, -1), {
+                id: newIdentity('guard'),
+                label: 'New condition',
+                target: machine.states.find(value => value.id !== state.id)?.id ?? state.id,
+                guard: {exprType: 'constant', kind: 'Boolean', value: 'false'},
+                effects: []
+            }, ...transitions.slice(-1)]
+        })}>Add guarded transition</button>}</section>
+    </>;
 }
