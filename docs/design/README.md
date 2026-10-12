@@ -9,7 +9,7 @@ Use these documents together:
 - [Authoring guide](../authoring-guide.md): starting with a private project and editing the selected model.
 - [Operations](../PRODUCTION.md): multiple configured accounts, archive ownership and deployment limits.
 - [UX masterplan](UX_MASTERPLAN.md): project library, navigation and selected-model editing.
-- [Private workspaces](PRIVATE_WORKSPACES.md): implemented persistence, account isolation and current limits.
+- [Private workspaces](PRIVATE_WORKSPACES.md): data ownership by user/project/source, implemented persistence, account isolation and current limits.
 - [Design system](DESIGN_SYSTEM.md): interface requirements for the project library and workbench.
 - [Implementation handoff](CODEX_HANDOFF.md): execution requirements.
 - [Implementation status](IMPLEMENTATION_STATUS.md) and [requirements audit](REQUIREMENTS_AUDIT.md): delivery evidence and outstanding work.

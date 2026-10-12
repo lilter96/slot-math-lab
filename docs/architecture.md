@@ -21,6 +21,8 @@ Browser drafts autosave locally under verified user namespaces. Server version s
 
 See [private workspace behavior and limits](design/PRIVATE_WORKSPACES.md), [product requirements](PRD.md) and [migration guidance](design/MIGRATION_ROLLBACK.md) for the implemented boundaries.
 
+Use the [data scope table](design/PRIVATE_WORKSPACES.md#data-scope-for-multiple-projects) when adding persistence or asynchronous operations. User ownership controls access; project identity separates editable drafts; configuration/source identity determines whether mathematical evidence applies. These identities must remain distinct even when two projects contain identical model JSON.
+
 ## Substrate: the free monad
 
 Every game is a **free monad** over a small effect algebra:

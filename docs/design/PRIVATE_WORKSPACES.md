@@ -10,6 +10,19 @@ The user clarified on 2026-10-12: one user may own many games, models and person
 - User identity, local project identity, authored model ID and server configuration/version identity serve different purposes. Matching authored IDs or copying the same template must not merge ownership, drafts or version histories.
 - Future sharing would require a separate access model. It is not part of the current feature set, and there are no current cross-user access grants.
 
+## Data scope for multiple projects
+
+| Data | Ownership and association |
+|---|---|
+| Project collection and personal materials | Belong to the verified user. Materials may have a project association; a general-purpose material library is not yet implemented. |
+| Game/model JSON and editor draft | Belong to an independent private project. Editing project A must not change project B, including when both came from the same template. |
+| Layout and open nested mechanic | Retained with the project's editing context when switching away and back. |
+| Saved configurations and versions | Owner-scoped server records with storage IDs separate from authored model IDs. Saving a draft to the server is explicit. |
+| Runs, experiments and mathematical evidence | Owner-scoped and tied to the evaluated configuration/source. Selecting another project does not make old evidence current. |
+| Templates and reference games | Starting examples copied into private projects. They grant no access to another user's authored projects. |
+
+For example, one user can keep projects **Game A**, **Game B** and **Game A — experiment**. The experiment is an independent copy: changing its weights leaves Game A's draft intact. Another user has a separate collection and cannot open these projects by obtaining their IDs. Future sharing requires an explicit access design; no sharing mechanism is part of the current scope.
+
 ## Implemented behavior
 
 `/` opens `/projects`. A fresh workspace does not automatically create Nine Lives. The personal library creates independent copies of five migrated games, the separate Nine Lives reference model, two starter models or a blank graph. It supports search, opening, duplication, renaming and personal JSON import. Opening another project retains the current editor draft, positions, open nested mechanic and recovery state. Each project has a generated identity independent of the authored graph ID. `?project=nine-lives` remains an explicit reference-model entry point; legacy inbound `?load=` links remain import compatibility. Export no longer creates share links.

@@ -26,6 +26,8 @@ From `frontend`:
 
 Each user can own many private projects, games, models and personal materials. Start at **My projects**; do not automatically create or select one game for a fresh workspace. Nine Lives is a reference fixture, not the universal game schema. Derive geometry, symbols, mechanics and editor capabilities from the selected model.
 
+For new persistence and asynchronous operations, follow the data scope table in `docs/design/PRIVATE_WORKSPACES.md`: user ownership, editable project identity and evaluated configuration/source identity are separate boundaries.
+
 Keep project identity separate from authored model/template IDs. Switching projects must preserve each project's edits and nested context; independent template copies must not share mutable editing state. Scope browser storage to verified user identity and enforce ownership of server configurations, runs, experiments and realtime access. Never show another project's result as current evidence.
 
 Sharing, collaboration, public links, invitations, teams and publication are deferred. Preserve personal JSON export/import and legacy inbound import compatibility. Browser drafts autosave locally; server version saving is explicit. Do not claim automatic cross-device synchronization or large-scale capacity without implementation and evidence. See `docs/design/PRIVATE_WORKSPACES.md` for current behavior and limits.

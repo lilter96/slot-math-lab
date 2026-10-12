@@ -14,6 +14,8 @@ Start at **My projects** (`/projects`). Create a blank project, import personal 
 
 Each project keeps its own model edits and nested editing context when you switch. Copying the same template twice creates separate projects even if their authored model IDs match. Use the selected model's supported data editors and graph composition; geometry, symbols and available mappings can differ between games.
 
+To try a variation of an existing game, duplicate its project and edit the copy. Keep the original and the experiment as separate entries in **My projects**. When opening a different project, check its name and current source before interpreting a previous run's results; changing the model requires new matching evidence.
+
 Drafts autosave in the current browser; saving a server version is explicit. JSON export/import provides personal backup and transfer. Sharing, invitations, public project links and collaboration are deferred. A server run bookmark remains owner-only. See [private workspaces](design/PRIVATE_WORKSPACES.md) for persistence and access limits.
 
 The examples below illustrate authoring concepts. Available table editors depend on source mappings, and metric evidence requires an actual supported calculation; examples do not imply that every model has the same tables or automatic live results.
