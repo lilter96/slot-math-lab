@@ -1,0 +1,27 @@
+
+Running 14 tests using 2 workers
+
+(node:56295) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:56296) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:56296) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:56295) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   1 unit/payout-commands.spec.ts:14:1 › Payout forms reject mismatched metadata, changed lookups and invalid amounts (7ms)
+  ✓   2 unit/payout-commands.spec.ts:5:1 › Cluster coins and metadata round trip while preserving unknown fields and executable expressions (12ms)
+  ✓   3 unit/reel-commands.spec.ts:11:13 › Ancient Dragon strip edits preserve source and update every wrapped strip and shared stop domain (25ms)
+  ✓   4 unit/reel-commands.spec.ts:11:13 › Woodland Whisper strip edits preserve source and update every wrapped strip and shared stop domain (28ms)
+  ✓   5 unit/reel-commands.spec.ts:11:13 › Le Militare strip edits preserve source and update every wrapped strip and shared stop domain (66ms)
+  ✓   7 unit/reel-commands.spec.ts:48:1 › Strip transactions reject empty, unknown, oversized and changed reel count before any mutation (5ms)
+  ✓   6 unit/reel-commands.spec.ts:36:1 › Physical reel mapping rejects customized stops, broken wrapping and geometry-only models; bought sources have a complete condition (57ms)
+  ✓   9 unit/reel-conditioning.spec.ts:26:1 › Condition is not guessed when materialized outputs are ambiguous; declared constants survive an all-symbol strip edit (4ms)
+  ✓   8 unit/reel-conditioning.spec.ts:9:1 › Bought feature rebuilds all coupled domains, preserves source metadata and retains its rule in canonical AST (93ms)
+  ✓  11 unit/subgraph-composition.spec.ts:20:1 › Extraction keeps expressions, dependencies, data and external port connections (3ms)
+  ✓  12 unit/subgraph-composition.spec.ts:39:1 › Extraction rejects ambiguous boundaries, missing selections and name collisions without mutating the model (2ms)
+  ✓  13 unit/subgraph-composition.spec.ts:52:1 › Extraction closes transitive and inline dependencies and preserves nested library parameters (1ms)
+  ✓  14 unit/subgraph-composition.spec.ts:71:1 › Extraction rejects unresolved and cyclic dependencies before changing the runnable graph (1ms)
+  ✓  10 unit/reel-conditioning.spec.ts:48:1 › Conditioned changes reject impossible events, integer-budget overflow and loss of metadata on removed nodes (138ms)
+
+  14 passed (987ms)
