@@ -47,3 +47,23 @@ test('Empty phone workspace has an accessible project entry before selecting any
   await expect(project).toHaveAttribute('aria-description', 'No project selected');
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
 });
+
+test('Phone graph retains a usable viewport and selected-node review under the visible project header', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto('/build?project=nine-lives');
+  const graph = page.locator('.react-flow');
+  await expect(graph).toBeVisible();
+  expect((await graph.boundingBox())!.height).toBeGreaterThanOrEqual(280);
+  await page.getByLabel('Focus graph node').selectOption('round');
+  await page.getByRole('button', { name: 'Close inspector', exact: true }).click();
+  await page.getByRole('button', { name: '100% zoom', exact: true }).click();
+  await graph.scrollIntoViewIfNeeded();
+  await expect(page.locator('.react-flow__node[data-id="round"]')).toBeVisible();
+  const node = (await page.locator('.react-flow__node[data-id="round"]').boundingBox())!;
+  const zoom = (await page.locator('.canvas-zoom').boundingBox())!;
+  expect(node.y + node.height).toBeLessThanOrEqual(zoom.y);
+  await expect(page.getByRole('link', { name: 'Choose project', exact: true })).toBeInViewport();
+  await expect(page.getByRole('status').filter({ hasText: 'read only' })).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  await page.screenshot({ path: path.resolve('../docs/design/qa', 'project-header-phone-graph.png'), fullPage: true });
+});

@@ -682,6 +682,8 @@ body { font-size: 14px; line-height: 1.5; }
 }
 @media (max-width: 767px) {
   .workspace-shell .workspace:has(.canvas-wrap) { min-height: 600px; flex: none; width: 100%; }
+  .workspace-shell .canvas-wrap { flex: 0 0 auto !important; min-height: 560px; }
+  .workspace-shell .canvas-wrap > .react-flow { flex: 0 0 360px; min-height: 360px; }
   .workspace-shell .palette, .add-nodes { display: none; }
   .graph-heading { padding: 10px; }
   .canvas-toolbar select { max-width: 100%; }
@@ -781,7 +783,7 @@ body.compact .model-data-page .reel-data-table tbody th, body.compact .model-dat
 .trace-raw pre { max-height: 500px; overflow: auto; background: var(--bg-1); padding: 16px; font: 13px var(--mono); }
 .debug-page .hint { color: var(--muted); font-size: 13px; line-height: 1.6; }
 @media (max-width: 1100px) { .trace-workspace { grid-template-columns: minmax(0,1fr); } .trace-rail { border-left: 0; border-top: 1px solid var(--line); padding: 16px 0; } }
-@media (max-width: 767px) { .debug-page { padding: 16px; } .debug-inputs label { width: 140px; } .trace-cell { aspect-ratio: 1; } .trace-cell small { font-size: 10px; } .round-receipt dl > div { display: block; } }
+@media (max-width: 767px) { .debug-page { padding: 16px; } .debug-inputs label { width: 140px; } .trace-cell { aspect-ratio: 1; } .trace-cell small { font-size: 12px; } .round-receipt dl > div { display: block; } }
 .data-view-switch { display: flex; flex-wrap: wrap; gap: 8px; padding-bottom: 20px; margin-bottom: 20px; border-bottom: 1px solid var(--line); }
 .data-view-switch [aria-selected=true] { border-color: var(--sampled); background: var(--bg-2); }
 /* Appearance belongs to the header and never obstructs workspace actions. */

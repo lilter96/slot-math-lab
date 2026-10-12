@@ -1,4 +1,4 @@
-import { test, expect, waitForRunLaunch } from './fixtures';
+import { test, expect, waitForRunLaunch, calculateWithQuota } from './fixtures';
 import path from 'node:path';
 
 test('Simulation controls and evidence labels remain readable with phone-size targets', async ({ page }) => {
@@ -52,5 +52,23 @@ test('Actual saved Results evidence has readable method/status labels at four si
     expect(sizes.length).toBeGreaterThan(0); expect(Math.min(...sizes)).toBeGreaterThanOrEqual(12);
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
     await page.screenshot({ path: path.resolve('../docs/design/qa', `evidence-legibility-results-${width}.png`), fullPage: true });
+  }
+});
+
+test('Actual trace indices remain readable and recorded hit positions visible on phone', async ({ page }) => {
+  test.setTimeout(180000);
+  await page.goto('/debug?project=nine-lives');
+  await page.getByLabel('Debug seed').fill('1');
+  await calculateWithQuota(page, '/api/play/round', 'Run current model');
+  await expect(page.getByRole('heading', { name: 'Executed round', exact: true })).toBeVisible();
+  await page.locator('.trace-hit').first().click();
+  await expect(page.locator('.trace-cell.hit')).toHaveCount(5);
+  for (const [width, height] of [[1440, 900], [1280, 800], [1024, 768], [390, 844]]) {
+    await page.setViewportSize({ width, height });
+    await page.locator('.trace-board').scrollIntoViewIfNeeded();
+    const sizes = await page.locator('.trace-cell small').evaluateAll(elements => elements.map(element => parseFloat(getComputedStyle(element).fontSize)));
+    expect(sizes).toHaveLength(30); expect(Math.min(...sizes)).toBeGreaterThanOrEqual(12);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+    await page.screenshot({ path: path.resolve('../docs/design/qa', `evidence-legibility-debug-${width}.png`), fullPage: true });
   }
 });
