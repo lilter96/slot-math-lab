@@ -185,7 +185,7 @@ export default function Export() {
             <h1>Export / Import</h1>
 
           </div>
-          <div className="par-meta">
+          <div className="par-meta" style={{ overflowWrap: 'anywhere', fontSize: 12 }}>
             Config hash: <span className="mono" style={{ color: 'var(--exact)' }}>{exportHash}</span>
             {' · '}{nodes.length} nodes · {edges.length} edges · {mechanics.length} mechanics
           </div>
@@ -221,7 +221,7 @@ export default function Export() {
               </div>
             )}
             {saveConfig.isError && (
-              <div style={{ marginTop: 8, padding: '6px 12px', background: 'var(--danger-dim)', border: '1px solid var(--danger)', borderRadius: 6, fontSize: 11, color: 'var(--danger)', fontFamily: 'var(--mono)' }}>
+              <div style={{ marginTop: 8, padding: '6px 12px', background: 'var(--danger-dim)', border: '1px solid var(--danger)', borderRadius: 6, fontSize: 12, color: 'var(--danger)', fontFamily: 'var(--mono)' }}>
                 {saveConfig.error instanceof Error ? saveConfig.error.message : 'Save failed'}
               </div>
             )}
@@ -248,7 +248,7 @@ export default function Export() {
             )}
             {importHash && !importError && (
               <div style={{ marginTop: 8, display: 'flex', alignItems: 'center', gap: 12 }}>
-                <div className="mono" style={{ fontSize: 11, color: 'var(--muted)' }}>
+                <div className="mono" style={{ fontSize: 12, color: 'var(--muted)' }}>
                   Import hash: <span style={{ color: hashesMatch ? 'var(--exact)' : 'var(--epsilon)' }}>{importHash}</span>
                 </div>
                 {hashesMatch && (
@@ -297,7 +297,7 @@ export default function Export() {
 
           <div className="par-section">
             <h2>JSON Preview</h2>
-            <div className="code-block">
+            <div className="code-block" style={{ fontSize: 12 }}>
               {exportJson.substring(0, 3000)}
               {exportJson.length > 3000 && '\n… (truncated)'}
             </div>

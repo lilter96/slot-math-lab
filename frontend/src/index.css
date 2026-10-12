@@ -711,7 +711,7 @@ body { font-size: 14px; line-height: 1.5; }
 /* Dense authored tables retain full-size controls and bounded scrolling. */
 .table-density { display: flex; align-items: center; gap: 12px; margin: 0 0 16px; font-size: 13px; }
 .table-density select { width: auto; }
-.model-data-page select.inp {
+.model-data-page select.inp, .app select:not([multiple]) {
   appearance: none; color-scheme: dark; color: var(--text); background-color: var(--bg-1); padding-right: 30px;
   background-image: linear-gradient(45deg, transparent 50%, var(--muted) 50%), linear-gradient(135deg, var(--muted) 50%, transparent 50%);
   background-position: calc(100% - 15px) center, calc(100% - 10px) center;
