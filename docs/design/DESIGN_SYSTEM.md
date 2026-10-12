@@ -76,6 +76,7 @@ Never put tiny 11px faint hints in the main working path. Labels should describe
 - Inspector: 344px typical, **hidden until selection or explicit pin**. Resizable if practical; selection state survives panel toggle.
 - Background: content panels defined by spacing and subtle planes. Borders only where segmentation is meaningful.
 - Table row: 38px normal / 32px compact (user option). Use sticky headers, fixed primary column and keyboard editing.
+  - Implemented authoring-table exception (65113ba/92af329): 44px Regular / 38px Compact so 36px desktop inputs fit without overlapping rows. Phone targets remain ≥44px. Literal 32px editing rows are not claimed; see `qa/TABLE_CONTRACT_REVIEW.md` for measurements and rationale.
 - Text inputs: >=36px minimum target desktop; clear hover/focus/error states and in-context helper text.
 - Graph nodes: header/body contrast, port names legible at standard zoom; edge diagnostics should not depend on color alone.
 

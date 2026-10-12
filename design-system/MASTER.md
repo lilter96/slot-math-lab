@@ -42,6 +42,8 @@ Actual method/state labels accompany color. A valid numeric payload and current 
 - Desktop: contextual panels; 1024–1439 uses inspector overlay. Mobile provides useful project/overview/results/forms and a labelled graph movement/connection limitation. Internal scrolling must not cause document overflow.
 - Keyboard: visible focus, skip link, predictable navigation, native expandable mechanic details, Escape and focus return. Honor reduced motion. Validate new interaction patterns with affected checks.
 
+Authoring tables now expose persistent user-scoped density, fixed header/primary columns, keyboard row movement and exact raw copy/failure fallback. Interactive desktop rows use 44px Regular / 38px Compact to preserve 36px inputs; phone controls remain ≥44px. This is a documented exception to the initial 32px Compact target. See [actual table review and agent scoring](../docs/design/qa/TABLE_CONTRACT_REVIEW.md).
+
 ## Evidence and remaining acceptance
 
 The recorded bundle passed 64 viewport overflow checks at four sizes; targeted token contrast is at least 5.0069:1. These observations do not establish complete accessibility certification, graph-interaction performance or practitioner acceptance. See [visual review](../docs/design/qa/FINAL_VISUAL_REVIEW.md).

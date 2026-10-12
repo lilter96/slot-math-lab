@@ -173,3 +173,11 @@ Weighted/project async follow-up (5913d07): WeightedDrawEditor.tsx and Projects.
 Validation lifecycle follow-up (482c548): existing validatedModelEdit.ts, Features.tsx, ClusterPayoutEditor.tsx and reel-strips.spec.ts entries remain affected; new `frontend/e2e/validation-lifecycle.spec.ts` also requires Reformat/Full Cleanup. Actual standalone passes exit 3; no Full Cleanup success. Logs validation-lifecycle-*-rider.log.
 
 Controlled race tests: new `frontend/e2e/focus-scope.spec.ts` and changed `frontend/e2e/data-execution-scope.spec.ts` require both passes. Actual standalone attempts exit 3; Full Cleanup remains unavailable. Logs focus-scope-rider.log and nested-execution-rider.log.
+
+Numeric-table follow-up (65113ba/92af329): listed ModelData.tsx, WeightedDrawEditor.tsx, ClusterPayoutEditor.tsx, store/index.ts and index.css plus these new files require both passes:
+
+- `frontend/src/components/editor/RawNumber.tsx`
+- `frontend/src/lib/tableKeyboard.ts`
+- `frontend/e2e/table-contract.spec.ts`
+
+Actual table-contract-*-rider.log attempts exit 3; no Reformat/Full Cleanup success is claimed.

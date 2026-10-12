@@ -149,3 +149,7 @@ Remaining keyboard/async/table/rubric/human and Core/Rider gates are tracked in 
 ## Controlled graph/context races
 
 New tests prove actual delayed node-focus cancellation across same-ID projects/mechanics and newer selections, including forced cancelled-callback replay and a working active control. Mounted nested data execution aborts on a real toolbar context change; a fresh API execution succeeds. Scoped lint, Chromium 5/5 and Firefox/WebKit 10/10 pass. No app changes, rebuild or broad suites. See [race review and exact evidence scope](qa/FOCUS_SCOPE_REVIEW.md). Whole-goal and required cleanup gates remain open.
+
+## Authored table density and raw values
+
+65113ba/92af329 deliver persistent owner-scoped density, fixed header/primary columns, keyboard weighted/payout editing and exact raw copy with selectable failure fallback. Actual WebKit review caught and fixed native select contrast. Twelve real four-size captures and measured 38px desktop/45px phone Compact weighted rows preserve 36px/44px fields. The original 32px target is explicitly not claimed. Build/scoped lint pass; detailed initial failures and only failed/new/affected reruns are retained in [table review](qa/TABLE_CONTRACT_REVIEW.md). Final affected visual/select Chromium 2/2 and Firefox/WebKit 6/6; reel density Chromium 1/1 and Firefox/WebKit 2/2. Model data agent assessment is 14/16; other views and actual practitioner acceptance remain pending. No full suite or math/backend changes.
