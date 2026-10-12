@@ -56,7 +56,7 @@ test('Verified account changes isolate browser projects and restore only the ret
   await signIn(bob);
   await expect(page.locator('.project-list[aria-label="Personal projects"] .project-row')).toHaveCount(0);
   await page.getByRole('button', { name: 'Create X7 Club project', exact: true }).click();
-  await expect(page.getByRole('heading', { name: 'X7 Club', exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'X7 Club', exact: true, level: 1 })).toBeVisible();
   await signIn(alice);
   const rows = page.locator('.project-list[aria-label="Personal projects"] .project-row');
   await expect(rows).toHaveCount(1); await expect(rows).toContainText('Ancient Dragon'); await expect(rows).not.toContainText('X7 Club');
@@ -121,7 +121,7 @@ test('Session verification respects Retry-After before opening any saved project
 test('A newly saved server model appears immediately and opens as a separate private copy', { tag: '@critical' }, async ({ page }) => {
   await signInWithQuota(page.request, `saved-project-${Date.now()}`);
   await page.goto('/projects');
-  await expect(page.getByText('No server versions saved yet. Save a project from Export.', { exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'No server versions saved yet', exact: true })).toBeVisible();
   await page.getByRole('button', { name: 'Create Ancient Dragon project', exact: true }).click();
   await page.getByRole('tab', { name: 'Export', exact: true }).click();
   await page.getByRole('button', { name: 'Save to server', exact: true }).click();

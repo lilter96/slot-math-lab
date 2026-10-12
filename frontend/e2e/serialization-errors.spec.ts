@@ -74,12 +74,12 @@ test('Editable backup restores incomplete source into an independent project and
   await page.getByRole('tab', { name: 'My projects', exact: true }).click();
   await expect(page.locator('[aria-label="Personal projects"] .project-row')).toHaveCount(3);
   await page.locator('[aria-label="Personal projects"] .project-row').filter({ hasText: 'REF-A Coin' }).getByRole('button', { name: 'Open project', exact: true }).click();
-  await expect(page.getByRole('heading', { name: 'REF-A Coin', exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'REF-A Coin', exact: true, level: 1 })).toBeVisible();
   await expect.poll(() => page.evaluate(() => {
     const saved = JSON.parse(localStorage.getItem('slotmath-draft-v1') ?? '{}');
     return saved.configName === 'REF-A Coin' && Object.keys(saved.projects ?? {}).length === 3;
   })).toBe(true);
-  await page.reload(); await expect(page.getByRole('heading', { name: 'REF-A Coin', exact: true })).toBeVisible();
+  await page.reload(); await expect(page.getByRole('heading', { name: 'REF-A Coin', exact: true, level: 1 })).toBeVisible();
 });
 
 test('Invalid models keep measurement dialogs editable without posting a substitute schema or collection plan', async ({ page }) => {

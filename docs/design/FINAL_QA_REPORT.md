@@ -4,6 +4,8 @@ Date: 2026-10-12. Branch `feat/precision-workbench-redesign`, isolated worktree 
 
 ## Delivered behavior
 
+My projects now has a complete private-library composition, inline rename, source-preserving duplication, explicit import/storage and a responsive template/server catalog. Root flows, account isolation, save/open, recovery and whole-page screenshots have scoped evidence; see [My projects review](qa/PROJECTS_PAGE_REDESIGN.md). Simulate and broader release gates remain open.
+
 Results has a new page-level composition and below-fold verification forms, with whole-page expanded browser/visual evidence. This supersedes earlier visual acceptance of the unstyled lower forms, not the existing mathematical contracts. See [Results redesign and full-scroll review](qa/RESULTS_PAGE_REDESIGN.md). The remaining pages and release gates are still open.
 
 AI source follow-up: generation preserves complete canonical models and opens a compiler-validated independent project; Auto-tune preserves canonical inputs, reports only supplied values and opens a separate candidate. Source-aware cancellation, modal focus and original-project retention have scoped evidence: 10 final Chromium cases, the original 16 Firefox/WebKit cases and four focused follow-up cross-browser cases. These are stubbed provider responses with real compiler/evaluation checks, not provider-quality certification. Required Rider cleanup and broader release gates remain open. See [AI source review](qa/AI_MODEL_SOURCE_REVIEW.md).

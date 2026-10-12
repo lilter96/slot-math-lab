@@ -1,5 +1,7 @@
 # Required Rider cleanup
 
+My projects page: `frontend/src/pages/Projects.tsx`, `frontend/src/pages/Projects.css`, `frontend/src/index.css`, `frontend/e2e/projects-page.spec.ts`, `frontend/e2e/private-projects.spec.ts`, `frontend/e2e/serialization-errors.spec.ts`. Required passes remain outstanding. Standalone attempts exited 3: projects-page-rider.log, projects-composition-rider.log, projects-page-tests-rider.log, projects-review-rider.log, projects-copy-tests-rider.log, projects-grid-rider.log and projects-owner-tests-rider.log.
+
 Results page redesign: `frontend/src/pages/Results.tsx`, `frontend/src/pages/results.css`, `frontend/src/lib/results/api.ts`, `frontend/src/components/simulate/VerificationWorkbench.tsx`, `frontend/src/components/simulate/VerificationWorkbench.css`, `frontend/e2e/results-page.spec.ts`. Required passes remain outstanding. Standalone attempts exited 3 in results-page-rider.log, results-composition-rider.log, results-final-rider.log, results-tools-rider.log, results-tools-test-rider.log, results-lower-rider.log, results-scroll-rider.log, results-scroll-tests-rider.log and results-expanded-tests-rider.log.
 
 Editable draft restoration: `frontend/src/lib/editableDraft.ts`, `frontend/src/pages/Projects.tsx`, `frontend/unit/editable-draft.spec.ts`, `frontend/e2e/serialization-errors.spec.ts`. Required passes remain outstanding; standalone attempts in editable-restore-rider.log, editable-restore-tests-rider.log and editable-restore-persist-rider.log exited 3 with `solution can't be null`.
