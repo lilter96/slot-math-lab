@@ -77,6 +77,9 @@ public sealed class GraphCompiler
         // Phase 0a: Merge catalog mechanics with user-provided mechanics so
         // LibraryNode references resolve to the standard catalog without
         // requiring callers to manually supply the built-in subgraphs.
+
+        ArgumentNullException.ThrowIfNull(config);
+
         Dictionary<string, CustomMechanic> mergedMechanics = MechanicCatalog.Default.Merge(config.Mechanics);
         config = config with
         {
