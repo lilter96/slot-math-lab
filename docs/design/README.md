@@ -1,0 +1,16 @@
+# Product and design documentation
+
+The product supports **many users, each with many private projects**. A project contains a game/model and its editing context; users can also have their own personal materials. Nine Lives is one example, not the application's only game. Start at **My projects**. Sharing, collaboration, invitations and public project links are deferred.
+
+Use these documents together:
+
+- [Product requirements](../PRD.md): ownership, separate project identities and mathematical contracts.
+- [UX masterplan](UX_MASTERPLAN.md): project library, navigation and selected-model editing.
+- [Private workspaces](PRIVATE_WORKSPACES.md): implemented persistence, account isolation and current limits.
+- [Design system](DESIGN_SYSTEM.md): interface requirements for the project library and workbench.
+- [Implementation handoff](CODEX_HANDOFF.md): execution requirements.
+- [Implementation status](IMPLEMENTATION_STATUS.md) and [requirements audit](REQUIREMENTS_AUDIT.md): delivery evidence and outstanding work.
+
+Treat older single-game screenshots and slice reports as historical evidence. They do not narrow the current product scope. Workspace-level brief copies live in `../../../docs/design`; update the maintained documents here first.
+
+Documentation-only changes require no tests. Other local changes follow the affected/new-test policy in [AGENTS.md](../../AGENTS.md).

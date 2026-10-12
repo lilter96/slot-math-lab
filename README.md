@@ -14,6 +14,8 @@ A .NET 10 / React 19 engineering prototype where each user can manage many priva
 
 Start with [the core](backend/SlotMath.Core), [cross-check tests](backend/SlotMath.Core.Tests/Mechanics/CrossCheck), and [the build contract](docs/PRD.md). The PRD describes intended behavior and acceptance goals; it is not proof that every goal is complete.
 
+The [product and design documentation](docs/design/README.md) describes the multi-project workspace: each user owns many private projects and personal materials; each selected model determines its own editing capabilities. Sharing is deferred.
+
 ## Scope and verification
 
 This is an experimental engineering showcase. It has no gambling certification, production-readiness claim, or proven plugin security boundary. The bundled database credentials and default JWT settings are development defaults; replace them before any hosted deployment. Plugin support must be treated as trusted-code experimentation.

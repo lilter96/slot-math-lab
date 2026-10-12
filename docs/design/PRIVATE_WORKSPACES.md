@@ -2,6 +2,14 @@
 
 The user clarified on 2026-10-12: one user may own many games, models and personal materials. Projects are private; sharing/collaboration is out of scope. This overrides the earlier design brief's assumption that Nine Lives is the primary entry experience.
 
+## Product ownership contract
+
+- A user owns a collection of independent projects, rather than one global game. Selecting a project selects the model and editing context used by its workbench.
+- Project-specific data, drafts and results must retain their project/source association. A result from one game must not become evidence for another when switching projects.
+- Personal materials belong to their user. Project-specific materials must also retain their project association; mentioning personal materials does not claim that a general-purpose file library has been implemented.
+- User identity, local project identity, authored model ID and server configuration/version identity serve different purposes. Matching authored IDs or copying the same template must not merge ownership, drafts or version histories.
+- Future sharing would require a separate access model. It is not part of the current feature set, and there are no current cross-user access grants.
+
 ## Implemented behavior
 
 `/` opens `/projects`. A fresh workspace does not automatically create Nine Lives. The personal library creates independent copies of five migrated games, the separate Nine Lives reference model, two starter models or a blank graph. It supports search, opening, duplication, renaming and personal JSON import. Opening another project retains the current editor draft, positions, open nested mechanic and recovery state. Each project has a generated identity independent of the authored graph ID. `?project=nine-lives` remains an explicit reference-model entry point; legacy inbound `?load=` links remain import compatibility. Export no longer creates share links.

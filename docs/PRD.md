@@ -23,6 +23,8 @@ features. Designers extend the catalog without an engineering release wherever p
 
 Each user may own many private projects, games, models and personal materials. Many users work independently. The application starts at **My projects**; each blank/imported/template-copy project has a separate identity and preserves its own canonical edits and nested context on switching. Nine Lives is a reference fixture, not the default game or a universal schema.
 
+The ownership hierarchy is **user → private projects → each project's model and editing context**. Personal materials remain owner-scoped, with project associations where applicable. Do not use a single global game, a template's authored ID or the currently selected project as a substitute for user ownership. This is a product contract; the implemented material/storage capabilities and limits are documented separately in PRIVATE_WORKSPACES.
+
 Browser drafts are scoped to verified user identity and autosave locally; saving a server version is explicit. Configurations, runs, experiments and realtime evidence are owner-scoped. Separate copies of one authored model do not share storage/version identities. No automatic cross-device draft synchronization is claimed.
 
 **Sharing/collaboration are deferred.** The earlier G25/G29 references to sharing are future roadmap work, not current deliverables. No public links, invitations, publication or teams are available. JSON export/import and legacy inbound import compatibility remain; run bookmarks are private. See [private workspace behavior](design/PRIVATE_WORKSPACES.md) and [the updated UX plan](design/UX_MASTERPLAN.md). This clarification leaves all mathematical invariants and pinned constants unchanged.
