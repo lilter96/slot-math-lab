@@ -76,9 +76,9 @@ export default function Layout() {
           </div>
         </div>
 
-        <NavLink to="/projects" className="project-pill" aria-label="Choose project">
+        <NavLink to="/projects" className="project-pill" aria-label="Choose project" aria-description={configName ? `Current project: ${configName}` : 'No project selected'} title={configName ?? 'Choose a project'}>
           <span className="dot" />
-          {configName ?? 'Choose a project'}
+          <span className="project-name">{configName ?? 'Choose a project'}</span>
         </NavLink>
 
         <div className="topbar-right">{configName && <NavLink className="btn primary" to="/simulate">Run analysis</NavLink>}

@@ -106,6 +106,8 @@ button { font-family: inherit; color: inherit; cursor: pointer; }
   background: var(--bg-2); border: 1px solid var(--line); font-size: 12px; color: var(--muted);
 }
 .project-pill .dot { width:6px; height:6px; border-radius:50%; background: var(--exact); }
+.project-pill { min-width: 0; max-width: 40vw; }
+.project-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 /* ── Tabs ───────────────────────────────────────────────────────── */
 .tabs { display: flex; gap: 2px; margin-left: 8px; background: var(--bg-2); padding: 3px; border-radius: 9px; border: 1px solid var(--line); }
@@ -563,8 +565,11 @@ body { font-size: 14px; line-height: 1.5; }
   .metric-label { flex-wrap: wrap; }
 }
 @media (max-width: 767px) {
-  .topbar { padding: 8px 12px; height: auto; flex-wrap: nowrap; }
-  .topbar .project-pill, .topbar .brand-mark, .topbar-right > a:not(.primary) { display: none; }
+  .topbar { padding: 8px 12px; height: auto; flex-wrap: wrap; gap: 6px; }
+  .topbar .brand-name, .topbar-right > a:not(.primary) { display: none; }
+  .topbar .brand-mark { display: block; width: 20px; height: 20px; }
+  .topbar .project-pill { display: flex; flex: 1; min-width: 96px; max-width: none; min-height: 44px; }
+  .topbar .project-pill .dot { flex-shrink: 0; }
   .topbar-right { margin-left: auto; }
   .brand-name { font-size: 14px; }
   .workspace-shell { flex-direction: column; }
