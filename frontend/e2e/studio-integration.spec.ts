@@ -54,8 +54,8 @@ async function choose(page: Page, label: string) {
     await page.locator('.studio-source-explorer button').filter({hasText: label}).first().click();
 }
 
-test('Studio integrated Ancient Dragon: reel replacement/order, line payout and path commit together, then Graph/play/export/reimport retain the source', async ({page}) => {
-    const graph = model('ancient-dragon/ordinary'), reels = reelBindings(graph)[0],
+for (const caseId of ['ancient-dragon/ordinary', 'woodland-whisper/ordinary', 'woodland-whisper/bought']) test(`Studio integrated ${caseId}: reel replacement/order, line payout and path commit together, then Graph/play/export/reimport retain the source`, async ({page}) => {
+    const graph = model(caseId), reels = reelBindings(graph)[0],
         line = payBindings(graph).find(binding => binding.kind === 'line')!, row = line.rows[0],
         symbol = String((Number(reels.stops[0][0].symbol) + 1) % (graph.symbols as unknown[]).length);
     await open(page, graph);
@@ -73,7 +73,7 @@ test('Studio integrated Ancient Dragon: reel replacement/order, line payout and 
     expect(lineBindings(changed)[0].lines[0][0]).toBe(changedRow);
     await playAndRoundtrip(page, changed);
 });
-for (const caseId of ['x7-club/bought', 'nine-lives-tgslots/bought']) test(`Studio integrated ${caseId}: one board/landing distribution and its payout/prize edit preserve independent stages, payloads and bought price`, async ({page}) => {
+for (const caseId of ['x7-club/ordinary', 'x7-club/bought', 'nine-lives-tgslots/ordinary', 'nine-lives-tgslots/bought']) test(`Studio integrated ${caseId}: one board/landing distribution and its payout/prize edit preserve independent stages, payloads and entry price`, async ({page}) => {
     const graph = model(caseId), board = cellBindings(graph)[0],
         source = board?.cells[0].source ?? weightBindings(graph).find(binding => binding.source.node.stateWriteKey === 'landed1')!,
         outcome = source.rows[0];
@@ -95,7 +95,7 @@ for (const caseId of ['x7-club/bought', 'nine-lives-tgslots/bought']) test(`Stud
     expect(changed.nodes).toEqual(graph.nodes);
     await playAndRoundtrip(page, changed);
 });
-for (const caseId of ['le-militare/siege/spin', 'le-militare/recon/air-raid']) test(`Studio integrated ${caseId}: paid/free strips and multiplier weights stay separate and held/weighted-cell state survives real execution`, async ({page}) => {
+for (const {caseId} of corpus.filter(value => value.caseId.startsWith('le-militare/'))) test(`Studio integrated ${caseId}: paid/free strips and multiplier weights stay separate and held/weighted-cell state survives real execution`, async ({page}) => {
     const graph = model(caseId), reels = reelBindings(graph),
         multiplier = weightBindings(graph).find(binding => binding.source.node.stateWriteKey === 'drawnMultiplier')!;
     await open(page, graph);
