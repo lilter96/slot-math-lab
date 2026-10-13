@@ -1,0 +1,119 @@
+
+Running 73 tests using 1 worker
+
+(node:1047931) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:1047931) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   1 [chromium] › e2e/graph-studios-storage.spec.ts:23:1 › Graph studios storage: semantic commits persist and reload correctly while ordinary draft timers remain pending (1.6s)
+  ✓   2 [chromium] › e2e/graph-studios-storage.spec.ts:64:1 › Graph studios storage: confirmed autosave retains envelope views and unnamed raw imports remain unnamed after reload (512ms)
+  ✓   3 [chromium] › e2e/pr19-acceptance.spec.ts:100:1 › PR19 conditional law: mixed → all-one → export/reimport → mixed retains the condition and independently exact 1/3 payout (3.7s)
+  ✓   4 [chromium] › e2e/pr19-acceptance.spec.ts:140:86 › PR19 intentional nine-lives/reference source edit remains executable and portable (2.4s)
+  ✓   5 [chromium] › e2e/pr19-acceptance.spec.ts:140:86 › PR19 intentional starter/cluster source edit remains executable and portable (2.3s)
+  ✓   6 [chromium] › e2e/pr19-acceptance.spec.ts:140:86 › PR19 intentional starter/cascade source edit remains executable and portable (2.5s)
+  ✓   7 [chromium] › e2e/pr19-acceptance.spec.ts:181:1 › PR19 compatible custom graph: independently known payout 7 → 21 survives Studio/Graph/Designer/export and undo (3.7s)
+  ✘   8 [chromium] › e2e/pr19-acceptance.spec.ts:206:1 › PR19 fresh paired visual acceptance: full tabs, scrollers, source, dialogs, dirty/error/applied, keyboard and route order (29.9s)
+(node:1050312) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:1050312) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   9 [chromium] › e2e/pr19-machine-inputs.spec.ts:27:98 › PR19 raw Weight input cannot round, survive as a valid integer, or reach the canonical graph (1.1m)
+  ✓  10 [chromium] › e2e/pr19-machine-inputs.spec.ts:27:98 › PR19 raw Payload input cannot round, survive as a valid integer, or reach the canonical graph (5.5s)
+  ✓  11 [chromium] › e2e/pr19-machine-inputs.spec.ts:27:98 › PR19 raw State visit budget input cannot round, survive as a valid integer, or reach the canonical graph (5.5s)
+  ✓  12 [chromium] › e2e/pr19-machine-inputs.spec.ts:27:98 › PR19 raw Initial value (JSON literal) input cannot round, survive as a valid integer, or reach the canonical graph (5.4s)
+  ✓  13 [chromium] › e2e/pr19-machine-inputs.spec.ts:57:1 › PR19 an explicit zero weight applies through the real compiler and stays zero after reload/export/reimport (3.3s)
+  ✓  14 [chromium] › e2e/private-projects.spec.ts:18:1 › Personal projects retain nested edits, independent copies and different game geometry @critical (1.8s)
+  ✓  15 [chromium] › e2e/private-projects.spec.ts:58:1 › Verified account changes isolate browser projects and restore only the returning owner @critical (490ms)
+  ✓  16 [chromium] › e2e/private-projects.spec.ts:84:1 › Unavailable or unsigned required session does not hydrate private browser drafts @critical (264ms)
+  ✓  17 [chromium] › e2e/private-projects.spec.ts:107:1 › Validation finishing after a project switch cannot apply edits to an identical copy @critical (592ms)
+  ✓  18 [chromium] › e2e/private-projects.spec.ts:131:1 › A rejected browser save keeps the current model available and gives an explicit backup path @critical (429ms)
+  ✓  19 [chromium] › e2e/private-projects.spec.ts:152:1 › Session verification respects Retry-After before opening any saved projects @critical (1.5s)
+  ✓  20 [chromium] › e2e/private-projects.spec.ts:167:1 › A newly saved server model appears immediately and opens as a separate private copy @critical (705ms)
+  ✓  21 [chromium] › e2e/reel-paytable-studio.spec.ts:110:1 › Studio: ordered reel changes stay staged, survive immediate reload, validate against the real compiler and undo completely (2.3s)
+  ✓  22 [chromium] › e2e/reel-paytable-studio.spec.ts:130:1 › Studio: one board cell changes real probability while independent peers and zero payloads stay intact (2.0s)
+  ✓  23 [chromium] › e2e/reel-paytable-studio.spec.ts:156:1 › Studio: invalid text/imports never change source and closing the inspector retains staged inputs (1.5s)
+  ✓  24 [chromium] › e2e/reel-paytable-studio.spec.ts:177:1 › Studio: a payout increase updates its computed bound and the real executed result without clipping the new win (1.0m)
+  ✓  25 [chromium] › e2e/reel-paytable-studio.spec.ts:193:1 › Studio: explicitly keeping the existing cap preserves its actual clipping rule (1.3s)
+  ✓  26 [chromium] › e2e/reel-paytable-studio.spec.ts:206:1 › Studio: dynamic weights retain their expression and do not display static ratios from fallback rows (1.2s)
+  ✓  27 [chromium] › e2e/reel-paytable-studio.spec.ts:219:1 › Studio: all 65 game/variant/reference/custom corpus graphs open and export without changing executable source (2.0m)
+  ✓  28 [chromium] › e2e/reel-paytable-studio.spec.ts:228:39 › Studio: ordinary cluster size edits change executed payouts across minimum-five and isolated-cell boundaries (2.2s)
+  ✓  29 [chromium] › e2e/reel-paytable-studio.spec.ts:228:39 › Studio: weighted cluster size edits change executed payouts across minimum-five and isolated-cell boundaries (2.3s)
+  ✓  30 [chromium] › e2e/reel-paytable-studio.spec.ts:267:1 › Studio: prize values and independent weights survive immediate reload and change the real expected payout (2.3s)
+  ✓  31 [chromium] › e2e/reel-paytable-studio.spec.ts:291:1 › Studio: the selected X7 prize table and its pending values recover immediately instead of returning to line payouts (1.6s)
+  ✓  32 [chromium] › e2e/reel-paytable-studio.spec.ts:320:1 › Studio: adding a TGSlots size across all symbol rows and editing one cell commits the whole cluster dependency closure (1.4s)
+  ✓  33 [chromium] › e2e/state-machine-designer.spec.ts:53:1 › Authored action edit survives reload, applies once, runs raw graph, exports/reimports and undoes the whole source (3.5s)
+  ✓  34 [chromium] › e2e/state-machine-designer.spec.ts:78:1 › Create a connected feature, author its action and execute through one original settlement sink (2.3s)
+  ✓  35 [chromium] › e2e/state-machine-designer.spec.ts:122:1 › An independent machine use gets a private namespace and remains editable in the table (2.2s)
+  ✓  36 [chromium] › e2e/state-machine-designer.spec.ts:143:1 › An imported feature use can get an independent definition without replacing its shared game fields or paid-entry contract (1.5s)
+  ✓  37 [chromium] › e2e/state-machine-designer.spec.ts:163:1 › Weighted actions and transition priority change actual exact and seeded results through the same machine editors (3.0s)
+  ✓  38 [chromium] › e2e/state-machine-designer.spec.ts:195:1 › Compiler rejection and cancellation retain the private source and pending inputs (2.7s)
+  ✓  39 [chromium] › e2e/state-machine-designer.spec.ts:229:1 › A pending designer draft cannot overwrite direct source edits made in Logic Graph (2.7s)
+  ✓  40 [chromium] › e2e/state-machine-designer.spec.ts:246:151 › Existing ancient-dragon/ordinary: real source edit → graph → seeded execution → raw export/import (1.0m)
+  ✓  41 [chromium] › e2e/state-machine-designer.spec.ts:246:151 › Existing woodland-whisper/bought: real source edit → graph → seeded execution → raw export/import (2.8s)
+  ✓  42 [chromium] › e2e/state-machine-designer.spec.ts:246:151 › Existing x7-club/bought: real source edit → graph → seeded execution → raw export/import (2.5s)
+  ✓  43 [chromium] › e2e/state-machine-designer.spec.ts:246:151 › Existing nine-lives-tgslots/bought: real source edit → graph → seeded execution → raw export/import (2.9s)
+  ✓  44 [chromium] › e2e/state-machine-designer.spec.ts:246:151 › Existing le-militare/siege/spin: real source edit → graph → seeded execution → raw export/import (3.3s)
+  ✓  45 [chromium] › e2e/state-machine-designer.spec.ts:292:1 › Full-page visual review captures all states, table, lower sections and responsive inspector (9.7s)
+  ✓  46 [chromium] › e2e/state-machine-designer.spec.ts:348:1 › Imported family visual review covers root, nested editor, table and lower evidence on desktop and phone (1.5m)
+  ✓  47 [chromium] › e2e/studio-integration.spec.ts:58:107 › Studio integrated ancient-dragon/ordinary: reel replacement/order, line payout and path commit together, then Graph/play/export/reimport retain the source (2.4s)
+  ✓  48 [chromium] › e2e/studio-integration.spec.ts:58:107 › Studio integrated woodland-whisper/ordinary: reel replacement/order, line payout and path commit together, then Graph/play/export/reimport retain the source (2.5s)
+  ✓  49 [chromium] › e2e/studio-integration.spec.ts:58:107 › Studio integrated woodland-whisper/bought: reel replacement/order, line payout and path commit together, then Graph/play/export/reimport retain the source (3.2s)
+  ✓  50 [chromium] › e2e/studio-integration.spec.ts:77:122 › Studio integrated x7-club/ordinary: one board/landing distribution and its payout/prize edit preserve independent stages, payloads and entry price (2.2s)
+  ✓  51 [chromium] › e2e/studio-integration.spec.ts:77:122 › Studio integrated x7-club/bought: one board/landing distribution and its payout/prize edit preserve independent stages, payloads and entry price (2.9s)
+  ✓  52 [chromium] › e2e/studio-integration.spec.ts:77:122 › Studio integrated nine-lives-tgslots/ordinary: one board/landing distribution and its payout/prize edit preserve independent stages, payloads and entry price (2.5s)
+  ✓  53 [chromium] › e2e/studio-integration.spec.ts:77:122 › Studio integrated nine-lives-tgslots/bought: one board/landing distribution and its payout/prize edit preserve independent stages, payloads and entry price (2.7s)
+  ✓  54 [chromium] › e2e/studio-integration.spec.ts:99:89 › Studio integrated le-militare/recon/spin: paid/free strips and multiplier weights stay separate and held/weighted-cell state survives real execution (3.3s)
+  ✓  55 [chromium] › e2e/studio-integration.spec.ts:99:89 › Studio integrated le-militare/recon/chance: paid/free strips and multiplier weights stay separate and held/weighted-cell state survives real execution (3.4s)
+  ✓  56 [chromium] › e2e/studio-integration.spec.ts:99:89 › Studio integrated le-militare/recon/air-raid: paid/free strips and multiplier weights stay separate and held/weighted-cell state survives real execution (3.2s)
+  ✓  57 [chromium] › e2e/studio-integration.spec.ts:99:89 › Studio integrated le-militare/recon/standard: paid/free strips and multiplier weights stay separate and held/weighted-cell state survives real execution (3.3s)
+  ✓  58 [chromium] › e2e/studio-integration.spec.ts:99:89 › Studio integrated le-militare/recon/elite: paid/free strips and multiplier weights stay separate and held/weighted-cell state survives real execution (3.3s)
+  ✓  59 [chromium] › e2e/studio-integration.spec.ts:99:89 › Studio integrated le-militare/recon/super: paid/free strips and multiplier weights stay separate and held/weighted-cell state survives real execution (3.2s)
+  ✓  60 [chromium] › e2e/studio-integration.spec.ts:99:89 › Studio integrated le-militare/assault/spin: paid/free strips and multiplier weights stay separate and held/weighted-cell state survives real execution (3.5s)
+  ✓  61 [chromium] › e2e/studio-integration.spec.ts:99:89 › Studio integrated le-militare/assault/chance: paid/free strips and multiplier weights stay separate and held/weighted-cell state survives real execution (3.5s)
+  ✓  62 [chromium] › e2e/studio-integration.spec.ts:99:89 › Studio integrated le-militare/assault/air-raid: paid/free strips and multiplier weights stay separate and held/weighted-cell state survives real execution (3.3s)
+  ✓  63 [chromium] › e2e/studio-integration.spec.ts:99:89 › Studio integrated le-militare/assault/standard: paid/free strips and multiplier weights stay separate and held/weighted-cell state survives real execution (3.2s)
+  ✓  64 [chromium] › e2e/studio-integration.spec.ts:99:89 › Studio integrated le-militare/assault/elite: paid/free strips and multiplier weights stay separate and held/weighted-cell state survives real execution (3.3s)
+  ✓  65 [chromium] › e2e/studio-integration.spec.ts:99:89 › Studio integrated le-militare/assault/super: paid/free strips and multiplier weights stay separate and held/weighted-cell state survives real execution (3.4s)
+  ✓  66 [chromium] › e2e/studio-integration.spec.ts:99:89 › Studio integrated le-militare/siege/spin: paid/free strips and multiplier weights stay separate and held/weighted-cell state survives real execution (3.3s)
+  ✓  67 [chromium] › e2e/studio-integration.spec.ts:99:89 › Studio integrated le-militare/siege/chance: paid/free strips and multiplier weights stay separate and held/weighted-cell state survives real execution (3.4s)
+  ✓  68 [chromium] › e2e/studio-integration.spec.ts:99:89 › Studio integrated le-militare/siege/air-raid: paid/free strips and multiplier weights stay separate and held/weighted-cell state survives real execution (3.6s)
+  ✓  69 [chromium] › e2e/studio-integration.spec.ts:99:89 › Studio integrated le-militare/siege/standard: paid/free strips and multiplier weights stay separate and held/weighted-cell state survives real execution (3.3s)
+  ✓  70 [chromium] › e2e/studio-integration.spec.ts:99:89 › Studio integrated le-militare/siege/elite: paid/free strips and multiplier weights stay separate and held/weighted-cell state survives real execution (3.3s)
+  ✓  71 [chromium] › e2e/studio-integration.spec.ts:99:89 › Studio integrated le-militare/siege/super: paid/free strips and multiplier weights stay separate and held/weighted-cell state survives real execution (3.2s)
+  ✓  72 [chromium] › e2e/studio-integration.spec.ts:126:1 › Studio recovery: rejected compiler validation retains editable inputs; cancelling a held validation ignores its late success (1.5s)
+  ✓  73 [chromium] › e2e/studio-integration.spec.ts:153:1 › Studio recovery: a late validation cannot replace a newly imported private project (2.4s)
+
+
+  1) [chromium] › e2e/pr19-acceptance.spec.ts:206:1 › PR19 fresh paired visual acceptance: full tabs, scrollers, source, dialogs, dirty/error/applied, keyboard and route order
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator: locator('.graph-studio,.machine-designer')
+    Expected: visible
+    Timeout: 5000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toBeVisible" with timeout 5000ms
+      - waiting for locator('.graph-studio,.machine-designer')
+
+
+      28 |     await expect(page.locator('.project-name')).toHaveText(String(graph.name));
+      29 |     await page.goto(origin + route);
+    > 30 |     await expect(page.locator('.graph-studio,.machine-designer')).toBeVisible();
+         |                                                                   ^
+      31 | }
+      32 |
+      33 | async function backup(page: Page): Promise<ModelGraph> {
+        at open (/home/terentiy/work/github-profile-audit/slot-math-lab-worktrees/precision-workbench-redesign/frontend/e2e/pr19-acceptance.spec.ts:30:67)
+        at /home/terentiy/work/github-profile-audit/slot-math-lab-worktrees/precision-workbench-redesign/frontend/e2e/pr19-acceptance.spec.ts:274:13
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ../../../../../../../tmp/pr19-integrated/undo-browser-results/pr19-acceptance-PR19-fresh-cb284-ed-keyboard-and-route-order-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ../../../../../../../tmp/pr19-integrated/undo-browser-results/pr19-acceptance-PR19-fresh-cb284-ed-keyboard-and-route-order-chromium/error-context.md
+
+  1 failed
+    [chromium] › e2e/pr19-acceptance.spec.ts:206:1 › PR19 fresh paired visual acceptance: full tabs, scrollers, source, dialogs, dirty/error/applied, keyboard and route order
+  72 passed (10.2m)

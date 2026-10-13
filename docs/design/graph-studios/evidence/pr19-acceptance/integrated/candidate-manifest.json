@@ -1,0 +1,158 @@
+{
+  "candidate": "639e7839bd284d2f07d4ac908a477bd3f7f23bf4",
+  "previousPublishedHead": "d868e1dcff60b12b42ae2022f944bf5d94433955",
+  "publishedMergeCandidate": "2e9daba7f99200b20a45b739b426fa4c25008542",
+  "runtimeResources": {
+    "dotnetProcessorCount": 4,
+    "browserWorkers": 1,
+    "playwrightRetries": 0,
+    "apiPort": 5167,
+    "previewPort": 4186,
+    "database": "slotmath_pr19_browser"
+  },
+  "sourceFiles": [
+    {
+      "path": "backend/SlotMath.Api.Tests/PrivateWorkspaceTests.cs",
+      "sha256": "2573e6074fc23c599d5e1f54b1528032fd3056e4a0059b890ec1149726ed0096"
+    },
+    {
+      "path": "backend/SlotMath.Api/Features/Runs/Experiments.cs",
+      "sha256": "74d2179469d11535b8fa6fa41f1e8099d20069020dbcdb7df2a220d2e0e2852b"
+    },
+    {
+      "path": "backend/SlotMath.Core.Tests/Compiler/AuthoringAuditTests.cs",
+      "sha256": "5ff2a5d3059b11d0aba31a2bb384d3ae8b5e4d57912cbde927c0af4feb046ff9"
+    },
+    {
+      "path": "backend/SlotMath.Core.Tests/Expressions/RationalFunctionTests.cs",
+      "sha256": "91ff644c6ce6938b7746efb6411c95f14030dc2065d90e6ee5633d522e6aa998"
+    },
+    {
+      "path": "backend/SlotMath.Core.Tests/Expressions/StrictCollectionTests.cs",
+      "sha256": "80a69ce49f9f04521fac609f4307bf5adb723088bed33bee75f70b00f6c7a569"
+    },
+    {
+      "path": "backend/SlotMath.Core/Measurements/ComponentAccounting.cs",
+      "sha256": "95baee1cd8ca149287b5c12583f17100e1fb75ef751a080d3548c48244cc4e41"
+    },
+    {
+      "path": "backend/SlotMath.Core/Measurements/GraphMeasurementEnumeration.cs",
+      "sha256": "158ecd9550f7de8cb174ecd17ec5107d8143efeba700ed95ec14cdb6ec173444"
+    },
+    {
+      "path": "backend/SlotMath.Core/Measurements/MeasurementAnalysisAccumulator.cs",
+      "sha256": "0f14d028751fe139300d8d0dd166d203c989da062a312c274b4481c01bb83f0e"
+    },
+    {
+      "path": "backend/SlotMath.Core/Measurements/MeasurementCollector.cs",
+      "sha256": "4d65d5642d96cc86631993958eb20236baf7f7f6cbc3abe70b2bceb599896410"
+    },
+    {
+      "path": "backend/SlotMath.Core/Measurements/SequenceAccumulator.cs",
+      "sha256": "23b0c9fd4523a9de1184c5377c06dccdd0e21ec081f581d06bd10413d96e53fc"
+    },
+    {
+      "path": "frontend/e2e/pr19-acceptance.spec.ts",
+      "sha256": "e1d30b04c0a71c979fd29839b0b995b6ee5fcdd081baa31db97ae78fe3cebeac"
+    },
+    {
+      "path": "frontend/e2e/pr19-authoring-runtime.spec.ts",
+      "sha256": "563749e574207b3ea820d08ada82b510bd0b81ac3685ebfe0923af541eb3b741"
+    },
+    {
+      "path": "frontend/e2e/pr19-machine-inputs.spec.ts",
+      "sha256": "8e9a7cb79c9a07018e9325d44a2bf0db68747476b2bbf5b5f1f616909142201c"
+    },
+    {
+      "path": "frontend/e2e/studio-integration.spec.ts",
+      "sha256": "65df52a4d9e8cdeff13cd3e191ccb6174297a802f6afb2eb05b683768347fcd2"
+    },
+    {
+      "path": "frontend/e2e/z-measurements-workspace.spec.ts",
+      "sha256": "3e12c5215ae2b9c254c1e088f8a16fc1fa7a15182f20e1a10f92661df3945b51"
+    },
+    {
+      "path": "frontend/src/components/authoring/MachineForms.tsx",
+      "sha256": "c705cfaa4f98a1bb1a7538230061272f12ec205c56a8af918496ad97dad70416"
+    },
+    {
+      "path": "frontend/src/lib/authoring/clusterPayBindings.ts",
+      "sha256": "aa9a4a0175346d7bf0e395127f531675c07798a4bc93ce0d7d9640199ae8c09c"
+    },
+    {
+      "path": "frontend/src/lib/authoring/controlEdits.ts",
+      "sha256": "fec3e76a50280f6bcefab8a77ba20ba4e1fcf59d13ac2628aae112847e688a72"
+    },
+    {
+      "path": "frontend/src/lib/authoring/exactAmounts.ts",
+      "sha256": "bb50b14b69f68e19a3553f45b186479b093630188c7d3aac991f4d267648e1fd"
+    },
+    {
+      "path": "frontend/src/lib/authoring/expressionBindings.ts",
+      "sha256": "e0d60b0efd3084b493f46db40910ce2f59db64a8e047a3a190bcd91e52971e7c"
+    },
+    {
+      "path": "frontend/src/lib/authoring/machineIR.ts",
+      "sha256": "81a4a928d738dfdeb3c20144a024b9a2f9f9b13a3273ed62cd225fc3cfec3dc7"
+    },
+    {
+      "path": "frontend/src/lib/authoring/machineLowering.ts",
+      "sha256": "ebffeb858c1fb82a3e28be2cae66af5d8992c6ce7d1a46894f5674740f711729"
+    },
+    {
+      "path": "frontend/src/lib/authoring/payBindings.ts",
+      "sha256": "29366d19bc454332b1d082ba1c086a145bb7c7f31ba0ca277364af3a933eb445"
+    },
+    {
+      "path": "frontend/src/lib/authoring/sourceIndex.ts",
+      "sha256": "6ad35be71f4afd74cdc50d1c9cfa9b407715f4cc88017979b7be8bb48f51099d"
+    },
+    {
+      "path": "frontend/src/lib/authoring/symbolLifecycle.ts",
+      "sha256": "477862b253b07208ecc841af4fb57084b129df2fe3e6d346a819c9cf638acd04"
+    },
+    {
+      "path": "frontend/src/lib/reelConditioning.ts",
+      "sha256": "83f30b9fb80b6b769457762647c75ff70d21a6569e8a2d77e9d1ca6ad890312b"
+    },
+    {
+      "path": "frontend/src/pages/StateMachineDesigner.tsx",
+      "sha256": "2f6e3dabe545746f69725695a585696d2350a2bfd271856eb881c1615417457f"
+    },
+    {
+      "path": "frontend/unit/authoring-source-index.spec.ts",
+      "sha256": "0254184ab96da6c64f53b84ee04768396c36aeb7fd83599f7e04ac75813a5f01"
+    },
+    {
+      "path": "frontend/unit/fixtures/pr19AuthoringProofs.ts",
+      "sha256": "48325988434656ebf26c4ab597c50cfc6387138f160bb0a996db29f7040f0e86"
+    },
+    {
+      "path": "frontend/unit/pr19-authoring-audit.spec.ts",
+      "sha256": "40202a25b2344ab711657007cedc7f86182ad58b4923490cba2fd07e275d235d"
+    },
+    {
+      "path": "frontend/unit/pr19-runtime-fixtures.spec.ts",
+      "sha256": "101d3e5b98f1401988ed06232fa45fe4314847b841c33e8e7f75ff482ff54bc2"
+    },
+    {
+      "path": "frontend/unit/reel-conditioning.spec.ts",
+      "sha256": "053ef33dff5073a0dd00a306642e9560fc5aacc18f4bfaf3a589d9a921300b64"
+    }
+  ],
+  "passes": {
+    "frontendUnit": 296,
+    "core": 1389,
+    "api": 141,
+    "criticalInitialPassed": 34,
+    "criticalInitialFailed": 1,
+    "criticalFailedRerunPassed": 1,
+    "containerRuntime": 17
+  },
+  "remaining": [
+    "full browser regression",
+    "intentional variant and conditional cases",
+    "after capture and actual visual inspection",
+    "current candidate CI"
+  ]
+}

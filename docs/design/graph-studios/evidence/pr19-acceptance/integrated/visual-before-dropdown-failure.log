@@ -1,0 +1,34 @@
+
+Running 1 test using 1 worker
+
+(node:815778) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:815778) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  1 [chromium] › e2e/pr19-acceptance.spec.ts:171:1 › PR19 fresh paired visual acceptance: full tabs, scrollers, source, dialogs, dirty/error/applied, keyboard and route order (24.2s)
+
+
+  1) [chromium] › e2e/pr19-acceptance.spec.ts:171:1 › PR19 fresh paired visual acceptance: full tabs, scrollers, source, dialogs, dirty/error/applied, keyboard and route order
+
+    TimeoutError: locator.selectOption: Timeout 15000ms exceeded.
+    Call log:
+      - waiting for getByLabel('Feature source', { exact: true })
+
+
+      271 |         await page.getByRole('button', {name: 'Create / reuse', exact: true}).click();
+      272 |         await capture(key, 'create-dialog', viewport);
+    > 273 |         await page.getByLabel('Feature source', {exact: true}).selectOption('reuse');
+          |                                                                ^
+      274 |         await page.getByLabel('Existing definition', {exact: true}).selectOption('weighted-machine');
+      275 |         await capture(key, 'reuse-dialog-dropdown', viewport);
+      276 |         await page.getByRole('dialog').getByRole('button', {name: 'Cancel', exact: true}).click();
+        at /home/terentiy/work/github-profile-audit/slot-math-lab-worktrees/precision-workbench-redesign/frontend/e2e/pr19-acceptance.spec.ts:273:64
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/pr19-acceptance-PR19-fresh-cb284-ed-keyboard-and-route-order-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/pr19-acceptance-PR19-fresh-cb284-ed-keyboard-and-route-order-chromium/error-context.md
+
+  1 failed
+    [chromium] › e2e/pr19-acceptance.spec.ts:171:1 › PR19 fresh paired visual acceptance: full tabs, scrollers, source, dialogs, dirty/error/applied, keyboard and route order

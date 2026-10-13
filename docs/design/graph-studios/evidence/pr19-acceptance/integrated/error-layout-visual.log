@@ -1,0 +1,6 @@
+
+Running 1 test using 1 worker
+
+  ✓  1 [chromium] › e2e/pr19-acceptance.spec.ts:206:1 › PR19 fresh paired visual acceptance: full tabs, scrollers, source, dialogs, dirty/error/applied, keyboard and route order (56.2s)
+
+  1 passed (56.9s)

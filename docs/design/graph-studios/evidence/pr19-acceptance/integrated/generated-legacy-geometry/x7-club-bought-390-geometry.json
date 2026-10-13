@@ -1,0 +1,75 @@
+{
+  "viewport": "transform: translate(-9px, -332.5px) scale(1);",
+  "nodes": [
+    {
+      "id": "[\"hold-and-spin\",\"respins\"]",
+      "transform": "z-index: 0; transform: translate(50px, 45px); pointer-events: all; visibility: visible;",
+      "rect": {
+        "x": 58,
+        "y": 301,
+        "width": 274,
+        "height": 153.59375,
+        "top": 301,
+        "right": 332,
+        "bottom": 454.59375,
+        "left": 58
+      }
+    },
+    {
+      "id": "[\"hold-and-spin\",\"after\"]",
+      "transform": "z-index: 0; transform: translate(50px, 280px); pointer-events: all; visibility: visible;",
+      "rect": {
+        "x": 58,
+        "y": 536,
+        "width": 274,
+        "height": 132.59375,
+        "top": 536,
+        "right": 332,
+        "bottom": 668.59375,
+        "left": 58
+      }
+    },
+    {
+      "id": "[\"hold-and-spin\",\"respin\"]",
+      "transform": "z-index: 1000; transform: translate(50px, 515px); pointer-events: all; visibility: visible;",
+      "rect": {
+        "x": 58,
+        "y": 771,
+        "width": 274,
+        "height": 132.59375,
+        "top": 771,
+        "right": 332,
+        "bottom": 903.59375,
+        "left": 58
+      }
+    },
+    {
+      "id": "[\"hold-and-spin\",\"collect\"]",
+      "transform": "z-index: 0; transform: translate(50px, 750px); pointer-events: all; visibility: visible;",
+      "rect": {
+        "x": 58,
+        "y": 1006,
+        "width": 274,
+        "height": 132.59375,
+        "top": 1006,
+        "right": 332,
+        "bottom": 1138.59375,
+        "left": 58
+      }
+    },
+    {
+      "id": "[\"hold-and-spin\",\"respin-pass\"]",
+      "transform": "z-index: 0; transform: translate(390px, 550px); pointer-events: all; visibility: visible;",
+      "rect": {
+        "x": 398,
+        "y": 806,
+        "width": 274,
+        "height": 132,
+        "top": 806,
+        "right": 672,
+        "bottom": 938,
+        "left": 398
+      }
+    }
+  ]
+}

@@ -1,0 +1,42 @@
+
+Running 1 test using 1 worker
+
+(node:821306) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:821306) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  1 [chromium] › e2e/pr19-acceptance.spec.ts:171:1 › PR19 fresh paired visual acceptance: full tabs, scrollers, source, dialogs, dirty/error/applied, keyboard and route order (43.0s)
+
+
+  1) [chromium] › e2e/pr19-acceptance.spec.ts:171:1 › PR19 fresh paired visual acceptance: full tabs, scrollers, source, dialogs, dirty/error/applied, keyboard and route order
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator: getByRole('button', { name: 'Back up project', exact: true })
+    Expected: visible
+    Timeout: 5000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toBeVisible" with timeout 5000ms
+      - waiting for getByRole('button', { name: 'Back up project', exact: true })
+
+
+      27 |     await expect(page.locator('.project-name')).toHaveText(String(graph.name));
+      28 |     await page.goto(origin + route);
+    > 29 |     await expect(page.getByRole('button', {name: 'Back up project', exact: true})).toBeVisible();
+         |                                                                                    ^
+      30 | }
+      31 |
+      32 | async function backup(page: Page): Promise<ModelGraph> {
+        at open (/home/terentiy/work/github-profile-audit/slot-math-lab-worktrees/precision-workbench-redesign/frontend/e2e/pr19-acceptance.spec.ts:29:84)
+        at /home/terentiy/work/github-profile-audit/slot-math-lab-worktrees/precision-workbench-redesign/frontend/e2e/pr19-acceptance.spec.ts:238:13
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/pr19-acceptance-PR19-fresh-cb284-ed-keyboard-and-route-order-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/pr19-acceptance-PR19-fresh-cb284-ed-keyboard-and-route-order-chromium/error-context.md
+
+  1 failed
+    [chromium] › e2e/pr19-acceptance.spec.ts:171:1 › PR19 fresh paired visual acceptance: full tabs, scrollers, source, dialogs, dirty/error/applied, keyboard and route order

@@ -1,0 +1,261 @@
+ Image slotmath-pr19-acceptance-api Building
+ Image slotmath-pr19-acceptance-frontend Building
+#1 [internal] load local bake definitions
+#1 reading from stdin 1.27kB done
+#1 DONE 0.0s
+
+#2 [api internal] load build definition from Dockerfile.backend
+#2 transferring dockerfile:
+#2 transferring dockerfile: 900B done
+#2 DONE 0.1s
+
+#3 [frontend internal] load build definition from Dockerfile.frontend
+#3 transferring dockerfile: 2.00kB done
+#3 DONE 0.1s
+
+#4 [frontend internal] load metadata for docker.io/library/nginx:alpine
+#4 ...
+
+#5 [api internal] load metadata for mcr.microsoft.com/dotnet/sdk:10.0
+#5 DONE 0.3s
+
+#6 [api internal] load metadata for mcr.microsoft.com/dotnet/aspnet:10.0
+#6 DONE 0.3s
+
+#7 [api internal] load .dockerignore
+#7 transferring context: 174B done
+#7 DONE 0.1s
+
+#8 [api runtime 1/3] FROM mcr.microsoft.com/dotnet/aspnet:10.0@sha256:222759b391a1aaf241166672c8f99b2d4ada452e7b5319f3c6e8f265a37b5ad4
+#8 DONE 0.0s
+
+#9 [api build 1/5] FROM mcr.microsoft.com/dotnet/sdk:10.0@sha256:e70cdb7f80b0348f5cb85f19a8f670fca061f033d57eed12fa003d58b0e06317
+#9 DONE 0.0s
+
+#10 [api internal] load build context
+#10 transferring context: 15.64MB 0.1s done
+#10 DONE 0.2s
+
+#11 [api build 2/5] WORKDIR /src
+#11 CACHED
+
+#12 [api build 3/5] COPY backend/ .
+#12 DONE 0.1s
+
+#13 [frontend internal] load metadata for docker.io/library/node:22-alpine
+#13 DONE 1.3s
+
+#14 [api build 4/5] RUN dotnet restore SlotMath.Api/SlotMath.Api.csproj
+#14 ...
+
+#7 [frontend internal] load .dockerignore
+#7 transferring context: 174B done
+#7 DONE 0.1s
+
+#4 [frontend internal] load metadata for docker.io/library/nginx:alpine
+#4 DONE 1.3s
+
+#15 [frontend internal] preparing inline document
+#15 DONE 0.0s
+
+#16 [frontend serve 1/3] FROM docker.io/library/nginx:alpine@sha256:df221db836e1754089190208cee7eeda94f233197056426eda74a43ab1abeac2
+#16 DONE 0.0s
+
+#17 [frontend build 1/7] FROM docker.io/library/node:22-alpine@sha256:0a7108bf6c7bf5de370ffb1a3ed6be93d405b43ff159f681a8d18c0e2bc2e402
+#17 DONE 0.0s
+
+#18 [frontend internal] load build context
+#18 transferring context: 51.14MB 0.2s done
+#18 DONE 0.2s
+
+#19 [frontend build 2/7] WORKDIR /app
+#19 CACHED
+
+#20 [frontend build 3/7] COPY frontend/package.json frontend/package-lock.json ./
+#20 DONE 0.1s
+
+#14 [api build 4/5] RUN dotnet restore SlotMath.Api/SlotMath.Api.csproj
+#14 1.065   Determining projects to restore...
+#14 1.358 /src/SlotMath.Api/SlotMath.Api.csproj : warning NU1510: PackageReference System.Security.Cryptography.Xml will not be pruned. This package is automatically available and does not need to be referenced explicitly. Remove the PackageReference item.
+#14 8.476   Restored /src/SlotMath.Core/SlotMath.Core.csproj (in 7.13 sec).
+#14 ...
+
+#21 [frontend build 4/7] RUN npm ci --legacy-peer-deps
+#21 16.81
+#21 16.81 added 267 packages, and audited 268 packages in 16s
+#21 16.81
+#21 16.81 57 packages are looking for funding
+#21 16.81   run `npm fund` for details
+#21 16.81
+#21 16.81 found 0 vulnerabilities
+#21 16.81 npm notice
+#21 16.81 npm notice New major version of npm available! 10.9.9 -> 12.2.0
+#21 16.81 npm notice Changelog: https://github.com/npm/cli/releases/tag/v12.2.0
+#21 16.81 npm notice To update run: npm install -g npm@12.2.0
+#21 16.81 npm notice
+#21 ...
+
+#14 [api build 4/5] RUN dotnet restore SlotMath.Api/SlotMath.Api.csproj
+#14 18.62   Restored /src/SlotMath.Api/SlotMath.Api.csproj (in 17.27 sec).
+#14 ...
+
+#21 [frontend build 4/7] RUN npm ci --legacy-peer-deps
+#21 DONE 17.6s
+
+#14 [api build 4/5] RUN dotnet restore SlotMath.Api/SlotMath.Api.csproj
+#14 DONE 18.9s
+
+#22 [frontend build 5/7] COPY frontend/ .
+#22 DONE 0.2s
+
+#23 [frontend build 6/7] COPY backend/SlotMath.Core.Tests/TestData/AuditCatalog/ /backend/SlotMath.Core.Tests/TestData/AuditCatalog/
+#23 DONE 0.1s
+
+#24 [api build 5/5] RUN dotnet publish SlotMath.Api/SlotMath.Api.csproj -c Release -o /app --no-restore
+#24 0.686 /src/SlotMath.Api/SlotMath.Api.csproj : warning NU1510: PackageReference System.Security.Cryptography.Xml will not be pruned. This package is automatically available and does not need to be referenced explicitly. Remove the PackageReference item.
+#24 3.121 /src/SlotMath.Core/Measurements/VerificationProfile.cs(112,60): warning CS8604: Possible null reference argument for parameter 'options' in 'bool ReferenceSemantics.BooleanValue(MeasurementOptions options)'. [/src/SlotMath.Core/SlotMath.Core.csproj]
+#24 3.154   SlotMath.Core -> /src/SlotMath.Core/bin/Release/net10.0/SlotMath.Core.dll
+#24 5.311   SlotMath.Api -> /src/SlotMath.Api/bin/Release/net10.0/SlotMath.Api.dll
+#24 5.432   SlotMath.Api -> /app/
+#24 DONE 5.5s
+
+#25 [frontend build 7/7] RUN npm run build
+#25 0.265
+#25 0.265 > frontend@0.0.0 build
+#25 0.265 > tsc -b && vite build
+#25 0.265
+#25 ...
+
+#26 [api runtime 2/3] WORKDIR /app
+#26 CACHED
+
+#27 [api runtime 3/3] COPY --from=build /app .
+#27 DONE 0.1s
+
+#25 [frontend build 7/7] RUN npm run build
+#25 ...
+
+#28 [api] exporting to image
+#28 exporting layers 0.1s done
+#28 writing image sha256:a5123d27dff63ff4a0d3bf601e3b1ec8b9e3040dd032e4c46643c2b9cb5bee5b done
+#28 naming to docker.io/library/slotmath-pr19-acceptance-api done
+#28 DONE 0.2s
+
+#29 [api] resolving provenance for metadata file
+#29 DONE 0.0s
+
+#25 [frontend build 7/7] RUN npm run build
+#25 9.982 vite v8.0.16 building client environment for production...
+#25 9.990
+transforming...✓ 1365 modules transformed.
+#25 10.37 rendering chunks...
+#25 10.53 computing gzip size...
+#25 10.54 dist/index.html                                     1.02 kB │ gzip:   0.48 kB
+#25 10.54 dist/games.html                                    10.57 kB │ gzip:   3.10 kB
+#25 10.54 dist/assets/VerificationProfile-DlQ1OhR-.css        3.05 kB │ gzip:   0.91 kB
+#25 10.54 dist/assets/App-DgaAwiqv.css                       10.98 kB │ gzip:   2.50 kB
+#25 10.54 dist/assets/StateMachineDesigner-BTbCkyet.css      12.78 kB │ gzip:   2.82 kB
+#25 10.54 dist/assets/launch-DBfy_tn0.css                    14.81 kB │ gzip:   4.09 kB
+#25 10.54 dist/assets/Simulate-CretSBbS.css                  15.16 kB │ gzip:   3.43 kB
+#25 10.54 dist/assets/Results--QMCvxjB.css                   23.44 kB │ gzip:   4.63 kB
+#25 10.54 dist/assets/main-BEZC2CFs.css                      26.59 kB │ gzip:   6.93 kB
+#25 10.54 dist/assets/reel-paytable-studio-DXVgYhjZ.css      35.10 kB │ gzip:   6.91 kB
+#25 10.54 dist/assets/main-DsKpKoj9.css                      72.29 kB │ gzip:  13.51 kB
+#25 10.54 dist/assets/webworkerAll-DAFSf3Em.js                0.05 kB │ gzip:   0.06 kB
+#25 10.54 dist/assets/init-xjbP5Xbd.js                        0.11 kB │ gzip:   0.11 kB
+#25 10.54 dist/assets/browserAll-CR8oqkAm.js                  0.23 kB │ gzip:   0.17 kB
+#25 10.54 dist/assets/getTextureBatchBindGroup-Bcatn1SN.js    0.34 kB │ gzip:   0.26 kB
+#25 10.54 dist/assets/useModelProjection-jva8LiLB.js          0.37 kB │ gzip:   0.25 kB
+#25 10.54 dist/assets/ImageSource-BbB-gdwV.js                 0.37 kB │ gzip:   0.26 kB
+#25 10.54 dist/assets/CanvasPool-LSq4AZsF.js                  0.75 kB │ gzip:   0.42 kB
+#25 10.54 dist/assets/manifest-DlNyJq_4.js                    0.76 kB │ gzip:   0.52 kB
+#25 10.54 dist/assets/chunk-aKtaBQYM.js                       1.08 kB │ gzip:   0.62 kB
+#25 10.54 dist/assets/Cache-haT24KxJ.js                       1.09 kB │ gzip:   0.55 kB
+#25 10.54 dist/assets/model-DBmEgAVE.js                       1.18 kB │ gzip:   0.61 kB
+#25 10.54 dist/assets/games-DekI3fB2.js                       1.45 kB │ gzip:   0.83 kB
+#25 10.54 dist/assets/Login-9xNTvPZU.js                       1.67 kB │ gzip:   0.88 kB
+#25 10.54 dist/assets/preload-helper-CfhYeVOc.js              2.92 kB │ gzip:   1.43 kB
+#25 10.54 dist/assets/NineLives-DYo0nikx.js                   3.21 kB │ gzip:   1.43 kB
+#25 10.54 dist/assets/projectFiles-BzShO2PA.js                5.06 kB │ gzip:   2.05 kB
+#25 10.54 dist/assets/canvasUtils-CjnZ7AJr.js                 5.68 kB │ gzip:   1.89 kB
+#25 10.54 dist/assets/ExpressionTreeEditor-B9JkBUgg.js        5.85 kB │ gzip:   1.64 kB
+#25 10.54 dist/assets/weightCsv-BH-WK9-I.js                   6.99 kB │ gzip:   1.85 kB
+#25 10.54 dist/assets/jsx-runtime-DqMcooe2.js                 7.88 kB │ gzip:   2.98 kB
+#25 10.54 dist/assets/Debug-Ylrbyusa.js                       8.40 kB │ gzip:   3.24 kB
+#25 10.54 dist/assets/BufferResource-HgDynZMH.js             10.56 kB │ gzip:   2.80 kB
+#25 10.54 dist/assets/hold-and-spin-Owz9X1GK.js              14.82 kB │ gzip:   5.50 kB
+#25 10.54 dist/assets/reelCommands-DV3Nh9mP.js               22.65 kB │ gzip:   7.71 kB
+#25 10.54 dist/assets/GCManagedHash-XG-XqJJs.js              26.67 kB │ gzip:   9.33 kB
+#25 10.54 dist/assets/graph-DLuhWeZD.js                      28.51 kB │ gzip:   8.63 kB
+#25 10.54 dist/assets/launch-CdH6ftSd.js                     30.37 kB │ gzip:  11.63 kB
+#25 10.54 dist/assets/reel-paytable-studio-Bq6ElpBJ.js       33.11 kB │ gzip:  11.05 kB
+#25 10.54 dist/assets/Filter-DmOXR4Ez.js                     38.75 kB │ gzip:  11.06 kB
+#25 10.54 dist/assets/api-CVAeaiDj.js                        41.59 kB │ gzip:  14.10 kB
+#25 10.54 dist/assets/chunk-OB3PAWPO-CBZlDxgP.js             42.49 kB │ gzip:  15.10 kB
+#25 10.54 dist/assets/Results-Cjgkybf3.js                    47.65 kB │ gzip:  13.43 kB
+#25 10.54 dist/assets/RenderTargetSystem-CJwXtmtx.js         51.70 kB │ gzip:  14.45 kB
+#25 10.54 dist/assets/GraphicsContext-DNNRZo5h.js            53.69 kB │ gzip:  17.33 kB
+#25 10.54 dist/assets/Geometry-BN8lMoOD.js                   62.35 kB │ gzip:  20.47 kB
+#25 10.54 dist/assets/graph-CKfUGo1d.js                      79.52 kB │ gzip:  21.74 kB
+#25 10.54 dist/assets/StateMachineDesigner-B5hIyECh.js       82.65 kB │ gzip:  25.14 kB
+#25 10.54 dist/assets/VerificationProfile-DVhRHYtr.js        98.29 kB │ gzip:  27.50 kB
+#25 10.54 dist/assets/graphApi-BERbWn9S.js                   98.39 kB │ gzip:  26.81 kB
+#25 10.54 dist/assets/ReelPaytableStudio-BoSSe2tg.js        134.77 kB │ gzip:  38.72 kB
+#25 10.54 dist/assets/Simulate-CWWMxTdK.js                  177.98 kB │ gzip:  45.05 kB
+#25 10.54 dist/assets/store-B153nWW0.js                     196.11 kB │ gzip:  63.96 kB
+#25 10.54 dist/assets/main-BC0qxuLg.js                      215.71 kB │ gzip:  66.74 kB
+#25 10.54 dist/assets/main-P4OrPyr4.js                      217.07 kB │ gzip:  68.40 kB
+#25 10.54 dist/assets/xlsx-CKkngM-o.js                      493.28 kB │ gzip: 160.68 kB
+#25 10.54 dist/assets/App-BERYVC_0.js                       526.50 kB │ gzip: 160.45 kB
+#25 10.54 dist/assets/dist-Dh4JsvEE.js                      618.80 kB │ gzip: 182.36 kB
+#25 10.54
+#25 10.54 [INVALID_ANNOTATION] A comment "/*#__PURE__*/" in "node_modules/@microsoft/signalr/dist/esm/Utils.js" contains an annotation that Rolldown cannot interpret due to the position of the comment.
+#25 10.54      ╭─[ node_modules/@microsoft/signalr/dist/esm/Utils.js:190:1 ]
+#25 10.54      │
+#25 10.54  190 │ /*#__PURE__*/ function getOsName() {
+#25 10.54      │ ──────┬──────
+#25 10.54      │       ╰──────── comment ignored due to position
+#25 10.54      │
+#25 10.54      │ Help: For more information on how to use pure annotations correctly, check the documentation: https://rolldown.rs/in-depth/dead-code-elimination#pure
+#25 10.54 ─────╯
+#25 10.54
+#25 10.54 [plugin builtin:vite-reporter]
+#25 10.54 (!) Some chunks are larger than 500 kB after minification. Consider:
+#25 10.54 - Using dynamic import() to code-split the application
+#25 10.54 - Use build.rolldownOptions.output.codeSplitting to improve chunking: https://rolldown.rs/reference/OutputOptions.codeSplitting
+#25 10.54 - Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+#25 10.54 [INVALID_ANNOTATION] A comment "/*#__PURE__*/" in "node_modules/@microsoft/signalr/dist/esm/Utils.js" contains an annotation that Rolldown cannot interpret due to the position of the comment.
+#25 10.54      ╭─[ node_modules/@microsoft/signalr/dist/esm/Utils.js:208:1 ]
+#25 10.54      │
+#25 10.54  208 │ /*#__PURE__*/ function getRuntimeVersion() {
+#25 10.54      │ ──────┬──────
+#25 10.54      │       ╰──────── comment ignored due to position
+#25 10.54      │
+#25 10.54      │ Help: For more information on how to use pure annotations correctly, check the documentation: https://rolldown.rs/in-depth/dead-code-elimination#pure
+#25 10.54 ─────╯
+#25 10.54
+#25 10.54 ✓ built in 560ms
+#25 DONE 10.6s
+
+#16 [frontend serve 1/3] FROM docker.io/library/nginx:alpine@sha256:df221db836e1754089190208cee7eeda94f233197056426eda74a43ab1abeac2
+#16 CACHED
+
+#15 [frontend internal] preparing inline document
+#15 CACHED
+
+#30 [frontend serve 2/3] COPY --from=build /app/dist /usr/share/nginx/html
+#30 DONE 0.1s
+
+#31 [frontend serve 3/3] COPY <<EOF /etc/nginx/conf.d/default.conf
+#31 DONE 0.1s
+
+#32 [frontend] exporting to image
+#32 exporting layers 0.2s done
+#32 writing image sha256:41849b51a24a28fd628be20c8109ad1d522611019ed6afb84f3ac752c033a4ca done
+#32 naming to docker.io/library/slotmath-pr19-acceptance-frontend done
+#32 DONE 0.2s
+
+#33 [frontend] resolving provenance for metadata file
+#33 DONE 0.0s
+ Image slotmath-pr19-acceptance-api Built
+ Image slotmath-pr19-acceptance-frontend Built

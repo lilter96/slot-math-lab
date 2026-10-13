@@ -1,0 +1,218 @@
+{
+  "sourceCommit": "5f193279f4db5aef0604f8f0be04db843dfda044",
+  "baselineSource": "3d8ce3695f21e25f5dea618f75a5d4caeac534e3",
+  "pairedRecordsReviewed": 446,
+  "contactSheets": [
+    {
+      "path": "review-contact-sheets/after-00.jpg",
+      "sha256": "b45fbd9e9f37b94c0bb80da024a349a329b1d5670542ed0f650b3ceefe552a4e",
+      "reviewed": true
+    },
+    {
+      "path": "review-contact-sheets/after-01.jpg",
+      "sha256": "380c974134950f92283f7e745ac700e3384daf346a72aa96fc4dc1bee2f17e1b",
+      "reviewed": true
+    },
+    {
+      "path": "review-contact-sheets/after-02.jpg",
+      "sha256": "63a275337e98272151fbe77509cfc1b3a478822755d18672e8452104c3b44290",
+      "reviewed": true
+    },
+    {
+      "path": "review-contact-sheets/after-03.jpg",
+      "sha256": "4c2c304a702643256dc7ef456debfee67bc55802a9ce6223490775c6f3b23ab6",
+      "reviewed": true
+    },
+    {
+      "path": "review-contact-sheets/after-04.jpg",
+      "sha256": "2291bbc239879af9a48a21704c986a7470b7df0cab71922444f721e947659c9e",
+      "reviewed": true
+    },
+    {
+      "path": "review-contact-sheets/after-05.jpg",
+      "sha256": "059c4d8d632ba7948aa9784e03768aa7ff204cb2a530eddd1f2807d888b90a6f",
+      "reviewed": true
+    },
+    {
+      "path": "review-contact-sheets/after-06.jpg",
+      "sha256": "195855f10c768792918e7a77c299f79bf41c451e98b1b36bbe01aec2aff77ba6",
+      "reviewed": true
+    },
+    {
+      "path": "review-contact-sheets/after-07.jpg",
+      "sha256": "771fbf03ac8ef6973f6e3af54bc3e6907896e12f85c8240fe0d59ab9f248cfc4",
+      "reviewed": true
+    },
+    {
+      "path": "review-contact-sheets/after-08.jpg",
+      "sha256": "07f514dedace8500468077b98ac33efd829e58e307c8816705df985c009b7005",
+      "reviewed": true
+    },
+    {
+      "path": "review-contact-sheets/after-09.jpg",
+      "sha256": "5163a8859a4ff791387f681b87f045132934931c16e8ddd9153d332c1510a626",
+      "reviewed": true
+    },
+    {
+      "path": "review-contact-sheets/after-10.jpg",
+      "sha256": "f20929dc2efe8a00ce59a11c17ce9af9b735e964591ea8e522bcae5ef9b619f1",
+      "reviewed": true
+    },
+    {
+      "path": "review-contact-sheets/after-11.jpg",
+      "sha256": "2283f53af10e52161225ea5128f65607cedc62f472242f8ab521bdeccc6ca0ee",
+      "reviewed": true
+    },
+    {
+      "path": "review-contact-sheets/after-12.jpg",
+      "sha256": "4172ed83c86998920de5e70a97f3d86ccdb2955f088c725c13210c6a469ebf6f",
+      "reviewed": true
+    },
+    {
+      "path": "review-contact-sheets/after-13.jpg",
+      "sha256": "5eea641b449c02bab912da21b4a72ee2d09668996283c0f36745aba5ba0efce6",
+      "reviewed": true
+    },
+    {
+      "path": "review-contact-sheets/after-14.jpg",
+      "sha256": "895aab2f6291821983ee55ba202884f4ab2a083c1abdcbc3d0b28ff7de569ad4",
+      "reviewed": true
+    },
+    {
+      "path": "review-contact-sheets/after-15.jpg",
+      "sha256": "33babad089a70cbada4ccbb143c3cc0dec6ca2fade3caaf5234df9c51b1674e3",
+      "reviewed": true
+    },
+    {
+      "path": "review-contact-sheets/after-16.jpg",
+      "sha256": "c86a0df7737e6abf1fd34ecba7ccde7dfd7b11911fbf0249030a169a93259a83",
+      "reviewed": true
+    },
+    {
+      "path": "review-contact-sheets/after-17.jpg",
+      "sha256": "c62d70477b31c6fd9f2746424b49df56eac9d271023459818fb84072250dd044",
+      "reviewed": true
+    },
+    {
+      "path": "review-contact-sheets/after-18.jpg",
+      "sha256": "2e674d6863106a398db5f66756d1ad8d3e5ede72bb32c91ff02471fa7316b43f",
+      "reviewed": true
+    },
+    {
+      "path": "review-contact-sheets/after-19.jpg",
+      "sha256": "8a1b2b25ea4075c0ae73443c0bafa13d949a07b53fb4d9f7661f95364138ed68",
+      "reviewed": true
+    },
+    {
+      "path": "review-contact-sheets/after-20.jpg",
+      "sha256": "46f974012bc70faf4fff8f9849818a4580270e218f6faa1ea263e3d68b4b2cf8",
+      "reviewed": true
+    },
+    {
+      "path": "review-contact-sheets/after-21.jpg",
+      "sha256": "7d29ff6b09d954832408db9f60a5d4342bf6116a2ba43047036e3b91582fb9a5",
+      "reviewed": true
+    },
+    {
+      "path": "review-contact-sheets/after-22.jpg",
+      "sha256": "032cd6914e1fdb27d71b81d1d5f9cd9322e5bfb566f973e7d998379fef83c190",
+      "reviewed": true
+    },
+    {
+      "path": "review-contact-sheets/after-23.jpg",
+      "sha256": "b187f426ece7d5f8ac302e1b2fe3f7c9a84a0691d48f99a814d8340723213eaf",
+      "reviewed": true
+    },
+    {
+      "path": "review-contact-sheets/after-24.jpg",
+      "sha256": "3008d5f16b786ba0c529e555eaa9f7057959425d30710a0a68fe11318f3418d2",
+      "reviewed": true
+    },
+    {
+      "path": "review-contact-sheets/after-25.jpg",
+      "sha256": "b2414e3776182c1d5800769ff2d1a0b8b524cbd0552a3c813bec8b8d53ec99cd",
+      "reviewed": true
+    },
+    {
+      "path": "review-contact-sheets/after-26.jpg",
+      "sha256": "f3bf89285835b369c58c71272658b1f028ce13ce11d876ff5a2b78d8766c6387",
+      "reviewed": true
+    },
+    {
+      "path": "review-contact-sheets/after-27.jpg",
+      "sha256": "516440240b1dc326724af77843135d7adef96a2c6465993b548d310f8c9ed103",
+      "reviewed": true
+    },
+    {
+      "path": "review-contact-sheets/after-28.jpg",
+      "sha256": "bdf88a000e1f34fb641490546dd98fc9d4a6f02fb583a4dee95cf93e4d8dc9a9",
+      "reviewed": true
+    },
+    {
+      "path": "review-contact-sheets/after-29.jpg",
+      "sha256": "10561a677efa498a6b7404d2fbea3d13c0ba52f43b7a841fa00494d7c280bbfd",
+      "reviewed": true
+    },
+    {
+      "path": "review-contact-sheets/after-30.jpg",
+      "sha256": "d0a040c2700cf93ffa689f9a962b41fe3992c1940c399baf4274d75fbe381b5f",
+      "reviewed": true
+    },
+    {
+      "path": "review-contact-sheets/after-31.jpg",
+      "sha256": "a32c8514b9c766f9eb086b560872c257e6b84c55c65c7c840a74f71824d8cf10",
+      "reviewed": true
+    },
+    {
+      "path": "review-contact-sheets/after-32.jpg",
+      "sha256": "8dd049dc1f5824122d80a2ebd1a1d422d5aa32e81da4cd3ba517eeb79eafaa40",
+      "reviewed": true
+    },
+    {
+      "path": "review-contact-sheets/after-33.jpg",
+      "sha256": "2a20bb9df940ce9f77fd8ab55e44c89112e85e624dba4ff5f9d7c1a2d4c43cf7",
+      "reviewed": true
+    },
+    {
+      "path": "review-contact-sheets/after-34.jpg",
+      "sha256": "05d007048ee90bde78e49ca9d5ddc818d5ceef62ec0eb27902be1d64ac6ce1b1",
+      "reviewed": true
+    },
+    {
+      "path": "review-contact-sheets/after-35.jpg",
+      "sha256": "112c6dfb6b181c916040d14ef5d511712f5e004a43c69c283053d0431e34e829",
+      "reviewed": true
+    },
+    {
+      "path": "review-contact-sheets/after-36.jpg",
+      "sha256": "0a76f6734cd9ba83324be6565060101a846a19e7fe2099e33100b00b25c01aaa",
+      "reviewed": true
+    },
+    {
+      "path": "review-contact-sheets/after-37.jpg",
+      "sha256": "eb587e2965eb4883149570a23d3930f42e8ccdd20da67c11fca343e00f38508d",
+      "reviewed": true
+    }
+  ],
+  "fullSizeRecheck": [
+    "before/weighted-machine-1920x1080-fractional-input.png",
+    "after/weighted-machine-1920x1080-fractional-input.png",
+    "after/weighted-machine-1280x800-fractional-input.png",
+    "after/weighted-machine-390x844-create-dialog.png",
+    "after/ancient-dragon-ordinary-390x844-Sources-scroll0-y1082.png",
+    "after/weighted-machine-390x844-fractional-error-lower.png",
+    "after/weighted-machine-1280x800-fractional-error-lower.png"
+  ],
+  "findings": [
+    "All Studio tabs have actual model data; TGSlots correctly shows no applicable paylines. Physical strips and independent cell matrices remain distinct.",
+    "Lower payout cap/pruning, line editor, dictionary and test evidence are visible through page/internal scrolling, with persistent source status.",
+    "Diagram and transition table expose the same ordered guards/destinations. Source/actions/effects/private and shared variables/budget/definition uses were inspected through the entire inspector.",
+    "Create/reuse dialogs preserve readable titles, labels and bottom actions on desktop and phone.",
+    "Invalid integer error initially wrapped into a 57px column and overlapped the next outcome. Final CSS stacks only the invalid outcome row; full-size lower captures show 246\u2013290px message width, 54px height and disabled Apply.",
+    "A deselected state still provides global bindings/budget and selection guidance; it is not a permanent empty inspector.",
+    "Phone uses page scrolling and internal table/canvas scrolling. Desktop remains the primary authoring surface.",
+    "No captured page errors or document overflow. This visual review is separate from browser interaction tests and independent runtime proofs."
+  ],
+  "remainingVisualDefects": [],
+  "localVisualGate": "pass"
+}

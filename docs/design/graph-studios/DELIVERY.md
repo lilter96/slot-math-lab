@@ -1,86 +1,66 @@
-# Local graph studios delivery
+# Graph studios delivery and PR19 audit correction
 
-Reel & Paytable Studio and State Machine Designer edit the selected private project's existing GraphConfig and use the existing compiler/execution APIs. No backend/API/schema changes, new graph atoms, game-name runtime dispatch, alternate RNG or mathematical runtime were introduced. Browser projects remain private and independent; server saving remains explicit.
+Reel & Paytable Studio and State Machine Designer edit the selected private project's canonical GraphConfig through the existing compiler/play APIs. Users can own many private projects; games derive their geometry and capabilities from their own source. Sharing remains deferred. Drafts recover in the browser; saving a server version is explicit.
 
-Implementation commit: `b6dfd81` (Designer); Studio checkpoint: `6e98807`. Branch: `feat/precision-workbench-redesign`. Base audit/fetched main: `b81e71c82cb0314d066d7134278751b85676f356`; old work and the Simulate checkpoint were preserved. The user authorized publishing the audit corrections to [PR19](https://github.com/lilter96/slot-math-lab/pull/19) on 2026-10-13. No merge or deployment is authorized.
+Implementation/audit source: `5f193279f4db5aef0604f8f0be04db843dfda044`, branch `feat/precision-workbench-redesign`. Baseline: `3d8ce3695f21e25f5dea618f75a5d4caeac534e3`; PR base: `6345b1bd0de39fade0432cdb005560628c2f8328`. [PR19](https://github.com/lilter96/slot-math-lab/pull/19) is authorized for publication. **M5 remains pending completed published-candidate CI.** No merge/deployment occurred.
 
-**Acceptance is incomplete; PR19 audit repair is active.** The prior M0–M5 completion claim was premature: CI run `38310620153` failed frontend units and backend formatting, and skipped the downstream Core/API/browser/container/smoke gates. The user's audit identifies F01–F06 in conditional source discovery, AST binding/dependencies, numeric input and parameter rewriting. F01 reproduces locally. See STATUS.md for current corrections and gates. The 2026-10-12 scoped Rider cleanup succeeded on 92 files but did not certify those missing requirements.
+Studio supplies Sources/Paytables/Paylines/Symbols, ordered physical strips, independent cell distributions, exact matrices/imports, domain reconciliation, source copies and atomic validate/apply. Designer supplies existing lifecycle projection, readable states and actual guards, equivalent transition table, ordered actions/effects, explicit private/shared variables, connected/reusable definitions, source conflicts and graph-only portability. Latest source edits can be undone across the two authoring views within the same owner/project browser session; reload restores graph and drafts rather than session Undo history.
 
-The [2026-10-13 publication checkpoint](PR19_PUBLICATION_CHECKPOINT.md) records the current corrections, affected checks and retained failures. It supersedes the earlier blanket completion claim; the original M5 integrated and visual acceptance gates remain open.
+## Original acceptance matrix
 
-Live development: http://localhost:4187/model/studio and http://localhost:4187/model/machine. API: 5166; built preview: 4186. Polling HMR remains enabled. Open **My projects**, select/create/import a model, then use Studio or State machine in the navigation.
+The original [G01–V03 contract](04_EXECUTION_AND_ACCEPTANCE.md) is unchanged. Rows below record local workflow proofs, separate from the remaining CI gate. New correction tests supplement original journeys; fixture no-op counts do not replace intentional edit evidence. Source manifests and complete outputs are in [final evidence](evidence/pr19-acceptance/integrated/final-source-manifest.json).
 
-Studio delivers source, payout, payline and symbol editing, exact input and spreadsheet import, supported source/data copies, whole-graph validation/apply, complete undo and private browser recovery. Designer delivers existing graph projection, a diagram and equivalent transition table, source operations, typed actions/guards/effects, priority, states/start/terminal, variables, explicit ownership, connected new/reused definitions, nested independent copies, coupled respin rules, pan/layout, raw graph portability, seeded execution evidence and project backups.
-
-## Acceptance evidence
-
-The matrix below records earlier local scenarios, not final acceptance of the current PR. F01 reopens G04/R02/I03; F02/F03/F06 reopen S02/S04/I02; F04 reopens G04/P01/P02; F05 reopens P04/V02. Integrated M5 and V01–V03 remain unaccepted until the audit repair and required fresh checks complete. Full details and retained failures are in STATUS.md and the evidence directory.
-
-| ID | Local result | Evidence |
+| ID | Local result and scope | Current proof |
 |---|---|---|
-| G01 | Pass: 65 corpus imports/roundtrips; all source nodes project unchanged | M1/M2 corpus journeys; `m5-final-authoring-units.log` |
-| G02 | Pass: ordinary/bought and all 18 Le Militare mode/entry cases retained | Corpus inventory/roundtrip; M2 variant journeys; five M4 family journeys |
-| G03 | Pass within compatible source patterns: separate reference/starters and opaque custom source retained | M1/M2 corpus, native opaque operations, wrapped nested-machine proofs |
-| G04 | Pass: source fences, alpha-renamed helpers, private projects, definition/use copies | M1 bindings; M2 conditioned-copy; M3/M5 lifecycle/source checks |
-| R01 | Pass: ordered stops/padding/domain and independent tiny-reel law | M2 reel/source lifecycle and API evidence |
-| R02 | Pass: conditional WW copy/edit and impossible-condition rejection | M2 conditioned-copy and variant evidence |
-| R03 | Pass: independent cell sources and linked board edits | M2 cell/source checks and TGSlots journeys |
-| R04 | Pass: X7 cell/prize support, draw order and payload/stake retention | M2 prize/source checks; X7 edit/play journeys |
-| R05 | Pass: selected Le Militare geometry/mode/entry retained | Corpus and siege/entry journeys; variant visual review |
-| P01 | Pass: runtime/precision/wild rows and explicit cap policy | M2 payout/cap evidence |
-| P02 | Pass for verified cluster/reference consumer contracts | M2 cluster/symbol/domain evidence; local unsupported states elsewhere |
-| P03 | Pass: supported line geometry/count and explicit stake policy | M2 line lifecycle/spreadsheet evidence |
-| P04 | Pass: exact tokens, formula refusal, XLSX/CSV/TSV and atomic staging | M2 spreadsheet/input checks |
-| S01 | Pass: actual action/counter edit and execution for each family | `m4-designer-browser.log`; final X7 affected check |
-| S02 | Pass: created connected graph, explicit weighted Draw and ordered guards/effects | M3 nine API proofs; M4 creation/weighted/priority journeys |
-| S03 | Pass: terminal visit once, self visits, condition/modelLimit boundary | `m3-current-api.log` |
-| S04 | Pass: nested/independent namespaces and opaque dependency closure | M5 lifecycle units and raw payout-36 API proof |
-| S05 | Pass: opaque operation survives; direct Graph change blocks stale draft | Source units; M5 conflict/rejection checks |
-| I01 | Pass: project/source transaction fences and whole-source undo | M1 transaction/ownership checks; M2/M4 apply/reload/undo |
-| I02 | Pass: exported plain GraphConfig executes with no Designer runtime | M2 family export journeys; M3/M5 real API proofs; created machine reimport |
-| I03 | Pass: pending inputs and immediate semantic commit recovery | M2 storage checks; Designer reload/rejection/cancel checks |
-| V01 | Pass: complete Studio tabs/drawers/lower sections inspected | M2 visual manifests/reviews in STATUS.md |
-| V02 | Pass: diagram/table/forms, side loops and all scroll segments inspected | M4/M5 manifests; `m5-capture-recovery-ui.log` |
-| V03 | Pass: route-local styles and fresh hard navigation/reload | Studio direct-route evidence; hard-navigation Designer journeys |
+| G01 | Pass: all 65 bundled source projections/no-op raw roundtrips, unchanged executable source | `graph-studios-foundation.spec.ts`, affected browser log; 38 original backend fixtures unchanged |
+| G02 | Pass: 25 intentional game variants, all 18 Le Militare mode/entry combinations, selected initial state/stake retained | [Intentional variants](evidence/pr19-acceptance/integrated/intentional-variants.json), `studio-integration.spec.ts` in `undo-affected-browser.log` |
+| G03 | Pass: separate reference, cluster/cascade starter weight edits, compatible custom payout 7 → 21, opaque extension retained | `pr19-acceptance.spec.ts` intentional reference/starter/custom tests |
+| G04 | Pass: alpha-renamed definitions and lexical dependencies; owner/project/use identity fences and independent source copies | `pr19-authoring-audit.spec.ts`, source-index/transactions/lifecycle units, private-project/browser journeys |
+| R01 | Pass: physical order/resize/padding/support and independent tiny-reel law | reel-conditioning/reel-bindings units, Studio source lifecycle + AD integrated journey |
+| R02 | Pass: Woodland ordinary/bought copy/reorder; degenerate condition retained; impossible change atomic | conditioned-copy journeys + new real API exact 1/3 F01 roundtrip |
+| R03 | Pass: paid/free/refill independent cell sources and linked edits | cell-binding/source units, TGSlots ordinary/bought integrated tests |
+| R04 | Pass: X7 landing/cell/prize weights, payload/outcome/stake and draw order retained | X7 ordinary/bought integration and source/prize lifecycle |
+| R05 | Pass: Le mode/entry paid/free strips and multipliers retain held/weighted state | all 18 Le integration tests; no base-variant substitution |
+| P01 | Pass: line/scatter precision and authored/derived wild rows; cap policy explicit | pay-binding/domain units, line eligibility and integrated line edits |
+| P02 | Pass for verified contracts: cluster table/minimum/eligibility/pruning/bound reconcile; additional reader/writer rejected | cluster/domain tests and actual ordinary/weighted payout journeys |
+| P03 | Pass where supported: add/remove/duplicate paths update graph and explicit stake policy | Studio line lifecycle and spreadsheet tests |
+| P04 | Pass: raw integer strings, zero, exact CSV/TSV/XLSX, formula/unsafe-token refusal, atomic preview | `studio-spreadsheets.spec.ts`, `pr19-machine-inputs.spec.ts` (5/5 latest), exact amount units |
+| S01 | Pass: actual designer action/counter edit and execution in each of five lifecycle families | `state-machine-designer.spec.ts` five existing-family edit/Graph/round/export tests |
+| S02 | Pass: connected new machine, first-true guards, effects ordered, weighted exact 5/2 and self transition | creation/weighted/priority journeys, independent `machine-lowering.spec.ts` exact/runtime proofs |
+| S03 | Pass: terminal once; visit budget/condition/modelLimit distinct and boundary cases explicit | graph-only sequence 111, self/initially-terminal tests |
+| S04 | Pass: two nested instances isolate controls and preserve intended shared game fields | nested/opaque copy exact payout 36; lifecycle/binding units; 17 independent audit programs |
+| S05 | Pass: opaque operations retained; stale designer draft cannot overwrite direct Graph edit | custom-source/conflict journeys and active/inactive dependency units |
+| I01 | Pass: owner/project/source/obsolete-object fences; cross-view Undo and project drafts retained | new transactions regressions (affected units 62/62), custom 7 → 21 → Undo browser journey |
+| I02 | Pass: exported raw GraphConfig executes without Designer metadata/runtime | intentional 25-family + reference/starter/custom reimport, 17 compiler/exact/reference/optimized programs |
+| I03 | Pass: immediate semantic commit and confirmed autosave reload, invalid draft recovery, explicit server versions | `graph-studios-storage.spec.ts`, `pr19-machine-inputs.spec.ts`, private-project save tests |
+| V01 | Pass: final whole-page/contact and full-size review complete | all Studio tabs/source/dialog/bottom/internal scrollers at four sizes; paired manifests/contact sheets |
+| V02 | Pass: final whole-page/contact and full-size review complete | diagram/table/guards/actions/variables/budget/source/create/reuse/dirty/error/applied, error-layout lower captures |
+| V03 | Pass locally: fresh studio routes and varied route order retain styling and source | visual browser test 1/1 latest, direct-route and reload scenarios |
 
-## Checks and retained failures
+## Validation and failures retained
 
-- Final affected authoring units: **19 passed** across lowering, lifecycle, projection and view metadata. Source projection enumerates all 65 fixtures without regenerating them.
-- Final failed/affected UI rerun: **2/2 passed** (`m5-capture-recovery-ui.log`): newly created feature writes its private counter to 7, preserves outer payout 111 and reimports as a raw graph; complete imported-family capture includes verified session recovery and settled camera geometry. The hidden file-input wait was corrected to wait for attachment; original failures remain retained.
-- Fractional shared-state API rerun: **1/1 passed**, payout 111.5 with the fixture's explicit half-unit settlement quantum (`m5-fractional-final-api.log`). This retains the engine's declared-precision requirement.
-- Initial machine API gate: **9 passed**. Additional nested opaque copy preserves payout 36; variable binding preserves 7; respin expectation 5/4 → 55/32 remains exact. Fractional shared-state proof uses an explicit half-unit settlement policy; the previous undeclared-precision rejection remains retained.
-- Designer browser scenarios pass across focused runs, including creation, raw reimport, edit/reload/undo, private copies, weighted probabilities, guard priority, five families, rejection/cancel and direct-source conflicts. These are not reported as one fabricated full-suite pass. Final affected/capture outputs are named in STATUS.md.
-- Production build and scoped lint pass. A full frontend lint pass also succeeded before the last scoped changes. No backend/full repository suites were run for individual edits.
-- Preserve initial selector failures, parameter-ABI corrections, infrastructure connection failure, original precision rejection and auth quota timeout logs. Final checks rerun only failed, new or affected cases.
+Backend: fixture check (38 unchanged), Release build and full formatting pass. Full solution test run: **1,389 Core + 141 API passed**, 0 failed/skipped, normal four-processor budget. Backend source is byte-identical since `930963b`. Audit regression inputs have independent expected values: **17** compiled/exact/reference/optimized cases and **17** actual API/container cases. The two scalar dynamic-weight cases deliberately use the existing reference fallback; invalid array-valued weight attempts remain failures in the evidence.
 
-Commands used from `frontend` with Node 22 and the existing local preview/API:
+Frontend: full units **296/296** before three new Undo regressions; CI **299/299** on `6ccb1c8`. Full lint/build pass, then affected Undo units **62/62**. Latest CSS/readiness-only revision passed build, scoped lint, all **5** raw-input browser tests and the complete visual capture test. Local latest Node is 20.20.2; CI installs Node 22.
 
-```sh
-npm run build
-npx eslint <touched-source-and-test-files>
-npx playwright test -c playwright.unit.config.ts \
-  unit/authoring-machine-lowering.spec.ts unit/authoring-machine-lifecycle.spec.ts \
-  unit/authoring-control-projection.spec.ts unit/authoring-view-metadata.spec.ts
-npx playwright test -c .workbench-playwright.config.ts e2e/machine-lowering.spec.ts --grep <affected-cases>
-npx playwright test -c .workbench-playwright.config.ts e2e/state-machine-designer.spec.ts --grep <affected-cases>
-```
+Browser reporting preserves attempts: critical first **34 pass/1 fail**, corrected private-project/pinned-replay case **1/1**. Full **345** suite first **315 pass/30 fail**, zero Playwright retries; failed-only selection **27 pass/2 fail** out of 29, then remaining two plus separately selected Golden path **3/3**. Shared Undo/source/storage/variant run subsequently **72 pass/1 fail** out of 73; visual session readiness correction **1/1**, final CSS visual recapture **1/1**. All original failures have successful affected reruns. This is not reported as one first-attempt green full run. Explicit POST quota rejections honor Retry-After and are logged; accepted requests are never replayed and production limits are unchanged.
 
-## Required cleanup — completed
+Actual Dockerfiles build in isolated Compose project `slotmath-pr19-acceptance` (ports 5676/6476/5176/4196). Health/proxy/configs/Studio HTML smoke and 17 independent compiler/round cases pass. CI's minimal empty config is only a transport smoke: HTTP 200 with `isValid:false`, not a mathematically valid model. PR Docker/smoke jobs are excluded by the unchanged main-push condition, so local equivalents are recorded separately.
 
-[AGENTS.md](../../../AGENTS.md)'s two required passes now succeed. Rider 2026.1.2 opened a temporary `.slnx` containing an existing C# project for context and exactly 92 graph-studios source/test files as solution items. Only the **Studios** folder was selected; the backend project and unrelated source were excluded. **Built-in: Reformat Code** completed successfully at 23:33:26, followed by **Built-in: Full Cleanup** at 23:33:58. Owner settings and applicable EditorConfig were retained in an isolated IDE instance.
+CI run `38405440415` uses source `6ccb1c88ac1a7e7641068654e752a006c86de623`, merge candidate `950a97b2142b1b0012a6f72d98fa08e85c039031`. Frontend and gitleaks passed; backend Core/downstream critical still pending at this checkpoint. Final source adds only error layout CSS and explicit 70-second visual readiness waits. Published-candidate CI must be recorded before closing M5.
 
-The [cleanup manifest](evidence/m5-rider-cleanup.json) records every path, before/after SHA-256, profiles and semantic diff review; the [Rider log excerpt](evidence/m5-rider-cleanup.log) contains both `Success` results and selected frontend files. Scope/profile screenshots remain local in `evidence/m5-rider-cleanup-visual/`. Earlier `m0`–`m5` CLI failure logs are historical evidence, superseded by these successful passes.
+Retained original failures include F01 binding loss, scalar/array weight distinctions, formatter diagnostics, undeclared fractional settlement precision, stale selectors, actual auth/computation 429s and cross-view Undo. See integrated logs and the historical [publication checkpoint](PR19_PUBLICATION_CHECKPOINT.md); earlier milestone/cleanup outputs remain historical rather than substitutes for final validation.
 
-All 90 TypeScript/TSX/JavaScript files retain equivalent emitted executable AST after normalizing named imports and consolidation of duplicate imports without changing first module evaluation order. Both CSS files retain their rules, declarations and media queries; changes are formatting only. Post-cleanup checks: production build and scoped ESLint pass, **19/19** affected units pass, and **2/2** real-API browser journeys pass (Studio reel edit/reload/validate/undo and Designer action edit/play/export/reimport/undo). See `m5-cleanup-{build,lint,units,browser}.log`. No full suites were rerun.
+## Visual evidence and cleanup
 
-The working procedure is documented in [RIDER_FRONTEND_CLEANUP.md](../../RIDER_FRONTEND_CLEANUP.md) and linked from AGENTS.md, so subsequent frontend work can use solution context directly instead of repeating the failing standalone formatter.
+Fresh baseline and final source have **446 matching capture records**, identical model/view/viewport, zoom/DPR 1: 1920×1080, 1440×900, 1280×800, 390×844. [Paired capture manifest](evidence/pr19-acceptance/paired-captures.json) records hashes. Contact sheets cover the entire captured surface, including lower/internal scroll regions. Four extra final lower-error screenshots verify message width 246–290px, height 54px, no document overflow and disabled Apply. Full PNGs remain local; selected screenshots/contact JPEGs are published for review.
 
-## Scope limits and review
+Required scoped Rider Reformat then Full Cleanup completed, including subsequent changes: 39 frontend and 10 backend source files. Latest frontend profiles completed at 16:51:38/16:51:45 local time. [Source manifest](evidence/pr19-acceptance/integrated/final-source-manifest.json) records exact hashes. Existing standalone CLI failures and backend assembly-load warnings remain disclosed. No repository-wide cleanup/config/hook bypass occurred.
 
-Imported graphs retain their original control and unknown operations. Lossless recovery of arbitrary author intent is not claimed. New machine variables use primitive initial values; private numeric reset values are whole numbers, while existing shared fractional state is retained. Complex array/object game state can be read and manipulated through original graph operations. Library parameters remain native constants; explicit field binding specializes ordinary source expressions. Unsupported private-control ownership refuses copying rather than silently sharing it.
+## Supported boundaries
 
-An imported definition copy retains its existing shared game fields; an authored machine copy has distinct private controls throughout its nested closure. Neither action grants another user access. Pending inputs live in browser storage and can hit its quota; local backups remain available. No cross-device autosave, sharing, certification, full animation debugger or production-scale capacity is claimed.
+Editing is admitted by source contracts, not game names. Arbitrary unresolved custom regions remain executable with local unsupported edits; this does not exclude bundled factories. Existing complex state remains native graph operations. New private-control initial values require supported primitive/whole-number syntax; fractional shared values retain their explicit settlement quantum. Dynamic weight fields accept the backend's scalar contract.
 
-For review: select a private project; inspect every Studio tab and lower section; open State machine, choose a feature/region or transition, stage an edit and validate/apply. Test a seeded round, inspect returned state, back up/export raw graph and reimport it. Use the transition table and phone view; pan the diagram to inspect side branches. Direct Graph edits invalidate pending source-bound drafts. Creation adds a definition or inserts one explicit Library use; the existing settlement remains outside the machine.
+Undo is a latest-edit browser-session action bounded by owner/project/source; it is not durable multi-step history. Browser draft recovery has storage limits; server version saving is explicit. There is no sharing, cross-device autosave, capacity certification or new mathematical runtime.
 
-Scope stops at these two studios. Overview, unrelated old roadmap items and hosted changes were not resumed.
+Live preview: http://localhost:4187/model/studio and http://localhost:4187/model/machine, via My projects. HMR remains running. Scope ends at these studios and the audit corrections; unrelated roadmap pages are deferred.
