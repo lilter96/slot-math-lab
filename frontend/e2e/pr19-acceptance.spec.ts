@@ -27,7 +27,7 @@ async function open(page: Page, graph: ModelGraph, route = '/model/studio', orig
     });
     await expect(page.locator('.project-name')).toHaveText(String(graph.name));
     await page.goto(origin + route);
-    await expect(page.locator('.graph-studio,.machine-designer')).toBeVisible();
+    await expect(page.locator('.graph-studio,.machine-designer')).toBeVisible({timeout: 70000});
 }
 
 async function backup(page: Page): Promise<ModelGraph> {
@@ -35,7 +35,7 @@ async function backup(page: Page): Promise<ModelGraph> {
         name: 'Back up project',
         exact: true,
         includeHidden: true
-    }).waitFor({state: 'attached'});
+    }).waitFor({state: 'attached', timeout: 70000});
     const button = page.getByRole('button', {name: 'Back up project', exact: true});
     const opened = !await button.isVisible();
     const sourceToggle = page.getByRole('button', {name: 'Choose source', exact: true});

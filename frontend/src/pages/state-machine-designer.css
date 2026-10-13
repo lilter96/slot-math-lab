@@ -554,6 +554,29 @@
     align-items: end
 }
 
+.machine-number-input {
+    display: grid;
+    gap: 6px;
+    min-width: 0
+}
+
+.machine-number-input > .studio-error {
+    display: block;
+    padding: 8px;
+    margin: 0;
+    font-size: 12px;
+    white-space: normal
+}
+
+.machine-draw-rows > div:has([aria-invalid="true"]) {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 8px
+}
+
+.machine-draw-rows > div:has([aria-invalid="true"]) > button {
+    justify-self: end
+}
+
 .machine-draw-rows input {
     padding: 7px 5px;
     font-size: 12px
