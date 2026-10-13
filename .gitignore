@@ -42,9 +42,10 @@ production-secrets/
 frontend/test-results/
 frontend/playwright-report/
 __pycache__/
-# Local redesign tool output; summary reports are versioned.
-docs/design/qa/*.log
+# Generated design/QA output stays local; keep maintained summaries in docs/design.
+/docs/design/qa/
+/docs/design/graph-studios/evidence/
+/docs/design/graph-studios/PR19_PUBLICATION_CHECKPOINT.md
 frontend/.workbench-playwright.config.ts
 
 frontend/.cross-browser-playwright.config.ts
-docs/design/qa/*-browser-results.json

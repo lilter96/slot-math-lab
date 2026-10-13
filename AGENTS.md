@@ -88,6 +88,10 @@ Use `*Tests.cs` for xUnit tests and `*.spec.ts` for Playwright tests. Add mathem
 
 This policy takes precedence over broader per-iteration testing instructions in autorun files, design handoffs, and other repository documents. Required release checks still apply at release time; they do not authorize full suites during each implementation iteration.
 
+### Generated Artifacts (Mandatory)
+
+Keep screenshots, contact sheets, test logs, browser reports, generated audit JSON and per-iteration review notes out of Git. Use ignored local output directories or CI artifacts; never force-add ignored verification output. Retain failure evidence locally or as CI artifacts. Commit maintained acceptance summaries and reproducible test inputs, not generated run output. Removing generated artifacts or updating documentation does not require rerunning tests.
+
 ## Commit & Pull Request Guidelines
 
 History favors imperative, descriptive subjects such as “Document feature flags.” Keep commits focused. PRs should explain behavior changes and validation, link relevant issues or PRD sections, and include screenshots for visual changes. Pass applicable CI checks before merging.

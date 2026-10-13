@@ -1,6 +1,0 @@
-{"before":null,"events":"object"}
-EVENT pagehide visible undefined
-AFTER pagehide undefined
-EVENT visibilitychange hidden 997
-AFTER visibilitychange 997
-{"after":"{\"projectId\":\"35058412-ebca-4c56-ae19-e91c18029a73\",\"authoringViews\":null,\"projects\":{\"35058412-ebca-4c56-ae19-e91c18029a73\":{\"nodes\":[{\"id\":\"sink\",\"type\":\"sink\",\"position\":{\"x\":80,\"y\":100},\"data\":{\"nodeType\":\"sink\",\"label\":\"sink\",\"backendNode\":{\"id\":\"sink\",\"nodeType\":\"metricsSink\",\"winCap\":1,\"inputs\":{\"in\":{\"name\":\"in\",\"type\":\"Wins\"}}},\"winCap\":1,\"stateOp\":\"get\"},\"measured\":{\"width\":240,\"height\":91}}],\"edges\":[],\"tables\":{},\"graphTrail\":[],\"verificationSource\":null,\"configName\":\"Reload debug\",\"authoringDraft\":null,\"resultsDraft\":null,\"updatedAt\":\"2026-10-12T14:07:34.072Z\"}},\"nodes\":[{\"id\":\"sink\",\"type\":\"sink\",\"position\":{\"x\":80,\"y\":100},\"data\":{\"nodeType\":\"sink\",\"label\":\"sink\",\"backendNode\":{\"id\":\"sink\",\"nodeType\":\"metricsSink\",\"winCap\":1,\"inputs\":{\"in\":{\"name\":\"in\",\"type\":\"Wins\"}}},\"winCap\":1,\"stateOp\":\"get\"},\"measured\":{\"width\":240,\"height\":91}}],\"edges\":[],\"tables\":{},\"graphTrail\":[],\"verificationSource\":null,\"configName\":\"Reload debug\",\"authoringDraft\":null,\"resultsDraft\":null}"}

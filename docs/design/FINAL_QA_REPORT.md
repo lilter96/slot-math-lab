@@ -1,197 +1,27 @@
-# Precision Workbench — local implementation and QA
+# Precision Workbench QA summary
 
-Date: 2026-10-12. Branch `feat/precision-workbench-redesign`, isolated worktree based on `b81e71c`. Nothing pushed, merged or deployed. Final Chromium regression passed 108/108 cases on source `b9d92a1`; screenshots were refreshed from the same final production bundle. Further broad runs were stopped under the user’s test-selection policy now recorded in AGENTS.md.
+The workbench supports many private projects per owner, source-derived editing and explicit server versions. [Implementation status](IMPLEMENTATION_STATUS.md) summarizes delivered areas; [private workspaces](PRIVATE_WORKSPACES.md) defines ownership/persistence boundaries. Graph-studios F01–F06 and M0–M5 acceptance are complete for the supported scope in the [delivery matrix](graph-studios/DELIVERY.md).
 
-## Delivered behavior
+## Verified implementation
 
-My projects now has a complete private-library composition, inline rename, source-preserving duplication, explicit import/storage and a responsive template/server catalog. Root flows, account isolation, save/open, recovery and whole-page screenshots have scoped evidence; see [My projects review](qa/PROJECTS_PAGE_REDESIGN.md). Simulate and broader release gates remain open.
+[CI run 38425695744](https://github.com/lilter96/slot-math-lab/actions/runs/38425695744) passed publication head `d29a1427377d2b8db58fd89d6371d99d3b921f92`, application source `4f18f1ffa771187c39647861d2a66286913426e4`: **1,389 Core, 142 API, 299 frontend unit and 35 critical browser tests**, zero failed/skipped/retried test cases. Build, lint, formatting, unchanged original-fixture checks and gitleaks passed.
 
-Results has a new page-level composition and below-fold verification forms, with whole-page expanded browser/visual evidence. This supersedes earlier visual acceptance of the unstyled lower forms, not the existing mathematical contracts. See [Results redesign and full-scroll review](qa/RESULTS_PAGE_REDESIGN.md). The remaining pages and release gates are still open.
+Actual Dockerfiles built locally; isolated API/proxy/configs/SPA smoke and 17 independent compiler/round cases passed. Docker/smoke are excluded from PR CI by the existing main-push condition. Local full backend passed 1,389 Core + 141 API; CI's API count is 142. Counts from different runs are not interchangeable.
 
-AI source follow-up: generation preserves complete canonical models and opens a compiler-validated independent project; Auto-tune preserves canonical inputs, reports only supplied values and opens a separate candidate. Source-aware cancellation, modal focus and original-project retention have scoped evidence: 10 final Chromium cases, the original 16 Firefox/WebKit cases and four focused follow-up cross-browser cases. These are stubbed provider responses with real compiler/evaluation checks, not provider-quality certification. Required Rider cleanup and broader release gates remain open. See [AI source review](qa/AI_MODEL_SOURCE_REVIEW.md).
+Local full browser verification first passed **315/345**, with 30 failures and zero Playwright retries. All 30 subsequently had successful failed/affected reruns. The later shared Undo/source/storage/variant run passed 72/73, followed by its corrected visual readiness case 1/1. Final canvas visibility changes passed **25/25 affected scenarios**. These attempts are recorded separately; the full local run is not reported as first-attempt green. Earlier [CI run 38413845577](https://github.com/lilter96/slot-math-lab/actions/runs/38413845577) used one critical-test retry; the final run above used none.
 
-The workbench now starts with **My projects**. Each user can keep multiple private game/model drafts, create independent template copies, search, switch, duplicate, rename and import personal models. Switching retains edits, layout and open subgraphs. The catalog includes all five migrated games, a separate Nine Lives reference model, two starters and a blank model. New workspaces do not automatically open Nine Lives. The explicit `?project=nine-lives` route and legacy inbound import links still work. Export no longer generates sharing links.
+Intentional edit/execute/export/reimport checks cover **25 game variants**, including all **18 Le Militare** mode/entry combinations, plus a separate reference, cluster/cascade starters and a compatible custom 7 → 21 → Undo graph. Original 38 backend fixtures remain unchanged. Independent audit programs exercise compiler/exact/reference/optimized agreement; scalar dynamic weights retain the existing reference fallback.
 
-Server configurations, runs, experiment manifests and SignalR subscriptions enforce the validated owner identity. Storage identities are separate from authored model IDs, so copies of one game cannot collide. Encrypted restart and explicit legacy ownership are covered. Production supports multiple configured PBKDF2 accounts; development token issuance remains development-only. Both browser entry points verify the session before hydrating user-scoped drafts, measurement workspaces, simulation history and demo sessions. An unavailable session read displays a retry screen; a required unsigned session displays sign-in first. See [PRIVATE_WORKSPACES.md](PRIVATE_WORKSPACES.md) for account configuration, migration rules and limits.
+## Visual and source review
 
-The other redesign slices remain available:
+Whole-page review inspected **446 matched before/after captures** at 1920×1080, 1440×900, 1280×800 and 390×844, zoom/DPR 1. Coverage includes delivered Studio tabs, lower/internal scrolls, drawers, source JSON, transition tables, dialogs and dirty/error/applied states. Final corrections made numeric errors readable and prevented states disappearing after Apply/Undo. No document overflow or page errors occurred in the recorded captures.
 
-- Model-derived Overview reads selected-game geometry, symbols, data capabilities and definitions. Nine Lives reference remains 6×5; Ancient Dragon displays its actual 5×3 geometry. Coordinate diagrams are explicitly not spins; examples are uncalibrated.
-- Searchable mechanic hierarchy, nested breadcrumbs, separate starter library/primitive palette, contextual inspector, node focus, fit/selection/100% controls, per-project/mechanic cameras and actual compiler validation. Phone graph movement/connections are read only; forms remain available.
-- Weighted draws preserve IDs, values and unknown fields; validate integer/nonnegative/positive-total/Int32 constraints. CSV imports map every known ID and stage a preview before application. Guarded cluster payouts update actual coin inputs and matching metadata. Guarded free-spin changes update four executable sources together. Unsupported mappings remain explicit.
-- Canonical edits survive navigation/export/reload. Staged form buffers and Debug receipts belong to their project within the session. Late validation cannot edit another identical project copy. Immediate Undo refuses newer changes. Root exports from a nested definition include all definitions, tables, AST and connections. The state inspector preserves null, nested objects and boolean arrays.
-- Metrics withhold stale, absent, nonfinite and unsupported proof/numbers. Actual zero stays visible. Sampled proof requires real N; N=1 has no standard-error/CI claim. Interval evidence requires valid bounds and applies only to RTP. PAR exports preserve available evidence and absent-field semantics.
-- Saved Results, measurements, accounting, comparison and reproducibility retain pinned source authority. Calculation requests retry only explicit quota rejection using existing bounded Retry-After behavior. Ambiguous accepted/network failures are not retried.
-- Debug executes the current graph through the existing engine, renders compatible actual board/cascade histories, highlights returned positions and exports a configuration/seed/index/hash/response receipt. Replay compares the pinned response on the current server. Other models retain raw returned state when no supported visual adapter exists. `/play` is clearly labelled **Reference demo**; `/games.html` still runs all migrated games.
+Earlier page-specific checks also covered My projects, expanded Results verification forms, numeric controls, recovery/error states and selected Firefox/WebKit workflows. They do not establish comprehensive accessibility or whole-roadmap acceptance. Required scoped Rider Reformat followed by Full Cleanup succeeded for the graph-studios/audit source scope; [the reproducible workflow](../RIDER_FRONTEND_CLEANUP.md) records the solution-context procedure and earlier unsupported standalone attempts.
 
-## Limits
+## Retained output and limits
 
-Browser drafts autosave locally within browser storage capacity; server saving is explicit. Saved server versions can be listed/opened, but automatic cross-device synchronization is not implemented. Save failures display a backup action while in-memory edits remain available. Unapplied buffers/receipts are session-local; Undo is not a global durable history. Browser namespaces do not protect against access to the same OS account or developer tools.
+Generated screenshots, contact sheets, logs, audit JSON and per-iteration notes are retained locally in ignored `docs/design/qa/` and `docs/design/graph-studios/evidence/`. Original failures remain available there; downloadable CI reports are attached to the linked runs. Maintained summaries, reproducible tests and input fixtures remain versioned. Do not force-add generated verification output.
 
-No sharing, collaboration, public registration, password reset or OIDC provider was added. Owner isolation does not establish large-scale throughput: the archive remains a single-process encrypted snapshot store with bounded compute concurrency. Legacy ownerless server records map only to the configured legacy operator (or anonymous local mode); production without a legacy operator leaves them unassigned. Existing anonymous browser drafts are preserved, with explicit JSON transfer into signed-in workspaces. No production migration occurred.
+Sharing, automatic cross-device autosave, durable multi-step Undo, provider-quality certification, production capacity and hosted rollout rehearsal remain outside the delivered scope. Phone graph movement/connections are read only; form workflows remain available. Unsupported graph regions retain source with explicit edit restrictions. Compiler acceptance alone does not certify RTP. Practitioner/accessibility acceptance remains separate work.
 
-Physical reel-strip editing, universal graph-to-form conversion, automatic calibration, Scenario Lab and invented feature RTP anatomy are unavailable. There are no fabricated event-to-node links, RNG stream records, timings or engine-version replay guarantees; the missing generic trace contract is in [DEBUG_TRACE_REQUIREMENTS.md](DEBUG_TRACE_REQUIREMENTS.md). No calibrated RTP, performance improvement or usability-study score is claimed.
-
-## Validation evidence
-
-| Check | Result |
-|---|---|
-| .NET solution build | Pass; existing analyzer/pruning warnings remain |
-| Final API suite | 140/140 passed; includes five new private-workspace tests |
-| Node version for final frontend gates | 22.23.3; .NET SDK 10.0.112 |
-| Final TypeScript/build/lint/unit gates | Pass on Node 22; 128/128 unit cases passed |
-| Scoped integration regressions | 18/18 pass; latest private-project scenarios 7/7 pass |
-| Full Chromium suite | 108/108 passed in 18.5 minutes on the final unchanged bundle (source b9d92a1) |
-| Firefox/WebKit selected workflows | Prior bundle: 26/26 passed; final refresh not run under the user’s test-selection policy |
-| Focused Core compiler/serialization/RNG/Nine Lives parity | 191/191 passed in 72 seconds earlier in this branch |
-| Full Core suite | Unverified: earlier run interrupted after more than 40 minutes; partial passes are not a complete gate |
-| Personal collection capacity probe | 30 Ancient Dragon copies restored after reload; 3,697,587 serialized characters, local Chromium observation |
-| Final viewports/accessibility | 64 final captures with no document overflow; two additional failure-state captures; minimum audited text-token contrast 5.0069:1 |
-| Keyboard access | Six final checks pass: skip/focus, appearance/Escape/focus return, navigation |
-| Required Rider Reformat / Full Cleanup | Blocked; no required-pass success claimed |
-
-The final API suite checks two real JWT identities; independent same-template copies; config CRUD/version denial; foreign run launch/read/evidence/cancel/witness/verification denial; real SignalR subscription/snapshot rejection; owned worker completion; private experiment children; encrypted restart; legacy ownership; and multiple production credential accounts. Browser coverage includes different games, nested drafts, independent copies, staged-buffer isolation, account changes, unsigned/unavailable boot, delayed validation and save rejection with an actual backup export.
-
-Independent math checks include `(2×3 + 3×1 + 4×0)/9 = 1` after a weight edit, legacy imported expectation `(3×2 + 1×0)/4 = 1.5`, and seed-1 payout edits preserving the initial board while a five-cell symbol-1 hit changes 1→2 authored coins and metadata 0.05→0.1 units. A one-life purchased graph returns one board and the demo displays the returned count. Kernel/compiler/AST/PRNG/evaluation semantics were not changed; API changes implement ownership/account/storage identity only.
-
-Earlier failed/interrupted runs remain in ignored local logs. A full API attempt hit the host's 128-instance inotify limit while failed cleanup children remained alive. Only this worktree's orphaned cleanup processes were stopped; rerunning with polling/configuration reload disabled passed 140 cases. No security/compute quota was relaxed. Earlier browser failures were corrected without deleting mathematical assertions. Final raw browser logs/JSON are ignored; concise evidence is versioned.
-
-## Visual and interaction review
-
-The final unchanged production bundle has 64 four-size screenshots plus save/session-failure captures. [FINAL_VISUAL_REVIEW.md](qa/FINAL_VISUAL_REVIEW.md), [viewport audit](qa/final-viewport-audit.json) and [contrast audit](qa/final-accessibility-audit.json) record actual observations. Screenshots remain under `docs/design/qa/` and are excluded from Git. The review checks all four requested sizes, project collection/empty states, game-specific geometry, graph framing, saved evidence on mobile, actual Debug hits, save errors and offline/session failure behavior. Contrast audits are targeted token checks, not complete WCAG certification.
-
-## Remaining release gates
-
-1. [AGENTS.md](../../AGENTS.md) requires Rider Reformat then Built-in: Full Cleanup on touched source. Standalone Rider exits 3 with `solution can't be null`; frontend files are outside the .NET solution. The pinned solution CLI encounters missing `System.Composition.AttributedModel, Version=10.0.0.12` and bounded passes time out. [RIDER_CLEANUP_REQUIRED.md](qa/RIDER_CLEANUP_REQUIRED.md) lists all affected source. Scoped supplementary whitespace/ESLint checks do not replace these passes. Run them in the owner's Rider workspace, inspect changes and repeat relevant validation before release.
-2. Complete the expensive full Core suite on a suitable test host before release. Focused math/API evidence is not a substitute for that additional gate.
-3. Take encrypted-storage/key and important draft backups before any hosted upgrade; preserve the legacy account mapping. Capacity, provider/provisioning and multi-instance persistence need separate deployment work. No production deployment was authorized or performed.
-4. The follow-up source e6c404c adds verified-user inspector pinning and actual local pointer/wheel measurements with scoped checks in [INSPECTOR_PIN_REVIEW.md](qa/INSPECTOR_PIN_REVIEW.md). Overview’s last matching verified result is now delivered in 51fe9ad/81af758 with [scoped evidence](qa/OVERVIEW_EVIDENCE_REVIEW.md); visible-node rendering and further accessibility requirements remain implementation/acceptance work in [IMPLEMENTATION_STATUS.md](IMPLEMENTATION_STATUS.md). The [design reference](../../design-system/MASTER.md) and [migration/rollback plan](MIGRATION_ROLLBACK.md) now exist; no hosted rehearsal is claimed.
-5. Advanced raw graph/state edits still require math review. Compiler success proves structural validity, not certified RTP. Complete accessibility/practitioner acceptance is owner-side work.
-
-## Local review
-
-Use the dedicated development PostgreSQL instance on localhost:5546 (`slotmath` database/user/password, local-only). From repository root:
-
-```sh
-ASPNETCORE_ENVIRONMENT=CI ConnectionStrings__DefaultConnection='Host=localhost;Port=5546;Database=slotmath;Username=slotmath;Password=slotmath' dotnet run --project backend/SlotMath.Api --no-build --no-launch-profile --urls http://localhost:5166
-```
-
-From `frontend/`, build with Node 22 and run:
-
-```sh
-SLOT_MATH_API_URL=http://localhost:5166 npm run preview -- --port 4186 --host 127.0.0.1
-```
-
-Open `http://127.0.0.1:4186/projects`. Create Ancient Dragon and Nine Lives reference copies; edit free spins/weights, open a nested mechanic, switch projects and return. Duplicate a template and verify independent parameters. Reload/export/import a model. Review Results with actual pinned hashes/seeds/N; Debug seed 1 highlights five BONE cells and pinned replay survives later edits. Sign into different development identities in separate contexts (production must use provisioned credentials), verify empty foreign archives and denied foreign IDs. Test save failures and session/API outages without proof placeholders.
-
-The local browser config extends the repository config with `webServer: undefined` and baseURL4186. CI commands remain `npm run test:e2e` / `npm run test:e2e:critical`. Local iterations run only new or affected tests; complete suites are reserved for integrated substantial features or explicit user requests, as required by AGENTS.md. Cross-browser checks use official Playwright Firefox/WebKit builds. This host's WebKit required temporary extracted native libraries and a launcher; repository/system dependencies were not changed. Provision standard browser dependencies on CI.
-
-
-## Scoped follow-up after the comprehensive regression
-
-Source e6c404c adds persisted inspector pinning without changing mathematical inputs. Only new/affected tests were run: initial Chromium 4/4 and Firefox/WebKit 6/6; after legacy-import and focus corrections, Chromium 2/2 and Firefox/WebKit 4/4. Existing legacy round-trip coverage also passed. These counts describe separate scoped runs, not one new complete suite. Build and scoped ESLint pass; required cleanup remains blocked. The earlier 108/128/140 comprehensive counts apply to the recorded b9d92a1 source, not a new full run on e6c404c. See [follow-up behavior, visual checks and measurements](qa/INSPECTOR_PIN_REVIEW.md).
-
-
-Overview source 51fe9ad/81af758 now shows actual owner-scoped matching saved-run evidence, with failed/pending refreshes withholding stale proof. Scoped checks passed (API 3, new units 3, Chromium 3, Firefox/WebKit 4); eight real viewport captures have no overflow. No full suite was rerun. [OVERVIEW_EVIDENCE_REVIEW.md](qa/OVERVIEW_EVIDENCE_REVIEW.md) records fingerprints, uncertainty rules, failures, source scope and remaining gates.
-
-
-Visible graph source 1973c4d enables native viewport filtering, with complete model/edge/expression export equality and retained offscreen search/cameras. Four initial affected Chromium checks and the corrected failed deletion scenario pass; Firefox/WebKit 4/4 pass. The actual 84-node model renders five nodes at the focused desktop viewport; no mathematical/FPS improvement is inferred. [GRAPH_VISIBILITY_REVIEW.md](qa/GRAPH_VISIBILITY_REVIEW.md) records the scope and remaining cleanup/legibility gates. No complete suite was rerun.
-
-
-Source b752c03 improves working-text/field legibility, compact unsupported-board states and modal keyboard/focus behavior. Scoped Chromium 6/6 and Firefox/WebKit 4/4 pass; 20 actual viewport/AX observations have no overflow/unnamed audited controls, and the new link has 8.9245:1 contrast. [WORKBENCH_ACCESSIBILITY_REVIEW.md](qa/WORKBENCH_ACCESSIBILITY_REVIEW.md) states precise coverage and remaining acceptance limits. No complete suite was repeated or WCAG/practitioner acceptance claimed.
-
-
-## Compiler navigation and destructive graph follow-up
-
-286c257 adds authored root/nested node/edge focus and cancels obsolete compiler feedback by independent project identity/source. Scoped units 2/2, Chromium 3/3 plus added nested 1/1, Firefox/WebKit 6/6 pass; four actual viewport captures have no document overflow. See [validation review](qa/VALIDATION_NAVIGATION_REVIEW.md).
-
-e991928 adds explicit graph/inspector/outcome deletion confirmation. Chromium initial 3/4 and failed/new follow-up 2/2; Firefox/WebKit 7/8 and only failed WebKit rerun 1/1 pass after correcting test button naming/readiness. Build/touched lint pass. See [destructive graph review](qa/DESTRUCTIVE_GRAPH_REVIEW.md). No complete suite or math-backend test was run for these frontend changes; historical full counts above remain source-specific.
-
-The [requirement audit](REQUIREMENTS_AUDIT.md) records remaining table/keyboard/discovery/destructive-action work and release gates. The [practitioner review kit](PRACTITIONER_REVIEW_KIT.md) contains concrete tasks and scoring but no fabricated feedback. Required cleanup/full Core/human acceptance remain incomplete. This report does not claim the whole goal or release readiness is achieved.
-
-
-## Data/evidence safety and model-inventory follow-up
-
-f4cce7f adds raw-row/evidence deletion confirmation, prevents silent duplicate-field/expression overwrite and protects delayed file hashing from removed/reindexed inputs, another project, editor closure and newer uploads. Actual per-file/aggregate byte limits are enforced. Plugin registry operations now match the available API; unsupported registration/removal and missing evaluation compatibility are explicit.
-
-Scoped Chromium 11/11 and Firefox/WebKit 18/18 passed; afterward only the strengthened embedded-byte/export test reran (Chromium 1/1, Firefox/WebKit 2/2). Build/touched ESLint pass. Sixteen four-size captures have no document/tab overflow and no plugin-panel proof badges; [review](qa/DATA_INPUT_SAFETY_REVIEW.md) records real hashing, actual empty registry, fault injection, source scope and cleanup limits. No full suites or backend/math tests ran for this frontend slice.
-
-The [complete model inventory](MODEL_CAPABILITY_INVENTORY.md) found physical strips in Ancient Dragon, Woodland Whisper and Le Militare's initialState. The top-level-only capability detector missed them. A guarded physical reel editor is still required; raw-array editing or an 'unsupported' message does not complete the known-schema roadmap requirement. Its wrap suffix, stop distributions and conditioned/refill dependencies must round-trip together. Goal completion and release readiness remain unproven.
-
-
-## Source-backed ordinary reel editor
-
-87c95d8 delivers circular strip editing for ordinary Ancient Dragon/Woodland Whisper and both Le Militare sets, including shared refill stops. Full-period data, repeated tails and every mapped stop domain update together. Dense columns, keyboard manipulation, counts/raw probabilities, paged rows, staged validated CSV and guarded Undo are real working controls. Overview links to proven sets; mobile shows the current project.
-
-Scoped mapping units 5/5 and CSV units 4/4 pass. Initial Chromium 8/8; post-density checks 6/7 exposed a genuine focus race, then only failed/new/affected checks 4/4 pass. Final Firefox/WebKit 12/12 pass. Actual compiler/evaluation/round endpoints prove a small independent expectation 0.5 → 1 and exact seeded restoration; all ordinary game sets Apply/Undo compile. Sixteen final captures have no document overflow and 44px phone controls. Final caption copy received build/lint/render review, no suite repeat. [Reel review](qa/REEL_EDITOR_REVIEW.md) retains scope, failures and cleanup blockers.
-
-The conditioned bought-feature mapping is still required. Its materialized patterns/weights/stop subsets are preserved read-only until a complete guarded update exists. This does not complete that known-schema requirement. No kernel/PRNG/backend changes, full suites, publication or deployment occurred.
-
-
-## Coupled conditioned reels
-
-c4d4c9e closes the known bought-feature strip mapping: showing patterns, their exact weights, conditional subsets and ordinary/tail data rebuild together. Original recovered constraints persist as existing typed AST constants, validated against complete source, so ambiguous all-symbol outputs still export/import correctly. Unknown/customized coupling, metadata loss and unsupported integer/combination budgets fail closed; no kernel/PRNG/new-atom changes.
-
-Affected/new units initially 8/8; changed guard/budget checks 3/3, final recovery rejection 1/1. Chromium 7/7 and only strengthened degeneration 1/1; Firefox/WebKit changed/new conditional 4/4. Actual API oracle confirms 2/3 → 1/2, raw share 1/3, all-symbol result 1, exact seeded/authored Undo and real bought-game compiler/reimport. Twelve final real before/applied/impossible captures have no document overflow/editor proof badges. [Conditional review](qa/CONDITIONED_REEL_REVIEW.md) documents AST contract, exact scope, recovery, guard limits and required cleanup. No full suite was repeated.
-
-Remaining keyboard/async/table/rubric/human and Core/Rider gates are tracked in the requirement audit; this feature does not prove whole-goal completion or release readiness.
-
-## Keyboard connection authoring
-
-026e7e0 adds canonical typed handles and shared pointer/keyboard checks, independent IDs for distinct ports, a labelled keyboard dialog and project-scoped import/dialog/focus protection. Scoped units, Chromium 8+2 and Firefox/WebKit 14+4 pass; build/touched lint and four viewport captures pass. See [review and remaining race/cleanup limits](qa/KEYBOARD_CONNECTION_REVIEW.md). Whole-goal and release gates remain incomplete; no full suite was repeated.
-
-## Generic data execution isolation
-
-7191f0c aborts obsolete calculations and clears results on project/path/source changes or editor close. Build/touched lint, Chromium 4/4 and Firefox 4/4 pass; initial WebKit 2/4 followed by only failed cases 2/2 after switching the test observation to the actual fetch AbortSignal. Real held server responses never populate the changed workspace. See [execution review and remaining scope](qa/DATA_EXECUTION_REVIEW.md). Required cleanup and whole-goal gates remain open.
-
-## Weighted and project import cancellation
-
-5913d07 guards delayed weighted CSV, validation and personal-project imports/server opens. Build/touched lint pass; initial Chromium 7/8 then only failed/new 2/2 after waiting for actual unmount; Firefox/WebKit 16/16. Real compiler response cancellation and affected independent expectation/Apply/Undo/export remain verified. See [async review](qa/WEIGHTED_ASYNC_REVIEW.md). No broad suites; required cleanup and whole-goal gates remain open.
-
-## Shared validation lifecycle
-
-482c548 aborts validation on source/project/path changes and cancels free-spin/payout work on unmount. Real held compiler responses prove change-and-restore and unchanged-model nested-path cancellation. Build/touched lint pass; Chromium initially 8/9 then only failed navigation case 1/1; Firefox/WebKit 15/16 then only failed WebKit transport-observation case 1/1. See [validation review](qa/VALIDATION_LIFECYCLE_REVIEW.md) for retained failures, independent expectation/Undo evidence and remaining gates. No full suites or release-readiness claim.
-
-## Controlled graph/context races
-
-New tests prove actual delayed node-focus cancellation across same-ID projects/mechanics and newer selections, including forced cancelled-callback replay and a working active control. Mounted nested data execution aborts on a real toolbar context change; a fresh API execution succeeds. Scoped lint, Chromium 5/5 and Firefox/WebKit 10/10 pass. No app changes, rebuild or broad suites. See [race review and exact evidence scope](qa/FOCUS_SCOPE_REVIEW.md). Whole-goal and required cleanup gates remain open.
-
-## Authored table density and raw values
-
-65113ba/92af329 deliver persistent owner-scoped density, fixed header/primary columns, keyboard weighted/payout editing and exact raw copy with selectable failure fallback. Actual WebKit review caught and fixed native select contrast. Twelve real four-size captures and measured 38px desktop/45px phone Compact weighted rows preserve 36px/44px fields. The original 32px target is explicitly not claimed. Build/scoped lint pass; detailed initial failures and only failed/new/affected reruns are retained in [table review](qa/TABLE_CONTRACT_REVIEW.md). Final affected visual/select Chromium 2/2 and Firefox/WebKit 6/6; reel density Chromium 1/1 and Firefox/WebKit 2/2. Model data agent assessment is 14/16; other views and actual practitioner acceptance remain pending. No full suite or math/backend changes.
-
-## Scored visual review and mobile project context
-
-6fa0468/cf40f6c/d96a4ae restore the phone project switcher, evidence legibility/native-select contrast, complete Export fingerprint display, useful mobile graph space and readable trace indices. Authenticated capture has 64 no-overflow observations; subsequent affected captures show the corrected views. Actual 100-round saved evidence and five seed-1 hit positions supply the review. Scoped failures, corrections and final Chromium/Firefox/WebKit passes are documented in [scored agent review](qa/SCORED_VIEW_REVIEW.md). Nine principal views score 14–15/16; optional Reference demo scores 13/16 and needs follow-up. These are agent assessments, not human acceptance or a release certificate. No full suites or kernel changes; required cleanup remains unavailable.
-
-## Reference controls and long weighted draws
-
-ac65826 fixes reference-demo labels, targets, native dialog names/focus and loading readiness. 43f32ce accepts long weights/payloads within an explicit exact browser budget and uses BigInt total checks. Units 6/6, final new/affected Chromium 4/4 and Firefox/WebKit 12/12 pass; final size-only checks Chromium 1/1/cross 2/2. Actual compiler/exact oracle confirms 0.5 → 0.75 with weights above Int32; Undo/export/CSV safeguards pass. [Review](qa/REFERENCE_AND_WIDE_WEIGHTS_REVIEW.md) retains initial failures and exact scope. WebKit ready-state images still reveal an initial-sprite rendering defect; Reference demo remains 13/16, not visually accepted. Full Int64 import/export, remaining acceptance gates and required cleanup remain open. No full suites or math/kernel changes.
-
-## Reference initial-artwork follow-up
-
-Native-image texture loading fixes independently reproduced WebKit ImageBitmap/WebP corruption. A thirty-cell live GPU-canvas comparison against native decoded source artwork fails before the change and passes on the fixed production bundle in Chromium, Firefox and WebKit. New/affected Chromium 3/3 and cross 6/6 include readiness and actual spin/replay; four-size WebKit capture 1/1 verifies legibility, targets and no document overflow. Build/touched lint pass; required Rider passes remain unavailable. Refreshed inspected Reference score is 14/16, superseding the earlier 13/16 renderer finding. See [renderer evidence and scope](qa/REFERENCE_RENDERING_REVIEW.md). This does not certify all animation frames, Safari hardware, large-scale performance or complete the remaining goal gates.
-
-## Original model-number tokens
-
-Personal/toolbar/Export/legacy imports and saved-model reads now inspect original JSON number tokens before authoring, rejecting magnitudes beyond the browser-safe range and overflow with visible errors. Programmatic project loads are guarded. Supported large integers, 10000000000 weights and unknown string metadata survive actual downloads. New unit evidence and Chromium initial 4/6 plus only corrected failed tests 2/2, Firefox/WebKit 8/8, final build/scoped lint are recorded in [precision review](qa/MODEL_JSON_PRECISION_REVIEW.md). No broad suite or kernel change. Persisted drafts, raw numeric editing/outgoing exports, AI ingestion and measurement AST inputs still need audit; lossless full-Int64 authoring is not implemented. Required cleanup remains unavailable.
-
-## Browser draft recovery
-
-Stored workspace hydration now validates original numeric tokens and preserves rejected raw JSON in an owner-scoped recovery copy before new autosave can replace active storage. Downloading that original remains available across reload. Failed backup freezes active-draft writes and retains in-memory editing; outgoing workspace snapshots reject unsupported numeric values before serialization. Chromium new/affected 7/7 and Firefox/WebKit new 10/10 pass, with build/scoped lint. Additional actual unsafe-numeric-write/restored-autosave Chromium 1/1 and cross 2/2 pass. Four-size recovery screenshots have no document overflow; desktop/phone reviewed. See [recovery evidence and limits](qa/DRAFT_RECOVERY_REVIEW.md). Required cleanup, other numeric boundaries and whole-goal gates remain open. No full suites or backend changes.
-
-## Raw state number fields and measurement AST
-
-Scalar/numeric-array state editing now keeps incomplete/unsupported text unapplied with accessible errors; supported long/scientific/decimal values export with unknown metadata intact. Measurement AST JSON validates original number tokens and retains string Integer/Rational constants. New/affected units and Chromium initial 4/5 plus only corrected failed selector 1/1, Firefox/WebKit 6/6, build/scoped lint pass. Four-size error captures show no document overflow; WebKit desktop/phone reviewed. A reviewed stretched Add-row control was corrected; only affected final capture/export Chromium 1/1 and Firefox/WebKit 2/2 reran with fresh build/touched lint. See [raw-number evidence and limits](qa/RAW_NUMBER_REVIEW.md). Legacy Inspector, outgoing model/server export, AI and remaining numeric option boundaries are still pending; no full suites or required cleanup success.
-
-## Inspector integer contracts
-
-Both authoring formats guard caps, iterations, weights and signed values before mutation. Source-backed value editing, loop-caption synchronization, exact positive/safe weight totals and BigInt static-table summaries are implemented. Units 2/2, corrected docked Chromium 4/4, Firefox/WebKit 8/8 pass with real Exact 0.75/compiler evidence and downloaded models. Initial overlay-related test failures are retained. Four-size capture review corrected squeezed numeric columns; affected final Chromium 4/4 and cross completion are recorded in [Inspector review](qa/INSPECTOR_NUMBER_REVIEW.md). Build/scoped lint pass; required cleanup, canvas summary/outgoing/AI precision and remaining goal gates are open. No full suites or backend/math changes.
-
-## Exact Draw canvas facts
-
-Draw cards now show exact authored static fractions or explicit dynamic/unconfigured/unsupported/zero-total states, without implying calculation proof. Original model downloads remain unchanged. New unit, corrected scoped Chromium and Firefox/WebKit checks pass; long-fraction four-size wrapping/bounds and final slash-break captures have scoped passes. Build/touched lint pass; no full suites or required cleanup success. See [source-card evidence and reproduced parser gap](qa/DRAW_CARD_REVIEW.md). Malformed legacy DSL can still blank the app during serialization; the independent stack/screenshot are retained and fixing this is the next priority. Whole-goal and release gates remain incomplete.
-
-## Recoverable legacy serialization failure
-
-The independently reproduced malformed legacy DSL blank screen is now contained. Graph text/drafts remain editable and downloadable, invalid executable exports/schema requests are blocked and live preview no longer sends a substitute empty graph. Strict outgoing models check number budgets before serialization. New units 2/2, Chromium new 2/2 plus corrected dialog test 1/1, Firefox/WebKit 6/6 and affected actual cancellation Chromium 4/4 pass. Final build/scoped lint pass; four-size no-overflow desktop/phone captures reviewed. See [recovery evidence and remaining ingestion/restore limits](qa/SERIALIZATION_ERROR_REVIEW.md). No broad suites, backend changes or required cleanup success. Raw backup restoration, other malformed paths, AI/other input boundaries and whole-goal gates remain open.
+Documentation/artifact cleanup leaves application source unchanged and requires no tests. Routine implementation changes run only affected/new tests; full suites are reserved for substantial integrated features or explicit user requests.

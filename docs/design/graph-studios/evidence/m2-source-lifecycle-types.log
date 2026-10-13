@@ -1,6 +1,0 @@
-src/lib/authoring/sourceLifecycle.ts(8,53): error TS6133: 'NodeSource' is declared but its value is never read.
-src/lib/authoring/sourceLifecycle.ts(64,32): error TS2322: Type '{ [x: string]: Mechanic | ModelDefinition; }' is not assignable to type 'Record<string, ModelDefinition>'.
-  'string' index signatures are incompatible.
-    Type 'Mechanic | ModelDefinition' is not assignable to type 'ModelDefinition'.
-      Type 'Mechanic' is not assignable to type 'ModelDefinition'.
-        Index signature for type 'string' is missing in type 'Mechanic'.

@@ -1,6 +1,6 @@
 # Bundled model capability inventory
 
-Captured 2026-10-12 against f4cce7f. Every factory in gameModelLibrary/starterLibrary plus the separate reference Nine Lives factory was invoked and its complete authored JSON inspected. [Raw structural inventory](qa/model-schema-inventory.json) records all top-level fields, state arrays/types/lengths and expression scopes referencing those arrays. TypeScript was transpiled to CommonJS for this read-only local inspection. These are authored-source counts, not compiled instruction counts, timings, sampled RTP or certified game facts. Examples remain uncalibrated.
+Captured 2026-10-12 against f4cce7f. Every factory in gameModelLibrary/starterLibrary plus the separate reference Nine Lives factory was invoked and its complete authored JSON inspected. The locally retained raw structural inventory records all top-level fields, state arrays/types/lengths and expression scopes referencing those arrays. TypeScript was transpiled to CommonJS for this read-only local inspection. These are authored-source counts, not compiled instruction counts, timings, sampled RTP or certified game facts. Examples remain uncalibrated.
 
 | Template | Columns × rows | Root nodes/edges | Definitions | All authored nodes | Guarded weighted editor sources |
 |---|---|---|---|---|---|
@@ -15,7 +15,7 @@ Captured 2026-10-12 against f4cce7f. Every factory in gameModelLibrary/starterLi
 
 ## Source families and safe editing
 
-Runtime qualification from the AI source audit: a Draw `weightExpression` referencing an array-valued state field passes structural validation but the current light evaluator returns `EVAL_TYPE_ERROR: Numeric weight expression required.` Declared dynamic mode is not proof of executable vector-weight support. Preserve source and show the actual error; do not claim compiler acceptance certifies every evaluation. See [AI source evidence](qa/AI_MODEL_SOURCE_REVIEW.md). No new kernel atom was introduced.
+Runtime qualification from the AI source audit: a Draw `weightExpression` referencing an array-valued state field passes structural validation but the current light evaluator returns `EVAL_TYPE_ERROR: Numeric weight expression required.` Declared dynamic mode is not proof of executable vector-weight support. Preserve source and show the actual error; do not claim compiler acceptance certifies every evaluation. See the maintained [QA summary](FINAL_QA_REPORT.md); detailed AI-source output remains local. No new kernel atom was introduced.
 
 - Nine Lives reference: `src/games/nine-lives/graph.ts`, separate authored row-major reference model, 40 reusable definitions. Finite draws, initial state, typed AST, flattened executable cluster payout inputs and matching paytable metadata. Existing cluster payout/free-spin form adapters guard their exact executable mappings.
 - Nine Lives migrated: `src/games/nine-lives-tgslots/graph.ts`, composed shared atomic authoring helpers. It is a separate 6×5 model, not the reference adapter's universal schema. Do not assume identical payout/form mappings because IDs or names resemble each other.
@@ -26,7 +26,7 @@ Runtime qualification from the AI source audit: a Draw `weightExpression` refere
 
 ## Physical strips: ordinary and coupled conditional mappings
 
-The prior detector only checks a top-level `reelStrips` array. None of these eight models has that field; this **does not prove absence of physical strips**. The actual shared source above disproves that inference. 87c95d8 now delivers a guarded editor for all three ordinary template families, including separate Le Militare paid/free sets. It recognizes actual state/AST/stop domains and updates their repeated tails together. See qa/REEL_EDITOR_REVIEW.md. c4d4c9e additionally delivers the coupled bought-variant mapping. See qa/CONDITIONED_REEL_REVIEW.md for exact shape/weight/metadata guards and source-rule preservation.
+The prior detector only checks a top-level `reelStrips` array. None of these eight models has that field; this **does not prove absence of physical strips**. The actual shared source above disproves that inference. 87c95d8 now delivers a guarded editor for all three ordinary template families, including separate Le Militare paid/free sets. It recognizes actual state/AST/stop domains and updates their repeated tails together. See the maintained QA summary; raw review output remains local. c4d4c9e additionally delivers the coupled bought-variant mapping. See the maintained QA summary; raw review output remains local.md for exact shape/weight/metadata guards and source-rule preservation.
 
 | Model | Stored strip lengths | Additional dependencies |
 |---|---|---|

@@ -1,2 +1,0 @@
-src/lib/authoring/studioEdits.ts(96,271): error TS7006: Parameter 'count' implicitly has an 'any' type.
-src/lib/authoring/studioEdits.ts(96,358): error TS7006: Parameter 'value' implicitly has an 'any' type.

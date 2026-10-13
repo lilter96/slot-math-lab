@@ -14,6 +14,6 @@ Use these documents together:
 - [Implementation handoff](CODEX_HANDOFF.md): execution requirements.
 - [Implementation status](IMPLEMENTATION_STATUS.md) and [requirements audit](REQUIREMENTS_AUDIT.md): delivery evidence and outstanding work.
 
-Treat older single-game screenshots and slice reports as historical evidence. They do not narrow the current product scope. Workspace-level brief copies live in `../../../docs/design`; update the maintained documents here first.
+Generated screenshots, logs, audit JSON and per-iteration review notes belong in ignored local QA/evidence directories or CI artifacts. Keep only maintained product/design documents, acceptance summaries and reproducible input fixtures in Git. Historical captures do not narrow the current product scope. Workspace-level brief copies live in `../../../docs/design`; update the maintained documents here first.
 
 Documentation-only changes require no tests. Other local changes follow the affected/new-test policy in [AGENTS.md](../../AGENTS.md).

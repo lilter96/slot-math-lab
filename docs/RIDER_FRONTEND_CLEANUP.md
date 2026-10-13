@@ -42,6 +42,6 @@ PY
 
 Use the owner's Rider code-style settings and each source file's applicable EditorConfig. Do not replace Full Cleanup with a custom profile or commit the temporary solution. An isolated Rider instance may use separate config/system/log directories and a virtual display; preserve the owner's settings and leave their IDE session alone.
 
-Verified on 2026-10-12 for all **92** graph-studios source/test files: Reformat succeeded at 23:33:26 and Full Cleanup at 23:33:58. The latter ran Optimize Imports and Reformat through Rider's frontend engine. See [the delivery evidence](design/graph-studios/evidence/m5-rider-cleanup.json) and [Rider log excerpt](design/graph-studios/evidence/m5-rider-cleanup.log). Both profiles and their scope were captured locally; the previous failed CLI logs remain retained.
+Verified on 2026-10-12 for all **92** graph-studios source/test files: Reformat succeeded at 23:33:26 and Full Cleanup at 23:33:58. The latter ran Optimize Imports and Reformat through Rider's frontend engine. See the maintained [delivery summary](design/graph-studios/DELIVERY.md); generated cleanup manifests and Rider log excerpts remain local in the ignored evidence directory. Both profiles and their scope were captured locally; the previous failed CLI logs remain retained.
 
 JetBrains documents [selected-file/folder cleanup and the built-in profiles](https://www.jetbrains.com/help/rider/Code_Cleanup__Index.html).

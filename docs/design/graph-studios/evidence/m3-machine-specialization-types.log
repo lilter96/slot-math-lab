@@ -1,2 +1,0 @@
-src/lib/authoring/machineLowering.ts(55,82): error TS6133: 'variable' is declared but its value is never read.
-src/lib/authoring/machineLowering.ts(56,387): error TS18046: 'expression.path' is of type 'unknown'.
