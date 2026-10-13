@@ -43,6 +43,14 @@ async function backup(page: Page): Promise<{ graph: ModelGraph; views: unknown }
 async function apply(page: Page) {
     await page.getByRole('button', {name: 'Validate & apply', exact: true}).click();
     await expect(page.getByRole('button', {name: 'Undo', exact: true})).toBeEnabled({timeout: 70000});
+    await visibleStates(page);
+}
+
+async function visibleStates(page: Page) {
+    if (await page.locator('.machine-canvas').count()) await expect.poll(() => page.locator('.react-flow__node').evaluateAll(nodes => nodes.length > 0 && nodes.every(node => {
+        const bounds = node.getBoundingClientRect();
+        return getComputedStyle(node).visibility === 'visible' && bounds.width > 0 && bounds.height > 0;
+    })), {message: 'Applied and undone states keep measured dimensions and remain visible'}).toBe(true);
 }
 
 async function chooseState(page: Page, label: string) {
@@ -70,6 +78,7 @@ test('Authored action edit survives reload, applies once, runs raw graph, export
     expect(response.ok()).toBe(true);
     expect((await response.json()).win).toBe(115);
     await page.getByRole('button', {name: 'Undo', exact: true}).click();
+    await visibleStates(page);
     expect((await backup(page)).graph).toEqual(graph);
     await open(page, saved.graph, 'sequence-machine');
     await expect(page.locator('.machine-canvas-node')).toHaveCount(3);

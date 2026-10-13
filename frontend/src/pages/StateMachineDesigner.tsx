@@ -219,6 +219,7 @@ function MachineWorkspace({projectId, graph}: { projectId: string; graph: ModelG
         x: number;
         y: number
     }>>(() => views?.machine?.positions ?? {});
+    const [dimensions, setDimensions] = useState<Record<string, { width: number; height: number }>>({});
     const scopes = useMemo(() => {
             const hidden = new Set(Object.keys(graph.mechanics ?? {}).flatMap(name => readMachineSource(graph, name)?.scopes.filter(scope => scope !== name) ?? []));
             return controlScopes(graph).filter(value => value.key === null || !hidden.has(value.key));
@@ -398,6 +399,7 @@ function MachineWorkspace({projectId, graph}: { projectId: string; graph: ModelG
         id: item.key,
         type: 'state',
         position: positions[item.key] ?? defaults(index),
+        measured: dimensions[item.key],
         selected: selected === item.key,
         data: {
             title: item.title,
@@ -686,6 +688,15 @@ function MachineWorkspace({projectId, graph}: { projectId: string; graph: ModelG
                                                                                                 }))).find(value => value.key === edge.id)?.id ?? null);
                                                                                             }}
                                                                                             onNodesChange={changes => {
+                                                                                                const resized = changes.filter(change => change.type === 'dimensions' && change.dimensions);
+                                                                                                if (resized.length) setDimensions(previous => {
+                                                                                                    let next = previous;
+                                                                                                    for (const change of resized) if (change.type === 'dimensions' && change.dimensions && (previous[change.id]?.width !== change.dimensions.width || previous[change.id]?.height !== change.dimensions.height)) {
+                                                                                                        if (next === previous) next = {...previous};
+                                                                                                        next[change.id] = change.dimensions;
+                                                                                                    }
+                                                                                                    return next;
+                                                                                                });
                                                                                                 const moved = changes.filter(change => change.type === 'position' && change.position);
                                                                                                 if (moved.length) setPositions(previous => {
                                                                                                     const next = {...previous};

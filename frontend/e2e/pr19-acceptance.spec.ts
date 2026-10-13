@@ -213,6 +213,10 @@ test('PR19 fresh paired visual acceptance: full tabs, scrollers, source, dialogs
     const capture = async (model: string, view: string, viewport: { width: number; height: number }) => {
         const name = `${model}-${viewport.width}x${viewport.height}-${view}.png`;
         await page.evaluate(() => document.fonts.ready);
+        if (visualPhase === 'after' && await page.locator('.machine-canvas').count()) {
+            await expect(page.locator('.react-flow__node')).toHaveCount(2);
+            for (const node of await page.locator('.react-flow__node').all()) await expect(node).toBeVisible();
+        }
         await page.screenshot({path: `${folder}/${name}`, fullPage: true});
         manifest.push({
             model,
