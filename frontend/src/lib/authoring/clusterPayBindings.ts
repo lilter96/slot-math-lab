@@ -104,6 +104,7 @@ export function clusterPayBindings(graph: ModelGraph): PayBinding[] {
     if (!state || !Number.isSafeInteger(columns) || !Number.isSafeInteger(rows) || columns < 1 || rows < 1 || cells > 52 || (Array.isArray(graph.plugins) && graph.plugins.length)) return [];
     const index = indexGraphSources(graph), tables = Array.isArray(graph.paytables) ? graph.paytables as Table[] : [],
         result: PayBinding[] = [];
+    if (index.unresolvedEffects.some(effect => effect.active)) return [];
     if (index.stateWrites.some(write => ['clusterPays', 'clusterPaytable', 'clusterMinSize', 'roundCost', 'baseCost'].includes(write.key))) return [];
     for (const table of tables) {
         if (tables.filter(value => value.id === table.id).length !== 1) continue;

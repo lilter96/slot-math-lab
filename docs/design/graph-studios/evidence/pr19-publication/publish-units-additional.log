@@ -1,0 +1,31 @@
+
+Running 18 tests using 2 workers
+
+(node:790241) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:790240) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:790241) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:790240) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   1 unit/authoring-cluster-pay-bindings.spec.ts:25:5 › TGSlots: exact payout edits synchronize the real lookup and precision while preserving unrelated control, rule caps and input (154ms)
+  ✓   3 unit/authoring-cluster-pay-bindings.spec.ts:25:5 › weighted Le Militare: exact payout edits synchronize the real lookup and precision while preserving unrelated control, rule caps and input (320ms)
+  ✓   4 unit/authoring-cluster-pay-bindings.spec.ts:25:5 › reference: exact payout edits synchronize the real lookup and precision while preserving unrelated control, rule caps and input (52ms)
+  ✓   5 unit/authoring-cluster-pay-bindings.spec.ts:49:1 › Minimum crosses five and one in both directions: pruning, isolated-cell handling and shared callers reconcile without replacing the game (281ms)
+  ✓   6 unit/authoring-cluster-pay-bindings.spec.ts:72:1 › Runtime overrides, extra lookup consumers, mismatched metadata and stale revisions reject before mutation (115ms)
+  ✓   7 unit/authoring-cluster-pay-bindings.spec.ts:95:1 › Alpha-renamed cluster definitions, nodes and expressions retain authored IDs and opaque node/edge fields through minimum changes (178ms)
+  ✓   8 unit/authoring-machine-lifecycle.spec.ts:10:1 › Machine updates preserve opaque graph/node/edge data, no-op identity and source fences (13ms)
+  ✓   9 unit/authoring-machine-lifecycle.spec.ts:26:1 › One independent use gets private counters and definitions while other fields and callers stay intact (15ms)
+  ✓  10 unit/authoring-machine-lifecycle.spec.ts:35:1 › Creation inserts one connected Library on a real State edge and never adds disconnected entries or extra sinks (2ms)
+  ✓  11 unit/authoring-machine-lifecycle.spec.ts:44:1 › Nested independent copies keep all private namespaces separate, including long instance IDs and repeated copies (28ms)
+  ✓  12 unit/authoring-machine-lifecycle.spec.ts:63:1 › An opaque operation wrapping a nested machine stays intact while its private dependency closure is copied (14ms)
+  ✓  13 unit/authoring-machine-lifecycle.spec.ts:86:1 › Fractional existing shared state stays editable without resetting it; authored field names remain literal data keys (8ms)
+  ✓  14 unit/authoring-machine-lowering.spec.ts:16:1 › Generated machines roundtrip every executable action/guard/effect from GraphConfig and use only existing atoms (19ms)
+  ✓  15 unit/authoring-machine-lowering.spec.ts:25:1 › Variable-bound operations reconstruct their bindings from AST source, preserve the original operation and remain portable without descriptors (5ms)
+  ✓  16 unit/authoring-machine-lowering.spec.ts:49:1 › Missing fallback, destination, unreachable state and ambiguous variable bindings reject before source installation (4ms)
+  ✓  17 unit/authoring-machine-lowering.spec.ts:60:1 › Independent instances retain shared game fields and isolate controls/counters; unrecognized source changes invalidate machine bindings (2ms)
+  ✓  18 unit/authoring-machine-lowering.spec.ts:69:1 › Malformed recovery input and external access to private controls cannot become a verified editable machine (6ms)
+  ✓   2 unit/authoring-cluster-pay-bindings.spec.ts:10:1 › Every TGSlots entry, all eighteen Le Militare variants and the separate reference expose executable cluster bindings without no-op rewriting (2.6s)
+
+  18 passed (3.2s)

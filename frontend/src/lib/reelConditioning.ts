@@ -9,6 +9,7 @@ import {canonicalJson} from './hash';
 import type {ModelGraph, ModelNode} from './modelProjection';
 import type {ReelSource} from './reelCommands';
 import {matchReelShape} from './authoring/reelShape';
+import {indexGraphSources} from './authoring/sourceIndex';
 
 export interface ReelCondition {
     scope: string;
@@ -45,8 +46,15 @@ export function conditionCandidates(graph: ModelGraph, scope: string): { pattern
         });
     };
     visit(definition?.expressions);
-    if (!reads.has(first.stateWriteKey)) return [];
-    return [...reads].filter(key => Array.isArray(initial[key]) && (initial[key] as unknown[]).length > 0 && (initial[key] as unknown[]).every(row => Array.isArray(row) && row.every(value => Number.isSafeInteger(value) && value >= 0))).map(patternsKey => ({
+    const expressions = record(definition?.expressions), symbol = record(expressions[symbolKey]),
+        threshold = record(expressions[thresholdKey]);
+    const declared = symbol.exprType === 'constant' && symbol.kind === 'String' && typeof symbol.value === 'string'
+        && threshold.exprType === 'constant' && threshold.kind === 'Integer' && typeof threshold.value === 'string' && /^\d+$/.test(threshold.value) && Number.isSafeInteger(Number(threshold.value));
+    // A single count per reel has no Branch reading the pattern. Declaration alone is not proof:
+    // findReelCondition still verifies the complete helper, exact draws and pattern table.
+    const degenerate = declared && Array.isArray(first.drawWeights) && first.drawWeights.length === 1;
+    if (!reads.has(first.stateWriteKey) && !degenerate) return [];
+    return (degenerate ? Object.keys(initial) : [...reads]).filter(key => Array.isArray(initial[key]) && (initial[key] as unknown[]).length > 0 && (initial[key] as unknown[]).every(row => Array.isArray(row) && row.every(value => Number.isSafeInteger(value) && value >= 0))).map(patternsKey => ({
         patternsKey,
         patternKey
     }));
@@ -122,7 +130,9 @@ export function findReelCondition(graph: ModelGraph, source: ReelSource, scope: 
     const actual = graph.mechanics?.[scope];
     if (!actual) return null;
     const found: ReelCondition[] = [];
+    const index = indexGraphSources(graph);
     for (const keys of conditionCandidates(graph, scope)) {
+        if (index.unresolvedEffects.some(effect => effect.active && effect.writes) || index.stateWrites.some(write => [keys.patternsKey, ...source.stripKeys].includes(write.key))) continue;
         const state = record(graph.initialState), patterns = state[keys.patternsKey];
         if (!Array.isArray(patterns) || !patterns.length || patterns.some(row => !Array.isArray(row) || row.length !== source.strips.length || row.some(count => !Number.isInteger(count) || count < 0 || count > source.rows))) continue;
         const expressions = record(actual.expressions), symbol = record(expressions[symbolKey]),

@@ -4,9 +4,47 @@ import {num} from '../../games/shared/graph/expr';
 import {parseExpression} from '../../lib/expressionParser';
 import {parseModelJson} from '../../lib/modelJson';
 import {machineExpressionText} from '../../lib/authoring/machineLowering';
-import type {MachineAction, MachineIR, MachineState} from '../../lib/authoring/machineIR';
+import {
+    type MachineAction,
+    machineInitialInput,
+    type MachineIR,
+    type MachineState,
+    type MachineVariable
+} from '../../lib/authoring/machineIR';
+import {exactIntegerInput} from '../../lib/authoring/exactAmounts';
 
 const newIdentity = (prefix: string) => `${prefix}-${crypto.randomUUID().slice(0, 8)}`;
+
+export function MachineIntegerInput({label, value, change, disabled, min, max}: {
+    label: string; value: number | string; change: (raw: string) => void; disabled: boolean; min?: number; max?: number;
+}) {
+    let error = '';
+    try {
+        exactIntegerInput(String(value), min, max);
+    } catch (reason) {
+        error = reason instanceof Error ? reason.message : 'Complete the integer input.';
+    }
+    return <span className="machine-number-input"><input aria-label={label} type="text" inputMode="numeric"
+                                                         value={value} disabled={disabled} aria-invalid={!!error}
+                                                         onChange={event => change(event.target.value)}/>
+        {error && <small role="alert" className="studio-error">{error}</small>}</span>;
+}
+
+export function MachineInitialValueInput({value, change, disabled, scope}: {
+    value: string; change: (raw: string) => void; disabled: boolean; scope: MachineVariable['scope'];
+}) {
+    let error = '';
+    try {
+        machineInitialInput(value, scope);
+    } catch (reason) {
+        error = reason instanceof Error ? reason.message : 'Complete the initial value.';
+    }
+    return <span className="machine-number-input"><input aria-label="Initial value (JSON literal)" value={value}
+                                                         disabled={disabled}
+                                                         aria-invalid={!!error}
+                                                         onChange={event => change(event.target.value)}/>
+        {error && <small role="alert" className="studio-error">{error}</small>}</span>;
+}
 
 export function ExpressionInput({label, value, change, disabled = false}: {
     label: string;
@@ -122,21 +160,24 @@ export function MachineActions({actions, machine, definitions, change, disabled,
                         ...value,
                         id: event.target.value
                     } : value)
-                })}/></label><label>Weight<input type="number" min="0" step="1" value={outcome.weight}
-                                                 disabled={disabled} onChange={event => replace(index, {
+                })}/></label><label>Weight<MachineIntegerInput label="Weight" min={0}
+                                                               value={outcome.weightInput ?? outcome.weight}
+                                                               disabled={disabled} change={raw => replace(index, {
                     ...action,
                     outcomes: action.outcomes.map((value, position) => position === row ? {
                         ...value,
-                        weight: Number(event.target.value)
+                        weightInput: raw
                     } : value)
-                })}/></label><label>Payload<input type="number" step="1" value={outcome.payload} disabled={disabled}
-                                                  onChange={event => replace(index, {
-                                                      ...action,
-                                                      outcomes: action.outcomes.map((value, position) => position === row ? {
-                                                          ...value,
-                                                          payload: Number(event.target.value)
-                                                      } : value)
-                                                  })}/></label>
+                })}/></label><label>Payload<MachineIntegerInput label="Payload"
+                                                                value={outcome.payloadInput ?? outcome.payload}
+                                                                disabled={disabled}
+                                                                change={raw => replace(index, {
+                                                                    ...action,
+                                                                    outcomes: action.outcomes.map((value, position) => position === row ? {
+                                                                        ...value,
+                                                                        payloadInput: raw
+                                                                    } : value)
+                                                                })}/></label>
                     <button aria-label={`Remove outcome ${row + 1}`} disabled={disabled} onClick={() => replace(index, {
                         ...action,
                         outcomes: action.outcomes.filter((_, position) => position !== row)

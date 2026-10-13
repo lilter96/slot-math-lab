@@ -2,9 +2,11 @@
 
 Reel & Paytable Studio and State Machine Designer edit the selected private project's existing GraphConfig and use the existing compiler/execution APIs. No backend/API/schema changes, new graph atoms, game-name runtime dispatch, alternate RNG or mathematical runtime were introduced. Browser projects remain private and independent; server saving remains explicit.
 
-Implementation commit: `b6dfd81` (Designer); Studio checkpoint: `6e98807`. Branch: `feat/precision-workbench-redesign`. Base audit/fetched main: `b81e71c82cb0314d066d7134278751b85676f356`; old work and the Simulate checkpoint were preserved. No push/merge/deployment.
+Implementation commit: `b6dfd81` (Designer); Studio checkpoint: `6e98807`. Branch: `feat/precision-workbench-redesign`. Base audit/fetched main: `b81e71c82cb0314d066d7134278751b85676f356`; old work and the Simulate checkpoint were preserved. The user authorized publishing the audit corrections to [PR19](https://github.com/lilter96/slot-math-lab/pull/19) on 2026-10-13. No merge or deployment is authorized.
 
-**M0–M5 are complete locally.** The final Rider cleanup blocker was resolved on 2026-10-12 using a real solution context; both required profiles succeeded on all 92 task source/test files. The previous failed attempts remain retained.
+**Acceptance is incomplete; PR19 audit repair is active.** The prior M0–M5 completion claim was premature: CI run `38310620153` failed frontend units and backend formatting, and skipped the downstream Core/API/browser/container/smoke gates. The user's audit identifies F01–F06 in conditional source discovery, AST binding/dependencies, numeric input and parameter rewriting. F01 reproduces locally. See STATUS.md for current corrections and gates. The 2026-10-12 scoped Rider cleanup succeeded on 92 files but did not certify those missing requirements.
+
+The [2026-10-13 publication checkpoint](PR19_PUBLICATION_CHECKPOINT.md) records the current corrections, affected checks and retained failures. It supersedes the earlier blanket completion claim; the original M5 integrated and visual acceptance gates remain open.
 
 Live development: http://localhost:4187/model/studio and http://localhost:4187/model/machine. API: 5166; built preview: 4186. Polling HMR remains enabled. Open **My projects**, select/create/import a model, then use Studio or State machine in the navigation.
 
@@ -12,7 +14,7 @@ Studio delivers source, payout, payline and symbol editing, exact input and spre
 
 ## Acceptance evidence
 
-“Pass” denotes the evidenced local behavior below, not certification or an exhaustive proof for arbitrary imported graphs. Full details and retained failures are in STATUS.md and the evidence directory.
+The matrix below records earlier local scenarios, not final acceptance of the current PR. F01 reopens G04/R02/I03; F02/F03/F06 reopen S02/S04/I02; F04 reopens G04/P01/P02; F05 reopens P04/V02. Integrated M5 and V01–V03 remain unaccepted until the audit repair and required fresh checks complete. Full details and retained failures are in STATUS.md and the evidence directory.
 
 | ID | Local result | Evidence |
 |---|---|---|

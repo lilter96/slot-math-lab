@@ -4,10 +4,11 @@ import {reelObject} from '../reelCommands';
 import {controlRevision, controlSource} from './controlProjection';
 import {resolveNodeSource} from './sourceIndex';
 import {computedLineBound} from './payoutBounds';
+import {exactIntegerInput} from './exactAmounts';
 
 export type ControlEdit =
     { kind: 'expression'; nodeKey: string; field: 'expressionId' | 'conditionId' | 'stopConditionId'; value: Expr }
-    | { kind: 'loop-budget'; nodeKey: string; value: number }
+    | { kind: 'loop-budget'; nodeKey: string; value: number | string }
     | { kind: 'label'; nodeKey: string; value: string };
 
 /** Existing structured control stays in place. Guards/actions and shared expression users retain their IDs and order. */
@@ -25,8 +26,8 @@ export function changeControlSource(graph: ModelGraph, scope: string | null, rev
             if (!edit.value.trim()) throw new Error('Keep a readable action/state label.');
             node.label = edit.value;
         } else if (edit.kind === 'loop-budget') {
-            if (node.nodeType !== 'loop' || !Number.isSafeInteger(edit.value) || edit.value < 1 || edit.value > 100000) throw new Error('The existing Loop limit needs 1–100000 whole passes. It remains an execution guardrail.');
-            node.maxIterations = edit.value;
+            if (node.nodeType !== 'loop') throw new Error('The existing Loop limit needs 1–100000 whole passes. It remains an execution guardrail.');
+            node.maxIterations = exactIntegerInput(String(edit.value), 1, 100000);
         } else {
             const valid = edit.field === 'conditionId' ? node.nodeType === 'branch' : edit.field === 'stopConditionId' ? node.nodeType === 'loop' : node.nodeType === 'modifyState';
             const expressions = {...reelObject(definition.expressions)}, id = node[edit.field];

@@ -1,0 +1,82 @@
+
+Running 17 tests using 1 worker
+
+(node:774444) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:774444) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   1 [chromium] › e2e/pr19-authoring-runtime.spec.ts:21:50 › PR19 actual compiler/round: aggregate-default (96ms)
+  ✓   2 [chromium] › e2e/pr19-authoring-runtime.spec.ts:21:50 › PR19 actual compiler/round: aggregate-explicit (61ms)
+  ✓   3 [chromium] › e2e/pr19-authoring-runtime.spec.ts:21:50 › PR19 actual compiler/round: aggregate-local-alias (59ms)
+  ✓   4 [chromium] › e2e/pr19-authoring-runtime.spec.ts:21:50 › PR19 actual compiler/round: alias-undefined (55ms)
+  ✓   5 [chromium] › e2e/pr19-authoring-runtime.spec.ts:21:50 › PR19 actual compiler/round: alias-null (61ms)
+  ✓   6 [chromium] › e2e/pr19-authoring-runtime.spec.ts:21:50 › PR19 actual compiler/round: alias-state (57ms)
+  ✓   7 [chromium] › e2e/pr19-authoring-runtime.spec.ts:21:50 › PR19 actual compiler/round: alias-board (56ms)
+  ✓   8 [chromium] › e2e/pr19-authoring-runtime.spec.ts:21:50 › PR19 actual compiler/round: fold-initializer (59ms)
+  ✓   9 [chromium] › e2e/pr19-authoring-runtime.spec.ts:21:50 › PR19 actual compiler/round: map-locals (63ms)
+  ✓  10 [chromium] › e2e/pr19-authoring-runtime.spec.ts:21:50 › PR19 actual compiler/round: filter-locals (54ms)
+  ✓  11 [chromium] › e2e/pr19-authoring-runtime.spec.ts:21:50 › PR19 actual compiler/round: aggregate-nested (67ms)
+  ✓  12 [chromium] › e2e/pr19-authoring-runtime.spec.ts:21:50 › PR19 actual compiler/round: parameter-original (57ms)
+  ✓  13 [chromium] › e2e/pr19-authoring-runtime.spec.ts:21:50 › PR19 actual compiler/round: parameter-bound (54ms)
+  ✓  14 [chromium] › e2e/pr19-authoring-runtime.spec.ts:21:50 › PR19 actual compiler/round: parameter-composed-original (52ms)
+  ✓  15 [chromium] › e2e/pr19-authoring-runtime.spec.ts:21:50 › PR19 actual compiler/round: parameter-composed-bound (53ms)
+  ✘  16 [chromium] › e2e/pr19-authoring-runtime.spec.ts:21:50 › PR19 actual compiler/round: parameter-weighted-original (58ms)
+(node:774729) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:774729) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  17 [chromium] › e2e/pr19-authoring-runtime.spec.ts:21:50 › PR19 actual compiler/round: parameter-weighted-bound (132ms)
+
+
+  1) [chromium] › e2e/pr19-authoring-runtime.spec.ts:21:50 › PR19 actual compiler/round: parameter-weighted-original
+
+    Error: {"error":"Numeric weight expression required."}
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: true
+    Received: false
+
+      25 |     const response = await post(request, '/api/play/round', {config: graph, seed: 42, roundIndex: 0}),
+      26 |         result = await response.json();
+    > 27 |     expect(response.ok(), JSON.stringify(result)).toBe(true);
+         |                                                   ^
+      28 |     const payout = id.startsWith('parameter-weighted') ? result.state.choice === 'a' ? 7 : 0 : expected.get(id);
+      29 |     expect(result.win).toBe(payout);
+      30 |     if (id.startsWith('aggregate-')) expect(result.win).not.toBe(20);
+        at /home/terentiy/work/github-profile-audit/slot-math-lab-worktrees/precision-workbench-redesign/frontend/e2e/pr19-authoring-runtime.spec.ts:27:51
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/pr19-authoring-runtime-PR1-b4527-parameter-weighted-original-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/pr19-authoring-runtime-PR1-b4527-parameter-weighted-original-chromium/error-context.md
+
+  2) [chromium] › e2e/pr19-authoring-runtime.spec.ts:21:50 › PR19 actual compiler/round: parameter-weighted-bound
+
+    Error: {"error":"Numeric weight expression required."}
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: true
+    Received: false
+
+      25 |     const response = await post(request, '/api/play/round', {config: graph, seed: 42, roundIndex: 0}),
+      26 |         result = await response.json();
+    > 27 |     expect(response.ok(), JSON.stringify(result)).toBe(true);
+         |                                                   ^
+      28 |     const payout = id.startsWith('parameter-weighted') ? result.state.choice === 'a' ? 7 : 0 : expected.get(id);
+      29 |     expect(result.win).toBe(payout);
+      30 |     if (id.startsWith('aggregate-')) expect(result.win).not.toBe(20);
+        at /home/terentiy/work/github-profile-audit/slot-math-lab-worktrees/precision-workbench-redesign/frontend/e2e/pr19-authoring-runtime.spec.ts:27:51
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/pr19-authoring-runtime-PR1-9e7cf-nd-parameter-weighted-bound-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/pr19-authoring-runtime-PR1-9e7cf-nd-parameter-weighted-bound-chromium/error-context.md
+
+  2 failed
+    [chromium] › e2e/pr19-authoring-runtime.spec.ts:21:50 › PR19 actual compiler/round: parameter-weighted-original
+    [chromium] › e2e/pr19-authoring-runtime.spec.ts:21:50 › PR19 actual compiler/round: parameter-weighted-bound
+  15 passed (2.2s)

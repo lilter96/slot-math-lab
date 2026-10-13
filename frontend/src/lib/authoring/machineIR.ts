@@ -1,4 +1,7 @@
 import type {Expr} from '../../games/shared/graph/expr';
+import {parseModelJson} from '../modelJson';
+import {validateWeights} from '../modelCommands';
+import {exactIntegerInput} from './exactAmounts';
 
 export type MachineValue = string | number | boolean;
 
@@ -6,6 +9,7 @@ export interface MachineVariable {
     key: string;
     scope: 'private' | 'shared';
     initial: MachineValue
+    initialInput?: string;
 }
 
 export type MachineAction = { id: string; label: string; kind: 'assign'; key: string; expression: Expr }
@@ -14,7 +18,7 @@ export type MachineAction = { id: string; label: string; kind: 'assign'; key: st
     label: string;
     kind: 'draw';
     key: string;
-    outcomes: { id: string; weight: number; payload: number }[]
+    outcomes: { id: string; weight: number; payload: number; weightInput?: string; payloadInput?: string }[]
 }
     | {
     id: string;
@@ -48,6 +52,7 @@ export interface MachineIR {
     name: string;
     entry: string;
     stepBudget: number;
+    stepBudgetInput?: string;
     variables: MachineVariable[];
     reads?: string[];
     states: MachineState[]
@@ -55,19 +60,64 @@ export interface MachineIR {
 
 export const machineDone = '__Done__';
 
+/** JSON primitive input; shared fractional state keeps the existing number contract, never a rounded whole token. */
+export function machineInitialInput(text: string, scope: MachineVariable['scope']): MachineValue {
+    const parsed = parseModelJson(`{"value":${text}}`).value;
+    if (!['string', 'number', 'boolean'].includes(typeof parsed)) throw new Error('Use a primitive JSON literal.');
+    if (typeof parsed === 'number' && (scope === 'private' || Number.isInteger(parsed))) {
+        const token = /^(-?)(\d+)(?:\.(\d+))?(?:[eE]([+-]?\d+))?$/.exec(text.trim());
+        if (!token || !Number.isSafeInteger(parsed)) throw new Error('Private numeric initial values require exact whole numbers.');
+        const digits = BigInt(token[2] + (token[3] ?? '')), scale = (token[3]?.length ?? 0) - Number(token[4] ?? 0);
+        if (digits !== 0n && (scale > 256 || scale > 0 && digits % (10n ** BigInt(scale)) !== 0n)) throw new Error('This fractional token cannot be rounded into an integer initial value.');
+    }
+    return parsed as MachineValue;
+}
+
+/** Raw fields belong to recoverable inputs only; the emitted graph receives validated numeric values. */
+export function resolveMachineInput(input: MachineIR): MachineIR {
+    const machine = structuredClone(input);
+    if (machine.stepBudgetInput !== undefined) machine.stepBudget = exactIntegerInput(machine.stepBudgetInput, 1, 100000);
+    delete machine.stepBudgetInput;
+    for (const variable of machine.variables) {
+        if (variable.initialInput !== undefined) variable.initial = machineInitialInput(variable.initialInput, variable.scope);
+        delete variable.initialInput;
+    }
+    const resolveActions = (actions: MachineAction[]) => {
+        for (const action of actions) if (action.kind === 'draw') for (const outcome of action.outcomes) {
+            if (outcome.weightInput !== undefined) outcome.weight = exactIntegerInput(outcome.weightInput, 0);
+            if (outcome.payloadInput !== undefined) outcome.payload = exactIntegerInput(outcome.payloadInput);
+            delete outcome.weightInput;
+            delete outcome.payloadInput;
+        }
+    };
+    for (const state of machine.states) {
+        resolveActions(state.actions);
+        state.transitions.forEach(transition => resolveActions(transition.effects));
+    }
+    return machine;
+}
+
 /** Recovery admission checks structure, while semantic errors remain recoverable pending inputs. */
 export function isMachineInput(value: unknown): value is MachineIR {
     const object = (value: unknown): value is Record<string, unknown> => !!value && typeof value === 'object' && !Array.isArray(value);
     const ast = (value: unknown) => object(value) && typeof value.exprType === 'string';
     const strings = (value: unknown) => object(value) && Object.values(value).every(value => typeof value === 'string');
-    const action = (value: unknown): boolean => object(value) && typeof value.id === 'string' && typeof value.label === 'string' && (value.kind === 'library' ? typeof value.definition === 'string' && strings(value.parameters) && (value.parameterBindings === undefined || strings(value.parameterBindings)) : value.kind === 'assign' ? typeof value.key === 'string' && ast(value.expression) : value.kind === 'draw' && typeof value.key === 'string' && Array.isArray(value.outcomes) && value.outcomes.every(row => object(row) && typeof row.id === 'string' && typeof row.weight === 'number' && typeof row.payload === 'number'));
+    const raw = (value: unknown) => value === undefined || typeof value === 'string';
+    const action = (value: unknown): boolean => object(value) && typeof value.id === 'string' && typeof value.label === 'string' && (value.kind === 'library' ? typeof value.definition === 'string' && strings(value.parameters) && (value.parameterBindings === undefined || strings(value.parameterBindings)) : value.kind === 'assign' ? typeof value.key === 'string' && ast(value.expression) : value.kind === 'draw' && typeof value.key === 'string' && Array.isArray(value.outcomes) && value.outcomes.every(row => object(row) && typeof row.id === 'string' && typeof row.weight === 'number' && typeof row.payload === 'number' && raw(row.weightInput) && raw(row.payloadInput)));
     return object(value) && value.version === 1 && typeof value.instance === 'string' && typeof value.name === 'string' && typeof value.entry === 'string' && typeof value.stepBudget === 'number'
         && (value.reads === undefined || Array.isArray(value.reads) && value.reads.every(key => typeof key === 'string'))
-        && Array.isArray(value.variables) && value.variables.every(variable => object(variable) && typeof variable.key === 'string' && ['private', 'shared'].includes(String(variable.scope)) && ['string', 'number', 'boolean'].includes(typeof variable.initial))
+        && raw(value.stepBudgetInput)
+        && Array.isArray(value.variables) && value.variables.every(variable => object(variable) && typeof variable.key === 'string' && ['private', 'shared'].includes(String(variable.scope)) && ['string', 'number', 'boolean'].includes(typeof variable.initial) && raw(variable.initialInput))
         && Array.isArray(value.states) && value.states.every(state => object(state) && typeof state.id === 'string' && typeof state.label === 'string' && typeof state.terminal === 'boolean' && Array.isArray(state.actions) && state.actions.every(action) && Array.isArray(state.transitions) && state.transitions.every(transition => object(transition) && typeof transition.id === 'string' && typeof transition.label === 'string' && typeof transition.target === 'string' && (transition.guard === null || ast(transition.guard)) && Array.isArray(transition.effects) && transition.effects.every(action)));
 }
 
-export function validateMachine(machine: MachineIR): string[] {
+export function validateMachine(input: MachineIR): string[] {
+    let machine: MachineIR;
+    try {
+        machine = resolveMachineInput(input);
+    } catch (error) {
+        return [error instanceof Error ? error.message : 'Complete the numeric machine inputs.'];
+    }
     const errors: string[] = [], fail = (text: string) => errors.push(text),
         states = new Set(machine.states.map(state => state.id));
     if (machine.version !== 1 || !/^[A-Za-z][A-Za-z0-9_-]{0,79}$/.test(machine.instance) || !machine.name.trim()) fail('Choose a stable instance ID starting with a letter and a display name.');
@@ -89,6 +139,8 @@ export function validateMachine(machine: MachineIR): string[] {
             if (action.kind === 'draw') {
                 if (variables.get(action.key) && typeof variables.get(action.key)!.initial !== 'string') fail(`${location}: Draw outcome fields have String initial values; payload and ID are separate.`);
                 if (!action.outcomes.length || new Set(action.outcomes.map(outcome => outcome.id)).size !== action.outcomes.length || action.outcomes.some(outcome => !outcome.id || !Number.isSafeInteger(outcome.weight) || outcome.weight < 0 || !Number.isSafeInteger(outcome.payload)) || !action.outcomes.some(outcome => outcome.weight > 0)) fail(`${location}: use distinct outcomes, exact non-negative weights and a positive total.`);
+                const weightError = validateWeights(action.outcomes.map(outcome => String(outcome.weight)));
+                if (weightError) fail(`${location}: ${weightError}`);
             }
         }
     };

@@ -32,6 +32,7 @@ const tables = (graph: ModelGraph) => graph.paytables as {
 
 function assertLookupReaders(graph: ModelGraph, bindings: PayBinding[]) {
     const index = indexGraphSources(graph);
+    if (index.unresolvedEffects.some(effect => effect.active)) throw new Error('Resolve the unknown source dependencies before changing the paying domain. Other graph regions remain available.');
     for (const kind of ['line', 'scatter'] as const) {
         const scopes = new Set(bindings.filter(binding => binding.kind === kind).flatMap(binding => binding.scopes)),
             key = kind === 'line' ? 'linePays' : 'scatterPays';

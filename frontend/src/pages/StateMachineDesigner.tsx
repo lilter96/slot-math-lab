@@ -36,7 +36,13 @@ import {changeRespinCount, respinContracts} from '../lib/authoring/respinContrac
 import {copySourceUse, type SourceConnection} from '../lib/authoring/sourceLifecycle';
 import {type AppliedGraphEdit, commitGraphEdit, prepareGraphEdit, undoGraphEdit} from '../lib/authoring/transactions';
 import {projectEnvelope} from '../lib/authoring/projectEnvelope';
-import {ExpressionInput, MachineStateForm} from '../components/authoring/MachineForms';
+import {
+    ExpressionInput,
+    MachineInitialValueInput,
+    MachineIntegerInput,
+    MachineStateForm
+} from '../components/authoring/MachineForms';
+import {exactIntegerInput} from '../lib/authoring/exactAmounts';
 import './reel-paytable-studio.css';
 import './state-machine-designer.css';
 
@@ -51,7 +57,7 @@ type Draft = {
     fresh?: boolean;
     connection: SourceConnection;
     payoutKey?: string;
-    respins?: number;
+    respins?: number | string;
     copy?: { nodeKey: string; name: string; kind?: 'machine' | 'source' };
     reuse?: string;
     capPolicy: 'keep' | 'recompute'
@@ -86,7 +92,7 @@ function transform(graph: ModelGraph, draft: Draft): ModelGraph {
     if (draft.respins !== undefined) {
         const binding = respinContracts(graph).find(binding => binding.scope === draft.scope || binding.body === draft.scope);
         if (!binding) throw new Error('The linked respin counter contract is unavailable.');
-        next = changeRespinCount(next, respinContracts(next).find(value => value.scope === binding.scope)!, draft.respins);
+        next = changeRespinCount(next, respinContracts(next).find(value => value.scope === binding.scope)!, exactIntegerInput(String(draft.respins), 1, 100000));
     }
     return next;
 }
@@ -782,14 +788,15 @@ function MachineWorkspace({projectId, graph}: { projectId: string; graph: ModelG
                 </header>
                 {respin && <section className="machine-form-section machine-linked-rule"><h3>Linked respin rule</h3>
                     <p>Initialize and restore the same counter. Held cells and prize draws stay intact.</p><label>Initial
-                        / reset respins<input aria-label="Initial and reset respins" type="number" min="1"
-                                              value={draft?.respins ?? respin.count} disabled={disabled}
-                                              onChange={event => persist({
-                                                  ...baseDraft(),
-                                                  respins: Number(event.target.value)
-                                              })}/></label><small>Proven loop bound: ({respin.cells} cells
+                        / reset respins<MachineIntegerInput label="Initial and reset respins" min={1} max={100000}
+                                                            value={draft?.respins ?? respin.count} disabled={disabled}
+                                                            change={raw => persist({
+                                                                ...baseDraft(),
+                                                                respins: raw
+                                                            })}/></label><small>{candidate.error ? 'Complete the whole respin count to preview the coupled loop bound.' : <>Proven
+                        loop bound: ({respin.cells} cells
                         − {respin.heldAtStart} guaranteed held at entry) × {draft?.respins ?? respin.count} + 1
-                        = {(respin.cells - respin.heldAtStart) * (draft?.respins ?? respin.count) + 1}</small>
+                        = {(respin.cells - respin.heldAtStart) * exactIntegerInput(String(draft?.respins ?? respin.count), 1, 100000) + 1}</>}</small>
                 </section>}{selectedState && machine ? <><MachineStateForm key={selectedState.id} state={selectedState}
                                                                            machine={machine}
                                                                            openTransition={selectedTransition}
@@ -856,14 +863,16 @@ function MachineWorkspace({projectId, graph}: { projectId: string; graph: ModelG
                     })}/>}{respin && node.outputKey === 'respins' &&
                     <p>Initialization, restoration and the iteration bound are edited together in the linked respin rule
                         above.</p>}{node.nodeType === 'loop' &&
-                    <label>Iteration limit<input aria-label="Existing iteration limit" type="number" min="1"
-                                                 max="100000"
-                                                 value={Number(draft?.edits.find(edit => edit.kind === 'loop-budget' && edit.nodeKey === source.key)?.value ?? node.maxIterations)}
-                                                 disabled={disabled || !!respin} onChange={event => stageEdit({
-                        kind: 'loop-budget',
-                        nodeKey: source.key,
-                        value: Number(event.target.value)
-                    })}/></label>}{node.nodeType === 'library' && <><p>Operation: {String(node.mechanicName)}</p>
+                    <label>Iteration limit<MachineIntegerInput label="Existing iteration limit" min={1}
+                                                               max={100000}
+                                                               value={String(draft?.edits.find(edit => edit.kind === 'loop-budget' && edit.nodeKey === source.key)?.value ?? node.maxIterations)}
+                                                               disabled={disabled || !!respin}
+                                                               change={raw => stageEdit({
+                                                                   kind: 'loop-budget',
+                                                                   nodeKey: source.key,
+                                                                   value: raw
+                                                               })}/></label>}{node.nodeType === 'library' && <>
+                    <p>Operation: {String(node.mechanicName)}</p>
                     <button disabled={!!draft} onClick={() => chooseScope(String(node.mechanicName), true)}>Open nested
                         feature
                     </button>
@@ -892,11 +901,13 @@ function MachineWorkspace({projectId, graph}: { projectId: string; graph: ModelG
                 {machine && <section className="machine-form-section"><h3>Machine bindings & budget</h3><label>Machine
                     name<input value={machine.name} disabled={disabled}
                                onChange={event => stageMachine({...machine, name: event.target.value})}/></label><label>State-visit
-                    budget<input aria-label="State visit budget" type="number" min="1" max="100000"
-                                 value={machine.stepBudget} disabled={disabled} onChange={event => stageMachine({
-                        ...machine,
-                        stepBudget: Number(event.target.value)
-                    })}/></label><small>Counts terminal visits. Keep justified slack for natural
+                    budget<MachineIntegerInput label="State visit budget" min={1} max={100000}
+                                               value={machine.stepBudgetInput ?? machine.stepBudget} disabled={disabled}
+                                               change={raw => stageMachine({
+                                                   ...machine,
+                                                   stepBudgetInput: raw
+                                               })}/></label><small>Counts terminal visits. Keep justified slack for
+                    natural
                     completion.</small>{machine.variables.map((variable, index) => <div className="machine-variable"
                                                                                         key={index}><label>Variable
                     key<input value={variable.key} disabled={disabled} onChange={event => stageMachine({
@@ -915,21 +926,16 @@ function MachineWorkspace({projectId, graph}: { projectId: string; graph: ModelG
                                                          })}>
                     <option value="private">Private to this instance</option>
                     <option value="shared">Shared game field</option>
-                </select></label><label>Initial value (JSON literal)<input
-                    defaultValue={JSON.stringify(variable.initial)} disabled={disabled} onBlur={event => {
-                    try {
-                        const initial = parseModelJson(`{"value":${event.target.value}}`).value;
-                        if (typeof initial !== 'string' && typeof initial !== 'number' && typeof initial !== 'boolean') throw new Error('Use a primitive JSON literal.');
-                        stageMachine({
-                            ...machine,
-                            variables: machine.variables.map((value, position) => position === index ? {
-                                ...value,
-                                initial
-                            } : value)
-                        });
-                    } catch (error) {
-                        setError(errorText(error));
-                    }
+                </select></label><label>Initial value (JSON literal)<MachineInitialValueInput
+                    value={variable.initialInput ?? JSON.stringify(variable.initial)} scope={variable.scope}
+                    disabled={disabled} change={raw => {
+                    stageMachine({
+                        ...machine,
+                        variables: machine.variables.map((value, position) => position === index ? {
+                            ...value,
+                            initialInput: raw
+                        } : value)
+                    });
                 }}/></label>
                     <button disabled={disabled} onClick={() => stageMachine({
                         ...machine,

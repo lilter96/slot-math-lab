@@ -3,7 +3,15 @@ import {bool, eq, type Expr, num, state, str} from '../../games/shared/graph/exp
 import type {ModelDefinition, ModelGraph, ModelNode} from '../modelProjection';
 import {canonicalJson} from '../hash';
 import {reelObject} from '../reelCommands';
-import {type MachineAction, machineDone, type MachineIR, type MachineValue, validateMachine} from './machineIR';
+import {
+    type MachineAction,
+    machineDone,
+    type MachineIR,
+    type MachineValue,
+    resolveMachineInput,
+    validateMachine
+} from './machineIR';
+import {bindStateExpression, visitStateReferences} from './expressionBindings';
 
 const segment = (value: string) => [...new TextEncoder().encode(value)].map(byte => byte.toString(16).padStart(2, '0')).join('');
 export const machineNamespace = (instance: string) => `__machine_${segment(instance)}`;
@@ -20,29 +28,7 @@ export interface LoweredMachine {
 
 /** Bind declared private variables to this instance. This transforms expressions; it never evaluates them. */
 export function bindMachineExpression(expression: Expr, names: Map<string, string>, reads?: Set<string>): Expr {
-    const next = structuredClone(expression);
-    const visit = (value: unknown, locals: Set<string>): void => {
-        if (Array.isArray(value)) {
-            value.forEach(child => visit(child, locals));
-            return;
-        }
-        const ast = reelObject(value);
-        if (!ast) return;
-        if (ast.exprType === 'fieldAccess' && ast.target === 'state' && Array.isArray(ast.path) && !locals.has(String(ast.path[0])) && !(ast.path[0] === 'expressions' && ast.path.length > 1)) {
-            const key = String(ast.path[0]);
-            if (names.has(key)) ast.path[0] = names.get(key);
-            reads?.add(String(ast.path[0]));
-        }
-        if (typeof ast.stateKey === 'string' && !locals.has(ast.stateKey)) {
-            if (names.has(ast.stateKey)) ast.stateKey = names.get(ast.stateKey);
-            reads?.add(String(ast.stateKey));
-        }
-        const nested = new Set(locals);
-        if (['map', 'filter', 'fold', 'aggregate'].includes(String(ast.exprType))) for (const field of ['itemName', 'indexName', 'accName']) if (typeof ast[field] === 'string') nested.add(String(ast[field]));
-        for (const [key, child] of Object.entries(ast)) if (child && typeof child === 'object') visit(child, ['body', 'predicate', 'valueExpr'].includes(key) ? nested : locals);
-    };
-    visit(next, new Set());
-    return next;
+    return bindStateExpression(expression, names, reads);
 }
 
 /** Text for the existing scalar parameter parser and human-readable guards, never an evaluator. */
@@ -76,7 +62,8 @@ export function machineExpressionText(value: Expr): string {
 }
 
 /** A bounded exclusive dispatch loop. Existing graph atoms are the only executable authority. */
-export function lowerMachine(machine: MachineIR, operations: Record<string, ModelDefinition> = {}): LoweredMachine {
+export function lowerMachine(input: MachineIR, operations: Record<string, ModelDefinition> = {}): LoweredMachine {
+    const machine = resolveMachineInput(input);
     const errors = validateMachine(machine);
     if (errors.length) throw new Error(errors.join(' '));
     const prefix = machineNamespace(machine.instance), pcKey = `${prefix}_pc`, diagnosticKey = `${prefix}_diagnostic`,
@@ -118,21 +105,28 @@ export function lowerMachine(machine: MachineIR, operations: Record<string, Mode
                     ids[parameter] = expressionId;
                     delete parameters[parameter];
                 }
-                const visit = (value: unknown): unknown => {
-                    if (Array.isArray(value)) return value.map(visit);
-                    const expression = reelObject(value);
-                    if (!expression) return value;
-                    if (expression.exprType === 'fieldAccess' && expression.target === 'state' && Array.isArray(expression.path) && expression.path[0] === 'expressions') {
-                        const parameterName = expression.path[1],
-                            binding = bindings.find(([parameter]) => parameter === parameterName);
-                        if (binding) return {
-                            ...expression,
-                            path: [names.get(binding[1]) ?? binding[1], ...expression.path.slice(2)]
-                        };
+                clone.expressions = ast;
+                const bindParameter = (expression: unknown) => visitStateReferences(expression, reference => {
+                    if (reference.local || reference.kind !== 'expression') return;
+                    const binding = bindings.find(([parameter]) => parameter === reference.statePath[1]);
+                    if (binding) {
+                        reference.expression.path = [names.get(binding[1]) ?? binding[1], ...reference.statePath.slice(2)];
+                        reference.expression.target = 'state';
                     }
-                    return Object.fromEntries(Object.entries(expression).map(([key, child]) => [key, child && typeof child === 'object' ? visit(child) : child]));
-                };
-                clone.expressions = visit(ast);
+                }, (_path, message) => {
+                    throw new Error(`This Library parameter binding cannot prove its source: ${message}`);
+                });
+                Object.values(ast).forEach(bindParameter);
+                for (const node of clone.nodes) {
+                    if (node.exitReason !== undefined) bindParameter(node.exitReason);
+                    for (const direction of ['inputs', 'outputs']) for (const port of Object.values(reelObject(node[direction]) ?? {})) {
+                        const value = reelObject(port);
+                        if (value?.defaultValue !== undefined) bindParameter(value.defaultValue);
+                    }
+                }
+                for (const node of clone.nodes) for (const field of ['expressionId', 'conditionId', 'stopConditionId', 'weightExpressionId']) {
+                    if (typeof node[field] === 'string' && Object.hasOwn(ids, node[field])) node[field] = ids[node[field]];
+                }
                 for (const [parameter, variable] of bindings) (clone.expressions as Record<string, Expr>)[ids[parameter]] = state(names.get(variable) ?? variable);
                 clone.name = operation;
                 clone.__machineParameterSource = {version: 1, definition: value.definition, bindings: ids};

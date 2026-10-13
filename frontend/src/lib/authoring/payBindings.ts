@@ -66,6 +66,7 @@ export function payBindings(graph: ModelGraph): PayBinding[] {
     if (!state || !Number.isSafeInteger(cost) || cost <= 0 || !Number.isSafeInteger(columns) || columns < 1 || !Number.isSafeInteger(rows) || rows < 1 || cells > 64) return clusters;
     const index = indexGraphSources(graph), definitions = graph.mechanics ?? {}, bindings: PayBinding[] = [],
         bound = computedLineBound(graph), cap = activePayoutCap(graph);
+    if (index.unresolvedEffects.some(effect => effect.active)) return clusters;
     if (index.stateWrites.some(write => ['linePays', 'scatterPays', 'wildSymbol', 'roundCost', 'totalBet'].includes(write.key))) return clusters;
     const candidates = tables(graph);
     for (const kind of ['line', 'scatter'] as const) {

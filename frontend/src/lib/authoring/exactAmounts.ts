@@ -28,6 +28,14 @@ export function exactInteger(text: string, multiplier = 1): number {
     return Number(scaled / amount.denominator);
 }
 
+/** Integer controls retain their original token until lexical/range checks have succeeded. */
+export function exactIntegerInput(text: string, min = -Number.MAX_SAFE_INTEGER, max = Number.MAX_SAFE_INTEGER): number {
+    if (typeof text !== 'string' || text.length > 256 || !/^-?\d+$/.test(text.trim())) throw new Error('Enter a complete whole number; empty and fractional inputs remain unapplied.');
+    const integer = BigInt(text.trim());
+    if (integer < BigInt(min) || integer > BigInt(max)) throw new Error(`Use a whole number from ${min} to ${max}.`);
+    return Number(integer);
+}
+
 export function normalizedCredits(credits: number, roundCost: number): string {
     if (!Number.isSafeInteger(credits) || credits < 0 || !Number.isSafeInteger(roundCost) || roundCost <= 0) throw new Error('Credits and round cost must be exact supported integers.');
     const amount = reduced(BigInt(credits), BigInt(roundCost));

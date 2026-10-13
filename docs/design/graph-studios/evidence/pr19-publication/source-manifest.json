@@ -1,0 +1,172 @@
+{
+  "baseline": "3d8ce3695f21e25f5dea618f75a5d4caeac534e3",
+  "date": "2026-10-13",
+  "acceptance": "incomplete",
+  "frontendProfiles": [
+    "Built-in: Reformat Code",
+    "Built-in: Full Cleanup"
+  ],
+  "frontendSourceCount": 19,
+  "backendSourceCount": 3,
+  "sourceFiles": [
+    {
+      "path": "frontend/e2e/pr19-authoring-runtime.spec.ts",
+      "sha256": "563749e574207b3ea820d08ada82b510bd0b81ac3685ebfe0923af541eb3b741"
+    },
+    {
+      "path": "frontend/e2e/pr19-machine-inputs.spec.ts",
+      "sha256": "8e9a7cb79c9a07018e9325d44a2bf0db68747476b2bbf5b5f1f616909142201c"
+    },
+    {
+      "path": "frontend/src/components/authoring/MachineForms.tsx",
+      "sha256": "c705cfaa4f98a1bb1a7538230061272f12ec205c56a8af918496ad97dad70416"
+    },
+    {
+      "path": "frontend/src/lib/authoring/clusterPayBindings.ts",
+      "sha256": "aa9a4a0175346d7bf0e395127f531675c07798a4bc93ce0d7d9640199ae8c09c"
+    },
+    {
+      "path": "frontend/src/lib/authoring/controlEdits.ts",
+      "sha256": "fec3e76a50280f6bcefab8a77ba20ba4e1fcf59d13ac2628aae112847e688a72"
+    },
+    {
+      "path": "frontend/src/lib/authoring/exactAmounts.ts",
+      "sha256": "bb50b14b69f68e19a3553f45b186479b093630188c7d3aac991f4d267648e1fd"
+    },
+    {
+      "path": "frontend/src/lib/authoring/expressionBindings.ts",
+      "sha256": "e0d60b0efd3084b493f46db40910ce2f59db64a8e047a3a190bcd91e52971e7c"
+    },
+    {
+      "path": "frontend/src/lib/authoring/machineIR.ts",
+      "sha256": "81a4a928d738dfdeb3c20144a024b9a2f9f9b13a3273ed62cd225fc3cfec3dc7"
+    },
+    {
+      "path": "frontend/src/lib/authoring/machineLowering.ts",
+      "sha256": "ebffeb858c1fb82a3e28be2cae66af5d8992c6ce7d1a46894f5674740f711729"
+    },
+    {
+      "path": "frontend/src/lib/authoring/payBindings.ts",
+      "sha256": "29366d19bc454332b1d082ba1c086a145bb7c7f31ba0ca277364af3a933eb445"
+    },
+    {
+      "path": "frontend/src/lib/authoring/sourceIndex.ts",
+      "sha256": "6ad35be71f4afd74cdc50d1c9cfa9b407715f4cc88017979b7be8bb48f51099d"
+    },
+    {
+      "path": "frontend/src/lib/authoring/symbolLifecycle.ts",
+      "sha256": "477862b253b07208ecc841af4fb57084b129df2fe3e6d346a819c9cf638acd04"
+    },
+    {
+      "path": "frontend/src/lib/reelConditioning.ts",
+      "sha256": "83f30b9fb80b6b769457762647c75ff70d21a6569e8a2d77e9d1ca6ad890312b"
+    },
+    {
+      "path": "frontend/src/pages/StateMachineDesigner.tsx",
+      "sha256": "2f6e3dabe545746f69725695a585696d2350a2bfd271856eb881c1615417457f"
+    },
+    {
+      "path": "frontend/unit/authoring-source-index.spec.ts",
+      "sha256": "0254184ab96da6c64f53b84ee04768396c36aeb7fd83599f7e04ac75813a5f01"
+    },
+    {
+      "path": "frontend/unit/fixtures/pr19AuthoringProofs.ts",
+      "sha256": "48325988434656ebf26c4ab597c50cfc6387138f160bb0a996db29f7040f0e86"
+    },
+    {
+      "path": "frontend/unit/pr19-authoring-audit.spec.ts",
+      "sha256": "40202a25b2344ab711657007cedc7f86182ad58b4923490cba2fd07e275d235d"
+    },
+    {
+      "path": "frontend/unit/pr19-runtime-fixtures.spec.ts",
+      "sha256": "101d3e5b98f1401988ed06232fa45fe4314847b841c33e8e7f75ff482ff54bc2"
+    },
+    {
+      "path": "frontend/unit/reel-conditioning.spec.ts",
+      "sha256": "053ef33dff5073a0dd00a306642e9560fc5aacc18f4bfaf3a589d9a921300b64"
+    },
+    {
+      "path": "backend/SlotMath.Core.Tests/Compiler/AuthoringAuditTests.cs",
+      "sha256": "5ff2a5d3059b11d0aba31a2bb384d3ae8b5e4d57912cbde927c0af4feb046ff9"
+    },
+    {
+      "path": "backend/SlotMath.Api.Tests/PrivateWorkspaceTests.cs",
+      "sha256": "2573e6074fc23c599d5e1f54b1528032fd3056e4a0059b890ec1149726ed0096"
+    },
+    {
+      "path": "backend/SlotMath.Api/Features/Runs/Experiments.cs",
+      "sha256": "74d2179469d11535b8fa6fa41f1e8099d20069020dbcdb7df2a220d2e0e2852b"
+    }
+  ],
+  "inputPrograms": [
+    {
+      "path": "backend/SlotMath.Core.Tests/TestData/AuthoringAudit/aggregate-default.json",
+      "sha256": "d51fa747fae3288e7a14099b153fcc4818b09d431030d83132df8d71fcd7ce1b"
+    },
+    {
+      "path": "backend/SlotMath.Core.Tests/TestData/AuthoringAudit/aggregate-explicit.json",
+      "sha256": "379b3ab121a2a6034d8d5174a7421bbfaf529d13e994a3dd1c20229c0ffe114b"
+    },
+    {
+      "path": "backend/SlotMath.Core.Tests/TestData/AuthoringAudit/aggregate-local-alias.json",
+      "sha256": "48a0e8f1ed7d68b7255642a3f52564f624279cae840935095a89345225a6e125"
+    },
+    {
+      "path": "backend/SlotMath.Core.Tests/TestData/AuthoringAudit/aggregate-nested.json",
+      "sha256": "caac6b952aa50832cdb61f9eeb188643334d5cc7648b999f5a8b443df6b14407"
+    },
+    {
+      "path": "backend/SlotMath.Core.Tests/TestData/AuthoringAudit/alias-board.json",
+      "sha256": "51e54d458034d711f3fa00f87f0d5ab74f47de53ab5f728f26c5d5f4d2b71ab9"
+    },
+    {
+      "path": "backend/SlotMath.Core.Tests/TestData/AuthoringAudit/alias-null.json",
+      "sha256": "73d3080baed8aff061a0fef5ecc07cc175946ac8222466cbc366728e79b799c2"
+    },
+    {
+      "path": "backend/SlotMath.Core.Tests/TestData/AuthoringAudit/alias-state.json",
+      "sha256": "145cbc3ad25a70363c17b9b3b4ffa1dcb86abc38c3e16aa1dbb4e5d4455a7a8d"
+    },
+    {
+      "path": "backend/SlotMath.Core.Tests/TestData/AuthoringAudit/alias-undefined.json",
+      "sha256": "0cc4120ef35870899fbbf5ecf334481360958a3b1c7090ff342c1291872ad6f3"
+    },
+    {
+      "path": "backend/SlotMath.Core.Tests/TestData/AuthoringAudit/filter-locals.json",
+      "sha256": "2b66019a8ed57f37c8ee47da9839bef581835906c8c6f994a9e8124958479cda"
+    },
+    {
+      "path": "backend/SlotMath.Core.Tests/TestData/AuthoringAudit/fold-initializer.json",
+      "sha256": "390af5f3ee3ac77ed8ec3a38302d381d7a4bf9fa26adc85eae26a0b202cc485a"
+    },
+    {
+      "path": "backend/SlotMath.Core.Tests/TestData/AuthoringAudit/map-locals.json",
+      "sha256": "fee9935c16ea08de0d5df88127443f9d42965a600a6c8a5a419942d388aa5a21"
+    },
+    {
+      "path": "backend/SlotMath.Core.Tests/TestData/AuthoringAudit/parameter-bound.json",
+      "sha256": "3c31c2e99b432246658b8cd6173156dd4d6d81229452db830b752f6ba0f3af00"
+    },
+    {
+      "path": "backend/SlotMath.Core.Tests/TestData/AuthoringAudit/parameter-composed-bound.json",
+      "sha256": "95544264d8abac1a2bf436cf4b26f7d7d8dad7d5d14ea62460f12135cbaefeca"
+    },
+    {
+      "path": "backend/SlotMath.Core.Tests/TestData/AuthoringAudit/parameter-composed-original.json",
+      "sha256": "d25da6770ba7dbbb7e97e454f5333b4b57e808ada4a6f66338da83294c8a9696"
+    },
+    {
+      "path": "backend/SlotMath.Core.Tests/TestData/AuthoringAudit/parameter-original.json",
+      "sha256": "82b083e9a336cfed4d9c24631cef141cdf30481ce9f4186b63d7904c5a15f8ca"
+    },
+    {
+      "path": "backend/SlotMath.Core.Tests/TestData/AuthoringAudit/parameter-weighted-bound.json",
+      "sha256": "45ce605543c7750a68e679cad9404c91fd122ab499c2f6cea2ad458013592a68"
+    },
+    {
+      "path": "backend/SlotMath.Core.Tests/TestData/AuthoringAudit/parameter-weighted-original.json",
+      "sha256": "623fdd2d85a7fe3d852c35bda7eb0d2bcde6ec662c48a4ac8cac0158cbcadc5d"
+    }
+  ],
+  "scope": "affected verification; original integrated M5 gates remain open"
+}

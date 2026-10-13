@@ -1,0 +1,321 @@
+{
+  "schemaVersion": "1.0.0",
+  "id": "parameter-composed-original",
+  "name": "parameter-composed-original",
+  "initialState": {
+    "traceEnabled": false,
+    "emptyArray": [],
+    "coins": 0
+  },
+  "nodes": [
+    {
+      "nodeType": "library",
+      "id": "operation",
+      "label": "Original literal call",
+      "mechanicName": "parameter-composed",
+      "inputs": {
+        "state": {
+          "name": "state",
+          "type": "State"
+        }
+      },
+      "outputs": {
+        "state": {
+          "name": "state",
+          "type": "State"
+        }
+      },
+      "parameters": {
+        "amount": "7",
+        "flag": "true",
+        "reason": "condition"
+      }
+    },
+    {
+      "nodeType": "metricsSink",
+      "id": "sink",
+      "label": "One payout",
+      "winStateKey": "coins",
+      "winCap": 1000,
+      "inputs": {
+        "state": {
+          "name": "state",
+          "type": "State"
+        }
+      },
+      "outputs": {}
+    }
+  ],
+  "edges": [
+    {
+      "id": "operation.state->sink",
+      "sourceNodeId": "operation",
+      "sourcePort": "state",
+      "targetNodeId": "sink",
+      "targetPort": "state"
+    }
+  ],
+  "expressions": {},
+  "mechanics": {
+    "parameter-composed": {
+      "name": "parameter-composed",
+      "nodes": [
+        {
+          "nodeType": "branch",
+          "id": "branch",
+          "label": "Parameter condition",
+          "conditionId": "flag",
+          "inputs": {
+            "state": {
+              "name": "state",
+              "type": "State"
+            }
+          },
+          "outputs": {
+            "true": {
+              "name": "true",
+              "type": "State"
+            },
+            "false": {
+              "name": "false",
+              "type": "State"
+            }
+          }
+        },
+        {
+          "nodeType": "loop",
+          "id": "loop",
+          "label": "Parameter stop",
+          "maxIterations": 3,
+          "stopConditionId": "flag",
+          "inputs": {
+            "state": {
+              "name": "state",
+              "type": "State"
+            }
+          },
+          "outputs": {
+            "body": {
+              "name": "body",
+              "type": "State"
+            },
+            "exit": {
+              "name": "exit",
+              "type": "State"
+            }
+          },
+          "exitReason": {
+            "exprType": "fieldAccess",
+            "target": "state",
+            "path": [
+              "expressions",
+              "reason"
+            ]
+          }
+        },
+        {
+          "nodeType": "modifyState",
+          "id": "transitive",
+          "label": "Transitive amount",
+          "outputKey": "coins",
+          "expressionId": "transitive",
+          "inputs": {
+            "state": {
+              "name": "state",
+              "type": "State"
+            }
+          },
+          "outputs": {
+            "state": {
+              "name": "state",
+              "type": "State"
+            }
+          }
+        },
+        {
+          "nodeType": "modifyState",
+          "id": "yes-pay",
+          "label": "Direct amount",
+          "outputKey": "coins",
+          "expressionId": "amount",
+          "inputs": {
+            "state": {
+              "name": "state",
+              "type": "State"
+            },
+            "argument": {
+              "name": "argument",
+              "type": "Number",
+              "defaultValue": {
+                "exprType": "fieldAccess",
+                "target": "state",
+                "path": [
+                  "expressions",
+                  "amount"
+                ]
+              }
+            }
+          },
+          "outputs": {
+            "state": {
+              "name": "state",
+              "type": "State"
+            }
+          }
+        },
+        {
+          "nodeType": "modifyState",
+          "id": "no-pay",
+          "label": "Other amount",
+          "outputKey": "coins",
+          "expressionId": "no-pay",
+          "inputs": {
+            "state": {
+              "name": "state",
+              "type": "State"
+            }
+          },
+          "outputs": {
+            "state": {
+              "name": "state",
+              "type": "State"
+            }
+          }
+        },
+        {
+          "nodeType": "library",
+          "id": "loop-pass",
+          "label": "Parameter stop",
+          "mechanicName": "parameter-body",
+          "inputs": {
+            "state": {
+              "name": "state",
+              "type": "State"
+            }
+          },
+          "outputs": {
+            "state": {
+              "name": "state",
+              "type": "State"
+            }
+          },
+          "parameters": {}
+        }
+      ],
+      "edges": [
+        {
+          "id": "branch.true->yes-pay",
+          "sourceNodeId": "branch",
+          "sourcePort": "true",
+          "targetNodeId": "yes-pay",
+          "targetPort": "state"
+        },
+        {
+          "id": "branch.false->no-pay",
+          "sourceNodeId": "branch",
+          "sourcePort": "false",
+          "targetNodeId": "no-pay",
+          "targetPort": "state"
+        },
+        {
+          "id": "yes-pay.state->loop",
+          "sourceNodeId": "yes-pay",
+          "sourcePort": "state",
+          "targetNodeId": "loop",
+          "targetPort": "state"
+        },
+        {
+          "id": "no-pay.state->loop",
+          "sourceNodeId": "no-pay",
+          "sourcePort": "state",
+          "targetNodeId": "loop",
+          "targetPort": "state"
+        },
+        {
+          "id": "loop.body->loop-pass",
+          "sourceNodeId": "loop",
+          "sourcePort": "body",
+          "targetNodeId": "loop-pass",
+          "targetPort": "state"
+        },
+        {
+          "id": "loop.exit->transitive",
+          "sourceNodeId": "loop",
+          "sourcePort": "exit",
+          "targetNodeId": "transitive",
+          "targetPort": "state"
+        }
+      ],
+      "expressions": {
+        "branch": {
+          "exprType": "constant",
+          "kind": "Boolean",
+          "value": "true"
+        },
+        "yes-pay": {
+          "exprType": "constant",
+          "kind": "Integer",
+          "value": "7"
+        },
+        "no-pay": {
+          "exprType": "constant",
+          "kind": "Integer",
+          "value": "0"
+        },
+        "loop-until": {
+          "exprType": "constant",
+          "kind": "Boolean",
+          "value": "true"
+        },
+        "transitive": {
+          "exprType": "fieldAccess",
+          "target": "state",
+          "path": [
+            "expressions",
+            "via"
+          ]
+        },
+        "via": {
+          "exprType": "fieldAccess",
+          "target": "state",
+          "path": [
+            "expressions",
+            "amount"
+          ]
+        }
+      }
+    },
+    "parameter-body": {
+      "name": "parameter-body",
+      "nodes": [
+        {
+          "nodeType": "modifyState",
+          "id": "never",
+          "label": "Unvisited body",
+          "outputKey": "coins",
+          "expressionId": "never",
+          "inputs": {
+            "state": {
+              "name": "state",
+              "type": "State"
+            }
+          },
+          "outputs": {
+            "state": {
+              "name": "state",
+              "type": "State"
+            }
+          }
+        }
+      ],
+      "edges": [],
+      "expressions": {
+        "never": {
+          "exprType": "constant",
+          "kind": "Integer",
+          "value": "0"
+        }
+      }
+    }
+  }
+}

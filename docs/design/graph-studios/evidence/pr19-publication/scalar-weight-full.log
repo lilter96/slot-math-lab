@@ -1,0 +1,76 @@
+Retained excerpt of /tmp/pr19-scalar-weight-full.log
+Original bytes: 7424293
+Original SHA256: 2a6fbd0eb86cc54ac39ba96f44ec7ddd2ae0d92b549a8472a942098691b6fcaf
+The repeated assembly-loading diagnostics are omitted between the first and last 6000 bytes. The full log remains at the original local path.
+
+JetBrains Cleanup Code 2026.1.5.2
+Running on x64 OS in x64 architecture, .NET 10.0.12 under Ubuntu 24.04.5 LTS
+Custom settings layer is mounted. Used file /home/terentiy/work/github-profile-audit/slot-math-lab-worktrees/precision-workbench-redesign/.config/rider-cleanup.DotSettings
+Using toolset version 18.0 from /usr/lib/dotnet/sdk/10.0.112
+Configuration: Debug, Platform: Any CPU
+Warning: [MsBuild] /home/terentiy/work/github-profile-audit/slot-math-lab-worktrees/precision-workbench-redesign/backend/SlotMath.Api/SlotMath.Api.csproj (0,0)->(0,0)  NU1510: PackageReference System.Security.Cryptography.Xml will not be pruned. Consider removing this package from your dependencies, as it is likely unnecessary.
+Warning: [MsBuild] CSC (0,0)->(0,0)  CS9057: Analyzer assembly '/home/terentiy/.nuget/packages/jsonschema.net.generation/7.3.9/analyzers/dotnet/cs/JsonSchema.Net.Generation.dll' cannot be used because it references version '5.3.0.0' of the compiler, which is newer than the currently running version '5.0.0.0'.
+Warning: [MsBuild] /home/terentiy/work/github-profile-audit/slot-math-lab-worktrees/precision-workbench-redesign/backend/SlotMath.Core.Tests/Plugins/PluginSandboxTests.cs (22,55)->(22,55)  CS9113: Parameter 'output' is unread.
+Warning: [MsBuild] /home/terentiy/work/github-profile-audit/slot-math-lab-worktrees/precision-workbench-redesign/backend/SlotMath.Core.Tests/Compiler/BranchLoopStateKeyTests.cs (57,23)->(57,23)  CS8604: Possible null reference argument for parameter 'program' in 'InterpreterResult<Dictionary<string, object?>, BigInteger> BranchLoopStateKeyTests.Run(Slot<Dictionary<string, object?>, BigInteger> program, Queue<int> choices, Dictionary<string, object?>? initialState = null)'.
+Warning: [MsBuild] /home/terentiy/work/github-profile-audit/slot-math-lab-worktrees/precision-workbench-redesign/backend/SlotMath.Core.Tests/Compiler/BranchLoopStateKeyTests.cs (71,23)->(71,23)  CS8604: Possible null reference argument for parameter 'program' in 'InterpreterResult<Dictionary<string, object?>, BigInteger> BranchLoopStateKeyTests.Run(Slot<Dictionary<string, object?>, BigInteger> program, Queue<int> choices, Dictionary<string, object?>? initialState = null)'.
+Warning: [MsBuild] /home/terentiy/work/github-profile-audit/slot-math-lab-worktrees/precision-workbench-redesign/backend/SlotMath.Core.Tests/Compiler/BranchLoopStateKeyTests.cs (86,23)->(86,23)  CS8604: Possible null reference argument for parameter 'program' in 'InterpreterResult<Dictionary<string, object?>, BigInteger> BranchLoopStateKeyTests.Run(Slot<Dictionary<string, object?>, BigInteger> program, Queue<int> choices, Dictionary<string, object?>? initialState = null)'.
+Warning: [MsBuild] /home/terentiy/work/github-profile-audit/slot-math-lab-worktrees/precision-workbench-redesign/backend/SlotMath.Core.Tests/Compiler/BranchLoopStateKeyTests.cs (100,23)->(100,23)  CS8604: Possible null reference argument for parameter 'program' in 'InterpreterResult<Dictionary<string, object?>, BigInteger> BranchLoopStateKeyTests.Run(Slot<Dictionary<string, object?>, BigInteger> program, Queue<int> choices, Dictionary<string, object?>? initialState = null)'.
+Warning: [MsBuild] /home/terentiy/work/github-profile-audit/slot-math-lab-worktrees/precision-workbench-redesign/backend/SlotMath.Core.Tests/Compiler/BranchLoopStateKeyTests.cs (119,23)->(119,23)  CS8604: Possible null reference argument for parameter 'program' in 'InterpreterResult<Dictionary<string, object?>, BigInteger> BranchLoopStateKeyTests.Run(Slot<Dictionary<string, object?>, BigInteger> program, Queue<int> choices, Dictionary<string, object?>? initialState = null)'.
+Warning: [MsBuild] /home/terentiy/work/github-profile-audit/slot-math-lab-worktrees/precision-workbench-redesign/backend/SlotMath.Core.Tests/Expressions/ExpressionEvaluatorTests.cs (14,64)->(14,64)  CS9113: Parameter 'output' is unread.
+Warning: [MsBuild] /home/terentiy/work/github-profile-audit/slot-math-lab-worktrees/precision-workbench-redesign/backend/SlotMath.Core.Tests/Compiler/BranchLoopStateKeyTests.cs (135,23)->(135,23)  CS8604: Possible null reference argument for parameter 'program' in 'InterpreterResult<Dictionary<string, object?>, BigInteger> BranchLoopStateKeyTests.Run(Slot<Dictionary<string, object?>, BigInteger> program, Queue<int> choices, Dictionary<string, object?>? initialState = null)'.
+Warning: [MsBuild] /home/terentiy/work/github-profile-audit/slot-math-lab-worktrees/precision-workbench-redesign/backend/SlotMath.Core.Tests/Compiler/BranchLoopStateKeyTests.cs (150,24)->(150,24)  CS8604: Possible null reference argument for parameter 'program' in 'InterpreterResult<Dictionary<string, object?>, BigInteger> BranchLoopStateKeyTests.Run(Slot<Dictionary<string, object?>, BigInteger> program, Queue<int> choices, Dictionary<string, object?>? initialState = null)'.
+Warning: [MsBuild] /home/terentiy/work/github-profile-audit/slot-math-lab-worktrees/precision-workbench-redesign/backend/SlotMath.Core.Tests/Benchmarks/ComposedFeatureNoPluginBenchmarkTests.cs (466,31)->(466,31)  CS8604: Possible null reference argument for parameter 'actualArray' in 'void Assert.Equal<string>(ReadOnlySpan<string> expectedSpan, string[] actualArray)'.
+Warning: [MsBuild] /home/terentiy/work/github-profile-audit/slot-math-lab-worktrees/precision-workbench-redesign/backend/SlotMath.Core.Tests/Compiler/BranchLoopStateKeyTests.cs (169,23)->(169,23)  CS8604: Possible null reference argument for parameter 'program' in 'InterpreterResult<Dictionary<string, object?>, BigInteger> BranchLoopStateKeyTests.Run(Slot<Dictionary<string, object?>, BigInteger> program, Queue<int> choices, Dictionary<string, object?>? initialState = null)'.
+Warning: [MsBuild] /home/terentiy/work/github-profile-audit/slot-math-lab-worktrees/precision-workbench-redesign/backend/SlotMath.Core.Tests/Compiler/BranchLoopStateKeyTests.cs (185,23)->(185,23)  CS8604: Possible null reference argument for parameter 'program' in 'InterpreterResult<Dictionary<string, obj
+
+[Repeated diagnostics omitted; excerpt resumes below]
+
+= “Could not load file or assembly 'System.Composition.AttributedModel, Version=10.0.0.11, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a'. The system cannot find the file specified.”
+  FileNotFound_FileName = “System.Composition.AttributedModel, Version=10.0.0.11, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a”
+  StackTraceString = “
+    at System.ModuleHandle.ResolveType(QCallModule module, Int32 typeToken, IntPtr* typeInstArgs, Int32 typeInstCount, IntPtr* methodInstArgs, Int32 methodInstCount, ObjectHandleOnStack type) in ResolveType.il:line IL_0000 mvid C164
+       at System.ModuleHandle.ResolveType(QCallModule module, Int32 typeToken, IntPtr* typeInstArgs, Int32 typeInstCount, IntPtr* methodInstArgs, Int32 methodInstCount, ObjectHandleOnStack type) in ResolveType.il:line IL_0000 mvid C164
+       at System.ModuleHandle.ResolveTypeHandle(Int32 typeToken, RuntimeTypeHandle[] typeInstantiationContext, RuntimeTypeHandle[] methodInstantiationContext) in ResolveTypeHandle.il:line IL_00A5 mvid C164
+       at System.Reflection.RuntimeModule.ResolveType(Int32 metadataToken, Type[] genericTypeArguments, Type[] genericMethodArguments) in ResolveType.il:line IL_008A mvid C164
+       at System.Reflection.CustomAttribute.FilterCustomAttributeRecord(MetadataToken caCtorToken, MetadataImport& scope, RuntimeModule decoratedModule, MetadataToken decoratedToken, RuntimeType attributeFilterType, Boolean mustBeInheritable, ListBuilder`1& derivedAttributes, RuntimeType& attributeType, IRuntimeMethodInfo& ctorWithParameters, Boolean& isVarArg) in FilterCustomAttributeRecord.il:line IL_0008 mvid C164
+       at System.Reflection.CustomAttribute.AddCustomAttributes(ListBuilder`1& attributes, RuntimeModule decoratedModule, Int32 decoratedMetadataToken, RuntimeType attributeFilterType, Boolean mustBeInheritable, ListBuilder`1 derivedAttributes) in AddCustomAttributes.il:line IL_0043 mvid C164
+       at System.Reflection.CustomAttribute.GetCustomAttributes(RuntimeModule decoratedModule, Int32 decoratedMetadataToken, Int32 pcaCount, RuntimeType attributeFilterType) in GetCustomAttributes.il:line IL_0008 mvid C164 or GetCustomAttributes.il:line IL_0056 mvid C164
+       at System.Reflection.CustomAttribute.GetCustomAttributes(RuntimeType type, RuntimeType caType, Boolean inherit) in GetCustomAttributes.il:line IL_0008 mvid C164 or GetCustomAttributes.il:line IL_0056 mvid C164
+       at System.RuntimeType.GetCustomAttributes(Type attributeType, Boolean inherit) in GetCustomAttributes.il:line IL_002A mvid C164
+       at System.Attribute.GetCustomAttributes(MemberInfo element, Type attributeType, Boolean inherit) in GetCustomAttributes.il:line IL_0075 mvid C164
+       at System.Attribute.GetCustomAttribute(MemberInfo element, Type attributeType, Boolean inherit) in GetCustomAttribute.il:line IL_0000 mvid C164
+       at System.Attribute.GetCustomAttribute(MemberInfo element, Type attributeType) in GetCustomAttribute.il:line IL_0000 mvid C164
+       at System.Reflection.CustomAttributeExtensions.GetCustomAttribute(MemberInfo element, Type attributeType) in GetCustomAttribute.il:line IL_0000 mvid C164
+       at System.Reflection.CustomAttributeExtensions.GetCustomAttribute[T](MemberInfo element) in GetCustomAttribute.il:line IL_0000 mvid C164
+       at JetBrains.Roslyn.Worker.Features.Analyzers.Impl.Instances.Providers.ProvidersLoader`2.CreateExtension(AnalyzerFileReference analyzerFileReference, String language, GetLanguageDelegate getLanguage, TypeInfo typeInfo) in CreateExtension.il:line IL_0000 mvid FA95
+       at JetBrains.Roslyn.Worker.Features.Analyzers.Impl.Instances.Providers.ProvidersLoader`2.CreateExtensions(AnalyzerFileReference analyzerFileReference, String language, GetLanguageDelegate getLanguage, List`1& errors) in CreateExtensions.il:line IL_0034 mvid FA95
+  ”
+  ExceptionPath = Root
+  ClassName = System.IO.FileNotFoundException
+  HResult = COR_E_FILENOTFOUND=E_FILENOTFOUND=WIN32_ERROR_FILE_NOT_FOUND=80070002
+  Source = System.Private.CoreLib
+  Data.ThreadLocalDebugInfo = “
+    endpoint `RoslynWorker.RoslynModel.projectModel.$.applyChanges` (2940419190058423108)
+     -> Scheduler: 'RoslynWorkerScheduler' on thread `MainThread:1`
+  ”
+”
+StackTraceString = “
+  at JetBrains.Util.ILoggerEx.Error(ILogger logger, JetLogErrorInterpolatedStringHandler& messageHandler) in Error.il:line IL_0008 mvid 2EEF
+     at JetBrains.Roslyn.Host.Integration.Observability.RoslynErrorsReporter.ReportThirdParty(Lifetime lifetime, List`1 errors) in ReportThirdParty.il:line IL_009B mvid 26B9
+     at JetBrains.Roslyn.Host.Core.Observability.RoslynThirdPartyErrorsHandler.OnThirdPartyError(List`1 errors) in OnThirdPartyError.il:line IL_0009 mvid 26B9
+     at JetBrains.Collections.Viewable.SignalBase`1.Fire(T value) in Fire.il:line IL_002A mvid EC18
+     at JetBrains.Rd.Impl.RdSignal`1.<>c__DisplayClass16_0.<OnWireReceived>b__0() in RdSignal.il:line IL_0040 mvid CF07
+     at JetBrains.Rd.Impl.MessageBroker.RdWireableDispatchHelper.<>c__DisplayClass12_0.<DoDispatch>b__0() in RdWireableDispatchHelper.il:line IL_008B mvid CF07
+     at JetBrains.Collections.Viewable.SingleThreadScheduler.ExecuteOneAction(Boolean blockIfNoActionAvailable) in ExecuteOneAction.il:line IL_003C mvid EC18
+     at JetBrains.Collections.Viewable.SingleThreadScheduler.Run() in Run.il:line IL_0008 mvid EC18
+     at JetBrains.Collections.Viewable.SingleThreadScheduler.<>c__DisplayClass15_0.<RunOnSeparateThread>b__0() in SingleThreadScheduler.il:line IL_0000 mvid EC18
+     at System.Threading.Thread.StartHelper.Callback(Object state) in Callback.il:line IL_0000 mvid C164
+     at System.Threading.ExecutionContext.RunInternal(ExecutionContext executionContext, ContextCallback callback, Object state) in RunInternal.il:line IL_0040 mvid C164
+”
+ExceptionPath = Root
+ClassName = JetBrains.Util.LoggerException
+HResult = COR_E_APPLICATION=80131600
+
+Cleaning up using profile Built-in: Full Cleanup
+
+<SlotMath.Core.Tests>\Compiler\AuthoringAuditTests.cs

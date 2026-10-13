@@ -1,0 +1,222 @@
+
+Running 10 tests using 2 workers
+
+(node:664113) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:664112) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:664113) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:664112) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   2 unit/pr19-authoring-audit.spec.ts:34:1 › PR19 control: explicitly named aggregate local is not captured (3ms)
+  ✘   1 unit/pr19-authoring-audit.spec.ts:23:1 › PR19: aggregate default item binding survives private-variable lowering (5ms)
+  ✘   3 unit/pr19-authoring-audit.spec.ts:43:5 › PR19: runtime-supported field namespace undefined binds private variables (2ms)
+(node:664139) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:664146) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:664146) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:664139) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   4 unit/pr19-authoring-audit.spec.ts:43:5 › PR19: runtime-supported field namespace state binds private variables (4ms)
+  ✘   5 unit/pr19-authoring-audit.spec.ts:43:5 › PR19: runtime-supported field namespace null binds private variables (5ms)
+  ✘   6 unit/pr19-authoring-audit.spec.ts:43:5 › PR19: runtime-supported field namespace board binds private variables (3ms)
+(node:664211) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:664208) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:664211) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:664208) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘   7 unit/pr19-authoring-audit.spec.ts:63:1 › PR19: map reads its source array, not the lexical item as global game state (4ms)
+  ✘   8 unit/pr19-authoring-audit.spec.ts:55:1 › PR19: stateKey in an aggregate is a dependency even without a fieldAccess node (4ms)
+(node:664279) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:664279) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:664318) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘   9 unit/pr19-authoring-audit.spec.ts:78:1 › PR19: Draw BoardStateKey is recorded as an actual state write (7ms)
+(node:664318) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  10 unit/pr19-authoring-audit.spec.ts:85:1 › PR19: direct node-to-parameter references remain resolvable after variable binding (7ms)
+
+
+  1) unit/pr19-authoring-audit.spec.ts:23:1 › PR19: aggregate default item binding survives private-variable lowering
+
+    Error: expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 1
+    + Received  + 1
+
+      Array [
+    -   "item",
+    +   "__machine_probe_private_item",
+      ]
+
+      27 |     };
+      28 |     const result = bindMachineExpression(expression, names);
+    > 29 |     expect((result.valueExpr as Expr).path).toEqual(['item']);
+         |                                             ^
+      30 |     expect(result.stateKey).toBe('values');
+      31 |     expect((expression.valueExpr as Expr).path).toEqual(['item']);
+      32 | });
+        at /home/terentiy/work/github-profile-audit/slot-math-lab-worktrees/precision-workbench-redesign/frontend/unit/pr19-authoring-audit.spec.ts:29:45
+
+    Error Context: test-results/pr19-authoring-audit-PR19--9da25-s-private-variable-lowering/error-context.md
+
+  2) unit/pr19-authoring-audit.spec.ts:43:5 › PR19: runtime-supported field namespace undefined binds private variables
+
+    Error: expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 1
+    + Received  + 1
+
+      Array [
+    -   "__machine_probe_private_counter",
+    +   "counter",
+      ]
+
+      48 |         const reads = new Set<string>();
+      49 |         const result = bindMachineExpression(expression, names, reads);
+    > 50 |         expect(result.path).toEqual([privateCounter]);
+         |                             ^
+      51 |         expect(reads.has(privateCounter)).toBe(true);
+      52 |     });
+      53 | }
+        at /home/terentiy/work/github-profile-audit/slot-math-lab-worktrees/precision-workbench-redesign/frontend/unit/pr19-authoring-audit.spec.ts:50:29
+
+    Error Context: test-results/pr19-authoring-audit-PR19--c4225-ned-binds-private-variables/error-context.md
+
+  3) unit/pr19-authoring-audit.spec.ts:43:5 › PR19: runtime-supported field namespace null binds private variables
+
+    Error: expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 1
+    + Received  + 1
+
+      Array [
+    -   "__machine_probe_private_counter",
+    +   "counter",
+      ]
+
+      48 |         const reads = new Set<string>();
+      49 |         const result = bindMachineExpression(expression, names, reads);
+    > 50 |         expect(result.path).toEqual([privateCounter]);
+         |                             ^
+      51 |         expect(reads.has(privateCounter)).toBe(true);
+      52 |     });
+      53 | }
+        at /home/terentiy/work/github-profile-audit/slot-math-lab-worktrees/precision-workbench-redesign/frontend/unit/pr19-authoring-audit.spec.ts:50:29
+
+    Error Context: test-results/pr19-authoring-audit-PR19--7f62a-ull-binds-private-variables/error-context.md
+
+  4) unit/pr19-authoring-audit.spec.ts:43:5 › PR19: runtime-supported field namespace board binds private variables
+
+    Error: expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 1
+    + Received  + 1
+
+      Array [
+    -   "__machine_probe_private_counter",
+    +   "counter",
+      ]
+
+      48 |         const reads = new Set<string>();
+      49 |         const result = bindMachineExpression(expression, names, reads);
+    > 50 |         expect(result.path).toEqual([privateCounter]);
+         |                             ^
+      51 |         expect(reads.has(privateCounter)).toBe(true);
+      52 |     });
+      53 | }
+        at /home/terentiy/work/github-profile-audit/slot-math-lab-worktrees/precision-workbench-redesign/frontend/unit/pr19-authoring-audit.spec.ts:50:29
+
+    Error Context: test-results/pr19-authoring-audit-PR19--5e4a8-ard-binds-private-variables/error-context.md
+
+  5) unit/pr19-authoring-audit.spec.ts:55:1 › PR19: stateKey in an aggregate is a dependency even without a fieldAccess node
+
+    Error: expect(received).toContainEqual(expected) // deep equality
+
+    Expected value: ["clusterPays"]
+    Received array: []
+
+      58 |         expressions: {total: {exprType: 'aggregate', func: 'Sum', stateKey: 'clusterPays', itemType: 'Number'}},
+      59 |     } as ModelGraph;
+    > 60 |     expect(indexGraphSources(graph).stateReads.map(read => read.statePath)).toContainEqual(['clusterPays']);
+         |                                                                             ^
+      61 | });
+      62 |
+      63 | test('PR19: map reads its source array, not the lexical item as global game state', () => {
+        at /home/terentiy/work/github-profile-audit/slot-math-lab-worktrees/precision-workbench-redesign/frontend/unit/pr19-authoring-audit.spec.ts:60:77
+
+    Error Context: test-results/pr19-authoring-audit-PR19--86a39--without-a-fieldAccess-node/error-context.md
+
+  6) unit/pr19-authoring-audit.spec.ts:63:1 › PR19: map reads its source array, not the lexical item as global game state
+
+    Error: expect(received).toContainEqual(expected) // deep equality
+
+    Expected value: ["values"]
+    Received array: [["x"]]
+
+      72 |     } as ModelGraph;
+      73 |     const reads = indexGraphSources(graph).stateReads.map(read => read.statePath);
+    > 74 |     expect(reads).toContainEqual(['values']);
+         |                   ^
+      75 |     expect(reads).not.toContainEqual(['x']);
+      76 | });
+      77 |
+        at /home/terentiy/work/github-profile-audit/slot-math-lab-worktrees/precision-workbench-redesign/frontend/unit/pr19-authoring-audit.spec.ts:74:19
+
+    Error Context: test-results/pr19-authoring-audit-PR19--c3fae-l-item-as-global-game-state/error-context.md
+
+  7) unit/pr19-authoring-audit.spec.ts:78:1 › PR19: Draw BoardStateKey is recorded as an actual state write
+
+    Error: expect(received).toContain(expected) // indexOf
+
+    Expected value: "board"
+    Received array: []
+
+      80 |         nodes: [{id: 'reel-draw', nodeType: 'draw', boardStateKey: 'board'}], edges: [],
+      81 |     } as ModelGraph;
+    > 82 |     expect(indexGraphSources(graph).stateWrites.map(write => write.key)).toContain('board');
+         |                                                                          ^
+      83 | });
+      84 |
+      85 | test('PR19: direct node-to-parameter references remain resolvable after variable binding', () => {
+        at /home/terentiy/work/github-profile-audit/slot-math-lab-worktrees/precision-workbench-redesign/frontend/unit/pr19-authoring-audit.spec.ts:82:74
+
+    Error Context: test-results/pr19-authoring-audit-PR19--d43d5-ed-as-an-actual-state-write/error-context.md
+
+  8) unit/pr19-authoring-audit.spec.ts:85:1 › PR19: direct node-to-parameter references remain resolvable after variable binding
+
+    Error: Dangling parameter reference: amount
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: true
+    Received: false
+
+      109 |     const resolved = Object.hasOwn(specialized!.expressions ?? {}, reference)
+      110 |         || Object.hasOwn(call?.parameters ?? {}, reference);
+    > 111 |     expect(resolved, `Dangling parameter reference: ${reference}`).toBe(true);
+          |                                                                    ^
+      112 | });
+      113 |
+        at /home/terentiy/work/github-profile-audit/slot-math-lab-worktrees/precision-workbench-redesign/frontend/unit/pr19-authoring-audit.spec.ts:111:68
+
+    Error Context: test-results/pr19-authoring-audit-PR19--c4eb7-able-after-variable-binding/error-context.md
+
+  8 failed
+    unit/pr19-authoring-audit.spec.ts:23:1 › PR19: aggregate default item binding survives private-variable lowering
+    unit/pr19-authoring-audit.spec.ts:43:5 › PR19: runtime-supported field namespace undefined binds private variables
+    unit/pr19-authoring-audit.spec.ts:43:5 › PR19: runtime-supported field namespace null binds private variables
+    unit/pr19-authoring-audit.spec.ts:43:5 › PR19: runtime-supported field namespace board binds private variables
+    unit/pr19-authoring-audit.spec.ts:55:1 › PR19: stateKey in an aggregate is a dependency even without a fieldAccess node
+    unit/pr19-authoring-audit.spec.ts:63:1 › PR19: map reads its source array, not the lexical item as global game state
+    unit/pr19-authoring-audit.spec.ts:78:1 › PR19: Draw BoardStateKey is recorded as an actual state write
+    unit/pr19-authoring-audit.spec.ts:85:1 › PR19: direct node-to-parameter references remain resolvable after variable binding
+  2 passed (1.5s)

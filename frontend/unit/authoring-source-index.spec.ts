@@ -54,7 +54,12 @@ test('External catalog operations and dynamic expressions stay explicit without 
             id: 'external',
             nodeType: 'library',
             mechanicName: 'catalog-operation'
-        }, {id: 'dynamic', nodeType: 'draw', weightExpressionId: 'weights'}, {
+        }, {
+            id: 'dynamic',
+            nodeType: 'draw',
+            weightExpressionId: 'weights',
+            drawWeights: [{outcomeId: 'a', weight: 1, value: 0}]
+        }, {
             id: 'opaque',
             nodeType: 'plugin',
             outputKey: 'not-a-proven-write'
