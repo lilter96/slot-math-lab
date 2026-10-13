@@ -1,9 +1,9 @@
 {
-  "sourceCommit": "5f193279f4db5aef0604f8f0be04db843dfda044",
+  "sourceCommit": "4f18f1ffa771187c39647861d2a66286913426e4",
   "apiSourceUnchangedSince": "930963b6469629fbe9be72e9a7cab7d5bfb59b03",
   "images": {
     "api": "sha256:a5123d27dff63ff4a0d3bf601e3b1ec8b9e3040dd032e4c46643c2b9cb5bee5b",
-    "frontend": "sha256:2c88a310b495b4fb5142c55ccfca4cc9047b5e823c6b87a895a7a4174eac3e3d"
+    "frontend": "sha256:469c708afd848c56fb974e92dfe15790efefe18207e493ec8ce2f3251cf1d384"
   },
   "smoke": {
     "apiHealth": {
@@ -25,10 +25,10 @@
           "name": "postgres",
           "status": "Healthy",
           "description": "PostgreSQL is reachable",
-          "duration": "00:00:00.0000351"
+          "duration": "00:00:00.0000347"
         }
       ],
-      "totalDuration": "00:00:00.0000661"
+      "totalDuration": "00:00:00.0000713"
     },
     "configs": [],
     "studioHtml": true

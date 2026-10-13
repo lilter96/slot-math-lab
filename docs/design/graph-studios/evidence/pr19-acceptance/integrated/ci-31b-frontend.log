@@ -1,0 +1,631 @@
+﻿2026-10-13T14:29:51.1368044Z Current runner version: '2.337.0'
+2026-10-13T14:29:51.1382174Z ##[group]Runner Image Provisioner
+2026-10-13T14:29:51.1382754Z Hosted Compute Agent
+2026-10-13T14:29:51.1383095Z Version: 20261002.596
+2026-10-13T14:29:51.1383450Z Commit: c3d12f3313a95f25162a1503be624f3b0617f8c0
+2026-10-13T14:29:51.1383908Z Build Date: 2026-10-02T22:28:27Z
+2026-10-13T14:29:51.1384350Z Worker ID: {b7c3910c-1d80-4fe2-afcf-f38653a30666}
+2026-10-13T14:29:51.1384778Z Region: westus2
+2026-10-13T14:29:51.1385095Z Cloud: Azure
+2026-10-13T14:29:51.1385399Z ##[endgroup]
+2026-10-13T14:29:51.1386550Z ##[group]Operating System
+2026-10-13T14:29:51.1386937Z Ubuntu
+2026-10-13T14:29:51.1387273Z 24.04.5
+2026-10-13T14:29:51.1387584Z LTS
+2026-10-13T14:29:51.1387887Z ##[endgroup]
+2026-10-13T14:29:51.1388232Z ##[group]Runner Image
+2026-10-13T14:29:51.1388637Z Image: ubuntu-24.04
+2026-10-13T14:29:51.1388981Z Version: 20261004.327.1
+2026-10-13T14:29:51.1389697Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20261004.327/images/ubuntu/Ubuntu2404-Readme.md
+2026-10-13T14:29:51.1390554Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20261004.327
+2026-10-13T14:29:51.1391108Z ##[endgroup]
+2026-10-13T14:29:51.1391788Z ##[group]GITHUB_TOKEN Permissions
+2026-10-13T14:29:51.1392908Z Contents: read
+2026-10-13T14:29:51.1393270Z Metadata: read
+2026-10-13T14:29:51.1393635Z Packages: read
+2026-10-13T14:29:51.1393957Z ##[endgroup]
+2026-10-13T14:29:51.1395145Z Secret source: Actions
+2026-10-13T14:29:51.1395667Z Cache mode: write
+2026-10-13T14:29:51.1396108Z Prepare workflow directory
+2026-10-13T14:29:51.1618373Z Prepare all required actions
+2026-10-13T14:29:51.1646859Z Getting action download info
+2026-10-13T14:29:51.4664885Z Download action repository 'actions/checkout@v4' (SHA:11d5960a326750d5838078e36cf38b85af677262)
+2026-10-13T14:29:51.5649443Z Download action repository 'actions/setup-node@v4' (SHA:49933ea5288caeca8642d1e84afbd3f7d6820020)
+2026-10-13T14:29:51.7280328Z Complete job name: Frontend — Build, Lint
+2026-10-13T14:29:51.7725577Z ##[group]Run actions/checkout@v4
+2026-10-13T14:29:51.7725968Z with:
+2026-10-13T14:29:51.7726392Z   repository: lilter96/slot-math-lab
+2026-10-13T14:29:51.7728425Z   token: ***
+2026-10-13T14:29:51.7728649Z   ssh-strict: true
+2026-10-13T14:29:51.7728879Z   ssh-user: git
+2026-10-13T14:29:51.7729114Z   persist-credentials: true
+2026-10-13T14:29:51.7729366Z   clean: true
+2026-10-13T14:29:51.7729601Z   sparse-checkout-cone-mode: true
+2026-10-13T14:29:51.7729873Z   fetch-depth: 1
+2026-10-13T14:29:51.7730101Z   fetch-tags: false
+2026-10-13T14:29:51.7730336Z   show-progress: true
+2026-10-13T14:29:51.7730569Z   lfs: false
+2026-10-13T14:29:51.7730788Z   submodules: false
+2026-10-13T14:29:51.7731026Z   set-safe-directory: true
+2026-10-13T14:29:51.7731290Z   allow-unsafe-pr-checkout: false
+2026-10-13T14:29:51.7731636Z ##[endgroup]
+2026-10-13T14:29:51.8338642Z Syncing repository: lilter96/slot-math-lab
+2026-10-13T14:29:51.8340027Z ##[group]Getting Git version info
+2026-10-13T14:29:51.8340713Z Working directory is '/home/runner/work/slot-math-lab/slot-math-lab'
+2026-10-13T14:29:51.8341573Z [command]/usr/bin/git version
+2026-10-13T14:29:51.8399110Z git version 2.55.0
+2026-10-13T14:29:51.8415851Z ##[endgroup]
+2026-10-13T14:29:51.8423631Z Temporarily overriding HOME='/home/runner/work/_temp/55005fd9-b418-49ce-b08a-1d8a8556505b' before making global git config changes
+2026-10-13T14:29:51.8424860Z Adding repository directory to the temporary git global config as a safe directory
+2026-10-13T14:29:51.8433722Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/slot-math-lab/slot-math-lab
+2026-10-13T14:29:51.8471522Z Deleting the contents of '/home/runner/work/slot-math-lab/slot-math-lab'
+2026-10-13T14:29:51.8474151Z ##[group]Initializing the repository
+2026-10-13T14:29:51.8476725Z [command]/usr/bin/git init /home/runner/work/slot-math-lab/slot-math-lab
+2026-10-13T14:29:51.8571040Z hint: Using 'master' as the name for the initial branch. This default branch name
+2026-10-13T14:29:51.8572300Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+2026-10-13T14:29:51.8574968Z hint: to use in all of your new repositories, which will suppress this warning,
+2026-10-13T14:29:51.8575778Z hint: call:
+2026-10-13T14:29:51.8576107Z hint:
+2026-10-13T14:29:51.8576629Z hint: 	git config --global init.defaultBranch <name>
+2026-10-13T14:29:51.8577146Z hint:
+2026-10-13T14:29:51.8577613Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+2026-10-13T14:29:51.8578397Z hint: 'development'. The just-created branch can be renamed via this command:
+2026-10-13T14:29:51.8579018Z hint:
+2026-10-13T14:29:51.8579375Z hint: 	git branch -m <name>
+2026-10-13T14:29:51.8579736Z hint:
+2026-10-13T14:29:51.8580229Z hint: Disable this message with "git config set advice.defaultBranchName false"
+2026-10-13T14:29:51.8581197Z Initialized empty Git repository in /home/runner/work/slot-math-lab/slot-math-lab/.git/
+2026-10-13T14:29:51.8583891Z [command]/usr/bin/git remote add origin https://github.com/lilter96/slot-math-lab
+2026-10-13T14:29:51.8625879Z ##[endgroup]
+2026-10-13T14:29:51.8626644Z ##[group]Disabling automatic garbage collection
+2026-10-13T14:29:51.8629269Z [command]/usr/bin/git config --local gc.auto 0
+2026-10-13T14:29:51.8654532Z ##[endgroup]
+2026-10-13T14:29:51.8655126Z ##[group]Setting up auth
+2026-10-13T14:29:51.8660085Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-10-13T14:29:51.8686944Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-10-13T14:29:51.8980306Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-10-13T14:29:51.9009545Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-10-13T14:29:51.9173929Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-10-13T14:29:51.9199865Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-10-13T14:29:51.9361639Z [command]/usr/bin/git config --local http.https://github.com/.extraheader AUTHORIZATION: basic ***
+2026-10-13T14:29:51.9392065Z ##[endgroup]
+2026-10-13T14:29:51.9392600Z ##[group]Fetching the repository
+2026-10-13T14:29:51.9397776Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin +c0dd6a1948886e305fdf261d432ea17dbbd070c1:refs/remotes/pull/19/merge
+2026-10-13T14:29:55.5850127Z From https://github.com/lilter96/slot-math-lab
+2026-10-13T14:29:55.5850793Z  * [new ref]         c0dd6a1948886e305fdf261d432ea17dbbd070c1 -> pull/19/merge
+2026-10-13T14:29:55.5852505Z ##[endgroup]
+2026-10-13T14:29:55.5852883Z ##[group]Determining the checkout info
+2026-10-13T14:29:55.5853273Z ##[endgroup]
+2026-10-13T14:29:55.5858955Z [command]/usr/bin/git sparse-checkout disable
+2026-10-13T14:29:55.5989056Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
+2026-10-13T14:29:55.6109541Z ##[group]Checking out the ref
+2026-10-13T14:29:55.6114820Z [command]/usr/bin/git checkout --progress --force refs/remotes/pull/19/merge
+2026-10-13T14:29:56.1406621Z Note: switching to 'refs/remotes/pull/19/merge'.
+2026-10-13T14:29:56.1407723Z
+2026-10-13T14:29:56.1407912Z You are in 'detached HEAD' state. You can look around, make experimental
+2026-10-13T14:29:56.1408256Z changes and commit them, and you can discard any commits you make in this
+2026-10-13T14:29:56.1408695Z state without impacting any branches by switching back to a branch.
+2026-10-13T14:29:56.1408993Z
+2026-10-13T14:29:56.1409207Z If you want to create a new branch to retain commits you create, you may
+2026-10-13T14:29:56.1409672Z do so (now or later) by using -c with the switch command. Example:
+2026-10-13T14:29:56.1410126Z
+2026-10-13T14:29:56.1410215Z   git switch -c <new-branch-name>
+2026-10-13T14:29:56.1410334Z
+2026-10-13T14:29:56.1410424Z Or undo this operation with:
+2026-10-13T14:29:56.1410528Z
+2026-10-13T14:29:56.1410597Z   git switch -
+2026-10-13T14:29:56.1410697Z
+2026-10-13T14:29:56.1410861Z Turn off this advice by setting config variable advice.detachedHead to false
+2026-10-13T14:29:56.1411049Z
+2026-10-13T14:29:56.1411270Z HEAD is now at c0dd6a1 Merge 31b89fdbe774571bc88e68cf67ca01dab817f918 into 6345b1bd0de39fade0432cdb005560628c2f8328
+2026-10-13T14:29:56.1437556Z ##[endgroup]
+2026-10-13T14:29:56.1476549Z [command]/usr/bin/git log -1 --format=%H
+2026-10-13T14:29:56.1496925Z c0dd6a1948886e305fdf261d432ea17dbbd070c1
+2026-10-13T14:29:56.1829038Z ##[group]Run actions/setup-node@v4
+2026-10-13T14:29:56.1829238Z with:
+2026-10-13T14:29:56.1829386Z   node-version: 22
+2026-10-13T14:29:56.1829528Z   cache: npm
+2026-10-13T14:29:56.1829699Z   cache-dependency-path: frontend/package-lock.json
+2026-10-13T14:29:56.1829912Z   always-auth: false
+2026-10-13T14:29:56.1830061Z   check-latest: false
+2026-10-13T14:29:56.1831531Z   token: ***
+2026-10-13T14:29:56.1831673Z ##[endgroup]
+2026-10-13T14:29:56.2697793Z Found in cache @ /opt/hostedtoolcache/node/22.23.3/x64
+2026-10-13T14:29:56.2700292Z (node:2304) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+2026-10-13T14:29:56.2700840Z (Use `node --trace-deprecation ...` to show where the warning was created)
+2026-10-13T14:29:56.2701946Z ##[group]Environment details
+2026-10-13T14:29:56.5780083Z node: v22.23.3
+2026-10-13T14:29:56.5780322Z npm: 10.9.9
+2026-10-13T14:29:56.5780438Z yarn: 1.22.22
+2026-10-13T14:29:56.5781039Z ##[endgroup]
+2026-10-13T14:29:56.5792214Z [command]/opt/hostedtoolcache/node/22.23.3/x64/bin/npm config get cache
+2026-10-13T14:29:56.6587551Z /home/runner/.npm
+2026-10-13T14:29:56.9216690Z Cache hit for: node-cache-Linux-x64-npm-e08982ab6f61b059b1972fdca931cf6bfe88e08d3896cf076d130b6dbc72812c
+2026-10-13T14:29:56.9330483Z (node:2304) [DEP0169] DeprecationWarning: `url.parse()` behavior is not standardized and prone to errors that have security implications. Use the WHATWG URL API instead. CVEs are not issued for `url.parse()` vulnerabilities.
+2026-10-13T14:29:58.1892640Z Received 25165824 of 80598100 (31.2%), 24.0 MBs/sec
+2026-10-13T14:29:58.6391665Z Received 80598100 of 80598100 (100.0%), 53.0 MBs/sec
+2026-10-13T14:29:58.6392176Z Cache Size: ~77 MB (80598100 B)
+2026-10-13T14:29:58.6412215Z [command]/usr/bin/tar -xf /home/runner/work/_temp/d36c6bda-5601-4764-b09d-ae5722183ec8/cache.tzst -P -C /home/runner/work/slot-math-lab/slot-math-lab --use-compress-program unzstd
+2026-10-13T14:29:58.7424705Z Cache restored successfully
+2026-10-13T14:29:58.7458138Z Cache restored from key: node-cache-Linux-x64-npm-e08982ab6f61b059b1972fdca931cf6bfe88e08d3896cf076d130b6dbc72812c
+2026-10-13T14:29:58.7603601Z ##[group]Run npm ci --legacy-peer-deps
+2026-10-13T14:29:58.7603857Z npm ci --legacy-peer-deps
+2026-10-13T14:29:58.7930438Z shell: /usr/bin/bash -e {0}
+2026-10-13T14:29:58.7930610Z ##[endgroup]
+2026-10-13T14:30:02.1652678Z
+2026-10-13T14:30:02.1658359Z added 267 packages, and audited 268 packages in 3s
+2026-10-13T14:30:02.1658659Z
+2026-10-13T14:30:02.1658828Z 57 packages are looking for funding
+2026-10-13T14:30:02.1659101Z   run `npm fund` for details
+2026-10-13T14:30:02.1659326Z
+2026-10-13T14:30:02.1659433Z found 0 vulnerabilities
+2026-10-13T14:30:02.2242825Z ##[group]Run npm audit --omit=dev --audit-level=high
+2026-10-13T14:30:02.2243081Z npm audit --omit=dev --audit-level=high
+2026-10-13T14:30:02.2295844Z shell: /usr/bin/bash -e {0}
+2026-10-13T14:30:02.2295997Z ##[endgroup]
+2026-10-13T14:30:02.5288791Z found 0 vulnerabilities
+2026-10-13T14:30:02.5376003Z ##[group]Run npx tsc --noEmit
+2026-10-13T14:30:02.5376190Z npx tsc --noEmit
+2026-10-13T14:30:02.5430037Z shell: /usr/bin/bash -e {0}
+2026-10-13T14:30:02.5430189Z ##[endgroup]
+2026-10-13T14:30:02.8120172Z ##[group]Run npm run lint
+2026-10-13T14:30:02.8120492Z npm run lint
+2026-10-13T14:30:02.8171646Z shell: /usr/bin/bash -e {0}
+2026-10-13T14:30:02.8171794Z ##[endgroup]
+2026-10-13T14:30:02.8780826Z
+2026-10-13T14:30:02.8781288Z > frontend@0.0.0 lint
+2026-10-13T14:30:02.8781574Z > eslint .
+2026-10-13T14:30:02.8781679Z
+2026-10-13T14:30:16.4996867Z
+2026-10-13T14:30:16.4998243Z /home/runner/work/slot-math-lab/slot-math-lab/frontend/src/components/editor/WeightedDrawEditor.tsx
+2026-10-13T14:30:16.5033848Z ##[warning]  34:53  warning  The ref value 'csvTask.current' will likely have changed by the time this effect cleanup function runs. If this ref points to a node rendered by React, copy 'csvTask.current' to a variable inside the effect, and use that variable in the cleanup function  react-hooks/exhaustive-deps
+2026-10-13T14:30:16.5041342Z
+2026-10-13T14:30:16.5041866Z ✖ 1 problem (0 errors, 1 warning)
+2026-10-13T14:30:16.5042058Z
+2026-10-13T14:30:16.6642052Z ##[group]Run npm run test:unit
+2026-10-13T14:30:16.6642233Z npm run test:unit
+2026-10-13T14:30:16.6691861Z shell: /usr/bin/bash -e {0}
+2026-10-13T14:30:16.6692005Z ##[endgroup]
+2026-10-13T14:30:16.7317178Z
+2026-10-13T14:30:16.7317814Z > frontend@0.0.0 test:unit
+2026-10-13T14:30:16.7318080Z > playwright test -c playwright.unit.config.ts
+2026-10-13T14:30:16.7318240Z
+2026-10-13T14:30:19.6672448Z
+2026-10-13T14:30:19.6673194Z Running 299 tests using 2 workers
+2026-10-13T14:30:19.6673435Z
+2026-10-13T14:30:20.1443446Z   ✓    1 unit/authoring-cell-bindings.spec.ts:29:1 › X7 has fifteen column-major cells and no physical strips; geometry and stale assignments refuse candidate mutation (42ms)
+2026-10-13T14:30:20.2603361Z   ✓    2 unit/authoring-cell-bindings.spec.ts:9:1 › TGSlots paid/free boards contain independent cell Draws; editing one or selected cells preserves other stages and refill (169ms)
+2026-10-13T14:30:20.4789465Z   ✓    4 unit/authoring-cluster-pay-bindings.spec.ts:25:5 › TGSlots: exact payout edits synchronize the real lookup and precision while preserving unrelated control, rule caps and input (163ms)
+2026-10-13T14:30:20.8408791Z   ✓    5 unit/authoring-cluster-pay-bindings.spec.ts:25:5 › weighted Le Militare: exact payout edits synchronize the real lookup and precision while preserving unrelated control, rule caps and input (351ms)
+2026-10-13T14:30:20.9423323Z   ✓    6 unit/authoring-cluster-pay-bindings.spec.ts:25:5 › reference: exact payout edits synchronize the real lookup and precision while preserving unrelated control, rule caps and input (88ms)
+2026-10-13T14:30:21.1633073Z   ✓    7 unit/authoring-cluster-pay-bindings.spec.ts:49:1 › Minimum crosses five and one in both directions: pruning, isolated-cell handling and shared callers reconcile without replacing the game (211ms)
+2026-10-13T14:30:21.2537469Z   ✓    8 unit/authoring-cluster-pay-bindings.spec.ts:72:1 › Runtime overrides, extra lookup consumers, mismatched metadata and stale revisions reject before mutation (84ms)
+2026-10-13T14:30:21.4149607Z   ✓    9 unit/authoring-cluster-pay-bindings.spec.ts:95:1 › Alpha-renamed cluster definitions, nodes and expressions retain authored IDs and opaque node/edge fields through minimum changes (156ms)
+2026-10-13T14:30:21.4648150Z   ✓   10 unit/authoring-conditioned-copy.spec.ts:10:1 › A private conditioned call has independent strips, pattern table and scratch field; old calls and opaque fields stay intact (34ms)
+2026-10-13T14:30:22.0224080Z   ✓   11 unit/authoring-conditioned-copy.spec.ts:40:1 › Bundled Woodland bought entry retains two editable bindings after one conditioned use is copied (546ms)
+2026-10-13T14:30:22.0405085Z   ✓   12 unit/authoring-conditioned-copy.spec.ts:53:1 › Renamed conditional node/expression/edge identities remain editable and opaque retained metadata survives reconciliation (5ms)
+2026-10-13T14:30:22.6804508Z   ✓    3 unit/authoring-cluster-pay-bindings.spec.ts:10:1 › Every TGSlots entry, all eighteen Le Militare variants and the separate reference expose executable cluster bindings without no-op rewriting (2.5s)
+2026-10-13T14:30:22.7969813Z   ✓   14 unit/authoring-control-projection.spec.ts:19:1 › Projected expression edits retain opaque fields/topology and reject stale or different scope bindings (91ms)
+2026-10-13T14:30:22.9558703Z   ✓   15 unit/authoring-control-projection.spec.ts:36:1 › X7 ordinary/bought respin count edits synchronize initialization, restoration and the proven bound while prizes and held state stay intact (153ms)
+2026-10-13T14:30:23.0468680Z   ✓   16 unit/authoring-control-projection.spec.ts:54:1 › A custom after-coins hook cannot retain a proven respin bound if it clears held cells or makes boost multipliers zero (85ms)
+2026-10-13T14:30:23.2434621Z   ✓   17 unit/authoring-control-projection.spec.ts:66:1 › An unconditional empty bought entry or a weaker trigger cannot borrow the held-cell assumption of another entry (190ms)
+2026-10-13T14:30:23.3788576Z   ✓   18 unit/authoring-line-bindings.spec.ts:10:5 › Ancient Dragon: payline paths update column-major execution parameters and preserve stake, metadata and other lines (92ms)
+2026-10-13T14:30:23.4851589Z   ✓   19 unit/authoring-line-bindings.spec.ts:10:5 › Woodland Whisper: payline paths update column-major execution parameters and preserve stake, metadata and other lines (100ms)
+2026-10-13T14:30:23.5796481Z   ✓   20 unit/authoring-line-bindings.spec.ts:10:5 › X7 Club: payline paths update column-major execution parameters and preserve stake, metadata and other lines (88ms)
+2026-10-13T14:30:23.6169056Z   ✓   21 unit/authoring-line-bindings.spec.ts:29:1 › Renamed shared payline fragments remain editable; stale geometry and inconsistent metadata stay locally unavailable (30ms)
+2026-10-13T14:30:23.7301226Z   ✓   22 unit/authoring-line-bindings.spec.ts:52:1 › Duplicated execution definitions linked to one declared line set change together without merging unrelated state (105ms)
+2026-10-13T14:30:24.7477991Z   ✓   23 unit/authoring-line-lifecycle.spec.ts:10:1 › Bundled line families/entries add/remove lines while preserving per-line pricing, bought ratio, native lookups and precision (1.0s)
+2026-10-13T14:30:24.7679680Z   ✓   24 unit/authoring-line-lifecycle.spec.ts:36:1 › Fixed total is an explicit changed contract; incomplete pricing and non-integral per-line scaling reject without changing source (11ms)
+2026-10-13T14:30:24.7840952Z   ✓   25 unit/authoring-line-lifecycle.spec.ts:57:1 › Retained line IDs and opaque metadata/node/edge fields survive topology changes (10ms)
+2026-10-13T14:30:24.8137808Z   ✓   26 unit/authoring-machine-lifecycle.spec.ts:10:1 › Machine updates preserve opaque graph/node/edge data, no-op identity and source fences (16ms)
+2026-10-13T14:30:24.8408307Z   ✓   27 unit/authoring-machine-lifecycle.spec.ts:26:1 › One independent use gets private counters and definitions while other fields and callers stay intact (14ms)
+2026-10-13T14:30:24.8528390Z   ✓   28 unit/authoring-machine-lifecycle.spec.ts:35:1 › Creation inserts one connected Library on a real State edge and never adds disconnected entries or extra sinks (2ms)
+2026-10-13T14:30:24.8998726Z   ✓   29 unit/authoring-machine-lifecycle.spec.ts:44:1 › Nested independent copies keep all private namespaces separate, including long instance IDs and repeated copies (44ms)
+2026-10-13T14:30:24.9175342Z   ✓   30 unit/authoring-machine-lifecycle.spec.ts:63:1 › An opaque operation wrapping a nested machine stays intact while its private dependency closure is copied (13ms)
+2026-10-13T14:30:24.9277101Z   ✓   31 unit/authoring-machine-lifecycle.spec.ts:86:1 › Fractional existing shared state stays editable without resetting it; authored field names remain literal data keys (4ms)
+2026-10-13T14:30:24.9501542Z   ✓   32 unit/authoring-machine-lowering.spec.ts:16:1 › Generated machines roundtrip every executable action/guard/effect from GraphConfig and use only existing atoms (12ms)
+2026-10-13T14:30:24.9578954Z   ✓   33 unit/authoring-machine-lowering.spec.ts:25:1 › Variable-bound operations reconstruct their bindings from AST source, preserve the original operation and remain portable without descriptors (3ms)
+2026-10-13T14:30:24.9656332Z   ✓   34 unit/authoring-machine-lowering.spec.ts:49:1 › Missing fallback, destination, unreachable state and ambiguous variable bindings reject before source installation (3ms)
+2026-10-13T14:30:24.9742408Z   ✓   35 unit/authoring-machine-lowering.spec.ts:60:1 › Independent instances retain shared game fields and isolate controls/counters; unrecognized source changes invalidate machine bindings (2ms)
+2026-10-13T14:30:24.9817494Z   ✓   36 unit/authoring-machine-lowering.spec.ts:69:1 › Malformed recovery input and external access to private controls cannot become a verified editable machine (3ms)
+2026-10-13T14:30:24.9979910Z   ✓   37 unit/authoring-pay-bindings.spec.ts:9:1 › Exact payout text preserves long decimals/fractions and rejects incomplete or non-integral executable credits (5ms)
+2026-10-13T14:30:25.1446920Z   ✓   38 unit/authoring-pay-bindings.spec.ts:18:5 › Ancient Dragon: line edit synchronizes exact declared precision, runtime payout and derived wild while keeping other source (142ms)
+2026-10-13T14:30:25.3129815Z   ✓   39 unit/authoring-pay-bindings.spec.ts:18:5 › Woodland Whisper: line edit synchronizes exact declared precision, runtime payout and derived wild while keeping other source (161ms)
+2026-10-13T14:30:25.4467912Z   ✓   40 unit/authoring-pay-bindings.spec.ts:18:5 › X7 Club: line edit synchronizes exact declared precision, runtime payout and derived wild while keeping other source (125ms)
+2026-10-13T14:30:25.4989724Z   ✓   41 unit/authoring-pay-bindings.spec.ts:44:5 › Ancient Dragon: scatter total-bet units normalize to the actual round price (46ms)
+2026-10-13T14:30:25.5984045Z   ✓   42 unit/authoring-pay-bindings.spec.ts:44:5 › Woodland Whisper bought: scatter total-bet units normalize to the actual round price (93ms)
+2026-10-13T14:30:25.6807321Z   ✓   43 unit/authoring-pay-bindings.spec.ts:60:1 › Explicit wild payouts remain authored; renamed tables are recognized and stale precision does not overwrite source (77ms)
+2026-10-13T14:30:25.7137241Z   ✓   44 unit/authoring-pay-bindings.spec.ts:87:1 › Runtime Data/PutState writes and mutable wild rules do not expose an initial-state lookup as an editable static paytable (27ms)
+2026-10-13T14:30:25.7897984Z   ✓   45 unit/authoring-payout-bounds.spec.ts:11:5 › Ancient Dragon: a highest payout increase updates the proven uncapped bound with the actual loop budget and price (62ms)
+2026-10-13T14:30:25.8888877Z   ✓   46 unit/authoring-payout-bounds.spec.ts:11:5 › Woodland Whisper: a highest payout increase updates the proven uncapped bound with the actual loop budget and price (92ms)
+2026-10-13T14:30:26.0019152Z   ✓   47 unit/authoring-payout-bounds.spec.ts:11:5 › Woodland bought: a highest payout increase updates the proven uncapped bound with the actual loop budget and price (105ms)
+2026-10-13T14:30:26.0650010Z   ✓   48 unit/authoring-payout-bounds.spec.ts:26:1 › Actual game-rule caps and unproven round accumulation stay unclassified and cannot be silently raised (57ms)
+2026-10-13T14:30:26.0947508Z   ✓   49 unit/authoring-payout-bounds.spec.ts:45:1 › Independent finite fixture has budget bound 15 and a six-credit payout needs bound 35 (22ms)
+2026-10-13T14:30:26.1922028Z   ✓   50 unit/authoring-payout-bounds.spec.ts:62:1 › Explicit keep policy permits X7 payout increases while retaining its authored game-rule cap (91ms)
+2026-10-13T14:30:26.3375906Z   ✓   51 unit/authoring-prize-bindings.spec.ts:9:104 › X7: both entries bind numeric prize consumers and preserve independent weights/payloads (112ms)
+2026-10-13T14:30:26.5368657Z   ✓   52 unit/authoring-prize-bindings.spec.ts:9:104 › TGSlots: both entries bind numeric prize consumers and preserve independent weights/payloads (194ms)
+2026-10-13T14:30:26.5513588Z   ✓   53 unit/authoring-prize-bindings.spec.ts:35:1 › Prize changes compose with weights in either draft order and duplicate numeric identities reject without mutating input (7ms)
+2026-10-13T14:30:26.5852663Z   ✓   54 unit/authoring-reel-bindings.spec.ts:31:1 › Renamed weighted physical sources preserve retained stop identity, exact weights, payload metadata and untouched graph (19ms)
+2026-10-13T14:30:26.6722477Z   ✓   55 unit/authoring-reel-bindings.spec.ts:56:1 › Shared Le Militare refill stays bound and insert/delete policies are explicit before mutation (82ms)
+2026-10-13T14:30:27.0569225Z   ✓   56 unit/authoring-reel-bindings.spec.ts:72:1 › Bought Woodland no-op retains AST and strip edits reject impossible conditioning without mutation (379ms)
+2026-10-13T14:30:27.0689148Z   ✓   57 unit/authoring-source-index.spec.ts:26:1 › Source inventory keeps scoped string identities, inline reads, consumers and opaque source without mutation (2ms)
+2026-10-13T14:30:27.0823643Z   ✓   58 unit/authoring-source-index.spec.ts:36:1 › Source resolution follows IDs after ordering/renaming and refuses missing or duplicate edit targets (4ms)
+2026-10-13T14:30:27.0898135Z   ✓   59 unit/authoring-source-index.spec.ts:51:1 › External catalog operations and dynamic expressions stay explicit without inventing executable definitions (1ms)
+2026-10-13T14:30:27.0954496Z   ✓   60 unit/authoring-source-index.spec.ts:74:1 › PutState declares its actual StateKey write rather than a ModifyState outputKey alias (0ms)
+2026-10-13T14:30:27.1131684Z   ✓   61 unit/authoring-source-lifecycle.spec.ts:17:1 › New numeric source emits ordinary atoms and one explicit round entry; collisions do not replace existing source (4ms)
+2026-10-13T14:30:27.1244300Z   ✓   62 unit/authoring-source-lifecycle.spec.ts:39:49 › cells: copying one use isolates definitions/strip data and preserves original calls and opaque fields (5ms)
+2026-10-13T14:30:27.1401295Z   ✓   63 unit/authoring-source-lifecycle.spec.ts:39:49 › reels: copying one use isolates definitions/strip data and preserves original calls and opaque fields (8ms)
+2026-10-13T14:30:27.1476931Z   ✓   64 unit/authoring-source-lifecycle.spec.ts:63:1 › Changing one cell domain keeps peers, payloads and board assignment; no-op domains preserve source exactly (3ms)
+2026-10-13T14:30:27.1568881Z   ✓   65 unit/authoring-source-lifecycle.spec.ts:81:1 › Numeric prize domain synchronizes consumers and exact ordinal precision; retained rows preserve weights/opaque data and removal is explicit (4ms)
+2026-10-13T14:30:27.5728512Z   ✓   13 unit/authoring-control-projection.spec.ts:9:1 › All 65 corpus graphs project their actual nodes/edges without altering source, versions, prices or random draw order (5.5s)
+2026-10-13T14:30:27.7643546Z   ✓   67 unit/authoring-symbol-lifecycle.spec.ts:28:1 › Cluster eligibility synchronizes runtime lookup, minimum and complete helper closure including weighted counting (148ms)
+2026-10-13T14:30:27.8108864Z   ✓   68 unit/authoring-symbol-lifecycle.spec.ts:50:1 › Line/scatter sizes and explicit all-wild eligibility preserve exact units and reconcile computed caps (40ms)
+2026-10-13T14:30:27.8471797Z   ✓   69 unit/authoring-symbol-lifecycle.spec.ts:66:1 › Dictionary removal reports actual and unresolved references, keeps stable numeric IDs and never changes unrelated literals (32ms)
+2026-10-13T14:30:27.8779942Z   ✓   70 unit/authoring-symbol-lifecycle.spec.ts:80:1 › An additional custom payout reader prevents domain edits and retains its complete source (16ms)
+2026-10-13T14:30:27.9065957Z   ✓   71 unit/authoring-tabular.spec.ts:34:1 › CSV/TSV retain literal IDs, delimiters, multiline fields, fractions and exact XML number tokens (3ms)
+2026-10-13T14:30:32.8776715Z   ✓   66 unit/authoring-symbol-lifecycle.spec.ts:15:1 › All five bundled families/entries and separate reference retain payout/source contracts on a stable dictionary extension (5.7s)
+2026-10-13T14:30:32.9579092Z   ✓   73 unit/authoring-tabular.spec.ts:62:1 › Payout import uses exact units and explicit symbol matching; a new cluster size updates the complete candidate (65ms)
+2026-10-13T14:30:32.9703341Z   ✓   74 unit/authoring-tabular.spec.ts:78:1 › Independent numeric prize weights and shared prize values import together without losing payloads or collapsing draws (5ms)
+2026-10-13T14:30:33.2062353Z   ✓   75 unit/authoring-tabular.spec.ts:90:1 › Reel resizing and ID-based reorder retain weighted stop identity; missing removal policy rejects atomically (230ms)
+2026-10-13T14:30:33.2268064Z   ✓   76 unit/authoring-tabular.spec.ts:104:1 › Formula/malformed/duplicate/unsafe rows provide locations and never yield a partly applicable edit (5ms)
+2026-10-13T14:30:33.2435839Z   ✓   77 unit/authoring-tabular.spec.ts:126:1 › Partial imports preview the staged values and retain untouched pending outcomes in the same Draw (2ms)
+2026-10-13T14:30:33.3198021Z   ✓   78 unit/authoring-tabular.spec.ts:147:1 › Partial path imports retain pending line identities and the explicit stake policy (58ms)
+2026-10-13T14:30:33.4402816Z   ✓   79 unit/authoring-transactions.spec.ts:50:1 › The latest atomic undo survives view context and project switching, while another owner cannot inspect or execute it (6ms)
+2026-10-13T14:30:33.4491044Z   ✓   80 unit/authoring-transactions.spec.ts:71:1 › A different source hides undo and a newer identical result prevents executing an obsolete undo object (2ms)
+2026-10-13T14:30:33.4554699Z   ✓   81 unit/authoring-transactions.spec.ts:82:1 › A validated owner change cannot finish a previously prepared private edit (1ms)
+2026-10-13T14:30:33.4625732Z   ✓   82 unit/authoring-transactions.spec.ts:97:1 › Atomic commit keeps nested context/layout/opaque source and one undo restores the complete graph (3ms)
+2026-10-13T14:30:33.4692303Z   ✓   83 unit/authoring-transactions.spec.ts:122:1 › No-op preserves identity and avoids validation/store mutation; rejected candidate leaves source unchanged (1ms)
+2026-10-13T14:30:33.4782172Z   ✓   84 unit/authoring-transactions.spec.ts:138:1 › Late validation cannot cross identical projects, source change-and-restore or explicit cancellation (4ms)
+2026-10-13T14:30:33.4862672Z   ✓   85 unit/authoring-transactions.spec.ts:166:1 › Undo refuses a newer edit or another project and malformed editor conversion is mutation-free (3ms)
+2026-10-13T14:30:34.2324914Z   ✓   86 unit/authoring-transactions.spec.ts:177:1 › All 65 corpus graphs retain executable JSON through editor conversion without touching authored fixtures (741ms)
+2026-10-13T14:30:34.2395845Z   ✓   87 unit/authoring-transactions.spec.ts:189:1 › Unnamed imported graphs retain absent optional metadata rather than inventing executable fields (1ms)
+2026-10-13T14:30:34.2581534Z   ✓   88 unit/authoring-view-metadata.spec.ts:30:1 › Versioned envelope contains exactly one executable graph and preserves non-executable metadata through import/export (5ms)
+2026-10-13T14:30:34.2694433Z   ✓   89 unit/authoring-view-metadata.spec.ts:47:1 › Independent projects retain their own layout and pins while a raw graph import starts without view metadata (4ms)
+2026-10-13T14:30:34.2792746Z   ✓   90 unit/authoring-view-metadata.spec.ts:61:1 › Unknown metadata, numerical math copies and malformed imports are refused before replacing a private project (4ms)
+2026-10-13T14:30:34.2904453Z   ✓   91 unit/authoring-weight-bindings.spec.ts:28:1 › Binding declares exact values and shared callers without merging equal independent distributions (2ms)
+2026-10-13T14:30:34.2982123Z   ✓   92 unit/authoring-weight-bindings.spec.ts:43:1 › Stale definitions and changed shared-use scope refuse edits while invalid/dynamic sources remain visible (2ms)
+2026-10-13T14:30:34.8380693Z   ✓   93 unit/authoring-weight-bindings.spec.ts:63:1 › Conditioned reel distributions remain visible but cannot bypass their dependency contract through a generic weight edit (535ms)
+2026-10-13T14:30:34.9576608Z   ✓   94 unit/bonus-boundary.spec.ts:4:1 › Nine Lives composes subgraphs from the existing atomic vocabulary (79ms)
+2026-10-13T14:30:35.9788157Z   ✓   95 unit/calculation-request.spec.ts:4:1 › Explicit quota rejection can retry, while ambiguous calculation failures cannot (1.0s)
+2026-10-13T14:30:35.9891104Z   ✓   96 unit/calculation-request.spec.ts:19:1 › Cancelling a quota wait never sends the deferred calculation (3ms)
+2026-10-13T14:30:35.9949135Z   ✓   97 unit/calculation-request.spec.ts:28:1 › Validation rejection retains actionable compiler details and is never retried (1ms)
+2026-10-13T14:30:36.0473144Z   ✓   98 unit/component-accounting.spec.ts:6:1 › A bounded six-component ledger collects all 15 cross terms on the same authored population (39ms)
+2026-10-13T14:30:36.0538516Z   ✓   99 unit/component-accounting.spec.ts:14:1 › A component that is itself an addition stays one component after saved-plan discovery (2ms)
+2026-10-13T14:30:36.0628761Z   ✓  100 unit/component-accounting.spec.ts:23:1 › Duplicate expression components retain distinct authored roles and ordered residual inputs (2ms)
+2026-10-13T14:30:36.0755741Z   ✓  101 unit/config-serialization.spec.ts:6:1 › Strict serialization rejects malformed legacy DSL without modifying its editable source (3ms)
+2026-10-13T14:30:36.0845865Z   ✓  102 unit/config-serialization.spec.ts:16:1 › Outgoing model serialization rejects unsupported numeric values before JSON can normalize them (2ms)
+2026-10-13T14:30:36.0959015Z   ✓  103 unit/draw-rows.spec.ts:4:1 › Static integer row summaries retain exact totals and signed fractions beyond safe products (1ms)
+2026-10-13T14:30:36.1037481Z   ✓  104 unit/draw-rows.spec.ts:12:1 › Draw row edits accept zero and long weights but reject empty, zero-total and unsafe total (3ms)
+2026-10-13T14:30:36.1121258Z   ✓  105 unit/draw-rows.spec.ts:17:1 › Canvas summary honors dynamic canonical sources and never invents an absent or invalid static mean (3ms)
+2026-10-13T14:30:36.1232763Z   ✓  106 unit/editable-draft.spec.ts:4:1 › Editable backup retains invalid source but never restores imported evidence or project references (2ms)
+2026-10-13T14:30:36.1313588Z   ✓  107 unit/editable-draft.spec.ts:11:1 › Malformed and unsafe backups are rejected before restoration (3ms)
+2026-10-13T14:30:36.1468028Z   ✓  108 unit/expression-functions.spec.ts:4:1 › Expression authoring creates typed ASTs and rejects invalid syntax (1ms)
+2026-10-13T14:30:36.1545254Z   ✓  109 unit/expression-functions.spec.ts:12:1 › Numeric calls produce structured ASTs with nested arithmetic and indexed state (1ms)
+2026-10-13T14:30:36.1644398Z   ✓  110 unit/expression-functions.spec.ts:21:1 › Unknown code, wrong arities, malformed arguments and excessive nesting fail locally (5ms)
+2026-10-13T14:30:36.1704466Z   ✓  111 unit/expression-functions.spec.ts:26:1 › Collection and exact text conversions remain typed calls in the native editor (1ms)
+2026-10-13T14:30:36.1798660Z   ✓  112 unit/expression-functions.spec.ts:34:1 › finite-set syntax produces the typed bitset AST with exact mask literals (3ms)
+2026-10-13T14:30:36.1961370Z   ✓  113 unit/feature-commands.spec.ts:5:1 › Guarded Nine Lives form updates all four authored count sources without replacing any other rule (3ms)
+2026-10-13T14:30:36.2133041Z   ✓  114 unit/feature-commands.spec.ts:13:1 › A modified/unmapped count source and invalid limits do not allow form writes (12ms)
+2026-10-13T14:30:36.3677979Z   ✓  115 unit/game-server.spec.ts:120:1 › Ancient Dragon answers its client as the original server did (132ms)
+2026-10-13T14:30:36.7168406Z   ✓  116 unit/game-server.spec.ts:126:1 › Woodland Whisper answers its client as the original server did, and its pick bonuses can be played (344ms)
+2026-10-13T14:30:36.9246942Z   ✓  117 unit/game-server.spec.ts:175:1 › X7 Club answers its client as the original server did (203ms)
+2026-10-13T14:30:37.1225616Z   ✓  118 unit/game-server.spec.ts:187:1 › Nine Lives answers its client as the original server did (193ms)
+2026-10-13T14:30:37.4510452Z   ✓  119 unit/game-server.spec.ts:198:1 › Le Militare answers its client as the original server did (323ms)
+2026-10-13T14:30:37.4945040Z   ✓  120 unit/game-server.spec.ts:217:1 › Le Militare plays every kind of round in every mode on the graph of that round (37ms)
+2026-10-13T14:30:37.5049991Z   ✓  121 unit/game-server.spec.ts:238:1 › A busy play endpoint is asked again for the same round, a few times and only after a short wait (6ms)
+2026-10-13T14:30:37.5276501Z   ✓  122 unit/game-session-reliability.spec.ts:37:3 › Concurrent actions across server instances reject the stale command without overwriting the wallet (2ms)
+2026-10-13T14:30:37.5341942Z   ✓  123 unit/game-session-reliability.spec.ts:37:3 › Concurrent actions across server instances replay one command without overwriting the wallet (1ms)
+2026-10-13T14:30:37.5450713Z   ✓  124 unit/game-session-reliability.spec.ts:57:1 › Cancellation rejects a stalled play promptly, leaves the wallet unchanged and permits retry with the same identity (4ms)
+2026-10-13T14:30:37.5511114Z   ✓  125 unit/game-session-reliability.spec.ts:78:1 › A cancelled queued action never overtakes or commits beside the active action (1ms)
+2026-10-13T14:30:37.5577910Z   ✓  126 unit/game-session-reliability.spec.ts:97:1 › Cancellation reaches the transport and interrupts a retry delay without sending another round (1ms)
+2026-10-13T14:30:37.5638933Z   ✓  127 unit/game-session-reliability.spec.ts:111:3 › Dispatcher retains the current session when storage read fails and clear does not revive it (1ms)
+2026-10-13T14:30:37.5703344Z   ✓  128 unit/game-session-reliability.spec.ts:111:3 › Dispatcher retains the current session when storage write fails and clear does not revive it (2ms)
+2026-10-13T14:30:37.5767476Z   ✓  129 unit/game-session-reliability.spec.ts:111:3 › Dispatcher retains the current session when storage all fails and clear does not revive it (1ms)
+2026-10-13T14:30:37.7351493Z   ✓  130 unit/game-session-reliability.spec.ts:138:3 › Auto-spin unlimited starts, prevents manual overlap and cancels its scheduled continuation (153ms)
+2026-10-13T14:30:37.8918604Z   ✓  131 unit/game-session-reliability.spec.ts:138:3 › Auto-spin finite starts, prevents manual overlap and cancels its scheduled continuation (152ms)
+2026-10-13T14:30:37.8977795Z   ✓  132 unit/game-session-reliability.spec.ts:162:1 › Cancellation between presentation reply and commit does not save the wallet or reuse an uncommitted layout (1ms)
+2026-10-13T14:30:37.9095637Z   ✓  133 unit/generated-model.spec.ts:4:1 › Generated model admission preserves opaque canonical fields and rejects malformed identities before loading (2ms)
+2026-10-13T14:30:37.9204413Z   ✓  134 unit/graph-connections.spec.ts:6:1 › Native state-to-state connections use declared types, preserving implicit conversions and multiple outputs (2ms)
+2026-10-13T14:30:37.9257761Z   ✓  135 unit/graph-connections.spec.ts:19:1 › Legacy primitive ports match canonical serialization and reject missing nodes/ports and unknown types (1ms)
+2026-10-13T14:30:37.9391368Z   ✓  136 unit/interrupted-lifecycle.spec.ts:20:1 › Interrupted boundaries have their own count population; legacy or incomplete coverage withholds a scalar (3ms)
+2026-10-13T14:30:37.9448085Z   ✓  137 unit/interrupted-lifecycle.spec.ts:29:1 › Corrupt lifecycle coverage, reason counts and non-lifecycle populations are rejected (2ms)
+2026-10-13T14:30:37.9528592Z   ✓  138 unit/interrupted-lifecycle.spec.ts:37:1 › Durable progress reconciles the failed round count and rejects loss of already published interruption evidence (2ms)
+2026-10-13T14:30:37.9852477Z   ✓  139 unit/measurement-checkpoints.spec.ts:8:1 › Large live distributions stay on the server while reload retains the exact plan and a bounded trend (19ms)
+2026-10-13T14:30:37.9927137Z   ✓  140 unit/measurement-checkpoints.spec.ts:23:1 › Reload and replay do not substitute a different state regime or bankroll (1ms)
+2026-10-13T14:30:38.0016142Z   ✓  141 unit/measurement-checkpoints.spec.ts:29:1 › Visual AST and textual settlement predicates produce the same pinned Boolean rule (3ms)
+2026-10-13T14:30:38.0163590Z   ✓  142 unit/measurement-comparison.spec.ts:14:1 › Equal-RTP laws retain their full-distribution effects and separate uncertainty (2ms)
+2026-10-13T14:30:38.0237699Z   ✓  143 unit/measurement-comparison.spec.ts:20:1 › Changed scope, units, invalid subjects and retained state cannot receive a difference interval (1ms)
+2026-10-13T14:30:38.0376540Z   ✓  144 unit/measurement-trends.spec.ts:15:1 › Chart history preserves every defined scalar without retaining rich distributions (4ms)
+2026-10-13T14:30:38.0427026Z   ✓  145 unit/measurement-trends.spec.ts:25:1 › Undefined statistics and real zero counts remain distinct after bounded checkpoint serialization (1ms)
+2026-10-13T14:30:38.0513464Z   ✓  146 unit/measurement-trends.spec.ts:34:1 › Presentation changes never change the pinned plan and unsupported chart choices have a safe fallback (3ms)
+2026-10-13T14:30:38.0657798Z   ✓  147 unit/measurement-trends.spec.ts:44:1 › Corrupted, duplicate and oversized recovery histories cannot introduce chart values (10ms)
+2026-10-13T14:30:38.0766109Z   ✓  148 unit/measurements.spec.ts:8:1 › Scoped DSL produces numeric and Boolean ASTs, never game-side payout code (1ms)
+2026-10-13T14:30:38.0823594Z   ✓  149 unit/measurements.spec.ts:13:1 › Advanced AST supports bounded constructor expressions (0ms)
+2026-10-13T14:30:38.0892908Z   ✓  150 unit/measurements.spec.ts:18:1 › Empty scope is undefined; real zero remains numeric; matching share uses eligible visits (1ms)
+2026-10-13T14:30:38.0959611Z   ✓  151 unit/measurements.spec.ts:23:1 › Protocol rejects malformed, non-finite and wrong-plan observations (1ms)
+2026-10-13T14:30:38.1017374Z   ✓  152 unit/measurements.spec.ts:30:1 › Plan equality ignores JSON order and nullable AST metadata, retaining scope and value (0ms)
+2026-10-13T14:30:38.1063365Z   ✓  153 unit/measurements.spec.ts:34:1 › Legacy null fingerprint remains compatible; round denominators and cumulative counts cannot regress (0ms)
+2026-10-13T14:30:38.1137000Z   ✓  154 unit/measurements.spec.ts:43:1 › Results rejects persisted tracked aggregates that disagree with the live snapshot (3ms)
+2026-10-13T14:30:38.1187578Z   ✓  155 unit/measurements.spec.ts:54:1 › Measurement AST JSON rejects original unsafe numeric tokens and preserves exact string constants (1ms)
+2026-10-13T14:30:38.1282855Z   ✓  156 unit/metric-integrity.spec.ts:3:1 › Unknown, failed and budget-limited calculation methods have no provenance badge (0ms)
+2026-10-13T14:30:38.1347702Z   ✓  157 unit/metric-integrity.spec.ts:7:1 › Sampled evidence requires completed samples and never invents uncertainty (1ms)
+2026-10-13T14:30:38.1393666Z   ✓  158 unit/metric-integrity.spec.ts:13:1 › A computed zero retains its actual exact method (0ms)
+2026-10-13T14:30:38.1440480Z   ✓  159 unit/metric-integrity.spec.ts:16:1 › Interval proof requires ordered finite returned bounds and retains the actual range (0ms)
+2026-10-13T14:30:38.3520894Z   ✓  160 unit/metric-recipes.spec.ts:6:1 › Every researched requirement has a unique discoverable native workflow and explicit population (195ms)
+2026-10-13T14:30:38.3580725Z   ✓  161 unit/metric-recipes.spec.ts:11:1 › Money-event recipes compare actual read-only settlement fields; mixed return uses a wager denominator (1ms)
+2026-10-13T14:30:38.3656566Z   ✓  162 unit/metric-recipes.spec.ts:17:1 › Game-specific recipes require authored fields or lifecycle boundaries instead of manufacturing zero measurements (1ms)
+2026-10-13T14:30:38.3757858Z   ✓  163 unit/metric-recipes.spec.ts:23:1 › Ledger assertions and retrigger recipes preserve the declared residual and episode populations (2ms)
+2026-10-13T14:30:38.3828397Z   ✓  164 unit/metric-recipes.spec.ts:32:1 › An omitted legacy assertion and the API default pin the same plan; changed assertions remain detectable (2ms)
+2026-10-13T14:30:38.4008237Z   ✓  165 unit/model-commands.spec.ts:5:1 › Nine Lives table edit changes one source weight and preserves unknown metadata and all nested graph structures (5ms)
+2026-10-13T14:30:38.4084686Z   ✓  166 unit/model-commands.spec.ts:18:1 › Weights reject missing, fractional, negative, overflow and all-zero values; dynamic sources stay unsupported (2ms)
+2026-10-13T14:30:38.4169530Z   ✓  167 unit/model-commands.spec.ts:26:1 › Legal long weights and payloads survive source selection, edits and restoration without an Int32 limit (2ms)
+2026-10-13T14:30:38.4329402Z   ✓  168 unit/model-commands.spec.ts:35:1 › Exact browser integer bounds reject unsafe rows and unsafe totals rather than rounding them (2ms)
+2026-10-13T14:30:38.4481767Z   ✓  169 unit/model-json.spec.ts:4:1 › Original unsafe JSON tokens are rejected in nested models and server envelopes (4ms)
+2026-10-13T14:30:38.4535742Z   ✓  170 unit/model-json.spec.ts:10:1 › Boundary integers, long weights, fractions and unknown string metadata round trip (1ms)
+2026-10-13T14:30:38.4618431Z   ✓  171 unit/model-json.spec.ts:19:1 › Malformed JSON stays invalid and programmatic model numbers are guarded (3ms)
+2026-10-13T14:30:38.4728541Z   ✓  172 unit/model-json.spec.ts:25:1 › Editable decimal text is checked before conversion, including incomplete and rounded-boundary forms (5ms)
+2026-10-13T14:30:38.4863160Z   ✓  173 unit/number-format.spec.ts:6:1 › Nonzero metric evidence remains distinct from zero at dashboard and results display precision (4ms)
+2026-10-13T14:30:38.4922982Z   ✓  174 unit/number-format.spec.ts:20:1 › Rare-event percentages keep nonzero exposure and ordinary RTP retains its familiar precision (1ms)
+2026-10-13T14:30:38.5090914Z   ✓  175 unit/overview-evidence.spec.ts:23:1 › Overview evidence exposes the independently derived sample interval and current pinned source (2ms)
+2026-10-13T14:30:38.5213705Z   ✓  176 unit/overview-evidence.spec.ts:33:1 › Overview refuses unverified, mismatched, partial and inconsistent saved results (6ms)
+2026-10-13T14:30:38.5287797Z   ✓  177 unit/overview-evidence.spec.ts:48:1 › One actual zero payout stays visible with N=1 and no uncertainty claim (1ms)
+2026-10-13T14:30:38.5393232Z   ✓  178 unit/parent-exposure.spec.ts:20:1 › Exposure uses the authored parent population, independent of reduced-value count and units (1ms)
+2026-10-13T14:30:38.5473006Z   ✓  179 unit/parent-exposure.spec.ts:26:1 › Legacy evidence remains readable; impossible exposure and invented empty probabilities are rejected (2ms)
+2026-10-13T14:30:38.5551161Z   ✓  180 unit/parent-exposure.spec.ts:34:1 › An episode parent display requires the episode scope and its boundaries (0ms)
+2026-10-13T14:30:38.5746601Z   ✓  181 unit/payout-commands.spec.ts:5:1 › Cluster coins and metadata round trip while preserving unknown fields and executable expressions (7ms)
+2026-10-13T14:30:38.5843928Z   ✓  182 unit/payout-commands.spec.ts:14:1 › Payout forms reject mismatched metadata, changed lookups and invalid amounts (4ms)
+2026-10-13T14:30:38.6010757Z   ✓  183 unit/pr19-authoring-audit.spec.ts:33:1 › PR19: aggregate default item binding survives private-variable lowering (1ms)
+2026-10-13T14:30:38.6082381Z   ✓  184 unit/pr19-authoring-audit.spec.ts:44:1 › PR19 control: explicitly named aggregate local is not captured (0ms)
+2026-10-13T14:30:38.6128341Z   ✓  185 unit/pr19-authoring-audit.spec.ts:53:5 › PR19: runtime-supported field namespace undefined binds private variables (0ms)
+2026-10-13T14:30:38.6180923Z   ✓  186 unit/pr19-authoring-audit.spec.ts:53:5 › PR19: runtime-supported field namespace null binds private variables (0ms)
+2026-10-13T14:30:38.6236039Z   ✓  187 unit/pr19-authoring-audit.spec.ts:53:5 › PR19: runtime-supported field namespace state binds private variables (0ms)
+2026-10-13T14:30:38.6293219Z   ✓  188 unit/pr19-authoring-audit.spec.ts:53:5 › PR19: runtime-supported field namespace board binds private variables (0ms)
+2026-10-13T14:30:38.6337860Z   ✓  189 unit/pr19-authoring-audit.spec.ts:65:1 › PR19: stateKey in an aggregate is a dependency even without a fieldAccess node (0ms)
+2026-10-13T14:30:38.6385255Z   ✓  190 unit/pr19-authoring-audit.spec.ts:73:1 › PR19: map reads its source array, not the lexical item as global game state (0ms)
+2026-10-13T14:30:38.6425083Z   ✓  191 unit/pr19-authoring-audit.spec.ts:88:1 › PR19: Draw BoardStateKey is recorded as an actual state write (0ms)
+2026-10-13T14:30:38.6473056Z   ✓  192 unit/pr19-authoring-audit.spec.ts:95:1 › PR19: direct node-to-parameter references remain resolvable after variable binding (0ms)
+2026-10-13T14:30:38.6521070Z   ✓  193 unit/pr19-authoring-audit.spec.ts:124:1 › PR19: fold initializer and source use the outer scope; body item/index/accumulator shadow private fields (1ms)
+2026-10-13T14:30:38.6566797Z   ✓  194 unit/pr19-authoring-audit.spec.ts:148:1 › PR19: nested lexical captures use the outer collection item as a source without inventing a global read (0ms)
+2026-10-13T14:30:38.6606489Z   ✓  195 unit/pr19-authoring-audit.spec.ts:167:1 › PR19: measurement fields remain separate and aggregate does not invent index/accumulator locals (0ms)
+2026-10-13T14:30:38.6655748Z   ✓  196 unit/pr19-authoring-audit.spec.ts:182:48 › PR19: map binds source before explicit item/index body locals (1ms)
+2026-10-13T14:30:38.6697644Z   ✓  197 unit/pr19-authoring-audit.spec.ts:182:48 › PR19: filter binds source before explicit item/index body locals (0ms)
+2026-10-13T14:30:38.6756170Z   ✓  198 unit/pr19-authoring-audit.spec.ts:198:1 › PR19: dependency inventory covers state atoms, actual draw contracts, inline port defaults and loop exit reasons (1ms)
+2026-10-13T14:30:38.6804824Z   ✓  199 unit/pr19-authoring-audit.spec.ts:237:1 › PR19: named expression closure records real array dependencies and exposes unresolved cycles (1ms)
+2026-10-13T14:30:38.7029313Z   ✓  200 unit/pr19-authoring-audit.spec.ts:267:8 › PR19: additional line aggregate/undefined reader cannot evade payout reconciliation (17ms)
+2026-10-13T14:30:38.7203312Z   ✓  201 unit/pr19-authoring-audit.spec.ts:267:8 › PR19: additional line fieldAccess/board reader cannot evade payout reconciliation (11ms)
+2026-10-13T14:30:38.7318148Z   ✓  202 unit/pr19-authoring-audit.spec.ts:267:8 › PR19: additional line fieldAccess/undefined reader cannot evade payout reconciliation (7ms)
+2026-10-13T14:30:38.7381773Z   ✓  203 unit/pr19-authoring-audit.spec.ts:279:5 › PR19: a dynamically written line lookup cannot be admitted as immutable (2ms)
+2026-10-13T14:30:38.7535599Z   ✓  204 unit/pr19-authoring-audit.spec.ts:267:8 › PR19: additional cluster aggregate/undefined reader cannot evade payout reconciliation (10ms)
+2026-10-13T14:30:38.7661963Z   ✓  205 unit/pr19-authoring-audit.spec.ts:267:8 › PR19: additional cluster fieldAccess/board reader cannot evade payout reconciliation (8ms)
+2026-10-13T14:30:38.7801662Z   ✓  206 unit/pr19-authoring-audit.spec.ts:267:8 › PR19: additional cluster fieldAccess/undefined reader cannot evade payout reconciliation (9ms)
+2026-10-13T14:30:38.7865523Z   ✓  207 unit/pr19-authoring-audit.spec.ts:279:5 › PR19: a dynamically written cluster lookup cannot be admitted as immutable (1ms)
+2026-10-13T14:30:38.7926878Z   ✓  208 unit/pr19-authoring-audit.spec.ts:286:1 › PR19: opaque effects remain explicit and block an unsafe table transformation locally (2ms)
+2026-10-13T14:30:38.7998682Z   ✓  209 unit/pr19-authoring-audit.spec.ts:296:67 › PR19: weightInput retains and rejects the original token "" (2ms)
+2026-10-13T14:30:38.8057703Z   ✓  210 unit/pr19-authoring-audit.spec.ts:296:67 › PR19: payloadInput retains and rejects the original token "" (1ms)
+2026-10-13T14:30:38.8112138Z   ✓  211 unit/pr19-authoring-audit.spec.ts:307:5 › PR19: count and numeric initial values reject the original token "" (1ms)
+2026-10-13T14:30:38.8174307Z   ✓  212 unit/pr19-authoring-audit.spec.ts:296:67 › PR19: weightInput retains and rejects the original token "1.00000000000000001" (1ms)
+2026-10-13T14:30:38.8227622Z   ✓  213 unit/pr19-authoring-audit.spec.ts:296:67 › PR19: payloadInput retains and rejects the original token "1.00000000000000001" (1ms)
+2026-10-13T14:30:38.8286120Z   ✓  214 unit/pr19-authoring-audit.spec.ts:307:5 › PR19: count and numeric initial values reject the original token "1.00000000000000001" (1ms)
+2026-10-13T14:30:38.8338859Z   ✓  215 unit/pr19-authoring-audit.spec.ts:296:67 › PR19: weightInput retains and rejects the original token "9007199254740990.1" (1ms)
+2026-10-13T14:30:38.8402308Z   ✓  216 unit/pr19-authoring-audit.spec.ts:296:67 › PR19: payloadInput retains and rejects the original token "9007199254740990.1" (2ms)
+2026-10-13T14:30:38.8451511Z   ✓  217 unit/pr19-authoring-audit.spec.ts:307:5 › PR19: count and numeric initial values reject the original token "9007199254740990.1" (1ms)
+2026-10-13T14:30:38.8510621Z   ✓  218 unit/pr19-authoring-audit.spec.ts:296:67 › PR19: weightInput retains and rejects the original token "9007199254740990.9" (1ms)
+2026-10-13T14:30:38.8561228Z   ✓  219 unit/pr19-authoring-audit.spec.ts:296:67 › PR19: payloadInput retains and rejects the original token "9007199254740990.9" (1ms)
+2026-10-13T14:30:38.8628123Z   ✓  220 unit/pr19-authoring-audit.spec.ts:307:5 › PR19: count and numeric initial values reject the original token "9007199254740990.9" (1ms)
+2026-10-13T14:30:38.8694633Z   ✓  221 unit/pr19-authoring-audit.spec.ts:317:1 › PR19: intentional zero and negative payload survive, raw input never becomes graph metadata, and totals share Studio limits (2ms)
+2026-10-13T14:30:38.8764525Z   ✓  222 unit/pr19-authoring-audit.spec.ts:334:1 › PR19: parameter binding closes all node reference fields and inline default/exit ASTs while retaining unrelated literals (2ms)
+2026-10-13T14:30:38.8817012Z   ✓  223 unit/pr19-authoring-audit.spec.ts:382:1 › PR19: opaque expression/node metadata is retained without pretending its example AST executes (0ms)
+2026-10-13T14:30:38.8910966Z   ✓  224 unit/pr19-authoring-audit.spec.ts:404:1 › PR19: unused parameterized templates retain their unresolved scope without blocking an unrelated proven payout (5ms)
+2026-10-13T14:30:38.9220589Z   ✓  225 unit/pr19-runtime-fixtures.spec.ts:6:1 › PR19: emit actual lowerer input programs for independently expected GraphCompiler/runtime checks (19ms)
+2026-10-13T14:30:38.9346089Z   ✓  226 unit/record-fields.spec.ts:5:1 › Graph field insertion preserves path segments, literal dots and quoted keys (1ms)
+2026-10-13T14:30:38.9653146Z   ✓  227 unit/reel-commands.spec.ts:11:13 › Ancient Dragon strip edits preserve source and update every wrapped strip and shared stop domain (20ms)
+2026-10-13T14:30:39.0015647Z   ✓  228 unit/reel-commands.spec.ts:11:13 › Woodland Whisper strip edits preserve source and update every wrapped strip and shared stop domain (22ms)
+2026-10-13T14:30:39.0780370Z   ✓  229 unit/reel-commands.spec.ts:11:13 › Le Militare strip edits preserve source and update every wrapped strip and shared stop domain (65ms)
+2026-10-13T14:30:39.1250705Z   ✓  230 unit/reel-commands.spec.ts:40:1 › Physical reel mapping preserves weighted stops and rejects broken wrapping and geometry-only models; bought sources have a complete condition (41ms)
+2026-10-13T14:30:39.1344782Z   ✓  231 unit/reel-commands.spec.ts:60:1 › Strip transactions reject empty, unknown, oversized and changed reel count before any mutation (5ms)
+2026-10-13T14:30:39.2192871Z   ✓  232 unit/reel-conditioning.spec.ts:9:1 › Bought feature rebuilds all coupled domains, preserves source metadata and retains its rule in canonical AST (74ms)
+2026-10-13T14:30:39.2303869Z   ✓  233 unit/reel-conditioning.spec.ts:30:1 › Condition is not guessed when materialized outputs are ambiguous; declared constants survive an all-symbol strip edit (6ms)
+2026-10-13T14:30:39.3364820Z   ✓  234 unit/reel-conditioning.spec.ts:71:1 › Conditioned changes reject impossible events, integer-budget overflow and loss of metadata on removed nodes (101ms)
+2026-10-13T14:30:39.3467041Z   ✓  235 unit/reel-csv.spec.ts:4:1 › Strip CSV preserves symbol IDs and reconstructs ordered stops from unordered rows (1ms)
+2026-10-13T14:30:39.3592138Z   ✓  236 unit/reel-csv.spec.ts:9:1 › Strip CSV rejects unknown symbols, missing reels/indices, duplicates and malformed quoting (4ms)
+2026-10-13T14:30:39.4013256Z   ✓  237 unit/results-analysis.spec.ts:21:1 › Archived terminal result enriches a duplicate live frame without hiding disagreements (3ms)
+2026-10-13T14:30:39.4133672Z   ✓  238 unit/results-analysis.spec.ts:42:1 › coin uncertainty and sample planning agree with the independent moments (3ms)
+2026-10-13T14:30:39.4231653Z   ✓  239 unit/results-analysis.spec.ts:54:1 › acceptance uses the whole interval and withholds verdicts for partial or unverified evidence (4ms)
+2026-10-13T14:30:39.4342536Z   ✓  240 unit/results-analysis.spec.ts:70:1 › integrity catches conflicting terminal metrics, malformed JSON and overlapping histograms (4ms)
+2026-10-13T14:30:39.4422666Z   ✓  241 unit/results-analysis.spec.ts:88:1 › percentiles remain bounded and tail counts never interpolate across bin boundaries (2ms)
+2026-10-13T14:30:39.4512727Z   ✓  242 unit/results-analysis.spec.ts:98:1 › replay compares every statistic across worker counts and distinguishes correlated streams (2ms)
+2026-10-13T14:30:39.4582349Z   ✓  243 unit/results-analysis.spec.ts:109:1 › independent seeds receive a difference interval while uncertain variance does not (1ms)
+2026-10-13T14:30:39.4691587Z   ✓  244 unit/results-analysis.spec.ts:117:1 › portable evidence preserves pinned inputs and escapes HTML and spreadsheet model names (5ms)
+2026-10-13T14:30:41.5244692Z   ✓  245 unit/results-requests.spec.ts:5:1 › Results query survives consecutive empty quota rejections and honors both Retry-After deadlines (2.0s)
+2026-10-13T14:30:41.5384273Z   ✓  246 unit/results-requests.spec.ts:17:1 › Results calculation retries only rejected requests; accepted errors and excessive quota windows stop immediately (6ms)
+2026-10-13T14:30:43.5485703Z   ✓  247 unit/results-requests.spec.ts:31:1 › A persistent Results quota rejection ends after its bounded retry budget (2.0s)
+2026-10-13T14:30:43.5618803Z   ✓  248 unit/round-trace.spec.ts:7:1 › Trace projection reads returned values and row-major positions without changing units (1ms)
+2026-10-13T14:30:43.5715670Z   ✓  249 unit/round-trace.spec.ts:11:1 › Missing, incomplete and out-of-bounds trace records have no reconstructed projection (1ms)
+2026-10-13T14:30:43.5886691Z   ✓  250 unit/run-connection.spec.ts:5:1 › one subscription owns the transport and stop clears every timer and listener (6ms)
+2026-10-13T14:30:43.6002544Z   ✓  251 unit/run-connection.spec.ts:14:1 › failed subscription is never live and retries without the five-attempt ceiling (3ms)
+2026-10-13T14:30:43.6091374Z   ✓  252 unit/run-connection.spec.ts:23:1 › silent socket is replaced after a bounded heartbeat, HTTP keeps metrics advancing (2ms)
+2026-10-13T14:30:43.6178313Z   ✓  253 unit/run-connection.spec.ts:33:1 › valid subscription and heartbeat acknowledgements can trail a newer broadcast (1ms)
+2026-10-13T14:30:43.6265142Z   ✓  254 unit/run-connection.spec.ts:41:1 › network loss suspends traffic; wake recovers completion missed while offline (4ms)
+2026-10-13T14:30:43.6326798Z   ✓  255 unit/run-connection.spec.ts:51:1 › expired authentication suspends retry traffic until explicit authentication wake (1ms)
+2026-10-13T14:30:43.6410452Z   ✓  256 unit/run-connection.spec.ts:60:1 › rate limiting honors Retry-After for both polling and reconnect attempts (2ms)
+2026-10-13T14:30:43.6479917Z   ✓  257 unit/run-connection.spec.ts:68:1 › a missing negotiation endpoint recovers without declaring the retained run unavailable (1ms)
+2026-10-13T14:30:43.6560286Z   ✓  258 unit/run-connection.spec.ts:76:1 › out-of-order negotiation and HTTP rejections cannot shorten a quota pause (1ms)
+2026-10-13T14:30:43.6624804Z   ✓  259 unit/run-connection.spec.ts:85:1 › long HTTP-date pauses use bounded timers without releasing the quota early (2ms)
+2026-10-13T14:30:43.6692500Z   ✓  260 unit/run-connection.spec.ts:95:1 › HTTP timeout releases single flight even if an adapter ignores abort (1ms)
+2026-10-13T14:30:43.6739681Z   ✓  261 unit/run-connection.spec.ts:101:1 › missing runs preserve their observations without inventing terminal failure or retry storms (1ms)
+2026-10-13T14:30:43.6851482Z   ✓  262 unit/run-limits.spec.ts:4:1 › Run limits allow ten billion rounds and one to eight workers (1ms)
+2026-10-13T14:30:43.6939096Z   ✓  263 unit/run-limits.spec.ts:10:1 › The displayed execution budget follows the backend rule of five minutes per started ten million rounds (2ms)
+2026-10-13T14:30:43.6993726Z   ✓  264 unit/run-limits.spec.ts:22:1 › Long runs ask for one progress snapshot per random stream (0ms)
+2026-10-13T14:30:43.7171043Z   ✓  265 unit/run-protocol.spec.ts:5:1 › Authoritative recovery cannot change predeclared criteria or accept a terminal profile hash mismatch (2ms)
+2026-10-13T14:30:43.7271966Z   ✓  266 unit/run-protocol.spec.ts:18:1 › cumulative revisions reject reordered packets, regressed counts, wrong runs and terminal resurrection (2ms)
+2026-10-13T14:30:43.7366886Z   ✓  267 unit/run-protocol.spec.ts:29:1 › malformed and internally inconsistent snapshots cannot update metrics (3ms)
+2026-10-13T14:30:43.7445819Z   ✓  268 unit/run-protocol.spec.ts:41:1 › only an authoritative interrupted checkpoint permits a new epoch and lower revision (2ms)
+2026-10-13T14:30:43.7857527Z   ✓  269 unit/run-protocol.spec.ts:51:1 › arbitrary delivery order converges to the same final snapshot without resurrecting a run (36ms)
+2026-10-13T14:30:43.8000785Z   ✓  270 unit/session-policies.spec.ts:6:1 › Session policy, threshold and raw stream auditing are pinned execution choices (2ms)
+2026-10-13T14:30:43.8084760Z   ✓  271 unit/session-policies.spec.ts:14:1 › A fully completed stopped-session population is complete evidence with its round interval withheld (2ms)
+2026-10-13T14:30:43.8150153Z   ✓  272 unit/session-policies.spec.ts:23:1 › Raw stream evidence rejects incomplete counts and impossible schedule calibration (1ms)
+2026-10-13T14:30:43.8304567Z [2026-10-13T14:30:43.829Z] Error: Failed to complete negotiation with the server: Error: Connection request rejected (401).
+2026-10-13T14:30:43.8306057Z [2026-10-13T14:30:43.830Z] Error: Failed to start the connection: Error: Failed to complete negotiation with the server: Error: Connection request rejected (401).
+2026-10-13T14:30:43.8328997Z   ✓  273 unit/signalr-http.spec.ts:6:44 › real SignalR start preserves HTTP 401 negotiation metadata (6ms)
+2026-10-13T14:30:43.8359851Z [2026-10-13T14:30:43.835Z] Error: Failed to complete negotiation with the server: Error: Connection request rejected (403).
+2026-10-13T14:30:43.8361104Z [2026-10-13T14:30:43.835Z] Error: Failed to start the connection: Error: Failed to complete negotiation with the server: Error: Connection request rejected (403).
+2026-10-13T14:30:43.8378650Z   ✓  274 unit/signalr-http.spec.ts:6:44 › real SignalR start preserves HTTP 403 negotiation metadata (1ms)
+2026-10-13T14:30:43.8418732Z [2026-10-13T14:30:43.841Z] Error: Failed to complete negotiation with the server: Error: Connection request rejected (404).
+2026-10-13T14:30:43.8420004Z [2026-10-13T14:30:43.841Z] Error: Failed to start the connection: Error: Failed to complete negotiation with the server: Error: Connection request rejected (404).
+2026-10-13T14:30:43.8437632Z   ✓  275 unit/signalr-http.spec.ts:6:44 › real SignalR start preserves HTTP 404 negotiation metadata (1ms)
+2026-10-13T14:30:43.8475600Z [2026-10-13T14:30:43.846Z] Error: Failed to complete negotiation with the server: Error: Connection request rejected (429).
+2026-10-13T14:30:43.8476996Z [2026-10-13T14:30:43.846Z] Error: Failed to start the connection: Error: Failed to complete negotiation with the server: Error: Connection request rejected (429).
+2026-10-13T14:30:43.8489267Z   ✓  276 unit/signalr-http.spec.ts:6:44 › real SignalR start preserves HTTP 429 negotiation metadata (0ms)
+2026-10-13T14:30:43.8526342Z [2026-10-13T14:30:43.852Z] Error: Failed to complete negotiation with the server: Error: Connection request rejected (429).
+2026-10-13T14:30:43.8527589Z [2026-10-13T14:30:43.852Z] Error: Failed to start the connection: Error: Failed to complete negotiation with the server: Error: Connection request rejected (429).
+2026-10-13T14:30:43.8529307Z [2026-10-13T14:30:43.852Z] Error: Failed to complete negotiation with the server: TypeError: Network disconnected
+2026-10-13T14:30:43.8530477Z [2026-10-13T14:30:43.852Z] Error: Failed to start the connection: Error: Failed to complete negotiation with the server: TypeError: Network disconnected
+2026-10-13T14:30:43.8553288Z   ✓  277 unit/signalr-http.spec.ts:14:1 › a later network failure never inherits a previous negotiation rejection (2ms)
+2026-10-13T14:30:43.8701731Z   ✓  278 unit/signalr-http.spec.ts:29:1 › HTTP adapter preserves credentials, bodies and response types without leaving abort handlers (7ms)
+2026-10-13T14:30:43.8891058Z   ✓  279 unit/signalr-http.spec.ts:44:1 › HTTP adapter abort and timeout release requests and never invent an HTTP rejection (12ms)
+2026-10-13T14:30:43.8978930Z   ✓  280 unit/signalr-http.spec.ts:57:1 › Retry-After parses both wire formats and rejects nonfinite or elapsed delays (2ms)
+2026-10-13T14:30:43.9149486Z   ✓  281 unit/simulation-evidence.spec.ts:14:1 › Retained diagnostic identity distinguishes the sample producer from the later calculator (3ms)
+2026-10-13T14:30:43.9239092Z   ✓  282 unit/simulation-evidence.spec.ts:26:1 › Simulation export uses one authoritative population and labels browser history separately (3ms)
+2026-10-13T14:30:43.9319959Z   ✓  283 unit/simulation-evidence.spec.ts:38:1 › A failure before the first settlement still exports verified input and an incomplete empty population (2ms)
+2026-10-13T14:30:43.9421920Z   ✓  284 unit/simulation-evidence.spec.ts:49:1 › Evidence export rejects missing models, changed producers, inconsistent results and wrong or stale populations (5ms)
+2026-10-13T14:30:44.9506998Z   ✓  285 unit/simulation-evidence.spec.ts:66:1 › Evidence reads retry an explicit quota rejection and keep ambiguous errors visible (1.0s)
+2026-10-13T14:30:44.9569096Z   ✓  286 unit/simulation-evidence.spec.ts:80:1 › Cancelling an evidence quota wait aborts the deferred read (1ms)
+2026-10-13T14:30:45.0007091Z   ✓  287 unit/studio-edits.spec.ts:14:1 › A Studio draft composes source-local reel and weight edits into one untouched-base candidate (34ms)
+2026-10-13T14:30:45.2851805Z   ✓  288 unit/studio-edits.spec.ts:34:1 › Batch payout edits share the original bound and regenerate the wild row once without order-dependent rejection (277ms)
+2026-10-13T14:30:45.3659393Z   ✓  289 unit/studio-edits.spec.ts:58:1 › Incomplete inputs stay in a draft, invalid candidates leave source untouched and replacing one coordinate retains other edits (76ms)
+2026-10-13T14:30:45.3769844Z   ✓  290 unit/subgraph-composition.spec.ts:20:1 › Extraction keeps expressions, dependencies, data and external port connections (2ms)
+2026-10-13T14:30:45.3834190Z   ✓  291 unit/subgraph-composition.spec.ts:39:1 › Extraction rejects ambiguous boundaries, missing selections and name collisions without mutating the model (2ms)
+2026-10-13T14:30:45.3893167Z   ✓  292 unit/subgraph-composition.spec.ts:52:1 › Extraction closes transitive and inline dependencies and preserves nested library parameters (1ms)
+2026-10-13T14:30:45.3944363Z   ✓  293 unit/subgraph-composition.spec.ts:71:1 › Extraction rejects unresolved and cyclic dependencies before changing the runnable graph (1ms)
+2026-10-13T14:30:45.4042657Z   ✓  294 unit/validation-source.spec.ts:5:1 › Compiler namespaces resolve repeated references to actual authored nodes and edges (1ms)
+2026-10-13T14:30:45.4088459Z   ✓  295 unit/validation-source.spec.ts:15:1 › Ambiguous IDs and recursive definitions do not fabricate source locations (1ms)
+2026-10-13T14:30:45.4207309Z   ✓  296 unit/verification-profile.spec.ts:7:1 › Predeclared family allocation updates only selected interval settings and preserves stronger prior budgets (2ms)
+2026-10-13T14:30:45.4264881Z   ✓  297 unit/verification-profile.spec.ts:16:1 › Nonrejection, weighted or dependent references and stale measurement identities cannot pass profile authoring (1ms)
+2026-10-13T14:30:45.4359543Z   ✓  298 unit/weight-csv.spec.ts:4:1 › Weight CSV preserves quoted multiline outcome IDs and maps file rows to original order (0ms)
+2026-10-13T14:30:45.4412430Z   ✓  299 unit/weight-csv.spec.ts:8:1 › CSV rejects unknown, missing, duplicate, invalid weights and malformed quoting before staging (1ms)
+2026-10-13T14:32:06.5072145Z   ✓   72 unit/authoring-tabular.spec.ts:42:1 › Every admitted static source/table/line in the 65-graph corpus exports and reimports as a source-preserving no-op (1.6m)
+2026-10-13T14:32:06.5564312Z
+2026-10-13T14:32:06.5568782Z   299 passed (1.8m)
+2026-10-13T14:32:06.5825349Z ##[group]Run python3 ../scripts/verification/metrics_catalogue.py --check
+2026-10-13T14:32:06.5825673Z python3 ../scripts/verification/metrics_catalogue.py --check
+2026-10-13T14:32:06.5878132Z shell: /usr/bin/bash -e {0}
+2026-10-13T14:32:06.5878292Z ##[endgroup]
+2026-10-13T14:32:06.6220737Z 159 unique metric definitions; native catalogue and implementation scopes verified.
+2026-10-13T14:32:06.6294382Z ##[group]Run npm run build
+2026-10-13T14:32:06.6294557Z npm run build
+2026-10-13T14:32:06.6345068Z shell: /usr/bin/bash -e {0}
+2026-10-13T14:32:06.6345216Z ##[endgroup]
+2026-10-13T14:32:06.7041523Z
+2026-10-13T14:32:06.7042069Z > frontend@0.0.0 build
+2026-10-13T14:32:06.7042345Z > tsc -b && vite build
+2026-10-13T14:32:06.7042431Z
+2026-10-13T14:32:15.3837565Z vite v8.0.16 building client environment for production...
+2026-10-13T14:32:15.3932042Z
+2026-10-13T14:32:15.6465145Z transforming...✓ 1365 modules transformed.
+2026-10-13T14:32:15.9855581Z rendering chunks...
+2026-10-13T14:32:16.1359694Z computing gzip size...
+2026-10-13T14:32:16.1505239Z dist/index.html                                     1.02 kB │ gzip:   0.48 kB
+2026-10-13T14:32:16.1505913Z dist/games.html                                    10.57 kB │ gzip:   3.10 kB
+2026-10-13T14:32:16.1506628Z dist/assets/VerificationProfile-DlQ1OhR-.css        3.05 kB │ gzip:   0.91 kB
+2026-10-13T14:32:16.1507280Z dist/assets/App-DgaAwiqv.css                       10.98 kB │ gzip:   2.50 kB
+2026-10-13T14:32:16.1507683Z dist/assets/StateMachineDesigner-6iYBnCSC.css      13.10 kB │ gzip:   2.88 kB
+2026-10-13T14:32:16.1508037Z dist/assets/launch-DBfy_tn0.css                    14.81 kB │ gzip:   4.09 kB
+2026-10-13T14:32:16.1508379Z dist/assets/Simulate-CretSBbS.css                  15.16 kB │ gzip:   3.43 kB
+2026-10-13T14:32:16.1508725Z dist/assets/Results--QMCvxjB.css                   23.44 kB │ gzip:   4.63 kB
+2026-10-13T14:32:16.1509065Z dist/assets/main-BEZC2CFs.css                      26.59 kB │ gzip:   6.93 kB
+2026-10-13T14:32:16.1509415Z dist/assets/reel-paytable-studio-DXVgYhjZ.css      35.10 kB │ gzip:   6.91 kB
+2026-10-13T14:32:16.1509848Z dist/assets/main-DsKpKoj9.css                      72.29 kB │ gzip:  13.51 kB
+2026-10-13T14:32:16.1510432Z dist/assets/webworkerAll-DAFSf3Em.js                0.05 kB │ gzip:   0.06 kB
+2026-10-13T14:32:16.1511016Z dist/assets/init-xjbP5Xbd.js                        0.11 kB │ gzip:   0.11 kB
+2026-10-13T14:32:16.1511555Z dist/assets/browserAll-CR8oqkAm.js                  0.23 kB │ gzip:   0.17 kB
+2026-10-13T14:32:16.1512102Z dist/assets/getTextureBatchBindGroup-Bcatn1SN.js    0.34 kB │ gzip:   0.26 kB
+2026-10-13T14:32:16.1512695Z dist/assets/useModelProjection-BXjxJFkt.js          0.37 kB │ gzip:   0.25 kB
+2026-10-13T14:32:16.1513124Z dist/assets/ImageSource-BbB-gdwV.js                 0.37 kB │ gzip:   0.26 kB
+2026-10-13T14:32:16.1513470Z dist/assets/CanvasPool-LSq4AZsF.js                  0.75 kB │ gzip:   0.42 kB
+2026-10-13T14:32:16.1513813Z dist/assets/manifest-DlNyJq_4.js                    0.76 kB │ gzip:   0.52 kB
+2026-10-13T14:32:16.1514147Z dist/assets/chunk-aKtaBQYM.js                       1.08 kB │ gzip:   0.62 kB
+2026-10-13T14:32:16.1514477Z dist/assets/Cache-haT24KxJ.js                       1.09 kB │ gzip:   0.55 kB
+2026-10-13T14:32:16.1514809Z dist/assets/model-DBmEgAVE.js                       1.18 kB │ gzip:   0.61 kB
+2026-10-13T14:32:16.1515146Z dist/assets/games-DekI3fB2.js                       1.45 kB │ gzip:   0.83 kB
+2026-10-13T14:32:16.1515475Z dist/assets/Login-9xNTvPZU.js                       1.67 kB │ gzip:   0.88 kB
+2026-10-13T14:32:16.1516077Z dist/assets/preload-helper-CfhYeVOc.js              2.92 kB │ gzip:   1.43 kB
+2026-10-13T14:32:16.1516576Z dist/assets/NineLives-DjdWKTsL.js                   3.21 kB │ gzip:   1.43 kB
+2026-10-13T14:32:16.1516925Z dist/assets/projectFiles-0fN3g59M.js                5.06 kB │ gzip:   2.05 kB
+2026-10-13T14:32:16.1517276Z dist/assets/canvasUtils-CjnZ7AJr.js                 5.68 kB │ gzip:   1.89 kB
+2026-10-13T14:32:16.1517691Z dist/assets/ExpressionTreeEditor-B9JkBUgg.js        5.85 kB │ gzip:   1.64 kB
+2026-10-13T14:32:16.1518252Z dist/assets/weightCsv-DZW3EveY.js                   6.99 kB │ gzip:   1.85 kB
+2026-10-13T14:32:16.1518803Z dist/assets/jsx-runtime-DqMcooe2.js                 7.88 kB │ gzip:   2.98 kB
+2026-10-13T14:32:16.1519375Z dist/assets/Debug-C5DP7N1c.js                       8.40 kB │ gzip:   3.23 kB
+2026-10-13T14:32:16.1519718Z dist/assets/BufferResource-HgDynZMH.js             10.56 kB │ gzip:   2.80 kB
+2026-10-13T14:32:16.1520077Z dist/assets/hold-and-spin-Owz9X1GK.js              14.82 kB │ gzip:   5.50 kB
+2026-10-13T14:32:16.1520423Z dist/assets/reelCommands-DaxboThh.js               22.65 kB │ gzip:   7.71 kB
+2026-10-13T14:32:16.1520778Z dist/assets/GCManagedHash-XG-XqJJs.js              26.67 kB │ gzip:   9.33 kB
+2026-10-13T14:32:16.1521120Z dist/assets/graph-DLuhWeZD.js                      28.51 kB │ gzip:   8.63 kB
+2026-10-13T14:32:16.1521470Z dist/assets/launch-BiCB-4dV.js                     30.37 kB │ gzip:  11.63 kB
+2026-10-13T14:32:16.1521817Z dist/assets/reel-paytable-studio-CkH3rKFj.js       33.56 kB │ gzip:  11.23 kB
+2026-10-13T14:32:16.1522310Z dist/assets/Filter-DmOXR4Ez.js                     38.75 kB │ gzip:  11.06 kB
+2026-10-13T14:32:16.1522793Z dist/assets/api-hek_N6ew.js                        41.59 kB │ gzip:  14.09 kB
+2026-10-13T14:32:16.1523295Z dist/assets/chunk-OB3PAWPO-CBZlDxgP.js             42.49 kB │ gzip:  15.10 kB
+2026-10-13T14:32:16.1523800Z dist/assets/Results-DKliicKG.js                    47.65 kB │ gzip:  13.43 kB
+2026-10-13T14:32:16.1524312Z dist/assets/RenderTargetSystem-CJwXtmtx.js         51.70 kB │ gzip:  14.45 kB
+2026-10-13T14:32:16.1524907Z dist/assets/GraphicsContext-DNNRZo5h.js            53.69 kB │ gzip:  17.33 kB
+2026-10-13T14:32:16.1525413Z dist/assets/Geometry-BN8lMoOD.js                   62.35 kB │ gzip:  20.47 kB
+2026-10-13T14:32:16.1526391Z dist/assets/graph-CKfUGo1d.js                      79.52 kB │ gzip:  21.74 kB
+2026-10-13T14:32:16.1526979Z dist/assets/StateMachineDesigner-KOcG45Q4.js       82.66 kB │ gzip:  25.16 kB
+2026-10-13T14:32:16.1527655Z dist/assets/VerificationProfile-CSEPjSNY.js        98.29 kB │ gzip:  27.50 kB
+2026-10-13T14:32:16.1528309Z dist/assets/graphApi-BOgdSx3d.js                   98.39 kB │ gzip:  26.81 kB
+2026-10-13T14:32:16.1528904Z dist/assets/ReelPaytableStudio-B2GjzS9O.js        134.79 kB │ gzip:  38.72 kB
+2026-10-13T14:32:16.1529560Z dist/assets/Simulate-Bg2MqB_1.js                  177.98 kB │ gzip:  45.05 kB
+2026-10-13T14:32:16.1530140Z dist/assets/store-SGSdR1v-.js                     196.11 kB │ gzip:  63.96 kB
+2026-10-13T14:32:16.1530809Z dist/assets/main-BC0qxuLg.js                      215.71 kB │ gzip:  66.74 kB
+2026-10-13T14:32:16.1531373Z dist/assets/main-BbNQ0Umm.js                      217.07 kB │ gzip:  68.40 kB
+2026-10-13T14:32:16.1531948Z dist/assets/xlsx-CKkngM-o.js                      493.28 kB │ gzip: 160.68 kB
+2026-10-13T14:32:16.1532679Z dist/assets/App-Cb_K2BO7.js                       526.50 kB │ gzip: 160.47 kB
+2026-10-13T14:32:16.1544017Z dist/assets/dist-Dh4JsvEE.js                      618.80 kB │ gzip: 182.36 kB
+2026-10-13T14:32:16.1544325Z
+2026-10-13T14:32:16.1545228Z [INVALID_ANNOTATION] A comment "/*#__PURE__*/" in "node_modules/@microsoft/signalr/dist/esm/Utils.js" contains an annotation that Rolldown cannot interpret due to the position of the comment.
+2026-10-13T14:32:16.1545958Z      ╭─[ node_modules/@microsoft/signalr/dist/esm/Utils.js:190:1 ]
+2026-10-13T14:32:16.1546703Z      │
+2026-10-13T14:32:16.1547753Z  190 │ /*#__PURE__*/ function getOsName() {
+2026-10-13T14:32:16.1548388Z      │ ──────┬──────
+2026-10-13T14:32:16.1548724Z      │       ╰──────── comment ignored due to position
+2026-10-13T14:32:16.1548954Z      │
+2026-10-13T14:32:16.1549600Z      │ Help: For more information on how to use pure annotations correctly, check the documentation: https://rolldown.rs/in-depth/dead-code-elimination#pure
+2026-10-13T14:32:16.1550015Z ─────╯
+2026-10-13T14:32:16.1550159Z
+2026-10-13T14:32:16.1550328Z [plugin builtin:vite-reporter]
+2026-10-13T14:32:16.1550581Z (!) Some chunks are larger than 500 kB after minification. Consider:
+2026-10-13T14:32:16.1550849Z - Using dynamic import() to code-split the application
+2026-10-13T14:32:16.1551285Z - Use build.rolldownOptions.output.codeSplitting to improve chunking: https://rolldown.rs/reference/OutputOptions.codeSplitting
+2026-10-13T14:32:16.1551763Z - Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+2026-10-13T14:32:16.1552438Z [INVALID_ANNOTATION] A comment "/*#__PURE__*/" in "node_modules/@microsoft/signalr/dist/esm/Utils.js" contains an annotation that Rolldown cannot interpret due to the position of the comment.
+2026-10-13T14:32:16.1553080Z      ╭─[ node_modules/@microsoft/signalr/dist/esm/Utils.js:208:1 ]
+2026-10-13T14:32:16.1553359Z      │
+2026-10-13T14:32:16.1554379Z  208 │ /*#__PURE__*/ function getRuntimeVersion() {
+2026-10-13T14:32:16.1555110Z      │ ──────┬──────
+2026-10-13T14:32:16.1555359Z      │       ╰──────── comment ignored due to position
+2026-10-13T14:32:16.1555557Z      │
+2026-10-13T14:32:16.1556039Z      │ Help: For more information on how to use pure annotations correctly, check the documentation: https://rolldown.rs/in-depth/dead-code-elimination#pure
+2026-10-13T14:32:16.1556583Z ─────╯
+2026-10-13T14:32:16.1556712Z
+2026-10-13T14:32:16.1556876Z ✓ built in 767ms
+2026-10-13T14:32:16.1839358Z Post job cleanup.
+2026-10-13T14:32:16.2591180Z (node:2565) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+2026-10-13T14:32:16.2591635Z (Use `node --trace-deprecation ...` to show where the warning was created)
+2026-10-13T14:32:16.2592760Z Cache hit occurred on the primary key node-cache-Linux-x64-npm-e08982ab6f61b059b1972fdca931cf6bfe88e08d3896cf076d130b6dbc72812c, not saving cache.
+2026-10-13T14:32:16.2697327Z Post job cleanup.
+2026-10-13T14:32:16.3208670Z [command]/usr/bin/git version
+2026-10-13T14:32:16.3240249Z git version 2.55.0
+2026-10-13T14:32:16.3264839Z Temporarily overriding HOME='/home/runner/work/_temp/95a89d01-918a-4c09-a93a-b283e35e3090' before making global git config changes
+2026-10-13T14:32:16.3265327Z Adding repository directory to the temporary git global config as a safe directory
+2026-10-13T14:32:16.3268134Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/slot-math-lab/slot-math-lab
+2026-10-13T14:32:16.3296731Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-10-13T14:32:16.3321152Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-10-13T14:32:16.3505519Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-10-13T14:32:16.3528270Z http.https://github.com/.extraheader
+2026-10-13T14:32:16.3535813Z [command]/usr/bin/git config --local --unset-all http.https://github.com/.extraheader
+2026-10-13T14:32:16.3569031Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-10-13T14:32:16.3755130Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-10-13T14:32:16.3786988Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-10-13T14:32:16.4065187Z Cleaning up orphan processes
+2026-10-13T14:32:16.4247581Z ##[warning]Node.js 20 is deprecated. The following actions target Node.js 20 but are being forced to run on Node.js 24: actions/checkout@v4, actions/setup-node@v4. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/

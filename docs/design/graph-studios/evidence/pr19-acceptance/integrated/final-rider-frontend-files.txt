@@ -14,6 +14,7 @@ frontend/e2e/project-header.spec.ts
 frontend/e2e/reel-paytable-studio.spec.ts
 frontend/e2e/results-workspace.spec.ts
 frontend/e2e/simulation-live.spec.ts
+frontend/e2e/state-machine-designer.spec.ts
 frontend/e2e/studio-integration.spec.ts
 frontend/e2e/z-measurements-workspace.spec.ts
 frontend/src/components/authoring/MachineForms.tsx

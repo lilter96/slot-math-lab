@@ -1,0 +1,516 @@
+{
+  "conclusion": "success",
+  "headSha": "31b89fdbe774571bc88e68cf67ca01dab817f918",
+  "jobs": [
+    {
+      "completedAt": "2026-10-13T15:12:47Z",
+      "conclusion": "success",
+      "databaseId": 115352898923,
+      "name": "Backend \u2014 Build, Test, Lint",
+      "startedAt": "2026-10-13T14:29:49Z",
+      "status": "completed",
+      "steps": [
+        {
+          "conclusion": "success",
+          "name": "Set up job",
+          "number": 1,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Initialize containers",
+          "number": 2,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Run actions/checkout@v4",
+          "number": 3,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Run actions/setup-dotnet@v4",
+          "number": 4,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Run actions/cache@v4",
+          "number": 5,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Run actions/setup-node@v4",
+          "number": 6,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Run npm ci --legacy-peer-deps",
+          "number": 7,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Run node frontend/scripts/export-lab-demo-fixtures.mjs --check",
+          "number": 8,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Run node frontend/scripts/export-game-fixtures.mjs --check",
+          "number": 9,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Run python3 scripts/verification/demo_reference.py --check",
+          "number": 10,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Run python3 scripts/verification/check-demo-names.py",
+          "number": 11,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Run dotnet restore backend/SlotMathLab.slnx",
+          "number": 12,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Run dotnet build backend/SlotMathLab.slnx -c Release --no-restore",
+          "number": 13,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Run python3 scripts/verification/benchmark_cap.py --check",
+          "number": 14,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Audit NuGet dependencies \u2014 fail on high/critical",
+          "number": 15,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Run dotnet format backend/SlotMathLab.slnx --verify-no-changes --no-restore",
+          "number": 16,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Run dotnet test backend/SlotMath.Core.Tests/SlotMath.Core.Tests.csproj -c Release --no-build --logger \"trx;LogFileName=unit.trx\"",
+          "number": 17,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Run dotnet test backend/SlotMath.Api.Tests/SlotMath.Api.Tests.csproj -c Release --no-build --logger \"trx;LogFileName=integration.trx\"",
+          "number": 18,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Run actions/upload-artifact@v4",
+          "number": 19,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Run dorny/test-reporter@v1",
+          "number": 20,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Post Run actions/setup-node@v4",
+          "number": 36,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Post Run actions/cache@v4",
+          "number": 37,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Post Run actions/setup-dotnet@v4",
+          "number": 38,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Post Run actions/checkout@v4",
+          "number": 39,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Stop containers",
+          "number": 40,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Complete job",
+          "number": 41,
+          "status": "completed"
+        }
+      ],
+      "url": "https://github.com/lilter96/slot-math-lab/actions/runs/38413845577/job/115352898923"
+    },
+    {
+      "completedAt": "2026-10-13T14:32:19Z",
+      "conclusion": "success",
+      "databaseId": 115352899360,
+      "name": "Frontend \u2014 Build, Lint",
+      "startedAt": "2026-10-13T14:29:50Z",
+      "status": "completed",
+      "steps": [
+        {
+          "conclusion": "success",
+          "name": "Set up job",
+          "number": 1,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Run actions/checkout@v4",
+          "number": 2,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Run actions/setup-node@v4",
+          "number": 3,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Run npm ci --legacy-peer-deps",
+          "number": 4,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Audit npm dependencies \u2014 fail on high/critical",
+          "number": 5,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Run npx tsc --noEmit",
+          "number": 6,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Run npm run lint",
+          "number": 7,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Run npm run test:unit",
+          "number": 8,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Run python3 ../scripts/verification/metrics_catalogue.py --check",
+          "number": 9,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Run npm run build",
+          "number": 10,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Post Run actions/setup-node@v4",
+          "number": 19,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Post Run actions/checkout@v4",
+          "number": 20,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Complete job",
+          "number": 21,
+          "status": "completed"
+        }
+      ],
+      "url": "https://github.com/lilter96/slot-math-lab/actions/runs/38413845577/job/115352899360"
+    },
+    {
+      "completedAt": "2026-10-13T14:29:59Z",
+      "conclusion": "success",
+      "databaseId": 115352899788,
+      "name": "Secrets \u2014 gitleaks",
+      "startedAt": "2026-10-13T14:29:50Z",
+      "status": "completed",
+      "steps": [
+        {
+          "conclusion": "success",
+          "name": "Set up job",
+          "number": 1,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Run actions/checkout@v4",
+          "number": 2,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Run gitleaks/gitleaks-action@v3",
+          "number": 3,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Post Run actions/checkout@v4",
+          "number": 6,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Complete job",
+          "number": 7,
+          "status": "completed"
+        }
+      ],
+      "url": "https://github.com/lilter96/slot-math-lab/actions/runs/38413845577/job/115352899788"
+    },
+    {
+      "completedAt": "2026-10-13T15:19:45Z",
+      "conclusion": "success",
+      "databaseId": 115374824613,
+      "name": "Critical browser contracts / Critical browser contracts",
+      "startedAt": "2026-10-13T15:12:50Z",
+      "status": "completed",
+      "steps": [
+        {
+          "conclusion": "success",
+          "name": "Set up job",
+          "number": 1,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Initialize containers",
+          "number": 2,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Run actions/checkout@v4",
+          "number": 3,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Run actions/setup-node@v4",
+          "number": 4,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Run npm ci --legacy-peer-deps",
+          "number": 5,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Run actions/setup-dotnet@v4",
+          "number": 6,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Run actions/cache@v4",
+          "number": 7,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Resolve Playwright version",
+          "number": 8,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Run actions/cache@v4",
+          "number": 9,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Run npx playwright install --with-deps chromium",
+          "number": 10,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Run npm run build",
+          "number": 11,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Critical contracts",
+          "number": 12,
+          "status": "completed"
+        },
+        {
+          "conclusion": "skipped",
+          "name": "Complete regression",
+          "number": 13,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Run actions/upload-artifact@v4",
+          "number": 14,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Post Run actions/cache@v4",
+          "number": 23,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Post Run actions/cache@v4",
+          "number": 24,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Post Run actions/setup-dotnet@v4",
+          "number": 25,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Post Run actions/setup-node@v4",
+          "number": 26,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Post Run actions/checkout@v4",
+          "number": 27,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Stop containers",
+          "number": 28,
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Complete job",
+          "number": 29,
+          "status": "completed"
+        }
+      ],
+      "url": "https://github.com/lilter96/slot-math-lab/actions/runs/38413845577/job/115374824613"
+    },
+    {
+      "completedAt": "2026-10-13T15:19:45Z",
+      "conclusion": "skipped",
+      "databaseId": 115378341333,
+      "name": "Docker \u2014 Build Images",
+      "startedAt": "2026-10-13T15:19:46Z",
+      "status": "completed",
+      "steps": [],
+      "url": "https://github.com/lilter96/slot-math-lab/actions/runs/38413845577/job/115378341333"
+    },
+    {
+      "completedAt": "2026-10-13T15:19:45Z",
+      "conclusion": "skipped",
+      "databaseId": 115378342709,
+      "name": "Smoke Test",
+      "startedAt": "2026-10-13T15:19:46Z",
+      "status": "completed",
+      "steps": [],
+      "url": "https://github.com/lilter96/slot-math-lab/actions/runs/38413845577/job/115378342709"
+    }
+  ],
+  "status": "completed",
+  "mergeCandidate": "c0dd6a1948886e305fdf261d432ea17dbbd070c1",
+  "frontendUnits": 299,
+  "backendTrx": [
+    {
+      "artifact": "/tmp/pr19-integrated/ci-31b-trx/backend/SlotMath.Api.Tests/TestResults/integration.trx",
+      "counters": {
+        "total": "142",
+        "executed": "142",
+        "passed": "142",
+        "failed": "0",
+        "error": "0",
+        "timeout": "0",
+        "aborted": "0",
+        "inconclusive": "0",
+        "passedButRunAborted": "0",
+        "notRunnable": "0",
+        "notExecuted": "0",
+        "disconnected": "0",
+        "warning": "0",
+        "completed": "0",
+        "inProgress": "0",
+        "pending": "0"
+      }
+    },
+    {
+      "artifact": "/tmp/pr19-integrated/ci-31b-trx/backend/SlotMath.Core.Tests/TestResults/unit.trx",
+      "counters": {
+        "total": "1389",
+        "executed": "1389",
+        "passed": "1389",
+        "failed": "0",
+        "error": "0",
+        "timeout": "0",
+        "aborted": "0",
+        "inconclusive": "0",
+        "passedButRunAborted": "0",
+        "notRunnable": "0",
+        "notExecuted": "0",
+        "disconnected": "0",
+        "warning": "0",
+        "completed": "0",
+        "inProgress": "0",
+        "pending": "0"
+      }
+    }
+  ],
+  "critical": {
+    "firstAttemptPassed": 34,
+    "retryAssistedPassed": 1,
+    "failedAfterRetry": 0,
+    "skipped": 0,
+    "playwrightRetriesUsed": 1,
+    "flakyTest": "workbench.spec.ts:155 \u2014 navigation after inspector close did not reach /model/data on first attempt; retained retry passed"
+  },
+  "dockerSmoke": "skipped by main-push-only condition; local equivalents pass"
+}

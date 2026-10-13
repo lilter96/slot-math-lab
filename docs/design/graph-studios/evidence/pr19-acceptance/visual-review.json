@@ -1,16 +1,16 @@
 {
-  "sourceCommit": "5f193279f4db5aef0604f8f0be04db843dfda044",
+  "sourceCommit": "4f18f1ffa771187c39647861d2a66286913426e4",
   "baselineSource": "3d8ce3695f21e25f5dea618f75a5d4caeac534e3",
   "pairedRecordsReviewed": 446,
   "contactSheets": [
     {
       "path": "review-contact-sheets/after-00.jpg",
-      "sha256": "b45fbd9e9f37b94c0bb80da024a349a329b1d5670542ed0f650b3ceefe552a4e",
+      "sha256": "920c5032ca891d0307d47dad5424857502043f2ae9037596288b0cd61129e20a",
       "reviewed": true
     },
     {
       "path": "review-contact-sheets/after-01.jpg",
-      "sha256": "380c974134950f92283f7e745ac700e3384daf346a72aa96fc4dc1bee2f17e1b",
+      "sha256": "8e8ba5a8d9bcdf2884bf54db21a312a45462ccdbf0db8bcf2af63afa14936137",
       "reviewed": true
     },
     {
@@ -20,37 +20,37 @@
     },
     {
       "path": "review-contact-sheets/after-03.jpg",
-      "sha256": "4c2c304a702643256dc7ef456debfee67bc55802a9ce6223490775c6f3b23ab6",
+      "sha256": "e48d6aa4090024a2a314134a86596fb4a8c460c43996525a401e5779d018b873",
       "reviewed": true
     },
     {
       "path": "review-contact-sheets/after-04.jpg",
-      "sha256": "2291bbc239879af9a48a21704c986a7470b7df0cab71922444f721e947659c9e",
+      "sha256": "069a75be6d17c82dcedf345d07da08a008d8ad72e084770d10a0dafd6265821f",
       "reviewed": true
     },
     {
       "path": "review-contact-sheets/after-05.jpg",
-      "sha256": "059c4d8d632ba7948aa9784e03768aa7ff204cb2a530eddd1f2807d888b90a6f",
+      "sha256": "57256035c89d8e1426f80e20c3ace370827e31babd629330b6b69f7a12a4eb54",
       "reviewed": true
     },
     {
       "path": "review-contact-sheets/after-06.jpg",
-      "sha256": "195855f10c768792918e7a77c299f79bf41c451e98b1b36bbe01aec2aff77ba6",
+      "sha256": "60e993872eb3258437c3771189b774f88cf34243d2698830119c3deb0e830a82",
       "reviewed": true
     },
     {
       "path": "review-contact-sheets/after-07.jpg",
-      "sha256": "771fbf03ac8ef6973f6e3af54bc3e6907896e12f85c8240fe0d59ab9f248cfc4",
+      "sha256": "2d39dff94c51b8e5981ba0f9d6c3431dba564cc98c4f5ca2ea1febc7d7822759",
       "reviewed": true
     },
     {
       "path": "review-contact-sheets/after-08.jpg",
-      "sha256": "07f514dedace8500468077b98ac33efd829e58e307c8816705df985c009b7005",
+      "sha256": "a51f03e860dc0d2c63b5d3754413b9511ecaaea9099276371585a4efe0483a62",
       "reviewed": true
     },
     {
       "path": "review-contact-sheets/after-09.jpg",
-      "sha256": "5163a8859a4ff791387f681b87f045132934931c16e8ddd9153d332c1510a626",
+      "sha256": "559cf480dc66758fb77412dfc9b242f8b7e4d18f75725a28a3d48e48519eb7ea",
       "reviewed": true
     },
     {
@@ -60,42 +60,42 @@
     },
     {
       "path": "review-contact-sheets/after-11.jpg",
-      "sha256": "2283f53af10e52161225ea5128f65607cedc62f472242f8ab521bdeccc6ca0ee",
+      "sha256": "e09ba1df4adb507bb627fa76cf563b76f39877c1ab5099161be4408205bc881c",
       "reviewed": true
     },
     {
       "path": "review-contact-sheets/after-12.jpg",
-      "sha256": "4172ed83c86998920de5e70a97f3d86ccdb2955f088c725c13210c6a469ebf6f",
+      "sha256": "de17d34fe0cd6aff351eb960556376162df36bf1064dd541c8d01fddd718a550",
       "reviewed": true
     },
     {
       "path": "review-contact-sheets/after-13.jpg",
-      "sha256": "5eea641b449c02bab912da21b4a72ee2d09668996283c0f36745aba5ba0efce6",
+      "sha256": "0899bcbb6a1eb243cfe4501884ad9bf0fe904108b92aa8ba0ecd66076caed72a",
       "reviewed": true
     },
     {
       "path": "review-contact-sheets/after-14.jpg",
-      "sha256": "895aab2f6291821983ee55ba202884f4ab2a083c1abdcbc3d0b28ff7de569ad4",
+      "sha256": "5593187c9eb8180b0cb0c6e0836ec167cafabdb6eb083389bb41c77cb545e182",
       "reviewed": true
     },
     {
       "path": "review-contact-sheets/after-15.jpg",
-      "sha256": "33babad089a70cbada4ccbb143c3cc0dec6ca2fade3caaf5234df9c51b1674e3",
+      "sha256": "fb3da53f33eb8347e2deebde34f957f3859cb8b4fbdfdbc265b40a8bc4155db0",
       "reviewed": true
     },
     {
       "path": "review-contact-sheets/after-16.jpg",
-      "sha256": "c86a0df7737e6abf1fd34ecba7ccde7dfd7b11911fbf0249030a169a93259a83",
+      "sha256": "4cecb2e20abcc749c145f82d6d6233910ebb7a226bb286bb391cedcd65bb89ef",
       "reviewed": true
     },
     {
       "path": "review-contact-sheets/after-17.jpg",
-      "sha256": "c62d70477b31c6fd9f2746424b49df56eac9d271023459818fb84072250dd044",
+      "sha256": "ed5aaa0a8b0d5deff4e170d7959cdec23bc250e372817e4afc4e3b731d01b806",
       "reviewed": true
     },
     {
       "path": "review-contact-sheets/after-18.jpg",
-      "sha256": "2e674d6863106a398db5f66756d1ad8d3e5ede72bb32c91ff02471fa7316b43f",
+      "sha256": "b5ab9adac2e983203de3784c2fc07a0dc7c62bbddb6b687fff609a1076307900",
       "reviewed": true
     },
     {
@@ -105,52 +105,52 @@
     },
     {
       "path": "review-contact-sheets/after-20.jpg",
-      "sha256": "46f974012bc70faf4fff8f9849818a4580270e218f6faa1ea263e3d68b4b2cf8",
+      "sha256": "5dcca8d0e54f9476331a02c91868ec3b38111ddf3e1e7a7ca72182d4ed92601e",
       "reviewed": true
     },
     {
       "path": "review-contact-sheets/after-21.jpg",
-      "sha256": "7d29ff6b09d954832408db9f60a5d4342bf6116a2ba43047036e3b91582fb9a5",
+      "sha256": "c7aa705a794e5902df34bfb59ed0530a524db5fe2a64623c0931d032c8c3fd53",
       "reviewed": true
     },
     {
       "path": "review-contact-sheets/after-22.jpg",
-      "sha256": "032cd6914e1fdb27d71b81d1d5f9cd9322e5bfb566f973e7d998379fef83c190",
+      "sha256": "676b1042c1c7644a53871654a84938e3f79c772b450fc2f9b5c32ee8db5cd508",
       "reviewed": true
     },
     {
       "path": "review-contact-sheets/after-23.jpg",
-      "sha256": "b187f426ece7d5f8ac302e1b2fe3f7c9a84a0691d48f99a814d8340723213eaf",
+      "sha256": "ab71231fcd2390a99798cd4b3195a135b23ee8d553ebed983aafe6c9436fdb8a",
       "reviewed": true
     },
     {
       "path": "review-contact-sheets/after-24.jpg",
-      "sha256": "3008d5f16b786ba0c529e555eaa9f7057959425d30710a0a68fe11318f3418d2",
+      "sha256": "7e0912f4a83891d87e0b77fe6911ae699d2a0c2aeff601174828ea9c99be8843",
       "reviewed": true
     },
     {
       "path": "review-contact-sheets/after-25.jpg",
-      "sha256": "b2414e3776182c1d5800769ff2d1a0b8b524cbd0552a3c813bec8b8d53ec99cd",
+      "sha256": "7698b435ceb3c32ff5dedcd164a095aefb16ed827f40271801f94c8401620384",
       "reviewed": true
     },
     {
       "path": "review-contact-sheets/after-26.jpg",
-      "sha256": "f3bf89285835b369c58c71272658b1f028ce13ce11d876ff5a2b78d8766c6387",
+      "sha256": "3494cb7439666a0074211fd8521c1142fd837341d4596ee6d0a43926a57c586a",
       "reviewed": true
     },
     {
       "path": "review-contact-sheets/after-27.jpg",
-      "sha256": "516440240b1dc326724af77843135d7adef96a2c6465993b548d310f8c9ed103",
+      "sha256": "3556756a10a82369409e6e646e017e9ac8bc61ff4c69e98f9f723d90d6077e4e",
       "reviewed": true
     },
     {
       "path": "review-contact-sheets/after-28.jpg",
-      "sha256": "bdf88a000e1f34fb641490546dd98fc9d4a6f02fb583a4dee95cf93e4d8dc9a9",
+      "sha256": "069489eeb610f66906aae7858c58c153262c75d6106dcf6a7d76950aeb829ee2",
       "reviewed": true
     },
     {
       "path": "review-contact-sheets/after-29.jpg",
-      "sha256": "10561a677efa498a6b7404d2fbea3d13c0ba52f43b7a841fa00494d7c280bbfd",
+      "sha256": "bcc5c02ea7b85f3a6496790aa8d11be2ebdb69027aaa229bb8d04663c2f8ab32",
       "reviewed": true
     },
     {
@@ -160,37 +160,37 @@
     },
     {
       "path": "review-contact-sheets/after-31.jpg",
-      "sha256": "a32c8514b9c766f9eb086b560872c257e6b84c55c65c7c840a74f71824d8cf10",
+      "sha256": "905de0c5516d6632e326a845fa9a755b550f6aea558da1d2e2c93bf3a7debeff",
       "reviewed": true
     },
     {
       "path": "review-contact-sheets/after-32.jpg",
-      "sha256": "8dd049dc1f5824122d80a2ebd1a1d422d5aa32e81da4cd3ba517eeb79eafaa40",
+      "sha256": "34c6dc056d695576c8e7e82d68fe3b0e4cfd9533f5ef91967fa24274b3b102cd",
       "reviewed": true
     },
     {
       "path": "review-contact-sheets/after-33.jpg",
-      "sha256": "2a20bb9df940ce9f77fd8ab55e44c89112e85e624dba4ff5f9d7c1a2d4c43cf7",
+      "sha256": "50043449301a5bea7a3b3c30e373b74fae0acdf0d3031358117bdffde144a3a2",
       "reviewed": true
     },
     {
       "path": "review-contact-sheets/after-34.jpg",
-      "sha256": "05d007048ee90bde78e49ca9d5ddc818d5ceef62ec0eb27902be1d64ac6ce1b1",
+      "sha256": "0e6385e5f5c934a2189780358d05f331099ca75855a99b7823c4566df2f1d788",
       "reviewed": true
     },
     {
       "path": "review-contact-sheets/after-35.jpg",
-      "sha256": "112c6dfb6b181c916040d14ef5d511712f5e004a43c69c283053d0431e34e829",
+      "sha256": "351c18ea911b3d6802c7febc0c09c127549006201d2bf3bfcb1f1581b3c02e00",
       "reviewed": true
     },
     {
       "path": "review-contact-sheets/after-36.jpg",
-      "sha256": "0a76f6734cd9ba83324be6565060101a846a19e7fe2099e33100b00b25c01aaa",
+      "sha256": "f3016c3589fac8190094361c4121222965eb7c76c677ae0bc7984dca9ce467e6",
       "reviewed": true
     },
     {
       "path": "review-contact-sheets/after-37.jpg",
-      "sha256": "eb587e2965eb4883149570a23d3930f42e8ccdd20da67c11fca343e00f38508d",
+      "sha256": "304a98422e1b9d34cf113535b464930fdc8b64456152c7755a5100ba3818d143",
       "reviewed": true
     }
   ],
@@ -201,7 +201,10 @@
     "after/weighted-machine-390x844-create-dialog.png",
     "after/ancient-dragon-ordinary-390x844-Sources-scroll0-y1082.png",
     "after/weighted-machine-390x844-fractional-error-lower.png",
-    "after/weighted-machine-1280x800-fractional-error-lower.png"
+    "after/weighted-machine-1280x800-fractional-error-lower.png",
+    "after/weighted-machine-390x844-applied-settled.png",
+    "m5-imported-designer-visual/x7-club-bought-390-nested.png",
+    "m5-imported-designer-visual/le-militare-siege-spin-1440-table.png"
   ],
   "findings": [
     "All Studio tabs have actual model data; TGSlots correctly shows no applicable paylines. Physical strips and independent cell matrices remain distinct.",
@@ -211,8 +214,10 @@
     "Invalid integer error initially wrapped into a 57px column and overlapped the next outcome. Final CSS stacks only the invalid outcome row; full-size lower captures show 246\u2013290px message width, 54px height and disabled Apply.",
     "A deselected state still provides global bindings/budget and selection guidance; it is not a permanent empty inspector.",
     "Phone uses page scrolling and internal table/canvas scrolling. Desktop remains the primary authoring surface.",
-    "No captured page errors or document overflow. This visual review is separate from browser interaction tests and independent runtime proofs."
+    "No captured page errors or document overflow. This visual review is separate from browser interaction tests and independent runtime proofs.",
+    "Follow-up applied-state review exposed persistent hidden React Flow nodes after Apply: measured dimensions were dropped from controlled nodes. Source 4f18f1f retains measurements in local component state. All 25 affected browsers pass, including visibility after Apply/Undo; current paired machine captures and four extra settled-state captures were inspected. Failure output and screenshot are retained."
   ],
   "remainingVisualDefects": [],
-  "localVisualGate": "pass"
+  "localVisualGate": "pass",
+  "dimensionsCorrectionEvidence": "integrated/canvas-dimensions-browser.log"
 }

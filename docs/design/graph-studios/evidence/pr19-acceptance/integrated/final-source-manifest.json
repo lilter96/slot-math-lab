@@ -1,8 +1,8 @@
 {
-  "sourceCommit": "5f193279f4db5aef0604f8f0be04db843dfda044",
+  "sourceCommit": "4f18f1ffa771187c39647861d2a66286913426e4",
   "uncommittedSource": [],
   "frontendCleanupManifest": "/tmp/pr19-repair-rider/frontend-files.txt",
-  "frontendSourceCount": 39,
+  "frontendSourceCount": 40,
   "backendSourceCount": 10,
   "files": [
     {
@@ -79,7 +79,7 @@
     },
     {
       "path": "frontend/e2e/pr19-acceptance.spec.ts",
-      "sha256": "29180ba880e070e8d14c7e36db298dbdc960593dcbaaf95ed01ac1845dbe27b8"
+      "sha256": "f4dd116f81a044487f5d927911a0b5008a764904a62a7843df5cdd9e0ce88e0a"
     },
     {
       "path": "frontend/e2e/pr19-authoring-runtime.spec.ts",
@@ -108,6 +108,10 @@
     {
       "path": "frontend/e2e/simulation-live.spec.ts",
       "sha256": "41c1f816d5fb1b43e76fe8872c9789e5b0300aaf1fb10bb3772a97b02122805d"
+    },
+    {
+      "path": "frontend/e2e/state-machine-designer.spec.ts",
+      "sha256": "6424e6ad199a3bafd9ee86dd30d105f240fd34637dd5134e359cebfe4d06af4f"
     },
     {
       "path": "frontend/e2e/studio-integration.spec.ts",
@@ -171,7 +175,7 @@
     },
     {
       "path": "frontend/src/pages/StateMachineDesigner.tsx",
-      "sha256": "44aef7709a20b960459224b01264afdf3133d6312480e70e13aa0b3d3849b393"
+      "sha256": "07b5ec948155c05497e52ae2b1c5331c018b257883b1fad4c498bb316336baa1"
     },
     {
       "path": "frontend/src/pages/state-machine-designer.css",
@@ -204,5 +208,10 @@
   ],
   "backendDifferenceSinceFullTest": "",
   "ciRun": 38405440415,
-  "acceptance": "local gates pass; final candidate CI pending"
+  "acceptance": "all local gates pass; exact final publication CI is linked from PR checks",
+  "ciRuns": [
+    38405440415,
+    38413845577
+  ],
+  "finalPublicationChecks": "https://github.com/lilter96/slot-math-lab/pull/19/checks"
 }

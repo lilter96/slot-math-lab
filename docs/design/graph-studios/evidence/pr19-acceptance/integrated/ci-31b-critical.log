@@ -1,0 +1,857 @@
+﻿2026-10-13T15:12:51.0976426Z Current runner version: '2.337.0'
+2026-10-13T15:12:51.1000824Z ##[group]Runner Image Provisioner
+2026-10-13T15:12:51.1001793Z Hosted Compute Agent
+2026-10-13T15:12:51.1002357Z Version: 20261002.596
+2026-10-13T15:12:51.1002958Z Commit: c3d12f3313a95f25162a1503be624f3b0617f8c0
+2026-10-13T15:12:51.1003897Z Build Date: 2026-10-02T22:28:27Z
+2026-10-13T15:12:51.1004558Z Worker ID: {7dcd3123-54be-4deb-9345-3996f0976943}
+2026-10-13T15:12:51.1005274Z Region: northcentralus
+2026-10-13T15:12:51.1005835Z Cloud: Azure
+2026-10-13T15:12:51.1006384Z ##[endgroup]
+2026-10-13T15:12:51.1007854Z ##[group]Operating System
+2026-10-13T15:12:51.1008452Z Ubuntu
+2026-10-13T15:12:51.1008990Z 24.04.5
+2026-10-13T15:12:51.1009495Z LTS
+2026-10-13T15:12:51.1009988Z ##[endgroup]
+2026-10-13T15:12:51.1010531Z ##[group]Runner Image
+2026-10-13T15:12:51.1011115Z Image: ubuntu-24.04
+2026-10-13T15:12:51.1011661Z Version: 20261004.327.1
+2026-10-13T15:12:51.1012909Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20261004.327/images/ubuntu/Ubuntu2404-Readme.md
+2026-10-13T15:12:51.1014603Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20261004.327
+2026-10-13T15:12:51.1015578Z ##[endgroup]
+2026-10-13T15:12:51.1016697Z ##[group]GITHUB_TOKEN Permissions
+2026-10-13T15:12:51.1018645Z Contents: read
+2026-10-13T15:12:51.1019248Z Metadata: read
+2026-10-13T15:12:51.1019796Z ##[endgroup]
+2026-10-13T15:12:51.1021785Z Secret source: Actions
+2026-10-13T15:12:51.1022676Z Cache mode: write
+2026-10-13T15:12:51.1023343Z Prepare workflow directory
+2026-10-13T15:12:51.1508154Z Prepare all required actions
+2026-10-13T15:12:51.1558052Z Getting action download info
+2026-10-13T15:12:51.4056895Z Download action repository 'actions/checkout@v4' (SHA:11d5960a326750d5838078e36cf38b85af677262)
+2026-10-13T15:12:51.5290666Z Download action repository 'actions/setup-node@v4' (SHA:49933ea5288caeca8642d1e84afbd3f7d6820020)
+2026-10-13T15:12:51.6938772Z Download action repository 'actions/setup-dotnet@v4' (SHA:67a3573c9a986a3f9c594539f4ab511d57bb3ce9)
+2026-10-13T15:12:52.3354974Z Download action repository 'actions/cache@v4' (SHA:0057852bfaa89a56745cba8c7296529d2fc39830)
+2026-10-13T15:12:52.4792654Z Download action repository 'actions/upload-artifact@v4' (SHA:ea165f8d65b6e75b540449e92b4886f43607fa02)
+2026-10-13T15:12:52.7882705Z Uses: lilter96/slot-math-lab/.github/workflows/browser-checks.yml@refs/pull/19/merge (c0dd6a1948886e305fdf261d432ea17dbbd070c1)
+2026-10-13T15:12:52.7888484Z ##[group] Inputs
+2026-10-13T15:12:52.7889881Z   full: false
+2026-10-13T15:12:52.7890903Z ##[endgroup]
+2026-10-13T15:12:52.7892276Z Complete job name: Critical browser contracts / Critical browser contracts
+2026-10-13T15:12:52.8452423Z ##[group]Checking docker version
+2026-10-13T15:12:52.8466243Z ##[command]/usr/bin/docker version --format '{{.Server.APIVersion}}'
+2026-10-13T15:12:52.9304202Z '1.48'
+2026-10-13T15:12:52.9318009Z Docker daemon API version: '1.48'
+2026-10-13T15:12:52.9319674Z ##[command]/usr/bin/docker version --format '{{.Client.APIVersion}}'
+2026-10-13T15:12:52.9495947Z '1.48'
+2026-10-13T15:12:52.9505442Z Docker client API version: '1.48'
+2026-10-13T15:12:52.9512161Z ##[endgroup]
+2026-10-13T15:12:52.9516844Z ##[group]Clean up resources from previous jobs
+2026-10-13T15:12:52.9523160Z ##[command]/usr/bin/docker ps --all --quiet --no-trunc --filter "label=8a1508"
+2026-10-13T15:12:52.9674755Z ##[command]/usr/bin/docker network prune --force --filter "label=8a1508"
+2026-10-13T15:12:52.9811895Z ##[endgroup]
+2026-10-13T15:12:52.9813034Z ##[group]Create local container network
+2026-10-13T15:12:52.9824286Z ##[command]/usr/bin/docker network create --label 8a1508 github_network_26e92bf3543c42d48873135b37a3fbcb
+2026-10-13T15:12:53.0389514Z 5c5b1d806f006c9a38e838f4b54960157932b89a81a6a1aa0db8fee85b9ff5e3
+2026-10-13T15:12:53.0408893Z ##[endgroup]
+2026-10-13T15:12:53.0437739Z ##[group]Starting postgres service container
+2026-10-13T15:12:53.0460572Z ##[command]/usr/bin/docker pull postgres:17-alpine
+2026-10-13T15:12:53.4930470Z 17-alpine: Pulling from library/postgres
+2026-10-13T15:12:53.6285067Z e2de96513ba9: Already exists
+2026-10-13T15:12:53.6355652Z 4ece9a32c307: Pulling fs layer
+2026-10-13T15:12:53.6357052Z 43f9814c9a3b: Pulling fs layer
+2026-10-13T15:12:53.6358046Z 3333950675b2: Pulling fs layer
+2026-10-13T15:12:53.6359018Z f3b07e8a357c: Pulling fs layer
+2026-10-13T15:12:53.6360070Z eb805f20f060: Pulling fs layer
+2026-10-13T15:12:53.6361043Z 7ccdb0dcae74: Pulling fs layer
+2026-10-13T15:12:53.6362018Z 93a3470d5852: Pulling fs layer
+2026-10-13T15:12:53.6362970Z b0a0d9d2abf2: Pulling fs layer
+2026-10-13T15:12:53.6368697Z a8a481ae6efc: Pulling fs layer
+2026-10-13T15:12:53.6369658Z 7ccdb0dcae74: Waiting
+2026-10-13T15:12:53.6370542Z 93a3470d5852: Waiting
+2026-10-13T15:12:53.6371365Z b0a0d9d2abf2: Waiting
+2026-10-13T15:12:53.6372203Z a8a481ae6efc: Waiting
+2026-10-13T15:12:53.6373063Z f3b07e8a357c: Waiting
+2026-10-13T15:12:53.6374127Z eb805f20f060: Waiting
+2026-10-13T15:12:53.7151513Z 3333950675b2: Verifying Checksum
+2026-10-13T15:12:53.7153007Z 3333950675b2: Download complete
+2026-10-13T15:12:53.7238747Z 4ece9a32c307: Verifying Checksum
+2026-10-13T15:12:53.7240770Z 4ece9a32c307: Download complete
+2026-10-13T15:12:53.7344101Z 43f9814c9a3b: Verifying Checksum
+2026-10-13T15:12:53.7346827Z 43f9814c9a3b: Download complete
+2026-10-13T15:12:53.7944788Z 4ece9a32c307: Pull complete
+2026-10-13T15:12:53.7981135Z eb805f20f060: Verifying Checksum
+2026-10-13T15:12:53.7984329Z eb805f20f060: Download complete
+2026-10-13T15:12:53.8042954Z 7ccdb0dcae74: Verifying Checksum
+2026-10-13T15:12:53.8044728Z 7ccdb0dcae74: Download complete
+2026-10-13T15:12:53.8775433Z b0a0d9d2abf2: Verifying Checksum
+2026-10-13T15:12:53.8777273Z b0a0d9d2abf2: Download complete
+2026-10-13T15:12:53.8787529Z 93a3470d5852: Verifying Checksum
+2026-10-13T15:12:53.8789078Z 93a3470d5852: Download complete
+2026-10-13T15:12:53.9177131Z 43f9814c9a3b: Pull complete
+2026-10-13T15:12:53.9789522Z 3333950675b2: Pull complete
+2026-10-13T15:12:53.9865641Z a8a481ae6efc: Download complete
+2026-10-13T15:12:54.2119665Z f3b07e8a357c: Verifying Checksum
+2026-10-13T15:12:54.2120698Z f3b07e8a357c: Download complete
+2026-10-13T15:12:57.8296483Z f3b07e8a357c: Pull complete
+2026-10-13T15:12:57.8426049Z eb805f20f060: Pull complete
+2026-10-13T15:12:57.8558229Z 7ccdb0dcae74: Pull complete
+2026-10-13T15:12:57.8682453Z 93a3470d5852: Pull complete
+2026-10-13T15:12:57.8808558Z b0a0d9d2abf2: Pull complete
+2026-10-13T15:12:57.8895065Z a8a481ae6efc: Pull complete
+2026-10-13T15:12:57.8960620Z Digest: sha256:b0f9560a2de083e2cc7382e75f808c7381a32852a7ec49117deedb300e552b24
+2026-10-13T15:12:57.8979011Z Status: Downloaded newer image for postgres:17-alpine
+2026-10-13T15:12:57.8991086Z docker.io/library/postgres:17-alpine
+2026-10-13T15:12:57.9048587Z ##[command]/usr/bin/docker create --name 74a7a2b1b5ff40d1ac6c0d2cd613eea1_postgres17alpine_918c13 --label 8a1508 --network github_network_26e92bf3543c42d48873135b37a3fbcb --network-alias postgres -p 5432:5432 --health-cmd "pg_isready -U slotmath" --health-interval 2s --health-timeout 2s --health-retries 10 -e "POSTGRES_DB=slotmath" -e "POSTGRES_USER=slotmath" -e "POSTGRES_PASSWORD=slotmath" -e GITHUB_ACTIONS=true -e CI=true postgres:17-alpine
+2026-10-13T15:12:57.9302709Z 439ba4fbc63042754bd52849742a7806081e6d8ae5f90ab975b2fc0668890d43
+2026-10-13T15:12:57.9320712Z ##[command]/usr/bin/docker start 439ba4fbc63042754bd52849742a7806081e6d8ae5f90ab975b2fc0668890d43
+2026-10-13T15:12:58.1249910Z 439ba4fbc63042754bd52849742a7806081e6d8ae5f90ab975b2fc0668890d43
+2026-10-13T15:12:58.1265394Z ##[command]/usr/bin/docker ps --all --filter id=439ba4fbc63042754bd52849742a7806081e6d8ae5f90ab975b2fc0668890d43 --filter status=running --no-trunc --format "{{.ID}} {{.Status}}"
+2026-10-13T15:12:58.1403343Z 439ba4fbc63042754bd52849742a7806081e6d8ae5f90ab975b2fc0668890d43 Up Less than a second (health: starting)
+2026-10-13T15:12:58.1430524Z ##[command]/usr/bin/docker port 439ba4fbc63042754bd52849742a7806081e6d8ae5f90ab975b2fc0668890d43
+2026-10-13T15:12:58.1574760Z 5432/tcp -> 0.0.0.0:5432
+2026-10-13T15:12:58.1575089Z 5432/tcp -> [::]:5432
+2026-10-13T15:12:58.1616094Z ##[endgroup]
+2026-10-13T15:12:58.1625206Z ##[group]Waiting for all services to be ready
+2026-10-13T15:12:58.1638747Z ##[command]/usr/bin/docker inspect --format="{{if .Config.Healthcheck}}{{print .State.Health.Status}}{{end}}" 439ba4fbc63042754bd52849742a7806081e6d8ae5f90ab975b2fc0668890d43
+2026-10-13T15:12:58.1780132Z starting
+2026-10-13T15:12:58.1797855Z postgres service is starting, waiting 2 seconds before checking again.
+2026-10-13T15:13:00.1803270Z ##[command]/usr/bin/docker inspect --format="{{if .Config.Healthcheck}}{{print .State.Health.Status}}{{end}}" 439ba4fbc63042754bd52849742a7806081e6d8ae5f90ab975b2fc0668890d43
+2026-10-13T15:13:00.1937305Z healthy
+2026-10-13T15:13:00.1949609Z postgres service is healthy.
+2026-10-13T15:13:00.1950044Z ##[endgroup]
+2026-10-13T15:13:00.2241735Z ##[group]Run actions/checkout@v4
+2026-10-13T15:13:00.2242336Z with:
+2026-10-13T15:13:00.2242686Z   repository: lilter96/slot-math-lab
+2026-10-13T15:13:00.2246151Z   token: ***
+2026-10-13T15:13:00.2246506Z   ssh-strict: true
+2026-10-13T15:13:00.2246805Z   ssh-user: git
+2026-10-13T15:13:00.2247134Z   persist-credentials: true
+2026-10-13T15:13:00.2247465Z   clean: true
+2026-10-13T15:13:00.2247791Z   sparse-checkout-cone-mode: true
+2026-10-13T15:13:00.2248161Z   fetch-depth: 1
+2026-10-13T15:13:00.2248451Z   fetch-tags: false
+2026-10-13T15:13:00.2248751Z   show-progress: true
+2026-10-13T15:13:00.2249061Z   lfs: false
+2026-10-13T15:13:00.2249386Z   submodules: false
+2026-10-13T15:13:00.2249723Z   set-safe-directory: true
+2026-10-13T15:13:00.2250059Z   allow-unsafe-pr-checkout: false
+2026-10-13T15:13:00.2250634Z env:
+2026-10-13T15:13:00.2251244Z   ConnectionStrings__DefaultConnection: Host=localhost;Port=5432;Database=slotmath;Username=slotmath;***
+2026-10-13T15:13:00.2252068Z   ASPNETCORE_ENVIRONMENT: CI
+2026-10-13T15:13:00.2252475Z   CI: true
+2026-10-13T15:13:00.2252787Z ##[endgroup]
+2026-10-13T15:13:00.3260273Z Syncing repository: lilter96/slot-math-lab
+2026-10-13T15:13:00.3262137Z ##[group]Getting Git version info
+2026-10-13T15:13:00.3262822Z Working directory is '/home/runner/work/slot-math-lab/slot-math-lab'
+2026-10-13T15:13:00.3263953Z [command]/usr/bin/git version
+2026-10-13T15:13:00.3332234Z git version 2.55.0
+2026-10-13T15:13:00.3352245Z ##[endgroup]
+2026-10-13T15:13:00.3386233Z Temporarily overriding HOME='/home/runner/work/_temp/2db41a39-9aa1-4302-b6bc-78c07d3b22e1' before making global git config changes
+2026-10-13T15:13:00.3387424Z Adding repository directory to the temporary git global config as a safe directory
+2026-10-13T15:13:00.3388390Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/slot-math-lab/slot-math-lab
+2026-10-13T15:13:00.3442843Z Deleting the contents of '/home/runner/work/slot-math-lab/slot-math-lab'
+2026-10-13T15:13:00.3448647Z ##[group]Initializing the repository
+2026-10-13T15:13:00.3452921Z [command]/usr/bin/git init /home/runner/work/slot-math-lab/slot-math-lab
+2026-10-13T15:13:00.3542641Z hint: Using 'master' as the name for the initial branch. This default branch name
+2026-10-13T15:13:00.3544206Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+2026-10-13T15:13:00.3545372Z hint: to use in all of your new repositories, which will suppress this warning,
+2026-10-13T15:13:00.3546237Z hint: call:
+2026-10-13T15:13:00.3546745Z hint:
+2026-10-13T15:13:00.3547434Z hint: 	git config --global init.defaultBranch <name>
+2026-10-13T15:13:00.3548233Z hint:
+2026-10-13T15:13:00.3548980Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+2026-10-13T15:13:00.3550016Z hint: 'development'. The just-created branch can be renamed via this command:
+2026-10-13T15:13:00.3550809Z hint:
+2026-10-13T15:13:00.3551336Z hint: 	git branch -m <name>
+2026-10-13T15:13:00.3551877Z hint:
+2026-10-13T15:13:00.3552629Z hint: Disable this message with "git config set advice.defaultBranchName false"
+2026-10-13T15:13:00.3554012Z Initialized empty Git repository in /home/runner/work/slot-math-lab/slot-math-lab/.git/
+2026-10-13T15:13:00.3556432Z [command]/usr/bin/git remote add origin https://github.com/lilter96/slot-math-lab
+2026-10-13T15:13:00.3607840Z ##[endgroup]
+2026-10-13T15:13:00.3608436Z ##[group]Disabling automatic garbage collection
+2026-10-13T15:13:00.3614697Z [command]/usr/bin/git config --local gc.auto 0
+2026-10-13T15:13:00.3651099Z ##[endgroup]
+2026-10-13T15:13:00.3651742Z ##[group]Setting up auth
+2026-10-13T15:13:00.3660224Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-10-13T15:13:00.3693076Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-10-13T15:13:00.4054906Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-10-13T15:13:00.4090049Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-10-13T15:13:00.4292436Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-10-13T15:13:00.4325398Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-10-13T15:13:00.4514237Z [command]/usr/bin/git config --local http.https://github.com/.extraheader AUTHORIZATION: basic ***
+2026-10-13T15:13:00.4554948Z ##[endgroup]
+2026-10-13T15:13:00.4555624Z ##[group]Fetching the repository
+2026-10-13T15:13:00.4564267Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin +c0dd6a1948886e305fdf261d432ea17dbbd070c1:refs/remotes/pull/19/merge
+2026-10-13T15:13:03.5608204Z From https://github.com/lilter96/slot-math-lab
+2026-10-13T15:13:03.5608951Z  * [new ref]         c0dd6a1948886e305fdf261d432ea17dbbd070c1 -> pull/19/merge
+2026-10-13T15:13:03.5612734Z ##[endgroup]
+2026-10-13T15:13:03.5613289Z ##[group]Determining the checkout info
+2026-10-13T15:13:03.5616524Z ##[endgroup]
+2026-10-13T15:13:03.5631235Z [command]/usr/bin/git sparse-checkout disable
+2026-10-13T15:13:03.5682172Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
+2026-10-13T15:13:03.5710375Z ##[group]Checking out the ref
+2026-10-13T15:13:03.5714195Z [command]/usr/bin/git checkout --progress --force refs/remotes/pull/19/merge
+2026-10-13T15:13:04.2603247Z Note: switching to 'refs/remotes/pull/19/merge'.
+2026-10-13T15:13:04.2603835Z
+2026-10-13T15:13:04.2604104Z You are in 'detached HEAD' state. You can look around, make experimental
+2026-10-13T15:13:04.2604555Z changes and commit them, and you can discard any commits you make in this
+2026-10-13T15:13:04.2605029Z state without impacting any branches by switching back to a branch.
+2026-10-13T15:13:04.2605404Z
+2026-10-13T15:13:04.2605589Z If you want to create a new branch to retain commits you create, you may
+2026-10-13T15:13:04.2606006Z do so (now or later) by using -c with the switch command. Example:
+2026-10-13T15:13:04.2606246Z
+2026-10-13T15:13:04.2606368Z   git switch -c <new-branch-name>
+2026-10-13T15:13:04.2606528Z
+2026-10-13T15:13:04.2606636Z Or undo this operation with:
+2026-10-13T15:13:04.2606781Z
+2026-10-13T15:13:04.2606875Z   git switch -
+2026-10-13T15:13:04.2607008Z
+2026-10-13T15:13:04.2607202Z Turn off this advice by setting config variable advice.detachedHead to false
+2026-10-13T15:13:04.2607472Z
+2026-10-13T15:13:04.2607775Z HEAD is now at c0dd6a1 Merge 31b89fdbe774571bc88e68cf67ca01dab817f918 into 6345b1bd0de39fade0432cdb005560628c2f8328
+2026-10-13T15:13:04.2630080Z ##[endgroup]
+2026-10-13T15:13:04.2671348Z [command]/usr/bin/git log -1 --format=%H
+2026-10-13T15:13:04.2696210Z c0dd6a1948886e305fdf261d432ea17dbbd070c1
+2026-10-13T15:13:04.2924682Z ##[group]Run actions/setup-node@v4
+2026-10-13T15:13:04.2924951Z with:
+2026-10-13T15:13:04.2925160Z   node-version: 22
+2026-10-13T15:13:04.2925363Z   cache: npm
+2026-10-13T15:13:04.2925606Z   cache-dependency-path: frontend/package-lock.json
+2026-10-13T15:13:04.2926039Z   always-auth: false
+2026-10-13T15:13:04.2926251Z   check-latest: false
+2026-10-13T15:13:04.2928433Z   token: ***
+2026-10-13T15:13:04.2928632Z env:
+2026-10-13T15:13:04.2929069Z   ConnectionStrings__DefaultConnection: Host=localhost;Port=5432;Database=slotmath;Username=slotmath;***
+2026-10-13T15:13:04.2929518Z   ASPNETCORE_ENVIRONMENT: CI
+2026-10-13T15:13:04.2929742Z   CI: true
+2026-10-13T15:13:04.2929927Z ##[endgroup]
+2026-10-13T15:13:04.4349845Z (node:2739) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+2026-10-13T15:13:04.4350505Z (Use `node --trace-deprecation ...` to show where the warning was created)
+2026-10-13T15:13:04.4354182Z Found in cache @ /opt/hostedtoolcache/node/22.23.3/x64
+2026-10-13T15:13:04.4359969Z ##[group]Environment details
+2026-10-13T15:13:04.8216370Z node: v22.23.3
+2026-10-13T15:13:04.8216975Z npm: 10.9.9
+2026-10-13T15:13:04.8217221Z yarn: 1.22.22
+2026-10-13T15:13:04.8218532Z ##[endgroup]
+2026-10-13T15:13:04.8234686Z [command]/opt/hostedtoolcache/node/22.23.3/x64/bin/npm config get cache
+2026-10-13T15:13:04.9249745Z /home/runner/.npm
+2026-10-13T15:13:05.0599944Z Cache hit for: node-cache-Linux-x64-npm-e08982ab6f61b059b1972fdca931cf6bfe88e08d3896cf076d130b6dbc72812c
+2026-10-13T15:13:05.0702553Z (node:2739) [DEP0169] DeprecationWarning: `url.parse()` behavior is not standardized and prone to errors that have security implications. Use the WHATWG URL API instead. CVEs are not issued for `url.parse()` vulnerabilities.
+2026-10-13T15:13:05.8530340Z Received 80598100 of 80598100 (100.0%), 118.6 MBs/sec
+2026-10-13T15:13:05.8531492Z Cache Size: ~77 MB (80598100 B)
+2026-10-13T15:13:05.8560665Z [command]/usr/bin/tar -xf /home/runner/work/_temp/8b8f42ee-de11-4e55-b494-84cacb06ea98/cache.tzst -P -C /home/runner/work/slot-math-lab/slot-math-lab --use-compress-program unzstd
+2026-10-13T15:13:05.9549279Z Cache restored successfully
+2026-10-13T15:13:05.9587773Z Cache restored from key: node-cache-Linux-x64-npm-e08982ab6f61b059b1972fdca931cf6bfe88e08d3896cf076d130b6dbc72812c
+2026-10-13T15:13:05.9746340Z ##[group]Run npm ci --legacy-peer-deps
+2026-10-13T15:13:05.9746774Z npm ci --legacy-peer-deps
+2026-10-13T15:13:05.9898524Z shell: /usr/bin/bash -e {0}
+2026-10-13T15:13:05.9898817Z env:
+2026-10-13T15:13:05.9899452Z   ConnectionStrings__DefaultConnection: Host=localhost;Port=5432;Database=slotmath;Username=slotmath;***
+2026-10-13T15:13:05.9899921Z   ASPNETCORE_ENVIRONMENT: CI
+2026-10-13T15:13:05.9900158Z   CI: true
+2026-10-13T15:13:05.9900355Z ##[endgroup]
+2026-10-13T15:13:11.1461882Z
+2026-10-13T15:13:11.1469935Z added 267 packages, and audited 268 packages in 5s
+2026-10-13T15:13:11.1470379Z
+2026-10-13T15:13:11.1470660Z 57 packages are looking for funding
+2026-10-13T15:13:11.1471072Z   run `npm fund` for details
+2026-10-13T15:13:11.1471292Z
+2026-10-13T15:13:11.1471495Z found 0 vulnerabilities
+2026-10-13T15:13:11.1889179Z ##[group]Run actions/setup-dotnet@v4
+2026-10-13T15:13:11.1889495Z with:
+2026-10-13T15:13:11.1889739Z   dotnet-version: 10.0.x
+2026-10-13T15:13:11.1889979Z   cache: false
+2026-10-13T15:13:11.1890184Z env:
+2026-10-13T15:13:11.1890788Z   ConnectionStrings__DefaultConnection: Host=localhost;Port=5432;Database=slotmath;Username=slotmath;***
+2026-10-13T15:13:11.1891274Z   ASPNETCORE_ENVIRONMENT: CI
+2026-10-13T15:13:11.1891519Z   CI: true
+2026-10-13T15:13:11.1891730Z ##[endgroup]
+2026-10-13T15:13:11.3279571Z (node:2863) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+2026-10-13T15:13:11.3280650Z (Use `node --trace-deprecation ...` to show where the warning was created)
+2026-10-13T15:13:11.3304354Z [command]/home/runner/work/_actions/actions/setup-dotnet/v4/externals/install-dotnet.sh --skip-non-versioned-files --runtime dotnet --channel LTS
+2026-10-13T15:13:11.6476401Z dotnet-install: .NET Core Runtime with version '10.0.12' is already installed.
+2026-10-13T15:13:11.6497661Z [command]/home/runner/work/_actions/actions/setup-dotnet/v4/externals/install-dotnet.sh --skip-non-versioned-files --channel 10.0
+2026-10-13T15:13:11.8993297Z dotnet-install: .NET Core SDK with version '10.0.401' is already installed.
+2026-10-13T15:13:12.0037728Z ##[group]Run actions/cache@v4
+2026-10-13T15:13:12.0038027Z with:
+2026-10-13T15:13:12.0038258Z   path: ~/.nuget/packages
+2026-10-13T15:13:12.0038675Z   key: Linux-nuget-1acdf270ca6dc0ebb6b68d88e3515e397d9efe84c8a76552bc87247f13d60518
+2026-10-13T15:13:12.0039146Z   restore-keys: Linux-nuget-
+
+2026-10-13T15:13:12.0039407Z   enableCrossOsArchive: false
+2026-10-13T15:13:12.0039655Z   fail-on-cache-miss: false
+2026-10-13T15:13:12.0039916Z   lookup-only: false
+2026-10-13T15:13:12.0040150Z   save-always: false
+2026-10-13T15:13:12.0040366Z env:
+2026-10-13T15:13:12.0041164Z   ConnectionStrings__DefaultConnection: Host=localhost;Port=5432;Database=slotmath;Username=slotmath;***
+2026-10-13T15:13:12.0041643Z   ASPNETCORE_ENVIRONMENT: CI
+2026-10-13T15:13:12.0041879Z   CI: true
+2026-10-13T15:13:12.0042084Z   DOTNET_ROOT: /usr/share/dotnet
+2026-10-13T15:13:12.0042348Z ##[endgroup]
+2026-10-13T15:13:12.1070453Z (node:3066) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+2026-10-13T15:13:12.1071874Z (Use `node --trace-deprecation ...` to show where the warning was created)
+2026-10-13T15:13:12.2338690Z Cache hit for: Linux-nuget-1acdf270ca6dc0ebb6b68d88e3515e397d9efe84c8a76552bc87247f13d60518
+2026-10-13T15:13:12.2435868Z (node:3066) [DEP0169] DeprecationWarning: `url.parse()` behavior is not standardized and prone to errors that have security implications. Use the WHATWG URL API instead. CVEs are not issued for `url.parse()` vulnerabilities.
+2026-10-13T15:13:13.3498947Z Received 121634816 of 230065901 (52.9%), 115.9 MBs/sec
+2026-10-13T15:13:14.0324028Z Received 230065901 of 230065901 (100.0%), 130.4 MBs/sec
+2026-10-13T15:13:14.0324701Z Cache Size: ~219 MB (230065901 B)
+2026-10-13T15:13:14.0400258Z [command]/usr/bin/tar -xf /home/runner/work/_temp/533690c5-1b4e-412e-8381-d0977fd82a94/cache.tzst -P -C /home/runner/work/slot-math-lab/slot-math-lab --use-compress-program unzstd
+2026-10-13T15:13:14.7639058Z Cache restored successfully
+2026-10-13T15:13:14.7800273Z Cache restored from key: Linux-nuget-1acdf270ca6dc0ebb6b68d88e3515e397d9efe84c8a76552bc87247f13d60518
+2026-10-13T15:13:14.7913928Z ##[group]Run echo "version=$(node -p "require('@playwright/test/package.json').version")" >> "$GITHUB_OUTPUT"
+2026-10-13T15:13:14.7914768Z echo "version=$(node -p "require('@playwright/test/package.json').version")" >> "$GITHUB_OUTPUT"
+2026-10-13T15:13:14.7957892Z shell: /usr/bin/bash -e {0}
+2026-10-13T15:13:14.7958185Z env:
+2026-10-13T15:13:14.7958803Z   ConnectionStrings__DefaultConnection: Host=localhost;Port=5432;Database=slotmath;Username=slotmath;***
+2026-10-13T15:13:14.7959284Z   ASPNETCORE_ENVIRONMENT: CI
+2026-10-13T15:13:14.7959542Z   CI: true
+2026-10-13T15:13:14.7959754Z   DOTNET_ROOT: /usr/share/dotnet
+2026-10-13T15:13:14.7960020Z ##[endgroup]
+2026-10-13T15:13:14.8385558Z ##[group]Run actions/cache@v4
+2026-10-13T15:13:14.8385830Z with:
+2026-10-13T15:13:14.8386044Z   path: ~/.cache/ms-playwright
+2026-10-13T15:13:14.8386316Z   key: playwright-Linux-1.60.0
+2026-10-13T15:13:14.8386571Z   enableCrossOsArchive: false
+2026-10-13T15:13:14.8386825Z   fail-on-cache-miss: false
+2026-10-13T15:13:14.8387063Z   lookup-only: false
+2026-10-13T15:13:14.8387281Z   save-always: false
+2026-10-13T15:13:14.8387494Z env:
+2026-10-13T15:13:14.8388049Z   ConnectionStrings__DefaultConnection: Host=localhost;Port=5432;Database=slotmath;Username=slotmath;***
+2026-10-13T15:13:14.8388520Z   ASPNETCORE_ENVIRONMENT: CI
+2026-10-13T15:13:14.8388752Z   CI: true
+2026-10-13T15:13:14.8388963Z   DOTNET_ROOT: /usr/share/dotnet
+2026-10-13T15:13:14.8389213Z ##[endgroup]
+2026-10-13T15:13:14.9414565Z (node:3131) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+2026-10-13T15:13:14.9415581Z (Use `node --trace-deprecation ...` to show where the warning was created)
+2026-10-13T15:13:15.0567098Z Cache hit for: playwright-Linux-1.60.0
+2026-10-13T15:13:15.0686170Z (node:3131) [DEP0169] DeprecationWarning: `url.parse()` behavior is not standardized and prone to errors that have security implications. Use the WHATWG URL API instead. CVEs are not issued for `url.parse()` vulnerabilities.
+2026-10-13T15:13:16.1734445Z Received 134217728 of 271456539 (49.4%), 127.9 MBs/sec
+2026-10-13T15:13:16.8527781Z Received 271456539 of 271456539 (100.0%), 154.1 MBs/sec
+2026-10-13T15:13:16.8529390Z Cache Size: ~259 MB (271456539 B)
+2026-10-13T15:13:16.8654475Z [command]/usr/bin/tar -xf /home/runner/work/_temp/b7e7f2a4-b8be-460f-8ed9-74fd441e3dbf/cache.tzst -P -C /home/runner/work/slot-math-lab/slot-math-lab --use-compress-program unzstd
+2026-10-13T15:13:17.8048145Z Cache restored successfully
+2026-10-13T15:13:17.8221744Z Cache restored from key: playwright-Linux-1.60.0
+2026-10-13T15:13:17.8626376Z ##[group]Run npx playwright install --with-deps chromium
+2026-10-13T15:13:17.8626964Z npx playwright install --with-deps chromium
+2026-10-13T15:13:17.8668009Z shell: /usr/bin/bash -e {0}
+2026-10-13T15:13:17.8668492Z env:
+2026-10-13T15:13:17.8669350Z   ConnectionStrings__DefaultConnection: Host=localhost;Port=5432;Database=slotmath;Username=slotmath;***
+2026-10-13T15:13:17.8670050Z   ASPNETCORE_ENVIRONMENT: CI
+2026-10-13T15:13:17.8670426Z   CI: true
+2026-10-13T15:13:17.8670780Z   DOTNET_ROOT: /usr/share/dotnet
+2026-10-13T15:13:17.8671226Z ##[endgroup]
+2026-10-13T15:13:18.7866288Z Installing dependencies...
+2026-10-13T15:13:18.7933715Z Switching to root user to install dependencies...
+2026-10-13T15:13:18.8691545Z Get:1 file:/etc/apt/apt-mirrors.txt Mirrorlist [144 B]
+2026-10-13T15:13:18.9145916Z Get:6 https://packages.microsoft.com/ubuntu/24.04/prod noble InRelease [3600 B]
+2026-10-13T15:13:18.9365241Z Hit:2 http://azure.archive.ubuntu.com/ubuntu noble InRelease
+2026-10-13T15:13:18.9386575Z Get:3 http://azure.archive.ubuntu.com/ubuntu noble-updates InRelease [126 kB]
+2026-10-13T15:13:18.9465388Z Get:4 http://azure.archive.ubuntu.com/ubuntu noble-backports InRelease [126 kB]
+2026-10-13T15:13:18.9475921Z Get:5 http://azure.archive.ubuntu.com/ubuntu noble-security InRelease [126 kB]
+2026-10-13T15:13:19.0220298Z Get:7 https://packages.microsoft.com/ubuntu/24.04/prod noble/main armhf Packages [12.3 kB]
+2026-10-13T15:13:19.0339854Z Get:8 https://packages.microsoft.com/ubuntu/24.04/prod noble/main amd64 Packages [571 kB]
+2026-10-13T15:13:19.0573875Z Get:9 https://packages.microsoft.com/ubuntu/24.04/prod noble/main arm64 Packages [513 kB]
+2026-10-13T15:13:19.0610512Z Get:10 https://packages.microsoft.com/ubuntu/24.04/prod noble/main all Packages [640 B]
+2026-10-13T15:13:19.1309099Z Get:11 http://azure.archive.ubuntu.com/ubuntu noble-updates/main amd64 Packages [1397 kB]
+2026-10-13T15:13:19.1911400Z Get:12 http://azure.archive.ubuntu.com/ubuntu noble-updates/main Translation-en [308 kB]
+2026-10-13T15:13:19.1947655Z Get:13 http://azure.archive.ubuntu.com/ubuntu noble-updates/universe amd64 Packages [1702 kB]
+2026-10-13T15:13:19.2034647Z Get:14 http://azure.archive.ubuntu.com/ubuntu noble-updates/universe Translation-en [342 kB]
+2026-10-13T15:13:19.2126194Z Get:15 http://azure.archive.ubuntu.com/ubuntu noble-updates/restricted amd64 Packages [1805 kB]
+2026-10-13T15:13:19.2242427Z Get:16 http://azure.archive.ubuntu.com/ubuntu noble-updates/restricted Translation-en [411 kB]
+2026-10-13T15:13:19.2303551Z Get:17 http://azure.archive.ubuntu.com/ubuntu noble-updates/multiverse amd64 Packages [50.7 kB]
+2026-10-13T15:13:19.2597886Z Get:18 http://azure.archive.ubuntu.com/ubuntu noble-updates/multiverse Translation-en [14.0 kB]
+2026-10-13T15:13:19.2598935Z Get:19 http://azure.archive.ubuntu.com/ubuntu noble-backports/multiverse amd64 Packages [748 B]
+2026-10-13T15:13:19.2608637Z Get:20 http://azure.archive.ubuntu.com/ubuntu noble-security/main amd64 Packages [1144 kB]
+2026-10-13T15:13:19.3126119Z Get:21 http://azure.archive.ubuntu.com/ubuntu noble-security/main Translation-en [230 kB]
+2026-10-13T15:13:19.3362030Z Get:22 http://azure.archive.ubuntu.com/ubuntu noble-security/universe amd64 Packages [1221 kB]
+2026-10-13T15:13:19.3458333Z Get:23 http://azure.archive.ubuntu.com/ubuntu noble-security/universe Translation-en [246 kB]
+2026-10-13T15:13:19.3480002Z Get:24 http://azure.archive.ubuntu.com/ubuntu noble-security/restricted amd64 Packages [1713 kB]
+2026-10-13T15:13:19.3676100Z Get:25 http://azure.archive.ubuntu.com/ubuntu noble-security/restricted Translation-en [392 kB]
+2026-10-13T15:13:19.3698044Z Get:26 http://azure.archive.ubuntu.com/ubuntu noble-security/multiverse amd64 Packages [45.4 kB]
+2026-10-13T15:13:19.3788036Z Get:27 http://azure.archive.ubuntu.com/ubuntu noble-security/multiverse Translation-en [12.1 kB]
+2026-10-13T15:13:22.8601991Z Fetched 12.5 MB in 1s (8383 kB/s)
+2026-10-13T15:13:23.8136057Z Reading package lists...
+2026-10-13T15:13:23.8416401Z Reading package lists...
+2026-10-13T15:13:24.0590950Z Building dependency tree...
+2026-10-13T15:13:24.0598050Z Reading state information...
+2026-10-13T15:13:24.2454096Z libasound2t64 is already the newest version (1.2.11-1ubuntu0.3).
+2026-10-13T15:13:24.2454991Z libasound2t64 set to manually installed.
+2026-10-13T15:13:24.2455695Z libatk-bridge2.0-0t64 is already the newest version (2.52.0-1build1).
+2026-10-13T15:13:24.2456632Z libatk-bridge2.0-0t64 set to manually installed.
+2026-10-13T15:13:24.2457390Z libatk1.0-0t64 is already the newest version (2.52.0-1build1).
+2026-10-13T15:13:24.2458079Z libatk1.0-0t64 set to manually installed.
+2026-10-13T15:13:24.2458884Z libatspi2.0-0t64 is already the newest version (2.52.0-1build1).
+2026-10-13T15:13:24.2459586Z libatspi2.0-0t64 set to manually installed.
+2026-10-13T15:13:24.2460447Z libcairo2 is already the newest version (1.18.0-3build1).
+2026-10-13T15:13:24.2461291Z libcairo2 set to manually installed.
+2026-10-13T15:13:24.2462165Z libcups2t64 is already the newest version (2.4.7-1.2ubuntu7.14).
+2026-10-13T15:13:24.2463055Z libcups2t64 set to manually installed.
+2026-10-13T15:13:24.2464011Z libdbus-1-3 is already the newest version (1.14.10-4ubuntu4.1).
+2026-10-13T15:13:24.2464807Z libdbus-1-3 set to manually installed.
+2026-10-13T15:13:24.2465678Z libdrm2 is already the newest version (2.4.125-1ubuntu0.1~24.04.2).
+2026-10-13T15:13:24.2466455Z libdrm2 set to manually installed.
+2026-10-13T15:13:24.2467239Z libgbm1 is already the newest version (25.2.8-0ubuntu0.24.04.4).
+2026-10-13T15:13:24.2468041Z libgbm1 set to manually installed.
+2026-10-13T15:13:24.2468949Z libglib2.0-0t64 is already the newest version (2.80.0-6ubuntu3.9).
+2026-10-13T15:13:24.2469820Z libglib2.0-0t64 set to manually installed.
+2026-10-13T15:13:24.2470611Z libnspr4 is already the newest version (2:4.35-1.1build1).
+2026-10-13T15:13:24.2471443Z libnspr4 set to manually installed.
+2026-10-13T15:13:24.2472299Z libnss3 is already the newest version (2:3.98-1ubuntu0.2).
+2026-10-13T15:13:24.2472995Z libnss3 set to manually installed.
+2026-10-13T15:13:24.2474067Z libpango-1.0-0 is already the newest version (1.52.1+ds-1build1).
+2026-10-13T15:13:24.2474851Z libpango-1.0-0 set to manually installed.
+2026-10-13T15:13:24.2475670Z libxcb1 is already the newest version (1.15-1ubuntu2).
+2026-10-13T15:13:24.2476316Z libxcb1 set to manually installed.
+2026-10-13T15:13:24.2477036Z libxcomposite1 is already the newest version (1:0.4.5-1build3).
+2026-10-13T15:13:24.2477840Z libxcomposite1 set to manually installed.
+2026-10-13T15:13:24.2478776Z libxdamage1 is already the newest version (1:1.1.6-1build1).
+2026-10-13T15:13:24.2479526Z libxdamage1 set to manually installed.
+2026-10-13T15:13:24.2480158Z libxext6 is already the newest version (2:1.3.4-1build2).
+2026-10-13T15:13:24.2480659Z libxext6 set to manually installed.
+2026-10-13T15:13:24.2481209Z libxfixes3 is already the newest version (1:6.0.0-2build1).
+2026-10-13T15:13:24.2481797Z libxfixes3 set to manually installed.
+2026-10-13T15:13:24.2482331Z libxkbcommon0 is already the newest version (1.6.0-1build1).
+2026-10-13T15:13:24.2482899Z libxkbcommon0 set to manually installed.
+2026-10-13T15:13:24.2483635Z libxrandr2 is already the newest version (2:1.5.2-2build1).
+2026-10-13T15:13:24.2484505Z libxrandr2 set to manually installed.
+2026-10-13T15:13:24.2485036Z xvfb is already the newest version (2:21.1.12-1ubuntu1.8).
+2026-10-13T15:13:24.2485660Z fonts-noto-color-emoji is already the newest version (2.047-0ubuntu0.24.04.1).
+2026-10-13T15:13:24.2486348Z libfontconfig1 is already the newest version (2.15.0-1.1ubuntu2).
+2026-10-13T15:13:24.2486901Z libfontconfig1 set to manually installed.
+2026-10-13T15:13:24.2487424Z fonts-liberation is already the newest version (1:2.1.5-3).
+2026-10-13T15:13:24.2487923Z fonts-liberation set to manually installed.
+2026-10-13T15:13:24.2488442Z The following additional packages will be installed:
+2026-10-13T15:13:24.2488974Z   libx11-data libx11-xcb1 xfonts-encodings xfonts-utils
+2026-10-13T15:13:24.2489573Z Recommended packages:
+2026-10-13T15:13:24.2490059Z   fonts-ipafont-mincho fonts-tlwg-loma
+2026-10-13T15:13:24.2659884Z The following NEW packages will be installed:
+2026-10-13T15:13:24.2660653Z   fonts-freefont-ttf fonts-ipafont-gothic fonts-tlwg-loma-otf fonts-unifont
+2026-10-13T15:13:24.2667630Z   fonts-wqy-zenhei xfonts-cyrillic xfonts-encodings xfonts-scalable
+2026-10-13T15:13:24.2668238Z   xfonts-utils
+2026-10-13T15:13:24.2672275Z The following packages will be upgraded:
+2026-10-13T15:13:24.2677411Z   libfreetype6 libx11-6 libx11-data libx11-xcb1
+2026-10-13T15:13:24.2847852Z 4 upgraded, 9 newly installed, 0 to remove and 25 not upgraded.
+2026-10-13T15:13:24.2848741Z Need to get 22.3 MB of archives.
+2026-10-13T15:13:24.2849471Z After this operation, 79.6 MB of additional disk space will be used.
+2026-10-13T15:13:24.2850308Z Get:1 file:/etc/apt/apt-mirrors.txt Mirrorlist [144 B]
+2026-10-13T15:13:24.3345419Z Get:2 http://azure.archive.ubuntu.com/ubuntu noble/universe amd64 fonts-ipafont-gothic all 00303-21ubuntu1 [3513 kB]
+2026-10-13T15:13:24.5897799Z Get:3 http://azure.archive.ubuntu.com/ubuntu noble-security/main amd64 libx11-6 amd64 2:1.8.7-1ubuntu0.1 [653 kB]
+2026-10-13T15:13:24.6484469Z Get:4 http://azure.archive.ubuntu.com/ubuntu noble-security/main amd64 libx11-xcb1 amd64 2:1.8.7-1ubuntu0.1 [7796 B]
+2026-10-13T15:13:24.6719797Z Get:5 http://azure.archive.ubuntu.com/ubuntu noble-security/main amd64 libx11-data all 2:1.8.7-1ubuntu0.1 [116 kB]
+2026-10-13T15:13:24.7034593Z Get:6 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 fonts-freefont-ttf all 20211204+svn4273-2 [5641 kB]
+2026-10-13T15:13:24.9498203Z Get:7 http://azure.archive.ubuntu.com/ubuntu noble/universe amd64 fonts-tlwg-loma-otf all 1:0.7.3-1 [107 kB]
+2026-10-13T15:13:24.9814926Z Get:8 http://azure.archive.ubuntu.com/ubuntu noble/universe amd64 fonts-unifont all 1:15.1.01-1build1 [2993 kB]
+2026-10-13T15:13:25.1139293Z Get:9 http://azure.archive.ubuntu.com/ubuntu noble/universe amd64 fonts-wqy-zenhei all 0.9.45-8 [7472 kB]
+2026-10-13T15:13:25.5157435Z Get:10 http://azure.archive.ubuntu.com/ubuntu noble-updates/main amd64 libfreetype6 amd64 2.13.2+dfsg-1ubuntu0.2 [403 kB]
+2026-10-13T15:13:25.5680273Z Get:11 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 xfonts-encodings all 1:1.0.5-0ubuntu2 [578 kB]
+2026-10-13T15:13:25.6215407Z Get:12 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 xfonts-utils amd64 1:7.7+6build3 [94.4 kB]
+2026-10-13T15:13:25.6536705Z Get:13 http://azure.archive.ubuntu.com/ubuntu noble/universe amd64 xfonts-cyrillic all 1:1.0.5+nmu1 [384 kB]
+2026-10-13T15:13:25.6998421Z Get:14 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 xfonts-scalable all 1:1.0.3-1.3 [304 kB]
+2026-10-13T15:13:25.9668432Z Fetched 22.3 MB in 1s (15.5 MB/s)
+2026-10-13T15:13:25.9938527Z Selecting previously unselected package fonts-ipafont-gothic.
+2026-10-13T15:13:26.0139672Z (Reading database ...
+2026-10-13T15:13:26.0140517Z (Reading database ... 5%
+2026-10-13T15:13:26.0141056Z (Reading database ... 10%
+2026-10-13T15:13:26.0141623Z (Reading database ... 15%
+2026-10-13T15:13:26.0142805Z (Reading database ... 20%
+2026-10-13T15:13:26.0143724Z (Reading database ... 25%
+2026-10-13T15:13:26.0144560Z (Reading database ... 30%
+2026-10-13T15:13:26.0145230Z (Reading database ... 35%
+2026-10-13T15:13:26.0145817Z (Reading database ... 40%
+2026-10-13T15:13:26.0146325Z (Reading database ... 45%
+2026-10-13T15:13:26.0146880Z (Reading database ... 50%
+2026-10-13T15:13:26.0181509Z (Reading database ... 55%
+2026-10-13T15:13:26.1238713Z (Reading database ... 60%
+2026-10-13T15:13:26.3228500Z (Reading database ... 65%
+2026-10-13T15:13:26.5215832Z (Reading database ... 70%
+2026-10-13T15:13:26.8290622Z (Reading database ... 75%
+2026-10-13T15:13:26.9729301Z (Reading database ... 80%
+2026-10-13T15:13:27.1712649Z (Reading database ... 85%
+2026-10-13T15:13:27.3341391Z (Reading database ... 90%
+2026-10-13T15:13:27.5120008Z (Reading database ... 95%
+2026-10-13T15:13:27.5120690Z (Reading database ... 100%
+2026-10-13T15:13:27.5121251Z (Reading database ... 203191 files and directories currently installed.)
+2026-10-13T15:13:27.5167104Z Preparing to unpack .../00-fonts-ipafont-gothic_00303-21ubuntu1_all.deb ...
+2026-10-13T15:13:27.6626203Z Unpacking fonts-ipafont-gothic (00303-21ubuntu1) ...
+2026-10-13T15:13:28.5344315Z Preparing to unpack .../01-libx11-6_2%3a1.8.7-1ubuntu0.1_amd64.deb ...
+2026-10-13T15:13:28.7421768Z Unpacking libx11-6:amd64 (2:1.8.7-1ubuntu0.1) over (2:1.8.7-1build1) ...
+2026-10-13T15:13:29.5503346Z Preparing to unpack .../02-libx11-xcb1_2%3a1.8.7-1ubuntu0.1_amd64.deb ...
+2026-10-13T15:13:29.6043976Z Unpacking libx11-xcb1:amd64 (2:1.8.7-1ubuntu0.1) over (2:1.8.7-1build1) ...
+2026-10-13T15:13:29.6386843Z Preparing to unpack .../03-libx11-data_2%3a1.8.7-1ubuntu0.1_all.deb ...
+2026-10-13T15:13:29.6409193Z Unpacking libx11-data (2:1.8.7-1ubuntu0.1) over (2:1.8.7-1build1) ...
+2026-10-13T15:13:29.7346338Z Selecting previously unselected package fonts-freefont-ttf.
+2026-10-13T15:13:29.7476461Z Preparing to unpack .../04-fonts-freefont-ttf_20211204+svn4273-2_all.deb ...
+2026-10-13T15:13:29.7488992Z Unpacking fonts-freefont-ttf (20211204+svn4273-2) ...
+2026-10-13T15:13:29.8541597Z Selecting previously unselected package fonts-tlwg-loma-otf.
+2026-10-13T15:13:29.8664333Z Preparing to unpack .../05-fonts-tlwg-loma-otf_1%3a0.7.3-1_all.deb ...
+2026-10-13T15:13:29.8671563Z Unpacking fonts-tlwg-loma-otf (1:0.7.3-1) ...
+2026-10-13T15:13:29.8855368Z Selecting previously unselected package fonts-unifont.
+2026-10-13T15:13:29.8982290Z Preparing to unpack .../06-fonts-unifont_1%3a15.1.01-1build1_all.deb ...
+2026-10-13T15:13:29.8995212Z Unpacking fonts-unifont (1:15.1.01-1build1) ...
+2026-10-13T15:13:30.1099832Z Selecting previously unselected package fonts-wqy-zenhei.
+2026-10-13T15:13:30.1226878Z Preparing to unpack .../07-fonts-wqy-zenhei_0.9.45-8_all.deb ...
+2026-10-13T15:13:30.1324582Z Unpacking fonts-wqy-zenhei (0.9.45-8) ...
+2026-10-13T15:13:30.7374949Z Preparing to unpack .../08-libfreetype6_2.13.2+dfsg-1ubuntu0.2_amd64.deb ...
+2026-10-13T15:13:30.7409882Z Unpacking libfreetype6:amd64 (2.13.2+dfsg-1ubuntu0.2) over (2.13.2+dfsg-1ubuntu0.1) ...
+2026-10-13T15:13:30.7723622Z Selecting previously unselected package xfonts-encodings.
+2026-10-13T15:13:30.7851818Z Preparing to unpack .../09-xfonts-encodings_1%3a1.0.5-0ubuntu2_all.deb ...
+2026-10-13T15:13:30.7864744Z Unpacking xfonts-encodings (1:1.0.5-0ubuntu2) ...
+2026-10-13T15:13:30.8137214Z Selecting previously unselected package xfonts-utils.
+2026-10-13T15:13:30.8267731Z Preparing to unpack .../10-xfonts-utils_1%3a7.7+6build3_amd64.deb ...
+2026-10-13T15:13:30.8277172Z Unpacking xfonts-utils (1:7.7+6build3) ...
+2026-10-13T15:13:30.8584174Z Selecting previously unselected package xfonts-cyrillic.
+2026-10-13T15:13:30.8709349Z Preparing to unpack .../11-xfonts-cyrillic_1%3a1.0.5+nmu1_all.deb ...
+2026-10-13T15:13:30.8718084Z Unpacking xfonts-cyrillic (1:1.0.5+nmu1) ...
+2026-10-13T15:13:30.8995907Z Selecting previously unselected package xfonts-scalable.
+2026-10-13T15:13:30.9122492Z Preparing to unpack .../12-xfonts-scalable_1%3a1.0.3-1.3_all.deb ...
+2026-10-13T15:13:30.9134481Z Unpacking xfonts-scalable (1:1.0.3-1.3) ...
+2026-10-13T15:13:30.9643634Z Setting up fonts-wqy-zenhei (0.9.45-8) ...
+2026-10-13T15:13:30.9762115Z Setting up fonts-freefont-ttf (20211204+svn4273-2) ...
+2026-10-13T15:13:30.9782489Z Setting up fonts-tlwg-loma-otf (1:0.7.3-1) ...
+2026-10-13T15:13:30.9802106Z Setting up libfreetype6:amd64 (2.13.2+dfsg-1ubuntu0.2) ...
+2026-10-13T15:13:30.9824778Z Setting up libx11-data (2:1.8.7-1ubuntu0.1) ...
+2026-10-13T15:13:30.9844863Z Setting up xfonts-encodings (1:1.0.5-0ubuntu2) ...
+2026-10-13T15:13:30.9864391Z Setting up fonts-ipafont-gothic (00303-21ubuntu1) ...
+2026-10-13T15:13:30.9928203Z update-alternatives: using /usr/share/fonts/opentype/ipafont-gothic/ipag.ttf to provide /usr/share/fonts/truetype/fonts-japanese-gothic.ttf (fonts-japanese-gothic.ttf) in auto mode
+2026-10-13T15:13:30.9944901Z Setting up libx11-6:amd64 (2:1.8.7-1ubuntu0.1) ...
+2026-10-13T15:13:30.9965599Z Setting up fonts-unifont (1:15.1.01-1build1) ...
+2026-10-13T15:13:30.9984563Z Setting up libx11-xcb1:amd64 (2:1.8.7-1ubuntu0.1) ...
+2026-10-13T15:13:31.0003946Z Setting up xfonts-utils (1:7.7+6build3) ...
+2026-10-13T15:13:31.0044705Z Setting up xfonts-cyrillic (1:1.0.5+nmu1) ...
+2026-10-13T15:13:31.0306684Z Setting up xfonts-scalable (1:1.0.3-1.3) ...
+2026-10-13T15:13:31.0541935Z Processing triggers for libc-bin (2.39-0ubuntu8.9) ...
+2026-10-13T15:13:31.0819551Z Processing triggers for man-db (2.12.0-4build2) ...
+2026-10-13T15:13:31.0841108Z Not building database; man-db/auto-update is not 'true'.
+2026-10-13T15:13:31.0854920Z Processing triggers for fontconfig (2.15.0-1.1ubuntu2) ...
+2026-10-13T15:13:31.7138390Z
+2026-10-13T15:13:31.7139283Z Running kernel seems to be up-to-date.
+2026-10-13T15:13:31.7139723Z
+2026-10-13T15:13:31.7139987Z Restarting services...
+2026-10-13T15:13:31.7204922Z  systemctl restart php8.3-fpm.service
+2026-10-13T15:13:31.8048369Z
+2026-10-13T15:13:31.8055894Z No containers need to be restarted.
+2026-10-13T15:13:31.8056314Z
+2026-10-13T15:13:31.8056719Z No user sessions are running outdated binaries.
+2026-10-13T15:13:31.8057116Z
+2026-10-13T15:13:31.8057640Z No VM guests are running outdated hypervisor (qemu) binaries on this host.
+2026-10-13T15:13:32.8372620Z ##[group]Run npm run build
+2026-10-13T15:13:32.8373066Z npm run build
+2026-10-13T15:13:32.8414982Z shell: /usr/bin/bash -e {0}
+2026-10-13T15:13:32.8415458Z env:
+2026-10-13T15:13:32.8416236Z   ConnectionStrings__DefaultConnection: Host=localhost;Port=5432;Database=slotmath;Username=slotmath;***
+2026-10-13T15:13:32.8416811Z   ASPNETCORE_ENVIRONMENT: CI
+2026-10-13T15:13:32.8417216Z   CI: true
+2026-10-13T15:13:32.8417523Z   DOTNET_ROOT: /usr/share/dotnet
+2026-10-13T15:13:32.8417946Z ##[endgroup]
+2026-10-13T15:13:32.9355675Z
+2026-10-13T15:13:32.9356420Z > frontend@0.0.0 build
+2026-10-13T15:13:32.9357336Z > tsc -b && vite build
+2026-10-13T15:13:32.9357707Z
+2026-10-13T15:13:47.8978553Z vite v8.0.16 building client environment for production...
+2026-10-13T15:13:47.9091292Z
+2026-10-13T15:13:48.3519142Z transforming...✓ 1365 modules transformed.
+2026-10-13T15:13:48.7916076Z rendering chunks...
+2026-10-13T15:13:49.0324973Z computing gzip size...
+2026-10-13T15:13:49.0518761Z dist/index.html                                     1.02 kB │ gzip:   0.48 kB
+2026-10-13T15:13:49.0520004Z dist/games.html                                    10.57 kB │ gzip:   3.10 kB
+2026-10-13T15:13:49.0521477Z dist/assets/VerificationProfile-DlQ1OhR-.css        3.05 kB │ gzip:   0.91 kB
+2026-10-13T15:13:49.0522788Z dist/assets/App-DgaAwiqv.css                       10.98 kB │ gzip:   2.50 kB
+2026-10-13T15:13:49.0523960Z dist/assets/StateMachineDesigner-6iYBnCSC.css      13.10 kB │ gzip:   2.88 kB
+2026-10-13T15:13:49.0524843Z dist/assets/launch-DBfy_tn0.css                    14.81 kB │ gzip:   4.09 kB
+2026-10-13T15:13:49.0525673Z dist/assets/Simulate-CretSBbS.css                  15.16 kB │ gzip:   3.43 kB
+2026-10-13T15:13:49.0526846Z dist/assets/Results--QMCvxjB.css                   23.44 kB │ gzip:   4.63 kB
+2026-10-13T15:13:49.0528096Z dist/assets/main-BEZC2CFs.css                      26.59 kB │ gzip:   6.93 kB
+2026-10-13T15:13:49.0529044Z dist/assets/reel-paytable-studio-DXVgYhjZ.css      35.10 kB │ gzip:   6.91 kB
+2026-10-13T15:13:49.0530614Z dist/assets/main-DsKpKoj9.css                      72.29 kB │ gzip:  13.51 kB
+2026-10-13T15:13:49.0531406Z dist/assets/webworkerAll-DAFSf3Em.js                0.05 kB │ gzip:   0.06 kB
+2026-10-13T15:13:49.0532270Z dist/assets/init-xjbP5Xbd.js                        0.11 kB │ gzip:   0.11 kB
+2026-10-13T15:13:49.0533070Z dist/assets/browserAll-CR8oqkAm.js                  0.23 kB │ gzip:   0.17 kB
+2026-10-13T15:13:49.0534294Z dist/assets/getTextureBatchBindGroup-Bcatn1SN.js    0.34 kB │ gzip:   0.26 kB
+2026-10-13T15:13:49.0535117Z dist/assets/useModelProjection-BXjxJFkt.js          0.37 kB │ gzip:   0.25 kB
+2026-10-13T15:13:49.0535953Z dist/assets/ImageSource-BbB-gdwV.js                 0.37 kB │ gzip:   0.26 kB
+2026-10-13T15:13:49.0536718Z dist/assets/CanvasPool-LSq4AZsF.js                  0.75 kB │ gzip:   0.42 kB
+2026-10-13T15:13:49.0537543Z dist/assets/manifest-DlNyJq_4.js                    0.76 kB │ gzip:   0.52 kB
+2026-10-13T15:13:49.0538396Z dist/assets/chunk-aKtaBQYM.js                       1.08 kB │ gzip:   0.62 kB
+2026-10-13T15:13:49.0540095Z dist/assets/Cache-haT24KxJ.js                       1.09 kB │ gzip:   0.55 kB
+2026-10-13T15:13:49.0541014Z dist/assets/model-DBmEgAVE.js                       1.18 kB │ gzip:   0.61 kB
+2026-10-13T15:13:49.0542012Z dist/assets/games-DekI3fB2.js                       1.45 kB │ gzip:   0.83 kB
+2026-10-13T15:13:49.0542885Z dist/assets/Login-9xNTvPZU.js                       1.67 kB │ gzip:   0.88 kB
+2026-10-13T15:13:49.0543952Z dist/assets/preload-helper-CfhYeVOc.js              2.92 kB │ gzip:   1.43 kB
+2026-10-13T15:13:49.0544822Z dist/assets/NineLives-DjdWKTsL.js                   3.21 kB │ gzip:   1.43 kB
+2026-10-13T15:13:49.0545670Z dist/assets/projectFiles-0fN3g59M.js                5.06 kB │ gzip:   2.05 kB
+2026-10-13T15:13:49.0546717Z dist/assets/canvasUtils-CjnZ7AJr.js                 5.68 kB │ gzip:   1.89 kB
+2026-10-13T15:13:49.0548462Z dist/assets/ExpressionTreeEditor-B9JkBUgg.js        5.85 kB │ gzip:   1.64 kB
+2026-10-13T15:13:49.0549768Z dist/assets/weightCsv-DZW3EveY.js                   6.99 kB │ gzip:   1.85 kB
+2026-10-13T15:13:49.0550865Z dist/assets/jsx-runtime-DqMcooe2.js                 7.88 kB │ gzip:   2.98 kB
+2026-10-13T15:13:49.0551872Z dist/assets/Debug-C5DP7N1c.js                       8.40 kB │ gzip:   3.23 kB
+2026-10-13T15:13:49.0553228Z dist/assets/BufferResource-HgDynZMH.js             10.56 kB │ gzip:   2.80 kB
+2026-10-13T15:13:49.0554945Z dist/assets/hold-and-spin-Owz9X1GK.js              14.82 kB │ gzip:   5.50 kB
+2026-10-13T15:13:49.0556213Z dist/assets/reelCommands-DaxboThh.js               22.65 kB │ gzip:   7.71 kB
+2026-10-13T15:13:49.0557355Z dist/assets/GCManagedHash-XG-XqJJs.js              26.67 kB │ gzip:   9.33 kB
+2026-10-13T15:13:49.0558425Z dist/assets/graph-DLuhWeZD.js                      28.51 kB │ gzip:   8.63 kB
+2026-10-13T15:13:49.0559383Z dist/assets/launch-BiCB-4dV.js                     30.37 kB │ gzip:  11.63 kB
+2026-10-13T15:13:49.0560550Z dist/assets/reel-paytable-studio-CkH3rKFj.js       33.56 kB │ gzip:  11.23 kB
+2026-10-13T15:13:49.0561515Z dist/assets/Filter-DmOXR4Ez.js                     38.75 kB │ gzip:  11.06 kB
+2026-10-13T15:13:49.0562431Z dist/assets/api-hek_N6ew.js                        41.59 kB │ gzip:  14.09 kB
+2026-10-13T15:13:49.0563533Z dist/assets/chunk-OB3PAWPO-CBZlDxgP.js             42.49 kB │ gzip:  15.10 kB
+2026-10-13T15:13:49.0564451Z dist/assets/Results-DKliicKG.js                    47.65 kB │ gzip:  13.43 kB
+2026-10-13T15:13:49.0565452Z dist/assets/RenderTargetSystem-CJwXtmtx.js         51.70 kB │ gzip:  14.45 kB
+2026-10-13T15:13:49.0566380Z dist/assets/GraphicsContext-DNNRZo5h.js            53.69 kB │ gzip:  17.33 kB
+2026-10-13T15:13:49.0567357Z dist/assets/Geometry-BN8lMoOD.js                   62.35 kB │ gzip:  20.47 kB
+2026-10-13T15:13:49.0568263Z dist/assets/graph-CKfUGo1d.js                      79.52 kB │ gzip:  21.74 kB
+2026-10-13T15:13:49.0569186Z dist/assets/StateMachineDesigner-KOcG45Q4.js       82.66 kB │ gzip:  25.16 kB
+2026-10-13T15:13:49.0570433Z dist/assets/VerificationProfile-CSEPjSNY.js        98.29 kB │ gzip:  27.50 kB
+2026-10-13T15:13:49.0571389Z dist/assets/graphApi-BOgdSx3d.js                   98.39 kB │ gzip:  26.81 kB
+2026-10-13T15:13:49.0572278Z dist/assets/ReelPaytableStudio-B2GjzS9O.js        134.79 kB │ gzip:  38.72 kB
+2026-10-13T15:13:49.0573567Z dist/assets/Simulate-Bg2MqB_1.js                  177.98 kB │ gzip:  45.05 kB
+2026-10-13T15:13:49.0574674Z dist/assets/store-SGSdR1v-.js                     196.11 kB │ gzip:  63.96 kB
+2026-10-13T15:13:49.0575374Z dist/assets/main-BC0qxuLg.js                      215.71 kB │ gzip:  66.74 kB
+2026-10-13T15:13:49.0576143Z dist/assets/main-BbNQ0Umm.js                      217.07 kB │ gzip:  68.40 kB
+2026-10-13T15:13:49.0576847Z dist/assets/xlsx-CKkngM-o.js                      493.28 kB │ gzip: 160.68 kB
+2026-10-13T15:13:49.0577605Z dist/assets/App-Cb_K2BO7.js                       526.50 kB │ gzip: 160.47 kB
+2026-10-13T15:13:49.0578333Z dist/assets/dist-Dh4JsvEE.js                      618.80 kB │ gzip: 182.36 kB
+2026-10-13T15:13:49.0578682Z
+2026-10-13T15:13:49.0579876Z [INVALID_ANNOTATION] A comment "/*#__PURE__*/" in "node_modules/@microsoft/signalr/dist/esm/Utils.js" contains an annotation that Rolldown cannot interpret due to the position of the comment.
+2026-10-13T15:13:49.0581178Z      ╭─[ node_modules/@microsoft/signalr/dist/esm/Utils.js:190:1 ]
+2026-10-13T15:13:49.0581830Z      │
+2026-10-13T15:13:49.0583351Z  190 │ /*#__PURE__*/ function getOsName() {
+2026-10-13T15:13:49.0585361Z      │ ──────┬──────
+2026-10-13T15:13:49.0586059Z      │       ╰──────── comment ignored due to position
+2026-10-13T15:13:49.0586718Z      │
+2026-10-13T15:13:49.0588032Z      │ Help: For more information on how to use pure annotations correctly, check the documentation: https://rolldown.rs/in-depth/dead-code-elimination#pure
+2026-10-13T15:13:49.0589314Z ─────╯
+2026-10-13T15:13:49.0589770Z
+2026-10-13T15:13:49.0590388Z [plugin builtin:vite-reporter]
+2026-10-13T15:13:49.0591211Z (!) Some chunks are larger than 500 kB after minification. Consider:
+2026-10-13T15:13:49.0592056Z - Using dynamic import() to code-split the application
+2026-10-13T15:13:49.0593822Z - Use build.rolldownOptions.output.codeSplitting to improve chunking: https://rolldown.rs/reference/OutputOptions.codeSplitting
+2026-10-13T15:13:49.0595285Z - Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+2026-10-13T15:13:49.0596952Z [INVALID_ANNOTATION] A comment "/*#__PURE__*/" in "node_modules/@microsoft/signalr/dist/esm/Utils.js" contains an annotation that Rolldown cannot interpret due to the position of the comment.
+2026-10-13T15:13:49.0598909Z      ╭─[ node_modules/@microsoft/signalr/dist/esm/Utils.js:208:1 ]
+2026-10-13T15:13:49.0599778Z      │
+2026-10-13T15:13:49.0601644Z  208 │ /*#__PURE__*/ function getRuntimeVersion() {
+2026-10-13T15:13:49.0603113Z      │ ──────┬──────
+2026-10-13T15:13:49.0604438Z      │       ╰──────── comment ignored due to position
+2026-10-13T15:13:49.0604945Z      │
+2026-10-13T15:13:49.0605893Z      │ Help: For more information on how to use pure annotations correctly, check the documentation: https://rolldown.rs/in-depth/dead-code-elimination#pure
+2026-10-13T15:13:49.0606782Z ─────╯
+2026-10-13T15:13:49.0607167Z
+2026-10-13T15:13:49.0607548Z ✓ built in 1.16s
+2026-10-13T15:13:49.0817477Z ##[group]Run npm run test:e2e:critical
+2026-10-13T15:13:49.0817950Z npm run test:e2e:critical
+2026-10-13T15:13:49.0859146Z shell: /usr/bin/bash -e {0}
+2026-10-13T15:13:49.0859604Z env:
+2026-10-13T15:13:49.0860376Z   ConnectionStrings__DefaultConnection: Host=localhost;Port=5432;Database=slotmath;Username=slotmath;***
+2026-10-13T15:13:49.0861027Z   ASPNETCORE_ENVIRONMENT: CI
+2026-10-13T15:13:49.0861410Z   CI: true
+2026-10-13T15:13:49.0861768Z   DOTNET_ROOT: /usr/share/dotnet
+2026-10-13T15:13:49.0862186Z ##[endgroup]
+2026-10-13T15:13:49.1833973Z
+2026-10-13T15:13:49.1834721Z > frontend@0.0.0 test:e2e:critical
+2026-10-13T15:13:49.1835685Z > playwright test --grep @critical
+2026-10-13T15:13:49.1836011Z
+2026-10-13T15:14:17.6752279Z
+2026-10-13T15:14:17.6753128Z Running 35 tests using 1 worker
+2026-10-13T15:14:17.6753695Z
+2026-10-13T15:14:19.6023742Z   ✓   1 [chromium] › e2e/feature-flags.spec.ts:21:1 › disabled feature flags hide every non-1.0 surface @critical (1.1s)
+2026-10-13T15:14:20.2527730Z   ✓   2 [chromium] › e2e/feature-flags.spec.ts:41:1 › enabled feature flags keep the default UI visible @critical (628ms)
+2026-10-13T15:14:24.4891151Z   ✓   3 [chromium] › e2e/metric-integrity.spec.ts:3:1 › Pending, absent and failed metrics withhold proof; computed zero survives @critical (4.2s)
+2026-10-13T15:14:26.7629803Z   ✓   4 [chromium] › e2e/metric-integrity.spec.ts:40:1 › Missing interval bounds withhold proof and PAR exports keep absent fields unlabelled @critical (2.3s)
+2026-10-13T15:14:27.7632788Z   ✓   5 [chromium] › e2e/nine-lives.spec.ts:3:1 › Nine Lives is editable as nested atomic subgraphs @critical (979ms)
+2026-10-13T15:14:50.2736011Z   ✓   6 [chromium] › e2e/nine-lives.spec.ts:23:1 › Nine Lives plays and replays a graph round without changing credits @critical (22.5s)
+2026-10-13T15:14:53.5035521Z   ✓   7 [chromium] › e2e/private-projects.spec.ts:18:1 › Personal projects retain nested edits, independent copies and different game geometry @critical (3.2s)
+2026-10-13T15:14:54.4160831Z   ✓   8 [chromium] › e2e/private-projects.spec.ts:58:1 › Verified account changes isolate browser projects and restore only the returning owner @critical (900ms)
+2026-10-13T15:14:54.7851021Z   ✓   9 [chromium] › e2e/private-projects.spec.ts:84:1 › Unavailable or unsigned required session does not hydrate private browser drafts @critical (355ms)
+2026-10-13T15:14:55.6751491Z   ✓  10 [chromium] › e2e/private-projects.spec.ts:107:1 › Validation finishing after a project switch cannot apply edits to an identical copy @critical (879ms)
+2026-10-13T15:14:56.2923238Z   ✓  11 [chromium] › e2e/private-projects.spec.ts:131:1 › A rejected browser save keeps the current model available and gives an explicit backup path @critical (606ms)
+2026-10-13T15:14:57.8390879Z   ✓  12 [chromium] › e2e/private-projects.spec.ts:152:1 › Session verification respects Retry-After before opening any saved projects @critical (1.5s)
+2026-10-13T15:14:58.7838884Z   ✓  13 [chromium] › e2e/private-projects.spec.ts:167:1 › A newly saved server model appears immediately and opens as a separate private copy @critical (933ms)
+2026-10-13T15:15:01.9137169Z   ✓  14 [chromium] › e2e/realtime-durability.spec.ts:29:1 › app shell preserves one socket and live observations across constructor navigation @critical (3.1s)
+2026-10-13T15:15:09.1791343Z   ✓  15 [chromium] › e2e/realtime-durability.spec.ts:41:1 › established sockets recover repeatedly with stable run identity and cumulative metrics @critical (7.2s)
+2026-10-13T15:15:14.8122871Z   ✓  16 [chromium] › e2e/realtime-durability.spec.ts:90:1 › negotiation authentication failure pauses a healthy HTTP run until explicit authentication wake @critical (5.6s)
+2026-10-13T15:15:17.1624200Z   ✓  17 [chromium] › e2e/results-workspace.spec.ts:84:1 › reference and exports use saved version after latest config changes; graph opening preserves the draft @critical (2.3s)
+2026-10-13T15:15:20.1460453Z   ✓  18 [chromium] › e2e/simulation-live.spec.ts:109:1 › Evidence export recovers a quota rejection and withholds files on errors, wrong identity and cancelled reads @critical (2.9s)
+2026-10-13T15:15:21.1097659Z   ✓  19 [chromium] › e2e/simulation-live.spec.ts:178:1 › Mobile simulation dashboard fits viewport and exposes controls and charts @critical (950ms)
+2026-10-13T15:15:22.7466326Z   ✓  20 [chromium] › e2e/workbench.spec.ts:7:1 › Overview derives Nine Lives geometry and opens source logic at every supported viewport @critical (1.6s)
+2026-10-13T15:15:23.5532667Z   ✓  21 [chromium] › e2e/workbench.spec.ts:22:1 › Graph selection opens a contextual inspector and closing preserves the selected model @critical (792ms)
+2026-10-13T15:15:24.9256311Z   ✓  22 [chromium] › e2e/workbench.spec.ts:40:1 › Weighted edits validate, undo, survive mode switches and export/import with independently checked expectation @critical (1.4s)
+2026-10-13T15:15:39.1247467Z   ✓  23 [chromium] › e2e/workbench.spec.ts:73:1 › Free-spin form keeps source counts synchronized and one purchased graph life executes @critical (14.2s)
+2026-10-13T15:15:41.7269475Z   ✓  24 [chromium] › e2e/workbench.spec.ts:98:1 › Debug displays actual trace cells and replay uses the pinned model after edits @critical (2.6s)
+2026-10-13T15:15:44.5509633Z   ✓  25 [chromium] › e2e/workbench.spec.ts:118:1 › Cluster payout editor changes executable coins and matching metadata with undo and actual trace evidence @critical (2.8s)
+2026-10-13T15:15:45.8943345Z   ✓  26 [chromium] › e2e/workbench.spec.ts:141:1 › Export from an open mechanic saves the entire canonical model and shares it over an existing draft @critical (1.3s)
+2026-10-13T15:15:51.5113266Z   ✘  27 [chromium] › e2e/workbench.spec.ts:155:1 › Compiler validation reports errors and focuses actual nodes; keyboard navigation and appearance are accessible @critical (5.6s)
+2026-10-13T15:15:53.2800261Z   ✓  28 [chromium] › e2e/workbench.spec.ts:155:1 › Compiler validation reports errors and focuses actual nodes; keyboard navigation and appearance are accessible @critical (retry #1) (1.0s)
+2026-10-13T15:15:53.8088843Z   ✓  29 [chromium] › e2e/workbench.spec.ts:166:1 › Legacy frontend share links retain edges and named definitions in canonical export @critical (517ms)
+2026-10-13T15:15:54.4929701Z   ✓  30 [chromium] › e2e/workbench.spec.ts:177:1 › State inspector preserves boolean, null and nested values and appends numeric rows as numbers @critical (671ms)
+2026-10-13T15:17:04.0588695Z   ✓  31 [chromium] › e2e/z-advanced-measurements.spec.ts:70:1 › Catalogue recipe becomes a visual Boolean AST and fixed-horizon session evidence survives reload @critical (1.2m)
+2026-10-13T15:17:10.7767781Z   ✓  32 [chromium] › e2e/z-interrupted-lifecycle.spec.ts:4:1 › A failed feature keeps interrupted boundaries in live and saved UI without publishing partial values @critical (6.6s)
+2026-10-13T15:17:17.0766786Z   ✓  33 [chromium] › e2e/z-measurements-workspace.spec.ts:33:1 › UI configures a scoped FS metric; real engine, durable export, display controls and pinned replay agree @critical (6.2s)
+2026-10-13T15:18:24.0182576Z   ✓  34 [chromium] › e2e/z-record-values.spec.ts:3:1 › Visual record filtering preserves authored fractions and nested arrays, rejects false paths and retains both-engine evidence @critical (1.1m)
+2026-10-13T15:18:30.5719156Z   ✓  35 [chromium] › e2e/z-verification-experiments.spec.ts:3:1 › Native settlement, external rule inputs and automatic verification experiments retain executable evidence @critical (6.5s)
+2026-10-13T15:19:35.8542972Z   ✓  36 [chromium] › e2e/z-verification-profile.spec.ts:19:1 › Native predeclared mean family rejects underallocation, retains final criteria and replays the original profile in the reference engine @critical (1.1m)
+2026-10-13T15:19:36.0474710Z
+2026-10-13T15:19:36.0478887Z
+2026-10-13T15:19:36.0486432Z   1) [chromium] › e2e/workbench.spec.ts:155:1 › Compiler validation reports errors and focuses actual nodes; keyboard navigation and appearance are accessible @critical
+2026-10-13T15:19:36.0487203Z
+2026-10-13T15:19:36.0488116Z     Error: expect(page).toHaveURL(expected) failed
+2026-10-13T15:19:36.0488696Z
+2026-10-13T15:19:36.0489035Z     Expected pattern: /\/model\/data$/
+2026-10-13T15:19:36.0489948Z     Received string:  "http://localhost:4173/build"
+2026-10-13T15:19:36.0490622Z     Timeout: 5000ms
+2026-10-13T15:19:36.0490957Z
+2026-10-13T15:19:36.0491129Z     Call log:
+2026-10-13T15:19:36.0491595Z       - Expect "toHaveURL" with timeout 5000ms
+2026-10-13T15:19:36.0492201Z         14 × unexpected value "http://localhost:4173/build"
+2026-10-13T15:19:36.0492550Z
+2026-10-13T15:19:36.0492558Z
+2026-10-13T15:19:36.0493242Z       160 |   await page.getByRole('button', { name: 'Focus draw', exact: true }).first().click(); await expect(page.getByRole('complementary', { name: 'Context inspector' })).toBeVisible();
+2026-10-13T15:19:36.0494527Z       161 |   await page.getByRole('button', { name: 'Close inspector' }).click();
+2026-10-13T15:19:36.0495767Z     > 162 |   await page.getByRole('tab', { name: 'Overview', exact: true }).focus(); await page.keyboard.press('ArrowDown'); await expect(page).toHaveURL(/\/model\/data$/);
+2026-10-13T15:19:36.0496985Z           |                                                                                                                                      ^
+2026-10-13T15:19:36.0498467Z       163 |   await page.getByRole('button', { name: 'Appearance settings' }).click(); await expect(page.getByRole('button', { name: 'Appearance settings' })).toHaveAttribute('aria-expanded', 'true');
+2026-10-13T15:19:36.0500107Z       164 |   await page.getByRole('button', { name: 'Appearance settings' }).click();
+2026-10-13T15:19:36.0500846Z       165 | });
+2026-10-13T15:19:36.0501676Z         at /home/runner/work/slot-math-lab/slot-math-lab/frontend/e2e/workbench.spec.ts:162:134
+2026-10-13T15:19:36.0502325Z
+2026-10-13T15:19:36.0503166Z     attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+2026-10-13T15:19:36.0504619Z     test-results/workbench-Compiler-validat-c0f9f-d-appearance-are-accessible-chromium/test-failed-1.png
+2026-10-13T15:19:36.0507566Z     ────────────────────────────────────────────────────────────────────────────────────────────────
+2026-10-13T15:19:36.0508066Z
+2026-10-13T15:19:36.0508844Z     Error Context: test-results/workbench-Compiler-validat-c0f9f-d-appearance-are-accessible-chromium/error-context.md
+2026-10-13T15:19:36.0509774Z
+2026-10-13T15:19:36.0510061Z   1 flaky
+2026-10-13T15:19:36.0511436Z     [chromium] › e2e/workbench.spec.ts:155:1 › Compiler validation reports errors and focuses actual nodes; keyboard navigation and appearance are accessible @critical
+2026-10-13T15:19:36.0512714Z   34 passed (5.8m)
+2026-10-13T15:19:36.0767748Z ##[group]Run actions/upload-artifact@v4
+2026-10-13T15:19:36.0768280Z with:
+2026-10-13T15:19:36.0768638Z   name: playwright-critical-report
+2026-10-13T15:19:36.0769102Z   retention-days: 14
+2026-10-13T15:19:36.0769523Z   path: frontend/playwright-report/
+frontend/test-results/
+
+2026-10-13T15:19:36.0770085Z   if-no-files-found: warn
+2026-10-13T15:19:36.0770491Z   compression-level: 6
+2026-10-13T15:19:36.0770902Z   overwrite: false
+2026-10-13T15:19:36.0771247Z   include-hidden-files: false
+2026-10-13T15:19:36.0771737Z env:
+2026-10-13T15:19:36.0772642Z   ConnectionStrings__DefaultConnection: Host=localhost;Port=5432;Database=slotmath;Username=slotmath;***
+2026-10-13T15:19:36.0773575Z   ASPNETCORE_ENVIRONMENT: CI
+2026-10-13T15:19:36.0774039Z   CI: true
+2026-10-13T15:19:36.0774414Z   DOTNET_ROOT: /usr/share/dotnet
+2026-10-13T15:19:36.0775199Z ##[endgroup]
+2026-10-13T15:19:36.2391322Z (node:8497) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+2026-10-13T15:19:36.2392528Z (Use `node --trace-deprecation ...` to show where the warning was created)
+2026-10-13T15:19:36.2498205Z Multiple search paths detected. Calculating the least common ancestor of all paths
+2026-10-13T15:19:36.2500497Z The least common ancestor is /home/runner/work/slot-math-lab/slot-math-lab/frontend. This will be the root directory of the artifact
+2026-10-13T15:19:36.2502004Z With the provided path, there will be 25 files uploaded
+2026-10-13T15:19:36.2504498Z Artifact name is valid!
+2026-10-13T15:19:36.2505555Z Root directory input is valid!
+2026-10-13T15:19:36.5206132Z Beginning upload of artifact content to blob storage
+2026-10-13T15:19:36.7018239Z (node:8497) [DEP0169] DeprecationWarning: `url.parse()` behavior is not standardized and prone to errors that have security implications. Use the WHATWG URL API instead. CVEs are not issued for `url.parse()` vulnerabilities.
+2026-10-13T15:19:37.0421597Z Uploaded bytes 2962086
+2026-10-13T15:19:37.0770587Z Finished uploading artifact content to blob storage!
+2026-10-13T15:19:37.0772079Z SHA256 digest of uploaded artifact zip is c9ca32a757b33a23a63c1955474fa623ada958e1cc95cef189f39abb85322dc2
+2026-10-13T15:19:37.0773656Z Finalizing artifact upload
+2026-10-13T15:19:37.4008407Z Artifact playwright-critical-report.zip successfully finalized. Artifact ID 11825204864
+2026-10-13T15:19:37.4009549Z Artifact playwright-critical-report has been successfully uploaded! Final size is 2962086 bytes. Artifact ID is 11825204864
+2026-10-13T15:19:37.4014242Z Artifact download URL: https://github.com/lilter96/slot-math-lab/actions/runs/38413845577/artifacts/11825204864
+2026-10-13T15:19:37.4174259Z Post job cleanup.
+2026-10-13T15:19:37.5247621Z Cache hit occurred on the primary key playwright-Linux-1.60.0, not saving cache.
+2026-10-13T15:19:37.5249229Z (node:8530) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+2026-10-13T15:19:37.5250473Z (Use `node --trace-deprecation ...` to show where the warning was created)
+2026-10-13T15:19:37.6501479Z Post job cleanup.
+2026-10-13T15:19:37.7549898Z Cache hit occurred on the primary key Linux-nuget-1acdf270ca6dc0ebb6b68d88e3515e397d9efe84c8a76552bc87247f13d60518, not saving cache.
+2026-10-13T15:19:37.7552571Z (node:8550) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+2026-10-13T15:19:37.7553851Z (Use `node --trace-deprecation ...` to show where the warning was created)
+2026-10-13T15:19:37.7644468Z Post job cleanup.
+2026-10-13T15:19:37.8859964Z (node:8558) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+2026-10-13T15:19:37.8861434Z (Use `node --trace-deprecation ...` to show where the warning was created)
+2026-10-13T15:19:37.8997120Z Post job cleanup.
+2026-10-13T15:19:38.0278916Z (node:8566) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+2026-10-13T15:19:38.0279892Z (Use `node --trace-deprecation ...` to show where the warning was created)
+2026-10-13T15:19:38.0282617Z Cache hit occurred on the primary key node-cache-Linux-x64-npm-e08982ab6f61b059b1972fdca931cf6bfe88e08d3896cf076d130b6dbc72812c, not saving cache.
+2026-10-13T15:19:38.0447734Z Post job cleanup.
+2026-10-13T15:19:38.1299897Z [command]/usr/bin/git version
+2026-10-13T15:19:38.1345372Z git version 2.55.0
+2026-10-13T15:19:38.1385567Z Temporarily overriding HOME='/home/runner/work/_temp/634f1baf-728c-4fd9-b92b-a2eda9fc5a41' before making global git config changes
+2026-10-13T15:19:38.1387039Z Adding repository directory to the temporary git global config as a safe directory
+2026-10-13T15:19:38.1394541Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/slot-math-lab/slot-math-lab
+2026-10-13T15:19:38.1433953Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-10-13T15:19:38.1465577Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-10-13T15:19:38.1750783Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-10-13T15:19:38.1774290Z http.https://github.com/.extraheader
+2026-10-13T15:19:38.1789249Z [command]/usr/bin/git config --local --unset-all http.https://github.com/.extraheader
+2026-10-13T15:19:38.1823763Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-10-13T15:19:38.2029991Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-10-13T15:19:38.2063284Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-10-13T15:19:38.2395338Z Print service container logs: 74a7a2b1b5ff40d1ac6c0d2cd613eea1_postgres17alpine_918c13
+2026-10-13T15:19:38.2399560Z ##[command]/usr/bin/docker logs --details 439ba4fbc63042754bd52849742a7806081e6d8ae5f90ab975b2fc0668890d43
+2026-10-13T15:19:38.2521306Z  The files belonging to this database system will be owned by user "postgres".
+2026-10-13T15:19:38.2522232Z  This user must also own the server process.
+2026-10-13T15:19:38.2523970Z  sh: locale: not found
+2026-10-13T15:19:38.2524353Z
+2026-10-13T15:19:38.2524766Z  2026-10-13 15:12:58.490 UTC [35] WARNING:  no usable system locales were found
+2026-10-13T15:19:38.2525301Z  initdb: warning: enabling "trust" authentication for local connections
+2026-10-13T15:19:38.2526085Z  initdb: hint: You can change this by editing pg_hba.conf or using the option -A, or --auth-local and --auth-host, the next time you run initdb.
+2026-10-13T15:19:38.2527063Z  2026-10-13 15:12:59.597 UTC [1] LOG:  starting PostgreSQL 17.11 on x86_64-pc-linux-musl, compiled by gcc (Alpine 15.2.0) 15.2.0, 64-bit
+2026-10-13T15:19:38.2527740Z  2026-10-13 15:12:59.597 UTC [1] LOG:  listening on IPv4 address "0.0.0.0", port 5432
+2026-10-13T15:19:38.2528223Z  2026-10-13 15:12:59.598 UTC [1] LOG:  listening on IPv6 address "::", port 5432
+2026-10-13T15:19:38.2528738Z  2026-10-13 15:12:59.599 UTC [1] LOG:  listening on Unix socket "/var/run/postgresql/.s.PGSQL.5432"
+2026-10-13T15:19:38.2529272Z  2026-10-13 15:12:59.601 UTC [57] LOG:  database system was shut down at 2026-10-13 15:12:59 UTC
+2026-10-13T15:19:38.2529815Z  2026-10-13 15:12:59.605 UTC [1] LOG:  database system is ready to accept connections
+2026-10-13T15:19:38.2530253Z  2026-10-13 15:17:59.654 UTC [55] LOG:  checkpoint starting: time
+2026-10-13T15:19:38.2531213Z  2026-10-13 15:18:10.385 UTC [55] LOG:  checkpoint complete: wrote 110 buffers (0.7%); 0 WAL file(s) added, 0 removed, 0 recycled; write=10.727 s, sync=0.002 s, total=10.731 s; sync files=74, longest=0.001 s, average=0.001 s; distance=591 kB, estimate=591 kB; lsn=0/19B2680, redo lsn=0/19B25F0
+2026-10-13T15:19:38.2532231Z  The database cluster will be initialized with locale "en_US.utf8".
+2026-10-13T15:19:38.2532679Z  The default database encoding has accordingly been set to "UTF8".
+2026-10-13T15:19:38.2533107Z  The default text search configuration will be set to "english".
+2026-10-13T15:19:38.2533611Z
+2026-10-13T15:19:38.2533909Z  Data page checksums are disabled.
+2026-10-13T15:19:38.2534188Z
+2026-10-13T15:19:38.2534495Z  fixing permissions on existing directory /var/lib/postgresql/data ... ok
+2026-10-13T15:19:38.2534885Z  creating subdirectories ... ok
+2026-10-13T15:19:38.2535228Z  selecting dynamic shared memory implementation ... posix
+2026-10-13T15:19:38.2535590Z  selecting default "max_connections" ... 100
+2026-10-13T15:19:38.2535906Z  selecting default "shared_buffers" ... 128MB
+2026-10-13T15:19:38.2536218Z  selecting default time zone ... UTC
+2026-10-13T15:19:38.2536741Z  creating configuration files ... ok
+2026-10-13T15:19:38.2537028Z  running bootstrap script ... ok
+2026-10-13T15:19:38.2537348Z  performing post-bootstrap initialization ... ok
+2026-10-13T15:19:38.2537676Z  syncing data to disk ... ok
+2026-10-13T15:19:38.2537948Z
+2026-10-13T15:19:38.2538144Z
+2026-10-13T15:19:38.2538399Z  Success. You can now start the database server using:
+2026-10-13T15:19:38.2538710Z
+2026-10-13T15:19:38.2538961Z      pg_ctl -D /var/lib/postgresql/data -l logfile start
+2026-10-13T15:19:38.2539271Z
+2026-10-13T15:19:38.2539789Z  waiting for server to start....2026-10-13 15:12:59.233 UTC [41] LOG:  starting PostgreSQL 17.11 on x86_64-pc-linux-musl, compiled by gcc (Alpine 15.2.0) 15.2.0, 64-bit
+2026-10-13T15:19:38.2540515Z  2026-10-13 15:12:59.234 UTC [41] LOG:  listening on Unix socket "/var/run/postgresql/.s.PGSQL.5432"
+2026-10-13T15:19:38.2541038Z  2026-10-13 15:12:59.236 UTC [44] LOG:  database system was shut down at 2026-10-13 15:12:58 UTC
+2026-10-13T15:19:38.2541525Z  2026-10-13 15:12:59.240 UTC [41] LOG:  database system is ready to accept connections
+2026-10-13T15:19:38.2542018Z   done
+2026-10-13T15:19:38.2542238Z  server started
+2026-10-13T15:19:38.2542464Z  CREATE DATABASE
+2026-10-13T15:19:38.2542693Z
+2026-10-13T15:19:38.2542896Z
+2026-10-13T15:19:38.2543226Z  /usr/local/bin/docker-entrypoint.sh: ignoring /docker-entrypoint-initdb.d/*
+2026-10-13T15:19:38.2549651Z
+2026-10-13T15:19:38.2550120Z  waiting for server to shut down....2026-10-13 15:12:59.378 UTC [41] LOG:  received fast shutdown request
+2026-10-13T15:19:38.2550633Z  2026-10-13 15:12:59.379 UTC [41] LOG:  aborting any active transactions
+2026-10-13T15:19:38.2551166Z  2026-10-13 15:12:59.381 UTC [41] LOG:  background worker "logical replication launcher" (PID 47) exited with exit code 1
+2026-10-13T15:19:38.2551682Z  2026-10-13 15:12:59.383 UTC [42] LOG:  shutting down
+2026-10-13T15:19:38.2552072Z  2026-10-13 15:12:59.383 UTC [42] LOG:  checkpoint starting: shutdown immediate
+2026-10-13T15:19:38.2553054Z  2026-10-13 15:12:59.481 UTC [42] LOG:  checkpoint complete: wrote 926 buffers (5.7%); 0 WAL file(s) added, 0 removed, 0 recycled; write=0.069 s, sync=0.028 s, total=0.098 s; sync files=301, longest=0.022 s, average=0.001 s; distance=4266 kB, estimate=4266 kB; lsn=0/191E820, redo lsn=0/191E820
+2026-10-13T15:19:38.2554263Z  2026-10-13 15:12:59.486 UTC [41] LOG:  database system is shut down
+2026-10-13T15:19:38.2554585Z   done
+2026-10-13T15:19:38.2554803Z  server stopped
+2026-10-13T15:19:38.2555036Z
+2026-10-13T15:19:38.2555292Z  PostgreSQL init process complete; ready for start up.
+2026-10-13T15:19:38.2555610Z
+2026-10-13T15:19:38.2561101Z Stop and remove container: 74a7a2b1b5ff40d1ac6c0d2cd613eea1_postgres17alpine_918c13
+2026-10-13T15:19:38.2566017Z ##[command]/usr/bin/docker rm --force 439ba4fbc63042754bd52849742a7806081e6d8ae5f90ab975b2fc0668890d43
+2026-10-13T15:19:38.4051875Z 439ba4fbc63042754bd52849742a7806081e6d8ae5f90ab975b2fc0668890d43
+2026-10-13T15:19:38.4071025Z Remove container network: github_network_26e92bf3543c42d48873135b37a3fbcb
+2026-10-13T15:19:38.4075296Z ##[command]/usr/bin/docker network rm github_network_26e92bf3543c42d48873135b37a3fbcb
+2026-10-13T15:19:38.4989157Z github_network_26e92bf3543c42d48873135b37a3fbcb
+2026-10-13T15:19:38.5057911Z Cleaning up orphan processes
+2026-10-13T15:19:38.5330906Z ##[warning]Node.js 20 is deprecated. The following actions target Node.js 20 but are being forced to run on Node.js 24: actions/cache@v4, actions/checkout@v4, actions/setup-dotnet@v4, actions/setup-node@v4, actions/upload-artifact@v4. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
