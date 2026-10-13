@@ -34,7 +34,13 @@ import {connectMachine, copyMachineUse, createMachine, updateMachine} from '../l
 import {isMachineInput, type MachineIR, validateMachine} from '../lib/authoring/machineIR';
 import {changeRespinCount, respinContracts} from '../lib/authoring/respinContract';
 import {copySourceUse, type SourceConnection} from '../lib/authoring/sourceLifecycle';
-import {type AppliedGraphEdit, commitGraphEdit, prepareGraphEdit, undoGraphEdit} from '../lib/authoring/transactions';
+import {
+    type AppliedGraphEdit,
+    commitGraphEdit,
+    currentGraphUndo,
+    prepareGraphEdit,
+    undoGraphEdit
+} from '../lib/authoring/transactions';
 import {projectEnvelope} from '../lib/authoring/projectEnvelope';
 import {
     ExpressionInput,
@@ -203,7 +209,7 @@ function MachineWorkspace({projectId, graph}: { projectId: string; graph: ModelG
         hash = digest?.source === canonical ? digest.hash : null;
     const flow = useRef<ReactFlowInstance<Node<CanvasData>, Edge> | null>(null), [selectedTransition, setSelectedTransition] = useState<string | null>(null);
     const [selected, setSelected] = useState<string | null>(null), [search, setSearch] = useState(''), [mode, setMode] = useState<'diagram' | 'table'>('diagram'), [mobileExplorer, setMobileExplorer] = useState(false);
-    const [error, setError] = useState<string | null>(restored.error), [storageError, setStorageError] = useState<string | null>(null), [recoveryBlocked, setRecoveryBlocked] = useState(!!restored.error), [busy, setBusy] = useState<'apply' | 'play' | null>(null), [applied, setApplied] = useState<AppliedGraphEdit | null>(null), [round, setRound] = useState<{
+    const [error, setError] = useState<string | null>(restored.error), [storageError, setStorageError] = useState<string | null>(null), [recoveryBlocked, setRecoveryBlocked] = useState(!!restored.error), [busy, setBusy] = useState<'apply' | 'play' | null>(null), [applied, setApplied] = useState<AppliedGraphEdit | null>(() => currentGraphUndo(projectId, graph)), [round, setRound] = useState<{
         hash: string;
         value: GraphRound
     } | null>(null), [seed, setSeed] = useState('42');

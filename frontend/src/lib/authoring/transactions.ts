@@ -4,6 +4,7 @@ import {assertModelNumbers} from '../modelJson';
 import {graphRequest} from '../graphApi';
 import {peekRootProject, projectContentScope, projectEditorState} from '../projectFiles';
 import type {ModelGraph} from '../modelProjection';
+import {browserStorageKey} from '../browserIdentity';
 
 type EditorSnapshot = Pick<AppState, 'nodes' | 'edges' | 'tables' | 'graphTrail' | 'configName' | 'selectedNodeId' | 'verificationSource' | 'liveRtp' | 'liveProvenance'>;
 
@@ -14,6 +15,7 @@ export interface GraphEdit {
     base: ModelGraph;
     candidate: ModelGraph;
     changed: boolean;
+    ownerScope: string;
 }
 
 export interface AppliedGraphEdit {
@@ -28,6 +30,15 @@ export type GraphValidator = (config: ModelGraph, signal: AbortSignal) => Promis
     errors?: { message: string }[]
 }>;
 const conflict = () => new Error('The project or source changed. Keep this draft and reconcile before applying.');
+const appliedEdits = new Map<string, AppliedGraphEdit>();
+const ownerScope = () => browserStorageKey('slotmath-authoring-session');
+const undoKey = (projectId: string) => JSON.stringify([ownerScope(), projectId]);
+
+/** One complete edit per private project, retained across views for this browser session. */
+export function currentGraphUndo(projectId: string, graph: ModelGraph): AppliedGraphEdit | null {
+    const applied = appliedEdits.get(undoKey(projectId));
+    return applied && applied.committedSource === canonicalJson(graph) ? applied : null;
+}
 
 /** Candidate generation is isolated; callers must supply their verified dependency closure. */
 export function prepareGraphEdit(label: string, transform: (base: ModelGraph) => ModelGraph): GraphEdit {
@@ -43,7 +54,8 @@ export function prepareGraphEdit(label: string, transform: (base: ModelGraph) =>
         origin,
         base: snapshot,
         candidate: structuredClone(candidate),
-        changed: canonicalJson(snapshot) !== canonicalJson(candidate)
+        changed: canonicalJson(snapshot) !== canonicalJson(candidate),
+        ownerScope: ownerScope()
     };
 }
 
@@ -92,7 +104,7 @@ function rebasedEditor(config: ModelGraph, state: AppState) {
 }
 
 export async function commitGraphEdit(edit: GraphEdit, signal?: AbortSignal, validate: GraphValidator = (config, cancellation) => graphRequest('validate', {config}, cancellation)): Promise<AppliedGraphEdit> {
-    const current = () => useAppStore.getState().projectId === edit.projectId && projectContentScope() === edit.origin;
+    const current = () => ownerScope() === edit.ownerScope && useAppStore.getState().projectId === edit.projectId && projectContentScope() === edit.origin;
     if (!current() || canonicalJson(peekRootProject()) !== canonicalJson(edit.base)) throw conflict();
     let before = editorSnapshot(useAppStore.getState());
     signal?.throwIfAborted();
@@ -116,7 +128,12 @@ export async function commitGraphEdit(edit: GraphEdit, signal?: AbortSignal, val
         useAppStore.setState({...next, verificationSource: null, liveRtp: null, liveProvenance: null});
         flushProjectDraftSave();
         const after = peekRootProject() as ModelGraph;
-        return {edit, before, after, committedSource: canonicalJson(after)};
+        const applied = {edit, before, after, committedSource: canonicalJson(after)};
+        const key = undoKey(edit.projectId);
+        appliedEdits.delete(key);
+        appliedEdits.set(key, applied);
+        while (appliedEdits.size > 32) appliedEdits.delete(appliedEdits.keys().next().value!);
+        return applied;
     } finally {
         unsubscribe();
     }
@@ -125,9 +142,11 @@ export async function commitGraphEdit(edit: GraphEdit, signal?: AbortSignal, val
 /** One undo restores the entire source/context, but never crosses a project or newer edit. */
 export function undoGraphEdit(applied: AppliedGraphEdit): void {
     const state = useAppStore.getState();
-    if (state.projectId !== applied.edit.projectId || canonicalJson(peekRootProject()) !== applied.committedSource) throw conflict();
+    if (ownerScope() !== applied.edit.ownerScope || state.projectId !== applied.edit.projectId || canonicalJson(peekRootProject()) !== applied.committedSource) throw conflict();
+    if (applied.edit.changed && appliedEdits.get(undoKey(applied.edit.projectId)) !== applied) throw conflict();
     if (applied.edit.changed) {
         useAppStore.setState(applied.before);
         flushProjectDraftSave();
+        appliedEdits.delete(undoKey(applied.edit.projectId));
     }
 }

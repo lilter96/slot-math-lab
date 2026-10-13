@@ -13,7 +13,13 @@ import {type WeightBinding, weightBindings} from '../lib/authoring/weightBinding
 import {payBindings} from '../lib/authoring/payBindings';
 import {lineBindings} from '../lib/authoring/lineBindings';
 import {type NodeSource, sourceKey} from '../lib/authoring/sourceIndex';
-import {type AppliedGraphEdit, commitGraphEdit, prepareGraphEdit, undoGraphEdit} from '../lib/authoring/transactions';
+import {
+    type AppliedGraphEdit,
+    commitGraphEdit,
+    currentGraphUndo,
+    prepareGraphEdit,
+    undoGraphEdit
+} from '../lib/authoring/transactions';
 import {
     applyStudioPatches,
     clearStudioDraft,
@@ -96,7 +102,7 @@ function StudioWorkspace({projectId, graph}: { projectId: string; graph: ModelGr
         } | null>(null), [draft, setDraft] = useState<StudioDraft | null>(loaded.draft),
         draftRef = useRef<StudioDraft | null>(loaded.draft);
     const [search, setSearch] = useState(''), [selectedKey, setSelectedKey] = useState<string | null>(views?.studio?.selectedSource ?? null), [inspector, setInspector] = useState(false), [mobileSources, setMobileSources] = useState(false);
-    const [busy, setBusy] = useState<'validating' | 'playing' | null>(null), [error, setError] = useState<string | null>(null), [storageError, setStorageError] = useState<string | null>(loaded.error), [recoveryBlocked, setRecoveryBlocked] = useState(!!loaded.error), [applied, setApplied] = useState<AppliedGraphEdit | null>(null), [round, setRound] = useState<{
+    const [busy, setBusy] = useState<'validating' | 'playing' | null>(null), [error, setError] = useState<string | null>(null), [storageError, setStorageError] = useState<string | null>(loaded.error), [recoveryBlocked, setRecoveryBlocked] = useState(!!loaded.error), [applied, setApplied] = useState<AppliedGraphEdit | null>(() => currentGraphUndo(projectId, graph)), [round, setRound] = useState<{
         hash: string;
         result: GraphRound
     } | null>(null);

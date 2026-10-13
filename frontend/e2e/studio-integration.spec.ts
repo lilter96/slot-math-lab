@@ -1,6 +1,6 @@
 import {readFile} from 'node:fs/promises';
 import type {Route} from '@playwright/test';
-import {expect, type Page, test} from './fixtures';
+import {expect, type Page, test, waitForWorkspace} from './fixtures';
 import {graphStudiosCorpus} from '../unit/fixtures/graphStudiosCorpus';
 import {computedLineBoundProof} from '../unit/fixtures/computedLineBoundProof';
 import {reelBindings} from '../src/lib/authoring/reelBindings';
@@ -16,6 +16,7 @@ const model = (caseId: string) => corpus.find(value => value.caseId === caseId)!
 
 async function open(page: Page, graph: ModelGraph) {
     await page.goto('/build');
+    await waitForWorkspace(page);
     await page.getByLabel('Import project file').setInputFiles({
         name: 'integrated-model.json',
         mimeType: 'application/json',
@@ -32,7 +33,7 @@ async function backup(page: Page) {
 }
 
 async function apply(page: Page) {
-    const pending = page.waitForResponse(response => new URL(response.url()).pathname === '/api/validate' && response.status() !== 429);
+    const pending = page.waitForResponse(response => new URL(response.url()).pathname === '/api/validate' && response.status() !== 429, {timeout: 70000});
     await page.getByRole('button', {name: 'Validate & apply', exact: true}).click();
     const result = await (await pending).json();
     expect(result, JSON.stringify(result)).toMatchObject({isValid: true});

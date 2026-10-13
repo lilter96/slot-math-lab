@@ -1,4 +1,4 @@
-import {type APIRequestContext, expect, test} from './fixtures';
+import {type APIRequestContext, expect, postWithQuota, test} from './fixtures';
 import {
     machineProofGraph,
     priorityMachine,
@@ -16,9 +16,10 @@ import type {MachineIR} from '../src/lib/authoring/machineIR';
 import type {ModelGraph} from '../src/lib/modelProjection';
 
 async function run(request: APIRequestContext, graph: ModelGraph, expected: number) {
-    const validation = await request.post('/api/validate', {data: {config: graph}}), checked = await validation.json();
+    const validation = await postWithQuota(request, '/api/validate', {data: {config: graph}}),
+        checked = await validation.json();
     expect(checked, JSON.stringify(checked)).toMatchObject({isValid: true});
-    const response = await request.post('/api/play/round', {data: {config: graph, seed: 42, roundIndex: 0}}),
+    const response = await postWithQuota(request, '/api/play/round', {data: {config: graph, seed: 42, roundIndex: 0}}),
         body = await response.json();
     expect(response.ok(), JSON.stringify(body)).toBe(true);
     expect(body.win).toBe(expected);
@@ -85,9 +86,9 @@ test('Machine post-entry guards and sequential effects: first true wins, next st
 });
 test('Machine weighted choice: one Draw has independent exact payout (1×1 + 3×3)/4 = 5/2, including an authored zero row', async ({request}) => {
     const graph = machineProofGraph(weightedMachine()),
-        validation = await request.post('/api/validate', {data: {config: graph}});
+        validation = await postWithQuota(request, '/api/validate', {data: {config: graph}});
     expect(await validation.json()).toMatchObject({isValid: true});
-    const response = await request.post('/api/evaluate/light', {
+    const response = await postWithQuota(request, '/api/evaluate/light', {
         data: {
             config: graph,
             maxBranches: 10000,
@@ -190,7 +191,7 @@ test('Existing respin initialization/reset edit preserves the helper and changes
     expect(binding).toBeDefined();
     const next = changeRespinCount(graph, binding, 2);
     for (const [config, expected] of [[graph, 5 / 4], [next, 55 / 32]] as const) {
-        const response = await request.post('/api/evaluate/light', {
+        const response = await postWithQuota(request, '/api/evaluate/light', {
             data: {
                 config,
                 maxBranches: 10000,

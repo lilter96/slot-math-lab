@@ -8,6 +8,7 @@ import {machineProofGraph, weightedMachine} from '../unit/fixtures/machineProofs
 import {computedLineBoundProof} from '../unit/fixtures/computedLineBoundProof';
 import {reelBindings} from '../src/lib/authoring/reelBindings';
 import {payBindings} from '../src/lib/authoring/payBindings';
+import {weightBindings} from '../src/lib/authoring/weightBindings';
 import {canonicalJson} from '../src/lib/hash';
 import type {ModelGraph} from '../src/lib/modelProjection';
 
@@ -90,7 +91,9 @@ function conditionalToy(): ModelGraph {
 async function importStrips(page: Page, rows: string) {
     await page.getByRole('button', {name: 'Import table', exact: true}).click();
     await page.getByLabel('CSV import input').fill('reel,index,symbolId,stopId,weight\n' + rows);
+    await page.getByRole('checkbox', {name: 'Discard weights of explicitly removed stops', exact: true}).check();
     await page.getByRole('button', {name: 'Preview exact values', exact: true}).click();
+    await expect(page.getByRole('button', {name: 'Stage import', exact: true})).toBeEnabled();
     await page.getByRole('button', {name: 'Stage import', exact: true}).click();
 }
 
@@ -110,7 +113,7 @@ test('PR19 conditional law: mixed → all-one → export/reimport → mixed reta
     await exact(request, degenerate, 1);
     await open(page, degenerate);
     expect(await backup(page)).toEqual(degenerate);
-    await importStrips(page, '1,0,0,0,1\n1,1,1,1,1\n2,0,0,0,1\n2,1,1,1,1');
+    await importStrips(page, '1,0,0,0,1\n1,1,1,,1\n2,0,0,0,1\n2,1,1,,1');
     await apply(page);
     const restored = await backup(page);
     expect(reelBindings(restored)[0].source.conditions![0].atLeast).toBe(1);
@@ -127,18 +130,35 @@ test('PR19 conditional law: mixed → all-one → export/reimport → mixed reta
     expect(await backup(page)).toEqual(restored);
     await page.getByRole('button', {name: 'Import table', exact: true}).click();
     await page.getByLabel('CSV import input').fill('reel,index,symbolId,stopId,weight\n1,0,0,0,1\n2,0,0,0,1');
+    await page.getByRole('checkbox', {name: 'Discard weights of explicitly removed stops', exact: true}).check();
     await page.getByRole('button', {name: 'Preview exact values', exact: true}).click();
     await expect(page.getByRole('dialog')).toContainText('No reel stops');
     await page.getByRole('button', {name: 'Close import', exact: true}).click();
     expect(await backup(page)).toEqual(restored);
 });
 
-for (const caseId of ['nine-lives/reference', 'starter/cluster', 'starter/cascade']) test(`PR19 intentional ${caseId} payout edit remains executable and portable`, async ({
+for (const caseId of ['nine-lives/reference', 'starter/cluster', 'starter/cascade']) test(`PR19 intentional ${caseId} source edit remains executable and portable`, async ({
                                                                                                                                                                                page,
                                                                                                                                                                                request
                                                                                                                                                                            }) => {
     test.setTimeout(180000);
     const graph = corpus.find(value => value.caseId === caseId)!.graph;
+    if (caseId.startsWith('starter/')) {
+        const source = weightBindings(graph)[0];
+        expect(source).toBeTruthy();
+        await open(page, graph);
+        await page.getByLabel(`Weight ${source.rows[0].outcomeId} in ${source.source.id}`, {exact: true}).fill(String(source.rows[0].weight + 1));
+        await apply(page);
+        const changed = await backup(page);
+        expect(weightBindings(changed).find(value => value.key === source.key)!.rows[0].weight).toBe(source.rows[0].weight + 1);
+        expect(changed.initialState).toEqual(graph.initialState);
+        expect(changed.nodes).toEqual(graph.nodes);
+        const response = await request.post('/api/play/round', {data: {config: changed, seed: 42, roundIndex: 0}});
+        expect(response.ok(), await response.text()).toBe(true);
+        await open(page, changed);
+        expect(await backup(page)).toEqual(changed);
+        return;
+    }
     const binding = payBindings(graph).find(value => value.kind === 'cluster')!;
     expect(binding).toBeTruthy();
     const row = binding.rows.find(value => value.values.some(amount => amount !== '0'))!;
@@ -167,15 +187,16 @@ test('PR19 compatible custom graph: independently known payout 7 → 21 survives
     await open(page, graph);
     await exact(request, graph, 7);
     await page.getByRole('tab', {name: 'Paytables', exact: true}).click();
-    await page.getByLabel('line payout 1 count 2', {exact: true}).fill('3');
+    await page.getByLabel('line payout 1 count 2', {exact: true}).fill('6');
     await apply(page);
     const changed = await backup(page);
     expect(changed.opaque).toEqual({custom: true});
     await exact(request, changed, 21);
     await page.getByRole('tab', {name: 'Build', exact: true}).click();
-    await page.goto('/model/machine');
+    await page.getByRole('tab', {name: 'State machine', exact: true}).click();
     expect(await backup(page)).toEqual(changed);
-    await page.goto('/model/studio?view=paytables');
+    await page.getByRole('tab', {name: 'Studio', exact: true}).click();
+    await expect(page.getByRole('button', {name: 'Undo', exact: true})).toBeEnabled();
     await page.getByRole('button', {name: 'Undo', exact: true}).click();
     expect(await backup(page)).toEqual(graph);
     await open(page, changed);
@@ -253,6 +274,7 @@ test('PR19 fresh paired visual acceptance: full tabs, scrollers, source, dialogs
             await open(page, graph, '/model/studio', visualOrigin);
             for (const view of ['Sources', 'Paytables', 'Paylines', 'Symbols']) {
                 await page.getByRole('tab', {name: view, exact: true}).click();
+                await expect(page.getByRole('tab', {name: view, exact: true})).toHaveAttribute('aria-selected', 'true');
                 await capture(key, view, viewport);
                 await scrollRegions(key, view, viewport);
             }
@@ -288,12 +310,28 @@ test('PR19 fresh paired visual acceptance: full tabs, scrollers, source, dialogs
         if (viewport.width < 768) await page.getByRole('button', {name: 'Features', exact: true}).click();
         await page.locator('.machine-action-row').evaluateAll(elements => elements.forEach(element => element.setAttribute('open', '')));
         await page.getByText('Source, callers and execution limits', {exact: true}).click();
+        await page.locator('.react-flow__controls-fitview').click();
+        await expect.poll(() => page.locator('.machine-canvas').evaluate(canvas => {
+            const frame = canvas.getBoundingClientRect();
+            return [...canvas.querySelectorAll('.react-flow__node')].every(node => {
+                const bounds = node.getBoundingClientRect();
+                return bounds.top >= frame.top && bounds.bottom <= frame.bottom && bounds.left >= frame.left && bounds.right <= frame.right;
+            });
+        })).toBe(true);
+        await page.locator('.machine-designer,.machine-main,.machine-inspector').evaluateAll(elements => elements.forEach(element => {
+            element.scrollTop = 0;
+        }));
         await capture(key, 'diagram-source-actions', viewport);
         await scrollRegions(key, 'diagram-source-actions', viewport);
         await page.getByRole('tab', {name: 'Transition table', exact: true}).click();
+        await expect(page.getByRole('tab', {
+            name: 'Transition table',
+            exact: true
+        })).toHaveAttribute('aria-selected', 'true');
         await capture(key, 'transition-table', viewport);
         await scrollRegions(key, 'transition-table', viewport);
         await page.getByRole('tab', {name: 'Diagram', exact: true}).click();
+        await expect(page.getByRole('tab', {name: 'Diagram', exact: true})).toHaveAttribute('aria-selected', 'true');
         await page.getByRole('button', {name: 'Create / reuse', exact: true}).click();
         await capture(key, 'create-dialog', viewport);
         await page.getByLabel('Feature source').selectOption('reuse');

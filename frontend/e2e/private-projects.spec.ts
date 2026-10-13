@@ -1,4 +1,4 @@
-import {type APIRequestContext, expect, test} from './fixtures';
+import {type APIRequestContext, expect, test, waitForWorkspace} from './fixtures';
 
 test.setTimeout(180000);
 
@@ -167,6 +167,7 @@ test('Session verification respects Retry-After before opening any saved project
 test('A newly saved server model appears immediately and opens as a separate private copy', {tag: '@critical'}, async ({page}) => {
     await signInWithQuota(page.request, `saved-project-${Date.now()}`);
     await page.goto('/projects');
+    await waitForWorkspace(page);
     await expect(page.getByRole('heading', {name: 'No server versions saved yet', exact: true})).toBeVisible();
     await page.getByRole('button', {name: 'Create Ancient Dragon project', exact: true}).click();
     await page.getByRole('tab', {name: 'Export', exact: true}).click();

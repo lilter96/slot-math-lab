@@ -3,7 +3,14 @@ import {canonicalJson} from '../src/lib/hash';
 import {expect, test} from '@playwright/test';
 import {useAppStore} from '../src/store';
 import {loadProject, openMechanic, peekRootProject, projectEditorState} from '../src/lib/projectFiles';
-import {commitGraphEdit, type GraphValidator, prepareGraphEdit, undoGraphEdit} from '../src/lib/authoring/transactions';
+import {
+    commitGraphEdit,
+    currentGraphUndo,
+    type GraphValidator,
+    prepareGraphEdit,
+    undoGraphEdit
+} from '../src/lib/authoring/transactions';
+import {setBrowserIdentity} from '../src/lib/browserIdentity';
 
 const graph = {
     schemaVersion: '1.0.0',
@@ -35,8 +42,49 @@ const graph = {
 };
 const accepted: GraphValidator = async () => ({isValid: true});
 test.beforeEach(() => {
+    setBrowserIdentity({authenticated: false, required: false});
     useAppStore.setState({projectId: 'project-a', projects: {}, graphTrail: [], verificationSource: null});
     loadProject(structuredClone(graph));
+});
+
+test('The latest atomic undo survives view context and project switching, while another owner cannot inspect or execute it', async () => {
+    setBrowserIdentity({authenticated: true, required: true, userId: 'undo-alice'});
+    const result = await commitGraphEdit(edit(), undefined, accepted);
+    expect(currentGraphUndo('project-a', result.after)).toBe(result);
+    openMechanic('round');
+    expect(currentGraphUndo('project-a', peekRootProject()!)).toBe(result);
+    useAppStore.setState({projectId: 'project-b', graphTrail: []});
+    loadProject(structuredClone(graph));
+    expect(currentGraphUndo('project-b', graph)).toBeNull();
+    useAppStore.setState({projectId: 'project-a', graphTrail: []});
+    loadProject(result.after);
+    setBrowserIdentity({authenticated: true, required: true, userId: 'undo-bob'});
+    expect(currentGraphUndo('project-a', result.after)).toBeNull();
+    expect(() => undoGraphEdit(result)).toThrow('project or source changed');
+    setBrowserIdentity({authenticated: true, required: true, userId: 'undo-alice'});
+    expect(currentGraphUndo('project-a', result.after)).toBe(result);
+    undoGraphEdit(result);
+    expect(peekRootProject()).toEqual(graph);
+    expect(currentGraphUndo('project-a', graph)).toBeNull();
+});
+
+test('A different source hides undo and a newer identical result prevents executing an obsolete undo object', async () => {
+    const first = await commitGraphEdit(edit(), undefined, accepted);
+    expect(currentGraphUndo('project-a', graph)).toBeNull();
+    loadProject(structuredClone(graph));
+    const second = await commitGraphEdit(edit(), undefined, accepted);
+    expect(currentGraphUndo('project-a', second.after)).toBe(second);
+    expect(() => undoGraphEdit(first)).toThrow('project or source changed');
+    undoGraphEdit(second);
+    expect(peekRootProject()).toEqual(graph);
+});
+
+test('A validated owner change cannot finish a previously prepared private edit', async () => {
+    setBrowserIdentity({authenticated: true, required: true, userId: 'undo-alice'});
+    const prepared = edit();
+    setBrowserIdentity({authenticated: true, required: true, userId: 'undo-bob'});
+    await expect(commitGraphEdit(prepared, undefined, accepted)).rejects.toThrow('project or source changed');
+    expect(peekRootProject()).toEqual(graph);
 });
 
 function edit() {

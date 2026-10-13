@@ -1,5 +1,5 @@
 import {readFile} from 'node:fs/promises';
-import {type APIRequestContext, expect, type Page, test} from './fixtures';
+import {type APIRequestContext, expect, type Page, postWithQuota, test, waitForWorkspace} from './fixtures';
 import {Flow, gameGraph, Mechanics} from '../src/games/shared/graph/flow';
 import {and, at, eq, num, str, when} from '../src/games/shared/graph/expr';
 import {reelState, spinReels} from '../src/games/shared/graph/mechanics/reels';
@@ -66,6 +66,7 @@ function cells() {
 
 async function open(page: Page, graph: Record<string, unknown>) {
     await page.goto('/build');
+    await waitForWorkspace(page);
     await page.getByLabel('Import project file').setInputFiles({
         name: 'private-graph.json',
         mimeType: 'application/json',
@@ -93,7 +94,7 @@ async function apply(page: Page) {
 }
 
 async function exact(api: APIRequestContext, graph: Record<string, unknown>, value: number) {
-    const response = await api.post('/api/evaluate/light', {
+    const response = await postWithQuota(api, '/api/evaluate/light', {
         data: {
             config: graph,
             maxBranches: 10000,
