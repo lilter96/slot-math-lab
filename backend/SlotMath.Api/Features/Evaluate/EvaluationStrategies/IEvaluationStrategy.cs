@@ -5,6 +5,7 @@ using SlotMath.Core.Math.Structured;
 using SlotMath.Core.Model;
 
 namespace SlotMath.Api.Features.Evaluate.EvaluationStrategies;
+
 public interface IEvaluationStrategy
 {
     bool CanEvaluate(EvaluationMode mode);

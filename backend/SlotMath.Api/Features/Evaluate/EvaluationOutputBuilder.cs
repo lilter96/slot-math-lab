@@ -1,9 +1,10 @@
+using System.Diagnostics;
+using SlotMath.Core.Compiler;
 using SlotMath.Core.Math;
 using SlotMath.Core.Math.Structured;
-using SlotMath.Core.Compiler;
-using System.Diagnostics;
 
 namespace SlotMath.Api.Features.Evaluate;
+
 public static class EvaluationOutputBuilder
 {
     public static EvaluationOutput Build(GraphEvaluationRequest request, string? actual, RtpMetric rtp,
