@@ -32,6 +32,9 @@ public class SampledEvaluationStrategy : BaseEvaluationStrategy
                     CancellationCheckInterval = 1
                 }), cancellationToken);
 
+        if (result.SpinsCompleted == 0)
+            throw new TimeoutException("Evaluation timed out before completing any spins.");
+
         var report = SampledMetrics.ComputeFromResult(result);
 
         return new StrategyExecutionOutput(

@@ -14,6 +14,7 @@ using SlotMath.Api.Features.Ai;
 using SlotMath.Api.Features.Auth;
 using SlotMath.Api.Features.Configs;
 using SlotMath.Api.Features.Evaluate;
+using SlotMath.Api.Features.Evaluate.EvaluationStrategies;
 using SlotMath.Api.Features.PersistedConfigs;
 using SlotMath.Api.Features.Play;
 using SlotMath.Api.Features.Plugins;
@@ -106,6 +107,11 @@ builder.Services.AddRateLimiter(options =>
 // ── DI ────────────────────────────────────────────────────────────────
 // Rate limiter + validation
 builder.Services.AddSingleton<SimpleRateLimiter>();
+
+// Graph evaluation strategies
+builder.Services.AddScoped<IEvaluationStrategy, ExactOrPrunedEvaluationStrategy>();
+builder.Services.AddScoped<IEvaluationStrategy, SampledEvaluationStrategy>();
+builder.Services.AddScoped<IEvaluationStrategy, HybridEvaluationStrategy>();
 
 // In-memory stores (fast path, always available)
 builder.Services.AddSingleton<InMemoryConfigStore>();

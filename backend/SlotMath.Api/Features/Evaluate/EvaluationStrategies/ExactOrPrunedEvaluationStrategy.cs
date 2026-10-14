@@ -31,6 +31,10 @@ public class ExactOrPrunedEvaluationStrategy : BaseEvaluationStrategy
         SlotMathReport? report = null;
         StructuredExactResult? structured = null;
 
+        string? actual = null;
+        var mode = Enum.Parse<EvaluationMode>(request.Mode); // pruned or exact
+        string method = "enumeration";
+
         try
         {
             var result = await Task.Run(() =>
@@ -39,28 +43,37 @@ public class ExactOrPrunedEvaluationStrategy : BaseEvaluationStrategy
                     new ExactConfig
                     {
                         Budget = budget,
-                        EpsilonNumerator = request.Mode == "Pruned" ? epsilon.Numerator : 0,
+                        EpsilonNumerator = mode is EvaluationMode.Pruned ? epsilon.Numerator : 0,
                         EpsilonDenominator = epsilon.Denominator
                     }), cancellationToken);
 
             report = ExactMetrics.Compute(result.ValueDistribution(), (BigInteger)cap, winScale: compiled.WinScale);
+            actual = report.Rtp.Provenance.Provenance.ToString();
         }
-        catch (BudgetExceededException)
+        catch (BudgetExceededException ex)
         {
             var (sd, d) = await StructuredEvaluationService.Structured(compiled, cancellationToken, cancellationToken);
             structured = sd;
             if (structured is null)
             {
-                throw;
+                throw new InvalidOperationException($"Structured evaluation declined. Reason: {d}", ex);
             }
+
+            if (structured?.Distribution is { } dist)
+            {
+                report = ExactMetrics.Compute(dist, structured.WinCap, winScale: compiled.WinScale);
+            }
+
+            actual = structured.Rtp(compiled.WinScale).Provenance.Label;
+            method = "structured";
         }
 
         return new StrategyExecutionOutput(
             Report: report,
             Samples: 0,
             Incomplete: false,
-            Method: "enumeration",
-            Actual: request.Mode,
+            Method: method,
+            Actual: actual, 
             Structured: structured
         );
     }

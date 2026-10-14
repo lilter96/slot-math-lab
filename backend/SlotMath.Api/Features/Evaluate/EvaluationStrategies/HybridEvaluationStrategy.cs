@@ -30,7 +30,7 @@ public class HybridEvaluationStrategy : BaseEvaluationStrategy
         ProgramAnalysis analysis = ProgramAnalyzer.Analyze(compiled.Program!);
         if (!analysis.ContainsPlugin && analysis.EstimatedBranches > request.MaxBranches)
         {
-            var (s, d) = await StructuredEvaluationService.Structured(compiled, cancellationToken, cancellationToken);
+            var (s, d) = await StructuredEvaluationService.Structured(compiled, deadlineToken, cancellationToken);
             structured = s;
             declined = d;
         }
@@ -54,7 +54,7 @@ public class HybridEvaluationStrategy : BaseEvaluationStrategy
 
             if (result.BudgetExceeded && !analysis.ContainsPlugin)
             {
-                var (s, d) = await StructuredEvaluationService.Structured(compiled, cancellationToken, cancellationToken);
+                var (s, d) = await StructuredEvaluationService.Structured(compiled, deadlineToken, cancellationToken);
                 structured = s;
                 declined = d;
             }
