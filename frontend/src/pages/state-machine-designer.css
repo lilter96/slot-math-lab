@@ -1,0 +1,947 @@
+.machine-designer {
+    padding-bottom: 0
+}
+
+.machine-designer .studio-view-bar {
+    margin-bottom: 0
+}
+
+.machine-breadcrumb {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-height: 62px;
+    font-size: 13px;
+    overflow-wrap: anywhere
+}
+
+.machine-breadcrumb > button {
+    border: 0;
+    background: transparent;
+    padding: 0;
+    color: var(--studio-blue);
+    min-height: 32px
+}
+
+.machine-view-origin {
+    margin-left: auto;
+    color: var(--studio-muted);
+    font-size: 12px
+}
+
+.machine-workspace {
+    display: grid;
+    grid-template-columns:205px minmax(0, 1fr) 310px;
+    gap: 20px;
+    align-items: start
+}
+
+.machine-explorer {
+    position: sticky;
+    top: 0;
+    max-height: calc(100dvh - 195px);
+    overflow: auto;
+    border-right: 1px solid var(--studio-line);
+    padding-right: 16px;
+    scrollbar-width: thin
+}
+
+.machine-explorer header {
+    padding-bottom: 16px
+}
+
+.machine-explorer h2 {
+    font-size: 14px;
+    margin-bottom: 12px
+}
+
+.machine-explorer input {
+    width: 100%;
+    font-size: 13px
+}
+
+.machine-explorer nav, .machine-explorer section {
+    display: flex;
+    flex-direction: column;
+    gap: 4px
+}
+
+.machine-explorer section {
+    margin-top: 20px;
+    border-top: 1px solid var(--studio-line);
+    padding-top: 14px
+}
+
+.machine-explorer h3 {
+    margin: 0 8px 8px;
+    font-size: 12px;
+    color: var(--studio-muted)
+}
+
+.machine-explorer nav button, .machine-explorer section button {
+    display: block;
+    width: 100%;
+    text-align: left;
+    background: transparent;
+    border-color: transparent;
+    padding: 10px 9px;
+    line-height: 1.4
+}
+
+.machine-explorer button b {
+    display: block;
+    font-size: 13px;
+    font-weight: 550;
+    overflow-wrap: anywhere
+}
+
+.machine-explorer button small {
+    display: block;
+    font-size: 12px;
+    margin-top: 3px
+}
+
+.machine-explorer button[aria-pressed=true] {
+    background: #e9f0fd;
+    border-color: #bdcff5
+}
+
+.machine-explorer footer {
+    border-top: 1px solid var(--studio-line);
+    margin-top: 20px;
+    padding: 14px 0;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    font-size: 13px
+}
+
+.machine-main {
+    min-width: 0
+}
+
+.machine-canvas-heading {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    align-items: center;
+    min-height: 70px;
+    padding: 0 0 16px
+}
+
+.machine-canvas-heading h2 {
+    font-size: 18px;
+    overflow-wrap: anywhere
+}
+
+.machine-canvas-heading p {
+    font-size: 12px;
+    color: var(--studio-muted);
+    margin-top: 3px
+}
+
+.machine-canvas {
+    height: 640px;
+    border: 1px solid var(--studio-line);
+    border-radius: 8px;
+    background: #f1f5fb;
+    overflow: hidden
+}
+
+.machine-canvas .react-flow__controls {
+    box-shadow: 0 2px 10px #2439571a;
+    border: 1px solid var(--studio-line);
+    border-radius: 6px;
+    overflow: hidden
+}
+
+.machine-canvas .react-flow__controls-button {
+    min-height: 32px;
+    width: 32px;
+    padding: 8px;
+    border-radius: 0;
+    color: var(--studio-ink)
+}
+
+.machine-canvas .react-flow__controls-button svg {
+    width: 14px;
+    height: 14px;
+    fill: currentColor
+}
+
+.machine-canvas .react-flow__edge-text {
+    font-family: var(--sans)
+}
+
+.machine-canvas-node {
+    width: 274px;
+    min-height: 132px;
+    border: 1px solid #b8c7dc;
+    border-left: 3px solid #6284ba;
+    border-radius: 7px;
+    padding: 14px 16px;
+    background: white;
+    box-shadow: 0 3px 9px #18345b08;
+    color: var(--studio-ink)
+}
+
+.machine-canvas-node.selected {
+    outline: 2px solid var(--studio-blue);
+    outline-offset: 3px
+}
+
+.machine-canvas-node.decision {
+    border-left-color: #b87925
+}
+
+.machine-canvas-node.loop {
+    border-left-color: #7763b7
+}
+
+.machine-canvas-node.operation {
+    border-left-color: #8792a3
+}
+
+.machine-node-role {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    color: #526984;
+    margin-bottom: 9px
+}
+
+.machine-node-role span {
+    font-size: 11px;
+    color: #4e6790
+}
+
+.machine-canvas-node strong {
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    font-size: 17px;
+    line-height: 1.4;
+    font-weight: 600;
+    overflow-wrap: anywhere
+}
+
+.machine-canvas-node p {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    font-size: 14px;
+    line-height: 1.5;
+    color: #59687b;
+    margin-top: 7px;
+    overflow-wrap: anywhere
+}
+
+.machine-canvas-node .react-flow__handle {
+    width: 8px;
+    height: 8px;
+    background: #6587b5;
+    border: 2px solid white
+}
+
+.machine-rule-strip {
+    padding: 16px 2px 20px;
+    display: grid;
+    grid-template-columns:160px 1fr;
+    gap: 14px;
+    color: var(--studio-muted);
+    font-size: 13px;
+    line-height: 1.6
+}
+
+.machine-rule-strip b {
+    color: var(--studio-ink);
+    font-weight: 550
+}
+
+.machine-review, .machine-execution {
+    background: var(--studio-surface);
+    border: 1px solid var(--studio-line);
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 18px
+}
+
+.machine-review > header, .machine-execution > header {
+    display: flex;
+    justify-content: space-between;
+    align-items: start;
+    gap: 16px;
+    margin-bottom: 12px
+}
+
+.machine-review h2, .machine-execution h2 {
+    font-size: 16px
+}
+
+.machine-review header > span {
+    font-size: 12px;
+    color: var(--studio-muted)
+}
+
+.machine-review > p, .machine-execution p {
+    font-size: 13px;
+    line-height: 1.6;
+    color: var(--studio-muted);
+    margin-bottom: 12px
+}
+
+.machine-review .studio-error {
+    color: var(--studio-error)
+}
+
+.machine-review details, .machine-execution details {
+    border-top: 1px solid var(--studio-line);
+    margin-top: 16px;
+    padding-top: 14px;
+    font-size: 13px
+}
+
+.machine-review details summary, .machine-execution summary {
+    cursor: pointer;
+    font-weight: 550;
+    min-height: 30px;
+    color: var(--studio-ink)
+}
+
+.machine-review details p {
+    color: var(--studio-muted);
+    font-size: 13px;
+    line-height: 1.6;
+    margin: 12px 0;
+    max-width: 75ch
+}
+
+.machine-review li {
+    overflow-wrap: anywhere
+}
+
+.machine-execution .studio-actions {
+    align-items: end;
+    flex-wrap: nowrap
+}
+
+.machine-execution input {
+    width: 85px
+}
+
+.machine-execution header p {
+    margin: 4px 0 0
+}
+
+.machine-round-result {
+    display: flex;
+    gap: 12px;
+    align-items: baseline;
+    flex-wrap: wrap;
+    color: var(--studio-ink) !important
+}
+
+.machine-round-result strong {
+    font-size: 23px;
+    font-weight: 550;
+    color: var(--studio-blue);
+    font-variant-numeric: tabular-nums
+}
+
+.machine-round-result span {
+    color: var(--studio-muted);
+    font-size: 12px
+}
+
+.machine-designer pre {
+    background: #f3f6fb;
+    border: 1px solid var(--studio-line);
+    border-radius: 5px;
+    padding: 12px;
+    font-size: 12px;
+    line-height: 1.6;
+    overflow: auto;
+    max-height: 340px;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere
+}
+
+.machine-inspector {
+    position: sticky;
+    top: 0;
+    border: 1px solid var(--studio-line);
+    border-radius: 8px;
+    background: white;
+    max-height: calc(100dvh - 190px);
+    overflow-y: auto;
+    scrollbar-width: thin;
+    min-width: 0
+}
+
+.machine-inspector > header {
+    padding: 18px 18px 16px;
+    border-bottom: 1px solid var(--studio-line);
+    background: #fafcff
+}
+
+.machine-inspector > header h2 {
+    font-size: 16px;
+    line-height: 1.5;
+    overflow-wrap: anywhere
+}
+
+.machine-inspector > header p {
+    font-size: 12px;
+    color: var(--studio-muted);
+    margin-top: 5px
+}
+
+.machine-inspector > label, .machine-inspector > .machine-source-id {
+    margin: 16px 18px
+}
+
+.machine-source-id {
+    color: var(--studio-muted);
+    font-size: 12px;
+    overflow-wrap: anywhere
+}
+
+.machine-form-section {
+    padding: 18px;
+    border-top: 1px solid var(--studio-line);
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    min-width: 0
+}
+
+.machine-form-section > header {
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+    align-items: start
+}
+
+.machine-form-section h3 {
+    font-size: 14px;
+    overflow-wrap: anywhere
+}
+
+.machine-form-section header > span {
+    color: var(--studio-muted);
+    font-size: 12px
+}
+
+.machine-form-section > p {
+    font-size: 13px;
+    color: var(--studio-muted);
+    line-height: 1.6
+}
+
+.machine-form-section > button {
+    text-align: left;
+    justify-content: flex-start
+}
+
+.machine-action-row {
+    border: 1px solid var(--studio-line);
+    border-radius: 5px;
+    overflow: hidden
+}
+
+.machine-action-row > summary {
+    cursor: pointer;
+    padding: 12px 10px;
+    display: grid;
+    grid-template-columns:18px 1fr;
+    gap: 3px 8px;
+    font-size: 13px;
+    line-height: 1.5;
+    background: #f7f9fc
+}
+
+.machine-action-row > summary b {
+    font-size: 12px;
+    color: var(--studio-blue);
+    font-weight: 550
+}
+
+.machine-action-row > summary span {
+    overflow-wrap: anywhere
+}
+
+.machine-action-row > summary small {
+    grid-column: 2;
+    font-size: 12px
+}
+
+.machine-action-fields {
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px
+}
+
+.machine-action-fields .machine-form-section {
+    padding: 14px 0 0
+}
+
+.machine-expression {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    min-width: 0
+}
+
+.machine-expression textarea {
+    width: 100%;
+    font: 13px/1.6 var(--mono);
+    resize: vertical;
+    min-height: 72px
+}
+
+.machine-expression > div:not(.studio-error) {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    flex-wrap: wrap
+}
+
+.machine-expression select {
+    font-size: 12px;
+    padding: 6px;
+    min-height: 34px;
+    max-width: 145px
+}
+
+.machine-expression button, .machine-reorder button {
+    font-size: 12px;
+    min-height: 34px;
+    padding: 6px 9px
+}
+
+.machine-expression .studio-error {
+    font-size: 12px;
+    margin: 0;
+    padding: 8px
+}
+
+.machine-reorder {
+    display: flex;
+    gap: 7px;
+    flex-wrap: wrap
+}
+
+.machine-draw-rows {
+    display: flex;
+    flex-direction: column;
+    gap: 10px
+}
+
+.machine-draw-rows p {
+    font-size: 12px;
+    color: var(--studio-muted)
+}
+
+.machine-draw-rows > div {
+    display: grid;
+    grid-template-columns:minmax(0, 1fr) 57px 57px 24px;
+    gap: 5px;
+    align-items: end
+}
+
+.machine-number-input {
+    display: grid;
+    gap: 6px;
+    min-width: 0
+}
+
+.machine-number-input > .studio-error {
+    display: block;
+    padding: 8px;
+    margin: 0;
+    font-size: 12px;
+    white-space: normal
+}
+
+.machine-draw-rows > div:has([aria-invalid="true"]) {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 8px
+}
+
+.machine-draw-rows > div:has([aria-invalid="true"]) > button {
+    justify-self: end
+}
+
+.machine-draw-rows input {
+    padding: 7px 5px;
+    font-size: 12px
+}
+
+.machine-draw-rows label {
+    font-size: 11px
+}
+
+.machine-draw-rows button {
+    padding: 4px;
+    min-width: 24px
+}
+
+.machine-variable {
+    border: 1px solid var(--studio-line);
+    padding: 12px;
+    border-radius: 5px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    background: #f8faff
+}
+
+.machine-linked-rule {
+    background: #f3f7ff
+}
+
+.machine-inspector-empty {
+    padding: 35px 24px 44px;
+    text-align: center
+}
+
+.machine-inspector-empty p {
+    font-size: 14px;
+    margin: 12px 0 8px
+}
+
+.machine-inspector-empty small {
+    display: block;
+    font-size: 13px;
+    line-height: 1.6
+}
+
+.machine-empty-glyph {
+    font-size: 35px;
+    color: #7999c4
+}
+
+.machine-table-scroll {
+    background: white;
+    border: 1px solid var(--studio-line);
+    border-radius: 8px;
+    overflow: auto;
+    max-height: 640px
+}
+
+.machine-transition-table {
+    width: 100%;
+    border-collapse: collapse;
+    text-align: left;
+    font-size: 13px
+}
+
+.machine-transition-table th, .machine-transition-table td {
+    padding: 12px 14px;
+    border-bottom: 1px solid var(--studio-line);
+    vertical-align: top;
+    min-width: 150px;
+    max-width: 320px;
+    overflow-wrap: anywhere;
+    line-height: 1.6
+}
+
+.machine-transition-table thead th {
+    background: #edf2fa;
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    font-size: 12px;
+    font-weight: 550;
+    color: var(--studio-muted)
+}
+
+.machine-transition-table tbody th {
+    font-weight: 500
+}
+
+.machine-transition-table small {
+    display: block;
+    margin-top: 5px
+}
+
+.machine-transition-table th button {
+    background: transparent;
+    border: 0;
+    padding: 0;
+    min-height: 24px;
+    color: var(--studio-blue);
+    justify-content: flex-start;
+    text-align: left;
+    font-size: 13px
+}
+
+.machine-notice {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+    border: 1px solid #edbdc4;
+    background: #fff5f6;
+    color: var(--studio-error);
+    padding: 12px 16px;
+    border-radius: 6px;
+    margin-bottom: 18px;
+    font-size: 13px
+}
+
+.machine-page-footer {
+    display: flex;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 18px 0 20px;
+    font-size: 12px;
+    color: var(--studio-muted);
+    border-top: 1px solid var(--studio-line);
+    margin-top: 8px
+}
+
+.machine-create-dialog > label {
+    margin: 16px 0
+}
+
+.machine-create-dialog .studio-derived {
+    margin-top: 18px
+}
+
+.machine-designer .machine-explorer-toggle {
+    display: none
+}
+
+@media (min-width: 1800px) {
+    .machine-workspace {
+        grid-template-columns:230px minmax(0, 1fr) 350px
+    }
+
+    .machine-canvas {
+        height: 720px
+    }
+}
+
+@media (max-width: 1250px) {
+    .machine-workspace {
+        grid-template-columns:180px minmax(0, 1fr);
+        gap: 18px
+    }
+
+    .machine-inspector {
+        grid-column: 2;
+        position: static;
+        max-height: none
+    }
+
+    .machine-canvas {
+        height: 600px
+    }
+
+    .machine-rule-strip {
+        grid-template-columns:1fr;
+        gap: 6px
+    }
+
+    .machine-inspector > header {
+        padding: 20px
+    }
+
+    .machine-inspector .machine-form-section {
+        padding: 20px
+    }
+
+    .machine-execution > header {
+        flex-wrap: wrap
+    }
+}
+
+@media (max-width: 767px) {
+    .machine-workspace {
+        display: block
+    }
+
+    .machine-designer {
+        padding: 18px 16px 0
+    }
+
+    .machine-designer .studio-page-heading {
+        align-items: start;
+        flex-direction: column;
+        gap: 16px
+    }
+
+    .machine-designer h1 {
+        font-size: 23px
+    }
+
+    .machine-designer .studio-actions {
+        gap: 8px
+    }
+
+    .machine-designer button {
+        min-height: 44px
+    }
+
+    .machine-designer input, .machine-designer select, .machine-designer textarea {
+        font-size: 16px;
+        min-height: 44px
+    }
+
+    .machine-breadcrumb {
+        flex-wrap: wrap;
+        gap: 8px;
+        padding: 12px 0;
+        font-size: 13px
+    }
+
+    .machine-view-origin {
+        width: 100%;
+        margin: 0
+    }
+
+    .machine-explorer {
+        display: none;
+        position: static;
+        max-height: 420px;
+        border: 1px solid var(--studio-line);
+        border-radius: 7px;
+        padding: 16px;
+        margin-bottom: 18px;
+        background: white
+    }
+
+    .machine-explorer.mobile-open {
+        display: block
+    }
+
+    .machine-designer .machine-explorer-toggle {
+        display: inline-flex
+    }
+
+    .machine-canvas-heading {
+        flex-wrap: wrap;
+        gap: 12px
+    }
+
+    .machine-canvas-heading h2 {
+        font-size: 17px
+    }
+
+    .machine-canvas {
+        height: 500px
+    }
+
+    .machine-inspector {
+        margin: 20px 0;
+        max-height: none;
+        position: static
+    }
+
+    .machine-rule-strip {
+        padding: 16px 0;
+        font-size: 13px
+    }
+
+    .machine-review, .machine-execution {
+        padding: 16px
+    }
+
+    .machine-review > header {
+        flex-direction: column;
+        gap: 5px
+    }
+
+    .machine-execution > header {
+        flex-direction: column
+    }
+
+    .machine-expression textarea {
+        font-size: 14px !important
+    }
+
+    .machine-expression select {
+        font-size: 13px
+    }
+
+    .machine-action-fields {
+        padding: 12px
+    }
+
+    .machine-draw-rows label {
+        font-size: 12px
+    }
+
+    .machine-draw-rows input {
+        font-size: 13px;
+        padding: 7px 5px
+    }
+
+    .machine-form-section {
+        padding: 16px
+    }
+
+    .machine-page-footer {
+        flex-direction: column;
+        gap: 4px
+    }
+
+    .machine-transition-table th, .machine-transition-table td {
+        min-width: 165px
+    }
+
+    .machine-designer .studio-view-bar {
+        gap: 10px;
+        flex-wrap: wrap
+    }
+
+    .machine-designer .studio-view-bar [role=tablist] {
+        gap: 18px
+    }
+
+    .machine-designer .studio-status {
+        padding-bottom: 8px
+    }
+
+    .machine-notice {
+        padding: 12px
+    }
+
+    .machine-designer .machine-reorder button {
+        min-height: 44px
+    }
+
+    .machine-create-dialog > header p {
+        font-size: 13px
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .machine-designer * {
+        scroll-behavior: auto !important;
+        transition: none !important
+    }
+}
+
+.machine-breadcrumb-segment {
+    display: inline-flex;
+    gap: 10px;
+    align-items: center;
+    min-width: 0
+}
+
+.machine-breadcrumb-segment button {
+    background: transparent;
+    border: 0;
+    color: var(--studio-blue);
+    padding: 0;
+    min-height: 32px;
+    text-align: left;
+    overflow-wrap: anywhere
+}

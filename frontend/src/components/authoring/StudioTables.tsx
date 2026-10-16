@@ -1,0 +1,431 @@
+import {useState} from 'react';
+import type {PayBinding} from '../../lib/authoring/payBindings';
+import type {LineBinding} from '../../lib/authoring/lineBindings';
+import {type StudioContext, SymbolBadge} from './StudioShared';
+import {weightBindings} from '../../lib/authoring/weightBindings';
+import {readable} from '../../lib/authoring/studioPresentation';
+import {useMatrixClipboard} from './useMatrixClipboard';
+import {PrizeDomainEditor} from './StudioSourceLifecycle';
+import {type LineStakePolicy, lineStakePreview} from '../../lib/authoring/lineLifecycle';
+import {computedLineBound} from '../../lib/authoring/payoutBounds';
+import {AddSymbolButton, PayingDomainEditor, SymbolRemoval} from './StudioSymbolLifecycle';
+
+export function PrizeSurface({context, binding, initialSource, onSourceChange}: {
+    context: StudioContext;
+    binding: PayBinding;
+    initialSource: string | null;
+    onSourceChange: (key: string) => void
+}) {
+    const sources = binding.prize!.sources, [selected, setSelected] = useState(initialSource ?? sources[0].key), [linked, setLinked] = useState(false);
+    const weights = weightBindings(context.graph).filter(value => sources.some(source => source.key === value.key)),
+        active = weights.find(value => value.key === selected) ?? weights[0], row = binding.rows[0];
+    const weightPatch = context.patches.find(patch => patch.kind === 'weights' && patch.key === active.key),
+        inputs = active.rows.map(outcome => weightPatch?.kind === 'weights' ? weightPatch.values.find(([id]) => id === outcome.outcomeId)?.[1] ?? String(outcome.weight) : String(outcome.weight));
+    const domainPending = context.patches.some(patch => patch.kind === 'prize-domain' && patch.key === binding.key);
+    const valid = inputs.every(value => /^\d+$/.test(value) && value.length <= 16 && BigInt(value) <= BigInt(Number.MAX_SAFE_INTEGER)),
+        total = valid ? inputs.reduce((sum, value) => sum + BigInt(value), 0n) : null;
+    const changeWeight = (position: number, value: string) => {
+        context.stage((linked ? weights : [active]).map(source => {
+            const pending = context.patches.find(patch => patch.kind === 'weights' && patch.key === source.key);
+            return {
+                kind: 'weights',
+                key: source.key,
+                values: source.rows.map((outcome, i) => [outcome.outcomeId, i === position ? value : pending?.kind === 'weights' ? pending.values.find(([id]) => id === outcome.outcomeId)?.[1] ?? String(outcome.weight) : String(outcome.weight)])
+            };
+        }));
+    };
+    return <div className="studio-source-surface">
+        <header className="studio-surface-heading">
+            <div><h2>Coin prizes</h2><p>Prize values in total-bet multiples · {binding.scale} credits per stake
+                · {sources.length} independent draws</p></div>
+            <span className="studio-tag">Round price: {binding.roundCost} credits</span></header>
+        <div className="studio-size-toolbar"><label>Weight distribution<select aria-label="Prize weight distribution"
+                                                                               value={active.key}
+                                                                               disabled={context.disabled}
+                                                                               onChange={event => {
+                                                                                   setSelected(event.target.value);
+                                                                                   onSourceChange(event.target.value);
+                                                                               }}>{sources.map(source => <option
+            key={source.key}
+            value={source.key}>{readable(source.scope ?? 'Root')} / {source.id}</option>)}</select></label><label
+            className="studio-check"><input type="checkbox" checked={linked} disabled={context.disabled}
+                                            onChange={event => setLinked(event.target.checked)}/>Apply weight edits to
+            all {sources.length} draws</label></div>
+        <div className="studio-matrix-scroll">
+            <table className="studio-matrix prize-matrix">
+                <thead>
+                <tr>
+                    <th>Outcome</th>
+                    <th>Prize<small>total-bet multiples</small></th>
+                    <th>Weight<small>selected distribution</small></th>
+                    <th>Local probability</th>
+                </tr>
+                </thead>
+                <tbody>{row.counts.map((count, position) => {
+                    const patch = context.patches.find(patch => patch.kind === 'payout' && patch.key === binding.key && patch.count === count),
+                        value = patch?.kind === 'payout' ? patch.value : row.values[position];
+                    return <tr key={count}>
+                        <th><b>Prize {count}</b><small className="studio-prize-id">Draw
+                            value: {binding.prize!.outcomeIds[position]}</small></th>
+                        <td><input aria-label={`Prize ${count} value`} inputMode="numeric" value={value}
+                                   disabled={context.disabled || domainPending} onChange={event => context.stage([{
+                            kind: 'payout',
+                            key: binding.key,
+                            symbolId: row.symbolId,
+                            count,
+                            value: event.target.value
+                        }])}/></td>
+                        <td><input aria-label={`Prize ${count} weight`} inputMode="numeric" value={inputs[position]}
+                                   disabled={context.disabled || domainPending}
+                                   onChange={event => changeWeight(position, event.target.value)}/></td>
+                        <td>{valid && total && total > 0n ? <span
+                            className="weight-probability">{inputs[position]} / {total.toString()}<small>{(Number(BigInt(inputs[position])) / Number(total) * 100).toFixed(4)}%</small></span> : 'Incomplete weights'}</td>
+                    </tr>;
+                })}</tbody>
+                <tfoot>
+                <tr>
+                    <th>Total weight</th>
+                    <td/>
+                    <td>{total?.toString() ?? 'Incomplete'}</td>
+                    <td>Local draw probability</td>
+                </tr>
+                </tfoot>
+            </table>
+        </div>
+        <PrizeDomainEditor context={context} binding={binding}/>
+        <div className="studio-derived"><b>Prize values update all proven consumers</b><span>Applying changes numeric prize values in every listed draw and the exact precision declaration together. Payload fields stay intact. Weight edits affect only the selected distribution unless explicitly linked; round caps stay as authored.</span>
+        </div>
+    </div>;
+}
+
+export function PayoutSurface({context, binding}: { context: StudioContext; binding: PayBinding }) {
+    const {patches, stage, symbols, assets} = context;
+    const domainPatch = patches.find(patch => patch.kind === 'pay-domain' && patch.key === binding.key),
+        disabled = context.disabled || !!domainPatch;
+    const [domainExpanded, setDomainExpanded] = useState(false);
+    const nextCap = binding.bound && context.preview?.nodes?.find(node => node.id === binding.bound!.sinkId)?.winCap;
+    const edits = patches.filter((patch): patch is Extract<typeof patch, {
+        kind: 'payout'
+    }> => patch.kind === 'payout' && patch.key === binding.key);
+    const [chosenPolicy, setChosenPolicy] = useState<'keep' | 'recompute'>(edits[0]?.capPolicy ?? (binding.bound ? 'recompute' : 'keep'));
+    const capPolicy = domainPatch?.kind === 'pay-domain' ? domainPatch.capPolicy : edits[0]?.capPolicy ?? chosenPolicy;
+    const counts = [...new Set([...binding.rows.flatMap(row => row.counts), ...edits.map(edit => edit.count)])].sort((a, b) => a - b);
+    const [newSize, setNewSize] = useState('4'), [removeSize, setRemoveSize] = useState(String(counts[0] ?? 5)), [sizeError, setSizeError] = useState<string | null>(null);
+    const sizeLifecycle = !domainExpanded && binding.cluster?.encoding === 'shared-column-major';
+    const addSize = () => {
+        if (!/^\d+$/.test(newSize) || Number(newSize) < 1 || Number(newSize) > binding.columns) {
+            setSizeError(`Choose a size from 1 to ${binding.columns}.`);
+            return;
+        }
+        if (counts.includes(Number(newSize))) {
+            setSizeError('That size is already present. Edit its payouts in the matrix.');
+            return;
+        }
+        setSizeError(null);
+        stage(binding.rows.map(row => ({
+            kind: 'payout',
+            key: binding.key,
+            symbolId: row.symbolId,
+            count: Number(newSize),
+            value: '0'
+        })));
+    };
+    const nextMinimum = binding.cluster && (context.preview?.initialState as Record<string, unknown> | undefined)?.clusterMinSize;
+    const matrixValues = binding.rows.map(row => counts.map(count => {
+        const edit = edits.find(edit => edit.symbolId === row.symbolId && edit.count === count),
+            position = row.counts.indexOf(count);
+        return edit?.remove || (position < 0 && !edit) ? null : edit?.value ?? row.values[position];
+    }));
+    const matrix = useMatrixClipboard(matrixValues, cells => stage(cells.map(cell => ({
+        kind: 'payout',
+        key: binding.key,
+        symbolId: binding.rows[cell.row].symbolId,
+        count: counts[cell.column],
+        value: cell.value, ...(binding.cap || binding.bound ? {capPolicy} : {})
+    }))), disabled);
+
+    return <div className="studio-source-surface">
+        <header className="studio-surface-heading">
+            <div>
+                <h2>{binding.kind === 'line' ? 'Line payouts' : binding.kind === 'cluster' ? 'Cluster payouts' : 'Scatter payouts'}</h2>
+                <p>{binding.kind === 'line' ? 'Columns mean matching reels from the left' : binding.kind === 'cluster' ? binding.cluster?.weighted ? 'Columns mean weighted group size; carried cells keep their existing count rules' : 'Columns mean connected group size' : 'Columns mean scatter count across the board'} · {binding.unit}</p>
+            </div>
+            <span className="studio-tag">Round price: {binding.roundCost} credits</span></header>
+        {sizeLifecycle && <div className="studio-size-toolbar"><label>New group size<input aria-label="New group size"
+                                                                                           inputMode="numeric"
+                                                                                           value={newSize}
+                                                                                           disabled={disabled}
+                                                                                           onChange={event => setNewSize(event.target.value)}/></label>
+            <button disabled={disabled} onClick={addSize}>Add size</button>
+            <label>Remove paying size<select aria-label="Remove paying size" value={removeSize} disabled={disabled}
+                                             onChange={event => setRemoveSize(event.target.value)}>{counts.map(count =>
+                <option key={count} value={count}>{count} cells</option>)}</select></label>
+            <button disabled={disabled} onClick={() => {
+                setSizeError(null);
+                stage(binding.rows.filter(row => row.counts.includes(Number(removeSize))).map(row => ({
+                    kind: 'payout',
+                    key: binding.key,
+                    symbolId: row.symbolId,
+                    count: Number(removeSize),
+                    value: '',
+                    remove: true
+                })));
+            }}>Remove size
+            </button>
+            {sizeError && <p role="alert">{sizeError}</p>}</div>}<PayingDomainEditor context={context} binding={binding}
+                                                                                     capPolicy={capPolicy}
+                                                                                     onToggle={setDomainExpanded}/>{!domainExpanded && <>
+        <div className="studio-matrix-scroll" {...matrix.handlers}>
+            <table className="studio-matrix payout-matrix">
+                <thead>
+                <tr>
+                    <th>Paying symbol</th>
+                    {counts.map(count => <th
+                        key={count}>{count}<small>{binding.kind === 'line' ? 'matching reels' : binding.kind === 'cluster' ? 'group size' : 'scatters'}</small>
+                    </th>)}</tr>
+                </thead>
+                <tbody>{binding.rows.map((row, rowIndex) => {
+                    const symbol = symbols.find(symbol => symbol.id === row.symbolId) ?? {
+                        id: row.symbolId,
+                        name: row.symbolId
+                    };
+                    return <tr key={row.symbolId}>
+                        <th><SymbolBadge symbol={symbol} asset={assets[row.symbolId]}/></th>
+                        {counts.map(count => {
+                            const position = row.counts.indexOf(count),
+                                patch = edits.find(patch => patch.symbolId === row.symbolId && patch.count === count);
+                            if (position < 0 && !patch) return <td key={count}><span className="studio-unavailable">Not authored</span>
+                            </td>;
+                            if (patch?.remove) return <td key={count}>
+                                <button className="studio-payout-restore" disabled={disabled} onClick={() => stage([{
+                                    ...patch,
+                                    remove: false,
+                                    value: row.values[position]
+                                }])}>Restore
+                                </button>
+                            </td>;
+                            const value = patch?.value ?? row.values[position];
+                            return <td key={count} data-selected={matrix.selected(rowIndex, counts.indexOf(count))}>
+                                <input data-matrix-row={rowIndex} data-matrix-column={counts.indexOf(count)}
+                                       aria-label={`${binding.kind} payout ${row.symbolId} count ${count}`}
+                                       inputMode="decimal" value={value} disabled={disabled}
+                                       data-changed={value !== row.values[position]} onChange={event => stage([{
+                                    kind: 'payout',
+                                    key: binding.key,
+                                    symbolId: row.symbolId,
+                                    count,
+                                    value: event.target.value, ...(binding.cap || binding.bound ? {capPolicy} : {})
+                                }])}/></td>;
+                        })}</tr>;
+                })}</tbody>
+            </table>
+        </div>
+        <p className="studio-matrix-keyboard">{matrix.description}</p>{matrix.error &&
+        <p className="studio-error" role="alert">{matrix.error}</p>}</>}{binding.cluster &&
+        <div className="studio-derived">
+            <b>{binding.cluster.encoding === 'reference-offset' ? 'Independent reference lookup' : `Minimum paying size: ${binding.cluster.minimum}${typeof nextMinimum === 'number' && nextMinimum !== binding.cluster.minimum ? ` → ${nextMinimum}` : ''}`}</b><span>{binding.cluster.encoding === 'reference-offset' ? 'Its offset-five through size-thirty domain stays fixed. A zero payout removes a reward without rewriting the reference traversal.' : 'Applying updates the runtime lookup, exact precision, minimum-size pruning and isolated-cell handling together. Existing round caps and collection rules are retained.'}</span>
+        </div>}{binding.derivedWild &&
+        <div className="studio-derived"><b>All-wild row is derived</b><span>Each matching length pays the largest authored symbol payout of that length. Applying updates this runtime row together with the exact precision declaration.</span>
+        </div>}{binding.cap &&
+        <div className="studio-cap-policy"><label>Payout cap policy<select aria-label="Payout cap policy"
+                                                                           value={capPolicy} disabled={disabled}
+                                                                           onChange={event => {
+                                                                               const policy = event.target.value as 'keep' | 'recompute';
+                                                                               setChosenPolicy(policy);
+                                                                               if (edits.length) stage(edits.map(edit => ({
+                                                                                   ...edit,
+                                                                                   capPolicy: policy
+                                                                               })));
+                                                                           }}>{binding.bound &&
+            <option value="recompute">Recompute the source upper bound</option>}
+            <option value="keep">Keep the current cap as a game rule</option>
+        </select></label><p>Current cap: {binding.cap.value} {binding.cap.unit}. Keeping it can limit newly increased
+            payouts.</p></div>}{binding.bound &&
+        <div className="studio-derived"><b>{capPolicy === 'keep' ? 'Active cap retained' : 'Computed upper bound'} ·
+            round-price
+            multiples</b><span>{binding.bound.cap}{typeof nextCap === 'number' && nextCap !== binding.bound.cap ? ` → ${nextCap}` : ''} · budget: {binding.bound.ordinarySpins} ordinary spin + up to {binding.bound.repeatedSpins} repeated spins, multiplier ×{binding.bound.freeMultiplier}.</span>
+        </div>}<p className="studio-footnote">Values are authored inputs. Evaluation happens through the existing
+        compiler and analysis APIs after applying.</p></div>;
+}
+
+export function DeclaredTableSurface({context, table}: {
+    context: StudioContext;
+    table: { id: string; entries: { symbolId: string; counts: number[]; payouts: string[] }[] }
+}) {
+    const counts = [...new Set(table.entries.flatMap(row => row.counts))].sort((a, b) => a - b);
+    return <div className="studio-source-surface">
+        <header className="studio-surface-heading">
+            <div><h2>{table.id}</h2><p>Declared precision table · exact round-price multiples</p></div>
+        </header>
+        <div className="studio-explanation"><b>Executable mapping is not yet available in this surface.</b><span>The current graph and its declared table are retained. Inspect the runtime lookup in the source graph before making changes here.</span>
+        </div>
+        <div className="studio-matrix-scroll">
+            <table className="studio-matrix payout-matrix">
+                <thead>
+                <tr>
+                    <th>Symbol</th>
+                    {counts.map(count => <th key={count}>{count}</th>)}</tr>
+                </thead>
+                <tbody>{table.entries.map(row => <tr key={row.symbolId}>
+                    <th><SymbolBadge symbol={context.symbols.find(symbol => symbol.id === row.symbolId) ?? {
+                        id: row.symbolId,
+                        name: row.symbolId
+                    }} asset={context.assets[row.symbolId]}/></th>
+                    {counts.map(count => <td
+                        key={count}>{row.counts.includes(count) ? row.payouts[row.counts.indexOf(count)] : '—'}</td>)}
+                </tr>)}</tbody>
+            </table>
+        </div>
+    </div>;
+}
+
+export function PaylineSurface({context, binding}: { context: StudioContext; binding: LineBinding }) {
+    const patch = context.patches.find(patch => patch.kind === 'lines' && patch.key === binding.key),
+        lines = patch?.kind === 'lines' ? patch.paths : binding.lines;
+    const [selectedIndex, setSelected] = useState(0), selected = Math.min(selectedIndex, lines.length - 1),
+        path = lines[selected];
+    const [chosenPolicy, setChosenPolicy] = useState<LineStakePolicy>({
+        mode: 'per-line',
+        cap: computedLineBound(context.graph) ? 'recompute' : 'keep'
+    });
+    const identities = patch?.kind === 'lines' && patch.identities ? patch.identities : binding.lines.map((_, index) => String(index));
+    const policy = patch?.kind === 'lines' && patch.stakePolicy ? patch.stakePolicy : chosenPolicy;
+    const domain = (paths: number[][], ids: (string | null)[], stakePolicy = policy) => context.stage([{
+        kind: 'lines',
+        key: binding.key,
+        paths,
+        identities: ids,
+        stakePolicy
+    }]);
+    const update = (column: number, row: number) => {
+        const next = lines.map(path => [...path]);
+        next[selected][column] = row;
+        if (patch?.kind === 'lines' && patch.identities) domain(next, [...identities]); else context.stage([{
+            kind: 'lines',
+            key: binding.key,
+            paths: next
+        }]);
+    };
+    let pricing: ReturnType<typeof lineStakePreview> | null = null, pricingError: string | null = null;
+    if (lines.length !== binding.lines.length) {
+        try {
+            pricing = lineStakePreview(context.graph, binding, lines.length, policy);
+        } catch (error) {
+            pricingError = error instanceof Error ? error.message : 'The stake policy is incomplete.';
+        }
+    }
+
+    const points = path.map((row, column) => `${(column + .5) * 100},${(row + .5) * 100}`).join(' ');
+    return <div className="studio-source-surface">
+        <header className="studio-surface-heading">
+            <div><h2>Payline paths</h2><p>{lines.length} lines · one row per column · {binding.columns} columns
+                × {binding.rows} rows</p></div>
+            <span
+                className="studio-tag">{lines.length === binding.lines.length ? 'Current count retained' : `${binding.lines.length} → ${lines.length} lines`}</span>
+        </header>
+        <div className="studio-line-lifecycle">
+            <div className="studio-actions">
+                <button disabled={context.disabled || lines.length >= 256} onClick={() => {
+                    domain([...lines.map(path => [...path]), Array.from({length: binding.columns}, () => 0)], [...identities, null]);
+                    setSelected(lines.length);
+                }}>Add line
+                </button>
+                <button disabled={context.disabled || lines.length >= 256} onClick={() => {
+                    domain([...lines.map(path => [...path]), [...path]], [...identities, null]);
+                    setSelected(lines.length);
+                }}>Duplicate selected line
+                </button>
+                <button disabled={context.disabled || lines.length <= 1} onClick={() => {
+                    domain(lines.filter((_, index) => index !== selected).map(path => [...path]), identities.filter((_, index) => index !== selected));
+                    setSelected(Math.max(0, selected - 1));
+                }}>Remove selected line
+                </button>
+            </div>
+            {lines.length !== binding.lines.length &&
+                <div className="studio-line-stake"><label>Line stake policy<select aria-label="Line stake policy"
+                                                                                   value={policy.mode}
+                                                                                   onChange={event => {
+                                                                                       const next = {
+                                                                                           ...policy,
+                                                                                           mode: event.target.value as LineStakePolicy['mode']
+                                                                                       };
+                                                                                       setChosenPolicy(next);
+                                                                                       domain(lines.map(path => [...path]), [...identities], next);
+                                                                                   }}>
+                    <option value="per-line">Preserve the current credits per line</option>
+                    <option value="fixed-total">Keep a fixed total stake · change the pricing contract</option>
+                </select></label>{policy.mode === 'fixed-total' &&
+                    <label className="studio-check"><input type="checkbox" aria-label="Confirm fixed total line stake"
+                                                           checked={!!policy.confirmFixed} onChange={event => {
+                        const next = {...policy, confirmFixed: event.target.checked};
+                        setChosenPolicy(next);
+                        domain(lines.map(path => [...path]), [...identities], next);
+                    }}/>Confirm changing the effective price per line</label>}<label>Line-count payout cap<select
+                    aria-label="Line-count payout cap" value={policy.cap}
+                    onChange={event => domain(lines.map(path => [...path]), [...identities], {
+                        ...policy,
+                        cap: event.target.value as LineStakePolicy['cap']
+                    })}>{computedLineBound(context.graph) &&
+                    <option value="recompute">Recompute the proven upper bound</option>}
+                    <option value="keep">Keep the current game-rule cap</option>
+                </select></label>{pricing && <p>Total bet {pricing.oldBet} → {pricing.newBet} credits · entry
+                    price {pricing.oldPrice} → {pricing.newPrice} credits. Entry-price ratio stays exact.
+                    Line/scatter/prize precision and mapped coin stake reconcile together.</p>}{pricingError &&
+                    <p className="studio-error">{pricingError}</p>}</div>}</div>
+        <div className="payline-workspace">
+            <nav className="studio-line-list" aria-label="Payline selection">{lines.map((line, index) => <button
+                key={index} aria-pressed={selected === index} onClick={() => setSelected(index)}><b>Line {index + 1}</b><span>{line.map(row => row + 1).join(' · ')}</span>
+            </button>)}</nav>
+            <div className="payline-board-region">
+                <div className="studio-payline-board" style={{gridTemplateColumns: `repeat(${binding.columns}, 1fr)`}}>
+                    <svg viewBox={`0 0 ${binding.columns * 100} ${binding.rows * 100}`} preserveAspectRatio="none"
+                         aria-hidden="true">
+                        <polyline points={points}/>
+                    </svg>
+                    {Array.from({length: binding.rows}, (_, row) => Array.from({length: binding.columns}, (_, column) =>
+                        <button key={`${column}-${row}`}
+                                aria-label={`Line ${selected + 1} column ${column + 1} row ${row + 1}`}
+                                aria-pressed={path[column] === row} disabled={context.disabled}
+                                onClick={() => update(column, row)}><span>{column + 1}:{row + 1}</span></button>))}
+                </div>
+                <h3>Line {selected + 1}</h3>
+                <div className="payline-row-controls">{path.map((row, column) => <label key={column}>Column {column + 1}<select
+                    value={row} disabled={context.disabled}
+                    onChange={event => update(column, Number(event.target.value))}>{Array.from({length: binding.rows}, (_, row) =>
+                    <option key={row} value={row}>Row {row + 1}</option>)}</select></label>)}</div>
+                <p className="studio-footnote">Applying synchronizes this path with every proven Library consumer. Board
+                    offsets use column-major encoding.</p></div>
+        </div>
+    </div>;
+}
+
+export function SymbolSurface({context, setAsset}: {
+    context: StudioContext;
+    setAsset: (id: string, url: string) => void
+}) {
+    return <div className="studio-source-surface">
+        <header className="studio-surface-heading">
+            <div><h2>Symbol dictionary</h2><p>Display names and project artwork · authored IDs and mathematical
+                references stay stable</p></div>
+            <div className="studio-actions"><span
+                className="studio-tag">{context.symbols.length} symbols</span><AddSymbolButton context={context}/></div>
+        </header>
+        <div className="studio-symbol-dictionary">{context.symbols.map(symbol => {
+            const patch = context.patches.find(patch => patch.kind === 'symbol' && patch.key === symbol.id);
+            return <article key={symbol.id}><SymbolBadge symbol={symbol} asset={context.assets[symbol.id]}/><span
+                className="studio-symbol-kind">{symbol.kind ?? 'Authored symbol'}</span><label>Display name<input
+                aria-label={`Symbol ${symbol.id} name`} value={patch?.kind === 'symbol' ? patch.name : symbol.name}
+                disabled={context.disabled} onChange={event => context.stage([{
+                kind: 'symbol',
+                key: symbol.id,
+                name: event.target.value
+            }])}/></label><label>Image URL<input aria-label={`Symbol ${symbol.id} image URL`}
+                                                 value={context.assets[symbol.id] ?? ''}
+                                                 placeholder="Optional project artwork"
+                                                 onChange={event => setAsset(symbol.id, event.target.value)}/></label><SymbolRemoval
+                context={context} symbol={symbol}/></article>;
+        })}</div>
+        <p className="studio-footnote">Image links save in the private project’s view metadata. Renaming a symbol
+            applies through graph validation. Review references before removing symbols. New IDs have no drawing weight
+            or payout until explicitly assigned.</p></div>;
+}

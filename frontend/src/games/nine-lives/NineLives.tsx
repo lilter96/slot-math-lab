@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { loadProject } from '../../lib/projectFiles';
+import { switchProject } from '../../lib/projectFiles';
 import { createNineLivesGraph } from './graph';
 import type { launchNineLives } from './launch';
 
@@ -14,6 +14,7 @@ export default function NineLives() {
   const [index, setIndex] = useState(0);
   const [buy, setBuy] = useState(false);
   const [error, setError] = useState('');
+  const [ready, setReady] = useState(false);
   const navigate = useNavigate();
   useEffect(() => {
     let disposed = false;
@@ -29,7 +30,7 @@ export default function NineLives() {
       if (disposed) return;
       const mounted = await launchNineLives(element, controller.signal);
       if (disposed) mounted.dispose();
-      else game.current = mounted;
+      else { game.current = mounted; setReady(true); }
     }).catch(reason => { if (!disposed) setError(reason instanceof Error ? reason.message : String(reason)); });
     return () => {
       disposed = true;
@@ -40,13 +41,14 @@ export default function NineLives() {
     };
   }, []);
   return <section className="nl-play">
+    <p className="hint">Nine Lives reference demo · this demo uses its own authored model. Test your current project in Debug.</p>
     <div className="nl-graph-tools">
-      <button className="btn" onClick={() => { loadProject(createNineLivesGraph(buy ? 'buy' : 'base')); navigate('/build'); }}>Open Nine Lives graph</button>
+      <button className="btn" onClick={() => { switchProject(createNineLivesGraph(buy ? 'buy' : 'base')); navigate('/build'); }}>Open Nine Lives graph</button>
       <label>Config hash<input aria-label="Replay config hash" value={hash} onChange={event => setHash(event.target.value)} /></label>
       <label>Seed<input aria-label="Replay seed" type="number" value={seed} onChange={event => setSeed(Number(event.target.value))} /></label>
       <label>Index<input aria-label="Replay index" type="number" value={index} onChange={event => setIndex(Number(event.target.value))} /></label>
       <label><input type="checkbox" checked={buy} onChange={event => setBuy(event.target.checked)} />Bonus buy</label>
-      <button className="btn" disabled={!hash} onClick={() => { setError(''); void game.current?.replay(hash, seed, index, buy).catch(reason => setError(reason instanceof Error ? reason.message : String(reason))); }}>Replay round</button>
+      <button className="btn" disabled={!hash || !ready} onClick={() => { setError(''); void game.current?.replay(hash, seed, index, buy).catch(reason => setError(reason instanceof Error ? reason.message : String(reason))); }}>Replay round</button>
     </div>
     {error && <p role="alert">{error}</p>}
     <div className="nl-game-host" ref={host} />

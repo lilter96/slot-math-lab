@@ -55,12 +55,12 @@ export async function launchNineLives(host: HTMLElement, signal?: AbortSignal): 
     own(() => root.remove())
     root.className = 'nl-game'
     root.dataset.phase = 'BASE'
-    root.innerHTML = `<header class="nl-top"><a href="/build">← MATH LAB</a><span>VIRTUAL CREDITS</span><button class="nl-sound" aria-pressed="false">SOUND OFF</button></header>
+    root.innerHTML = `<header class="nl-top"><a href="/build">← MATH LAB</a><span>VIRTUAL CREDITS</span><button class="nl-sound" disabled aria-pressed="false">SOUND OFF</button></header>
     <section class="nl-layout"><header class="nl-brand"><p>ONE MORE SPIN BEFORE THE AFTERLIFE.</p><h1><span>NINE</span> LIVES<i>✦</i></h1><div>DEATH HAS A SOFT SPOT FOR CATS.</div></header>
     <div class="nl-cabinet"><div class="nl-marquee"><strong>THE MIDNIGHT SHIFT</strong><span>6 × 5 · CLUSTER PAYS</span></div><div class="nl-stage" role="img" aria-label="Six columns and five rows"><div class="nl-loading"><strong>OPENING AT MIDNIGHT</strong><small>Gathering the souls…</small><div><i></i></div></div></div><div class="nl-message" role="status" aria-live="polite">The Reaper is waiting.</div></div>
     <aside class="nl-feature"><div class="nl-lives"><span>NINE LIVES</span><div>${Array.from({ length: 9 }, (_, i) => `<i data-life="${i}">♥</i>`).join('')}</div><small>4 hourglasses unlock the afterlife</small></div><div class="nl-multiplier"><span>CASCADE MULTIPLIER</span><strong>×1</strong><small>Every winning cascade turns it up</small></div><div class="nl-reaper"><img src="/assets/images/nine-lives/reaper-hero.webp" alt="The cat Reaper holding a paw chip"/><div><span>BONUS BANK</span><strong>0</strong><small>He takes the chips. You keep the credits.</small></div></div></aside>
-    <div class="nl-controls"><div><span>BALANCE</span><strong class="nl-balance">—</strong></div><div class="nl-bet"><span>BET</span><div><button class="nl-minus" aria-label="Decrease bet">−</button><strong>${config.baseCost}</strong><button class="nl-plus" aria-label="Increase bet">+</button></div></div><div><span>LAST WIN</span><strong class="nl-win">0</strong></div><button class="nl-spin" disabled>LOADING</button><button class="nl-buy" disabled>BUY NINE LIVES<small>${config.buyCost}× BET</small></button></div>
-    <footer class="nl-bottom"><button class="nl-rules">THE FINE PRINT ↗</button><span>SAME TOMORROW?</span><button class="nl-turbo" aria-pressed="false">TURBO OFF</button></footer><div class="nl-error" role="alert" hidden></div><button class="nl-refresh" hidden>REFRESH SESSION</button></section>`
+    <div class="nl-controls"><div><span>BALANCE</span><strong class="nl-balance">—</strong></div><div class="nl-bet"><span>BET</span><div><button class="nl-minus" disabled aria-label="Decrease bet">−</button><strong>${config.baseCost}</strong><button class="nl-plus" disabled aria-label="Increase bet">+</button></div></div><div><span>LAST WIN</span><strong class="nl-win">0</strong></div><button class="nl-spin" disabled>LOADING</button><button class="nl-buy" disabled>BUY NINE LIVES<small>${config.buyCost}× BET</small></button></div>
+    <footer class="nl-bottom"><button class="nl-rules" disabled>THE FINE PRINT ↗</button><span>SAME TOMORROW?</span><button class="nl-turbo" disabled aria-pressed="false">TURBO OFF</button></footer><div class="nl-error" role="alert" hidden></div><button class="nl-refresh" hidden>REFRESH SESSION</button></section>`
     host.append(root)
     const element = <T extends HTMLElement>(selector: string) => {
       const found = root.querySelector<T>(selector)
@@ -229,7 +229,7 @@ export async function launchNineLives(host: HTMLElement, signal?: AbortSignal): 
       element('.nl-multiplier strong').textContent =
         `×${bonus ? state.multiplier : (response.result?.steps.at(-1)?.multiplier ?? 1)}`
       element('.nl-lives small').textContent = bonus
-        ? `${state.remaining} / 9 free spins remaining`
+        ? `${state.remaining} free spins remaining`
         : '4 hourglasses unlock the afterlife'
       root
         .querySelectorAll('.nl-lives i')
@@ -383,6 +383,11 @@ export async function launchNineLives(host: HTMLElement, signal?: AbortSignal): 
       const dialog = document.createElement('dialog')
       dialog.className = 'nl-dialog'
       dialog.innerHTML = html
+      const heading = dialog.querySelector('h2')
+      if (heading) {
+        heading.id = `demo-dialog-${crypto.randomUUID()}`
+        dialog.setAttribute('aria-labelledby', heading.id)
+      }
       root.append(dialog)
       dialog.showModal()
       dialog.addEventListener('close', () => {
@@ -430,7 +435,7 @@ export async function launchNineLives(host: HTMLElement, signal?: AbortSignal): 
     })
     element('.nl-rules').addEventListener('click', () =>
       dialog(
-        `<h2>THE FINE PRINT.</h2><p>6 columns × 5 rows. Clusters of 5 or more matching symbols connected horizontally or vertically pay. Wild substitutes, and each Wild can belong to only one winning cluster per cascade. All-Wild groups do not pay alone.</p><p>Winning symbols disappear and gravity refills their cells. Multipliers begin at ×1 and rise by one after every winning cascade, up to ×${config.maxMultiplier}. The base-game multiplier resets every paid spin. A chain ends after a losing grid or ${config.maxCascades} winning cascades.</p><p>4+ hourglasses on the initial paid-spin grid award exactly ${config.freeSpins} free spins. There are no retriggers. Bonus multiplier starts at ×1 and carries across all nine lives.</p><p>At the start of each free spin, the Reaper collects every paw chip once at the current multiplier. Chips then become consumable Wild for that spin's cascades. Chips do not pay in the base game. Chip prizes: ${config.prizes.map(([value]) => `${value}×`).join(', ')} the triggering stake, before multiplier.</p><p>Round cap: ${format(config.maxWinX)}× original stake, including the triggering base win. Reaching the cap ends the bonus. Purchase costs ${config.buyCost}× original stake; free-spin payouts retain that original stake. Virtual credits and ephemeral sessions.</p><table><thead><tr><th>Symbol</th><th>5–6</th><th>7–8</th><th>9–10</th></tr></thead><tbody>${Object.entries(
+        `<h2>REFERENCE RULES.</h2><p>These describe the Nine Lives reference model. Inspect edited rules and payouts in the Features and Debug workspaces.</p><p>6 columns × 5 rows. Clusters of 5 or more matching symbols connected horizontally or vertically pay. Wild substitutes, and each Wild can belong to only one winning cluster per cascade. All-Wild groups do not pay alone.</p><p>Winning symbols disappear and gravity refills their cells. Multipliers begin at ×1 and rise by one after every winning cascade, up to ×${config.maxMultiplier}. The base-game multiplier resets every paid spin. A chain ends after a losing grid or ${config.maxCascades} winning cascades.</p><p>4+ hourglasses on the initial paid-spin grid award exactly ${config.freeSpins} free spins. There are no retriggers. Bonus multiplier starts at ×1 and carries across all nine lives.</p><p>At the start of each free spin, the Reaper collects every paw chip once at the current multiplier. Chips then become consumable Wild for that spin's cascades. Chips do not pay in the base game. Chip prizes: ${config.prizes.map(([value]) => `${value}×`).join(', ')} the triggering stake, before multiplier.</p><p>Round cap: ${format(config.maxWinX)}× original stake, including the triggering base win. Reaching the cap ends the bonus. Purchase costs ${config.buyCost}× original stake; free-spin payouts retain that original stake. Virtual credits and ephemeral sessions.</p><table><thead><tr><th>Symbol</th><th>5–6</th><th>7–8</th><th>9–10</th></tr></thead><tbody>${Object.entries(
           config.paytable,
         )
           .filter(([, pays]) => Object.keys(pays).length)
@@ -466,6 +471,7 @@ export async function launchNineLives(host: HTMLElement, signal?: AbortSignal): 
     };
     document.addEventListener('keydown', keydown);
     own(() => document.removeEventListener('keydown', keydown));
+    for (const selector of ['.nl-sound', '.nl-minus', '.nl-plus', '.nl-rules', '.nl-turbo']) element<HTMLButtonElement>(selector).disabled = false;
     await restore();
     return { dispose, replay: async (hash, seed, index, purchase) => {
       if (busy) throw new Error('Finish the current presentation first.');

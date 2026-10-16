@@ -2,13 +2,17 @@ import { test, expect } from './fixtures';
 import { extractSubgraph, type ComposableGraph } from '../src/lib/subgraphComposition';
 
 test('Complete migrated game models open directly in Build and preserve the previous draft', async ({ page }) => {
-  await page.goto('/build');
-  await page.getByRole('button', { name: 'Load coin example', exact: true }).click();
+  const coin = { schemaVersion: '1.0.0', name: 'REF-A Coin', nodes: [
+    { nodeType: 'draw', id: 'coin-draw', drawWeights: [{ outcomeId: 'one', weight: 1, value: 1 }], outputs: { out: { name: 'out', type: 'Wins' } } },
+    { nodeType: 'metricsSink', id: 'coin-sink', winCap: 10000, inputs: { in: { name: 'in', type: 'Wins' } } },
+  ], edges: [{ id: 'coin-edge', sourceNodeId: 'coin-draw', sourcePort: 'out', targetNodeId: 'coin-sink', targetPort: 'in' }] };
+  await page.goto('/build?load=' + encodeURIComponent(Buffer.from(encodeURIComponent(JSON.stringify(coin))).toString('base64')));
   const library = page.getByTestId('starter-library');
   await library.locator('summary').click();
   for (const name of ['Nine Lives', 'Ancient Dragon', 'Woodland Whisper', 'X7 Club', 'Le Militare']) {
     await library.getByRole('button', { name: `Open ${name} model`, exact: true }).click();
     await expect(page.getByTestId('model-navigation')).toContainText(name);
+    await page.getByLabel('Find subgraph').fill('spin');
     await expect(page.getByRole('button', { name: 'Open free-spin graph', exact: true }).or(page.getByRole('button', { name: 'Open hold-and-spin graph', exact: true }))).toBeVisible();
   }
   await library.getByRole('button', { name: 'Restore my model', exact: true }).click();
@@ -16,8 +20,11 @@ test('Complete migrated game models open directly in Build and preserve the prev
 });
 
 test('Ready subgraphs are editable, reusable and preserve the previous model', async ({ page }) => {
-  await page.goto('/build');
-  await page.getByRole('button', { name: 'Load coin example', exact: true }).click();
+  const coin = { schemaVersion: '1.0.0', name: 'REF-A Coin', nodes: [
+    { nodeType: 'draw', id: 'coin-draw', drawWeights: [{ outcomeId: 'one', weight: 1, value: 1 }], outputs: { out: { name: 'out', type: 'Wins' } } },
+    { nodeType: 'metricsSink', id: 'coin-sink', winCap: 10000, inputs: { in: { name: 'in', type: 'Wins' } } },
+  ], edges: [{ id: 'coin-edge', sourceNodeId: 'coin-draw', sourcePort: 'out', targetNodeId: 'coin-sink', targetPort: 'in' }] };
+  await page.goto('/build?load=' + encodeURIComponent(Buffer.from(encodeURIComponent(JSON.stringify(coin))).toString('base64')));
   const library = page.getByTestId('starter-library');
   await library.locator('summary').click();
   await library.getByRole('button', { name: 'Inspect Cluster pays subgraph', exact: true }).click();
@@ -27,6 +34,7 @@ test('Ready subgraphs are editable, reusable and preserve the previous model', a
   await page.getByRole('button', { name: 'Reuse this subgraph', exact: true }).click();
   await expect(page.getByLabel('Subgraph name')).toHaveValue('cluster-pays');
   await expect(page.getByRole('button', { name: 'Open full game graph', exact: true })).toBeVisible();
+  await page.getByLabel('Find subgraph').fill('cluster-candidates');
   await page.getByRole('button', { name: 'Open cluster-candidates graph', exact: true }).click();
   await page.getByLabel('Focus graph node').selectOption('candidates');
   await expect(page.locator('.react-flow__node[data-id="candidates"]')).toBeVisible();
@@ -42,8 +50,10 @@ test('Cascade starter exposes shared evaluation, refill and award subgraphs', as
   await library.locator('summary').click();
   await library.getByRole('button', { name: 'Open Cascading clusters example', exact: true }).click();
   for (const name of ['cluster-pays', 'cluster-candidates', 'tumble', 'award-step', 'cascade']) {
+    await page.getByLabel('Find subgraph').fill(name);
     await expect(page.getByRole('button', { name: `Open ${name} graph`, exact: true })).toBeVisible();
   }
+  await page.getByLabel('Find subgraph').fill('cascade');
   await page.getByRole('button', { name: 'Open cascade graph', exact: true }).click();
   await expect(page.getByLabel('Focus graph node')).toContainText('step');
   await page.getByRole('button', { name: 'Open full game graph', exact: true }).click();
@@ -52,19 +62,26 @@ test('Cascade starter exposes shared evaluation, refill and award subgraphs', as
 });
 
 test('An emptied subgraph remains editable and can return to its parent', async ({ page }) => {
+  page.on('dialog', dialog => dialog.accept());
   await page.goto('/build');
   const library = page.getByTestId('starter-library');
   await library.locator('summary').click();
   await library.getByRole('button', { name: 'Inspect Cluster pays subgraph', exact: true }).click();
   const nodes = page.locator('.react-flow__node');
-  while (await nodes.count()) {
-    const id = await nodes.first().getAttribute('data-id');
-    await page.getByLabel('Focus graph node').selectOption(id!);
+  const picker = page.getByLabel('Focus graph node');
+  const ids = await picker.locator('option').evaluateAll(options => options.map(option => (option as HTMLOptionElement).value).filter(Boolean));
+  expect(ids.length).toBeGreaterThan(0);
+  for (const id of ids) {
+    await picker.selectOption(id);
     await page.getByRole('button', { name: 'Delete node', exact: true }).click();
+    await expect(picker.locator(`option[value="${id}"]`)).toHaveCount(0);
   }
+  await expect(picker.locator('option')).toHaveCount(1);
   await page.getByRole('button', { name: 'Open full game graph', exact: true }).click();
   await expect(page.locator('.react-flow__node[data-id="draw"]')).toBeVisible();
+  await page.getByLabel('Find subgraph').fill('cluster-pays');
   await page.getByRole('button', { name: 'Open cluster-pays graph', exact: true }).click();
+  await expect(picker.locator('option')).toHaveCount(1);
   await expect(nodes).toHaveCount(0);
   await page.getByRole('button', { name: 'Open full game graph', exact: true }).click();
   await expect(page.locator('.react-flow__node[data-id="draw"]')).toBeVisible();
@@ -76,10 +93,13 @@ test('Own atoms can be extracted into a definition and reused', async ({ page })
   await library.locator('summary').click();
   await library.getByRole('button', { name: 'Open Cluster pays example', exact: true }).click();
   await page.getByLabel('Focus graph node').selectOption('draw');
+  await page.getByText('Extract selected atoms', { exact: true }).click();
   await page.getByLabel('Name for extraction').fill('my-board');
   await page.getByRole('button', { name: 'Extract selection', exact: true }).click();
+  await page.getByLabel('Find subgraph').fill('my-board');
   await expect(page.getByRole('button', { name: 'Open my-board graph', exact: true })).toBeVisible();
   await expect(page.locator('.react-flow__node[data-id="draw"]')).toHaveCount(0);
+  await page.getByLabel('Find subgraph').fill('my-board');
   await page.getByRole('button', { name: 'Open my-board graph', exact: true }).click();
   await expect(page.locator('.react-flow__node[data-id="draw"]')).toBeVisible();
   await page.getByRole('button', { name: 'Reuse this subgraph', exact: true }).click();
@@ -91,7 +111,7 @@ test('Mechanics panel uses the same editable definitions as the canvas', async (
   const library = page.getByTestId('starter-library');
   await library.locator('summary').click();
   await library.getByRole('button', { name: 'Open Cluster pays example', exact: true }).click();
-  await page.getByRole('button', { name: 'Mechanics', exact: true }).click();
+  await page.getByRole('button', { name: 'Open mechanic manager', exact: true }).click();
   const manager = page.getByTestId('mechanic-manager');
   await manager.getByLabel('Find a definition').fill('cluster-pays');
   await manager.getByRole('button', { name: 'Edit definition cluster-pays', exact: true }).click();

@@ -22,7 +22,21 @@ From `frontend`:
 - `npm run test:unit`: run browser-free logic tests.
 - `npm run test:e2e:critical`: run critical browser workflows; build first and provide database dependencies. Playwright starts the API and preview server.
 
+## Private Multi-Project Product Scope (Mandatory)
+
+Each user can own many private projects, games, models and personal materials. Start at **My projects**; do not automatically create or select one game for a fresh workspace. Nine Lives is a reference fixture, not the universal game schema. Derive geometry, symbols, mechanics and editor capabilities from the selected model.
+
+For new persistence and asynchronous operations, follow the data scope table in `docs/design/PRIVATE_WORKSPACES.md`: user ownership, editable project identity and evaluated configuration/source identity are separate boundaries.
+
+Keep project identity separate from authored model/template IDs. Switching projects must preserve each project's edits and nested context; independent template copies must not share mutable editing state. Scope browser storage to verified user identity and enforce ownership of server configurations, runs, experiments and realtime access. Never show another project's result as current evidence.
+
+Sharing, collaboration, public links, invitations, teams and publication are deferred. Preserve personal JSON export/import and legacy inbound import compatibility. Browser drafts autosave locally; server version saving is explicit. Do not claim automatic cross-device synchronization or large-scale capacity without implementation and evidence. See `docs/design/PRIVATE_WORKSPACES.md` for current behavior and limits.
+
 ## Coding Style & Naming Conventions
+
+For the workbench redesign, deliver coherent pages rather than a sequence of tiny control/style patches. Each page pass covers hierarchy, content, actions, empty/loading/error states, responsive layout and keyboard interaction together. Validate the finished page with relevant scenarios and visual inspection; do not rerun broad suites or create a separate iteration for each cosmetic adjustment. Preserve actual mathematical evidence and private multi-project behavior while improving the interface.
+
+Visual acceptance must inspect the whole page from its header to the footer, including content below the fold, every tab and expanded details/forms. A first-viewport screenshot or green interaction test cannot certify a page. Capture and inspect desktop and phone views of the lower sections as well as the primary workspace; correct native unstyled controls, cramped labels and inconsistent shared components before delivering the page.
 
 Follow `backend/.editorconfig`: four spaces, LF endings, file-scoped namespaces, and braces on separate lines. Use PascalCase for C# types/methods and camelCase for locals. Match nearby TypeScript code: typically two spaces, single quotes, and semicolons. Use PascalCase component names and camelCase functions. Use the generation scripts for API/schema types rather than editing generated files manually.
 
@@ -58,11 +72,25 @@ dotnet jb cleanupcode backend/SlotMathLab.slnx \
   --include="SlotMath.Core/Example.cs;SlotMath.Api/Example.cs"
 ```
 
-Include paths are relative to the solution directory. Full Cleanup requires solution context; standalone file mode only reformats. `dotnet format` alone does not satisfy this requirement. For frontend files outside the .NET solution, run Rider's Reformat Code and Full Cleanup on the selected files, then scoped ESLint checks. If Rider/tooling cannot execute a required pass, explicitly report the blocker and the uncleaned files; never claim cleanup succeeded. Review cleanup diffs for behavior changes, then run relevant tests and formatting checks.
+Include paths are relative to the solution directory. Full Cleanup requires solution context; standalone file mode only reformats. `dotnet format` alone does not satisfy this requirement. For frontend files outside the .NET solution, run Rider's Reformat Code and Full Cleanup on the selected files, then scoped ESLint checks. Rider 2026.1.2's standalone `format.sh` fails with `solution can't be null` in this workspace; do not repeatedly retry that command. Use the verified solution-context workflow in [docs/RIDER_FRONTEND_CLEANUP.md](docs/RIDER_FRONTEND_CLEANUP.md), with an exact task-file manifest and both built-in profiles. If Rider/tooling cannot execute a required pass, explicitly report the blocker and the uncleaned files; never claim cleanup succeeded. Review cleanup diffs for behavior changes, then run relevant tests and formatting checks.
 
 ## Testing Guidelines
 
-Use `*Tests.cs` for xUnit tests and `*.spec.ts` for Playwright tests. Add mathematical regressions at the lowest appropriate layer, with pinned seeds and independent expected results. Preserve the PRD's PRNG/constants contract. CI has no numeric coverage threshold. Run `npm run test:e2e` for shared runtime changes and before releases; retain failure evidence.
+Use `*Tests.cs` for xUnit tests and `*.spec.ts` for Playwright tests. Add mathematical regressions at the lowest appropriate layer, with pinned seeds and independent expected results. Preserve the PRD's PRNG/constants contract. CI has no numeric coverage threshold. Retain failure evidence.
+
+### Test Selection and Run Frequency (Mandatory)
+
+- Do not run complete test suites on every iteration.
+- For routine changes, run only affected tests and newly added tests. Select relevant unit, API, or browser scenarios based on the behavior changed, including shared runtime changes.
+- Run a full suite only after a substantial feature has been integrated, or when the user explicitly requests it. Do not repeat a successful full run without new changes or unresolved failures that justify it.
+- If a full run fails, fix the failures and rerun only failed or affected tests; do not automatically repeat the entire suite.
+- Documentation-only changes do not require tests.
+
+This policy takes precedence over broader per-iteration testing instructions in autorun files, design handoffs, and other repository documents. Required release checks still apply at release time; they do not authorize full suites during each implementation iteration.
+
+### Generated Artifacts (Mandatory)
+
+Keep screenshots, contact sheets, test logs, browser reports, generated audit JSON and per-iteration review notes out of Git. Use ignored local output directories or CI artifacts; never force-add ignored verification output. Retain failure evidence locally or as CI artifacts. Commit maintained acceptance summaries and reproducible test inputs, not generated run output. Removing generated artifacts or updating documentation does not require rerunning tests.
 
 ## Commit & Pull Request Guidelines
 

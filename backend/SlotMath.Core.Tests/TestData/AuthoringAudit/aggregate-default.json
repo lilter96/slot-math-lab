@@ -1,0 +1,533 @@
+{
+  "schemaVersion": "1.0.0",
+  "id": "proof-aggregate-default",
+  "name": "aggregate-default",
+  "description": "Independent expected outcomes; GraphConfig runs without authoring metadata.",
+  "initialState": {
+    "traceEnabled": false,
+    "emptyArray": [],
+    "__machine_6167677265676174652d64656661756c74_pc": "end",
+    "__machine_6167677265676174652d64656661756c74_diagnostic": "",
+    "coins": 0,
+    "__machine_6167677265676174652d64656661756c74_private_6974656d": 10,
+    "__machine_6167677265676174652d64656661756c74_private_636f756e746572": 7,
+    "__machine_6167677265676174652d64656661756c74_private_616363": 10,
+    "values": [
+      1,
+      2
+    ]
+  },
+  "nodes": [
+    {
+      "nodeType": "library",
+      "id": "machine",
+      "label": "aggregate-default",
+      "mechanicName": "aggregate-default",
+      "inputs": {
+        "state": {
+          "name": "state",
+          "type": "State"
+        }
+      },
+      "outputs": {
+        "state": {
+          "name": "state",
+          "type": "State"
+        }
+      },
+      "parameters": {}
+    },
+    {
+      "nodeType": "metricsSink",
+      "id": "sink",
+      "label": "One final payout",
+      "winStateKey": "coins",
+      "winCap": 1000,
+      "inputs": {
+        "state": {
+          "name": "state",
+          "type": "State"
+        }
+      },
+      "outputs": {}
+    }
+  ],
+  "edges": [
+    {
+      "id": "machine.state->sink",
+      "sourceNodeId": "machine",
+      "sourcePort": "state",
+      "targetNodeId": "sink",
+      "targetPort": "state"
+    }
+  ],
+  "expressions": {},
+  "mechanics": {
+    "aggregate-default-state-656e64": {
+      "name": "aggregate-default-state-656e64",
+      "description": "Terminal action",
+      "nodes": [
+        {
+          "nodeType": "modifyState",
+          "id": "entry-action-706179",
+          "label": "Pay",
+          "outputKey": "coins",
+          "expressionId": "entry-action-706179",
+          "inputs": {
+            "state": {
+              "name": "state",
+              "type": "State"
+            }
+          },
+          "outputs": {
+            "state": {
+              "name": "state",
+              "type": "State"
+            }
+          }
+        },
+        {
+          "nodeType": "modifyState",
+          "id": "finish",
+          "label": "Terminal visit completed",
+          "outputKey": "__machine_6167677265676174652d64656661756c74_pc",
+          "expressionId": "finish",
+          "inputs": {
+            "state": {
+              "name": "state",
+              "type": "State"
+            }
+          },
+          "outputs": {
+            "state": {
+              "name": "state",
+              "type": "State"
+            }
+          }
+        }
+      ],
+      "edges": [
+        {
+          "id": "entry-action-706179.state->finish",
+          "sourceNodeId": "entry-action-706179",
+          "sourcePort": "state",
+          "targetNodeId": "finish",
+          "targetPort": "state"
+        }
+      ],
+      "expressions": {
+        "entry-action-706179": {
+          "exprType": "aggregate",
+          "func": "Sum",
+          "stateKey": "values",
+          "itemType": "Number",
+          "valueExpr": {
+            "exprType": "fieldAccess",
+            "target": "state",
+            "path": [
+              "item"
+            ]
+          }
+        },
+        "finish": {
+          "exprType": "constant",
+          "kind": "String",
+          "value": "__Done__"
+        }
+      }
+    },
+    "aggregate-default-dispatch": {
+      "name": "aggregate-default-dispatch",
+      "description": "One state visit: exclusive selection, entry actions, ordered guards, effects, then next state.",
+      "nodes": [
+        {
+          "nodeType": "branch",
+          "id": "state-656e64",
+          "label": "Terminal action",
+          "conditionId": "state-656e64",
+          "inputs": {
+            "state": {
+              "name": "state",
+              "type": "State"
+            }
+          },
+          "outputs": {
+            "true": {
+              "name": "true",
+              "type": "State"
+            },
+            "false": {
+              "name": "false",
+              "type": "State"
+            }
+          }
+        },
+        {
+          "nodeType": "getState",
+          "id": "done",
+          "label": "Done",
+          "inputs": {
+            "state": {
+              "name": "state",
+              "type": "State"
+            }
+          },
+          "outputs": {
+            "state": {
+              "name": "state",
+              "type": "State"
+            }
+          }
+        },
+        {
+          "nodeType": "library",
+          "id": "visit-656e64",
+          "label": "Terminal action",
+          "mechanicName": "aggregate-default-state-656e64",
+          "inputs": {
+            "state": {
+              "name": "state",
+              "type": "State"
+            }
+          },
+          "outputs": {
+            "state": {
+              "name": "state",
+              "type": "State"
+            }
+          },
+          "parameters": {}
+        },
+        {
+          "nodeType": "modifyState",
+          "id": "invalid-state",
+          "label": "Unknown machine state: inspect this diagnostic; the Loop limit remains authoritative",
+          "outputKey": "__machine_6167677265676174652d64656661756c74_diagnostic",
+          "expressionId": "invalid-state",
+          "inputs": {
+            "state": {
+              "name": "state",
+              "type": "State"
+            }
+          },
+          "outputs": {
+            "state": {
+              "name": "state",
+              "type": "State"
+            }
+          }
+        }
+      ],
+      "edges": [
+        {
+          "id": "state-656e64.true->visit-656e64",
+          "sourceNodeId": "state-656e64",
+          "sourcePort": "true",
+          "targetNodeId": "visit-656e64",
+          "targetPort": "state"
+        },
+        {
+          "id": "state-656e64.false->invalid-state",
+          "sourceNodeId": "state-656e64",
+          "sourcePort": "false",
+          "targetNodeId": "invalid-state",
+          "targetPort": "state"
+        },
+        {
+          "id": "visit-656e64.state->done",
+          "sourceNodeId": "visit-656e64",
+          "sourcePort": "state",
+          "targetNodeId": "done",
+          "targetPort": "state"
+        },
+        {
+          "id": "invalid-state.state->done",
+          "sourceNodeId": "invalid-state",
+          "sourcePort": "state",
+          "targetNodeId": "done",
+          "targetPort": "state"
+        }
+      ],
+      "expressions": {
+        "state-656e64": {
+          "exprType": "compare",
+          "op": "Eq",
+          "left": {
+            "exprType": "fieldAccess",
+            "target": "state",
+            "path": [
+              "__machine_6167677265676174652d64656661756c74_pc"
+            ]
+          },
+          "right": {
+            "exprType": "constant",
+            "kind": "String",
+            "value": "end"
+          }
+        },
+        "invalid-state": {
+          "exprType": "constant",
+          "kind": "String",
+          "value": "Unknown current state"
+        }
+      }
+    },
+    "aggregate-default": {
+      "name": "aggregate-default",
+      "description": "aggregate-default",
+      "nodes": [
+        {
+          "nodeType": "modifyState",
+          "id": "start",
+          "label": "aggregate-default",
+          "outputKey": "__machine_6167677265676174652d64656661756c74_pc",
+          "expressionId": "start",
+          "inputs": {
+            "state": {
+              "name": "state",
+              "type": "State"
+            }
+          },
+          "outputs": {
+            "state": {
+              "name": "state",
+              "type": "State"
+            }
+          }
+        },
+        {
+          "nodeType": "modifyState",
+          "id": "diagnostic",
+          "label": "Clear this invocation’s diagnostic",
+          "outputKey": "__machine_6167677265676174652d64656661756c74_diagnostic",
+          "expressionId": "diagnostic",
+          "inputs": {
+            "state": {
+              "name": "state",
+              "type": "State"
+            }
+          },
+          "outputs": {
+            "state": {
+              "name": "state",
+              "type": "State"
+            }
+          }
+        },
+        {
+          "nodeType": "modifyState",
+          "id": "reset-6974656d",
+          "label": "item",
+          "outputKey": "__machine_6167677265676174652d64656661756c74_private_6974656d",
+          "expressionId": "reset-6974656d",
+          "inputs": {
+            "state": {
+              "name": "state",
+              "type": "State"
+            }
+          },
+          "outputs": {
+            "state": {
+              "name": "state",
+              "type": "State"
+            }
+          }
+        },
+        {
+          "nodeType": "modifyState",
+          "id": "reset-636f756e746572",
+          "label": "counter",
+          "outputKey": "__machine_6167677265676174652d64656661756c74_private_636f756e746572",
+          "expressionId": "reset-636f756e746572",
+          "inputs": {
+            "state": {
+              "name": "state",
+              "type": "State"
+            }
+          },
+          "outputs": {
+            "state": {
+              "name": "state",
+              "type": "State"
+            }
+          }
+        },
+        {
+          "nodeType": "modifyState",
+          "id": "reset-616363",
+          "label": "acc",
+          "outputKey": "__machine_6167677265676174652d64656661756c74_private_616363",
+          "expressionId": "reset-616363",
+          "inputs": {
+            "state": {
+              "name": "state",
+              "type": "State"
+            }
+          },
+          "outputs": {
+            "state": {
+              "name": "state",
+              "type": "State"
+            }
+          }
+        },
+        {
+          "nodeType": "loop",
+          "id": "visits",
+          "label": "State visits · includes the terminal visit; limit precedence is unchanged",
+          "maxIterations": 2,
+          "stopConditionId": "visits-until",
+          "inputs": {
+            "state": {
+              "name": "state",
+              "type": "State"
+            }
+          },
+          "outputs": {
+            "body": {
+              "name": "body",
+              "type": "State"
+            },
+            "exit": {
+              "name": "exit",
+              "type": "State"
+            }
+          }
+        },
+        {
+          "nodeType": "getState",
+          "id": "done",
+          "label": "Done",
+          "inputs": {
+            "state": {
+              "name": "state",
+              "type": "State"
+            }
+          },
+          "outputs": {
+            "state": {
+              "name": "state",
+              "type": "State"
+            }
+          }
+        },
+        {
+          "nodeType": "library",
+          "id": "visits-pass",
+          "label": "State visits · includes the terminal visit; limit precedence is unchanged",
+          "mechanicName": "aggregate-default-dispatch",
+          "inputs": {
+            "state": {
+              "name": "state",
+              "type": "State"
+            }
+          },
+          "outputs": {
+            "state": {
+              "name": "state",
+              "type": "State"
+            }
+          },
+          "parameters": {}
+        }
+      ],
+      "edges": [
+        {
+          "id": "start.state->diagnostic",
+          "sourceNodeId": "start",
+          "sourcePort": "state",
+          "targetNodeId": "diagnostic",
+          "targetPort": "state"
+        },
+        {
+          "id": "diagnostic.state->reset-6974656d",
+          "sourceNodeId": "diagnostic",
+          "sourcePort": "state",
+          "targetNodeId": "reset-6974656d",
+          "targetPort": "state"
+        },
+        {
+          "id": "reset-6974656d.state->reset-636f756e746572",
+          "sourceNodeId": "reset-6974656d",
+          "sourcePort": "state",
+          "targetNodeId": "reset-636f756e746572",
+          "targetPort": "state"
+        },
+        {
+          "id": "reset-636f756e746572.state->reset-616363",
+          "sourceNodeId": "reset-636f756e746572",
+          "sourcePort": "state",
+          "targetNodeId": "reset-616363",
+          "targetPort": "state"
+        },
+        {
+          "id": "reset-616363.state->visits",
+          "sourceNodeId": "reset-616363",
+          "sourcePort": "state",
+          "targetNodeId": "visits",
+          "targetPort": "state"
+        },
+        {
+          "id": "visits.body->visits-pass",
+          "sourceNodeId": "visits",
+          "sourcePort": "body",
+          "targetNodeId": "visits-pass",
+          "targetPort": "state"
+        },
+        {
+          "id": "visits.exit->done",
+          "sourceNodeId": "visits",
+          "sourcePort": "exit",
+          "targetNodeId": "done",
+          "targetPort": "state"
+        }
+      ],
+      "expressions": {
+        "start": {
+          "exprType": "constant",
+          "kind": "String",
+          "value": "end"
+        },
+        "diagnostic": {
+          "exprType": "constant",
+          "kind": "String",
+          "value": ""
+        },
+        "reset-6974656d": {
+          "exprType": "constant",
+          "kind": "Integer",
+          "value": "10"
+        },
+        "reset-636f756e746572": {
+          "exprType": "constant",
+          "kind": "Integer",
+          "value": "7"
+        },
+        "reset-616363": {
+          "exprType": "constant",
+          "kind": "Integer",
+          "value": "10"
+        },
+        "visits-until": {
+          "exprType": "compare",
+          "op": "Eq",
+          "left": {
+            "exprType": "fieldAccess",
+            "target": "state",
+            "path": [
+              "__machine_6167677265676174652d64656661756c74_pc"
+            ]
+          },
+          "right": {
+            "exprType": "constant",
+            "kind": "String",
+            "value": "__Done__"
+          }
+        }
+      }
+    }
+  },
+  "opaque": {
+    "retained": true
+  }
+}

@@ -1,15 +1,18 @@
 import { test, expect } from './fixtures';
 
 test('Nine Lives is editable as nested atomic subgraphs', { tag: '@critical' }, async ({ page }) => {
-  await page.goto('/build');
-  await page.getByRole('button', { name: 'Build Nine Lives graph', exact: true }).click();
+  await page.goto('/build?project=nine-lives');
   await expect(page.getByTestId('model-navigation')).toContainText('Nine Lives');
+  await page.getByLabel('Find subgraph').fill('evaluate-components');
   await page.getByRole('button', { name: 'Open evaluate-components graph', exact: true }).click();
   await expect(page.getByLabel('Focus graph node')).toContainText('sample');
+  await page.getByLabel('Find subgraph').fill('evaluate-mask-components');
   await page.getByRole('button', { name: 'Open evaluate-mask-components graph', exact: true }).click();
   await expect(page.getByLabel('Focus graph node')).toContainText('no-wilds');
+  await page.getByLabel('Find subgraph').fill('scan-mask-without-wilds');
   await page.getByRole('button', { name: 'Open scan-mask-without-wilds graph', exact: true }).click();
   await expect(page.getByLabel('Focus graph node')).toContainText('symbols');
+  await page.getByLabel('Find subgraph').fill('restore-row-major');
   await page.getByRole('button', { name: 'Open restore-row-major graph', exact: true }).click();
   await page.getByLabel('Focus graph node').selectOption('restore');
   await expect(page.locator('.react-flow__node[data-id="restore"]')).toBeVisible();
@@ -19,9 +22,9 @@ test('Nine Lives is editable as nested atomic subgraphs', { tag: '@critical' }, 
 
 test('Nine Lives plays and replays a graph round without changing credits', { tag: '@critical' }, async ({ page }) => {
   test.setTimeout(120000);
-  await page.goto('/build');
+  await page.goto('/build?project=nine-lives');
   await page.getByRole('button', { name: 'Load coin example' }).click();
-  await page.getByRole('tab', { name: 'Play', exact: true }).click();
+  await page.getByRole('tab', { name: 'Reference demo', exact: true }).click();
   const spin = page.getByRole('button', { name: 'SPIN', exact: true });
   await expect(spin).toBeEnabled({ timeout: 30000 });
   await page.getByRole('button', { name: 'TURBO OFF', exact: true }).click();
@@ -100,36 +103,36 @@ test('Nine Lives purchase resolves nine graph lives and charges the entry once',
 });
 
 test('Failed game assets release the partial game and allow a clean retry', async ({ page }) => {
-  await page.goto('/build');
+  await page.goto('/build?project=nine-lives');
   const title = await page.title();
   await page.route('**/assets/images/nine-lives/cat.webp', route => route.fulfill({ status: 404, body: 'missing' }));
-  await page.getByRole('tab', { name: 'Play', exact: true }).click();
+  await page.getByRole('tab', { name: 'Reference demo', exact: true }).click();
   await expect(page.locator('.nl-play > [role="alert"]')).toBeVisible({ timeout: 30000 });
   await expect(page.locator('.nl-game')).toHaveCount(0);
   await expect(page).toHaveTitle(title);
   await page.getByRole('tab', { name: 'Build', exact: true }).click();
   await page.unroute('**/assets/images/nine-lives/cat.webp');
-  await page.getByRole('tab', { name: 'Play', exact: true }).click();
+  await page.getByRole('tab', { name: 'Reference demo', exact: true }).click();
   await expect(page.getByRole('button', { name: 'SPIN', exact: true })).toBeEnabled({ timeout: 30000 });
   await expect(page.locator('.nl-game')).toHaveCount(1);
 });
 
 test('Navigation during game initialization releases the game after the pending load settles', async ({ page }) => {
-  await page.goto('/build');
+  await page.goto('/build?project=nine-lives');
   const title = await page.title();
   let release!: () => void;
   const pending = new Promise<void>(resolve => { release = resolve; });
   let entered!: () => void;
   const requested = new Promise<void>(resolve => { entered = resolve; });
   await page.route('**/assets/images/nine-lives/cat.webp', async route => { entered(); await pending; await route.continue(); });
-  await page.getByRole('tab', { name: 'Play', exact: true }).click();
+  await page.getByRole('tab', { name: 'Reference demo', exact: true }).click();
   await requested;
   await page.getByRole('tab', { name: 'Build', exact: true }).click();
   await expect(page.locator('.nl-game')).toHaveCount(0);
   await expect(page).toHaveTitle(title);
   release();
   await page.unroute('**/assets/images/nine-lives/cat.webp', { behavior: 'wait' });
-  await page.getByRole('tab', { name: 'Play', exact: true }).click();
+  await page.getByRole('tab', { name: 'Reference demo', exact: true }).click();
   await expect(page.getByRole('button', { name: 'SPIN', exact: true })).toBeEnabled({ timeout: 30000 });
   await expect(page.locator('.nl-game')).toHaveCount(1);
 });

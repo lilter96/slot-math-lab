@@ -16,11 +16,36 @@ public sealed record RunPage(IReadOnlyList<RunSummary> Items, string? NextCursor
 public sealed record RunEvidence(RunResponse Run, RunModel Model, System.Text.Json.JsonElement? PinnedConfig,
     string? ComputedConfigHash, bool InputVerified)
 { public DiagnosticArtifact[] Diagnostics { get; init; } = []; }
+public sealed record LatestModelRunResponse(string ModelHash, RunEvidence? Evidence);
 
 /// <summary>Read-only archive. Document identity is excluded from the comparison
 /// fingerprint; every other serialized model field participates.</summary>
 public static class RunArchive
 {
+    public static LatestModelRunResponse LatestForModel(GraphConfig config, InMemoryRunStore runs,
+        InMemoryConfigStore configs, CancellationToken cancellationToken)
+    {
+        var modelHash = CanonicalHash.Compute(config with { Id = null });
+        var fingerprints = new Dictionary<(string, int), string>();
+        foreach (var run in runs.List().Where(run => run.Status == "completed")
+                     .OrderByDescending(run => run.CompletedAt).ThenByDescending(run => run.CreatedAt)
+                     .ThenByDescending(run => run.Id, StringComparer.Ordinal))
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            var pinned = configs.GetVersion(run.ConfigId, run.ConfigVersion);
+            if (pinned is null) continue;
+            var key = (run.ConfigId, run.ConfigVersion);
+            if (!fingerprints.TryGetValue(key, out var fingerprint))
+                fingerprints[key] = fingerprint = CanonicalHash.Compute(pinned.Config with { Id = null });
+            if (fingerprint != modelHash) continue;
+            var hash = CanonicalHash.Compute(pinned.Config);
+            if (hash != run.ConfigHash) continue;
+            return new(modelHash, new RunEvidence(RunResponse.From(run), Describe(pinned, run.ConfigId),
+                System.Text.Json.JsonSerializer.SerializeToElement(pinned.Config, SlotMath.Core.JsonOptions.Default), hash, true));
+        }
+        return new(modelHash, null);
+    }
+
     public static RunModel Describe(ConfigEntry? entry, string configId) => entry is null
         ? new($"Config {configId}", null, null, null)
         : new(entry.Config.Name ?? "Untitled model", CanonicalHash.Compute(entry.Config with { Id = null }),

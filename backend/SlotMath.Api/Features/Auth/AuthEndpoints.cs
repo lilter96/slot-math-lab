@@ -3,7 +3,7 @@ using SlotMath.Api.Infrastructure;
 namespace SlotMath.Api.Features.Auth;
 
 /// <summary>
-/// Single-operator sign-in. Production verifies the configured PBKDF2 credential;
+/// Private account sign-in. Production verifies the configured PBKDF2 credential;
 /// local/test hosts also support development tokens.
 /// </summary>
 public static class AuthEndpoints
@@ -12,13 +12,12 @@ public static class AuthEndpoints
     {
         var group = app.MapGroup("/api/auth");
 
-        group.MapPost("/token", (TokenRequest req, IConfiguration config, IWebHostEnvironment environment, HttpContext http) =>
+        group.MapPost("/token", (TokenRequest req, IConfiguration config, IWebHostEnvironment environment, HttpContext http, AuthAccounts accounts) =>
         {
             var local = environment.IsDevelopment() || environment.IsEnvironment("CI") || environment.IsEnvironment("Testing");
             if (!local)
             {
-                var expected = config["Auth:PasswordHash"];
-                if (req.UserId != config["Auth:User"] || expected is null || !PasswordHash.Verify(req.Password ?? "", expected))
+                if (!accounts.Verify(req.UserId, req.Password ?? ""))
                     return Results.Unauthorized();
             }
             if (string.IsNullOrWhiteSpace(req.UserId))
@@ -41,6 +40,7 @@ public static class AuthEndpoints
         group.MapGet("/status", (HttpContext http, IWebHostEnvironment environment) => Results.Ok(new
         {
             authenticated = JwtAuth.IsAuthenticated(http.User),
+            userId = JwtAuth.IsAuthenticated(http.User) ? JwtAuth.GetUserId(http.User) : null,
             required = !(environment.IsDevelopment() || environment.IsEnvironment("CI") || environment.IsEnvironment("Testing")),
         }));
         group.MapPost("/logout", (HttpContext http) => { http.Response.Cookies.Delete("slotmath_session"); return Results.NoContent(); });

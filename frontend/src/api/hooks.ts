@@ -1,7 +1,9 @@
+import { assertModelNumbers } from '../lib/modelJson';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useEffect } from 'react';
 import { apiClient, BASE_URL } from './client';
 import { useAppStore, type PluginEntry, type CustomMechanic, type GraphNode, type GraphEdge } from '../store';
+import { HttpFailure, retryAfterMilliseconds } from '../lib/realtime/httpFailure';
 import { buildConfigPayload, mapNodeToBackend } from '../lib/configPayload';
 
 // ═══════════════════════════════════════════════════════════════════
@@ -32,7 +34,7 @@ export function useFeaturesQuery() {
       // Honor the configured API origin (VITE_API_URL); fall back to same-origin.
       const base = BASE_URL.replace(/\/+$/, '');
       const res = await fetch(`${base}/api/features`);
-      if (!res.ok) throw new Error(`Failed to load feature flags: HTTP ${res.status}`);
+      if (!res.ok) throw new HttpFailure(`Failed to load feature flags: HTTP ${res.status}`, res.status, retryAfterMilliseconds(res.headers.get('Retry-After')));
       const data = (await res.json()) as Partial<FeatureFlags>;
       // Only explicit `true` enables a surface — anything else collapses to off.
       return {
@@ -43,6 +45,8 @@ export function useFeaturesQuery() {
       } satisfies FeatureFlags;
     },
     staleTime: Infinity,
+    retry: (attempt, error) => error instanceof HttpFailure && error.status === 429 && error.retryAfterMs <= 60000 && attempt < 2,
+    retryDelay: (_attempt, error) => error instanceof HttpFailure ? Math.max(1000, error.retryAfterMs) : 1000,
   });
 }
 
@@ -57,9 +61,17 @@ export function usePluginsQuery() {
   return useQuery({
     queryKey: PLUGINS_KEY,
     queryFn: async () => {
-      const { data, error } = await apiClient.GET('/api/plugins');
-      if (error) throw new Error(`Failed to load plugins: ${error}`);
-      return data ?? [];
+      const { data, error, response } = await apiClient.GET('/api/plugins');
+      if (!response.ok || error) throw new Error(`Plugin registry unavailable (HTTP ${response.status}).`);
+      const payload: unknown = data;
+      if (!Array.isArray(payload)) throw new Error('No plugin registry returned. Retry when the API is available.');
+      return payload.map((value: unknown) => {
+        if (!value || typeof value !== 'object') throw new Error('Invalid plugin registry entry. Retry when the API is available.');
+        const entry = value as Record<string, unknown>, version = entry.version;
+        if (typeof entry.pluginId !== 'string' || typeof entry.contract !== 'string' || typeof entry.isConformant !== 'boolean'
+          || (version != null && typeof version !== 'string')) throw new Error('Invalid plugin registry entry. Retry when the API is available.');
+        return { pluginId: entry.pluginId, contract: entry.contract, isConformant: entry.isConformant, version };
+      });
     },
     staleTime: 10_000,
   });
@@ -122,23 +134,6 @@ export function useRegisterPlugin() {
   });
 }
 
-/** Remove a plugin via the backend. Note: backend may not support DELETE on plugins, so this is optimistic. */
-export function useRemovePlugin() {
-  const queryClient = useQueryClient();
-  const removeFromStore = useAppStore((s) => s.removePlugin);
-
-  return useMutation({
-    mutationFn: async (pluginId: string) => {
-      // Backend doesn't have DELETE /api/plugins/{id}, so we just invalidate
-      return pluginId;
-    },
-    onSuccess: (pluginId) => {
-      queryClient.invalidateQueries({ queryKey: PLUGINS_KEY });
-      removeFromStore(pluginId);
-    },
-  });
-}
-
 // ═══════════════════════════════════════════════════════════════════
 // Configs API hooks (mechanics are part of config)
 // ═══════════════════════════════════════════════════════════════════
@@ -174,12 +169,12 @@ export function useSaveConfig() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (config: { id?: string; name: string; mechanics?: CustomMechanic[]; nodes?: GraphNode[]; edges?: GraphEdge[] }) => {
+    mutationFn: async (config: { id?: string; name: string; payload?: Record<string, unknown>; mechanics?: CustomMechanic[]; nodes?: GraphNode[]; edges?: GraphEdge[] }) => {
       // The backend deserializes nodes/edges into strongly-typed polymorphic
       // models — raw React Flow shapes are rejected, so everything must go
       // through the canonical mapping.
       const body = {
-        config: {
+        config: config.payload ?? {
           ...buildConfigPayload(config.nodes ?? [], config.edges ?? [], { name: config.name, tables: useAppStore.getState().tables }),
           mechanics: config.mechanics ? Object.fromEntries(
             config.mechanics.map((m) => [m.id, {
@@ -193,6 +188,7 @@ export function useSaveConfig() {
         },
       };
 
+      assertModelNumbers(body.config);
       if (config.id) {
         const { data, error } = await apiClient.PUT('/api/configs/{id}', {
           params: { path: { id: config.id } },

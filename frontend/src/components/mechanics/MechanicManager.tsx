@@ -1,6 +1,7 @@
+import { useModelProjection } from '../../hooks/useModelProjection';
 import { useState } from 'react';
 import { useAppStore } from '../../store';
-import { openMechanic, peekRootProject, reuseMechanic, rootProject } from '../../lib/projectFiles';
+import { openMechanic, reuseMechanic, rootProject } from '../../lib/projectFiles';
 
 export default function MechanicManager() {
   // Subscribe to edits and navigation; the root projection retains unsaved nested changes.
@@ -9,7 +10,7 @@ export default function MechanicManager() {
   useAppStore(state => state.graphTrail);
   const [search, setSearch] = useState('');
   const [error, setError] = useState<string | null>(null);
-  const graph = peekRootProject();
+  const graph = useModelProjection();
   const definitions = (graph?.mechanics ?? {}) as Record<string, { nodes: unknown[]; description?: string }>;
   const act = (name: string, reuse: boolean) => {
     try {

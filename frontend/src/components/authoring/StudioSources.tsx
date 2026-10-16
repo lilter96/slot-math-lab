@@ -1,0 +1,264 @@
+import {useState} from 'react';
+import type {PhysicalStop, ReelBinding} from '../../lib/authoring/reelBindings';
+import type {CellBinding} from '../../lib/authoring/cellBindings';
+import type {WeightBinding} from '../../lib/authoring/weightBindings';
+import {validateWeights} from '../../lib/modelCommands';
+import {resolveNodeSource, sourceKey} from '../../lib/authoring/sourceIndex';
+import {Ic} from '../Icons';
+import {OutcomeDomainEditor} from './StudioSourceLifecycle';
+import {type StudioContext, SymbolBadge} from './StudioShared';
+
+export function ReelSurface({context, binding, onImport}: {
+    context: StudioContext;
+    binding: ReelBinding;
+    onImport: () => void
+}) {
+    const {symbols, patches, stage, graph, assets, disabled} = context;
+    const patch = patches.find(patch => patch.kind === 'reels' && patch.key === binding.key);
+    const draft = patch?.kind === 'reels' ? patch : null, stops = draft?.stops ?? binding.stops;
+    const [selection, setSelection] = useState({reel: 0, index: 0}),
+        selected = stops[selection.reel]?.[selection.index];
+    const update = (next: PhysicalStop[][]) => stage([{
+        kind: 'reels',
+        key: binding.key,
+        stops: next,
+        addedWeight: draft?.addedWeight,
+        removedStops: draft?.removedStops
+    }]);
+    const move = (reel: number, from: number, to: number) => {
+        if (to < 0 || to >= stops[reel].length || from === to) return;
+        const next = structuredClone(stops), [stop] = next[reel].splice(from, 1);
+        next[reel].splice(to, 0, stop);
+        update(next);
+        setSelection({reel, index: to});
+    };
+    const original = selected?.identity !== null && binding.source.stops.find(stop => stop.reel === selection.reel && !binding.source.conditions?.some(condition => condition.scope === stop.scope));
+    const rows = original ? resolveNodeSource(graph, sourceKey(original.scope, original.nodeId)).node.drawWeights as {
+        outcomeId: string;
+        weight: number
+    }[] : [];
+    const weight = rows.find(row => row.outcomeId === selected?.identity)?.weight;
+    return <div className="studio-source-surface">
+        <header className="studio-surface-heading">
+            <div><h2>Ordered reel strips</h2><p>{stops.length} reels · {binding.source.rows} visible rows · wrap padding
+                is managed automatically</p></div>
+            <div className="studio-actions">
+                <button disabled={disabled} onClick={onImport}>Paste / import</button>
+            </div>
+        </header>
+        <div className="reel-workbar">
+            <div><b>Inspect a window</b><span>Configuration preview · select a stop to see its following symbols</span>
+            </div>
+            <span
+                className="studio-tag">{binding.source.conditions?.length ? 'Conditioned entry included' : 'Physical stop distribution'}</span>
+        </div>
+        <div className="reel-scroll">
+            <div className="studio-reel-lanes"
+                 style={{gridTemplateColumns: `repeat(${stops.length}, minmax(120px, 1fr))`}}>{stops.map((strip, reel) =>
+                <section className="studio-reel-lane" key={binding.source.stripKeys[reel]}
+                         aria-label={`Reel ${reel + 1}`}>
+                    <header><b>Reel {reel + 1}</b><span>{strip.length} physical stops</span></header>
+                    <ol>{strip.map((stop, index) => {
+                        const symbol = symbols.find(symbol => symbol.id === stop.symbol) ?? {
+                            id: stop.symbol,
+                            name: stop.symbol
+                        };
+                        const active = selection.reel === reel && selection.index === index,
+                            visible = selection.reel === reel && (index - selection.index + strip.length) % strip.length < binding.source.rows;
+                        return <li key={`${stop.identity ?? 'new'}-${index}`}
+                                   className={(visible ? 'in-window ' : '') + (active ? 'selected' : '')}>
+                            <button className="reel-stop"
+                                    aria-label={`Select reel ${reel + 1} stop ${index + 1}: ${symbol.name}`}
+                                    aria-pressed={active} disabled={disabled} draggable={!disabled}
+                                    onDragStart={event => event.dataTransfer.setData('application/x-slotmath-stop', JSON.stringify({
+                                        reel,
+                                        index
+                                    }))} onDragOver={event => event.preventDefault()} onDrop={event => {
+                                event.preventDefault();
+                                try {
+                                    const from = JSON.parse(event.dataTransfer.getData('application/x-slotmath-stop'));
+                                    if (from.reel === reel) move(reel, from.index, index);
+                                } catch { /* Unrelated drags leave the source intact. */
+                                }
+                            }}
+                                    onClick={() => setSelection({reel, index})} onKeyDown={event => {
+                                if (event.altKey && ['ArrowUp', 'ArrowDown'].includes(event.key)) {
+                                    event.preventDefault();
+                                    move(reel, index, index + (event.key === 'ArrowUp' ? -1 : 1));
+                                }
+                            }}><span className="stop-number">{index + 1}</span><SymbolBadge symbol={symbol}
+                                                                                            asset={assets[symbol.id]}
+                                                                                            compact/><span
+                                className="stop-symbol-name">{symbol.name}</span>{stop.identity === null &&
+                                <span className="new-stop">New</span>}</button>
+                        </li>;
+                    })}</ol>
+                    <button className="reel-add" disabled={disabled} onClick={() => {
+                        const next = structuredClone(stops);
+                        next[reel].push({identity: null, symbol: symbols[0]?.id ?? strip[0].symbol});
+                        update(next);
+                        setSelection({reel, index: strip.length});
+                    }}><Ic.plus/>Add stop
+                    </button>
+                </section>)}</div>
+        </div>
+        {selected && <div className="stop-editor">
+            <div className="stop-editor-label"><b>Reel {selection.reel + 1} ·
+                stop {selection.index + 1}</b><span>{weight === undefined ? 'New or conditioned stop' : `Retained weight ${weight}`}</span>
+            </div>
+            <label>Symbol<select aria-label="Selected stop symbol" value={selected.symbol} disabled={disabled}
+                                 onChange={event => {
+                                     const next = structuredClone(stops);
+                                     next[selection.reel][selection.index].symbol = event.target.value;
+                                     update(next);
+                                 }}>{symbols.map(symbol => <option key={symbol.id}
+                                                                   value={symbol.id}>{symbol.name} · {symbol.id}</option>)}</select></label>
+            <div className="studio-actions">
+                <button aria-label="Move selected stop up" disabled={disabled || selection.index === 0}
+                        onClick={() => move(selection.reel, selection.index, selection.index - 1)}>↑ Move up
+                </button>
+                <button aria-label="Move selected stop down"
+                        disabled={disabled || selection.index === stops[selection.reel].length - 1}
+                        onClick={() => move(selection.reel, selection.index, selection.index + 1)}>↓ Move down
+                </button>
+                <button className="studio-danger-button" disabled={disabled || stops[selection.reel].length === 1}
+                        onClick={() => {
+                            const next = structuredClone(stops);
+                            next[selection.reel].splice(selection.index, 1);
+                            update(next);
+                            setSelection({...selection, index: Math.max(0, selection.index - 1)});
+                        }}>Remove stop
+                </button>
+            </div>
+        </div>}
+        {(stops.some(strip => strip.some(stop => stop.identity === null)) || binding.stops.some((strip, reel) => strip.some(stop => !stops[reel]?.some(item => item.identity === stop.identity)))) &&
+            <div className="studio-stop-policy"><label>Weight of added stops<input aria-label="Weight of added stops"
+                                                                                   inputMode="numeric"
+                                                                                   value={draft?.addedWeight ?? ''}
+                                                                                   placeholder="Choose an exact weight"
+                                                                                   onChange={event => stage([{
+                                                                                       kind: 'reels',
+                                                                                       key: binding.key,
+                                                                                       stops,
+                                                                                       addedWeight: event.target.value,
+                                                                                       removedStops: draft?.removedStops
+                                                                                   }])}/></label><label
+                className="studio-check"><input type="checkbox" checked={draft?.removedStops === 'discard'}
+                                                onChange={event => stage([{
+                                                    kind: 'reels',
+                                                    key: binding.key,
+                                                    stops,
+                                                    addedWeight: draft?.addedWeight,
+                                                    removedStops: event.target.checked ? 'discard' : undefined
+                                                }])}/>Discard weights of removed stops</label><p>Retained stop
+                identities keep their weights. Reordering changes the windows and may change gameplay.</p></div>}
+    </div>;
+}
+
+export function WeightSurface({context, sources, board, onImport}: {
+    context: StudioContext;
+    sources: WeightBinding[];
+    board?: CellBinding;
+    onImport: (source: WeightBinding) => void
+}) {
+    const {patches, stage, symbols, assets, disabled} = context;
+    const [selected, setSelected] = useState<string[]>([sources[0]?.key].filter(Boolean)), [linked, setLinked] = useState(false);
+    const active = sources.filter(source => selected.includes(source.key));
+    const outcomes = [...new Set(active.flatMap(source => source.rows.map(row => row.outcomeId)))];
+    const values = (source: WeightBinding) => {
+        const patch = patches.find(patch => patch.kind === 'weights' && patch.key === source.key);
+        return new Map(patch?.kind === 'weights' ? patch.values : source.rows.map(row => [row.outcomeId, String(row.weight)]));
+    };
+    const change = (source: WeightBinding, id: string, value: string) => stage((linked ? active : [source]).filter(source => source.rows.some(row => row.outcomeId === id)).map(source => {
+        const next = values(source);
+        next.set(id, value);
+        return {kind: 'weights', key: source.key, values: [...next]};
+    }));
+    return <div className="studio-source-surface">
+        <header className="studio-surface-heading">
+            <div><h2>{board ? 'Independent cell distributions' : 'Weighted outcomes'}</h2>
+                <p>{board ? `${sources.length} independent draws · ${board.columns} columns × ${board.rows} rows` : 'Outcome identity, numeric payload and weight stay separate'}</p>
+            </div>
+            <div className="studio-actions">
+                <button disabled={disabled || !active.length || active[0].capability !== 'editable'}
+                        onClick={() => onImport(active[0])}>Paste / import
+                </button>
+            </div>
+        </header>
+        {board && <div className="cell-assignment">
+            <div><h3>Cell assignment</h3><p>Select cells to compare their distributions. These positions describe the
+                model, not a played board.</p>
+                <button
+                    onClick={() => setSelected(selected.length === sources.length ? [sources[0].key] : sources.map(source => source.key))}>{selected.length === sources.length ? 'Select first cell' : 'Select all cells'}</button>
+            </div>
+            <div className="studio-cell-board"
+                 style={{gridTemplateColumns: `repeat(${board.columns}, 1fr)`}}>{Array.from({length: board.rows}, (_, row) => Array.from({length: board.columns}, (_, column) => {
+                const position = column * board.rows + row, source = sources[position];
+                return <button key={position} aria-label={`Cell column ${column + 1} row ${row + 1}`}
+                               aria-pressed={selected.includes(source.key)}
+                               onClick={event => setSelected(event.shiftKey ? selected.includes(source.key) && selected.length > 1 ? selected.filter(key => key !== source.key) : [...new Set([...selected, source.key])] : [source.key])}>
+                    <b>{column + 1}:{row + 1}</b><span>{patches.some(patch => patch.kind === 'weights' && patch.key === source.key) ? 'Edited' : 'Draw'}</span>
+                </button>;
+            }))}</div>
+        </div>}
+        {!board && sources.length > 1 && <div className="studio-draw-selection"><label>Draw in this definition<select
+            aria-label="Select outcome draw" value={selected.length === 1 ? selected[0] : '*'}
+            onChange={event => setSelected(event.target.value === '*' ? sources.map(source => source.key) : [event.target.value])}>
+            <option value="*">Compare all {sources.length} independent draws</option>
+            {sources.map(source => <option key={source.key}
+                                           value={source.key}>{String(source.source.node.label ?? source.source.id)} · {source.source.id}</option>)}
+        </select></label><p>Grouped by their executable definition. Their distributions remain independent.</p></div>}
+        {active.length > 1 && <label className="studio-check matrix-link"><input type="checkbox" checked={linked}
+                                                                                 onChange={event => setLinked(event.target.checked)}/>Apply
+            a row edit to all selected cells · explicit batch edit</label>}
+        <div className="studio-matrix-scroll">
+            <table className="studio-matrix">
+                <thead>
+                <tr>
+                    <th>{board ? 'Symbol' : 'Outcome identity'}</th>
+                    {active.map(source => <th
+                        key={source.key}>{board ? `Cell ${(board.cells.find(cell => cell.source.key === source.key)?.position ?? 0) + 1}` : active.length > 1 ? source.source.id : 'Weight'}<small>{source.capability === 'editable' ? 'Local draw probability' : source.capability}</small>
+                    </th>)}{!board && active.length === 1 && <th>Numeric payload</th>}</tr>
+                </thead>
+                <tbody>{outcomes.map(id => {
+                    const symbol = symbols.find(symbol => symbol.id === id) ?? {id, name: id};
+                    return <tr key={id}>
+                        <th>{board ? <SymbolBadge symbol={symbol} asset={assets[id]}/> :
+                            <div className="studio-outcome-label"><b>{id}</b><small>Outcome ID</small></div>}</th>
+                        {active.map(source => {
+                            const row = source.rows.find(row => row.outcomeId === id);
+                            if (!row) return <td key={source.key}><span className="studio-unavailable">Not in this source</span>
+                            </td>;
+                            const weights = values(source), value = weights.get(id) ?? '',
+                                invalid = ['editable', 'computed'].includes(source.capability) ? validateWeights(source.rows.map(row => weights.get(row.outcomeId) ?? '')) : 'No proven static distribution';
+                            const total = invalid ? null : [...weights.values()].reduce((sum, value) => sum + BigInt(value.trim()), 0n);
+                            return <td key={source.key}><input aria-label={`Weight ${id} in ${source.source.id}`}
+                                                               aria-invalid={source.capability === 'editable' && !!invalid}
+                                                               inputMode="numeric" value={value}
+                                                               disabled={disabled || source.capability !== 'editable' || patches.some(patch => patch.kind === 'outcomes' && patch.key === source.key)}
+                                                               data-changed={value !== String(row.weight)}
+                                                               onChange={event => change(source, id, event.target.value)}/><span
+                                className="weight-probability">{total ? `${(Number(value) / Number(total) * 100).toFixed(3)}%` : source.capability === 'dynamic' ? 'State-dependent' : 'Incomplete'}<small>{total ? `${value} / ${total}` : source.capability === 'dynamic' ? 'Expression retained' : 'Enter valid weights'}</small></span>
+                            </td>;
+                        })}{!board && active.length === 1 &&
+                        <td className="studio-payload">{active[0]?.rows.find(row => row.outcomeId === id)?.value ?? '—'}</td>}
+                    </tr>;
+                })}</tbody>
+                <tfoot>
+                <tr>
+                    <th>Total weight</th>
+                    {active.map(source => {
+                        const weights = values(source),
+                            invalid = ['editable', 'computed'].includes(source.capability) ? validateWeights(source.rows.map(row => weights.get(row.outcomeId) ?? '')) : 'No static total';
+                        return <td
+                            key={source.key}>{invalid ? source.capability === 'dynamic' ? 'Expression' : 'Incomplete' : [...weights.values()].reduce((sum, value) => sum + BigInt(value.trim()), 0n).toString()}</td>;
+                    })}{!board && active.length === 1 && <td/>}</tr>
+                </tfoot>
+            </table>
+        </div>
+        {active.length === 1 && <OutcomeDomainEditor context={context} source={active[0]}/>}
+        {!board && sources[0]?.reason && <p className="studio-explanation">{sources[0].reason}</p>}<p
+        className="studio-footnote">Ratios describe this local draw. They are not RTP or window-event probabilities.
+        Numeric payloads are retained unchanged.</p>
+    </div>;
+}

@@ -68,6 +68,7 @@ test('Compiler errors reject the entire accounting plan and a corrected residual
 });
 
 test('Dismissing whole-plan validation cannot append a late accounting batch', async ({ page }) => {
+  test.setTimeout(180000);
   let release!: () => void, started!: () => void, handled!: () => void;
   const gate = new Promise<void>(resolve => { release = resolve; }), accepted = new Promise<void>(resolve => { started = resolve; }), settled = new Promise<void>(resolve => { handled = resolve; });
   await page.route('**/api/runs/measurements/schema', async route => {

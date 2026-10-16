@@ -1,0 +1,153 @@
+{
+  "schemaVersion": "1.0.0",
+  "id": "parameter-weighted-original",
+  "name": "parameter-weighted-original",
+  "initialState": {
+    "traceEnabled": false,
+    "emptyArray": [],
+    "coins": 0,
+    "choice": ""
+  },
+  "nodes": [
+    {
+      "nodeType": "library",
+      "id": "operation",
+      "label": "Original literal call",
+      "mechanicName": "parameter-weighted",
+      "inputs": {
+        "state": {
+          "name": "state",
+          "type": "State"
+        }
+      },
+      "outputs": {
+        "state": {
+          "name": "state",
+          "type": "State"
+        }
+      },
+      "parameters": {
+        "amount": "7"
+      }
+    },
+    {
+      "nodeType": "metricsSink",
+      "id": "sink",
+      "label": "One payout",
+      "winStateKey": "coins",
+      "winCap": 1000,
+      "inputs": {
+        "state": {
+          "name": "state",
+          "type": "State"
+        }
+      },
+      "outputs": {}
+    }
+  ],
+  "edges": [
+    {
+      "id": "operation.state->sink",
+      "sourceNodeId": "operation",
+      "sourcePort": "state",
+      "targetNodeId": "sink",
+      "targetPort": "state"
+    }
+  ],
+  "expressions": {},
+  "mechanics": {
+    "parameter-weighted": {
+      "name": "parameter-weighted",
+      "nodes": [
+        {
+          "nodeType": "draw",
+          "id": "choice",
+          "label": "One expression-weighted outcome",
+          "stateWriteKey": "choice",
+          "inputs": {
+            "state": {
+              "name": "state",
+              "type": "State"
+            }
+          },
+          "outputs": {
+            "state": {
+              "name": "state",
+              "type": "State"
+            }
+          },
+          "drawWeights": [
+            {
+              "outcomeId": "a",
+              "weight": 1,
+              "value": 0
+            }
+          ],
+          "weightExpressionId": "amount"
+        },
+        {
+          "nodeType": "modifyState",
+          "id": "pay",
+          "label": "Selected payout",
+          "outputKey": "coins",
+          "expressionId": "pay",
+          "inputs": {
+            "state": {
+              "name": "state",
+              "type": "State"
+            }
+          },
+          "outputs": {
+            "state": {
+              "name": "state",
+              "type": "State"
+            }
+          }
+        }
+      ],
+      "edges": [
+        {
+          "id": "choice.state->pay",
+          "sourceNodeId": "choice",
+          "sourcePort": "state",
+          "targetNodeId": "pay",
+          "targetPort": "state"
+        }
+      ],
+      "expressions": {
+        "pay": {
+          "exprType": "if",
+          "condition": {
+            "exprType": "compare",
+            "op": "Eq",
+            "left": {
+              "exprType": "fieldAccess",
+              "target": "state",
+              "path": [
+                "choice"
+              ]
+            },
+            "right": {
+              "exprType": "constant",
+              "kind": "String",
+              "value": "a"
+            }
+          },
+          "thenExpr": {
+            "exprType": "fieldAccess",
+            "target": "state",
+            "path": [
+              "expressions",
+              "amount"
+            ]
+          },
+          "elseExpr": {
+            "exprType": "constant",
+            "kind": "Integer",
+            "value": "0"
+          }
+        }
+      }
+    }
+  }
+}

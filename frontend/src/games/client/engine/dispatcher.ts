@@ -1,3 +1,4 @@
+import { browserStorageKey } from '../../../lib/browserIdentity';
 import type { GameId, ActionType, ActionPayload, ActionResponse } from '@tgslots/shared-contracts'
 import { serveGame } from '../../server'
 
@@ -23,7 +24,7 @@ export class GameDispatcher<G extends GameId> {
     private readonly _baseUrl: string,
     private readonly _serve = serveGame,
   ) {
-    this._sessionKey = `${SESSION_KEY_PREFIX}${_gameId}`
+    this._sessionKey = browserStorageKey(`${SESSION_KEY_PREFIX}${_gameId}`)
   }
 
   get sessionId(): string | null {

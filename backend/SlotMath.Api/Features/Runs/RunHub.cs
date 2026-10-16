@@ -39,7 +39,7 @@ public class RunHub : Hub
     public RunResponse GetRunSnapshot(string runId) => RunResponse.From(GetRun(runId));
 
     private RunEntry GetRun(string runId) => !string.IsNullOrEmpty(runId) && runId.Length <= 128
-        ? _runStore.Get(runId) ?? throw new HubException("RUN_NOT_FOUND")
+        ? _runStore.GetForOwner(runId, RequestOwnership.Identity(Context.User)) ?? throw new HubException("RUN_NOT_FOUND")
         : throw new HubException("RUN_NOT_FOUND");
 
     /// <summary>

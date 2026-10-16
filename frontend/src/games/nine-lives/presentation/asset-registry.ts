@@ -26,6 +26,10 @@ export class AssetRegistry {
   ): Promise<GameAssets> {
     const { gameId } = manifest
 
+    // Native images upload reliably in WebKit as well as Chromium/Firefox.
+    // ImageBitmap uploads can corrupt WebP artwork even when decoding succeeds.
+    Assets.setPreferences({ preferCreateImageBitmap: false })
+
     // 1. Prevent memory leaks from double-loading
     if (this._manifests.has(gameId)) await this.unloadGame(gameId)
 

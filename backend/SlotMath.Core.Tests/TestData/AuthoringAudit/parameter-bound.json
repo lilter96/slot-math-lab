@@ -1,0 +1,583 @@
+{
+  "schemaVersion": "1.0.0",
+  "id": "proof-parameter-bound",
+  "name": "parameter-bound",
+  "description": "Independent expected outcomes; GraphConfig runs without authoring metadata.",
+  "initialState": {
+    "traceEnabled": false,
+    "emptyArray": [],
+    "__machine_706172616d657465722d626f756e64_pc": "end",
+    "__machine_706172616d657465722d626f756e64_diagnostic": "",
+    "coins": 0,
+    "__machine_706172616d657465722d626f756e64_private_6974656d": 10,
+    "__machine_706172616d657465722d626f756e64_private_636f756e746572": 7,
+    "__machine_706172616d657465722d626f756e64_private_616363": 10
+  },
+  "nodes": [
+    {
+      "nodeType": "library",
+      "id": "machine",
+      "label": "parameter-bound",
+      "mechanicName": "parameter-bound",
+      "inputs": {
+        "state": {
+          "name": "state",
+          "type": "State"
+        }
+      },
+      "outputs": {
+        "state": {
+          "name": "state",
+          "type": "State"
+        }
+      },
+      "parameters": {}
+    },
+    {
+      "nodeType": "metricsSink",
+      "id": "sink",
+      "label": "One final payout",
+      "winStateKey": "coins",
+      "winCap": 1000,
+      "inputs": {
+        "state": {
+          "name": "state",
+          "type": "State"
+        }
+      },
+      "outputs": {}
+    }
+  ],
+  "edges": [
+    {
+      "id": "machine.state->sink",
+      "sourceNodeId": "machine",
+      "sourcePort": "state",
+      "targetNodeId": "sink",
+      "targetPort": "state"
+    }
+  ],
+  "expressions": {},
+  "mechanics": {
+    "direct-parameter": {
+      "name": "direct-parameter",
+      "description": "A normal direct node expression parameter.",
+      "nodes": [
+        {
+          "id": "pay",
+          "nodeType": "modifyState",
+          "expressionId": "amount",
+          "outputKey": "coins",
+          "inputs": {
+            "state": {
+              "name": "state",
+              "type": "State"
+            }
+          },
+          "outputs": {
+            "state": {
+              "name": "state",
+              "type": "State"
+            }
+          }
+        }
+      ],
+      "edges": [],
+      "expressions": {}
+    },
+    "parameter-bound-op-656e64-entry-action-706179": {
+      "name": "parameter-bound-op-656e64-entry-action-706179",
+      "description": "A normal direct node expression parameter.",
+      "nodes": [
+        {
+          "id": "pay",
+          "nodeType": "modifyState",
+          "expressionId": "__binding_616d6f756e74",
+          "outputKey": "coins",
+          "inputs": {
+            "state": {
+              "name": "state",
+              "type": "State"
+            }
+          },
+          "outputs": {
+            "state": {
+              "name": "state",
+              "type": "State"
+            }
+          }
+        }
+      ],
+      "edges": [],
+      "expressions": {
+        "__binding_616d6f756e74": {
+          "exprType": "fieldAccess",
+          "target": "state",
+          "path": [
+            "__machine_706172616d657465722d626f756e64_private_636f756e746572"
+          ]
+        }
+      },
+      "__machineParameterSource": {
+        "version": 1,
+        "definition": "direct-parameter",
+        "bindings": {
+          "amount": "__binding_616d6f756e74"
+        }
+      }
+    },
+    "parameter-bound-state-656e64": {
+      "name": "parameter-bound-state-656e64",
+      "description": "Terminal action",
+      "nodes": [
+        {
+          "nodeType": "library",
+          "id": "entry-action-706179",
+          "label": "Pay private counter",
+          "mechanicName": "parameter-bound-op-656e64-entry-action-706179",
+          "inputs": {
+            "state": {
+              "name": "state",
+              "type": "State"
+            }
+          },
+          "outputs": {
+            "state": {
+              "name": "state",
+              "type": "State"
+            }
+          },
+          "parameters": {}
+        },
+        {
+          "nodeType": "modifyState",
+          "id": "finish",
+          "label": "Terminal visit completed",
+          "outputKey": "__machine_706172616d657465722d626f756e64_pc",
+          "expressionId": "finish",
+          "inputs": {
+            "state": {
+              "name": "state",
+              "type": "State"
+            }
+          },
+          "outputs": {
+            "state": {
+              "name": "state",
+              "type": "State"
+            }
+          }
+        }
+      ],
+      "edges": [
+        {
+          "id": "entry-action-706179.state->finish",
+          "sourceNodeId": "entry-action-706179",
+          "sourcePort": "state",
+          "targetNodeId": "finish",
+          "targetPort": "state"
+        }
+      ],
+      "expressions": {
+        "finish": {
+          "exprType": "constant",
+          "kind": "String",
+          "value": "__Done__"
+        }
+      }
+    },
+    "parameter-bound-dispatch": {
+      "name": "parameter-bound-dispatch",
+      "description": "One state visit: exclusive selection, entry actions, ordered guards, effects, then next state.",
+      "nodes": [
+        {
+          "nodeType": "branch",
+          "id": "state-656e64",
+          "label": "Terminal action",
+          "conditionId": "state-656e64",
+          "inputs": {
+            "state": {
+              "name": "state",
+              "type": "State"
+            }
+          },
+          "outputs": {
+            "true": {
+              "name": "true",
+              "type": "State"
+            },
+            "false": {
+              "name": "false",
+              "type": "State"
+            }
+          }
+        },
+        {
+          "nodeType": "getState",
+          "id": "done",
+          "label": "Done",
+          "inputs": {
+            "state": {
+              "name": "state",
+              "type": "State"
+            }
+          },
+          "outputs": {
+            "state": {
+              "name": "state",
+              "type": "State"
+            }
+          }
+        },
+        {
+          "nodeType": "library",
+          "id": "visit-656e64",
+          "label": "Terminal action",
+          "mechanicName": "parameter-bound-state-656e64",
+          "inputs": {
+            "state": {
+              "name": "state",
+              "type": "State"
+            }
+          },
+          "outputs": {
+            "state": {
+              "name": "state",
+              "type": "State"
+            }
+          },
+          "parameters": {}
+        },
+        {
+          "nodeType": "modifyState",
+          "id": "invalid-state",
+          "label": "Unknown machine state: inspect this diagnostic; the Loop limit remains authoritative",
+          "outputKey": "__machine_706172616d657465722d626f756e64_diagnostic",
+          "expressionId": "invalid-state",
+          "inputs": {
+            "state": {
+              "name": "state",
+              "type": "State"
+            }
+          },
+          "outputs": {
+            "state": {
+              "name": "state",
+              "type": "State"
+            }
+          }
+        }
+      ],
+      "edges": [
+        {
+          "id": "state-656e64.true->visit-656e64",
+          "sourceNodeId": "state-656e64",
+          "sourcePort": "true",
+          "targetNodeId": "visit-656e64",
+          "targetPort": "state"
+        },
+        {
+          "id": "state-656e64.false->invalid-state",
+          "sourceNodeId": "state-656e64",
+          "sourcePort": "false",
+          "targetNodeId": "invalid-state",
+          "targetPort": "state"
+        },
+        {
+          "id": "visit-656e64.state->done",
+          "sourceNodeId": "visit-656e64",
+          "sourcePort": "state",
+          "targetNodeId": "done",
+          "targetPort": "state"
+        },
+        {
+          "id": "invalid-state.state->done",
+          "sourceNodeId": "invalid-state",
+          "sourcePort": "state",
+          "targetNodeId": "done",
+          "targetPort": "state"
+        }
+      ],
+      "expressions": {
+        "state-656e64": {
+          "exprType": "compare",
+          "op": "Eq",
+          "left": {
+            "exprType": "fieldAccess",
+            "target": "state",
+            "path": [
+              "__machine_706172616d657465722d626f756e64_pc"
+            ]
+          },
+          "right": {
+            "exprType": "constant",
+            "kind": "String",
+            "value": "end"
+          }
+        },
+        "invalid-state": {
+          "exprType": "constant",
+          "kind": "String",
+          "value": "Unknown current state"
+        }
+      }
+    },
+    "parameter-bound": {
+      "name": "parameter-bound",
+      "description": "parameter-bound",
+      "nodes": [
+        {
+          "nodeType": "modifyState",
+          "id": "start",
+          "label": "parameter-bound",
+          "outputKey": "__machine_706172616d657465722d626f756e64_pc",
+          "expressionId": "start",
+          "inputs": {
+            "state": {
+              "name": "state",
+              "type": "State"
+            }
+          },
+          "outputs": {
+            "state": {
+              "name": "state",
+              "type": "State"
+            }
+          }
+        },
+        {
+          "nodeType": "modifyState",
+          "id": "diagnostic",
+          "label": "Clear this invocation’s diagnostic",
+          "outputKey": "__machine_706172616d657465722d626f756e64_diagnostic",
+          "expressionId": "diagnostic",
+          "inputs": {
+            "state": {
+              "name": "state",
+              "type": "State"
+            }
+          },
+          "outputs": {
+            "state": {
+              "name": "state",
+              "type": "State"
+            }
+          }
+        },
+        {
+          "nodeType": "modifyState",
+          "id": "reset-6974656d",
+          "label": "item",
+          "outputKey": "__machine_706172616d657465722d626f756e64_private_6974656d",
+          "expressionId": "reset-6974656d",
+          "inputs": {
+            "state": {
+              "name": "state",
+              "type": "State"
+            }
+          },
+          "outputs": {
+            "state": {
+              "name": "state",
+              "type": "State"
+            }
+          }
+        },
+        {
+          "nodeType": "modifyState",
+          "id": "reset-636f756e746572",
+          "label": "counter",
+          "outputKey": "__machine_706172616d657465722d626f756e64_private_636f756e746572",
+          "expressionId": "reset-636f756e746572",
+          "inputs": {
+            "state": {
+              "name": "state",
+              "type": "State"
+            }
+          },
+          "outputs": {
+            "state": {
+              "name": "state",
+              "type": "State"
+            }
+          }
+        },
+        {
+          "nodeType": "modifyState",
+          "id": "reset-616363",
+          "label": "acc",
+          "outputKey": "__machine_706172616d657465722d626f756e64_private_616363",
+          "expressionId": "reset-616363",
+          "inputs": {
+            "state": {
+              "name": "state",
+              "type": "State"
+            }
+          },
+          "outputs": {
+            "state": {
+              "name": "state",
+              "type": "State"
+            }
+          }
+        },
+        {
+          "nodeType": "loop",
+          "id": "visits",
+          "label": "State visits · includes the terminal visit; limit precedence is unchanged",
+          "maxIterations": 2,
+          "stopConditionId": "visits-until",
+          "inputs": {
+            "state": {
+              "name": "state",
+              "type": "State"
+            }
+          },
+          "outputs": {
+            "body": {
+              "name": "body",
+              "type": "State"
+            },
+            "exit": {
+              "name": "exit",
+              "type": "State"
+            }
+          }
+        },
+        {
+          "nodeType": "getState",
+          "id": "done",
+          "label": "Done",
+          "inputs": {
+            "state": {
+              "name": "state",
+              "type": "State"
+            }
+          },
+          "outputs": {
+            "state": {
+              "name": "state",
+              "type": "State"
+            }
+          }
+        },
+        {
+          "nodeType": "library",
+          "id": "visits-pass",
+          "label": "State visits · includes the terminal visit; limit precedence is unchanged",
+          "mechanicName": "parameter-bound-dispatch",
+          "inputs": {
+            "state": {
+              "name": "state",
+              "type": "State"
+            }
+          },
+          "outputs": {
+            "state": {
+              "name": "state",
+              "type": "State"
+            }
+          },
+          "parameters": {}
+        }
+      ],
+      "edges": [
+        {
+          "id": "start.state->diagnostic",
+          "sourceNodeId": "start",
+          "sourcePort": "state",
+          "targetNodeId": "diagnostic",
+          "targetPort": "state"
+        },
+        {
+          "id": "diagnostic.state->reset-6974656d",
+          "sourceNodeId": "diagnostic",
+          "sourcePort": "state",
+          "targetNodeId": "reset-6974656d",
+          "targetPort": "state"
+        },
+        {
+          "id": "reset-6974656d.state->reset-636f756e746572",
+          "sourceNodeId": "reset-6974656d",
+          "sourcePort": "state",
+          "targetNodeId": "reset-636f756e746572",
+          "targetPort": "state"
+        },
+        {
+          "id": "reset-636f756e746572.state->reset-616363",
+          "sourceNodeId": "reset-636f756e746572",
+          "sourcePort": "state",
+          "targetNodeId": "reset-616363",
+          "targetPort": "state"
+        },
+        {
+          "id": "reset-616363.state->visits",
+          "sourceNodeId": "reset-616363",
+          "sourcePort": "state",
+          "targetNodeId": "visits",
+          "targetPort": "state"
+        },
+        {
+          "id": "visits.body->visits-pass",
+          "sourceNodeId": "visits",
+          "sourcePort": "body",
+          "targetNodeId": "visits-pass",
+          "targetPort": "state"
+        },
+        {
+          "id": "visits.exit->done",
+          "sourceNodeId": "visits",
+          "sourcePort": "exit",
+          "targetNodeId": "done",
+          "targetPort": "state"
+        }
+      ],
+      "expressions": {
+        "start": {
+          "exprType": "constant",
+          "kind": "String",
+          "value": "end"
+        },
+        "diagnostic": {
+          "exprType": "constant",
+          "kind": "String",
+          "value": ""
+        },
+        "reset-6974656d": {
+          "exprType": "constant",
+          "kind": "Integer",
+          "value": "10"
+        },
+        "reset-636f756e746572": {
+          "exprType": "constant",
+          "kind": "Integer",
+          "value": "7"
+        },
+        "reset-616363": {
+          "exprType": "constant",
+          "kind": "Integer",
+          "value": "10"
+        },
+        "visits-until": {
+          "exprType": "compare",
+          "op": "Eq",
+          "left": {
+            "exprType": "fieldAccess",
+            "target": "state",
+            "path": [
+              "__machine_706172616d657465722d626f756e64_pc"
+            ]
+          },
+          "right": {
+            "exprType": "constant",
+            "kind": "String",
+            "value": "__Done__"
+          }
+        }
+      }
+    }
+  },
+  "opaque": {
+    "retained": true
+  }
+}

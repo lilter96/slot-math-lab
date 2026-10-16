@@ -8,6 +8,18 @@ This guide covers the three levels of authoring flexibility:
 
 ---
 
+## Choose a private project first
+
+Start at **My projects** (`/projects`). Create a blank project, import personal model JSON or make an independent copy of a template, then open its workbench. One user can keep many games/models and personal materials; other users have separate private workspaces. Nine Lives is one reference example.
+
+Each project keeps its own model edits and nested editing context when you switch. Copying the same template twice creates separate projects even if their authored model IDs match. Use the selected model's supported data editors and graph composition; geometry, symbols and available mappings can differ between games.
+
+To try a variation of an existing game, duplicate its project and edit the copy. Keep the original and the experiment as separate entries in **My projects**. When opening a different project, check its name and current source before interpreting a previous run's results; changing the model requires new matching evidence.
+
+Drafts autosave in the current browser; saving a server version is explicit. JSON export/import provides personal backup and transfer. Sharing, invitations, public project links and collaboration are deferred. A server run bookmark remains owner-only. See [private workspaces](design/PRIVATE_WORKSPACES.md) for persistence and access limits.
+
+The examples below illustrate authoring concepts. Available table editors depend on source mappings, and metric evidence requires an actual supported calculation; examples do not imply that every model has the same tables or automatic live results.
+
 ## Level (a) — Subgraph Config
 
 The simplest path: drop catalog subgraphs from the palette and wire them together
@@ -15,7 +27,7 @@ with Draw/State/Loop primitives. Configure them with the table editors.
 
 ### Building a basic lines game
 
-1. Open the **Build** tab.
+1. Create or open a private project from **My projects**, then open its **Logic graph** (`/build`).
 2. From the palette, drag a **Draw** node onto the canvas. This draws the reel
    symbols. Add draw weights in the Inspector (e.g. A:5, B:3, W:1).
 3. Drag a **Lines** catalog subgraph from the Standard Catalog palette section.
@@ -23,7 +35,7 @@ with Draw/State/Loop primitives. Configure them with the table editors.
 5. Drag a **Metrics Sink** and wire Lines output → Sink.
 6. Open **Tables → Symbols** and add your symbols (A, B, W, Scatter).
 7. Open **Tables → Paytable** and enter payouts for each symbol × count combination.
-8. Watch the live RTP badge update as you edit weights.
+8. Validate the model and run analysis. Inspect the returned metrics and their provenance; changed weights invalidate earlier evidence.
 
 ### Adding a scatter trigger → free spins (loop)
 

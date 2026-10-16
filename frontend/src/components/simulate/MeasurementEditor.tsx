@@ -1,7 +1,7 @@
 import { MeasurementDesigner } from './MeasurementDesigner';
 import { useEffect, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { peekRootProject } from '../../lib/projectFiles';
+import { inspectRootProject } from '../../lib/projectFiles';
 import { createNineLivesGraph } from '../../games/nine-lives/graph';
 import { useAppStore } from '../../store';
 import { definition, stateFieldExpression, metricExpression, newMetric, availableReducers, chartReducer, reducers, reducerNames, measurementPopulation, type MetricDraft, type MeasurementSchema } from '../../lib/measurements/model';
@@ -15,8 +15,8 @@ export function MeasurementEditor({ initial, close }: { initial?: MetricDraft; c
   const [status, setStatus] = useState('');
   const [draft, setDraft] = useState<MetricDraft>(() => initial ?? newMetric()), [error, setError] = useState(''), [search, setSearch] = useState(''), [busy, setBusy] = useState(false);
   // Reading the schema neither starts a simulation nor navigates out of a mechanic.
-  const [config] = useState(() => useAppStore.getState().verificationSource ?? (useAppStore.getState().nodes.length ? peekRootProject() : createNineLivesGraph()));
-  const schema = useQuery<MeasurementSchema>({ queryKey: ['measurement-schema', config], queryFn: ({ signal }) =>
+  const [config] = useState(() => useAppStore.getState().verificationSource ?? (useAppStore.getState().nodes.length ? inspectRootProject().config : createNineLivesGraph()));
+  const schema = useQuery<MeasurementSchema>({ queryKey: ['measurement-schema', config], enabled: !!config, queryFn: ({ signal }) =>
     calculationRequest<MeasurementSchema>('/api/runs/measurements/schema', { config }, signal, () => {}, 10000), retry: false, staleTime: Infinity });
   useEffect(() => { const element = dialog.current!; element.showModal(); return () => { validation.current?.abort(); element.close(); }; }, []);
   const dismiss = () => { validation.current?.abort(); close(); };
@@ -38,6 +38,7 @@ export function MeasurementEditor({ initial, close }: { initial?: MetricDraft; c
   catch (e) { syntax = e instanceof Error ? e.message : 'Invalid measurement.'; }
   return <dialog ref={dialog} className="measurement-dialog" aria-labelledby="measurement-title" onCancel={dismiss} onClose={dismiss}>
     <form onSubmit={async e => { e.preventDefault(); try {
+      if (!config) throw new Error('Fix model serialization before validating this plan.');
       const current = useMeasurementWorkspace.getState().metrics;
       const proposed = (current.some(metric => metric.id === draft.id) ? current.map(metric => metric.id === draft.id ? draft : metric) : [...current, draft]).map(definition);
       if (!schema.data) throw new Error('Load the graph schema before saving a measurement.');
@@ -48,7 +49,7 @@ export function MeasurementEditor({ initial, close }: { initial?: MetricDraft; c
       validation.current.signal.throwIfAborted();
       if (useMeasurementWorkspace.getState().metrics !== current) throw new Error('The collection plan changed during validation. Review it before saving again.');
       saveMetric(draft); close();
-    } catch (err) { if (!validation.current?.signal.aborted) { setError(err instanceof Error ? err.message : 'Invalid measurement.'); setBusy(false); } } }}>
+    } catch (err) { if (!validation.current?.signal.aborted) { setError(err instanceof Error ? err.message : 'Invalid measurement.'); setBusy(false); } } }}>{!config && <p role="alert">Fix model serialization in Build before validating this plan. Your metric draft remains editable.</p>}
       <header><div><span className="sim-eyebrow">COLLECTION PLAN / NEXT RUN</span><h2 id="measurement-title">{initial ? 'Edit measurement' : 'Track a metric'}</h2></div><button type="button" className="btn" onClick={dismiss} aria-label="Close measurement editor">✕</button></header>
       <p className="measurement-intro">Saving validates the complete next-run collection plan, including shared storage limits. Group and distribution budgets apply to every metric; choose them for the populations you intend to retain.</p>
       <p className="measurement-intro">Choose where to observe, what to measure, and which observations belong in the statistic. The plan is pinned at launch.</p>
@@ -57,7 +58,7 @@ export function MeasurementEditor({ initial, close }: { initial?: MetricDraft; c
       <fieldset className="measurement-wide"><legend>1 · Observation point</legend><label>Observe<select aria-label="Metric observation level" disabled={!schema.data} value={draft.nodeId ? 'node' : 'round'} onChange={e => update({ nodeId: e.target.value === 'node' ? schema.data?.points[0]?.nodeId ?? '' : '', valueMode: e.target.value === 'node' ? 'expression' : 'payout' })}><option value="round">Completed paid round</option><option value="node" disabled={!schema.data?.points.length}>Each visit to a graph node</option></select></label>
       {draft.nodeId && <><label>Find a node<input aria-label="Find measurement node" value={search} onChange={e => setSearch(e.target.value)} placeholder="Search name or path, e.g. free-spin" /></label><label>Node<select aria-label="Metric graph node" value={draft.nodeId} onChange={e => update({ nodeId: e.target.value })}>{!points.some(p => p.nodeId === draft.nodeId) && <option value={draft.nodeId}>{draft.nodeId}</option>}{points.map(p => <option key={p.nodeId} value={p.nodeId}>{p.label} · {p.nodeId}</option>)}</select></label><small>Reads state immediately before this node executes. A node in a loop can produce several observations per paid round. Choose the next node after a value is written.</small></>}
       {!draft.nodeId && <small>One observation per complete paid round, including the full bonus. Settled payout includes the win cap; state expressions retain their authored units.</small>}
-      {schema.isPending && <p role="status">Compiling the graph schema…</p>}{schema.error && <p role="alert">{schema.error.message} <button type="button" className="btn" onClick={() => void schema.refetch()}>Retry schema</button></p>}
+      {config && schema.isPending && <p role="status">Compiling the graph schema…</p>}{schema.error && <p role="alert">{schema.error.message} <button type="button" className="btn" onClick={() => void schema.refetch()}>Retry schema</button></p>}
       </fieldset>
       <MeasurementDesigner draft={draft} schema={schema.data} update={update} />
       <fieldset className="measurement-wide"><legend>2 · Observed value</legend>{expressionSource && <label>Value source<select aria-label="Metric value source" value={draft.valueMode} onChange={e => changeExpressionMode('value', e.target.value as MetricDraft['valueMode'])}>{!draft.nodeId && <option value="payout">Settled round payout · stake multiples</option>}<option value="expression">State expression</option><option value="visual">Visual expression builder</option><option value="ast">Advanced · expression AST</option></select></label>}

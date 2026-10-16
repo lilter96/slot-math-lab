@@ -19,6 +19,18 @@ features. Designers extend the catalog without an engineering release wherever p
 
 ---
 
+## Current workspace scope — 2026-10-12 clarification
+
+Each user may own many private projects, games, models and personal materials. Many users work independently. The application starts at **My projects**; each blank/imported/template-copy project has a separate identity and preserves its own canonical edits and nested context on switching. Nine Lives is a reference fixture, not the default game or a universal schema.
+
+The ownership hierarchy is **user → private projects → each project's model and editing context**. Personal materials remain owner-scoped, with project associations where applicable. Do not use a single global game, a template's authored ID or the currently selected project as a substitute for user ownership. This is a product contract; the implemented material/storage capabilities and limits are documented separately in PRIVATE_WORKSPACES.
+
+Browser drafts are scoped to verified user identity and autosave locally; saving a server version is explicit. Configurations, runs, experiments and realtime evidence are owner-scoped. Separate copies of one authored model do not share storage/version identities. No automatic cross-device draft synchronization is claimed.
+
+**Sharing/collaboration are deferred.** The earlier G25/G29 references to sharing are future roadmap work, not current deliverables. No public links, invitations, publication or teams are available. JSON export/import and legacy inbound import compatibility remain; run bookmarks are private. See [private workspace behavior](design/PRIVATE_WORKSPACES.md) and [the updated UX plan](design/UX_MASTERPLAN.md). This clarification leaves all mathematical invariants and pinned constants unchanged.
+
+Local test frequency follows AGENTS.md: only affected/new tests on routine changes; full suites after substantial integrated features or explicit requests. Documentation-only edits require no tests. CI and release checks remain separate from local iteration frequency.
+
 ## 0. Agent execution protocol
 
 - Execute goals **in order within a phase**. Phases are sequential.
@@ -425,12 +437,12 @@ cancel; exact-vs-sampled comparison view.
       curve; the comparison shows the sampled mean inside the exact CI band on the reference game.
 
 ### G25 — Export / import + PAR sheet
-**Objective.** Get the math out, share it, hand it off.
-**Deliverables.** Versioned JSON export/import; copy/download; shareable link; PAR-sheet-style
+**Objective.** Back up and transfer a personal model with its mathematical evidence.
+**Deliverables.** Versioned JSON export/import; copy/download; PAR-sheet-style
 export (CSV + printable summary with full metric breakdown and provenance).
 **Definition of Done.**
-- [ ] Export → import round-trips to an identical config hash; a shareable link reopens the exact
-      graph + data; the PAR export contains the full breakdown with provenance noted.
+- [ ] Export → import round-trips to an identical config hash in a separate private project; the
+      PAR export contains the full breakdown with provenance noted. Sharing is deferred.
 
 ---
 
@@ -477,12 +489,13 @@ dead/unreachable symbol, paytable anomaly) + AI qualitative notes.
 
 ### G29 — Security, limits, multi-tenancy & plugin governance
 **Objective.** Safe for the open internet, including the plugin hatch.
-**Deliverables.** Anonymous use works; OAuth + JWT gating saved/shared projects; project ownership +
-sharing; rate limiting; input/budget caps (max graph size, nodes, sim budget, expression
+**Deliverables.** Anonymous local use works; validated authentication gates private server archives;
+many private projects per user with owner-scoped configurations/runs/experiments/realtime evidence; rate limiting; input/budget caps (max graph size, nodes, sim budget, expression
 complexity); **plugin governance** — only trusted/approved plugins run, executed sandboxed.
 **Definition of Done.**
-- [ ] Anonymous can build + simulate but not persist privately; an authed user owns/shares and
-      non-owners cannot mutate.
+- [ ] Local anonymous drafts remain separate from signed-in workspaces; an authenticated user can
+      own many projects. Non-owners cannot list/read/mutate/cancel or subscribe to private evidence.
+      Production requires authentication; sharing and an OAuth provider are separate future work.
 - [ ] Oversized graphs, over-budget sims and over-complex expressions are rejected with clear
       errors; only approved plugins execute; rate limits verified.
 

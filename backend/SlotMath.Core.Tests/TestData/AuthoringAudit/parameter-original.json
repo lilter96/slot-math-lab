@@ -1,0 +1,85 @@
+{
+  "schemaVersion": "1.0.0",
+  "id": "parameter-original",
+  "name": "parameter-original",
+  "initialState": {
+    "traceEnabled": false,
+    "emptyArray": [],
+    "coins": 0
+  },
+  "nodes": [
+    {
+      "nodeType": "library",
+      "id": "operation",
+      "label": "Original literal call",
+      "mechanicName": "direct-parameter",
+      "inputs": {
+        "state": {
+          "name": "state",
+          "type": "State"
+        }
+      },
+      "outputs": {
+        "state": {
+          "name": "state",
+          "type": "State"
+        }
+      },
+      "parameters": {
+        "amount": "7"
+      }
+    },
+    {
+      "nodeType": "metricsSink",
+      "id": "sink",
+      "label": "One payout",
+      "winStateKey": "coins",
+      "winCap": 1000,
+      "inputs": {
+        "state": {
+          "name": "state",
+          "type": "State"
+        }
+      },
+      "outputs": {}
+    }
+  ],
+  "edges": [
+    {
+      "id": "operation.state->sink",
+      "sourceNodeId": "operation",
+      "sourcePort": "state",
+      "targetNodeId": "sink",
+      "targetPort": "state"
+    }
+  ],
+  "expressions": {},
+  "mechanics": {
+    "direct-parameter": {
+      "name": "direct-parameter",
+      "description": "A normal direct node expression parameter.",
+      "nodes": [
+        {
+          "id": "pay",
+          "nodeType": "modifyState",
+          "expressionId": "amount",
+          "outputKey": "coins",
+          "inputs": {
+            "state": {
+              "name": "state",
+              "type": "State"
+            }
+          },
+          "outputs": {
+            "state": {
+              "name": "state",
+              "type": "State"
+            }
+          }
+        }
+      ],
+      "edges": [],
+      "expressions": {}
+    }
+  }
+}

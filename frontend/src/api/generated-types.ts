@@ -536,6 +536,39 @@ export type paths = {
         patch?: never;
         trace?: never;
     };
+    "/api/features": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/persisted/{projectId}/configs": {
         parameters: {
             query?: never;
@@ -1478,6 +1511,45 @@ export type paths = {
         patch?: never;
         trace?: never;
     };
+    "/api/runs/latest-model": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["CreateConfigRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["LatestModelRunResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/runs/measurements/reference/comparison": {
         parameters: {
             query?: never;
@@ -2270,6 +2342,7 @@ export type components = {
             id: string;
             manifestSha256: string;
             members: components["schemas"]["ExperimentMember"][];
+            ownerId?: string;
             request: components["schemas"]["ExperimentRequest"];
             status: string;
         };
@@ -2460,6 +2533,10 @@ export type components = {
             y: number;
         };
         JsonElement: unknown;
+        LatestModelRunResponse: {
+            evidence: null | components["schemas"]["RunEvidence"];
+            modelHash: string;
+        };
         LikelihoodAtom: {
             conditionalWeight?: null | string;
             id: string;

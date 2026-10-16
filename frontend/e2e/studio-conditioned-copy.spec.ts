@@ -1,0 +1,107 @@
+import {readFile} from 'node:fs/promises';
+import {type APIRequestContext, expect, type Page, test} from './fixtures';
+import {conditionedSourceProof} from '../unit/fixtures/conditionedSourceProof';
+import {createWoodlandWhisperGraph} from '../src/games/woodland-whisper/graph';
+import {indexGraphSources} from '../src/lib/authoring/sourceIndex';
+import {reelBindings} from '../src/lib/authoring/reelBindings';
+import type {ModelGraph} from '../src/lib/modelProjection';
+
+async function open(page: Page, graph: Record<string, unknown>) {
+    await page.goto('/build');
+    await page.getByLabel('Import project file').setInputFiles({
+        name: 'conditional-proof.json',
+        mimeType: 'application/json',
+        buffer: Buffer.from(JSON.stringify(graph))
+    });
+    await expect(page.locator('.project-name')).toHaveText(String(graph.name));
+    await page.getByRole('tab', {name: 'Studio', exact: true}).click();
+}
+
+async function backup(page: Page) {
+    const pending = page.waitForEvent('download');
+    await page.getByRole('button', {name: 'Back up project', exact: true}).click();
+    return JSON.parse(await readFile((await (await pending).path())!, 'utf8')).graph as ModelGraph;
+}
+
+async function apply(page: Page) {
+    const response = page.waitForResponse(response => new URL(response.url()).pathname === '/api/validate' && response.status() !== 429);
+    await page.getByRole('button', {name: 'Validate & apply', exact: true}).click();
+    const result = await (await response).json();
+    expect(result, JSON.stringify(result)).toMatchObject({isValid: true});
+    await expect(page.getByRole('button', {name: 'Undo', exact: true})).toBeEnabled();
+}
+
+async function exact(request: APIRequestContext, graph: ModelGraph, value: number) {
+    const response = await request.post('/api/evaluate/light', {
+        data: {
+            config: graph,
+            maxBranches: 10000,
+            sampleSize: 1000
+        }
+    });
+    expect(response.ok()).toBe(true);
+    const result = await response.json();
+    expect(result.strategy).toBe('Exact');
+    expect(result.rtp).toBeCloseTo(value, 12);
+}
+
+test('Studio private conditioning: copy one call, change its private strip, execute 2/3 → 5/6 and reject an impossible private event atomically', async ({
+                                                                                                                                                             page,
+                                                                                                                                                             request
+                                                                                                                                                         }) => {
+    const graph = conditionedSourceProof() as ModelGraph;
+    await exact(request, graph, 2 / 3);
+    await open(page, graph);
+    await page.getByRole('button', {name: 'Make one use independent', exact: true}).click();
+    await page.getByLabel('Independent source use').selectOption({label: 'Root / Second conditioned call'});
+    await expect(page.getByRole('dialog')).toContainText('2 private condition fields');
+    await page.getByRole('button', {name: 'Stage independent copy', exact: true}).click();
+    await page.reload();
+    await apply(page);
+    const copied = await backup(page);
+    await exact(request, copied, 2 / 3);
+    await page.locator('.studio-source-explorer button').filter({hasText: /Private source.*reels/}).click();
+    await page.locator('.studio-reel-lane').first().locator('.reel-stop').nth(1).click();
+    await page.getByLabel('Selected stop symbol').selectOption('S');
+    await apply(page);
+    const changed = await backup(page);
+    await exact(request, changed, 5 / 6);
+    expect(changed.mechanics!['conditional-source']).toEqual(graph.mechanics!['conditional-source']);
+    expect((changed.initialState as Record<string, unknown>).showPatterns).toEqual((graph.initialState as Record<string, unknown>).showPatterns);
+    await page.getByRole('button', {name: 'Import table', exact: true}).click();
+    await page.getByLabel('CSV import input').fill('reel,index,symbolId,stopId,weight\n1,0,A,0,1\n1,1,A,1,1\n2,0,A,0,1\n2,1,A,1,1');
+    await page.getByRole('button', {name: 'Preview exact values', exact: true}).click();
+    await expect(page.getByRole('dialog')).toContainText('No reel stops');
+    await page.getByRole('button', {name: 'Close import', exact: true}).click();
+    expect(await backup(page)).toEqual(changed);
+});
+test('Studio Woodland bought: private conditional copy keeps seeded payouts/board and can reorder its own strip through the real compiler', async ({
+                                                                                                                                                       page,
+                                                                                                                                                       request
+                                                                                                                                                   }) => {
+    const graph = createWoodlandWhisperGraph(undefined, {buy: true}) as ModelGraph,
+        condition = reelBindings(graph)[0].source.conditions![0],
+        use = indexGraphSources(graph).libraryUses.find(use => use.definition === condition.scope)!;
+    await open(page, graph);
+    await page.getByRole('button', {name: 'Make one use independent', exact: true}).click();
+    await page.getByLabel('Independent source use').selectOption(use.source.key);
+    await page.getByRole('button', {name: 'Stage independent copy', exact: true}).click();
+    await apply(page);
+    const copied = await backup(page);
+    const rounds = [];
+    for (const config of [graph, copied]) {
+        const response = await request.post('/api/play/round', {data: {config, seed: 42, roundIndex: 0}});
+        expect(response.ok()).toBe(true);
+        rounds.push(await response.json());
+    }
+    expect(rounds[1].win).toBe(rounds[0].win);
+    expect(rounds[1].state.board).toEqual(rounds[0].state.board);
+    expect((copied.initialState as Record<string, unknown>).roundCost).toBe((graph.initialState as Record<string, unknown>).roundCost);
+    await page.locator('.studio-source-explorer button').filter({hasText: /Private source.*reels/}).click();
+    await page.getByRole('button', {name: 'Move selected stop down', exact: true}).click();
+    await apply(page);
+    const changed = await backup(page);
+    expect(changed.mechanics![condition.scope]).toEqual(graph.mechanics![condition.scope]);
+    const response = await request.post('/api/play/round', {data: {config: changed, seed: 42, roundIndex: 0}});
+    expect(response.ok()).toBe(true);
+});

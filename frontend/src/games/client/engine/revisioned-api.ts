@@ -1,3 +1,4 @@
+import { browserStorageKey } from '../../../lib/browserIdentity';
 import type {
   RevisionedAction,
   RevisionedResponse,
@@ -32,8 +33,8 @@ export class RevisionedGameApi<S, R> {
     private readonly gameId: string,
     private readonly baseUrl = '',
   ) {
-    this.sessionKey = `tgslots:${gameId}:session`
-    this.pendingKey = `tgslots:${gameId}:pending`
+    this.sessionKey = browserStorageKey(`tgslots:${gameId}:session`)
+    this.pendingKey = browserStorageKey(`tgslots:${gameId}:pending`)
     try {
       this.sessionId = localStorage.getItem(this.sessionKey) ?? ''
       const saved = localStorage.getItem(this.pendingKey)

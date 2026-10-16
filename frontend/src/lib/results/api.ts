@@ -1,3 +1,4 @@
+import { parseModelJson } from '../modelJson';
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
 import { HttpFailure } from '../realtime/RunConnection';
 import { retryAfterMilliseconds } from '../realtime/httpFailure';
@@ -9,7 +10,9 @@ import { waitForRetry } from '../measurements/requests';
 
 export async function resultsRequest<T>(path: string, init?: RequestInit, signal?: AbortSignal, timeout = 10000): Promise<T> {
   const response = await fetch('/api/' + path, { ...init, signal: AbortSignal.any([...(signal ? [signal] : []), AbortSignal.timeout(timeout)]) });
-  const data = await response.json().catch(() => ({}));
+  const data = response.ok && (path.startsWith('configs/') || /^runs\/[^/]+\/evidence$/.test(path))
+    ? parseModelJson(await response.text())
+    : await response.json().catch(() => ({}));
   if (!response.ok) {
     if (response.status === 401) window.dispatchEvent(new Event('slotmath:auth-required'));
     throw new HttpFailure(data.error ?? data.title ?? `Request failed (${response.status})`, response.status,

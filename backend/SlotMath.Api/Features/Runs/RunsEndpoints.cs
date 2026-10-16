@@ -1,6 +1,7 @@
 using System.Numerics;
 using System.Text.Json;
 using Hangfire;
+using SlotMath.Api.Features.Configs;
 using SlotMath.Api.Infrastructure;
 using SlotMath.Core.Compiler;
 using SlotMath.Core.Math;
@@ -56,6 +57,18 @@ public static class RunsEndpoints
 
         group.MapGet("/", (int? limit, string? cursor, string? status, string? search) =>
             RunArchive.Query(runStore, configStore, limit, cursor, status, search)).Produces<RunPage>();
+
+        group.MapPost("/latest-model", (CreateConfigRequest request, CancellationToken cancellationToken) =>
+        {
+            try
+            {
+                var config = ConfigsEndpoints.DeserializeConfig(request.Config);
+                if (config is null) return Results.BadRequest(new { error = "A model configuration is required." });
+                return Results.Ok(RunArchive.LatestForModel(config, runStore, configStore, cancellationToken));
+            }
+            catch (Exception ex) when (ex is JsonException or NotSupportedException or InvalidOperationException)
+            { return Results.BadRequest(new { error = $"Invalid model JSON: {ex.Message}" }); }
+        }).Produces<LatestModelRunResponse>();
 
         group.MapGet("/{id}/evidence", (string id) =>
         {

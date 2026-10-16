@@ -20,11 +20,11 @@ function fmtN(n: number): string {
 
 function provTitle(p: Provenance): string {
   if (p.kind === 'Sampled')
-    return `Monte-Carlo estimate · n=${fmtN(p.n || 0)} · stdErr ${(p.stdErr || 0).toFixed(5)} · 95% CI ±${(p.ci95 || 0).toFixed(5)}`;
+    return `Monte-Carlo estimate${p.n != null ? ` · n=${fmtN(p.n)}` : ' · sample count unavailable'}${p.stdErr != null ? ` · stdErr ${p.stdErr.toFixed(5)}` : ''}${p.ci95 != null ? ` · 95% CI ±${p.ci95.toFixed(5)}` : ''}`;
   if (p.kind === 'ExactWithinEpsilon')
-    return `Exact up to ε-pruning · ${p.note || ''} · bound ±${p.bound || 0}`;
+    return `Exact up to ε-pruning · ${p.note || ''} · ${p.bound != null ? `bound ±${p.bound}` : 'bound unavailable'}`;
   if (p.kind === 'ExactWithMassLoss') return 'Pruned probability mass has no certified bound; non-regulatory';
-  if (p.kind === 'ExactInterval') return 'Bounded exact RTP interval';
+  if (p.kind === 'ExactInterval') return p.note ?? 'Bounded exact RTP interval';
   return 'Exact rational — closed form, no sampling';
 }
 

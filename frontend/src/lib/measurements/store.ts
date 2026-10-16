@@ -1,7 +1,8 @@
+import { browserStorageKey } from '../browserIdentity';
 import { create } from 'zustand';
 import { definition, type MetricDraft } from './model';
 import { validProfile, type VerificationProfile } from './profile';
-const key = 'slotmath-measurements-v1';
+const key = browserStorageKey('slotmath-measurements-v1');
 export type Widget = 'rtp' | 'precision' | 'hit' | 'max' | 'speed' | 'volatility' | 'convergence' | 'distribution' | 'reference' | 'throughput' | 'uncertainty';
 export const widgets: { id: Widget; name: string }[] = [
   { id: 'rtp', name: 'Observed RTP' }, { id: 'precision', name: 'CI half-width' }, { id: 'hit', name: 'Hit frequency' },
