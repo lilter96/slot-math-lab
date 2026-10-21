@@ -242,6 +242,17 @@ chain cannot converge. These helpers do not change compiled-game horizons or
 perform unlabelled pruning; graph equivalence and any interval-error propagation
 must be established before such an integration.
 
+The [finite decision reference](DECISION_POLICIES.md) adds exact optimal stopping
+and action choice for a supplied model. `ExactDecisionSolver` builds a finite
+belief-state DAG from declared observations, realized payouts and signals, then
+evaluates Bellman/Snell values backward by horizon. Full-state information is
+an explicitly stronger-information upper bound. `ExactDecisionPotential` checks
+every action and settlement against a candidate potential before returning any
+universal expected-net bound. Both retain immutable model/policy evidence; no
+action semantics are inferred from compiled graphs and no new runtime atom is
+added. The monetary timing, observation and graph-equivalence gates remain
+separate from merely obtaining a finite reference result.
+
 What it does not do: a win cap that is active (the proven maximum exceeds it) needs the payout
 distribution, because E[min(W, cap)] is not a function of moments; a loop whose state is large and does
 not factor (a board of sticky symbols carried as one chain state) is neither a small chain nor cheap
