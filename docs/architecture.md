@@ -220,6 +220,18 @@ to independent resets of a complete per-round compiled law. See the precise
 [operator exposure contract](OPERATOR_EXPOSURE.md) for money units, boundaries,
 dependency assumptions and resource limits.
 
+`ExactTensorOperator` is a separate finite-reference prototype for explicitly
+supplied factorization. It applies Kronecker product/mixture transition kernels
+or compensated nonnegative CTMC event kernels without expanding the global
+matrix. Constructors prove stochasticity/generator row contracts, including
+synchronizing events; they do not infer a game's component independence.
+The joint state vector is retained, so correlated inputs remain supported.
+Caller-owned scratch is reusable; arbitrary-precision arithmetic may allocate.
+The [tensor operator contract](TENSOR_OPERATORS.md) defines indexing,
+uniformization, ownership, limits and comparisons with sparse and existing
+symbolic inference. This prototype does not replace the production solver
+without an independent factorization/equivalence and resource-benefit gate.
+
 What it does not do: a win cap that is active (the proven maximum exceeds it) needs the payout
 distribution, because E[min(W, cap)] is not a function of moments; a loop whose state is large and does
 not factor (a board of sticky symbols carried as one chain state) is neither a small chain nor cheap
