@@ -24,6 +24,7 @@ public class ExactOrPrunedEvaluationStrategy : BaseEvaluationStrategy
 
         SlotMathReport? report = null;
         StructuredExactResult? structured = null;
+        Dist<BigInteger>? distribution = null;
 
         string? actual = null;
         var mode = Enum.Parse<EvaluationMode>(request.Mode); // pruned or exact
@@ -41,13 +42,15 @@ public class ExactOrPrunedEvaluationStrategy : BaseEvaluationStrategy
                         EpsilonDenominator = epsilon.Denominator
                     }), cancellationToken);
 
-            report = ExactMetrics.Compute(result.ValueDistribution(), (BigInteger)cap, winScale: compiled.WinScale);
+            distribution = result.ValueDistribution();
+            report = ExactMetrics.Compute(distribution, (BigInteger)cap, winScale: compiled.WinScale);
             actual = report.Rtp.Provenance.Provenance.ToString();
         }
         catch (BudgetExceededException ex)
         {
             (StructuredExactResult? sd, var d) =
-                await StructuredEvaluationService.Structured(compiled, cancellationToken, cancellationToken);
+                await StructuredEvaluationService.Structured(compiled, deadlineToken, cancellationToken,
+                    request.Analysis?.MomentOrder ?? 2);
             structured = sd;
             if (structured is null)
             {
@@ -64,7 +67,8 @@ public class ExactOrPrunedEvaluationStrategy : BaseEvaluationStrategy
             false,
             method,
             actual,
-            structured
+            structured,
+            request.Analysis is null ? null : distribution
         );
     }
 }

@@ -1,3 +1,4 @@
+using System.Numerics;
 using SlotMath.Core.Compiler;
 using SlotMath.Core.Math;
 using SlotMath.Core.Math.Regime;
@@ -19,6 +20,7 @@ public class HybridEvaluationStrategy : BaseEvaluationStrategy
     {
         SlotMathReport? report = null;
         StructuredExactResult? structured = null;
+        Dist<BigInteger>? distribution = null;
         string? declined = null;
 
         var actual = request.Mode;
@@ -30,7 +32,8 @@ public class HybridEvaluationStrategy : BaseEvaluationStrategy
         if (!analysis.ContainsPlugin && analysis.EstimatedBranches > request.MaxBranches)
         {
             (StructuredExactResult? s, var d) =
-                await StructuredEvaluationService.Structured(compiled, deadlineToken, cancellationToken);
+                await StructuredEvaluationService.Structured(compiled, deadlineToken, cancellationToken,
+                    request.Analysis?.MomentOrder ?? 2);
             structured = s;
             declined = d;
         }
@@ -48,6 +51,7 @@ public class HybridEvaluationStrategy : BaseEvaluationStrategy
                     DegreeOfParallelism = request.DegreeOfParallelism,
                     MaxWinCap = cap,
                     WinScale = compiled.WinScale,
+                    RetainExactDistribution = request.Analysis is not null,
                     CancellationToken = deadlineToken,
                     ProgressCallback = _ => { }
                 }), cancellationToken);
@@ -55,7 +59,8 @@ public class HybridEvaluationStrategy : BaseEvaluationStrategy
             if (result.BudgetExceeded && !analysis.ContainsPlugin)
             {
                 (StructuredExactResult? s, var d) =
-                    await StructuredEvaluationService.Structured(compiled, deadlineToken, cancellationToken);
+                    await StructuredEvaluationService.Structured(compiled, deadlineToken, cancellationToken,
+                        request.Analysis?.MomentOrder ?? 2);
                 structured = s;
                 declined = d;
             }
@@ -63,6 +68,7 @@ public class HybridEvaluationStrategy : BaseEvaluationStrategy
             if (structured is null)
             {
                 report = result.Report;
+                distribution = result.ExactDistribution;
                 actual = result.OverallStrategy.ToString();
                 samples = report.Rtp.SampleCount ?? 0;
                 incomplete = actual == "Sampled" && samples < request.Samples;
@@ -79,7 +85,8 @@ public class HybridEvaluationStrategy : BaseEvaluationStrategy
             incomplete,
             method,
             actual,
-            structured
+            structured,
+            distribution
         );
     }
 }

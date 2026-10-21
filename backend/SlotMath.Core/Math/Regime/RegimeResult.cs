@@ -1,3 +1,6 @@
+using System.Numerics;
+using System.Text;
+
 namespace SlotMath.Core.Math.Regime;
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -8,25 +11,28 @@ namespace SlotMath.Core.Math.Regime;
 // ═══════════════════════════════════════════════════════════════════════════
 
 /// <summary>
-/// The result of a regime-aware evaluation.  Wraps the standard
-/// <see cref="SlotMathReport"/> with additional strategy metadata.
+///     The result of a regime-aware evaluation.  Wraps the standard
+///     <see cref="SlotMathReport" /> with additional strategy metadata.
 /// </summary>
 public sealed record RegimeResult
 {
+    /// <summary>Optional retained exact interpreter law. Pruned laws keep their missing-mass metadata.</summary>
+    public Dist<BigInteger>? ExactDistribution { get; init; }
+
     /// <summary>The full slot-math metric report.</summary>
     public required SlotMathReport Report { get; init; }
 
     /// <summary>
-    /// Per-subgraph strategy records — one entry per identified subgraph.
-    /// Includes the strategy chosen, the reason, and the resulting provenance.
+    ///     Per-subgraph strategy records — one entry per identified subgraph.
+    ///     Includes the strategy chosen, the reason, and the resulting provenance.
     /// </summary>
     public required IReadOnlyList<SubgraphStrategy> SubgraphStrategies { get; init; }
 
     /// <summary>
-    /// Aggregate provenance for the entire evaluation.
-    /// - <see cref="Provenance.Exact"/> when all subgraphs ran exactly with no pruning.
-    /// - <see cref="Provenance.ExactInterval"/> when all exact with some pruning.
-    /// - <see cref="Provenance.Sampled"/> when any subgraph used sampling (incl. plugins).
+    ///     Aggregate provenance for the entire evaluation.
+    ///     - <see cref="Provenance.Exact" /> when all subgraphs ran exactly with no pruning.
+    ///     - <see cref="Provenance.ExactInterval" /> when all exact with some pruning.
+    ///     - <see cref="Provenance.Sampled" /> when any subgraph used sampling (incl. plugins).
     /// </summary>
     public Provenance AggregateProvenance { get; init; }
 
@@ -39,12 +45,15 @@ public sealed record RegimeResult
     /// <summary>Human-readable summary for debugging.</summary>
     public override string ToString()
     {
-        var sb = new System.Text.StringBuilder();
+        var sb = new StringBuilder();
         sb.AppendLine($"RegimeResult [{AggregateProvenance}] — {OverallStrategy}" +
-                       (BudgetExceeded ? " (budget exceeded)" : ""));
-        foreach (var ss in SubgraphStrategies)
+                      (BudgetExceeded ? " (budget exceeded)" : ""));
+        foreach (SubgraphStrategy ss in SubgraphStrategies)
+        {
             sb.AppendLine($"  {ss}");
-        sb.Append(Report.ToString());
+        }
+
+        sb.Append(Report);
         return sb.ToString();
     }
 }

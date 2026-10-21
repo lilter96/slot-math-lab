@@ -9,12 +9,14 @@ public static class StructuredEvaluationService
     // evaluator computes it from the same compiled graph, or declines and leaves the answer as it was.
     public static async Task<(StructuredExactResult? Result, string? DeclinedReason)> Structured(CompileResult compiled,
         CancellationToken deadlineToken,
-        CancellationToken requestAbortedToken)
+        CancellationToken requestAbortedToken,
+        int momentOrder = 2)
     {
         StructuredExactResult result = await Task.Run(() => StructuredExactEvaluator.Evaluate(compiled,
                 new StructuredExactOptions
                 {
-                    MaxTime = TimeSpan.FromSeconds(12)
+                    MaxTime = TimeSpan.FromSeconds(12),
+                    MomentOrder = momentOrder
                 }, deadlineToken),
             requestAbortedToken);
 

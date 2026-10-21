@@ -44,6 +44,12 @@ public sealed record StructuredExactOptions
     /// <summary>Extra work allowed for the exact second moment when the distribution was not built.</summary>
     public long VarianceWork { get; init; } = 4_000_000;
 
+    /// <summary>Maximum requested raw moment order, 2..4. Higher orders do not require a full payout law.</summary>
+    public int MomentOrder { get; init; } = 2;
+
+    /// <summary>Optional work allowance for higher conditional loop moments and each final higher moment.</summary>
+    public long HigherMomentWork { get; init; } = 8_000_000;
+
     /// <summary>
     ///     Loops whose iteration cap is above this are solved as Markov reward chains instead of being unrolled.
     ///     Unrolling keeps a state that factors over independent parts factored, which a chain cannot, so short
@@ -152,6 +158,12 @@ public sealed record StructuredExactResult
     /// </summary>
     public Rational? SecondMoment { get; init; }
 
+    /// <summary>E[settled payout³] in cubed sub-credit units when requested and computed within its allowance.</summary>
+    public Rational? ThirdMoment { get; init; }
+
+    /// <summary>E[settled payout⁴] in fourth-power sub-credit units when requested and computed within its allowance.</summary>
+    public Rational? FourthMoment { get; init; }
+
     internal Rational? StructuralSecondMoment { get; init; }
 
     public IReadOnlyList<StructuredLoopResult> Loops { get; init; } = [];
@@ -255,6 +267,9 @@ public static class StructuredExactEvaluator
         }
 
         options ??= new StructuredExactOptions();
+        ArgumentOutOfRangeException.ThrowIfLessThan(options.MomentOrder, 2);
+        ArgumentOutOfRangeException.ThrowIfGreaterThan(options.MomentOrder, 4);
+        ArgumentOutOfRangeException.ThrowIfNegative(options.HigherMomentWork);
         StructuredExactResult? result = null;
         Exception? failure = null;
         var thread = new Thread(() =>
@@ -345,7 +360,8 @@ public static class StructuredExactEvaluator
         var executor = new SymbolicExecutor(model.Config, winScale, factory, inference,
             new LoopOptions(mode, options.ChainLoopsAbove, options.LoopLawWork, options.PruneLoopMassBelow,
                 options.PruneLoopsAboveBits, options.PruneLoopsAboveWork, options.VarianceWork,
-                options.HitFrequencyWork, options.LoopMatrixMaxStates, options.LoopMatrixWork));
+                options.HitFrequencyWork, options.LoopMatrixMaxStates, options.LoopMatrixWork,
+                options.MomentOrder, options.HigherMomentWork));
         BigInteger cap = options.Fault == StructuredFault.CapIgnored ? model.Cap * 1_000_000 : model.Cap;
         var limit = budget.Limit;
         try
@@ -438,6 +454,7 @@ public static class StructuredExactEvaluator
 
             Rational? hits = null;
             Rational? second = null;
+            Rational? third = null, fourth = null;
             if (distribution is not null)
             {
                 BigInteger positive = BigInteger.Zero;
@@ -453,6 +470,15 @@ public static class StructuredExactEvaluator
 
                 hits = new Rational(positive, distribution.Denominator);
                 second = new Rational(squares, distribution.Denominator);
+                if (options.MomentOrder >= 3)
+                {
+                    third = Optional(budget, options.HigherMomentWork, () => MomentFromLaw(distribution, 3, budget));
+                }
+
+                if (options.MomentOrder >= 4)
+                {
+                    fourth = Optional(budget, options.HigherMomentWork, () => MomentFromLaw(distribution, 4, budget));
+                }
             }
 
             // With the cap inactive the payout is the uncapped amount, already shown to fail on no reachable outcome,
@@ -476,6 +502,16 @@ public static class StructuredExactEvaluator
             }
 
             var loops = new List<StructuredLoopResult>();
+            if (capInactive && options.MomentOrder >= 3 && third is null)
+            {
+                third = Optional(budget, options.HigherMomentWork, () => inference.RawMoment(payout, 3));
+            }
+
+            if (capInactive && options.MomentOrder >= 4 && fourth is null)
+            {
+                fourth = Optional(budget, options.HigherMomentWork, () => inference.RawMoment(payout, 4));
+            }
+
             Rational pruned = Rational.Zero;
             foreach (IGrouping<string, LoopRun> runs in executor.Loops.GroupBy(run => run.LoopId))
             {
@@ -511,6 +547,8 @@ public static class StructuredExactEvaluator
                 HitFrequency = hits ?? structuralHits,
                 StructuralHitFrequency = structuralHits,
                 SecondMoment = second ?? structuralSecond,
+                ThirdMoment = third,
+                FourthMoment = fourth,
                 StructuralSecondMoment = structuralSecond,
                 Loops = loops,
                 PrunedMass = pruned,
@@ -549,6 +587,19 @@ public static class StructuredExactEvaluator
     }
 
     /// <summary>A metric the result does not depend on: computed within its own allowance, or left out.</summary>
+    private static Rational MomentFromLaw(Dist<BigInteger> distribution, int order, WorkBudget budget)
+    {
+        BigInteger numerator = BigInteger.Zero;
+        foreach (Dist<BigInteger>.Entry atom in distribution.Entries)
+        {
+            budget.Tick(1 + (atom.Numerator.GetBitLength() + order * BigInteger.Abs(atom.Value).GetBitLength()) / 64);
+            budget.Check();
+            numerator += BigInteger.Pow(atom.Value, order) * atom.Numerator;
+        }
+
+        return new Rational(numerator, distribution.Denominator);
+    }
+
     private static Rational? Optional(WorkBudget budget, long allowance, Func<Rational> metric)
     {
         var limit = budget.Limit;

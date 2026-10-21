@@ -73,6 +73,8 @@ internal static class GraphPerformance
                 distributionValues = result.Distribution?.Count,
                 distributionSha256 = DistributionFingerprint(result.Distribution),
                 rationalSecondMoment = result.SecondMoment?.ToString(),
+                rationalThirdMoment = result.ThirdMoment?.ToString(),
+                rationalFourthMoment = result.FourthMoment?.ToString(),
                 randomVariables = result.RandomVariables,
                 terms = result.Terms,
                 laws = result.Laws,
@@ -113,7 +115,10 @@ internal static class GraphPerformance
                             options.UseTransformConvolution,
                             options.LoopMatrixMaxStates,
                             options.MaxWork,
-                            options.DistributionWork
+                            options.DistributionWork,
+                            options.LoopLawWork,
+                            options.MomentOrder,
+                            options.HigherMomentWork
                         },
                         measurements
                     }, new JsonSerializerOptions
@@ -163,7 +168,10 @@ internal static class GraphPerformance
                 UseTransformConvolution = !args.Contains("--direct-convolution"),
                 LoopMatrixMaxStates = args.Contains("--no-loop-matrices") ? 0 : 32,
                 DistributionWork = long.Parse(Option("--distribution-work", "4000000"),
-                    CultureInfo.InvariantCulture)
+                    CultureInfo.InvariantCulture),
+                LoopLawWork = long.Parse(Option("--loop-law-work", "2000000"), CultureInfo.InvariantCulture),
+                MomentOrder = int.Parse(Option("--moment-order", "2"), CultureInfo.InvariantCulture),
+                HigherMomentWork = long.Parse(Option("--higher-moment-work", "8000000"), CultureInfo.InvariantCulture)
             });
             return;
         }

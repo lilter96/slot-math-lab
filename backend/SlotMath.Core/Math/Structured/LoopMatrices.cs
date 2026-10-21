@@ -124,7 +124,8 @@ internal sealed partial class LoopChain
                         kernel.First.Select(row => row[z]).ToArray(), kernel.Second.Select(row => row[z]).ToArray(),
                         kernel.Zero.Select(row => row is null ? (Rational?)null : row[z]).ToArray(),
                         kernel.Bounds.Select(bound => bound is { } b ? Number(b.Lo) : (Rational?)null).ToArray(),
-                        kernel.Bounds.Select(bound => bound is { } b ? Number(b.Hi) : (Rational?)null).ToArray()));
+                        kernel.Bounds.Select(bound => bound is { } b ? Number(b.Hi) : (Rational?)null).ToArray(),
+                        kernel.Higher.Select(row => row[z]).ToArray()));
                 }
             }
 
@@ -134,7 +135,7 @@ internal sealed partial class LoopChain
                 _f.Budget.Check();
             }
 
-            var matrix = MarkovRewardMatrix.Create(states.Count, _accumulators, transitions, Spend);
+            var matrix = MarkovRewardMatrix.Create(states.Count, _accumulators, transitions, Spend, higher: _higher);
             Rational pruned = Rational.Zero;
 
             bool Stop(int steps, MarkovRewardMatrix row)
@@ -174,7 +175,7 @@ internal sealed partial class LoopChain
                              (steps < _template.Cap && state.Kernel is { Stopped: true } stopped
                                  ? stopped.Reason
                                  : "modelLimit");
-                var cell = new Cell(_accumulators, _pairs)
+                var cell = new Cell(_accumulators, _pairs, HigherCount)
                 {
                     Mass = weight.Mass,
                     Ranged = true
@@ -197,6 +198,7 @@ internal sealed partial class LoopChain
                 }
 
                 Array.Copy(weight.Second, cell.Second, _pairs);
+                Array.Copy(weight.Higher, cell.Higher, HigherCount);
                 Absorb(done, Exit(state.Value, reason), cell);
             }
 
@@ -253,7 +255,8 @@ internal sealed partial class LoopChain
         Enumerable.Repeat(Rational.Zero, _pairs).ToArray(),
         Enumerable.Repeat<Rational?>(Rational.One, _accumulators).ToArray(),
         Enumerable.Repeat<Rational?>(Rational.Zero, _accumulators).ToArray(),
-        Enumerable.Repeat<Rational?>(Rational.Zero, _accumulators).ToArray());
+        Enumerable.Repeat<Rational?>(Rational.Zero, _accumulators).ToArray(),
+        Enumerable.Repeat(Rational.Zero, HigherCount).ToArray());
 
     private static Rational Number(ExprValue value) => new(value.NumberNumerator, value.NumberDenominator);
     private static ExprValue Value(Rational value) => ExprValue.Rational(value.Numerator, value.Denominator);

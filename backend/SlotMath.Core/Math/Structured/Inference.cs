@@ -1245,7 +1245,14 @@ internal sealed partial class Inference(TermFactory f, bool transformConvolution
             else if (Bits.Has(other.Support, moment.Loop))
             {
                 // The other factor holds an amount of the same loop inside an operator: that needs their joint law.
-                Lawless(other);
+                if (other is OpTerm { Code: Op.Arith, Aux: (int)BinaryOp.Mul } nested)
+                {
+                    result = JointProduct(guard, [moment, .. nested.Args]);
+                }
+                else
+                {
+                    Lawless(other);
+                }
             }
             else
             {

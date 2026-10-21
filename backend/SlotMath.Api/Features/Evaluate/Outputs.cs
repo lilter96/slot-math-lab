@@ -1,3 +1,4 @@
+using System.Numerics;
 using SlotMath.Core.Math;
 using SlotMath.Core.Math.Structured;
 
@@ -26,6 +27,7 @@ public class EvaluationOutput
     public int ChunkSize { get; init; } = 4096;
     public string SamplingEngine { get; init; }
     public double? Variance { get; init; }
+    public PayoutAnalysisOutput? Analysis { get; init; }
     public IEnumerable<LoopEvaluationOutput>? Loops { get; init; }
     public double? MaxObserved { get; init; }
     public double ElapsedMs { get; init; }
@@ -51,5 +53,6 @@ public record StrategyExecutionOutput(
     bool Incomplete,
     string Method,
     string Actual,
-    StructuredExactResult? Structured
+    StructuredExactResult? Structured,
+    Dist<BigInteger>? ExactDistribution = null
 );

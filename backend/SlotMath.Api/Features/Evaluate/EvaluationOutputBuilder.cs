@@ -10,7 +10,7 @@ public static class EvaluationOutputBuilder
     public static EvaluationOutput Build(GraphEvaluationRequest request, string? actual, RtpMetric rtp,
         bool incomplete, string? method, double half, long samples, SlotMathReport? report,
         StructuredExactResult? structured,
-        CompileResult compiled, Stopwatch? timer, string? hash)
+        CompileResult compiled, Stopwatch? timer, string? hash, PayoutAnalysisOutput? analysis = null)
         => new()
         {
             RequestedMode = request.Mode,
@@ -39,6 +39,7 @@ public static class EvaluationOutputBuilder
             SamplingEngine = compiled.SamplingEngine,
             Variance = report?.Volatility.Variance ??
                        structured?.Variance(compiled.WinScale)?.ToDouble(),
+            Analysis = analysis,
             Loops = structured?.Loops.Select(loop => new LoopEvaluationOutput
             {
                 LoopId = loop.LoopId,

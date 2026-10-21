@@ -15,7 +15,8 @@ internal sealed record MarkovRewardTransition(
     Rational[] Second,
     Rational?[] Zero,
     Rational?[] Lower,
-    Rational?[] Upper);
+    Rational?[] Upper,
+    Rational[]? Higher = null);
 
 internal sealed class MarkovMatrixLimitException(string message) : Exception(message);
 
@@ -27,10 +28,12 @@ internal sealed class MarkovMatrixLimitException(string message) : Exception(mes
 internal sealed class MarkovRewardMatrix
 {
     private readonly int _columns, _amounts, _pairs, _maximumBits;
+    private readonly RewardMomentLayout? _higher;
     private readonly Dictionary<int, Weight>[] _rows;
     private readonly Action<long> _spend;
 
-    private MarkovRewardMatrix(int rows, int columns, int amounts, Action<long> spend, int maximumBits)
+    private MarkovRewardMatrix(int rows, int columns, int amounts, Action<long> spend, int maximumBits,
+        RewardMomentLayout? higher = null)
     {
         _rows = Enumerable.Range(0, rows).Select(_ => new Dictionary<int, Weight>()).ToArray();
         _columns = columns;
@@ -38,6 +41,7 @@ internal sealed class MarkovRewardMatrix
         _pairs = amounts * (amounts + 1) / 2;
         _spend = spend;
         _maximumBits = maximumBits;
+        _higher = higher;
     }
 
     public BigInteger Denominator { get; private set; } = BigInteger.One;
@@ -45,21 +49,28 @@ internal sealed class MarkovRewardMatrix
     public IReadOnlyDictionary<int, Weight> Row(int index) => _rows[index];
 
     public static MarkovRewardMatrix Create(int states, int amounts,
-        IEnumerable<MarkovRewardTransition> transitions, Action<long> spend, int maximumBits = 65_536)
+        IEnumerable<MarkovRewardTransition> transitions, Action<long> spend, int maximumBits = 65_536,
+        RewardMomentLayout? higher = null)
     {
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(states);
         ArgumentOutOfRangeException.ThrowIfNegative(amounts);
         ArgumentOutOfRangeException.ThrowIfGreaterThan(amounts, 64);
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maximumBits);
-        var matrix = new MarkovRewardMatrix(states, states, amounts, spend, maximumBits);
+        if (higher is not null && higher.Amounts != amounts)
+        {
+            throw new ArgumentException("Moment channels differ from the transition operator.");
+        }
+
+        var matrix = new MarkovRewardMatrix(states, states, amounts, spend, maximumBits, higher);
         MarkovRewardTransition[] edges = transitions.ToArray();
         foreach (MarkovRewardTransition edge in edges)
         {
-            spend(1 + amounts + matrix._pairs);
+            spend(1 + amounts + matrix._pairs + (higher?.HigherCount ?? 0));
             if (edge.From < 0 || edge.From >= states || edge.To < 0 || edge.To >= states ||
                 edge.Probability < Rational.Zero || edge.Probability > Rational.One ||
                 edge.First.Length != amounts || edge.Second.Length != matrix._pairs ||
-                edge.Zero.Length != amounts || edge.Lower.Length != amounts || edge.Upper.Length != amounts)
+                edge.Zero.Length != amounts || edge.Lower.Length != amounts || edge.Upper.Length != amounts ||
+                (edge.Higher?.Length ?? 0) != (higher?.HigherCount ?? 0))
             {
                 throw new ArgumentException("Invalid finite-state reward transition.");
             }
@@ -69,7 +80,7 @@ internal sealed class MarkovRewardMatrix
                 continue;
             }
 
-            foreach (Rational value in edge.First.Concat(edge.Second).Append(edge.Probability)
+            foreach (Rational value in edge.First.Concat(edge.Second).Concat(edge.Higher ?? []).Append(edge.Probability)
                          .Concat(edge.Zero.OfType<Rational>()))
             {
                 if (value.Denominator.Sign <= 0)
@@ -87,7 +98,7 @@ internal sealed class MarkovRewardMatrix
 
         foreach (MarkovRewardTransition edge in edges.Where(edge => !edge.Probability.IsZero))
         {
-            var weight = new Weight(amounts, matrix._pairs)
+            var weight = new Weight(amounts, matrix._pairs, higher?.HigherCount ?? 0)
             {
                 Mass = matrix.Scale(edge.Probability),
                 Ranged = true
@@ -103,6 +114,11 @@ internal sealed class MarkovRewardMatrix
             for (var pair = 0; pair < matrix._pairs; pair++)
             {
                 weight.Second[pair] = matrix.Scale(edge.Second[pair]);
+            }
+
+            for (var extra = 0; extra < weight.Higher.Length; extra++)
+            {
+                weight.Higher[extra] = matrix.Scale(edge.Higher![extra]);
             }
 
             matrix.Add(edge.From, edge.To, weight);
@@ -134,8 +150,8 @@ internal sealed class MarkovRewardMatrix
             throw new ArgumentException("Use a square transition operator and a valid initial state.");
         }
 
-        var row = new MarkovRewardMatrix(1, _columns, _amounts, _spend, _maximumBits);
-        var unit = new Weight(_amounts, _pairs)
+        var row = new MarkovRewardMatrix(1, _columns, _amounts, _spend, _maximumBits, _higher);
+        var unit = new Weight(_amounts, _pairs, _higher?.HigherCount ?? 0)
         {
             Mass = BigInteger.One,
             Ranged = true
@@ -185,12 +201,12 @@ internal sealed class MarkovRewardMatrix
 
     private MarkovRewardMatrix Multiply(MarkovRewardMatrix right)
     {
-        var result = new MarkovRewardMatrix(_rows.Length, right._columns, _amounts, _spend, _maximumBits)
+        var result = new MarkovRewardMatrix(_rows.Length, right._columns, _amounts, _spend, _maximumBits, _higher)
         {
             Denominator = Denominator * right.Denominator
         };
         var cost = (1 + MaximumBits / 256) * (1 + right.MaximumBits / 256) *
-                   (1 + 3L * _amounts + 4L * _pairs);
+                   (1 + 3L * _amounts + 4L * _pairs + (_higher?.Products ?? 0));
         _spend(1);
         for (var row = 0; row < _rows.Length; row++)
         {
@@ -201,7 +217,27 @@ internal sealed class MarkovRewardMatrix
                     _spend(cost);
                     if (!result._rows[row].TryGetValue(column, out Weight? into))
                     {
-                        result._rows[row][column] = into = new Weight(_amounts, _pairs);
+                        result._rows[row][column] = into = new Weight(_amounts, _pairs, _higher?.HigherCount ?? 0);
+                    }
+
+                    if (_higher is { } layout)
+                    {
+                        BigInteger Value(Weight weight, int index)
+                        {
+                            return index == 0 ? weight.Mass :
+                                index <= _amounts ? weight.First[index - 1] :
+                                index < layout.BaseCount ? weight.Second[index - 1 - _amounts] :
+                                weight.Higher[index - layout.BaseCount];
+                        }
+
+                        for (var extra = 0; extra < layout.HigherCount; extra++)
+                        {
+                            foreach (RewardMomentLayout.Split split in layout.Splits[extra])
+                            {
+                                into.Higher[extra] += split.Multiplicity * Value(leftWeight, split.Left) *
+                                                      Value(rightWeight, split.Right);
+                            }
+                        }
                     }
 
                     into.Mass += leftWeight.Mass * rightWeight.Mass;
@@ -269,6 +305,11 @@ internal sealed class MarkovRewardMatrix
         {
             into.Second[pair] += weight.Second[pair];
         }
+
+        for (var extra = 0; extra < into.Higher.Length; extra++)
+        {
+            into.Higher[extra] += weight.Higher[extra];
+        }
     }
 
     private void Reduce()
@@ -277,7 +318,8 @@ internal sealed class MarkovRewardMatrix
         foreach (Weight weight in _rows.SelectMany(row => row.Values))
         {
             divisor = BigInteger.GreatestCommonDivisor(divisor, weight.Mass);
-            foreach (BigInteger value in weight.First.Concat(weight.Second).Concat(weight.Zero.OfType<BigInteger>()))
+            foreach (BigInteger value in weight.First.Concat(weight.Second).Concat(weight.Higher)
+                         .Concat(weight.Zero.OfType<BigInteger>()))
             {
                 divisor = BigInteger.GreatestCommonDivisor(divisor, value);
             }
@@ -300,7 +342,13 @@ internal sealed class MarkovRewardMatrix
                 weight.Second[pair] /= divisor;
             }
 
-            foreach (BigInteger value in weight.First.Concat(weight.Second).Concat(weight.Zero.OfType<BigInteger>()))
+            for (var extra = 0; extra < weight.Higher.Length; extra++)
+            {
+                weight.Higher[extra] /= divisor;
+            }
+
+            foreach (BigInteger value in weight.First.Concat(weight.Second).Concat(weight.Higher)
+                         .Concat(weight.Zero.OfType<BigInteger>()))
             {
                 MaximumBits = System.Math.Max(MaximumBits, BigInteger.Abs(value).GetBitLength());
             }
@@ -313,12 +361,13 @@ internal sealed class MarkovRewardMatrix
         }
     }
 
-    internal sealed class Weight(int amounts, int pairs)
+    internal sealed class Weight(int amounts, int pairs, int higher = 0)
     {
         public BigInteger Mass;
         public bool Ranged;
         public BigInteger[] First { get; } = new BigInteger[amounts];
         public BigInteger[] Second { get; } = new BigInteger[pairs];
+        public BigInteger[] Higher { get; } = higher == 0 ? [] : new BigInteger[higher];
         public BigInteger?[] Zero { get; } = Enumerable.Repeat<BigInteger?>(BigInteger.Zero, amounts).ToArray();
         public Rational?[] Lower { get; } = new Rational?[amounts];
         public Rational?[] Upper { get; } = new Rational?[amounts];

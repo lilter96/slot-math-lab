@@ -53,7 +53,9 @@ internal sealed record LoopOptions(
     long SecondWork,
     long ZeroWork,
     int MatrixStates,
-    long MatrixWork);
+    long MatrixWork,
+    int MomentOrder,
+    long HigherWork);
 
 /// <summary>How one execution of a loop was evaluated; <see cref="Reason" /> is its exit classification as a term.</summary>
 internal sealed record LoopRun(
@@ -940,7 +942,13 @@ internal sealed partial class SymbolicExecutor
         }
 
         Array.Sort(entries, V.Order);
-        var chain = new LoopChain(template, _f, _inference, _loops);
+        var chain = new LoopChain(template, _f, _inference,
+            matrixLawOnly
+                ? _loops with
+                {
+                    MomentOrder = 2
+                }
+                : _loops);
         var exits = new LoopExits[entries.Length];
         for (var i = 0; i < exits.Length; i++)
         {

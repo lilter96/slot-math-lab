@@ -186,6 +186,28 @@ distribution cannot use this complete-law interface; it must retain interval/sam
 The analyzer validates actual mass and copies its input; it does not certify a separately authored
 model's equivalence to a graph or turn empirical frequencies into population evidence.
 
+`StructuredExactOptions.MomentOrder` optionally requests order three or four;
+the default is two. Long-loop solvers retain all mixed accumulator moments
+through the requested total degree, conditional on each transition and exit.
+Composition splits each labelled factor between consecutive blocks, preserving
+binomial multiplicities and reward/state dependence. Matrix powers and transfer
+iteration share this contract. The closure is bounded to 8,192 coefficients;
+optional higher-moment work exhaustion leaves unavailable values absent.
+An independent sum combines truncated moment sequences rather than expanding
+all cross-products or building its law. Result raw moments remain in powers of
+sub-credit units. A nonlinear use of accumulators can require degrees above
+four and is not assumed to be expressible by this closure.
+
+The graph-evaluation endpoint accepts an optional `analysis` request for
+population moments, shape, exact tail queries and fixed-stake operator loss.
+It returns original-credit rational values with finite display projections.
+Only a complete unpruned law can supply quantiles or ES. Exact graph moments
+without a law carry `ExactMoments`; sampled/pruned results carry `Unavailable`
+for this interface. Fixed-count normal planning and a conservative Chebyshev
+count explicitly state their independence and fixed-stake assumptions; neither
+is a GLI volatility-index definition. See the request contract in the
+[math engine roadmap](MATH_ENGINE_ROADMAP.md).
+
 What it does not do: a win cap that is active (the proven maximum exceeds it) needs the payout
 distribution, because E[min(W, cap)] is not a function of moments; a loop whose state is large and does
 not factor (a board of sticky symbols carried as one chain state) is neither a small chain nor cheap
@@ -202,7 +224,7 @@ moment recurrences of probabilistic loops (Moosbrugger, TU Wien 2024, and the Po
 transient analysis of Markov reward models in exact rational arithmetic as in Storm's exact engines.
 
 The [math engine roadmap](MATH_ENGINE_ROADMAP.md) separates current capabilities from planned
-higher moments, exact transform convolution, operator risk, factorized state models and policy
+session exposure, factorized state models, convergence certificates and policy
 analysis, with applicability conditions and benchmark gates.
 
 ### Sampled interpreter (`SampledInterpreter`)

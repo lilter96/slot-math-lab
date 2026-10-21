@@ -441,6 +441,9 @@ internal sealed class MomentTerm : Term
     /// <summary>Whether <see cref="Lo" /> and <see cref="Hi" /> are proven.</summary>
     public bool Bounded;
 
+    /// <summary>Requested conditional mixed moments of total degree three/four for the same loop.</summary>
+    public Func<int[], Term>? Higher;
+
     /// <summary>The accumulator's position among those of its loop.</summary>
     public required int Index;
 

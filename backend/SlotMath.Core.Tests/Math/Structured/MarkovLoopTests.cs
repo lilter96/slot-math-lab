@@ -537,4 +537,200 @@ public sealed class MarkovLoopTests
         Assert.Throws<OperationCanceledException>(() =>
             StructuredExactEvaluator.Evaluate(compiled, Options(), cancellation.Token));
     }
+
+    [Theory]
+    [InlineData(7, 0)]
+    [InlineData(64, 0)]
+    [InlineData(65, 32)]
+    public void HigherMomentsRetainRewardStateCorrelationWithoutTheFullLaw(int horizon, int states)
+    {
+        CompileResult compiled = Compile(RandomModel(horizon));
+        StructuredExactResult result = Evaluate(compiled, Options(states) with
+        {
+            MomentOrder = 4,
+            DistributionWork = 0
+        });
+        Assert.Null(result.Distribution);
+        var mean = new Rational(2 * horizon - 1, 2);
+        var variance = new Rational(4 * horizon - 3, 4);
+        Assert.Equal(mean * mean * mean + 3 * mean * variance, result.ThirdMoment);
+        Assert.Equal(mean * mean * mean * mean + 6 * mean * mean * variance + 3 * variance * variance
+                     - new Rational(16 * horizon - 15, 8), result.FourthMoment);
+    }
+
+    [Theory]
+    [InlineData(7, 0)]
+    [InlineData(65, 32)]
+    public void SkewedRewardsHaveNonzeroThirdCentralMoment(int horizon, int states)
+    {
+        JsonObject graph = RandomModel(horizon);
+        graph["nodes"]![4]!["drawWeights"]![0]!["weight"] = 3;
+        graph["expressions"]!["pay"] = Expr(Add(F("win"), new BinaryExpr
+        {
+            Op = BinaryOp.Mul,
+            Left = N(4),
+            Right = Choice()
+        }));
+        CompileResult compiled = Compile(graph);
+        StructuredExactResult result = Evaluate(compiled, Options(states) with
+        {
+            MomentOrder = 4,
+            DistributionWork = 0
+        });
+        BigInteger n = horizon;
+        Assert.Equal(new Rational(n * n * n + 9 * n * n + 6 * n, 1), result.ThirdMoment);
+        Assert.Equal(new Rational(n * n * n * n + 18 * n * n * n + 51 * n * n - 6 * n, 1), result.FourthMoment);
+    }
+
+    [Theory]
+    [InlineData(7, 0)]
+    [InlineData(65, 32)]
+    public void MixedAccumulatorMomentsRemainCorrelatedAtTheSink(int horizon, int states)
+    {
+        JsonObject graph = RandomModel(horizon);
+        JsonNode collect = graph["nodes"]![1]!.DeepClone();
+        collect["id"] = "collect";
+        collect["expressionId"] = "collect";
+        collect["outputKey"] = "other";
+        graph["nodes"]!.AsArray().Add(collect);
+        graph["initialState"]!["other"] = 0;
+        graph["expressions"]!["collect"] = Expr(Add(F("other"), Choice()));
+        graph["edges"]![1]!["targetNodeId"] = "collect";
+        JsonNode link = graph["edges"]![1]!.DeepClone();
+        link["id"] = "collect-advance";
+        link["sourceNodeId"] = "collect";
+        link["targetNodeId"] = "advance";
+        graph["edges"]!.AsArray().Add(link);
+        ObserveExit(graph);
+        graph["expressions"]!["after"] = Expr(Add(F("win"), new BinaryExpr
+        {
+            Op = BinaryOp.Mul,
+            Left = N(5),
+            Right = F("other")
+        }));
+        CompileResult compiled = Compile(graph);
+        StructuredExactResult result = Evaluate(compiled, Options(states) with
+        {
+            MomentOrder = 4,
+            DistributionWork = 0
+        });
+        // Independent fair bits have weights 7 on the first n-1 draws and 6 on the last.
+        var mean = new Rational(7 * horizon - 1, 2);
+        var variance = new Rational(49 * horizon - 13, 4);
+        Assert.Equal(mean, result.ExpectedWin);
+        Assert.Equal(variance, result.Variance(compiled.WinScale));
+        Assert.Equal(mean * mean * mean + 3 * mean * variance, result.ThirdMoment);
+        Assert.Equal(mean * mean * mean * mean + 6 * mean * mean * variance + 3 * variance * variance
+                     - new Rational(2401 * horizon - 1105, 8), result.FourthMoment);
+    }
+
+    [Theory]
+    [InlineData(7, 0)]
+    [InlineData(65, 32)]
+    public void HigherMomentsRetainCorrelationWithTheObservedExitState(int horizon, int states)
+    {
+        JsonObject graph = RandomModel(horizon);
+        ObserveExit(graph);
+        CompileResult compiled = Compile(graph);
+        StructuredExactResult result = Evaluate(compiled, Options(states) with
+        {
+            MomentOrder = 4,
+            DistributionWork = 0
+        });
+        // The last bit also controls the extra payout after the loop, hence its weight is 101.
+        var mean = new Rational(2 * horizon + 99, 2);
+        var variance = new Rational(4 * horizon + 10197, 4);
+        Assert.Equal(mean * mean * mean + 3 * mean * variance, result.ThirdMoment);
+        Assert.Equal(mean * mean * mean * mean + 6 * mean * mean * variance + 3 * variance * variance
+                     - new Rational(16L * (horizon - 1) + 104060401, 8), result.FourthMoment);
+    }
+
+    [Fact]
+    public void ThirdOrderRequestDoesNotComputeTheFourthMoment()
+    {
+        CompileResult compiled = Compile(RandomModel(65));
+        StructuredExactResult result = Evaluate(compiled, Options() with
+        {
+            MomentOrder = 3,
+            DistributionWork = 0
+        });
+        Assert.NotNull(result.ThirdMoment);
+        Assert.Null(result.FourthMoment);
+        StructuredExactResult defaults = Evaluate(compiled);
+        Assert.Null(defaults.ThirdMoment);
+        Assert.Null(defaults.FourthMoment);
+    }
+
+    [Fact]
+    public void HigherMomentsRespectTheSettledCapRatherThanTheUncappedReward()
+    {
+        const int horizon = 7;
+        JsonObject graph = RandomModel(horizon);
+        graph["nodes"]![3]!["winCap"] = 3;
+        CompileResult compiled = Compile(graph);
+        StructuredExactResult result = Evaluate(compiled, Options() with
+        {
+            Loops = LoopMode.Auto,
+            MomentOrder = 4
+        });
+        BigInteger cubes = 0, fourths = 0;
+        for (var choices = 0; choices < 1 << horizon; choices++)
+        {
+            var payout = 0;
+            for (var bit = 0; bit < horizon; bit++)
+            {
+                payout += ((choices >> bit) & 1) * (bit == horizon - 1 ? 1 : 2);
+            }
+
+            payout = System.Math.Min(payout, 3);
+            cubes += payout * payout * payout;
+            fourths += payout * payout * payout * payout;
+        }
+
+        Assert.Equal(new Rational(cubes, 1 << horizon), result.ThirdMoment);
+        Assert.Equal(new Rational(fourths, 1 << horizon), result.FourthMoment);
+    }
+
+    [Fact]
+    public void AbsorbingLoopMomentsMatchTheExplicitCappedGeometricLaw()
+    {
+        const int horizon = 65;
+        JsonObject graph = RandomModel(horizon);
+        graph["nodes"]![0]!["stopConditionId"] = "stop";
+        graph["expressions"]!["stop"] = Expr(Eq(F("phase"), N(1)));
+        graph["expressions"]!["pay"] = Expr(Add(F("win"), N(1)));
+        CompileResult compiled = Compile(graph);
+        StructuredExactResult result = Evaluate(compiled, Options() with
+        {
+            MomentOrder = 4,
+            DistributionWork = 0
+        });
+        Powered(result);
+        BigInteger third = 0, fourth = 0;
+        for (var length = 1; length <= horizon; length++)
+        {
+            BigInteger mass = length == horizon ? 2 : BigInteger.One << (horizon - length);
+            third += mass * BigInteger.Pow(length, 3);
+            fourth += mass * BigInteger.Pow(length, 4);
+        }
+
+        Assert.Equal(new Rational(third, BigInteger.One << horizon), result.ThirdMoment);
+        Assert.Equal(new Rational(fourth, BigInteger.One << horizon), result.FourthMoment);
+    }
+
+    [Fact]
+    public void ExhaustedHigherMomentBudgetPreservesMeanAndVariance()
+    {
+        CompileResult compiled = Compile(RandomModel(65));
+        StructuredExactResult result = Evaluate(compiled, Options() with
+        {
+            MomentOrder = 4,
+            HigherMomentWork = 0,
+            DistributionWork = 0
+        });
+        Assert.Equal(new Rational(129, 2), result.ExpectedWin);
+        Assert.Equal(new Rational(257, 4), result.Variance(compiled.WinScale));
+        Assert.Null(result.ThirdMoment);
+        Assert.Null(result.FourthMoment);
+    }
 }

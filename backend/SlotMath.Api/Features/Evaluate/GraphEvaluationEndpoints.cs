@@ -18,7 +18,8 @@ public sealed record GraphEvaluationRequest(
     int Samples = 10000,
     int DegreeOfParallelism = 1,
     double Epsilon = 0.00001,
-    int MaxBranches = 10000);
+    int MaxBranches = 10000,
+    PayoutAnalysisRequest? Analysis = null);
 
 /// <summary>Explicit regimes for any UI-authored graph. Requested mode and actual provenance are separate.</summary>
 public static class GraphEvaluationEndpoints
@@ -29,12 +30,13 @@ public static class GraphEvaluationEndpoints
             async (GraphEvaluationRequest request, CompiledGraphCache compiledGraphs,
                 IEnumerable<IEvaluationStrategy> strategies, HttpContext context) =>
             {
-                if (!Enum.TryParse<EvaluationMode>(request.Mode, true, out EvaluationMode evaluationMode) ||
+                if (!Enum.TryParse(request.Mode, true, out EvaluationMode evaluationMode) ||
                     request.Samples is < MinSamples or > MaxSamples ||
                     request.DegreeOfParallelism is < MinDegreeOfParallelism or > MaxDegreeOfParallelism ||
                     request.MaxBranches is < MinBranches or > MaxBranches ||
                     !double.IsFinite(request.Epsilon) || request.Epsilon is <= MinEpsilon or >= MaxEpsilon ||
-                    Math.Abs((double)request.Seed) > MaxAbsoluteSeed)
+                    Math.Abs((double)request.Seed) > MaxAbsoluteSeed ||
+                    !PayoutAnalysis.IsValid(request.Analysis))
                 {
                     return Results.BadRequest(new
                     {
@@ -112,6 +114,6 @@ public static class GraphEvaluationEndpoints
                         error = ex.Message
                     });
                 }
-            }).RequireRateLimiting("compute");
+            }).Produces<EvaluationOutput>().RequireRateLimiting("compute");
     }
 }

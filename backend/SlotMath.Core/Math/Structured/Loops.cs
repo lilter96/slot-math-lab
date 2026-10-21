@@ -84,6 +84,8 @@ internal sealed class LoopExits
     /// <summary>Per class: the state fields at exit, then the exit reason.</summary>
     public required ExprValue[][] Classes;
 
+    public Rational[][] Higher = [];
+
     public required BigInteger[] Mass;
 
     /// <summary>Per class and accumulator: E[amount | class].</summary>
@@ -118,6 +120,7 @@ internal sealed partial class LoopChain
     private readonly int _accumulators;
     private readonly TermFactory _f;
     private readonly Dictionary<int, Rational[]> _first = new();
+    private readonly RewardMomentLayout? _higher;
     private readonly Inference _inference;
     private readonly Dictionary<ExprValue, Kernel> _kernels = new(V.ValueComparer.Instance);
     private readonly int _matrixStates;
@@ -134,7 +137,7 @@ internal sealed partial class LoopChain
 
     // Work still allowed for the second moments and for the zero masses of an iteration's amounts. Both are extras:
     // the loop's expected amounts stand without them, so running out leaves the variance or the hit frequency unknown.
-    private long _secondWork, _zeroWork;
+    private long _secondWork, _zeroWork, _higherWork;
     private int _version;
 
     public LoopChain(LoopTemplate template, TermFactory factory, Inference inference, LoopOptions options)
@@ -146,6 +149,16 @@ internal sealed partial class LoopChain
         _inference = inference;
         _accumulators = template.Deltas.Length;
         _pairs = _accumulators * (_accumulators + 1) / 2;
+        _higher = options.MomentOrder > 2 && options.HigherWork > 0 && _accumulators <= 64
+            ? RewardMomentLayout.TryCreate(_accumulators, options.MomentOrder)
+            : null;
+        if (_higher is not null)
+        {
+            _f.Budget.Tick(_higher.Monomials.Length + _higher.Products);
+            HigherOrderKnown = options.MomentOrder;
+        }
+
+        _higherWork = options.HigherWork;
         _matrixStates = options.MatrixStates;
         _matrixWork = options.MatrixWork;
         Lo = new ExprValue[_accumulators];
@@ -201,6 +214,9 @@ internal sealed partial class LoopChain
             _transitionIs[i] = factory.Cmp(CompareOp.Eq, position, factory.Const(ExprValue.Number(i)));
         }
     }
+
+    private int HigherCount => _higher?.HigherCount ?? 0;
+    public int HigherOrderKnown { get; private set; } = 2;
 
     /// <summary>The second moments of the amounts were computed; false once their work allowance ran out.</summary>
     public bool SecondKnown { get; private set; } = true;
@@ -396,6 +412,47 @@ internal sealed partial class LoopChain
             }
         }
 
+        kernel.Higher = HigherCount == 0 ? [] : new Rational[HigherCount][];
+        if (!SecondKnown)
+        {
+            HigherOrderKnown = 2;
+        }
+
+        for (var extra = 0; extra < HigherCount; extra++)
+        {
+            var indices = _higher!.Monomials[_higher.BaseCount + extra];
+            Rational[]? computed = null;
+            if (indices.Length <= HigherOrderKnown)
+            {
+                try
+                {
+                    computed = Within(ref _higherWork, () =>
+                    {
+                        var row = new Rational[Classes];
+                        Term[] factors = indices.Select(index => deltas[index]).ToArray();
+                        for (var z = 0; z < Classes; z++)
+                        {
+                            row[z] = _inference.ProductMany(_transitionIs[z], factors);
+                        }
+
+                        return row;
+                    });
+                }
+                catch (Exception exception) when (exception is StructuredLawUnavailableException
+                                                      or StructuredDeclinedException)
+                {
+                    computed = null;
+                }
+
+                if (computed is null)
+                {
+                    HigherOrderKnown = indices.Length - 1;
+                }
+            }
+
+            kernel.Higher[extra] = computed ?? Unknown();
+        }
+
         return _kernels[state] = kernel;
     }
 
@@ -565,6 +622,14 @@ internal sealed partial class LoopChain
             }
         }
 
+        foreach (Rational[] row in kernel.Higher)
+        {
+            foreach (Rational value in row)
+            {
+                Widen(value);
+            }
+        }
+
         foreach (Rational[]? row in kernel.Zero)
         {
             if (row is null)
@@ -603,6 +668,7 @@ internal sealed partial class LoopChain
         kernel.ScaledProbability = Scale(kernel.Probability);
         kernel.ScaledFirst = kernel.First.Select(Scale).ToArray();
         kernel.ScaledSecond = kernel.Second.Select(Scale).ToArray();
+        kernel.ScaledHigher = kernel.Higher.Select(Scale).ToArray();
         kernel.ScaledZero = kernel.Zero.Select(row => row is null ? null : Scale(row)).ToArray();
     }
 
@@ -630,7 +696,7 @@ internal sealed partial class LoopChain
 
         var running = new Dictionary<ExprValue, Cell>(V.ValueComparer.Instance);
         var done = new Dictionary<ExprValue, Cell>(V.ValueComparer.Instance);
-        var first = new Cell(_accumulators, _pairs)
+        var first = new Cell(_accumulators, _pairs, HigherCount)
         {
             Mass = BigInteger.One
         };
@@ -695,7 +761,8 @@ internal sealed partial class LoopChain
             BigInteger scale = _denominator;
             // A unit of work is some tens of nanoseconds; a multiply-and-add on numbers this long costs one per 256 bits.
             var words = 1 + total.GetBitLength() / 256;
-            var work = ((long)kernels.Count * Classes * (1 + _accumulators + _pairs) + done.Count) * words;
+            var work = ((long)kernels.Count * Classes * (1 + _accumulators + _pairs + (_higher?.Products ?? 0)) +
+                        done.Count) * words;
             spent += work;
             _f.Budget.Tick(work);
             var next = new Dictionary<ExprValue, Cell>(running.Count + 8, V.ValueComparer.Instance);
@@ -741,7 +808,34 @@ internal sealed partial class LoopChain
 
                     if (!next.TryGetValue(kernel.Targets[z], out Cell? into))
                     {
-                        next[kernel.Targets[z]] = into = new Cell(_accumulators, _pairs);
+                        next[kernel.Targets[z]] = into = new Cell(_accumulators, _pairs, HigherCount);
+                    }
+
+                    if (_higher is { } layout)
+                    {
+                        BigInteger Prior(int index)
+                        {
+                            return index == 0 ? cell.Mass :
+                                index <= _accumulators ? cell.First[index - 1] :
+                                index < layout.BaseCount ? cell.Second[index - 1 - _accumulators] :
+                                cell.Higher[index - layout.BaseCount];
+                        }
+
+                        BigInteger Reward(int index)
+                        {
+                            return index == 0 ? p :
+                                index <= _accumulators ? kernel.ScaledFirst[index - 1][z] :
+                                index < layout.BaseCount ? kernel.ScaledSecond[index - 1 - _accumulators][z] :
+                                kernel.ScaledHigher[index - layout.BaseCount][z];
+                        }
+
+                        for (var extra = 0; extra < layout.HigherCount; extra++)
+                        {
+                            foreach (RewardMomentLayout.Split split in layout.Splits[extra])
+                            {
+                                into.Higher[extra] += split.Multiplicity * Prior(split.Left) * Reward(split.Right);
+                            }
+                        }
                     }
 
                     Hull(into, lo, hi);
@@ -815,6 +909,11 @@ internal sealed partial class LoopChain
         {
             cell.Second[pair] *= scale;
         }
+
+        for (var extra = 0; extra < HigherCount; extra++)
+        {
+            cell.Higher[extra] *= scale;
+        }
     }
 
     private void Absorb(Dictionary<ExprValue, Cell> done, ExprValue key, Cell cell)
@@ -837,6 +936,11 @@ internal sealed partial class LoopChain
         {
             into.Second[pair] += cell.Second[pair];
         }
+
+        for (var extra = 0; extra < HigherCount; extra++)
+        {
+            into.Higher[extra] += cell.Higher[extra];
+        }
     }
 
     private LoopExits Finish(Dictionary<ExprValue, Cell> done, BigInteger total)
@@ -857,7 +961,8 @@ internal sealed partial class LoopChain
             Total = total / divisor,
             Mean = new Rational[classes.Count][],
             Second = new Rational[classes.Count][],
-            Zero = new Rational?[classes.Count][]
+            Zero = new Rational?[classes.Count][],
+            Higher = new Rational[classes.Count][]
         };
         for (var c = 0; c < classes.Count; c++)
         {
@@ -867,6 +972,7 @@ internal sealed partial class LoopChain
             exits.Mean[c] = new Rational[_accumulators];
             exits.Zero[c] = new Rational?[_accumulators];
             exits.Second[c] = new Rational[_pairs];
+            exits.Higher[c] = new Rational[HigherCount];
             for (var a = 0; a < _accumulators; a++)
             {
                 exits.Mean[c][a] = new Rational(cell.First[a], cell.Mass);
@@ -879,9 +985,14 @@ internal sealed partial class LoopChain
             {
                 exits.Second[c][pair] = new Rational(cell.Second[pair], cell.Mass);
             }
+
+            for (var extra = 0; extra < HigherCount; extra++)
+            {
+                exits.Higher[c][extra] = new Rational(cell.Higher[extra], cell.Mass);
+            }
         }
 
-        _f.Budget.Tick(classes.Count * (1L + _accumulators + _pairs) * (1 + total.GetBitLength() / 256));
+        _f.Budget.Tick(classes.Count * (1L + _accumulators + _pairs + HigherCount) * (1 + total.GetBitLength() / 256));
         return exits;
     }
 
@@ -952,6 +1063,25 @@ internal sealed partial class LoopChain
 
         var slot = _f.NewLoopSlot(name);
         var moments = new MomentTerm?[_accumulators];
+        var higherColumns = new Dictionary<int, Term>();
+
+        Term HigherColumn(int[] indices)
+        {
+            if (_higher is null || indices.Length > HigherOrderKnown)
+            {
+                throw new StructuredLawUnavailableException(
+                    "the requested conditional loop moment was not computed within its allowance");
+            }
+
+            var index = _higher.Find(indices) - _higher.BaseCount;
+            if (!higherColumns.TryGetValue(index, out Term? column))
+            {
+                higherColumns[index] = column = Column((exit, c) => Number(exit.Higher[c][index]));
+            }
+
+            return column;
+        }
+
         for (var a = 0; a < _accumulators; a++)
         {
             var index = a;
@@ -965,6 +1095,11 @@ internal sealed partial class LoopChain
             }
 
             MomentTerm moment = _f.NewMoment(slot, a, mean);
+            if (HigherOrderKnown > 2)
+            {
+                moment.Higher = HigherColumn;
+            }
+
             moment.Bounded = Bounded[a];
             (moment.Lo, moment.Hi, moment.Step) = (Lo[a], Hi[a], Step[a]);
             if (Signed[a])
@@ -1025,9 +1160,11 @@ internal sealed partial class LoopChain
     {
         public Inference.Bound?[] Bounds = [];
         public Rational[][] First = [];
+        public Rational[][] Higher = [];
         public Rational[] Probability = [];
         public string Reason = "condition";
         public BigInteger[][] ScaledFirst = [], ScaledSecond = [];
+        public BigInteger[][] ScaledHigher = [];
         public BigInteger[] ScaledProbability = [];
         public BigInteger[]?[] ScaledZero = [];
         public Rational[][] Second = [];
@@ -1040,10 +1177,11 @@ internal sealed partial class LoopChain
 
     // ── The transfer iteration ───────────────────────────────────────────
 
-    private sealed class Cell(int accumulators, int pairs)
+    private sealed class Cell(int accumulators, int pairs, int higher = 0)
     {
         public readonly BigInteger[] First = new BigInteger[accumulators];
         public readonly ExprValue[] Hi = new ExprValue[accumulators];
+        public readonly BigInteger[] Higher = higher == 0 ? [] : new BigInteger[higher];
         public readonly ExprValue[] Lo = new ExprValue[accumulators];
         public readonly BigInteger[] Second = new BigInteger[pairs];
         public readonly BigInteger[] Zero = new BigInteger[accumulators];

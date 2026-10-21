@@ -13,7 +13,7 @@ implemented, and none of these changes constitutes certification. Existing contr
 | Capability | Evidence in the current checkout | Limit |
 | --- | --- | --- |
 | Exact mean, second moment and variance from compiled graphs | `StructuredExactEvaluator`, structured inference and loop reward kernels | Extra metrics may be unavailable within their budgets; moments alone cannot settle an active payout cap |
-| Moments through order four, skewness and excess kurtosis | `FiniteModelAnalysis.Distribution`, `ExactPayoutLaw`; `RunningMoments` in the sampled collector | Complete compiled payout laws can be analyzed through `StructuredExactResult.AnalyzeRisk`. General third/fourth moments through compiled loops without a law remain pending |
+| Moments through order four, skewness and excess kurtosis | `ExactPayoutLaw`, structured inference and multivariate loop reward operators; `RunningMoments` in the sampled collector | Compiled loops can retain joint moments through total accumulator degree four without a full law. Higher orders are requested explicitly and can remain unavailable within their budgets. Arbitrary nonlinear settled payouts can need moments beyond this closure |
 | Quantiles, survival thresholds and upper-tail means | `ExactPayoutLaw`; sampled collector `Quantile` and `UpperTail` | Exact rational population queries for complete laws; empirical estimates or histogram enclosures for sampled observations. Pruned compiled results cannot claim exact risk |
 | Absorbing and stationary Markov references | `FiniteModelAnalysis.Markov`, `FiniteStateReferences` | Supplied models of at most 32 states; no automatic equivalence certificate tying a manual reference to a game graph |
 | Automatic finite-horizon Markov reward matrices | `MarkovRewardMatrix`, `Structured/LoopMatrices` | Small reachable state spaces, exact rational arithmetic, work/bit budgets and transfer fallback; full distribution attempts can still dominate Auto |
@@ -154,7 +154,7 @@ fast path should be enabled.
 
 | Change | Quantitative assessment | Decision criterion |
 | --- | --- | --- |
-| Solver selection on the measured cycle | Current baseline is 147 ms warm median and 322.88 MiB allocated. A proposed acceptance target is at least 80% less allocation while retaining its one-atom exact law and improving elapsed time. No before/after multiplier is established yet | Include budgets where matrix mode wins and cases where a small full law remains cheaper; do not reduce required output merely to pass |
+| Solver selection on the measured cycle | The initial planning target was at least 80% less allocation while retaining its exact one-atom law. The controlled comparison now records 99.958% less managed allocation and a 211.58x kernel speedup for this deterministic workload; see the delivery ledger and PERFORMANCE.md | Include budgets where matrix mode wins and cases where a small full law remains cheaper; do not generalize this synthetic result to other games |
 | NTT+CRT for large dense laws | Initial hypothesis: 2–20x faster local convolution on suitable supports around 4K–64K points and moderate coefficient sizes. Tiny/sparse laws can be slower. For two 10,000-point supports, direct convolution has 100 million coefficient products; a length-32,768 transform with three primes has about 2.21 million butterflies plus 98,304 pointwise modular products and CRT. At 32 primes the butterfly count is about 23.59 million. These are different-cost operations, not wall-time ratios | Benchmark 64–65,536-point supports, several densities and 32/256/1,024-bit coefficients; select by measured cost including CRT and conversion |
 | End-to-end effect of convolution | Amdahl: `speedup = 1 / ((1-p) + p/s)`. A 20x local improvement gives only 1.90x total at p=50%, or 4.17x at p=80%. If convolution is absent, the benefit is zero | Record the actual fraction of total time spent in convolution before forecasting whole-engine gains |
 | Third/fourth moments | Additional capability, normally additional work. For one reward channel, orders 0–2 need three coefficients and orders 0–4 need five; straightforward scalar composition uses 6 versus 15 moment products. Carrying every mixed moment through order four uses `C(A+4,4)` coefficients: 495 for eight channels versus 45 through order two | Request only needed moment closure; benchmark overhead and retain optional budgets. No claim that extra moments accelerate the kernel |
@@ -209,8 +209,8 @@ GLI/BMM certification or guarantee compliance by themselves.
 | --- | --- | --- |
 | Automatic matrix-law probe | Implemented. A bounded Auto probe accepts matrix moments only if every accumulator is determined conditional on entry/exit and no loop probability was pruned. Non-degenerate laws keep the original full-law attempt | Selected regressions passed. The controlled 100,000-step deterministic example reduced warm kernel median from 153.56 to 0.726 ms and managed allocation by 99.958%. Broader solver planning and peak live-storage instrumentation remain pending |
 | Exact transform convolution | Implemented in structured inference. Numeric offsets and rational lattice steps are exact; unsigned CRT requires a modulus product strictly exceeding the coefficient bound. Transform length is limited to 2^20 and reconstruction to 96 independently tested primes. Pooled scratch never escapes; cancellation/work failures propagate | Selected regressions passed. The complete 4,096+4,096-outcome workload improved kernel median 13.07x, with matching full-law hashes and 4.74% more managed allocation. Additional workload matrices remain before further tuning the cost model |
-| Exact finite payout risk | Implemented as `ExactPayoutLaw` and `StructuredExactResult.AnalyzeRisk`: credit-unit moments through order four, CDF, inclusive survival, quantiles, tied-boundary ES and fixed-stake operator-loss transformations | API/UI exposure and explicit public CV/CI naming migration; rigorous pruning enclosures are not substituted for the complete-law interface |
-| Higher moments without a full law | Pending | Generic requested moment closure, loop operators, independent oracles and optional metric budgets |
+| Exact finite payout risk | Implemented as `ExactPayoutLaw`, `StructuredExactResult.AnalyzeRisk` and optional `/api/evaluate/graph` analysis: credit-unit moments through order four, CDF, inclusive survival, quantiles, tied-boundary ES, fixed-stake RTP/operator loss and explicit CV. Exact and Hybrid retain the actual settled law when requested | UI and generated client exposure remain pending. Sampled and pruned results cannot claim exact population risk. Fixed-count normal planning and a conservative Chebyshev bound are named separately; legacy `VolatilityIndex` remains compatible |
+| Higher moments without a full law | Implemented: requested multivariate moment closure, matrix and transfer operators, conditional moments per exit, independent-sum moment sequences and optional metric budgets | Independent path enumeration and closed-form regressions cover multiple accumulators, state/reward correlation, exit-state payouts, skewed rewards, absorption, active caps and absent optional moments. Closure is bounded to 8,192 coefficients and degree four; default order stays two. Performance overhead must be measured, not described as a speedup |
 | Session/operator exposure | Pending beyond existing sampled sessions and single-round exact fixed-stake risk | Declared horizon and dependency model; distinguish final loss from path-dependent ruin |
 | Factorized operators and convergence certificates | Pending | Applicability proof, matrix-free prototype, sparse baseline and certified residual/survival bounds |
 | Player policy analysis | Pending | Explicit action/information contract, Bellman/Snell reference and exhaustive small-policy oracle |
@@ -234,3 +234,63 @@ also include binary identity, options, transform/direct operation diagnostics
 and loop solver notes. `--no-loop-matrices` provides the transfer/full-law
 control for graph benchmarks. Run paired variants sequentially in alternating
 order; a single cold timing is not a performance conclusion.
+
+**Optional API population analysis**
+
+`POST /api/evaluate/graph` accepts an optional `analysis` object:
+
+```json
+{
+  "momentOrder": 4,
+  "tailProbabilities": ["19/20", "99/100"],
+  "payoutThresholds": ["100", "1000"],
+  "stake": "1",
+  "rtpHalfWidth": "1/100"
+}
+```
+
+Inputs are bounded integer/rational strings, with at most 16 tail levels and
+16 thresholds. `stake` is positive; it transforms the retained payout law into
+RTP and operator loss and does not change the authored graph or its payouts.
+`rtpHalfWidth` is an absolute RTP-ratio width: `1/100` means one percentage
+point. Planning assumes independent identically distributed rounds, a fixed
+stake, a fixed sample count and known population variance. `normal95Rounds`
+uses the approximate coefficient 1.96; `chebyshev95Rounds` is the conservative
+finite-sample count from `Var(X)/(N*delta^2) <= 1/20`. Neither is a sequential
+monitoring or correlated-session guarantee. At least one round is returned,
+including a zero-variance population.
+
+The response has `ExactLaw`, `ExactMoments` or `Unavailable` status. Rational
+values remain canonical strings; display values are finite numbers or null
+when they overflow binary64. Shape statistics are undefined at zero variance,
+and CV is undefined at zero mean. With no complete law, tails and thresholds
+are absent, even if four exact moments exist. Pruned/shortened games and
+sampled reports return `Unavailable` for this population interface. Optional
+moments can be absent independently of a successful mean/variance calculation.
+The existing report's per-unit RTP field is preserved; `rtpForStake` explicitly
+uses the analysis stake.
+
+The benchmark harness additionally accepts `--moment-order 2|3|4`,
+`--higher-moment-work N` and `--loop-law-work N`, records these options and
+the exact raw third/fourth moments, and supports disabling optional full-law
+work for a moment-only experiment. This is not a promise that all authored
+graphs can be summarized by a finite moment closure.
+
+Validation of the higher-moment/API milestone: 100 selected Core regressions
+and 15 database-free API/strategy cases passed, including 32 new cases in this
+milestone. After resolving the Rider/Roslyn nested-loop formatting difference,
+all 17 affected mathematical cases and all 15 API cases passed again. The
+Release solution build and `dotnet format --verify-no-changes` passed. Both
+JetBrains profiles ran on the 24 touched C# files and were repeated on every
+subsequent source edit; their diffs were reviewed. The tool still emitted its
+existing Roslyn fixer-provider loading warnings, but both profiles exited zero
+and reported every scoped source file. Generated logs remain outside Git.
+No full suite, database integration or browser tests ran for this milestone.
+
+The benchmark CLI was checked on the deterministic 100,000-step cycle with
+distribution work disabled: three evaluations returned no law and exactly
+200,000, 40,000,000,000, 8,000,000,000,000,000 and
+1,600,000,000,000,000,000,000 for raw moments one through four. This is a
+CLI/correctness check, not a new timing comparison. API display regressions
+also preserve representable roots such as `sqrt(10^-400)` and `sqrt(10^400)`
+without first underflowing or overflowing the squared quantity in binary64.
