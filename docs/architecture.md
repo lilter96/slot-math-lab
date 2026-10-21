@@ -208,6 +208,18 @@ count explicitly state their independence and fixed-stake assumptions; neither
 is a GLI volatility-index definition. See the request contract in the
 [math engine roadmap](MATH_ENGINE_ROADMAP.md).
 
+`ExactOperatorExposure` composes complete signed loss laws over an explicitly
+declared horizon. Independent rounds use one settlement law; supplied Markov
+models use joint transition/payout/wager outcomes and Laurent-polynomial matrix
+powers. Adaptive exact NTT/CRT applies to suitable dense coefficient lattices,
+with sparse convolution retained otherwise. Operator ruin is a separate first
+post-settlement negative-reserve query over surviving paths; it is neither the
+terminal loss CDF nor an automatic stop policy. Exhausting its optional budget
+does not discard the terminal law. API `analysis.independentRounds` binds only
+to independent resets of a complete per-round compiled law. See the precise
+[operator exposure contract](OPERATOR_EXPOSURE.md) for money units, boundaries,
+dependency assumptions and resource limits.
+
 What it does not do: a win cap that is active (the proven maximum exceeds it) needs the payout
 distribution, because E[min(W, cap)] is not a function of moments; a loop whose state is large and does
 not factor (a board of sticky symbols carried as one chain state) is neither a small chain nor cheap

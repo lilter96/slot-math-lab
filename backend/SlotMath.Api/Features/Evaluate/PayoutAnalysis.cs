@@ -10,7 +10,8 @@ public sealed record PayoutAnalysisRequest(
     string[]? TailProbabilities = null,
     string[]? PayoutThresholds = null,
     string Stake = "1",
-    string? RtpHalfWidth = null);
+    string? RtpHalfWidth = null,
+    IndependentRoundExposureRequest? IndependentRounds = null);
 
 public sealed record ExactNumberOutput(string Rational, double? Display);
 
@@ -55,6 +56,7 @@ public sealed record PayoutAnalysisOutput
     public TailRiskOutput[]? Tails { get; init; }
     public PayoutThresholdOutput[]? Thresholds { get; init; }
     public RtpPlanningOutput? Planning { get; init; }
+    public IndependentRoundExposureOutput? IndependentRounds { get; init; }
 }
 
 public static class PayoutAnalysis
@@ -73,13 +75,14 @@ public static class PayoutAnalysis
                (request.RtpHalfWidth is null ||
                 (TryRational(request.RtpHalfWidth, out Rational width) && width > Rational.Zero)) &&
                ValidValues(request.TailProbabilities, value => value > Rational.Zero && value < Rational.One) &&
-               ValidValues(request.PayoutThresholds, _ => true);
+               ValidValues(request.PayoutThresholds, _ => true) &&
+               IndependentRoundExposureAnalysis.IsValid(request.IndependentRounds);
     }
 
     private static bool ValidValues(string[]? values, Func<Rational, bool> predicate) => values is null ||
         (values.Length <= 16 && values.All(text => TryRational(text, out Rational value) && predicate(value)));
 
-    private static bool TryRational(string? text, out Rational value)
+    internal static bool TryRational(string? text, out Rational value)
     {
         value = Rational.Zero;
         if (text is null || text.Length is 0 or > 160)
@@ -211,7 +214,10 @@ public static class PayoutAnalysis
             ExcessKurtosis = Number(excess),
             Tails = tails,
             Thresholds = thresholds,
-            Planning = planning
+            Planning = planning,
+            IndependentRounds = IndependentRoundExposureAnalysis.Build(request.IndependentRounds,
+                law is null ? null : distribution, scale, stake,
+                request.TailProbabilities ?? DefaultProbabilities, cancellation)
         };
     }
 
@@ -260,7 +266,7 @@ public static class PayoutAnalysis
 
     private static double? Finite(double value) => double.IsFinite(value) ? value : null;
 
-    private static ExactNumberOutput? Number(Rational? value) => value is { } rational
+    internal static ExactNumberOutput? Number(Rational? value) => value is { } rational
         ? new ExactNumberOutput(rational.ToString(), Finite(rational.ToDouble()))
         : null;
 }

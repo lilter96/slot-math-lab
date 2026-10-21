@@ -178,6 +178,87 @@ public sealed class PayoutAnalysisTests
         Assert.InRange(result.CoefficientOfVariation!.Value / 1e200, 1 - 1e-14, 1 + 1e-14);
     }
 
+    [Fact]
+    public void IndependentHorizonAnalysisSeparatesFinalLossAndFirstPassageRuin()
+    {
+        PayoutAnalysisOutput result = PayoutAnalysis.Build(new PayoutAnalysisRequest(
+                TailProbabilities: ["3/4"], IndependentRounds: new IndependentRoundExposureRequest(3, "0")), Law(2),
+            null,
+            1)!;
+        Assert.Equal("ExactLaw", result.Status);
+        Assert.Equal("1/1", result.Mean!.Rational);
+        IndependentRoundExposureOutput exposure = result.IndependentRounds!;
+        Assert.Equal("ExactLaw", exposure.Status);
+        Assert.Equal("0/1", exposure.MeanLoss!.Rational);
+        Assert.Equal("3/1", exposure.LossVariance!.Rational);
+        Assert.Equal("1/1", Assert.Single(exposure.Tails!).LossQuantile.Rational);
+        Assert.Equal("2/1", Assert.Single(exposure.Tails!).LossExpectedShortfall.Rational);
+        Assert.Equal("1/2", exposure.ProbabilityFinalLossExceedsReserve!.Rational);
+        Assert.Equal("5/8", exposure.ProbabilityRuinByHorizon!.Rational);
+        Assert.Equal("7/5", exposure.ConditionalExpectedRuinRound!.Rational);
+        Assert.Contains("independent", exposure.Assumptions, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("strictly below zero", exposure.Assumptions);
+    }
+
+    [Fact]
+    public void PortfolioQueriesWithoutACompleteLawRemainUnavailable()
+    {
+        var moments = new StructuredExactResult
+        {
+            Succeeded = true,
+            ExpectedWin = 1,
+            SecondMoment = 2
+        };
+        PayoutAnalysisOutput result = PayoutAnalysis.Build(new PayoutAnalysisRequest(
+            IndependentRounds: new IndependentRoundExposureRequest(3, "0")), null, moments, 1)!;
+        Assert.Equal("ExactMoments", result.Status);
+        Assert.Equal("Unavailable", result.IndependentRounds!.Status);
+        Assert.Null(result.IndependentRounds.ProbabilityRuinByHorizon);
+        Assert.Null(result.IndependentRounds.Tails);
+    }
+
+    [Fact]
+    public void PortfolioResourceLimitsPreserveThePerRoundRiskResult()
+    {
+        const int count = 16385;
+        var builder = new DistBuilder<BigInteger>();
+        for (var payout = 0; payout < count; payout++)
+        {
+            builder.Add(payout, 1, count);
+        }
+
+        PayoutAnalysisOutput result = PayoutAnalysis.Build(new PayoutAnalysisRequest(
+            IndependentRounds: new IndependentRoundExposureRequest(2)), builder.Build(), null, 1)!;
+        Assert.Equal("ExactLaw", result.Status);
+        Assert.Equal("8192/1", result.Mean!.Rational);
+        Assert.Equal("Unavailable", result.IndependentRounds!.Status);
+        Assert.Contains("support allowance", result.IndependentRounds.Reason);
+        Assert.Null(result.IndependentRounds.MeanLoss);
+        Assert.Null(result.IndependentRounds.ProbabilityRuinByHorizon);
+    }
+
+    [Fact]
+    public void IndependentHorizonsAndReserveInputsAreExplicitlyBounded()
+    {
+        Assert.False(
+            PayoutAnalysis.IsValid(
+                new PayoutAnalysisRequest(IndependentRounds: new IndependentRoundExposureRequest(-1))));
+        Assert.False(PayoutAnalysis.IsValid(
+            new PayoutAnalysisRequest(IndependentRounds: new IndependentRoundExposureRequest(1000001))));
+        Assert.False(PayoutAnalysis.IsValid(
+            new PayoutAnalysisRequest(IndependentRounds: new IndependentRoundExposureRequest(1, "-1"))));
+        Assert.False(PayoutAnalysis.IsValid(
+            new PayoutAnalysisRequest(IndependentRounds: new IndependentRoundExposureRequest(1, "1/0"))));
+        Assert.True(
+            PayoutAnalysis.IsValid(
+                new PayoutAnalysisRequest(IndependentRounds: new IndependentRoundExposureRequest(0, "0"))));
+        PayoutAnalysisOutput zero = PayoutAnalysis.Build(new PayoutAnalysisRequest(
+            IndependentRounds: new IndependentRoundExposureRequest(0, "0")), Law(2), null, 1)!;
+        Assert.Equal("0/1", zero.IndependentRounds!.MeanLoss!.Rational);
+        Assert.Equal("0/1", zero.IndependentRounds.ProbabilityRuinByHorizon!.Rational);
+        Assert.Null(zero.IndependentRounds.ConditionalExpectedRuinRound);
+    }
+
     [Theory]
     [InlineData("Exact", 100, 10)]
     [InlineData("Hybrid", 100, 10)]
