@@ -35,6 +35,9 @@ public sealed record StructuredExactOptions
     /// <summary>Extra work allowed for the full payout distribution once the expectation is known.</summary>
     public long DistributionWork { get; init; } = 4_000_000;
 
+    /// <summary>Use exact NTT/CRT for sufficiently dense numeric convolutions when its estimated cost is lower.</summary>
+    public bool UseTransformConvolution { get; init; } = true;
+
     /// <summary>Extra work allowed for the exact hit frequency when the distribution was not built.</summary>
     public long HitFrequencyWork { get; init; } = 40_000_000;
 
@@ -53,6 +56,15 @@ public sealed record StructuredExactOptions
     ///     their full law; beyond it the amounts are carried by their moments.
     /// </summary>
     public long LoopLawWork { get; init; } = 2_000_000;
+
+    /// <summary>
+    ///     Maximum reachable states, including absorbing exits, for exact matrix powering of a capped loop.
+    ///     Zero disables the optimization. Larger or growing state spaces keep the transfer recurrence.
+    /// </summary>
+    public int LoopMatrixMaxStates { get; init; } = 32;
+
+    /// <summary>Work allowance for one matrix attempt, also limited to a quarter of the remaining work.</summary>
+    public long LoopMatrixWork { get; init; } = 8_000_000;
 
     /// <summary>
     ///     A loop solved as a chain is cut short of its cap once the probability that it is still running is below
@@ -101,8 +113,19 @@ public sealed record StructuredLoopResult(
     Rational? ExpectedCapHits,
     Rational PrunedMass);
 
+public sealed record StructuredExactDiagnostics(
+    long Convolutions,
+    long TransformConvolutions,
+    long DirectConvolutionPairs,
+    long LargestConvolutionSpan,
+    long LargestConvolutionCoefficientBits);
+
 public sealed record StructuredExactResult
 {
+    public StructuredExactDiagnostics? Diagnostics { get; init; }
+
+    public IReadOnlyList<string> SolverNotes => LoopNotes;
+
     /// <summary>False when the evaluator declined; <see cref="DeclinedReason" /> says why.</summary>
     public bool Succeeded { get; init; }
 
@@ -157,6 +180,18 @@ public sealed record StructuredExactResult
     public long Laws { get; init; }
     public long Work { get; init; }
     public TimeSpan Elapsed { get; init; }
+
+    /// <summary>Analyze the complete settled law, never a distribution from a shortened/pruned round.</summary>
+    public ExactPayoutLaw AnalyzeRisk(BigInteger winScale, CancellationToken cancellation = default)
+    {
+        if (!Succeeded || !PrunedMass.IsZero || Distribution is null)
+        {
+            throw new InvalidOperationException(
+                "Exact risk analysis requires a successful complete payout distribution without pruned loop mass.");
+        }
+
+        return ExactPayoutLaw.Create(Distribution, winScale, cancellation);
+    }
 
     /// <summary>The exact variance of the payout in squared credits per unit stake, when the second moment is known.</summary>
     public Rational? Variance(BigInteger winScale) => SecondMoment is { } second
@@ -306,11 +341,11 @@ public static class StructuredExactEvaluator
         {
             Fault = options.Fault
         };
-        var inference = new Inference(factory);
+        var inference = new Inference(factory, options.UseTransformConvolution);
         var executor = new SymbolicExecutor(model.Config, winScale, factory, inference,
             new LoopOptions(mode, options.ChainLoopsAbove, options.LoopLawWork, options.PruneLoopMassBelow,
                 options.PruneLoopsAboveBits, options.PruneLoopsAboveWork, options.VarianceWork,
-                options.HitFrequencyWork));
+                options.HitFrequencyWork, options.LoopMatrixMaxStates, options.LoopMatrixWork));
         BigInteger cap = options.Fault == StructuredFault.CapIgnored ? model.Cap * 1_000_000 : model.Cap;
         var limit = budget.Limit;
         try
@@ -485,6 +520,9 @@ public static class StructuredExactEvaluator
                 RandomVariables = factory.Rvs.Count(v => !v.Lumped),
                 Terms = factory.TermCount,
                 Laws = inference.Stats.Laws,
+                Diagnostics = new StructuredExactDiagnostics(inference.Stats.Convolutions,
+                    inference.Stats.TransformConvolutions, inference.Stats.DirectConvolutionPairs,
+                    inference.Stats.LargestConvolutionSpan, inference.Stats.LargestConvolutionCoefficientBits),
                 Work = budget.Used,
                 Elapsed = clock.Elapsed
             };

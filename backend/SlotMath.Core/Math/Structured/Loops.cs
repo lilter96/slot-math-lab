@@ -21,14 +21,16 @@ namespace SlotMath.Core.Math.Structured;
 //
 //      m0(s) = P(at s),  m1(s) = E[A; at s],  m2(s) = E[A·B; at s],
 //
-//  advanced one iteration at a time by the transfer recurrences
+//  advanced by transfer recurrences, one iteration at a time or by matrix
+//  powers when the reachable state space is small:
 //
 //      m0' = m0·p        m1' = m1·p + m0·r1
 //      m2' = m2·p + m1ᵃ·r1ᵇ + m1ᵇ·r1ᵃ + m0·r2
 //
 //  with p, r1, r2 the kernel's probability and reward moments of a
 //  transition. Every number is an integer over one running denominator, so a
-//  step is big-integer multiply-and-add with no reduction. The cap is the
+//  transfer step is big-integer multiply-and-add with no reduction; matrix
+//  composition reduces the common denominator between blocks. The cap is the
 //  number of steps: the result is the exact value of the capped loop, not a
 //  limit and not a bound.
 //
@@ -99,7 +101,7 @@ internal sealed class LoopExits
     public required Rational?[][] Zero;
 }
 
-internal sealed class LoopChain
+internal sealed partial class LoopChain
 {
     private const int MaxTransitionClasses = 1 << 16;
 
@@ -118,6 +120,8 @@ internal sealed class LoopChain
     private readonly Dictionary<int, Rational[]> _first = new();
     private readonly Inference _inference;
     private readonly Dictionary<ExprValue, Kernel> _kernels = new(V.ValueComparer.Instance);
+    private readonly int _matrixStates;
+    private readonly long _matrixWork;
     private readonly int _pairs;
     private readonly Dictionary<(int, int), Rational[]> _second = new();
     private readonly Dictionary<int, (Rational[]? Zero, Inference.Bound? Bound)> _signs = new();
@@ -142,6 +146,8 @@ internal sealed class LoopChain
         _inference = inference;
         _accumulators = template.Deltas.Length;
         _pairs = _accumulators * (_accumulators + 1) / 2;
+        _matrixStates = options.MatrixStates;
+        _matrixWork = options.MatrixWork;
         Lo = new ExprValue[_accumulators];
         Hi = new ExprValue[_accumulators];
         Step = new Rational[_accumulators];
@@ -203,6 +209,18 @@ internal sealed class LoopChain
 
     /// <summary>How many distinct states the loop was seen in.</summary>
     public int States => _kernels.Count;
+
+    public int MatrixRuns { get; private set; }
+
+    /// <summary>Whether the conditional moments prove the complete joint reward law at every exit.</summary>
+    public bool AmountsDetermined(LoopExits[] exits) => Enumerable.Range(0, _accumulators)
+        .All(index => AmountDetermined(exits, index));
+
+    private bool AmountDetermined(LoopExits[] exits, int index) => SecondKnown &&
+                                                                   exits.All(exit => Enumerable
+                                                                       .Range(0, exit.Mass.Length).All(c =>
+                                                                           exit.Second[c][PairIndex(index, index)] ==
+                                                                           exit.Mean[c][index] * exit.Mean[c][index]));
 
     private void Collect(Term term, List<Term> members, HashSet<Term> seen)
     {
@@ -602,9 +620,14 @@ internal sealed class LoopChain
         into.Ranged = true;
     }
 
-    /// <summary>Run the loop from one entry state: at most Cap iterations, each one transfer step.</summary>
+    /// <summary>Run the loop for its finite cap, using matrix powers when the reachable state space is small.</summary>
     public LoopExits Run(ExprValue entry)
     {
+        if (RunMatrix(entry) is { } powered)
+        {
+            return powered;
+        }
+
         var running = new Dictionary<ExprValue, Cell>(V.ValueComparer.Instance);
         var done = new Dictionary<ExprValue, Cell>(V.ValueComparer.Instance);
         var first = new Cell(_accumulators, _pairs)
@@ -934,8 +957,7 @@ internal sealed class LoopChain
             var index = a;
             Term mean = Column((exit, c) => Number(exit.Mean[c][index]));
             // An amount with no variance left given entry and exit is that conditional mean itself, an ordinary term.
-            var settled = SecondKnown && exits.All(exit => Enumerable.Range(0, exit.Mass.Length).All(c =>
-                exit.Second[c][PairIndex(index, index)] == exit.Mean[c][index] * exit.Mean[c][index]));
+            var settled = AmountDetermined(exits, index);
             if (settled)
             {
                 amounts[a] = mean;

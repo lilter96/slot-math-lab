@@ -22,7 +22,7 @@ using SlotMath.Core.Random;
 //    5. exact-reel     : 512-combination reel product, exact interpreter
 // ═══════════════════════════════════════════════════════════════════════════
 
-if (args.Contains("--graph"))
+if (args.Contains("--graph") || args.Contains("--numeric-sum"))
 {
     GraphPerformance.Run(args);
     return;
@@ -33,7 +33,11 @@ var results = new List<(string Name, double Ms, string Detail)>();
 Run("sampled-loop (50k spins × 100 iters)", () =>
 {
     Slot<LoopState, BigInteger> program = BuildHandLoop(100);
-    var config = new SampledConfig { Seed = 7, MaxSpins = 50_000 };
+    var config = new SampledConfig
+    {
+        Seed = 7,
+        MaxSpins = 50_000
+    };
     SampledResult<LoopState> r = SampledInterpreter.Evaluate(program, new LoopState(0, BigInteger.Zero), config);
     return $"mean={r.Stats.Mean:F3}";
 });
@@ -47,7 +51,11 @@ Run("sampled-graph (20k spins, coin-flip loop ×100)", () =>
         throw new InvalidOperationException(string.Join("; ", compiled.Errors.Select(e => e.Message)));
     }
 
-    var config = new SampledConfig { Seed = 7, MaxSpins = 20_000 };
+    var config = new SampledConfig
+    {
+        Seed = 7,
+        MaxSpins = 20_000
+    };
     SampledResult<Dictionary<string, object?>> r = SampledInterpreter.Evaluate(
         compiled.Program!, new Dictionary<string, object?>(), config);
     return $"mean={r.Stats.Mean:F3}";
@@ -62,7 +70,11 @@ Run("sampled-reels (5k spins, 3×32-symbol reels)", () =>
         throw new InvalidOperationException(string.Join("; ", compiled.Errors.Select(e => e.Message)));
     }
 
-    var config = new SampledConfig { Seed = 7, MaxSpins = 5_000 };
+    var config = new SampledConfig
+    {
+        Seed = 7,
+        MaxSpins = 5_000
+    };
     SampledResult<Dictionary<string, object?>> r = SampledInterpreter.Evaluate(
         compiled.Program!, new Dictionary<string, object?>(), config);
     return $"mean={r.Stats.Mean:F3}";
@@ -71,7 +83,12 @@ Run("sampled-reels (5k spins, 3×32-symbol reels)", () =>
 Run($"sampled-parallel (500k spins × 100 iters, {Environment.ProcessorCount} cores)", () =>
 {
     Slot<LoopState, BigInteger> program = BuildHandLoop(100);
-    var config = new SampledConfig { Seed = 7, MaxSpins = 500_000, DegreeOfParallelism = Environment.ProcessorCount };
+    var config = new SampledConfig
+    {
+        Seed = 7,
+        MaxSpins = 500_000,
+        DegreeOfParallelism = Environment.ProcessorCount
+    };
     SampledResult<LoopState> r = SampledInterpreter.Evaluate(program, new LoopState(0, BigInteger.Zero), config);
     return $"mean={r.Stats.Mean:F3}";
 });
@@ -81,7 +98,13 @@ Run("exact-retrigger (free spins, start=8, award cap=40)", () =>
     Slot<RetriggerState, BigInteger> program = BuildRetriggerGame(8, 40);
     ExactResult<RetriggerState, BigInteger> r = ExactInterpreter.Evaluate(
         program, new RetriggerState(8, 8, BigInteger.Zero), s => s.Hash(),
-        new ExactConfig { Budget = new Budget { MaxBranches = 500_000 } });
+        new ExactConfig
+        {
+            Budget = new Budget
+            {
+                MaxBranches = 500_000
+            }
+        });
     (BigInteger num, BigInteger den) = r.ValueDistribution().ExpectedBigIntegerValue();
     return
         $"EV={num}/{den}≈{(double)num / (double)den:F4} branches={r.Stats.TotalBranchesEvaluated:N0} hits={r.Stats.CacheHits}";
@@ -151,16 +174,27 @@ static Slot<RetriggerState, BigInteger> BuildRetriggerGame(int startSpins, int m
         {
             if (outcome == 0)
             {
-                return s with { Left = s.Left - 1 };
+                return s with
+                {
+                    Left = s.Left - 1
+                };
             }
 
             if (outcome == 1)
             {
-                return s with { Left = s.Left - 1, Total = s.Total + 5 };
+                return s with
+                {
+                    Left = s.Left - 1,
+                    Total = s.Total + 5
+                };
             }
 
             var extra = Math.Min(2, maxAwarded - s.Awarded);
-            return s with { Left = s.Left - 1 + extra, Awarded = s.Awarded + extra };
+            return s with
+            {
+                Left = s.Left - 1 + extra,
+                Awarded = s.Awarded + extra
+            };
         })
         select Unit.Value;
 
@@ -196,8 +230,16 @@ static GraphConfig BuildCoinFlipGraph(int maxIterations)
                 Outputs =
                     new Dictionary<string, Port>
                     {
-                        ["body"] = new() { Name = "body", Type = PortType.Trigger },
-                        ["exit"] = new() { Name = "exit", Type = PortType.Number }
+                        ["body"] = new()
+                        {
+                            Name = "body",
+                            Type = PortType.Trigger
+                        },
+                        ["exit"] = new()
+                        {
+                            Name = "exit",
+                            Type = PortType.Number
+                        }
                     }
             },
             new DrawNode
@@ -207,20 +249,51 @@ static GraphConfig BuildCoinFlipGraph(int maxIterations)
                 DrawWeights =
                     new[]
                     {
-                        new DrawWeight { OutcomeId = "heads", Weight = 1, Value = 2 },
-                        new DrawWeight { OutcomeId = "tails", Weight = 1, Value = 0 }
+                        new DrawWeight
+                        {
+                            OutcomeId = "heads",
+                            Weight = 1,
+                            Value = 2
+                        },
+                        new DrawWeight
+                        {
+                            OutcomeId = "tails",
+                            Weight = 1,
+                            Value = 0
+                        }
                     },
                 Inputs =
-                    new Dictionary<string, Port> { ["in"] = new() { Name = "in", Type = PortType.Trigger } },
+                    new Dictionary<string, Port>
+                    {
+                        ["in"] = new()
+                        {
+                            Name = "in",
+                            Type = PortType.Trigger
+                        }
+                    },
                 Outputs =
-                    new Dictionary<string, Port> { ["value"] = new() { Name = "value", Type = PortType.Number } }
+                    new Dictionary<string, Port>
+                    {
+                        ["value"] = new()
+                        {
+                            Name = "value",
+                            Type = PortType.Number
+                        }
+                    }
             },
             new MetricsSinkNode
             {
                 Id = "sink",
                 Label = "Sink",
                 Inputs =
-                    new Dictionary<string, Port> { ["in"] = new() { Name = "in", Type = PortType.Number } }
+                    new Dictionary<string, Port>
+                    {
+                        ["in"] = new()
+                        {
+                            Name = "in",
+                            Type = PortType.Number
+                        }
+                    }
             }
         },
         Edges = new[]
@@ -256,17 +329,49 @@ static GraphConfig BuildReelGraph(int stripLength)
         SchemaVersion = "1.0.0",
         Id = "bench-reels",
         Symbols = Enumerable.Range(0, 8)
-            .Select(i => new Symbol { Id = $"sym-{i}", Name = $"S{i}", Kind = SymbolKind.Standard })
+            .Select(i => new Symbol
+            {
+                Id = $"sym-{i}",
+                Name = $"S{i}",
+                Kind = SymbolKind.Standard
+            })
             .ToArray(),
         ReelStrips =
             new[]
             {
-                new ReelStrip { Id = "r1", Name = "R1", Symbols = symbols },
-                new ReelStrip { Id = "r2", Name = "R2", Symbols = symbols },
-                new ReelStrip { Id = "r3", Name = "R3", Symbols = symbols }
+                new ReelStrip
+                {
+                    Id = "r1",
+                    Name = "R1",
+                    Symbols = symbols
+                },
+                new ReelStrip
+                {
+                    Id = "r2",
+                    Name = "R2",
+                    Symbols = symbols
+                },
+                new ReelStrip
+                {
+                    Id = "r3",
+                    Name = "R3",
+                    Symbols = symbols
+                }
             },
-        ReelSets = new[] { new ReelSet { Id = "rs", Name = "Main", StripIds = new[] { "r1", "r2", "r3" } } },
-        BoardConfig = new BoardConfig { Rows = 3, Columns = 3 },
+        ReelSets = new[]
+        {
+            new ReelSet
+            {
+                Id = "rs",
+                Name = "Main",
+                StripIds = new[] { "r1", "r2", "r3" }
+            }
+        },
+        BoardConfig = new BoardConfig
+        {
+            Rows = 3,
+            Columns = 3
+        },
         Nodes = new Node[]
         {
             new DrawNode
@@ -274,13 +379,27 @@ static GraphConfig BuildReelGraph(int stripLength)
                 Id = "draw",
                 Label = "Spin",
                 Outputs =
-                    new Dictionary<string, Port> { ["board"] = new() { Name = "board", Type = PortType.Board } }
+                    new Dictionary<string, Port>
+                    {
+                        ["board"] = new()
+                        {
+                            Name = "board",
+                            Type = PortType.Board
+                        }
+                    }
             },
             new MetricsSinkNode
             {
                 Id = "sink",
                 Label = "Sink",
-                Inputs = new Dictionary<string, Port> { ["in"] = new() { Name = "in", Type = PortType.Board } }
+                Inputs = new Dictionary<string, Port>
+                {
+                    ["in"] = new()
+                    {
+                        Name = "in",
+                        Type = PortType.Board
+                    }
+                }
             }
         },
         Edges = new[]

@@ -91,9 +91,14 @@ internal sealed class Law
 internal sealed class InferenceStats
 {
     public long Laws, Decompositions, Expansions, Substitutions, Convolutions, PseudoVariables, Expectations;
+
+    public long TransformConvolutions,
+        DirectConvolutionPairs,
+        LargestConvolutionSpan,
+        LargestConvolutionCoefficientBits;
 }
 
-internal sealed class Inference(TermFactory f)
+internal sealed partial class Inference(TermFactory f, bool transformConvolution = true)
 {
     // Most laws are small: one table collects their masses, and larger ones get a table of their own.
     private const int SmallLaw = 1024;
@@ -264,6 +269,12 @@ internal sealed class Inference(TermFactory f)
     private Law Convolve(Law a, Law b)
     {
         Stats.Convolutions++;
+        if (transformConvolution && TryTransformConvolution(a, b) is { } transformed)
+        {
+            return transformed;
+        }
+
+        Stats.DirectConvolutionPairs += (long)a.Values.Length * b.Values.Length;
         f.Budget.Tick((long)a.Values.Length * b.Values.Length * (Words(a.Total) + Words(b.Total) - 1));
         Masses masses = NewMasses(a.Values.Length + b.Values.Length);
         for (var i = 0; i < a.Values.Length; i++)

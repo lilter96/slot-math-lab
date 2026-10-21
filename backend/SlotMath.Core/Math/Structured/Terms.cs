@@ -95,6 +95,11 @@ internal sealed class WorkBudget(long limit, TimeSpan? maxTime, CancellationToke
             return;
         }
 
+        Check();
+    }
+
+    public void Check()
+    {
         cancellation.ThrowIfCancellationRequested();
         if (maxTime is { } time && _clock.Elapsed > time)
         {

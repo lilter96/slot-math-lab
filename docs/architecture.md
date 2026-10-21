@@ -79,7 +79,11 @@ graph and returns the same exact rationals without enumerating:
    function of a single variable is kept as a table.
 2. **Independence.** A sum whose parts share no variable is the convolution of their laws
    (decomposability); an expectation is taken by linearity over the parts and never needs the law of
-   the payout itself.
+   the payout itself. Large dense numeric laws on a bounded rational lattice can use exact modular
+   transforms and CRT. The modulus product strictly exceeds a proven coefficient bound, and padding
+   preserves linear convolution. Small/sparse laws, errors and excessive spans retain direct
+   convolution. The transform is bounded to 2^20 positions and 96 prime moduli; all coefficients
+   remain exact integers. `UseTransformConvolution = false` selects the direct control.
 3. **Lumping.** A sub-term that carries everything random about its parent is replaced by one
    pseudo-variable with that sub-term's law, so only the law's distinct values are pushed further.
 4. **Symmetry.** Pseudo-variables are named by their law, so sub-models with one law — twenty paylines
@@ -111,11 +115,35 @@ From that one pass:
   and the probability of having added nothing. Mass that stops leaves through an exit class (state at
   exit, exit reason); what is still running after the last step leaves as `modelLimit`.
 
+For caps of at least 64, the solver first tries to discover the reachable finite state space and
+compose the same transfer operator by binary matrix powers. This handles cyclic and periodic chains
+without iterating through every step. `LoopMatrixMaxStates` defaults to 32, including absorbing exits
+(zero disables the optimization; the hard limit is 128). `LoopMatrixWork` defaults to 8M units, also
+bounded by a quarter of the remaining work. A growing state space, exhausted trial budget or
+coefficients beyond 65,536 bits return to the transfer recurrence. Cancellation and time limits still
+apply. The matrix path uses generic state transitions; no game names, mechanics or graph patterns
+select it.
+
+Each matrix entry carries the joint transition probability, first and cross second reward moments,
+nonnegative zero-reward events and proven reward bounds. Composition conditions on the intermediate
+state, retaining correlations between rewards and the next state. Coefficients use exact integers
+over a common reduced denominator. Stop checks use separate zero-reward absorbing exits: a stopping
+state reached on the final body iteration still exits as `modelLimit`, just as in the interpreter.
+States first reached at the horizon have no body evaluated. The answer remains the finite capped
+chain, including for nonabsorbing periodic classes; it is never replaced by an infinite-horizon or
+stationary result. Pruning certificates may be checked at exact binary-block prefixes, and report the
+actual remaining probability under the same interval contract below.
+
 Downstream the loop is one lumped variable over its exit classes per entry state. An amount is a term
 with a mean, second moments and a zero-probability per exit class and no law: its expectation is the
 mean (tower property, which is Wald's identity for a random number of iid spins), its square goes
-through the second-moment table. With the amounts moved into the chain state instead the loop keeps
-its full law; that is tried first on a small allowance, and it is what gives the payout distribution.
+through the second-moment table. Before carrying running totals in the chain state, Auto makes a
+bounded matrix probe with those amounts held apart. If every amount has exactly zero conditional
+variance at each entry/exit, the conditional means determine the complete joint law. This accepts
+only the full finite horizon with no pruned mass. Otherwise Auto tries the full-law chain on its
+usual allowance, then moments. No requested distribution is discarded merely to use the matrix
+path. The probe allowance is at most one eighth of `LoopLawWork` and one sixteenth of the remaining
+evaluation work, and the matrix computation has its additional local guard.
 A loop that is not such a chain (too many transition classes, a state that does not settle into one
 shape) is unrolled as before. The exact expected number of cap hits is reported per loop.
 
@@ -148,6 +176,16 @@ mass when a loop was cut short. When the payout distribution is too large to bui
 exact, hit frequency and variance are exact when their own derivations fit their allowances, and the
 maximum win is reported as absent.
 
+For a successful complete payout distribution, `StructuredExactResult.AnalyzeRisk` constructs an
+immutable `ExactPayoutLaw` in original credit units. It provides raw and central moments through
+order four, squared coefficient of variation, signed squared skewness, excess kurtosis, exact CDF
+and inclusive survival, left-inverse quantiles and upper-tail expected shortfall. Boundary atoms
+are split by probability so the selected tail has exactly the requested mass. Fixed positive stake
+queries translate payouts into RTP and per-round operator loss. A pruned loop or incomplete
+distribution cannot use this complete-law interface; it must retain interval/sampled provenance.
+The analyzer validates actual mass and copies its input; it does not certify a separately authored
+model's equivalence to a graph or turn empirical frequencies into population evidence.
+
 What it does not do: a win cap that is active (the proven maximum exceeds it) needs the payout
 distribution, because E[min(W, cap)] is not a function of moments; a loop whose state is large and does
 not factor (a board of sticky symbols carried as one chain state) is neither a small chain nor cheap
@@ -162,6 +200,10 @@ lumping (Derisavi, Hermanns, Sanders, IPL 87(6), 2003). Loops follow exact infer
 programs by generating functions (Klinkenberg et al., OOPSLA 2024; Zaiser et al., NeurIPS 2023), the
 moment recurrences of probabilistic loops (Moosbrugger, TU Wien 2024, and the Polar analyzer) and the
 transient analysis of Markov reward models in exact rational arithmetic as in Storm's exact engines.
+
+The [math engine roadmap](MATH_ENGINE_ROADMAP.md) separates current capabilities from planned
+higher moments, exact transform convolution, operator risk, factorized state models and policy
+analysis, with applicability conditions and benchmark gates.
 
 ### Sampled interpreter (`SampledInterpreter`)
 
