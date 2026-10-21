@@ -232,6 +232,16 @@ uniformization, ownership, limits and comparisons with sparse and existing
 symbolic inference. This prototype does not replace the production solver
 without an independent factorization/equivalence and resource-benefit gate.
 
+Supplied sparse chains also have exact [convergence certificates](CHAIN_CERTIFICATES.md):
+`FiniteChainStructure` identifies reachable SCCs, closed stochastic classes and
+periods; `ExactSurvivalCertificate` bounds killed-chain survival and expected
+reward tails; `ExactMixingCertificate` proves common-column contraction and
+candidate stationary residual bounds. They retain their immutable source
+kernel and exact witnesses. Noncontraction is inconclusive, not proof that a
+chain cannot converge. These helpers do not change compiled-game horizons or
+perform unlabelled pruning; graph equivalence and any interval-error propagation
+must be established before such an integration.
+
 What it does not do: a win cap that is active (the proven maximum exceeds it) needs the payout
 distribution, because E[min(W, cap)] is not a function of moments; a loop whose state is large and does
 not factor (a board of sticky symbols carried as one chain state) is neither a small chain nor cheap
