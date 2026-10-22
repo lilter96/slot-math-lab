@@ -137,6 +137,78 @@ even if the residual is zero. A stationary vector alone does not prove
 uniqueness or convergence from other starts. No floating-point eigensolver,
 logarithm or tolerance comparison enters these certificates.
 
+## Certified spectral diagnostics
+
+`ExactMixingCertificate.BoundSpectrum(precisionBits)` returns an immutable
+`ExactMixingSpectralBounds` tied to the original certificate/kernel. Let
+`D = {x : sum_i x[i] = 0}` and define `r` as the spectral radius of the row
+action of `P` restricted to `D`. This includes repeated unit eigenvalues and
+negative/complex modes. In a one-state chain the zero-dimensional restriction
+has radius zero. The **absolute** spectral gap is `1-r`, rather than a gap
+using only the second largest signed eigenvalue.
+
+The common-column proof above establishes the induced total-variation norm
+bound `||P^k|D|| <= rho`. Consequently `r^k <= rho`. This follows from the
+spectral-radius/norm inequality and the spectrum of powers; it does not need
+reversibility or diagonalizability. Coefficients of ergodicity and the related
+power bound are discussed by
+[Akelbek and Kirkland, section 2](https://www.hamilton.ie/skirkland/akel_kirk1.pdf).
+Here the spectral conclusion is derived from this certificate's explicitly
+proved norm inequality, including reducible kernels that contract.
+
+The result brackets the **certificate root** `rho^(1/k)` using exact rational
+bisection:
+
+```text
+ContractionRootLower <= rho^(1/k) <= ContractionRootUpper
+ContractionRootUpper - ContractionRootLower <= 2^(-precisionBits)
+r <= ContractionRootUpper
+AbsoluteGapLowerBound = 1 - ContractionRootUpper
+```
+
+`ContractionRootLower` is not a lower bound on an actual eigenvalue or on `r`.
+The root of a loose norm bound may exceed the actual spectral radius. For
+`k=1`, `rho=0`, `rho=1`, or a root encountered exactly during bisection, the
+root bracket is exact. No floating-point power, logarithm or eigensolver is
+used. Periodic permutations and multiple stationary classes return only the
+vacuous radius bound one and gap lower bound zero. Even a contracting
+certificate can return zero at coarse precision when its true root is very
+close to one; `ProvesPositiveGap == false` does not prove nonmixing.
+
+For `P=(I+C)/2`, with `C` the three-state cyclic permutation, the two complex
+nonstationary eigenvalues have modulus `1/2`. At `k=2` the certificate has
+`rho=1/4` and recovers the exact gap `1/2`. At `k=3`, the same `rho=1/4`
+has a cube root larger than `1/2`; at eight bits the bracket is
+`[161/256,81/128]`, proving only a gap of at least `47/128`. This example
+explicitly separates a spectral bound from a computed spectrum.
+
+These diagnostics do not supply a general finite-time mixing formula from the
+gap alone. The nonnormal chain `0 -> 1 -> 2 -> 2` has spectrum `1,0,0` and
+absolute gap one, yet needs two steps to reach stationarity from state zero.
+Continue to use `UpperDistance` and `FindSteps`, which retain the certified
+block length. No evaluator horizon, truncation or `ExactInterval` changes.
+
+Precision is bounded to 1..1,024 bits. Scalar root work has a separate
+`ExactLinearOptions`/cancellation allowance and reports only its own `Work`;
+the original certificate's construction cost remains separate. There are at
+most `precisionBits` power comparisons, each using logarithmically many
+rational products in `k`, with coefficient growth controlled by work/bit/time
+guards. A root may decline even when the existing certificate is usable.
+Returned root/gap rationals and all rational-power intermediates obey the
+stored-number guard; this is not a heap-byte bound or a zero-allocation claim.
+
+The spectral addition passed all 19 selected certificate regressions after
+both required JetBrains profiles on the three affected C# files. Seven new
+cases include 96 pinned two-state characteristic-root checks, exact positive
+and negative modes, complex cyclic modes, loose root enclosures, repeated
+unit modes, coarse-precision inconclusiveness, nonnormal transients, resource
+limits and cancellation. Expected spectra come from explicit characteristic
+polynomials or cyclic/triangular structure, independently of the enclosure
+implementation. The Release solution build and solution-wide formatting
+verification passed. Generated evidence remains under `/tmp/spectral-bound-*`;
+no complete local suite, database integration or browser run was required for
+this offline scalar diagnostic.
+
 ## Threshold planning and resource contracts
 
 Both certificate types offer `FindSteps(tolerance, maxBlocks)`. It uses exact

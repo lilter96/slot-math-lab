@@ -307,6 +307,11 @@ public sealed class ExactMixingCertificate
     public bool Contracts => Mass > Rational.Zero;
     public long Work { get; }
 
+    /// <summary>Certified root enclosure and absolute spectral-gap lower bound, without a numerical eigensolver.</summary>
+    public ExactMixingSpectralBounds BoundSpectrum(int precisionBits = 64, ExactLinearOptions? options = null,
+        CancellationToken cancellation = default) =>
+        ExactMixingSpectralBounds.Create(this, precisionBits, options, cancellation);
+
     public static ExactMixingCertificate Create(ExactSparseMatrix kernel, int blockSteps,
         ExactLinearOptions? options = null, CancellationToken cancellation = default)
     {
