@@ -5,6 +5,76 @@ namespace SlotMath.Core.Tests.Math;
 
 public sealed class ExactIntegerConvolutionTests
 {
+    [Fact]
+    public void TransformPreflightMatchesActualChargesAtTheExactWorkBoundary()
+    {
+        BigInteger origin = BigInteger.One << 1023;
+        BigInteger[] a = Enumerable.Range(0, 512).Select(i => origin + 11 + 3 * i).ToArray();
+        BigInteger[] b = Enumerable.Range(0, 512).Select(i => origin + 23 + 5 * i).ToArray();
+        const long allowance = 6995772;
+        long used = 0;
+
+        void Spend(long units)
+        {
+            used = checked(used + units);
+            Assert.True(used <= allowance);
+        }
+
+        Assert.True(ExactIntegerConvolution.TryTransform(a, b, Spend, out BigInteger[] actual, true, null, allowance));
+        Assert.Equal(allowance, used);
+        Assert.Equal(Direct(a, b), actual);
+        used = 0;
+        Assert.False(ExactIntegerConvolution.TryTransform(a, b, Spend, out BigInteger[] withheld, true, null,
+            allowance - 1));
+        Assert.Empty(withheld);
+        Assert.Equal(17408, used);
+    }
+
+    [Fact]
+    public void ExpensiveTransformCanDeclineBeforeSpendingAStillUsableDirectBudget()
+    {
+        var a = new BigInteger[4096];
+        var b = new BigInteger[4096];
+        BigInteger origin = BigInteger.One << 31;
+        for (var i = 0; i < 1024; i++)
+        {
+            a[4 * i] = origin + 11 + 3 * i;
+            b[4 * i] = origin + 23 + 5 * i;
+        }
+
+        a[1] = origin + 112;
+        b[1] = origin + 126;
+        Assert.True(ExactIntegerConvolution.TryTransform(a, b, _ => { }, out BigInteger[] expected));
+        const long allowance = 1100000;
+        long used = 0;
+
+        void Spend(long units)
+        {
+            used = checked(used + units);
+            Assert.True(used <= allowance);
+        }
+
+        Assert.False(
+            ExactIntegerConvolution.TryTransform(a, b, Spend, out BigInteger[] withheld, true, null, allowance));
+        Assert.Empty(withheld);
+        var actual = new BigInteger[8191];
+        foreach ((BigInteger value, int index) x in a.Select((value, index) => (value, index))
+                     .Where(atom => !atom.value.IsZero))
+        {
+            foreach ((BigInteger value, int index) y in b.Select((value, index) => (value, index))
+                         .Where(atom => !atom.value.IsZero))
+            {
+                Spend(1);
+                actual[x.index + y.index] += x.value * y.value;
+            }
+        }
+
+        Assert.Equal(expected, actual);
+        Assert.Equal(1058817, used);
+        Assert.Throws<ArgumentOutOfRangeException>(() => ExactIntegerConvolution.TryTransform(a, b, Spend,
+            out _, true, null, -1));
+    }
+
     private static BigInteger[] Direct(BigInteger[] a, BigInteger[] b)
     {
         var result = new BigInteger[a.Length + b.Length - 1];

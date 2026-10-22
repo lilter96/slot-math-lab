@@ -5,6 +5,42 @@ namespace SlotMath.Core.Tests.Math;
 
 public sealed class ExactOperatorExposureTests
 {
+    [Fact]
+    public void PortfolioKeepsTheCompleteLawWhenItsBudgetFitsDirectButNotTransform()
+    {
+        var builder = new DistBuilder<BigInteger>();
+        BigInteger origin = BigInteger.One << 31;
+        BigInteger[] weights = Enumerable.Range(0, 1024).Select(i => origin + 11 + 3 * i)
+            .Append(origin + 112).ToArray();
+        BigInteger total = weights.Aggregate(BigInteger.Add);
+        for (var i = 0; i < 1024; i++)
+        {
+            builder.Add(4 * i, weights[i], total);
+        }
+
+        builder.Add(1, weights[^1], total);
+        Dist<BigInteger> law = builder.Build();
+        var options = new ExactExposureOptions
+        {
+            MaxWork = 4000000,
+            UseTransformConvolution = false
+        };
+        ExactExposureResult direct = ExactOperatorExposure.Independent(law, 1, 1, 2, options: options);
+        ExactExposureResult bounded = ExactOperatorExposure.Independent(law, 1, 1, 2, options: options with
+        {
+            MaxWork = direct.Diagnostics.DistributionWork + 25000,
+            UseTransformConvolution = true
+        });
+        Assert.Equal(0, bounded.Diagnostics.TransformConvolutions);
+        Assert.Equal(direct.FinalLoss.Atoms, bounded.FinalLoss.Atoms);
+        ExactExposureResult generous = ExactOperatorExposure.Independent(law, 1, 1, 2, options: options with
+        {
+            UseTransformConvolution = true
+        });
+        Assert.True(generous.Diagnostics.TransformConvolutions > 0);
+        Assert.Equal(direct.FinalLoss.Atoms, generous.FinalLoss.Atoms);
+    }
+
     private static Dist<BigInteger> Law(params (int Payout, int Weight)[] atoms)
     {
         var builder = new DistBuilder<BigInteger>();

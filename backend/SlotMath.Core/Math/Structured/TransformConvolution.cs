@@ -112,7 +112,7 @@ internal sealed partial class Inference
             }
 
             if (!ExactIntegerConvolution.TryTransform(x, y, Spend, out BigInteger[] product,
-                    storage: f.Budget.Storage))
+                    true, f.Budget.Storage, System.Math.Max(0, f.Budget.Limit - f.Budget.Used)))
             {
                 return null;
             }

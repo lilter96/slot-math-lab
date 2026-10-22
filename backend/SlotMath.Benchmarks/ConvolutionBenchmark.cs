@@ -66,7 +66,7 @@ internal static class ConvolutionBenchmark
         }
 
         var spec = new Specification(Number("--length", "4096"), Number("--right-length", Option("--length", "4096")),
-            Number("--bits", "32"), Number("--stride", "1"));
+            Number("--bits", "32"), Number("--stride", "1"), args.Contains("--unit-coefficients"));
         var mode = Option("--convolution-mode", "auto");
         var repeats = Number("--repeats", "6");
         var warmups = Number("--warmups", "2");
@@ -228,12 +228,14 @@ internal static class ConvolutionBenchmark
         }
     }
 
-    private sealed record Specification(int Left, int Right, int Bits, int Stride);
+    private sealed record Specification(int Left, int Right, int Bits, int Stride, bool Unit);
 
     private sealed class Workload(Specification spec)
     {
-        private readonly BigInteger _a = (BigInteger.One << (spec.Bits - 1)) + 11;
-        private readonly BigInteger _c = (BigInteger.One << (spec.Bits - 1)) + 23;
+        private readonly BigInteger _a = spec.Unit ? BigInteger.One : (BigInteger.One << (spec.Bits - 1)) + 11;
+        private readonly BigInteger _c = spec.Unit ? BigInteger.One : (BigInteger.One << (spec.Bits - 1)) + 23;
+        private int LeftSlope => spec.Unit ? 0 : 3;
+        private int RightSlope => spec.Unit ? 0 : 5;
         public BigInteger[] Left { get; } = new BigInteger[spec.Left];
         public BigInteger[] Right { get; } = new BigInteger[spec.Right];
 
@@ -241,12 +243,12 @@ internal static class ConvolutionBenchmark
         {
             for (var i = 0; i < Left.Length; i += spec.Stride)
             {
-                Left[i] = _a + 3 * (i / spec.Stride);
+                Left[i] = _a + LeftSlope * (i / spec.Stride);
             }
 
             for (var i = 0; i < Right.Length; i += spec.Stride)
             {
-                Right[i] = _c + 5 * (i / spec.Stride);
+                Right[i] = _c + RightSlope * (i / spec.Stride);
             }
 
             // An extra atom prevents a regularly spaced sparse input from being only a rescaled dense lattice.
@@ -280,16 +282,17 @@ internal static class ConvolutionBenchmark
                         BigInteger sum = (BigInteger)hi * (hi + 1) / 2 - (BigInteger)(lo - 1) * lo / 2;
                         BigInteger squares = (BigInteger)hi * (hi + 1) * (2 * hi + 1) / 6 -
                                              (BigInteger)(lo - 1) * lo * (2 * lo - 1) / 6;
-                        // Sum (a + 3*i)*(c + 5*(k-i)) over the exact overlap, using Faulhaber sums.
-                        result[position] = _a * (_c + 5 * k) * count +
-                            (3 * (_c + 5 * k) - 5 * _a) * sum - 15 * squares;
+                        // Sum the product of two affine sequences over the overlap, using Faulhaber sums.
+                        result[position] = _a * (_c + RightSlope * k) * count +
+                                           (LeftSlope * (_c + RightSlope * k) - RightSlope * _a) * sum -
+                                           LeftSlope * RightSlope * squares;
                     }
                 }
 
                 if (spec.Stride > 1)
                 {
-                    result[position] += (_a + 101) * Base(position - 1, Right.Length, _c, 5) +
-                                        (_c + 103) * Base(position - 1, Left.Length, _a, 3);
+                    result[position] += (_a + 101) * Base(position - 1, Right.Length, _c, RightSlope) +
+                                        (_c + 103) * Base(position - 1, Left.Length, _a, LeftSlope);
                     if (position == 2)
                     {
                         result[position] += (_a + 101) * (_c + 103);

@@ -78,6 +78,18 @@ internal static class ConvolutionMatrixBenchmark
         var core = typeof(Rational).Assembly.Location;
         var benchmarkHash = HashFile(benchmark);
         var coreHash = HashFile(core);
+        var unit = args.Contains("--unit-coefficients");
+        var baseline = Option("--baseline-benchmark", "");
+        var baselineCore = baseline.Length == 0
+            ? null
+            : Path.Combine(Path.GetDirectoryName(Path.GetFullPath(baseline))!, "SlotMath.Core.dll");
+        var baselineCoreHash = baselineCore is null ? null : HashFile(baselineCore);
+        if (baselineCore is not null && HashFile(baseline) != benchmarkHash)
+        {
+            throw new ArgumentException(
+                "Use the same benchmark DLL with the frozen baseline Core DLL for matched comparisons.");
+        }
+
         var repository = Directory.GetCurrentDirectory();
         var backend = Path.Combine(repository, "backend");
         if (!File.Exists(Path.Combine(backend, "SlotMathLab.slnx")))
@@ -104,7 +116,9 @@ internal static class ConvolutionMatrixBenchmark
         void CheckFrozen()
         {
             if (HashFile(benchmark) != benchmarkHash || HashFile(core) != coreHash ||
-                sources.Any(pair => HashFile(Path.Combine(repository, pair.Key)) != pair.Value))
+                sources.Any(pair => HashFile(Path.Combine(repository, pair.Key)) != pair.Value) ||
+                (baselineCore is not null &&
+                 (HashFile(baselineCore) != baselineCoreHash || HashFile(baseline) != benchmarkHash)))
             {
                 throw new InvalidOperationException(
                     "Source or binaries changed during the benchmark; measurements are not comparable.");
@@ -118,13 +132,15 @@ internal static class ConvolutionMatrixBenchmark
                 foreach (var stride in strides)
                 {
                     var right = rightLength == 0 ? length : rightLength;
-                    var key = $"n{length}-m{right}-b{coefficientBits}-s{stride}";
+                    var key = $"n{length}-m{right}-b{coefficientBits}-s{stride}" + (unit ? "-unit" : "");
                     var leftAtoms = (length - 1) / stride + 1 + (stride > 1 ? 1 : 0);
                     var rightAtoms = (right - 1) / stride + 1 + (stride > 1 ? 1 : 0);
                     var pairs = (long)leftAtoms * rightAtoms;
                     string? expected = null;
                     string? expectedLeft = null, expectedRight = null;
-                    foreach (var control in new[] { "direct", "transform" })
+                    foreach (var control in baselineCore is null
+                                 ? new[] { "direct", "transform" }
+                                 : new[] { "baseline" })
                     {
                         if (control == "direct" && pairs > pairLimit)
                         {
@@ -147,6 +163,9 @@ internal static class ConvolutionMatrixBenchmark
                             {
                                 CheckFrozen();
                                 var mode = order[position];
+                                var executable = mode == "baseline" ? baseline : benchmark;
+                                var childMode = mode == "baseline" ? "auto" : mode;
+                                var expectedCoreHash = mode == "baseline" ? baselineCoreHash : coreHash;
                                 var name = $"{key}-{control}-{block}-{position}-{mode}";
                                 var reportPath = Path.Combine(directory, name + ".json");
                                 var start = new ProcessStartInfo("dotnet")
@@ -157,7 +176,7 @@ internal static class ConvolutionMatrixBenchmark
                                 };
                                 foreach (var argument in new[]
                                          {
-                                             benchmark, "--convolution-mode", mode, "--length",
+                                             executable, "--convolution-mode", childMode, "--length",
                                              length.ToString(CultureInfo.InvariantCulture), "--right-length",
                                              right.ToString(CultureInfo.InvariantCulture), "--bits",
                                              coefficientBits.ToString(CultureInfo.InvariantCulture), "--stride",
@@ -169,6 +188,11 @@ internal static class ConvolutionMatrixBenchmark
                                          })
                                 {
                                     start.ArgumentList.Add(argument);
+                                }
+
+                                if (unit)
+                                {
+                                    start.ArgumentList.Add("--unit-coefficients");
                                 }
 
                                 start.Environment["DOTNET_TieredCompilation"] = "0";
@@ -211,7 +235,7 @@ internal static class ConvolutionMatrixBenchmark
                                 expected ??= fingerprint;
                                 expectedLeft ??= root.GetProperty("leftSha256").GetString();
                                 expectedRight ??= root.GetProperty("rightSha256").GetString();
-                                if (root.GetProperty("coreBinarySha256").GetString() != coreHash ||
+                                if (root.GetProperty("coreBinarySha256").GetString() != expectedCoreHash ||
                                     root.GetProperty("benchmarkBinarySha256").GetString() != benchmarkHash ||
                                     fingerprint != expected ||
                                     root.GetProperty("leftSha256").GetString() != expectedLeft ||
@@ -287,6 +311,8 @@ internal static class ConvolutionMatrixBenchmark
             completedAt = DateTimeOffset.UtcNow,
             lengths,
             rightLength,
+            unit,
+            baselineCoreHash,
             bits,
             strides,
             blocks,

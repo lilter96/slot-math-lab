@@ -6,16 +6,25 @@ namespace SlotMath.Benchmarks;
 /// <summary>A reproducible workload authored with ordinary atoms, independent of solver selection.</summary>
 internal static class NumericSumBenchmark
 {
-    public static GraphConfig Graph(int count)
+    public static GraphConfig Graph(int count, int stride = 1, int coefficientBits = 0)
     {
         ArgumentOutOfRangeException.ThrowIfLessThan(count, 2);
         ArgumentOutOfRangeException.ThrowIfGreaterThan(count, 65536);
+        if (stride is < 1 or > 1024)
+        {
+            throw new ArgumentOutOfRangeException(nameof(stride));
+        }
+
+        if (coefficientBits is < 0 or > 62)
+        {
+            throw new ArgumentOutOfRangeException(nameof(coefficientBits));
+        }
 
         Dictionary<string, Port> Ports()
         {
             return new Dictionary<string, Port>
             {
-                ["state"] = new Port
+                ["state"] = new()
                 {
                     Name = "state",
                     Type = PortType.State
@@ -25,17 +34,28 @@ internal static class NumericSumBenchmark
 
         DrawNode Draw(string id)
         {
+            var origin = coefficientBits == 0 ? 0 : 1L << (coefficientBits - 1);
+            IEnumerable<DrawWeight> weights = Enumerable.Range(0, count).Select(i => new DrawWeight
+            {
+                OutcomeId = (i * stride).ToString(CultureInfo.InvariantCulture),
+                Weight = coefficientBits == 0 ? 1 + i % 7 : origin + (id == "a" ? 11 + 3L * i : 23 + 5L * i)
+            });
+            if (stride > 1)
+            {
+                weights = weights.Append(new DrawWeight
+                {
+                    OutcomeId = "1",
+                    Weight = coefficientBits == 0 ? 1 : origin + (id == "a" ? 112 : 126)
+                });
+            }
+
             return new DrawNode
             {
                 Id = id,
                 StateWriteKey = id,
                 Inputs = id == "a" ? [] : Ports(),
                 Outputs = Ports(),
-                DrawWeights = Enumerable.Range(0, count).Select(i => new DrawWeight
-                {
-                    OutcomeId = i.ToString(CultureInfo.InvariantCulture),
-                    Weight = 1 + i % 7
-                }).ToArray()
+                DrawWeights = weights.ToArray()
             };
         }
 
@@ -104,7 +124,7 @@ internal static class NumericSumBenchmark
                 {
                     Id = "sink",
                     WinStateKey = "win",
-                    WinCap = 2 * count,
+                    WinCap = 2L * count * stride,
                     Inputs = Ports()
                 }
             ],

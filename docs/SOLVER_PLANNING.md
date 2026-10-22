@@ -247,6 +247,40 @@ project, props/targets and present SDK selection files to their SHA-256.
 Reports, input JSON, oracle runner and source manifest remain under
 `/tmp/evidence-planner-benchmarks`; generated output is not committed.
 
+## Cost of requesting fourth-order moments
+
+A separate 2026-10-22 comparison keeps the two-state 256-step random fixture,
+Auto plan and `Moments,HitFrequency` evidence fixed, changing only
+`--moment-order 2` versus `--moment-order 4`. Two ABBA/BAAB blocks run eight
+processes with tiered compilation disabled and a 1 GiB managed heap allowance.
+Each process evaluates six times and discards the first two, giving 16 warm
+samples per variant. All 48 outputs match the independently derived requested
+moments and hit probability; neither variant attempts an optional payout law.
+
+| Requested order | Wall ms [P25, P75] | Allocated bytes | Charged work |
+| --- | ---: | ---: | ---: |
+| 2 | 0.533 [0.410, 0.606] | 184,304 | 1,014 |
+| 4 | 0.620 [0.544, 0.710] | 289,736 | 1,963 |
+
+Fourth-order evidence costs 57.2% more allocation and 93.6% more charged work
+in this single-channel fixture. The wall median is 16.4% higher, but quartiles
+overlap; it is not a general overhead prediction. Multichannel closures grow
+combinatorially and retain their independent degree/coefficient/work guards.
+Higher moments add evidence rather than accelerate the existing mean.
+
+Reproduce with the same fixture described above and
+`--exact --evidence Moments,HitFrequency --moment-order 2 --repeats 6 --report
+/tmp/order2.json`, alternating with order four in separate processes. The
+input SHA-256 is
+`0d87fdebc2c3175981270915a660cbd7a0d18453cf89c54eecb7429767aa8421`;
+configuration hash is
+`395e067785580fdd3a6d33d264b8acba6f0e958f470867a8e6fb3237bb8027ad`.
+Core/benchmark identities match the new libraries in
+[CONVOLUTION_BENCHMARKS.md](CONVOLUTION_BENCHMARKS.md). Sources and binaries
+were checked before and after each process. One-minute host load changed from
+2.56 to 2.32. Raw reports, input, oracle runner and source manifest remain under
+`/tmp/loop-moment-overhead-final`, outside Git.
+
 ## Regression gate
 
 126 selected Core cases passed, including 13 new evidence/storage cases and
@@ -267,6 +301,16 @@ outside Git under `/tmp/evidence-planner-*.log`.
 
 
 ## API and Results integration
+
+The retained Results population container has an explicit zero minimum width
+so expanded risk/diagnostic tables scroll within their own region on phones.
+The critical population regression checks the workspace's actual scroll width,
+in addition to document width, at desktop and phone sizes. This catches grid
+overflow that an outer viewport can otherwise hide. After the scoped Rider
+profiles on all three affected frontend files, scoped ESLint, the Node.js 22
+build and the single browser regression passed; phone screenshots of the form,
+exposure and lower evidence sections were inspected. Earlier clipped screenshots
+remain retained locally as failure evidence.
 
 `POST /api/evaluate/graph` accepts an optional `evidence` string and
 `diagnostics` boolean. Existing callers default to `Report` with diagnostics

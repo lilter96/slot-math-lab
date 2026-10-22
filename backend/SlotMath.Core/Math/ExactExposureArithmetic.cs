@@ -264,7 +264,8 @@ internal sealed class ExposurePolynomial
             y[(int)((value - ro) / step)] = weight;
         }
 
-        if (!ExactIntegerConvolution.TryTransform(x, y, budget.Spend, out BigInteger[] output))
+        if (!ExactIntegerConvolution.TryTransform(x, y, budget.Spend, out BigInteger[] output, true, null,
+                budget.Options.MaxWork - budget.Work))
         {
             return null;
         }

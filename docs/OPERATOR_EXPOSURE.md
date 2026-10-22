@@ -172,7 +172,51 @@ reported every scoped file. Failure and verification logs remain local under
 `/tmp/exposure-*`, outside Git. No full suite, database integration or browser
 tests ran for this math/API milestone.
 
-The transform comparison establishes exact law equality and a lower charged
-work count for the selected dense fixture; it is not a wall-time speedup or
-capacity measurement. The deterministic long-horizon case verifies bounded
-composition work, not a throughput claim for stochastic trillion-round laws.
+The original transform regression establishes exact law equality and a lower
+charged work count for its selected dense fixture. The subsequent generic
+convolution matrix and JSON-graph measurements are documented separately in
+[CONVOLUTION_BENCHMARKS.md](CONVOLUTION_BENCHMARKS.md); their speed ratios are
+not measurements of arbitrary portfolio models. The deterministic long-horizon
+case verifies bounded composition work, not a throughput claim for stochastic
+trillion-round laws.
+
+## Public API capacity boundary probe
+
+On 2026-10-22 a local Release API received 21 sequential real HTTP requests:
+three repetitions for each case below. The graph pays zero or two credits
+with equal probability, stake is one, and all round resets are explicitly
+independent. Each response requests exact one-round moments/tails and an
+independent horizon with reserve zero, except the last row. These are boundary
+observations on a shared host, not an isolated throughput benchmark or a
+general capacity promise.
+
+| Rounds / reserve | Final loss law | First-passage ruin | HTTP wall median ms |
+| --- | --- | --- | ---: |
+| 3 / 0 | Exact | Exact | 1.731 |
+| 64 / 0 | Exact | Exact | 3.746 |
+| 256 / 0 | Exact | Exact | 35.723 |
+| 1,024 / 0 | Exact | Unavailable: optional work exhausted | 192.292 |
+| 4,096 / 0 | Unavailable: total work exhausted | Unavailable | 37.374 |
+| 1,000,000 / 0 | Unavailable: total work exhausted | Unavailable | 43.639 |
+| 1,024 / 1,024 | Exact | Exact zero by the prefix bound | 35.713 |
+
+All 21 responses returned HTTP 200, preserved exact one-round population
+results and retained one configuration fingerprint. Successful horizon
+results independently matched mean zero, variance `H` and the binomial final
+loss formula. For zero reserve, the exact ruin oracle is
+`1 - C(H,floor(H/2))/2^H`, from the simple-walk reflection/counting identity.
+Exact terminal exceedance for even `H` is `(1-C(H,H/2)/2^H)/2`, and one half
+for odd `H`. Unavailable fields remained null with explicit reasons. The
+largest observed HTTP duration was 217.375 ms; this is an observation for these
+inputs, not a wall-time guarantee from cooperative guards. Bit growth and
+support/state coupling change the boundary on other models.
+
+Reproduce with the equal-mass 0/2 graph in
+`frontend/e2e/exact-population.spec.ts`, named `Operator capacity probe`, using
+`POST /api/evaluate/graph` with `mode: "Exact"`, stake `"1"`, moment order four,
+tail probabilities `['19/20','99/100']` and the rounds/reserve above. The graph
+configuration hash is
+`505d6397c84b784b94496da1eb9637be5959bb00140bce2be169e6f567b3b0e3`.
+Raw responses, input, independent oracle and timing log remain under
+`/tmp/exposure-api-capacity-final`, outside Git. The Core binary is the measured
+candidate identified in [CONVOLUTION_BENCHMARKS.md](CONVOLUTION_BENCHMARKS.md).

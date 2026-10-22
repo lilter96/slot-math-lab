@@ -149,7 +149,8 @@ internal static class GraphPerformance
         var workers = int.Parse(Option("--workers", "1"));
         GraphConfig graph = args.Contains("--numeric-sum")
             ? NumericSumBenchmark.Graph(int.Parse(Option("--numeric-sum", "1024"),
-                CultureInfo.InvariantCulture))
+                    CultureInfo.InvariantCulture), int.Parse(Option("--sum-stride", "1"), CultureInfo.InvariantCulture),
+                int.Parse(Option("--sum-weight-bits", "0"), CultureInfo.InvariantCulture))
             : JsonSerializer.Deserialize<GraphConfig>(File.ReadAllText(path), JsonOptions.Default)!;
         SamplingOptions.Tier = Enum.Parse<SamplingTier>(Option("--tier", "Tiered"), true);
         var compileTimer = Stopwatch.StartNew();

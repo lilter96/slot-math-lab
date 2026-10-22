@@ -54,7 +54,14 @@ internal static class ExactIntegerConvolution
     /// <summary>True only when a complete exact transform is returned. Scratch buffers never escape.</summary>
     public static bool TryTransform(ReadOnlySpan<BigInteger> left, ReadOnlySpan<BigInteger> right,
         Action<long> spend, out BigInteger[] result, bool requireAdvantage = true, ExactStorageTracker? storage = null)
+        => TryTransform(left, right, spend, out result, requireAdvantage, storage, null);
+
+    /// <summary>Preflight uses the caller's remaining work before inspection; rejected plans return no partial result.</summary>
+    internal static bool TryTransform(ReadOnlySpan<BigInteger> left, ReadOnlySpan<BigInteger> right,
+        Action<long> spend, out BigInteger[] result, bool requireAdvantage, ExactStorageTracker? storage,
+        long? workAllowance)
     {
+        ArgumentOutOfRangeException.ThrowIfNegative(workAllowance ?? 0);
         result = [];
         if (left.Length == 0 || right.Length == 0 || left.Length > MaximumLength ||
             right.Length > MaximumLength || (long)left.Length + right.Length - 1 > MaximumLength)
@@ -62,8 +69,13 @@ internal static class ExactIntegerConvolution
             return false;
         }
 
-        (BigInteger Sum, BigInteger Max, int Nonzero) a = Inspect(left, spend);
-        (BigInteger Sum, BigInteger Max, int Nonzero) b = Inspect(right, spend);
+        if (workAllowance is { } minimum && minimum < (long)left.Length + right.Length)
+        {
+            return false;
+        }
+
+        (BigInteger Sum, BigInteger Max, int Nonzero, long Work) a = Inspect(left, spend);
+        (BigInteger Sum, BigInteger Max, int Nonzero, long Work) b = Inspect(right, spend);
         var count = left.Length + right.Length - 1;
         if (a.Sum.IsZero || b.Sum.IsZero)
         {
@@ -90,8 +102,17 @@ internal static class ExactIntegerConvolution
         var levels = BitOperations.Log2((uint)length);
         var words = 1 + bound.GetBitLength() / 64;
         var transformCost = primes * (3L * length * (levels + 1) + (left.Length + right.Length + count) * words);
-        var directCost = (long)a.Nonzero * b.Nonzero * words;
+        // Multiplication depends on both operand widths; addition and output storage depend on the result width.
+        // This CPU estimate is deliberately separate from the caller's charged arithmetic-work contract.
+        var productWords = (1 + a.Max.GetBitLength() / 64) * (1 + b.Max.GetBitLength() / 64);
+        var directCost = (long)a.Nonzero * b.Nonzero * (productWords + words);
         if (requireAdvantage && (a.Nonzero < 64 || b.Nonzero < 64 || transformCost * 2 >= directCost))
+        {
+            return false;
+        }
+
+        var chargedWork = a.Work + b.Work + transformCost + primes * (256L + length);
+        if (workAllowance is { } available && chargedWork > available)
         {
             return false;
         }
@@ -159,11 +180,12 @@ internal static class ExactIntegerConvolution
         }
     }
 
-    private static (BigInteger Sum, BigInteger Max, int Nonzero) Inspect(ReadOnlySpan<BigInteger> values,
+    private static (BigInteger Sum, BigInteger Max, int Nonzero, long Work) Inspect(ReadOnlySpan<BigInteger> values,
         Action<long> spend)
     {
         BigInteger sum = BigInteger.Zero, maximum = BigInteger.Zero;
         var nonzero = 0;
+        long inspected = 0;
         for (var i = 0; i < values.Length; i++)
         {
             if ((i & 255) == 0)
@@ -175,6 +197,7 @@ internal static class ExactIntegerConvolution
                 }
 
                 spend(work);
+                inspected += work;
             }
 
             BigInteger value = values[i];
@@ -188,7 +211,7 @@ internal static class ExactIntegerConvolution
             nonzero += value.IsZero ? 0 : 1;
         }
 
-        return (sum, maximum, nonzero);
+        return (sum, maximum, nonzero, inspected);
     }
 
     private static void Load(ReadOnlySpan<BigInteger> source, Span<uint> into, uint prime, long words,
