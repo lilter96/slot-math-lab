@@ -73,10 +73,14 @@ internal sealed partial class Inference
         var lengthA = (int)spanA.Numerator + 1;
         var lengthB = (int)spanB.Numerator + 1;
         BigInteger[] left = ArrayPool<BigInteger>.Shared.Rent(lengthA);
+        using ExactStorageTracker.Lease? leftCapacity =
+            f.Budget.Storage?.Hold(ExactStorageKind.ConvolutionLatticeCapacity, left.Length);
         BigInteger[]? right = null;
         try
         {
             right = ArrayPool<BigInteger>.Shared.Rent(lengthB);
+            using ExactStorageTracker.Lease? rightCapacity =
+                f.Budget.Storage?.Hold(ExactStorageKind.ConvolutionLatticeCapacity, right.Length);
             Span<BigInteger> x = left.AsSpan(0, lengthA), y = right.AsSpan(0, lengthB);
             x.Clear();
             y.Clear();
@@ -107,18 +111,21 @@ internal sealed partial class Inference
                 f.Budget.Check();
             }
 
-            if (!ExactIntegerConvolution.TryTransform(x, y, Spend, out BigInteger[] product))
+            if (!ExactIntegerConvolution.TryTransform(x, y, Spend, out BigInteger[] product,
+                    storage: f.Budget.Storage))
             {
                 return null;
             }
 
             Stats.TransformConvolutions++;
+            using ExactStorageTracker.Lease? outputSlots =
+                f.Budget.Storage?.Hold(ExactStorageKind.ConvolutionResultSlots, product.Length);
             Stats.LargestConvolutionSpan = System.Math.Max(Stats.LargestConvolutionSpan, product.Length);
             Rational origin = ra.Min + rb.Min;
             BigInteger denominator = Rational.Lcm(origin.Denominator, step.Denominator);
             BigInteger numerator = origin.Numerator * (denominator / origin.Denominator);
             BigInteger increment = step.Numerator * (denominator / step.Denominator);
-            Masses masses = NewMasses(product.Length);
+            using Masses masses = NewMasses(product.Length);
             for (var i = 0; i < product.Length; i++)
             {
                 Spend(1);

@@ -253,6 +253,16 @@ action semantics are inferred from compiled graphs and no new runtime atom is
 added. The monetary timing, observation and graph-equivalence gates remain
 separate from merely obtaining a finite reference result.
 
+Structured evaluation also accepts an explicit [evidence plan](SOLVER_PLANNING.md).
+The compatible default remains a full report. Moment requests start with moment
+summaries and skip an optional final PMF, while active caps and reachable-error
+checks retain the laws needed for correctness. Diagnostics record each whole
+attempt and its work. Opt-in storage counters report documented logical cache
+ownership and buffer capacities; they describe neither total heap bytes nor
+an unqualified process memory bound. Working loop caches and replaced matrix
+rows are released without discarding deferred exit moments. API requests still
+use the default report until the generated client/UI contract is extended.
+
 What it does not do: a win cap that is active (the proven maximum exceeds it) needs the payout
 distribution, because E[min(W, cap)] is not a function of moments; a loop whose state is large and does
 not factor (a board of sticky symbols carried as one chain state) is neither a small chain nor cheap

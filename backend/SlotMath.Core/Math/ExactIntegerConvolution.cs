@@ -53,7 +53,7 @@ internal static class ExactIntegerConvolution
 
     /// <summary>True only when a complete exact transform is returned. Scratch buffers never escape.</summary>
     public static bool TryTransform(ReadOnlySpan<BigInteger> left, ReadOnlySpan<BigInteger> right,
-        Action<long> spend, out BigInteger[] result, bool requireAdvantage = true)
+        Action<long> spend, out BigInteger[] result, bool requireAdvantage = true, ExactStorageTracker? storage = null)
     {
         result = [];
         if (left.Length == 0 || right.Length == 0 || left.Length > MaximumLength ||
@@ -67,6 +67,7 @@ internal static class ExactIntegerConvolution
         var count = left.Length + right.Length - 1;
         if (a.Sum.IsZero || b.Sum.IsZero)
         {
+            using ExactStorageTracker.Lease? zeroSlots = storage?.Hold(ExactStorageKind.ConvolutionResultSlots, count);
             result = new BigInteger[count];
             return true;
         }
@@ -95,12 +96,17 @@ internal static class ExactIntegerConvolution
             return false;
         }
 
+        using ExactStorageTracker.Lease? outputSlots = storage?.Hold(ExactStorageKind.ConvolutionResultSlots, count);
         var output = new BigInteger[count];
         var first = ArrayPool<uint>.Shared.Rent(length);
+        using ExactStorageTracker.Lease? firstCapacity =
+            storage?.Hold(ExactStorageKind.TransformResidueCapacity, first.Length);
         uint[]? second = null;
         try
         {
             second = ArrayPool<uint>.Shared.Rent(length);
+            using ExactStorageTracker.Lease? secondCapacity =
+                storage?.Hold(ExactStorageKind.TransformResidueCapacity, second.Length);
             modulus = BigInteger.One;
             for (var index = 0; index < primes; index++)
             {

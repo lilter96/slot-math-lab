@@ -135,7 +135,8 @@ internal sealed partial class LoopChain
                 _f.Budget.Check();
             }
 
-            var matrix = MarkovRewardMatrix.Create(states.Count, _accumulators, transitions, Spend, higher: _higher);
+            using var matrix = MarkovRewardMatrix.Create(states.Count, _accumulators, transitions, Spend,
+                higher: _higher, storage: _f.Budget.Storage);
             Rational pruned = Rational.Zero;
 
             bool Stop(int steps, MarkovRewardMatrix row)
@@ -167,10 +168,13 @@ internal sealed partial class LoopChain
             }
 
             (MarkovRewardMatrix result, var steps) = matrix.Advance(0, _template.Cap, Stop);
+            using MarkovRewardMatrix resultStorage = result;
+            using ExactStorageTracker.Lease? cells = _f.Budget.Storage?.Hold(ExactStorageKind.TransferCoefficientSlots);
             var done = new Dictionary<ExprValue, Cell>(V.ValueComparer.Instance);
             foreach ((var target, MarkovRewardMatrix.Weight weight) in result.Row(0))
             {
                 MatrixState state = states[target];
+                cells?.Resize((done.Count + 1L) * (1 + 4L * _accumulators + _pairs + HigherCount));
                 var reason = state.ExitReason ??
                              (steps < _template.Cap && state.Kernel is { Stopped: true } stopped
                                  ? stopped.Reason
@@ -200,6 +204,7 @@ internal sealed partial class LoopChain
                 Array.Copy(weight.Second, cell.Second, _pairs);
                 Array.Copy(weight.Higher, cell.Higher, HigherCount);
                 Absorb(done, Exit(state.Value, reason), cell);
+                cells?.Resize(done.Count * (1 + 4L * _accumulators + _pairs + HigherCount));
             }
 
             foreach (MatrixState state in states.Take(physicalStates))

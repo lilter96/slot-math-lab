@@ -27,8 +27,53 @@ internal sealed record StructuredModel(
     IReadOnlyDictionary<string, object?> InitialValues,
     BigInteger Cap);
 
+[Flags]
+public enum StructuredEvidence
+{
+    Mean = 1,
+    SecondMoment = 2,
+    HitFrequency = 4,
+    PayoutLaw = 8,
+    Moments = Mean | SecondMoment,
+    Report = Mean | SecondMoment | HitFrequency | PayoutLaw
+}
+
+public enum StructuredSolverPlan
+{
+    Auto,
+    LawFirst,
+    MomentsFirst
+}
+
+public sealed record StructuredAttemptResult(
+    string LoopMode,
+    bool Succeeded,
+    string? DeclinedReason,
+    long Work,
+    TimeSpan Elapsed,
+    bool PayoutLawRequested,
+    bool PayoutLawNeededForSettlement,
+    bool PayoutLawAttempted);
+
+internal sealed class StructuredAttempt
+{
+    public bool LawNeeded, LawAttempted;
+}
+
 public sealed record StructuredExactOptions
 {
+    /// <summary>
+    ///     Mean is mandatory. Omitted optional metrics are not requested; internal laws can still be needed for exact
+    ///     settlement.
+    /// </summary>
+    public StructuredEvidence Evidence { get; init; } = StructuredEvidence.Report;
+
+    /// <summary>Auto follows requested evidence. Explicit orders are profiling/reference controls and retain exact fallback.</summary>
+    public StructuredSolverPlan SolverPlan { get; init; } = StructuredSolverPlan.Auto;
+
+    /// <summary>Opt-in logical ownership/capacity profiling of the documented caches and numerical buffers.</summary>
+    public bool TrackStorage { get; init; }
+
     /// <summary>Deterministic work limit (terms built, law entries, substitutions).</summary>
     public long MaxWork { get; init; } = 400_000_000;
 
@@ -128,6 +173,10 @@ public sealed record StructuredExactDiagnostics(
 
 public sealed record StructuredExactResult
 {
+    public StructuredEvidence RequestedEvidence { get; init; } = StructuredEvidence.Report;
+    public StructuredSolverPlan RequestedSolverPlan { get; init; } = StructuredSolverPlan.Auto;
+    public IReadOnlyList<StructuredAttemptResult> Attempts { get; init; } = [];
+    public ExactStorageSnapshot? Storage { get; init; }
     public StructuredExactDiagnostics? Diagnostics { get; init; }
 
     public IReadOnlyList<string> SolverNotes => LoopNotes;
@@ -270,6 +319,19 @@ public static class StructuredExactEvaluator
         ArgumentOutOfRangeException.ThrowIfLessThan(options.MomentOrder, 2);
         ArgumentOutOfRangeException.ThrowIfGreaterThan(options.MomentOrder, 4);
         ArgumentOutOfRangeException.ThrowIfNegative(options.HigherMomentWork);
+        if (!Enum.IsDefined(options.SolverPlan))
+        {
+            throw new ArgumentOutOfRangeException(nameof(options.SolverPlan));
+        }
+
+        if ((options.Evidence & ~StructuredEvidence.Report) != 0 ||
+            (options.Evidence & StructuredEvidence.Mean) == 0 ||
+            (options.MomentOrder > 2 && (options.Evidence & StructuredEvidence.SecondMoment) == 0))
+        {
+            throw new ArgumentException(
+                "Request the mean and a supported evidence set; higher orders require moments.");
+        }
+
         StructuredExactResult? result = null;
         Exception? failure = null;
         var thread = new Thread(() =>
@@ -313,16 +375,23 @@ public static class StructuredExactEvaluator
         CancellationToken cancellation)
     {
         var clock = Stopwatch.StartNew();
-        var budget = new WorkBudget(options.MaxWork, options.MaxTime, cancellation);
+        var budget = new WorkBudget(options.MaxWork, options.MaxTime, cancellation)
+        {
+            Storage = options.TrackStorage ? new ExactStorageTracker() : null
+        };
+        var wantLaw = (options.Evidence & StructuredEvidence.PayoutLaw) != 0;
+        var preferLaw = options.SolverPlan == StructuredSolverPlan.LawFirst ||
+                        (options.SolverPlan == StructuredSolverPlan.Auto && wantLaw);
 
         // Summarizing a loop by moments gives up the law of what it accumulates, and summarizing it at all gives up
         // the fields it leaves behind. A graph that needs either is evaluated again without that step; each attempt
         // is exact or declines, so the first that succeeds is the answer.
         LoopMode[] modes = options.Loops == LoopMode.Auto
-            ? [LoopMode.Auto, LoopMode.Law, LoopMode.Unroll]
+            ? [preferLaw ? LoopMode.Auto : LoopMode.Moments, LoopMode.Law, LoopMode.Unroll]
             : [options.Loops];
         StructuredExactResult result = Declined("no evaluation ran", clock.Elapsed);
         var notes = new List<string>();
+        var attempts = new List<StructuredAttemptResult>();
         var skipLaw = false;
         foreach (LoopMode mode in modes)
         {
@@ -331,8 +400,13 @@ public static class StructuredExactEvaluator
                 continue;
             }
 
-            result = Attempt(model, winScale, options, mode, budget, clock, notes, out var summarized,
+            var started = budget.Used;
+            TimeSpan before = clock.Elapsed;
+            var attempt = new StructuredAttempt();
+            result = Attempt(model, winScale, options, mode, budget, clock, notes, attempt, out var summarized,
                 out var byMoments);
+            attempts.Add(new StructuredAttemptResult(mode.ToString(), result.Succeeded, result.DeclinedReason,
+                budget.Used - started, clock.Elapsed - before, wantLaw, attempt.LawNeeded, attempt.LawAttempted));
             if (result.Succeeded || !summarized || budget.Used >= budget.Limit)
             {
                 break;
@@ -344,14 +418,25 @@ public static class StructuredExactEvaluator
 
         return result with
         {
-            LoopNotes = notes
+            LoopNotes = notes,
+            RequestedEvidence = options.Evidence,
+            RequestedSolverPlan = options.SolverPlan,
+            Attempts = attempts.AsReadOnly(),
+            Storage = budget.Storage?.Snapshot(),
+            Work = budget.Used
         };
     }
 
     private static StructuredExactResult Attempt(StructuredModel model, BigInteger winScale,
         StructuredExactOptions options, LoopMode mode, WorkBudget budget, Stopwatch clock, List<string> notes,
+        StructuredAttempt attempt,
         out bool summarized, out bool byMoments)
     {
+        using IDisposable? storageScope = budget.Storage?.Scope();
+        var wantLaw = (options.Evidence & StructuredEvidence.PayoutLaw) != 0;
+        var tryLaw = wantLaw || options.SolverPlan == StructuredSolverPlan.LawFirst;
+        var wantSecond = (options.Evidence & StructuredEvidence.SecondMoment) != 0;
+        var wantHits = (options.Evidence & StructuredEvidence.HitFrequency) != 0;
         var factory = new TermFactory(budget)
         {
             Fault = options.Fault
@@ -359,8 +444,8 @@ public static class StructuredExactEvaluator
         var inference = new Inference(factory, options.UseTransformConvolution);
         var executor = new SymbolicExecutor(model.Config, winScale, factory, inference,
             new LoopOptions(mode, options.ChainLoopsAbove, options.LoopLawWork, options.PruneLoopMassBelow,
-                options.PruneLoopsAboveBits, options.PruneLoopsAboveWork, options.VarianceWork,
-                options.HitFrequencyWork, options.LoopMatrixMaxStates, options.LoopMatrixWork,
+                options.PruneLoopsAboveBits, options.PruneLoopsAboveWork, wantSecond ? options.VarianceWork : 0,
+                wantHits ? options.HitFrequencyWork : 0, options.LoopMatrixMaxStates, options.LoopMatrixWork,
                 options.MomentOrder, options.HigherMomentWork));
         BigInteger cap = options.Fault == StructuredFault.CapIgnored ? model.Cap * 1_000_000 : model.Cap;
         var limit = budget.Limit;
@@ -398,58 +483,63 @@ public static class StructuredExactEvaluator
             Inference.Bound? bound = inference.BoundOf(payout);
             var proven = bound is { } b && b.Step.Denominator.IsOne && ExprValue.CompareNumbers(b.Lo, V.Zero) >= 0;
             var capInactive = proven && ExprValue.CompareNumbers(bound!.Value.Hi, ExprValue.Number(cap)) <= 0;
+            attempt.LawNeeded = !capInactive;
 
             Rational? expected = capInactive ? inference.Expect(payout) : null;
             Dist<BigInteger>? distribution = null;
-            if (capInactive)
+            if (capInactive && tryLaw)
             {
                 budget.Limit = System.Math.Min(limit, budget.Used + options.DistributionWork);
             }
 
-            try
+            if (tryLaw || !capInactive)
             {
-                Law law = inference.LawOf(payout);
-                var builder = new DistBuilder<BigInteger>();
-                for (var i = 0; i < law.Values.Length; i++)
+                try
                 {
-                    ExprValue value = law.Values[i];
-                    if (V.IsErr(value))
+                    attempt.LawAttempted = true;
+                    Law law = inference.LawOf(payout);
+                    var builder = new DistBuilder<BigInteger>();
+                    for (var i = 0; i < law.Values.Length; i++)
                     {
-                        return Declined("the payout can fail on a reachable outcome", clock.Elapsed);
+                        ExprValue value = law.Values[i];
+                        if (V.IsErr(value))
+                        {
+                            return Declined("the payout can fail on a reachable outcome", clock.Elapsed);
+                        }
+
+                        if (value.Kind != ExprType.Number || !value.NumberDenominator.IsOne)
+                        {
+                            return Declined("the payout exceeds the declared paytable precision", clock.Elapsed);
+                        }
+
+                        if (value.NumberNumerator.Sign < 0)
+                        {
+                            return Declined("the payout can be negative", clock.Elapsed);
+                        }
+
+                        builder.Add(BigInteger.Min(value.NumberNumerator, cap), law.Mass[i], law.Total);
                     }
 
-                    if (value.Kind != ExprType.Number || !value.NumberDenominator.IsOne)
+                    distribution = builder.Build();
+                    (BigInteger numerator, BigInteger denominator) = distribution.ExpectedBigIntegerValue();
+                    var fromLaw = new Rational(numerator, denominator);
+                    if (expected is { } byLinearity && byLinearity != fromLaw)
                     {
-                        return Declined("the payout exceeds the declared paytable precision", clock.Elapsed);
+                        throw new StructuredInconsistencyException(
+                            "Structured exact evaluation is inconsistent: the expectation by linearity differs from the distribution's mean.");
                     }
 
-                    if (value.NumberNumerator.Sign < 0)
-                    {
-                        return Declined("the payout can be negative", clock.Elapsed);
-                    }
-
-                    builder.Add(BigInteger.Min(value.NumberNumerator, cap), law.Mass[i], law.Total);
+                    expected = fromLaw;
                 }
-
-                distribution = builder.Build();
-                (BigInteger numerator, BigInteger denominator) = distribution.ExpectedBigIntegerValue();
-                var fromLaw = new Rational(numerator, denominator);
-                if (expected is { } byLinearity && byLinearity != fromLaw)
+                catch (Exception exception) when (expected is not null && exception is StructuredBudgetException
+                                                      or StructuredLawUnavailableException)
                 {
-                    throw new StructuredInconsistencyException(
-                        "Structured exact evaluation is inconsistent: the expectation by linearity differs from the distribution's mean.");
+                    // The expectation stands on its own; the full distribution is simply not available.
                 }
-
-                expected = fromLaw;
-            }
-            catch (Exception exception) when (expected is not null && exception is StructuredBudgetException
-                                                  or StructuredLawUnavailableException)
-            {
-                // The expectation stands on its own; the full distribution is simply not available.
-            }
-            finally
-            {
-                budget.Limit = limit;
+                finally
+                {
+                    budget.Limit = limit;
+                }
             }
 
             Rational? hits = null;
@@ -461,15 +551,19 @@ public static class StructuredExactEvaluator
                 BigInteger squares = BigInteger.Zero;
                 foreach (Dist<BigInteger>.Entry entry in distribution.Entries)
                 {
-                    squares += entry.Value * entry.Value * entry.Numerator;
-                    if (entry.Value.Sign > 0)
+                    if (wantSecond)
+                    {
+                        squares += entry.Value * entry.Value * entry.Numerator;
+                    }
+
+                    if (wantHits && entry.Value.Sign > 0)
                     {
                         positive += entry.Numerator;
                     }
                 }
 
-                hits = new Rational(positive, distribution.Denominator);
-                second = new Rational(squares, distribution.Denominator);
+                hits = wantHits ? new Rational(positive, distribution.Denominator) : null;
+                second = wantSecond ? new Rational(squares, distribution.Denominator) : null;
                 if (options.MomentOrder >= 3)
                 {
                     third = Optional(budget, options.HigherMomentWork, () => MomentFromLaw(distribution, 3, budget));
@@ -484,14 +578,14 @@ public static class StructuredExactEvaluator
             // With the cap inactive the payout is the uncapped amount, already shown to fail on no reachable outcome,
             // and what the distribution would give can be derived from the structure of the amount instead.
             Rational? structuralHits = null;
-            if (capInactive && (distribution is null || options.AlwaysStructuralHitFrequency))
+            if (wantHits && capInactive && (distribution is null || options.AlwaysStructuralHitFrequency))
             {
                 structuralHits = Optional(budget, options.HitFrequencyWork,
                     () => inference.Probability(inference.Positive(payout)));
             }
 
             Rational? structuralSecond = null;
-            if (capInactive && (distribution is null || options.AlwaysStructuralSecondMoment))
+            if (wantSecond && capInactive && (distribution is null || options.AlwaysStructuralSecondMoment))
             {
                 structuralSecond = Optional(budget, options.VarianceWork, () => inference.SecondMoment(payout));
                 if (second is { } fromLaw && structuralSecond is { } byBilinearity && fromLaw != byBilinearity)
@@ -543,10 +637,10 @@ public static class StructuredExactEvaluator
             {
                 Succeeded = true,
                 ExpectedWin = expected!.Value,
-                Distribution = distribution,
-                HitFrequency = hits ?? structuralHits,
+                Distribution = wantLaw ? distribution : null,
+                HitFrequency = wantHits ? hits ?? structuralHits : null,
                 StructuralHitFrequency = structuralHits,
-                SecondMoment = second ?? structuralSecond,
+                SecondMoment = wantSecond ? second ?? structuralSecond : null,
                 ThirdMoment = third,
                 FourthMoment = fourth,
                 StructuralSecondMoment = structuralSecond,

@@ -78,6 +78,7 @@ internal sealed class StructuredBudgetException(string limit)
 internal sealed class WorkBudget(long limit, TimeSpan? maxTime, CancellationToken cancellation)
 {
     private readonly Stopwatch _clock = Stopwatch.StartNew();
+    public ExactStorageTracker? Storage { get; init; }
     public long Used { get; private set; }
     public long Limit { get; set; } = limit;
 
@@ -589,6 +590,7 @@ internal sealed class TermFactory
             Lumped = lumped
         };
         Rvs.Add(rv);
+        Budget.Storage?.RetainArray(ExactStorageKind.RandomWeightSlots, weights);
         return rv;
     }
 
@@ -656,6 +658,7 @@ internal sealed class TermFactory
         term.Id = TermCount++;
         term.Resolved = resolved;
         _interned.Add(term, term);
+        Budget.Storage?.Add(ExactStorageKind.TermObjects, 1);
         Term result = resolved ?? term;
         if (result.OwnFail)
         {

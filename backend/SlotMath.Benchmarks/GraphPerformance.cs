@@ -80,6 +80,10 @@ internal static class GraphPerformance
                 laws = result.Laws,
                 work = result.Work,
                 diagnostics = result.Diagnostics,
+                requestedEvidence = result.RequestedEvidence.ToString(),
+                requestedSolverPlan = result.RequestedSolverPlan.ToString(),
+                attempts = result.Attempts,
+                storage = result.Storage,
                 solverNotes = result.SolverNotes,
                 loops = result.Loops.Select(loop => new
                 {
@@ -118,7 +122,10 @@ internal static class GraphPerformance
                             options.DistributionWork,
                             options.LoopLawWork,
                             options.MomentOrder,
-                            options.HigherMomentWork
+                            options.HigherMomentWork,
+                            Evidence = options.Evidence.ToString(),
+                            options.TrackStorage,
+                            SolverPlan = options.SolverPlan.ToString()
                         },
                         measurements
                     }, new JsonSerializerOptions
@@ -166,6 +173,9 @@ internal static class GraphPerformance
             Exact(compiled, graph, repeats, Option("--report", ""), new StructuredExactOptions
             {
                 UseTransformConvolution = !args.Contains("--direct-convolution"),
+                Evidence = Enum.Parse<StructuredEvidence>(Option("--evidence", "Report"), true),
+                SolverPlan = Enum.Parse<StructuredSolverPlan>(Option("--solver-plan", "Auto"), true),
+                TrackStorage = args.Contains("--storage"),
                 LoopMatrixMaxStates = args.Contains("--no-loop-matrices") ? 0 : 32,
                 DistributionWork = long.Parse(Option("--distribution-work", "4000000"),
                     CultureInfo.InvariantCulture),

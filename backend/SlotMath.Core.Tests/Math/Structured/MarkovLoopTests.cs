@@ -10,7 +10,7 @@ using SlotMath.Core.Model;
 
 namespace SlotMath.Core.Tests.Math.Structured;
 
-public sealed class MarkovLoopTests
+public sealed partial class MarkovLoopTests
 {
     private static JsonObject Fixture(int horizon)
     {

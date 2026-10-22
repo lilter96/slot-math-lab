@@ -942,7 +942,8 @@ internal sealed partial class SymbolicExecutor
         }
 
         Array.Sort(entries, V.Order);
-        var chain = new LoopChain(template, _f, _inference,
+        using IDisposable? kernelStorage = _f.Budget.Storage?.ArrayScope(ExactStorageKind.LoopKernelCoefficientSlots);
+        using var chain = new LoopChain(template, _f, _inference,
             matrixLawOnly
                 ? _loops with
                 {
