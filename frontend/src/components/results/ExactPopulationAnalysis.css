@@ -1,0 +1,223 @@
+.results-population {
+    min-width: 0;
+}
+
+.exact-population {
+    padding: 24px;
+    margin-block: 20px;
+    min-width: 0;
+}
+
+.exact-population .results-card-head {
+    padding: 0;
+    margin-bottom: 16px;
+}
+
+.exact-population h4 {
+    margin: 24px 0 10px;
+    font-size: 16px;
+}
+
+.population-note, .population-actions {
+    color: var(--muted);
+    font-size: 14px;
+    line-height: 1.6;
+}
+
+.exact-population fieldset {
+    border: 0;
+    padding: 0;
+    min-width: 0;
+    margin: 20px 0;
+}
+
+.population-fields {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+}
+
+.population-fields label {
+    display: grid;
+    gap: 8px;
+    font-size: 13px;
+    color: var(--muted);
+}
+
+.population-fields input, .population-fields select {
+    width: 100%;
+    min-width: 0;
+    min-height: 42px;
+    border: 1px solid var(--line-2);
+    border-radius: 6px;
+    padding: 10px 12px;
+    background: var(--bg);
+    color: var(--text);
+    font: 14px var(--sans);
+    color-scheme: dark;
+}
+
+.population-fields input:focus-visible, .population-fields select:focus-visible, .exact-population summary:focus-visible {
+    outline: 2px solid var(--sampled);
+    outline-offset: 3px;
+}
+
+.population-check {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-height: 44px;
+    margin-top: 12px;
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+.population-check input {
+    width: 18px;
+    height: 18px;
+    accent-color: var(--exact);
+    flex-shrink: 0;
+}
+
+.population-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 12px;
+}
+
+.population-result {
+    margin-top: 24px;
+    padding-top: 24px;
+    border-top: 1px solid var(--line);
+}
+
+.population-result-heading {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 10px;
+    font-size: 14px;
+}
+
+.population-result-heading strong {
+    color: var(--epsilon);
+    font-size: 18px;
+}
+
+.population-result-heading span {
+    color: var(--muted);
+}
+
+.population-metrics {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0 24px;
+}
+
+.population-metrics > div {
+    min-width: 0;
+    padding: 18px 0;
+    border-bottom: 1px solid var(--line);
+}
+
+.population-metrics dt {
+    font-size: 13px;
+    color: var(--muted);
+    margin-bottom: 9px;
+    line-height: 1.5;
+}
+
+.population-metrics dd {
+    margin: 0;
+    font-size: 17px;
+}
+
+.population-number {
+    display: grid;
+    gap: 5px;
+}
+
+.population-number strong {
+    font-weight: 500;
+}
+
+.population-number code, .population-fingerprint code {
+    font-size: 12px;
+    overflow-wrap: anywhere;
+    color: var(--muted);
+}
+
+.population-metrics small {
+    display: block;
+    margin-top: 7px;
+    color: var(--muted);
+    font-size: 12px;
+    line-height: 1.5;
+}
+
+.population-unavailable {
+    color: var(--muted);
+    font-size: 14px;
+}
+
+.exact-population details {
+    margin-top: 20px;
+    padding-block: 14px;
+    border-top: 1px solid var(--line);
+}
+
+.exact-population summary {
+    cursor: pointer;
+    min-height: 28px;
+    font-size: 14px;
+}
+
+.exact-population .results-table {
+    min-width: 560px;
+}
+
+.exact-population .results-table td {
+    vertical-align: top;
+}
+
+.population-planning, .population-exposure {
+    font-size: 14px;
+    line-height: 1.6;
+}
+
+.population-fingerprint {
+    margin-top: 24px;
+    font-size: 13px;
+    color: var(--muted);
+    overflow-wrap: anywhere;
+}
+
+@media (max-width: 900px) {
+    .population-metrics {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 600px) {
+    .exact-population {
+        padding: 18px;
+    }
+
+    .population-fields, .population-metrics {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .population-fields input, .population-fields select, .exact-population button, .exact-population summary {
+        min-height: 44px;
+    }
+
+    .population-actions {
+        align-items: stretch;
+        flex-direction: column;
+    }
+}
+
+.population-result-heading.known strong {
+    color: var(--exact);
+}

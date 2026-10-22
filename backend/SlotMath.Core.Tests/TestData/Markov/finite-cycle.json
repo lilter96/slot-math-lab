@@ -1,0 +1,54 @@
+{
+  "schemaVersion": "1.0.0",
+  "name": "Finite cyclic reward model",
+  "initialState": { "phase": 0, "win": 0, "choice": "0" },
+  "nodes": [
+    {
+      "nodeType": "loop", "id": "repeat", "maxIterations": 65,
+      "outputs": {
+        "body": { "name": "body", "type": "Number" },
+        "exit": { "name": "exit", "type": "Number" }
+      }
+    },
+    {
+      "nodeType": "modifyState", "id": "pay", "expressionId": "pay", "outputKey": "win",
+      "inputs": { "in": { "name": "in", "type": "Number" } },
+      "outputs": { "out": { "name": "out", "type": "Number" } }
+    },
+    {
+      "nodeType": "modifyState", "id": "advance", "expressionId": "advance", "outputKey": "phase",
+      "inputs": { "in": { "name": "in", "type": "Number" } },
+      "outputs": { "out": { "name": "out", "type": "Number" } }
+    },
+    {
+      "nodeType": "metricsSink", "id": "sink", "winStateKey": "win", "winCap": 1000000,
+      "inputs": { "in": { "name": "in", "type": "Number" } }
+    }
+  ],
+  "edges": [
+    { "id": "body", "sourceNodeId": "repeat", "sourcePort": "body", "targetNodeId": "pay", "targetPort": "in" },
+    { "id": "next", "sourceNodeId": "pay", "sourcePort": "out", "targetNodeId": "advance", "targetPort": "in" },
+    { "id": "exit", "sourceNodeId": "repeat", "sourcePort": "exit", "targetNodeId": "sink", "targetPort": "in" }
+  ],
+  "expressions": {
+    "pay": {
+      "exprType": "binary", "op": "Add",
+      "left": { "exprType": "fieldAccess", "target": "state", "path": ["win"] },
+      "right": {
+        "exprType": "if",
+        "condition": {
+          "exprType": "compare", "op": "Eq",
+          "left": { "exprType": "fieldAccess", "target": "state", "path": ["phase"] },
+          "right": { "exprType": "constant", "kind": "Integer", "value": "0" }
+        },
+        "thenExpr": { "exprType": "constant", "kind": "Integer", "value": "1" },
+        "elseExpr": { "exprType": "constant", "kind": "Integer", "value": "3" }
+      }
+    },
+    "advance": {
+      "exprType": "binary", "op": "Sub",
+      "left": { "exprType": "constant", "kind": "Integer", "value": "1" },
+      "right": { "exprType": "fieldAccess", "target": "state", "path": ["phase"] }
+    }
+  }
+}

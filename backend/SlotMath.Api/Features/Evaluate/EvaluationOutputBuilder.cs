@@ -10,10 +10,11 @@ public static class EvaluationOutputBuilder
     public static EvaluationOutput Build(GraphEvaluationRequest request, string? actual, RtpMetric rtp,
         bool incomplete, string? method, double half, long samples, SlotMathReport? report,
         StructuredExactResult? structured,
-        CompileResult compiled, Stopwatch? timer, string? hash)
+        CompileResult compiled, Stopwatch? timer, string? hash, PayoutAnalysisOutput? analysis = null)
         => new()
         {
             RequestedMode = request.Mode,
+            RequestedEvidence = request.Evidence,
             ActualStrategy = actual,
             Provenance = rtp.Provenance.Provenance.ToString(),
             Status = incomplete ? "Partial" : "Complete",
@@ -30,15 +31,41 @@ public static class EvaluationOutputBuilder
             RequestedSamples = request.Samples,
             Seed = request.Seed,
             DegreeOfParallelism = request.DegreeOfParallelism,
-            HitFrequency = report?.HitFrequency.DisplayValue ?? structured?.HitFrequency?.ToDouble(),
+            HitFrequency = request.Evidence == "Mean"
+                ? null
+                : report?.HitFrequency.DisplayValue ?? structured?.HitFrequency?.ToDouble(),
             RationalHitFrequency =
-                structured?.HitFrequency is { } hits ? $"{hits.Numerator}/{hits.Denominator}" : null,
-            Distribution = report is null ? "NotBuilt" : method == "sampling" ? "Sampled" : "Exact",
+                request.Evidence != "Mean" && structured?.HitFrequency is { } hits
+                    ? $"{hits.Numerator}/{hits.Denominator}"
+                    : null,
+            Distribution = request.Evidence != "Report" ? "NotRequested" :
+                report is null ? "NotBuilt" :
+                method == "sampling" ? "Sampled" : "Exact",
             StreamScheme = "splitmix64-chunks-4096-v1",
             ChunkSize = 4096,
             SamplingEngine = compiled.SamplingEngine,
-            Variance = report?.Volatility.Variance ??
-                       structured?.Variance(compiled.WinScale)?.ToDouble(),
+            Variance = request.Evidence == "Mean"
+                ? null
+                : report?.Volatility.Variance ??
+                  structured?.Variance(compiled.WinScale)?.ToDouble(),
+            Analysis = request.Evidence == "Moments" && analysis?.Status == "ExactLaw"
+                ? analysis with
+                {
+                    Status = "ExactMoments",
+                    Tails = null,
+                    Thresholds = null
+                }
+                : analysis,
+            Solver = request.Diagnostics && structured is not null
+                ? new SolverDiagnosticsOutput(structured.RequestedSolverPlan.ToString(), structured.Work,
+                    structured.Attempts.Select(attempt => new SolverAttemptOutput(attempt.LoopMode, attempt.Succeeded,
+                            attempt.DeclinedReason, attempt.Work, attempt.Elapsed.TotalMilliseconds,
+                            attempt.PayoutLawRequested, attempt.PayoutLawNeededForSettlement,
+                            attempt.PayoutLawAttempted))
+                        .ToArray(),
+                    structured.Diagnostics, structured.Storage?.Counters.Select(counter =>
+                        new StorageCounterOutput(counter.Kind.ToString(), counter.Current, counter.Peak)).ToArray())
+                : null,
             Loops = structured?.Loops.Select(loop => new LoopEvaluationOutput
             {
                 LoopId = loop.LoopId,
@@ -49,38 +76,31 @@ public static class EvaluationOutputBuilder
                 ExpectedCapHits = loop.ExpectedCapHits?.ToDouble(),
                 PrunedMass = loop.PrunedMass.ToDouble()
             }),
-            MaxObserved = report?.MaxWin.MaxWin,
+            MaxObserved = request.Evidence == "Report" ? report?.MaxWin.MaxWin : null,
             ElapsedMs = timer!.Elapsed.TotalMilliseconds,
             ConfigHash = hash!,
-            Note = Note(request.Mode, structured)
+            Note = Note(request, structured)
         };
 
-    private static string? Note(string mode, StructuredExactResult? structured)
+    private static string? Note(GraphEvaluationRequest request, StructuredExactResult? structured)
     {
-        var selection = mode == "Hybrid"
+        var selection = request.Mode == "Hybrid"
             ? "Automatic Exact/Sampled selection; no mixed exact/sample estimator is claimed."
             : null;
         if (structured is null)
         {
-            return selection;
+            return request.Evidence == "Report"
+                ? selection
+                : "Only the requested population evidence is returned. A complete payout law may still be needed internally to apply settlement caps or preserve exactness. " +
+                  selection;
         }
 
-        var exact = structured.Distribution is not null
-            ? "Outcomes are too many to enumerate. The exact payout distribution was computed from the graph's structure: independent draws are factored, sub-models with one law are computed once."
-            : "Outcomes are too many to enumerate. The exact rational RTP was computed from the graph's structure by linearity of expectation over independent sub-models. " +
-              (structured.HitFrequency is null
-                  ? ""
-                  : "The hit frequency is exact as well, as the probability that some part of the payout is positive. ") +
-              (structured.SecondMoment is null
-                  ? ""
-                  : "The variance is exact as well, from the second moment of the payout by bilinearity over its parts. ") +
-              "The full payout distribution is too large to build, so " +
-              string.Join(", ",
-                  new[]
-                  {
-                      structured.HitFrequency is null ? "hit frequency" : null,
-                      structured.SecondMoment is null ? "variance" : null, "maximum win"
-                  }.Where(metric => metric is not null)) + " are not reported; use Sampled for them.";
+        var exact = "The requested evidence was calculated from the compiled graph using exact rational arithmetic. ";
+        exact += request.Evidence != "Report"
+            ? "The complete payout law was not requested. Settlement caps or exactness obligations may still require an internal law. Missing moments or hit frequency remain unavailable."
+            : structured.Distribution is not null
+                ? "A complete payout law is retained."
+                : "A complete payout law could not be retained within the applicable limits. Tail quantiles and maximum payout are unavailable; reported moments and hit frequency carry their own evidence.";
         if (structured.Loops.Any(loop => loop.Evaluation != "unrolled"))
         {
             exact +=

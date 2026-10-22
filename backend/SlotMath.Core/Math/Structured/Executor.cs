@@ -51,7 +51,11 @@ internal sealed record LoopOptions(
     int PruneAboveBits,
     long PruneAboveWork,
     long SecondWork,
-    long ZeroWork);
+    long ZeroWork,
+    int MatrixStates,
+    long MatrixWork,
+    int MomentOrder,
+    long HigherWork);
 
 /// <summary>How one execution of a loop was evaluated; <see cref="Reason" /> is its exit classification as a term.</summary>
 internal sealed record LoopRun(
@@ -604,6 +608,37 @@ internal sealed partial class SymbolicExecutor
     private Term? Summarize(LoopNode loop, string bodyId, ref Dictionary<string, Field> state)
     {
         var limit = _f.Budget.Limit;
+        // A bounded matrix probe can prove an entire reward law without carrying running totals
+        // in the state. Accept it only when every reward is determined conditional on entry/exit.
+        // Non-degenerate rewards retain the normal full-law and moment attempts below.
+        if (_loops.Mode == LoopMode.Auto && loop.MaxIterations >= 64 && _loops.MatrixStates > 0)
+        {
+            var probeWork = System.Math.Min(_loops.MatrixWork,
+                System.Math.Min(_loops.LawWork / 8, (limit - _f.Budget.Used) / 16));
+            if (probeWork >= 16384)
+            {
+                _f.Budget.Limit = _f.Budget.Used + probeWork;
+                try
+                {
+                    return Chained(loop, bodyId, ref state, false, true);
+                }
+                catch (StructuredBudgetException exceeded) when (exceeded.Work && _f.Budget.Used <= limit)
+                {
+                    Notes.Add($"loop '{loop.Id}': matrix law probe exceeded its allowance");
+                }
+                catch (Exception exception) when (exception is LoopChainDeclinedException or StructuredDeclinedException
+                                                      or InsufficientExecutionStackException)
+                {
+                    Notes.Add($"loop '{loop.Id}': matrix law probe declined: {exception.Message}");
+                }
+                finally
+                {
+                    _f.Budget.Limit = limit;
+                    _f.FailSeen = false;
+                }
+            }
+        }
+
         LoopMode[] modes = _loops.Mode == LoopMode.Auto ? [LoopMode.Law, LoopMode.Moments] : [_loops.Mode];
         foreach (LoopMode mode in modes)
         {
@@ -684,7 +719,8 @@ internal sealed partial class SymbolicExecutor
         }
     }
 
-    private Term Chained(LoopNode loop, string bodyId, ref Dictionary<string, Field> state, bool lawful)
+    private Term Chained(LoopNode loop, string bodyId, ref Dictionary<string, Field> state, bool lawful,
+        bool matrixLawOnly = false)
     {
         var iterKey = $"__iter_{loop.Id}__";
         var winsKey = $"__wins_{loop.Id}__";
@@ -906,11 +942,41 @@ internal sealed partial class SymbolicExecutor
         }
 
         Array.Sort(entries, V.Order);
-        var chain = new LoopChain(template, _f, _inference, _loops);
+        using IDisposable? kernelStorage = _f.Budget.Storage?.ArrayScope(ExactStorageKind.LoopKernelCoefficientSlots);
+        using var chain = new LoopChain(template, _f, _inference,
+            matrixLawOnly
+                ? _loops with
+                {
+                    MomentOrder = 2
+                }
+                : _loops);
         var exits = new LoopExits[entries.Length];
         for (var i = 0; i < exits.Length; i++)
         {
-            exits[i] = chain.Run(entries[i]);
+            exits[i] = matrixLawOnly
+                ? chain.RunMatrix(entries[i]) ??
+                  throw new LoopChainDeclinedException("matrix state/work allowance exhausted")
+                : chain.Run(entries[i]);
+        }
+
+        if (matrixLawOnly && exits.Any(exit => !exit.Pruned.IsZero))
+        {
+            throw new LoopChainDeclinedException("matrix law probe must preserve the complete finite horizon");
+        }
+
+        if (matrixLawOnly && !chain.AmountsDetermined(exits))
+        {
+            throw new LoopChainDeclinedException("conditional reward variance is nonzero or unknown");
+        }
+
+        if (matrixLawOnly)
+        {
+            Notes.Add($"loop '{loop.Id}': matrix moments determine the complete reward law");
+        }
+
+        if (chain.MatrixRuns > 0)
+        {
+            Notes.Add($"loop '{loop.Id}': {chain.MatrixRuns}/{entries.Length} runs by finite-state matrix powers");
         }
 
         // The probability that a round is in this loop when a run of it is cut short: each run by the probability

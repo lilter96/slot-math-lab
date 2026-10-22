@@ -78,6 +78,7 @@ internal sealed class StructuredBudgetException(string limit)
 internal sealed class WorkBudget(long limit, TimeSpan? maxTime, CancellationToken cancellation)
 {
     private readonly Stopwatch _clock = Stopwatch.StartNew();
+    public ExactStorageTracker? Storage { get; init; }
     public long Used { get; private set; }
     public long Limit { get; set; } = limit;
 
@@ -95,6 +96,11 @@ internal sealed class WorkBudget(long limit, TimeSpan? maxTime, CancellationToke
             return;
         }
 
+        Check();
+    }
+
+    public void Check()
+    {
         cancellation.ThrowIfCancellationRequested();
         if (maxTime is { } time && _clock.Elapsed > time)
         {
@@ -436,6 +442,9 @@ internal sealed class MomentTerm : Term
     /// <summary>Whether <see cref="Lo" /> and <see cref="Hi" /> are proven.</summary>
     public bool Bounded;
 
+    /// <summary>Requested conditional mixed moments of total degree three/four for the same loop.</summary>
+    public Func<int[], Term>? Higher;
+
     /// <summary>The accumulator's position among those of its loop.</summary>
     public required int Index;
 
@@ -581,6 +590,7 @@ internal sealed class TermFactory
             Lumped = lumped
         };
         Rvs.Add(rv);
+        Budget.Storage?.RetainArray(ExactStorageKind.RandomWeightSlots, weights);
         return rv;
     }
 
@@ -648,6 +658,7 @@ internal sealed class TermFactory
         term.Id = TermCount++;
         term.Resolved = resolved;
         _interned.Add(term, term);
+        Budget.Storage?.Add(ExactStorageKind.TermObjects, 1);
         Term result = resolved ?? term;
         if (result.OwnFail)
         {

@@ -1,5 +1,9 @@
 using System.Diagnostics;
+using System.Globalization;
+using System.Numerics;
 using System.Runtime.InteropServices;
+using System.Security.Cryptography;
+using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using SlotMath.Core;
@@ -13,8 +17,25 @@ namespace SlotMath.Benchmarks;
 
 internal static class GraphPerformance
 {
+    private static string? DistributionFingerprint(Dist<BigInteger>? distribution)
+    {
+        if (distribution is null)
+        {
+            return null;
+        }
+
+        StringBuilder canonical = new StringBuilder().Append(distribution.Denominator).Append('\n');
+        foreach (Dist<BigInteger>.Entry atom in distribution.Entries.OrderBy(atom => atom.Value))
+        {
+            canonical.Append(atom.Value).Append(':').Append(atom.Numerator).Append('\n');
+        }
+
+        return Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(canonical.ToString())));
+    }
+
     /// <summary>Structured exact evaluation: the exact rational RTP of a graph with too many outcomes to enumerate.</summary>
-    private static void Exact(CompileResult compiled, int repeats, string report)
+    private static void Exact(CompileResult compiled, GraphConfig graph, int repeats, string report,
+        StructuredExactOptions options)
     {
         var measurements = new List<object>();
         for (var i = 0; i < repeats; i++)
@@ -25,7 +46,10 @@ internal static class GraphPerformance
             var bytes = GC.GetTotalAllocatedBytes(true);
             var collections = Enumerable.Range(0, 3).Select(GC.CollectionCount).ToArray();
             TimeSpan pause = GC.GetTotalPauseDuration();
-            StructuredExactResult result = StructuredExactEvaluator.Evaluate(compiled);
+            var timer = Stopwatch.StartNew();
+            TimeSpan cpu = Process.GetCurrentProcess().TotalProcessorTime;
+            StructuredExactResult result = StructuredExactEvaluator.Evaluate(compiled, options);
+            timer.Stop();
             var allocated = GC.GetTotalAllocatedBytes(true) - bytes;
             var gc = string.Join('/', Enumerable.Range(0, 3).Select(g => GC.CollectionCount(g) - collections[g]));
             var pauseMs = (GC.GetTotalPauseDuration() - pause).TotalMilliseconds;
@@ -42,13 +66,33 @@ internal static class GraphPerformance
             measurements.Add(new
             {
                 elapsedMs = result.Elapsed.TotalMilliseconds,
+                wallMs = timer.Elapsed.TotalMilliseconds,
+                cpuMs = (Process.GetCurrentProcess().TotalProcessorTime - cpu).TotalMilliseconds,
                 rtp = rtp.DisplayValue,
                 rationalRtp = $"{rtp.RationalNumerator}/{rtp.RationalDenominator}",
                 distributionValues = result.Distribution?.Count,
+                distributionSha256 = DistributionFingerprint(result.Distribution),
+                rationalSecondMoment = result.SecondMoment?.ToString(),
+                rationalThirdMoment = result.ThirdMoment?.ToString(),
+                rationalFourthMoment = result.FourthMoment?.ToString(),
                 randomVariables = result.RandomVariables,
                 terms = result.Terms,
                 laws = result.Laws,
                 work = result.Work,
+                diagnostics = result.Diagnostics,
+                requestedEvidence = result.RequestedEvidence.ToString(),
+                requestedSolverPlan = result.RequestedSolverPlan.ToString(),
+                attempts = result.Attempts,
+                storage = result.Storage,
+                solverNotes = result.SolverNotes,
+                loops = result.Loops.Select(loop => new
+                {
+                    loop.LoopId,
+                    loop.Evaluation,
+                    loop.IterationCap,
+                    loop.Runs,
+                    loop.States
+                }),
                 allocatedBytes = allocated,
                 gcPauseMs = pauseMs,
                 hitFrequency = result.HitFrequency?.ToDouble(),
@@ -65,6 +109,24 @@ internal static class GraphPerformance
                     {
                         runtime = Environment.Version.ToString(),
                         processors = Environment.ProcessorCount,
+                        configHash = ConfigHash.Compute(graph),
+                        winScale = compiled.WinScale.ToString(),
+                        coreBinarySha256 =
+                            Convert.ToHexStringLower(
+                                SHA256.HashData(File.ReadAllBytes(typeof(StructuredExactEvaluator).Assembly.Location))),
+                        options = new
+                        {
+                            options.UseTransformConvolution,
+                            options.LoopMatrixMaxStates,
+                            options.MaxWork,
+                            options.DistributionWork,
+                            options.LoopLawWork,
+                            options.MomentOrder,
+                            options.HigherMomentWork,
+                            Evidence = options.Evidence.ToString(),
+                            options.TrackStorage,
+                            SolverPlan = options.SolverPlan.ToString()
+                        },
                         measurements
                     }, new JsonSerializerOptions
                     {
@@ -85,7 +147,11 @@ internal static class GraphPerformance
         var rounds = int.Parse(Option("--rounds", "20000"));
         var repeats = int.Parse(Option("--repeats", "3"));
         var workers = int.Parse(Option("--workers", "1"));
-        var graph = JsonSerializer.Deserialize<GraphConfig>(File.ReadAllText(path), JsonOptions.Default)!;
+        GraphConfig graph = args.Contains("--numeric-sum")
+            ? NumericSumBenchmark.Graph(int.Parse(Option("--numeric-sum", "1024"),
+                    CultureInfo.InvariantCulture), int.Parse(Option("--sum-stride", "1"), CultureInfo.InvariantCulture),
+                int.Parse(Option("--sum-weight-bits", "0"), CultureInfo.InvariantCulture))
+            : JsonSerializer.Deserialize<GraphConfig>(File.ReadAllText(path), JsonOptions.Default)!;
         SamplingOptions.Tier = Enum.Parse<SamplingTier>(Option("--tier", "Tiered"), true);
         var compileTimer = Stopwatch.StartNew();
         CompileResult compiled = new GraphCompiler(optimizeSampling: !args.Contains("--reference")).Compile(graph);
@@ -105,7 +171,19 @@ internal static class GraphPerformance
 
         if (args.Contains("--exact"))
         {
-            Exact(compiled, repeats, Option("--report", ""));
+            Exact(compiled, graph, repeats, Option("--report", ""), new StructuredExactOptions
+            {
+                UseTransformConvolution = !args.Contains("--direct-convolution"),
+                Evidence = Enum.Parse<StructuredEvidence>(Option("--evidence", "Report"), true),
+                SolverPlan = Enum.Parse<StructuredSolverPlan>(Option("--solver-plan", "Auto"), true),
+                TrackStorage = args.Contains("--storage"),
+                LoopMatrixMaxStates = args.Contains("--no-loop-matrices") ? 0 : 32,
+                DistributionWork = long.Parse(Option("--distribution-work", "4000000"),
+                    CultureInfo.InvariantCulture),
+                LoopLawWork = long.Parse(Option("--loop-law-work", "2000000"), CultureInfo.InvariantCulture),
+                MomentOrder = int.Parse(Option("--moment-order", "2"), CultureInfo.InvariantCulture),
+                HigherMomentWork = long.Parse(Option("--higher-moment-work", "8000000"), CultureInfo.InvariantCulture)
+            });
             return;
         }
 

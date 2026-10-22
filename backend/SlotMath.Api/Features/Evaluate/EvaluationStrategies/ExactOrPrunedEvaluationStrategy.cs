@@ -24,10 +24,22 @@ public class ExactOrPrunedEvaluationStrategy : BaseEvaluationStrategy
 
         SlotMathReport? report = null;
         StructuredExactResult? structured = null;
+        Dist<BigInteger>? distribution = null;
 
         string? actual = null;
         var mode = Enum.Parse<EvaluationMode>(request.Mode); // pruned or exact
         var method = "enumeration";
+
+        if (request.Evidence != "Report")
+        {
+            (structured, _) = await StructuredEvaluationService.Structured(compiled, deadlineToken,
+                cancellationToken, request);
+            if (structured is not null)
+            {
+                return new StrategyExecutionOutput(null, 0, false, "structured",
+                    structured.Rtp(compiled.WinScale).Provenance.Label, structured);
+            }
+        }
 
         try
         {
@@ -41,13 +53,15 @@ public class ExactOrPrunedEvaluationStrategy : BaseEvaluationStrategy
                         EpsilonDenominator = epsilon.Denominator
                     }), cancellationToken);
 
-            report = ExactMetrics.Compute(result.ValueDistribution(), (BigInteger)cap, winScale: compiled.WinScale);
+            distribution = result.ValueDistribution();
+            report = ExactMetrics.Compute(distribution, (BigInteger)cap, winScale: compiled.WinScale);
             actual = report.Rtp.Provenance.Provenance.ToString();
         }
         catch (BudgetExceededException ex)
         {
             (StructuredExactResult? sd, var d) =
-                await StructuredEvaluationService.Structured(compiled, cancellationToken, cancellationToken);
+                await StructuredEvaluationService.Structured(compiled, deadlineToken, cancellationToken,
+                    request);
             structured = sd;
             if (structured is null)
             {
@@ -64,7 +78,8 @@ public class ExactOrPrunedEvaluationStrategy : BaseEvaluationStrategy
             false,
             method,
             actual,
-            structured
+            structured,
+            request.Analysis is null ? null : distribution
         );
     }
 }

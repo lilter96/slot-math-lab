@@ -41,11 +41,14 @@ public abstract class BaseEvaluationStrategy : IEvaluationStrategy
             : context.Actual;
 
         var half = rtp.Ci95Half ?? 0;
+        PayoutAnalysisOutput? analysis = PayoutAnalysis.Build(request.Analysis,
+            context.Structured?.Distribution ?? context.ExactDistribution, context.Structured,
+            compiled.WinScale, deadline.Token);
 
         return EvaluationOutputBuilder.Build(
             request, actual, rtp, context.Incomplete,
             method, half, context.Samples,
-            report, context.Structured, compiled, timer, hash);
+            report, context.Structured, compiled, timer, hash, analysis);
     }
 
     protected abstract Task<StrategyExecutionOutput> ExecuteEvaluationAsync(

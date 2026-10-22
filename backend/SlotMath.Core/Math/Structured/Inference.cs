@@ -91,9 +91,14 @@ internal sealed class Law
 internal sealed class InferenceStats
 {
     public long Laws, Decompositions, Expansions, Substitutions, Convolutions, PseudoVariables, Expectations;
+
+    public long TransformConvolutions,
+        DirectConvolutionPairs,
+        LargestConvolutionSpan,
+        LargestConvolutionCoefficientBits;
 }
 
-internal sealed class Inference(TermFactory f)
+internal sealed partial class Inference(TermFactory f, bool transformConvolution = true)
 {
     // Most laws are small: one table collects their masses, and larger ones get a table of their own.
     private const int SmallLaw = 1024;
@@ -124,21 +129,22 @@ internal sealed class Inference(TermFactory f)
 
     private readonly Dictionary<(string Guard, int X, int Y), Rational> _products = new();
     private readonly Dictionary<(int Law, int Ordinal), Rv> _pseudo = new();
-    private Masses _masses = new();
+    private Masses _masses = new(f.Budget.Storage, true);
 
     /// <summary>A table to collect masses in. It is filled and handed to Build before the next one is asked for.</summary>
     private Masses NewMasses(int capacity)
     {
         if (capacity > SmallLaw)
         {
-            var large = new Masses();
+            var large = new Masses(f.Budget.Storage, false);
             large.Reset(capacity);
             return large;
         }
 
         if (_masses.Count > SmallLaw)
         {
-            _masses = new Masses();
+            _masses.Release();
+            _masses = new Masses(f.Budget.Storage, true);
         }
 
         _masses.Reset(capacity);
@@ -154,24 +160,33 @@ internal sealed class Inference(TermFactory f)
         var mass = new BigInteger[count];
         var keys = masses.Keys.AsSpan(0, count).ToArray();
         var order = ArrayPool<int>.Shared.Rent(count);
+        using ExactStorageTracker.Lease? orderCapacity =
+            f.Budget.Storage?.Hold(ExactStorageKind.LawOrderCapacity, order.Length);
         BigInteger divisor = total;
-        for (var i = 0; i < count; i++)
+        try
         {
-            order[i] = i;
-            if (!divisor.IsOne)
+            for (var i = 0; i < count; i++)
             {
-                divisor = BigInteger.GreatestCommonDivisor(divisor, masses.Mass[i]);
+                order[i] = i;
+                if (!divisor.IsOne)
+                {
+                    divisor = BigInteger.GreatestCommonDivisor(divisor, masses.Mass[i]);
+                }
+            }
+
+            Array.Sort(keys, order, 0, count);
+            for (var i = 0; i < count; i++)
+            {
+                values[i] = masses.Values[order[i]];
+                mass[i] = divisor.IsOne ? masses.Mass[order[i]] : masses.Mass[order[i]] / divisor;
             }
         }
-
-        Array.Sort(keys, order, 0, count);
-        for (var i = 0; i < count; i++)
+        finally
         {
-            values[i] = masses.Values[order[i]];
-            mass[i] = divisor.IsOne ? masses.Mass[order[i]] : masses.Mass[order[i]] / divisor;
+            ArrayPool<int>.Shared.Return(order);
+            orderCapacity?.Dispose();
         }
 
-        ArrayPool<int>.Shared.Return(order);
         for (var start = 0; start < count;)
         {
             var end = start + 1;
@@ -193,6 +208,8 @@ internal sealed class Inference(TermFactory f)
 
     private Law Intern(ExprValue[] values, BigInteger[] mass, int[] keys, BigInteger total)
     {
+        using ExactStorageTracker.Lease? candidate =
+            f.Budget.Storage?.Hold(ExactStorageKind.CachedLawAtoms, values.Length);
         var hash = new HashCode();
         hash.Add(total);
         for (var i = 0; i < values.Length; i++)
@@ -216,6 +233,7 @@ internal sealed class Inference(TermFactory f)
 
         law.Id = _interned.Count;
         _interned.Add(law, law);
+        candidate?.Keep();
         f.Budget.Tick(values.Length);
         return law;
     }
@@ -246,7 +264,7 @@ internal sealed class Inference(TermFactory f)
             largest = System.Math.Max(largest, law.Values.Length);
         }
 
-        Masses masses = NewMasses(largest);
+        using Masses masses = NewMasses(largest);
         foreach ((BigInteger weight, Law law) in parts)
         {
             BigInteger scale = law.Total == common ? weight : weight * (common / law.Total);
@@ -264,8 +282,14 @@ internal sealed class Inference(TermFactory f)
     private Law Convolve(Law a, Law b)
     {
         Stats.Convolutions++;
+        if (transformConvolution && TryTransformConvolution(a, b) is { } transformed)
+        {
+            return transformed;
+        }
+
+        Stats.DirectConvolutionPairs += (long)a.Values.Length * b.Values.Length;
         f.Budget.Tick((long)a.Values.Length * b.Values.Length * (Words(a.Total) + Words(b.Total) - 1));
-        Masses masses = NewMasses(a.Values.Length + b.Values.Length);
+        using Masses masses = NewMasses(a.Values.Length + b.Values.Length);
         for (var i = 0; i < a.Values.Length; i++)
         {
             for (var j = 0; j < b.Values.Length; j++)
@@ -299,7 +323,8 @@ internal sealed class Inference(TermFactory f)
                 law = Intern([constant.Value], [BigInteger.One], [V.Hash(constant.Value)], BigInteger.One);
                 break;
             case TableTerm table:
-                Masses masses = NewMasses(table.Vals?.Length ?? table.Values.Length);
+            {
+                using Masses masses = NewMasses(table.Vals?.Length ?? table.Values.Length);
                 for (var i = 0; i < table.Values.Length; i++)
                 {
                     masses.Add(table.Values[i], V.Hash(table.Values[i]), table.Rv.Weights[i]);
@@ -307,6 +332,7 @@ internal sealed class Inference(TermFactory f)
 
                 law = Build(masses, table.Rv.Total);
                 break;
+            }
             case LinTerm lin:
                 law = Independent(lin) ?? Decomposed(term);
                 break;
@@ -342,7 +368,7 @@ internal sealed class Inference(TermFactory f)
         }
 
         f.Budget.Tick(variable.Count);
-        Masses masses = NewMasses(variable.Count);
+        using Masses masses = NewMasses(variable.Count);
         for (var outcome = 0; outcome < variable.Count; outcome++)
         {
             var elements = new ExprValue[tuple.Args.Length];
@@ -1234,7 +1260,14 @@ internal sealed class Inference(TermFactory f)
             else if (Bits.Has(other.Support, moment.Loop))
             {
                 // The other factor holds an amount of the same loop inside an operator: that needs their joint law.
-                Lawless(other);
+                if (other is OpTerm { Code: Op.Arith, Aux: (int)BinaryOp.Mul } nested)
+                {
+                    result = JointProduct(guard, [moment, .. nested.Args]);
+                }
+                else
+                {
+                    Lawless(other);
+                }
             }
             else
             {
@@ -1551,14 +1584,36 @@ internal sealed class Inference(TermFactory f)
     ///     Masses collected by value. Every value comes with its hash, which laws keep, so a value is hashed once
     ///     however many mixtures it passes through.
     /// </summary>
-    private sealed class Masses
+    private sealed class Masses(ExactStorageTracker? storage, bool retained) : IDisposable
     {
         public int Count;
         public int[] Keys = [];
         public BigInteger[] Mass = [];
         public ExprValue[] Values = [];
+        private long _capacity;
         private int _mask;
         private int[] _slots = [];
+
+        public void Dispose()
+        {
+            if (!retained)
+            {
+                Release();
+            }
+        }
+
+        private void UpdateCapacity()
+        {
+            var capacity = Keys.LongLength + Mass.LongLength + Values.LongLength + _slots.LongLength;
+            storage?.Add(ExactStorageKind.LawBuilderCapacity, capacity - _capacity);
+            _capacity = capacity;
+        }
+
+        public void Release()
+        {
+            storage?.Add(ExactStorageKind.LawBuilderCapacity, -_capacity);
+            _capacity = 0;
+        }
 
         public void Reset(int capacity)
         {
@@ -1575,6 +1630,7 @@ internal sealed class Inference(TermFactory f)
             }
 
             _mask = slots - 1;
+            UpdateCapacity();
         }
 
         public void Add(in ExprValue value, int key, BigInteger mass)
@@ -1619,11 +1675,13 @@ internal sealed class Inference(TermFactory f)
             Array.Resize(ref Keys, size);
             Array.Resize(ref Values, size);
             Array.Resize(ref Mass, size);
+            UpdateCapacity();
         }
 
         private void Rehash()
         {
             _slots = new int[_slots.Length * 2];
+            UpdateCapacity();
             _mask = _slots.Length - 1;
             for (var entry = 0; entry < Count; entry++)
             {

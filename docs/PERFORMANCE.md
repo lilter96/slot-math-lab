@@ -153,6 +153,57 @@ separate runners, retained snapshots, cache-budget fallback and trajectories.
 
 ## Structured exact evaluation
 
+### Generic matrix-law and transform comparison (2026-10-21)
+
+The generic controls below ran in Release on .NET 10.0.13 on this shared
+20-logical-CPU host. Variants ran sequentially in ABBA/BAAB order, eight process
+launches per workload and six evaluations per launch. The first two evaluations
+of each launch were excluded, leaving sixteen warm observations per variant.
+The harness forces collection before each evaluation; the one-minute host load
+was approximately 8.48 at the start and 9.48 at the end. These are local
+comparisons for the stated inputs, not performance promises for other games.
+
+| Workload | Control kernel median | Optimized kernel median | Control wall median | Optimized wall median | Managed bytes per evaluation, control → optimized |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Generic deterministic two-phase loop, cap 100,000 | 153.56 ms | 0.726 ms | 153.82 ms | 0.918 ms | 338,554,948 → 142,776 |
+| Sum of two independent 4,096-outcome numeric draws, complete law | 258.53 ms | 19.78 ms | 258.74 ms | 20.02 ms | 4,876,856 → 5,108,112 |
+
+The loop comparison disables/enables loop matrices in the same binary. Auto
+can now prove the complete reward law from zero conditional variance without
+carrying intermediate payout totals in its state. It retains the one-atom law,
+reduces terms from 100,018 to 20, and work from 800,048 to 611. The observed
+kernel speedup is about 212x, wall speedup about 168x and managed allocation
+reduction 99.958%. This example is deterministic; it is not evidence for those
+multipliers on a general random reward chain.
+
+The numeric-sum comparison disables/enables the adaptive exact NTT/CRT path.
+Both variants return all 8,191 payout atoms. The observed kernel speedup is
+13.07x and wall speedup 12.93x, with 4.74% more managed allocation. Work counters
+are 16,818,199 versus 434,453; these deterministic counters are not elapsed-time
+multipliers. Small, sparse and excessive-span laws retain direct convolution.
+
+Every observation agrees on the complete canonical payout-law SHA-256, exact
+RTP, second moment and hit frequency. Both variants use Core binary SHA-256
+`5ca28087db16eefebb9f06316f5585b05431778f8ce1d489695ee46d5df536c2`.
+The cycle configuration identity is
+`d3a638df1cbab6a3cccee7836b807533b2f93ce6835f2658793b867d80dc43e4`;
+the numeric-sum identity is
+`9bc8c7831e852bc2e46eb305bea47b9d62aa8d0b1dd25a9859acf17e615d6a75`.
+Raw reports and logs remain local under `/tmp/principal-benchmarks`, including
+`summary.json`; they are not source-controlled generated artifacts.
+
+Reproduction commands, remaining benchmark dimensions and implementation scope
+are in the [math engine roadmap](MATH_ENGINE_ROADMAP.md).
+The source-level acceptance at this point is 79 selected mathematical tests,
+including the prior matrix regressions and new Auto, NTT/CRT and complete-law
+risk cases. After a formatting-only root-search rewrite, the 16 affected
+convolution cases were rerun successfully. The Release solution build, both
+JetBrains cleanup profiles on touched sources and `dotnet format` verification
+also passed. Full, API integration and browser suites were not required for
+these core-only additions.
+
+### Scope and earlier structured measurements
+
 A round with too many outcomes to enumerate can still have an exact RTP.
 `StructuredExactEvaluator` computes the exact rational RTP, and where they fit
 its allowances the exact hit frequency, variance and payout distribution, from

@@ -18,7 +18,10 @@ public sealed record GraphEvaluationRequest(
     int Samples = 10000,
     int DegreeOfParallelism = 1,
     double Epsilon = 0.00001,
-    int MaxBranches = 10000);
+    int MaxBranches = 10000,
+    PayoutAnalysisRequest? Analysis = null,
+    string Evidence = "Report",
+    bool Diagnostics = false);
 
 /// <summary>Explicit regimes for any UI-authored graph. Requested mode and actual provenance are separate.</summary>
 public static class GraphEvaluationEndpoints
@@ -29,19 +32,25 @@ public static class GraphEvaluationEndpoints
             async (GraphEvaluationRequest request, CompiledGraphCache compiledGraphs,
                 IEnumerable<IEvaluationStrategy> strategies, HttpContext context) =>
             {
-                if (!Enum.TryParse<EvaluationMode>(request.Mode, true, out EvaluationMode evaluationMode) ||
+                if (!EvaluationEvidence.TryMode(request.Mode, out EvaluationMode evaluationMode) ||
                     request.Samples is < MinSamples or > MaxSamples ||
                     request.DegreeOfParallelism is < MinDegreeOfParallelism or > MaxDegreeOfParallelism ||
                     request.MaxBranches is < MinBranches or > MaxBranches ||
                     !double.IsFinite(request.Epsilon) || request.Epsilon is <= MinEpsilon or >= MaxEpsilon ||
-                    Math.Abs((double)request.Seed) > MaxAbsoluteSeed)
+                    Math.Abs((double)request.Seed) > MaxAbsoluteSeed ||
+                    !PayoutAnalysis.IsValid(request.Analysis) || !EvaluationEvidence.IsValid(request))
                 {
                     return Results.BadRequest(new
                     {
-                        error = "Invalid calculation mode or limits."
+                        error =
+                            "Invalid calculation mode, evidence or limits. Use Report for tails, thresholds and horizon risk. Moments analysis requires an empty tailProbabilities array; Mean excludes analysis. Sampled requires Report."
                     });
                 }
 
+                request = request with
+                {
+                    Mode = evaluationMode.ToString()
+                };
                 var timer = Stopwatch.StartNew();
                 var hash = CanonicalHash.Compute(request.Config);
                 string? declined = null;
@@ -112,6 +121,6 @@ public static class GraphEvaluationEndpoints
                         error = ex.Message
                     });
                 }
-            }).RequireRateLimiting("compute");
+            }).Produces<EvaluationOutput>().RequireRateLimiting("compute");
     }
 }
