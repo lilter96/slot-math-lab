@@ -22,6 +22,18 @@ using SlotMath.Core.Random;
 //    5. exact-reel     : 512-combination reel product, exact interpreter
 // ═══════════════════════════════════════════════════════════════════════════
 
+if (args.Contains("--convolution-matrix"))
+{
+    ConvolutionMatrixBenchmark.Run(args);
+    return;
+}
+
+if (args.Contains("--convolution-mode"))
+{
+    ConvolutionBenchmark.Run(args);
+    return;
+}
+
 if (args.Contains("--tensor-mode"))
 {
     TensorBenchmark.Run(args);

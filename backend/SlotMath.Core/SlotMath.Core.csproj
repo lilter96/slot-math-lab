@@ -13,6 +13,7 @@
 
   <ItemGroup>
     <InternalsVisibleTo Include="SlotMath.Core.Tests" />
+    <InternalsVisibleTo Include="SlotMath.Benchmarks" />
   </ItemGroup>
 
   <ItemGroup>

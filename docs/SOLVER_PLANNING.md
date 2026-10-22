@@ -137,10 +137,10 @@ Run sequentially with frozen binaries, balanced orders and warm samples;
 verify equal requested evidence and mathematical outputs before timing ratios.
 Storage counters are an optional diagnostic, not an enabled-by-default cost.
 
-The graph API currently keeps its compatible default report request. Exposing
-evidence selection and these diagnostics in generated API/client/UI contracts
-is the remaining integration step; a core or benchmark control does not by
-itself change an application request.
+The graph API preserves the compatible default Report request and now exposes
+explicit evidence selection and opt-in diagnostics through the generated client
+and Results. The API and Results integration section below describes its limits;
+benchmark-only reference plan controls are not public request options.
 
 ## Controlled measurements
 
