@@ -1,9 +1,9 @@
 import {calculateWithQuota, expect, getWithQuota, postWithQuota, test} from './fixtures';
 
-test('Pinned population analysis preserves exact moments, distinguishes ruin and clears edited evidence', async ({
-                                                                                                                     page,
-                                                                                                                     request
-                                                                                                                 }) => {
+test('@critical Pinned population analysis preserves exact moments, distinguishes ruin and clears edited evidence', async ({
+                                                                                                                               page,
+                                                                                                                               request
+                                                                                                                           }) => {
     test.setTimeout(180000);
     const config = {
         schemaVersion: '1.0.0', name: 'Exact population regression', nodes: [
@@ -78,6 +78,7 @@ test('Pinned population analysis preserves exact moments, distinguishes ruin and
     expect((await download).suggestedFilename()).toBe(`run-${run.id}-exact-population.json`);
     for (const [width, height] of [[1440, 900], [390, 844]]) {
         await page.setViewportSize({width, height});
+        expect(await page.locator('.results-workspace').evaluate(element => element.scrollWidth <= element.clientWidth)).toBe(true);
         for (const [name, anchor] of [['form', '.population-fields'], ['risk', '.population-result h4'], ['exposure', '.population-exposure'], ['bottom', '.population-fingerprint']] as const) {
             await panel.locator(anchor).first().evaluate(element => element.scrollIntoView({block: 'start'}));
             await page.screenshot({path: test.info().outputPath(`population-${name}-${width}.png`)});

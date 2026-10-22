@@ -404,7 +404,7 @@ function RunReport({evidence, baseline, candidates, snapshotError, comparisonErr
                         label="Reference" detail={reference ? reference.kind : 'Explicit calculation required'}/></div>
                 </div>
             </>}
-            <div hidden={section !== 'Overview'}>
+            <div className="results-population" hidden={section !== 'Overview'}>
                 <ExactPopulationAnalysis key={`${run.id}:${run.configHash}`} evidence={evidence}/>
             </div>
             {section === 'Overview' && <>

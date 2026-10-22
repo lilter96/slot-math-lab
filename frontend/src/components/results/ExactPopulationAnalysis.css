@@ -1,3 +1,7 @@
+.results-population {
+    min-width: 0;
+}
+
 .exact-population {
     padding: 24px;
     margin-block: 20px;
