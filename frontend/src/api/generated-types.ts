@@ -487,7 +487,9 @@ export type paths = {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": components["schemas"]["EvaluationOutput"];
+                    };
                 };
             };
         };
@@ -2245,6 +2247,50 @@ export type components = {
             /** Format: double */
             volatility?: null | number;
         };
+        EvaluationOutput: {
+            actualStrategy?: string;
+            analysis?: null | components["schemas"]["PayoutAnalysisOutput"];
+            /** Format: int32 */
+            chunkSize?: number;
+            configHash?: string;
+            /** Format: int32 */
+            degreeOfParallelism?: number;
+            distribution?: string;
+            /** Format: double */
+            elapsedMs?: number;
+            /** Format: double */
+            hitFrequency?: null | number;
+            loops?: null | components["schemas"]["LoopEvaluationOutput"][];
+            /** Format: double */
+            lower?: number;
+            /** Format: double */
+            maxObserved?: null | number;
+            method?: string;
+            note?: null | string;
+            provenance?: string;
+            /** Format: double */
+            prunedMass?: number;
+            rationalHitFrequency?: null | string;
+            rationalRtp?: null | string;
+            requestedEvidence?: string;
+            requestedMode?: string;
+            /** Format: int64 */
+            requestedSamples?: number;
+            /** Format: double */
+            rtp?: number;
+            /** Format: int64 */
+            samples?: number;
+            samplingEngine?: string;
+            /** Format: int64 */
+            seed?: number;
+            solver?: null | components["schemas"]["SolverDiagnosticsOutput"];
+            status?: string;
+            streamScheme?: string;
+            /** Format: double */
+            upper?: number;
+            /** Format: double */
+            variance?: null | number;
+        };
         EvidenceInput: {
             contentBase64?: null | string;
             id: string;
@@ -2272,6 +2318,11 @@ export type components = {
             right: components["schemas"]["RationalOutcome"][];
             /** @default value units */
             unit: string;
+        };
+        ExactNumberOutput: {
+            /** Format: double */
+            display: null | number;
+            rational: string;
         };
         ExecutionOptions: {
             auditRandomStreams?: boolean;
@@ -2412,6 +2463,11 @@ export type components = {
             /** Format: double */
             volatility?: number;
         };
+        ExposureTailOutput: {
+            lossExpectedShortfall: components["schemas"]["ExactNumberOutput"];
+            lossQuantile: components["schemas"]["ExactNumberOutput"];
+            probability: string;
+        };
         FeatureLifecycleCounts: {
             complete: boolean;
             /** Format: int64 */
@@ -2469,17 +2525,22 @@ export type components = {
             unresolvedRoundMass: string;
         };
         GraphEvaluationRequest: {
+            analysis?: null | components["schemas"]["PayoutAnalysisRequest"];
             config: components["schemas"]["JsonElement"];
             /**
              * Format: int32
              * @default 1
              */
             degreeOfParallelism: number;
+            /** @default false */
+            diagnostics: boolean;
             /**
              * Format: double
              * @default 0.00001
              */
             epsilon: number;
+            /** @default Report */
+            evidence: string;
             /**
              * Format: int32
              * @default 10000
@@ -2504,6 +2565,30 @@ export type components = {
             report: components["schemas"]["GraphEnumerationReport"];
             retention?: null | components["schemas"]["DiagnosticRetention"];
             runtimeProvenance: components["schemas"]["RuntimeProvenance"];
+        };
+        IndependentRoundExposureOutput: {
+            assumptions?: string;
+            conditionalExpectedRuinRound?: null | components["schemas"]["ExactNumberOutput"];
+            initialReserve?: null | string;
+            lossVariance?: null | components["schemas"]["ExactNumberOutput"];
+            meanLoss?: null | components["schemas"]["ExactNumberOutput"];
+            probabilityFinalLossExceedsReserve?: null | components["schemas"]["ExactNumberOutput"];
+            probabilityRuinByHorizon?: null | components["schemas"]["ExactNumberOutput"];
+            reason?: null | string;
+            /** Format: int64 */
+            rounds?: number;
+            ruinReason?: null | string;
+            ruinStatus?: null | string;
+            status: string;
+            tails?: null | components["schemas"]["ExposureTailOutput"][];
+        };
+        IndependentRoundExposureRequest: {
+            initialReserve?: null | string;
+            /**
+             * Format: int64
+             * @default 100
+             */
+            rounds: number;
         };
         InterruptedFeatureLifecycle: {
             cancelled: components["schemas"]["FeatureLifecycleCounts"];
@@ -2551,6 +2636,20 @@ export type components = {
             config: unknown;
             /** Format: double */
             rtp?: null | number;
+        };
+        LoopEvaluationOutput: {
+            evaluation?: string;
+            /** Format: double */
+            expectedCapHits?: null | number;
+            /** Format: int64 */
+            iterationCap?: number;
+            loopId?: string;
+            /** Format: double */
+            prunedMass?: number;
+            /** Format: int64 */
+            runs?: number;
+            /** Format: int64 */
+            states?: number;
         };
         LoopTerminationSummary: {
             /** Format: int64 */
@@ -2864,6 +2963,49 @@ export type components = {
             /** Format: int64 */
             paidRoundsWithMatchingChildren: number;
         };
+        PayoutAnalysisOutput: {
+            centralFourthMoment?: null | components["schemas"]["ExactNumberOutput"];
+            centralThirdMoment?: null | components["schemas"]["ExactNumberOutput"];
+            /** Format: double */
+            coefficientOfVariation?: null | number;
+            coefficientOfVariationSquared?: null | components["schemas"]["ExactNumberOutput"];
+            excessKurtosis?: null | components["schemas"]["ExactNumberOutput"];
+            fourthMoment?: null | components["schemas"]["ExactNumberOutput"];
+            independentRounds?: null | components["schemas"]["IndependentRoundExposureOutput"];
+            mean?: null | components["schemas"]["ExactNumberOutput"];
+            planning?: null | components["schemas"]["RtpPlanningOutput"];
+            reason?: null | string;
+            rtpForStake?: null | components["schemas"]["ExactNumberOutput"];
+            secondMoment?: null | components["schemas"]["ExactNumberOutput"];
+            /** Format: double */
+            skewness?: null | number;
+            skewnessSquared?: null | components["schemas"]["ExactNumberOutput"];
+            stake?: null | string;
+            status: string;
+            tails?: null | components["schemas"]["TailRiskOutput"][];
+            thirdMoment?: null | components["schemas"]["ExactNumberOutput"];
+            thresholds?: null | components["schemas"]["PayoutThresholdOutput"][];
+            units?: string;
+            variance?: null | components["schemas"]["ExactNumberOutput"];
+        };
+        PayoutAnalysisRequest: {
+            independentRounds?: null | components["schemas"]["IndependentRoundExposureRequest"];
+            /**
+             * Format: int32
+             * @default 4
+             */
+            momentOrder: number;
+            payoutThresholds?: null | string[];
+            rtpHalfWidth?: null | string;
+            /** @default 1 */
+            stake: string;
+            tailProbabilities?: null | string[];
+        };
+        PayoutThresholdOutput: {
+            cdf: components["schemas"]["ExactNumberOutput"];
+            survivalInclusive: components["schemas"]["ExactNumberOutput"];
+            threshold: string;
+        };
         PlayRequest: {
             config: components["schemas"]["JsonElement"];
             /**
@@ -2988,6 +3130,13 @@ export type components = {
             report: null | components["schemas"]["RunVerificationEvidence"];
             retention: components["schemas"]["DiagnosticRetention"];
             runId: string;
+        };
+        RtpPlanningOutput: {
+            assumptions: string;
+            chebyshev95Rounds: string;
+            normal95Rounds: string;
+            rtpHalfWidth: string;
+            stake: string;
         };
         RunEvidence: {
             computedConfigHash: null | string;
@@ -3261,6 +3410,26 @@ export type components = {
             stateDwell: components["schemas"]["StateDwell"][];
             stateDwellComplete: boolean;
         };
+        SolverAttemptOutput: {
+            declinedReason: null | string;
+            /** Format: double */
+            elapsedMs: number;
+            loopMode: string;
+            payoutLawAttempted: boolean;
+            payoutLawNeededForSettlement: boolean;
+            payoutLawRequested: boolean;
+            succeeded: boolean;
+            /** Format: int64 */
+            work: number;
+        };
+        SolverDiagnosticsOutput: {
+            attempts: components["schemas"]["SolverAttemptOutput"][];
+            convolution: null | components["schemas"]["StructuredExactDiagnostics"];
+            plan: string;
+            storage: null | components["schemas"]["StorageCounterOutput"][];
+            /** Format: int64 */
+            work: number;
+        };
         StateDwell: {
             /** Format: int64 */
             completedRuns: number;
@@ -3273,10 +3442,36 @@ export type components = {
             /** Format: double */
             state: number;
         };
+        StorageCounterOutput: {
+            /** Format: int64 */
+            current: number;
+            kind: string;
+            /** Format: int64 */
+            peak: number;
+        };
         StratumAllocation: {
             id: string;
             /** Format: int32 */
             samples: number;
+        };
+        StructuredExactDiagnostics: {
+            /** Format: int64 */
+            convolutions: number;
+            /** Format: int64 */
+            directConvolutionPairs: number;
+            /** Format: int64 */
+            largestConvolutionCoefficientBits: number;
+            /** Format: int64 */
+            largestConvolutionSpan: number;
+            /** Format: int64 */
+            transformConvolutions: number;
+        };
+        TailRiskOutput: {
+            operatorLossExpectedShortfall: components["schemas"]["ExactNumberOutput"];
+            operatorLossQuantile: components["schemas"]["ExactNumberOutput"];
+            payoutExpectedShortfall: components["schemas"]["ExactNumberOutput"];
+            payoutQuantile: components["schemas"]["ExactNumberOutput"];
+            probability: string;
         };
         TailSummary: {
             /** Format: int64 */

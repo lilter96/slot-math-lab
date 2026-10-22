@@ -29,11 +29,12 @@ public class HybridEvaluationStrategy : BaseEvaluationStrategy
         var incomplete = false;
 
         ProgramAnalysis analysis = ProgramAnalyzer.Analyze(compiled.Program!);
-        if (!analysis.ContainsPlugin && analysis.EstimatedBranches > request.MaxBranches)
+        if (!analysis.ContainsPlugin &&
+            (request.Evidence != "Report" || analysis.EstimatedBranches > request.MaxBranches))
         {
             (StructuredExactResult? s, var d) =
                 await StructuredEvaluationService.Structured(compiled, deadlineToken, cancellationToken,
-                    request.Analysis?.MomentOrder ?? 2);
+                    request);
             structured = s;
             declined = d;
         }
@@ -60,7 +61,7 @@ public class HybridEvaluationStrategy : BaseEvaluationStrategy
             {
                 (StructuredExactResult? s, var d) =
                     await StructuredEvaluationService.Structured(compiled, deadlineToken, cancellationToken,
-                        request.Analysis?.MomentOrder ?? 2);
+                        request);
                 structured = s;
                 declined = d;
             }

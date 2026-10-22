@@ -7,6 +7,7 @@ namespace SlotMath.Api.Features.Evaluate;
 public class EvaluationOutput
 {
     public string RequestedMode { get; init; }
+    public string RequestedEvidence { get; init; } = "Report";
     public string ActualStrategy { get; init; }
     public string Provenance { get; init; }
     public string Status { get; init; }
@@ -28,12 +29,32 @@ public class EvaluationOutput
     public string SamplingEngine { get; init; }
     public double? Variance { get; init; }
     public PayoutAnalysisOutput? Analysis { get; init; }
+    public SolverDiagnosticsOutput? Solver { get; init; }
     public IEnumerable<LoopEvaluationOutput>? Loops { get; init; }
     public double? MaxObserved { get; init; }
     public double ElapsedMs { get; init; }
     public string ConfigHash { get; init; }
     public string? Note { get; init; }
 }
+
+public sealed record SolverAttemptOutput(
+    string LoopMode,
+    bool Succeeded,
+    string? DeclinedReason,
+    long Work,
+    double ElapsedMs,
+    bool PayoutLawRequested,
+    bool PayoutLawNeededForSettlement,
+    bool PayoutLawAttempted);
+
+public sealed record StorageCounterOutput(string Kind, long Current, long Peak);
+
+public sealed record SolverDiagnosticsOutput(
+    string Plan,
+    long Work,
+    IReadOnlyList<SolverAttemptOutput> Attempts,
+    StructuredExactDiagnostics? Convolution,
+    IReadOnlyList<StorageCounterOutput>? Storage);
 
 // loops
 public class LoopEvaluationOutput

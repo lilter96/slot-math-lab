@@ -7,6 +7,13 @@ For frontend files outside the backend solution, use a temporary solution contai
 1. Write one repository-relative source path per line to a temporary manifest. Include new files and edits committed earlier during the task. Review this list; do not select the entire frontend, repository or another task's files.
 2. Generate the temporary solution below from the repository root. Set `TASK_CLEANUP_MANIFEST` to the reviewed manifest.
 3. Open the printed `.slnx` path in Rider. In Solution Explorer, select **TaskFiles**. Choose **Code → Reformat and Cleanup…**, confirm **Directory 'TaskFiles'**, select **Built-in: Reformat Code**, and run it.
+When making further edits outside Rider, close the isolated IDE first, apply
+those edits, then reopen the temporary solution before both profiles. Cached
+versions of external solution items can overwrite newer disk edits when cleanup
+or automatic save begins; Reload All from Disk did not reliably prevent this
+in the 2026-10-22 session. Never edit while cleanup is running. Verify the
+intended changes survived both profiles before running regressions.
+
 4. Repeat on the same folder using **Built-in: Full Cleanup**. Save all files. Check Rider's `idea.log` for both successful completions and the exact selected frontend files; keep the scope/profile evidence.
 5. Review the diff, check for changes beyond formatting/import cleanup, run scoped lint and relevant checks. Repeat both passes after any subsequent source edit. Documentation-only edits require no tests.
 

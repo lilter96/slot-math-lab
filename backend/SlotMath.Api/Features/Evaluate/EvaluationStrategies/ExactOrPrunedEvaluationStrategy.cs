@@ -30,6 +30,17 @@ public class ExactOrPrunedEvaluationStrategy : BaseEvaluationStrategy
         var mode = Enum.Parse<EvaluationMode>(request.Mode); // pruned or exact
         var method = "enumeration";
 
+        if (request.Evidence != "Report")
+        {
+            (structured, _) = await StructuredEvaluationService.Structured(compiled, deadlineToken,
+                cancellationToken, request);
+            if (structured is not null)
+            {
+                return new StrategyExecutionOutput(null, 0, false, "structured",
+                    structured.Rtp(compiled.WinScale).Provenance.Label, structured);
+            }
+        }
+
         try
         {
             ExactResult<Dictionary<string, object?>, BigInteger> result = await Task.Run(() =>
@@ -50,7 +61,7 @@ public class ExactOrPrunedEvaluationStrategy : BaseEvaluationStrategy
         {
             (StructuredExactResult? sd, var d) =
                 await StructuredEvaluationService.Structured(compiled, deadlineToken, cancellationToken,
-                    request.Analysis?.MomentOrder ?? 2);
+                    request);
             structured = sd;
             if (structured is null)
             {

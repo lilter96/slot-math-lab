@@ -264,3 +264,81 @@ repeated after the two later ownership/test edits. Their diffs were reviewed;
 the existing Roslyn provider-loading warnings did not prevent successful
 profiles or listing every scoped source. Generated test/cleanup logs remain
 outside Git under `/tmp/evidence-planner-*.log`.
+
+
+## API and Results integration
+
+`POST /api/evaluate/graph` accepts an optional `evidence` string and
+`diagnostics` boolean. Existing callers default to `Report` with diagnostics
+excluded. The public presets deliberately differ from the low-level flags:
+
+| API preset | Returned evidence |
+| --- | --- |
+| `Mean` | Settled unit-stake graph expectation; analysis, variance and hit frequency excluded |
+| `Moments` | Mean, optional second/higher moments and hit frequency; payout law is not requested |
+| `Report` | Existing report and optional complete-law risk analysis |
+
+The endpoint preserves case-insensitive named modes and validates canonical
+evidence preset names, rejecting numeric or combined enum values. Modes are
+normalized before strategy dispatch. `Sampled` requires `Report`. An `analysis` request is incompatible with
+`Mean`. With `Moments`, explicitly send `tailProbabilities: []`; nonempty tails,
+payout thresholds and independent-round exposure require `Report`. These
+combinations are rejected instead of silently dropping a requested risk metric.
+Orders two through four and the analysis stake retain their existing contracts.
+
+Exact/Pruned and automatic strategies try structured evaluation first for
+non-report presets. If unsupported, ordinary enumeration (or automatic sampling)
+remains the fallback. Such a fallback can still construct a complete internal
+law. Returned `distribution: NotRequested` distinguishes an unrequested law
+from `NotBuilt`; unrequested maximum payout and other metrics are masked even
+when computed internally. `ExactMoments` never implies identified tail risk.
+
+With `diagnostics: true`, successful structured results expose the Auto plan,
+all attempt work/time and law obligations, convolution counters and named
+logical storage categories. Other paths have no structured diagnostics. These
+counts are not bytes, a GC heap estimate or an additive process peak. No public
+request can force a reference solver plan or raise the kernel work budgets.
+
+Results → Overview → Exact population analysis operates on the verified saved
+graph, with a matching SHA-256 required before accepting a response. It shows
+rational values beside finite display approximations, moments through order
+four, tails/thresholds, fixed-sample planning and explicitly independent-reset
+operator exposure. Initial reserve is optional; declaring it enables separate
+terminal insolvency and first-passage ruin queries. Persistent saved runs are
+explicitly distinguished from this reset population. Results tabs retain the calculation for the selected run. Changing inputs discards
+the displayed result; cancellation, budget failure and server errors do not
+retain an exact result. Export includes the pinned request and response.
+
+The OpenAPI snapshot and TypeScript client are regenerated from the running API,
+not manually edited. New API regressions independently check capped coin moments,
+preset validation, metric masking and diagnostic ownership. The browser case
+uses a 100-round saved fixture, then exact independent expectations for the
+0/2 payout coin: mean and variance 1, fourth moment 8, excess kurtosis −2;
+two rounds with reserve zero give final insolvency 1/4 and first-passage ruin
+1/2. It checks edited/foreign evidence, unavailable/error states, cancellation,
+export and desktop/phone layouts. This is a selected contract/browser scenario,
+not the full integration or end-to-end suite.
+
+
+Integration validation (2026-10-22, .NET SDK 10.0.113 / Node 22.23.4):
+**40** selected API/strategy cases and
+**17** existing frontend logic cases passed. The targeted real API/browser
+scenario passed after both cleanup profiles, including retention across Results
+tabs, cancellation, rejected fingerprints, server failure and unavailable risk.
+The browser fixture uses isolated API/Postgres ports and only 100 sampled rounds;
+no full test suite or unrelated database integration ran. Release solution build,
+scoped `dotnet format --verify-no-changes`, frontend build, scoped ESLint and
+`git diff --check` passed. The generated client matches the recorded OpenAPI
+schema byte for byte. Desktop/phone forms, moments, tails, diagnostics, exposure,
+all four Results tabs and error/unavailable states were visually reviewed.
+
+Both mandatory JetBrains profiles ran on the eight touched C# sources and were
+repeated on the three later mode-validation/test edits. A real isolated Rider
+solution processed all five touched frontend sources with Reformat Code followed
+by Full Cleanup; its log names each file and reports frontend Success for both
+passes. Stale cached external files initially overwrote an edit; the tab-retention
+regression caught that, and a fresh IDE session preserved it through both passes
+before successful final validation. See [RIDER_FRONTEND_CLEANUP.md](RIDER_FRONTEND_CLEANUP.md).
+Existing Roslyn provider-loading/compiler and frontend bundler warnings remain;
+none prevented the required checks. Logs, failure traces, screenshots and temporary
+cleanup solutions are retained locally, outside Git.
