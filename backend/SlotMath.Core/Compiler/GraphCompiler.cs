@@ -1022,6 +1022,22 @@ public sealed class GraphCompiler
 
         private Slot<Dictionary<string, object?>, object?> CompileDraw(DrawNode drawNode)
         {
+            if (drawNode.BoundDistributions is { } family)
+            {
+                Expression selector = _config.Expressions![drawNode.DistributionIndexExpressionId!];
+                Slot<Dictionary<string, object?>, object?>[] choices = family.Select(row =>
+                {
+                    WeightSet weights = StaticWeights(row);
+                    return BuildDrawSlot(_ => weights, row, drawNode.StateWriteKey);
+                }).ToArray();
+                return Slot.GetState<Dictionary<string, object?>>().SelectMany(state =>
+                    choices[DrawData.FamilyIndex(ExactExpressionEvaluator.Evaluate(selector,
+                        new EvalContext
+                        {
+                            State = state
+                        }), choices.Length)]);
+            }
+
             // Level (b): expression-driven weights + inline outcome values
             if (drawNode.WeightExpressionId != null
                 && _config.Expressions != null
@@ -1037,12 +1053,7 @@ public sealed class GraphCompiler
             if (drawNode.DrawWeights is { Length: > 0 })
             {
                 DrawWeight[]? dw = drawNode.DrawWeights;
-                if (!_drawWeights.TryGetValue(dw, out WeightSet? inlineWeights))
-                {
-                    inlineWeights = WeightSet.FromIntegers(Array.ConvertAll(dw, w => w.Weight));
-                    _drawWeights.Add(dw, inlineWeights);
-                }
-
+                WeightSet inlineWeights = StaticWeights(dw);
                 return BuildDrawSlot(_ => inlineWeights, dw, drawNode.StateWriteKey);
             }
 
@@ -1095,6 +1106,17 @@ public sealed class GraphCompiler
                 });
         }
 
+        private WeightSet StaticWeights(DrawWeight[] outcomes)
+        {
+            if (!_drawWeights.TryGetValue(outcomes, out WeightSet? weights))
+            {
+                weights = WeightSet.FromIntegers(Array.ConvertAll(outcomes, outcome => outcome.Weight));
+                _drawWeights.Add(outcomes, weights);
+            }
+
+            return weights;
+        }
+
         private Slot<Dictionary<string, object?>, object?> BuildDrawSlot(
             Func<Dictionary<string, object?>, WeightSet> weights,
             DrawWeight[] dw,
@@ -1121,14 +1143,14 @@ public sealed class GraphCompiler
             // pre-draw state object, so it must never be mutated in place.
             for (var i = 0; i < dw.Length; i++)
             {
-                var outcomeId = dw[i].OutcomeId;
+                var stateValue = DrawData.StateValue(dw[i]).ToStateObject()!;
                 Slot<Dictionary<string, object?>, object?> value = Slot.Pure<Dictionary<string, object?>, object?>(
                     new BigInteger(dw[i].Value) * WinScale);
                 outcomes[i] = new ModifyState<Dictionary<string, object?>, object?>(
                     s =>
                     {
                         var next = new Dictionary<string, object?>(s);
-                        next[stateWriteKey] = outcomeId;
+                        next[stateWriteKey] = stateValue;
                         return next;
                     },
                     value);

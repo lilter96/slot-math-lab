@@ -78,6 +78,9 @@ public sealed record DrawWeight
 
     /// <summary>Numeric value produced when this outcome is drawn. Can be any integer — not necessarily monetary.</summary>
     public long Value { get; init; }
+
+    /// <summary>Optional typed state data, independent of the scaled payout-channel Value.</summary>
+    public ConstantExpr? StateValue { get; init; }
 }
 
 // ── Primitive nodes ────────────────────────────────────────────────────
@@ -86,6 +89,14 @@ public sealed record DrawNode : Node
 {
     /// <summary>Compile-time reference to ordered categorical data in GraphConfig.Distributions.</summary>
     public string? DistributionId { get; init; }
+
+    /// <summary>Ordered asset IDs forming a finite categorical family.</summary>
+    public string[]? DistributionIds { get; init; }
+
+    /// <summary>Expression selecting a family member by an exact zero-based integer.</summary>
+    public string? DistributionIndexExpressionId { get; init; }
+
+    [JsonIgnore] internal DrawWeight[][]? BoundDistributions { get; init; }
 
     public string? WeightExpressionId { get; init; }
 

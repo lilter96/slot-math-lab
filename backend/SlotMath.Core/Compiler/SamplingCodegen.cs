@@ -187,7 +187,7 @@ internal sealed class SamplingShapes
         }, JsonOptions.Default);
         return _draws.GetOrAdd(key, _ => new Lazy<SamplingDraw>(() => new SamplingDraw(
             WeightSet.FromIntegers(outcomes.Select(outcome => outcome.Weight).ToArray()).AliasTable,
-            outcomes.Select(outcome => ExprValue.String(outcome.OutcomeId)).ToArray(),
+            outcomes.Select(DrawData.StateValue).ToArray(),
             outcomes.Select(outcome => (object)(new BigInteger(outcome.Value) * scale)).ToArray()))).Value;
     }
 

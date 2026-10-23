@@ -241,7 +241,8 @@ internal sealed class SamplingPlan : ICompiledSampling<Dictionary<string, object
         // checked before compilation, rather than silently catching failures.
         if (config.Plugins.Length != 0 || config.Nodes.Any(n => n switch
             {
-                DrawNode d => d.DrawWeights is not { Length: > 0 } || d.WeightExpressionId is not null,
+                DrawNode d => d.BoundDistributions is null
+                              && (d.DrawWeights is not { Length: > 0 } || d.WeightExpressionId is not null),
                 MapNode => true,
                 LoopNode l => !config.Edges.Any(e => e.SourceNodeId == l.Id && e.SourcePort == "body"),
                 LibraryNode => true,
@@ -435,6 +436,9 @@ internal sealed class SamplingPlan : ICompiledSampling<Dictionary<string, object
                     modify.OutputKey is { } key && _expressions.IsInlineMaskField(key)), output, null, null);
     }
 
+    private static bool StraightNode(Node node) => node is ModifyStateNode
+        or DrawNode { BoundDistributions: null };
+
     private Chain CompileChain(string id, string? sink)
     {
         if (id == sink)
@@ -533,7 +537,7 @@ internal sealed class SamplingPlan : ICompiledSampling<Dictionary<string, object
                 return exit is null ? total : exit(s, rng, total);
             };
         }
-        else if (node is ModifyStateNode or DrawNode && edges.Length <= 1)
+        else if (StraightNode(node) && edges.Length <= 1)
         {
             // A straight run of updates and draws executes as one loop, not as
             // one nested call per node: a spin is a run of a few hundred nodes.
@@ -552,7 +556,7 @@ internal sealed class SamplingPlan : ICompiledSampling<Dictionary<string, object
                 }
 
                 target = _outgoing[current.Id][0].TargetNodeId;
-                if (target == sink || Observed(target) || _nodes[target] is not (ModifyStateNode or DrawNode) ||
+                if (target == sink || Observed(target) || !StraightNode(_nodes[target]) ||
                     _outgoing[target].Length > 1)
                 {
                     break;
@@ -654,6 +658,20 @@ internal sealed class SamplingPlan : ICompiledSampling<Dictionary<string, object
     {
         switch (node)
         {
+            case DrawNode { BoundDistributions: { } family } draw:
+            {
+                SamplingDraw[] choices = family.Select(row => _shapes.BindDraw(row, _scale)).ToArray();
+                foreach (SamplingDraw choice in choices)
+                foreach (ExprValue value in choice.StateValues)
+                {
+                    _expressions.Remember(value);
+                }
+
+                Func<SamplingFrame, ExprValue> selector = Expression(draw.DistributionIndexExpressionId)!;
+                var familyDestination = draw.StateWriteKey is null ? -1 : WriteSlot(draw.StateWriteKey);
+                return (frame, random, _) => choices[DrawData.FamilyIndex(selector(frame), choices.Length)]
+                    .Run(frame, random, familyDestination);
+            }
             case DrawNode draw:
                 DrawWeight[] weights = draw.DrawWeights!;
                 SamplingDraw boundDraw = _shapes.BindDraw(weights, _scale);

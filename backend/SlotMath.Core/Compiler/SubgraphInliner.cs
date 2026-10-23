@@ -122,7 +122,12 @@ public static class SubgraphInliner
             return (config, errors);
         }
 
-        return (config with { Nodes = nodes.ToArray(), Edges = edges.ToArray(), Expressions = expressions }, errors);
+        return (config with
+        {
+            Nodes = nodes.ToArray(),
+            Edges = edges.ToArray(),
+            Expressions = expressions
+        }, errors);
     }
 
     private static void ExpandLibraryNode(
@@ -315,10 +320,21 @@ public static class SubgraphInliner
                 Id = id,
                 Inputs = inputs,
                 Outputs = outputs,
-                WeightExpressionId = NsRef(d.WeightExpressionId, prefix)
+                WeightExpressionId = NsRef(d.WeightExpressionId, prefix),
+                DistributionIndexExpressionId = NsRef(d.DistributionIndexExpressionId, prefix)
             },
-            GetStateNode g => g with { Id = id, Inputs = inputs, Outputs = outputs },
-            PutStateNode p => p with { Id = id, Inputs = inputs, Outputs = outputs },
+            GetStateNode g => g with
+            {
+                Id = id,
+                Inputs = inputs,
+                Outputs = outputs
+            },
+            PutStateNode p => p with
+            {
+                Id = id,
+                Inputs = inputs,
+                Outputs = outputs
+            },
             ModifyStateNode m => m with
             {
                 Id = id,
@@ -348,8 +364,18 @@ public static class SubgraphInliner
                 Outputs = outputs
                 // plugin:<id> references are global ids, not mechanic-local.
             },
-            DataNode dn => dn with { Id = id, Inputs = inputs, Outputs = outputs },
-            MetricsSinkNode s => s with { Id = id, Inputs = inputs, Outputs = outputs },
+            DataNode dn => dn with
+            {
+                Id = id,
+                Inputs = inputs,
+                Outputs = outputs
+            },
+            MetricsSinkNode s => s with
+            {
+                Id = id,
+                Inputs = inputs,
+                Outputs = outputs
+            },
             LibraryNode lib => lib with
             {
                 // Nested library node: namespace its id; it is expanded next pass.
@@ -373,7 +399,10 @@ public static class SubgraphInliner
         {
             result[key] = port.DefaultValue is null
                 ? port
-                : port with { DefaultValue = RewriteExprRefs(port.DefaultValue, prefix) };
+                : port with
+                {
+                    DefaultValue = RewriteExprRefs(port.DefaultValue, prefix)
+                };
         }
 
         return result;
@@ -389,12 +418,20 @@ public static class SubgraphInliner
         if (long.TryParse(raw, NumberStyles.Integer,
                 CultureInfo.InvariantCulture, out _))
         {
-            return new ConstantExpr { Kind = ConstantKind.Integer, Value = raw };
+            return new ConstantExpr
+            {
+                Kind = ConstantKind.Integer,
+                Value = raw
+            };
         }
 
         if (raw is "true" or "false")
         {
-            return new ConstantExpr { Kind = ConstantKind.Boolean, Value = raw };
+            return new ConstantExpr
+            {
+                Kind = ConstantKind.Boolean,
+                Value = raw
+            };
         }
 
         if (raw.Contains('/'))
@@ -403,11 +440,19 @@ public static class SubgraphInliner
             if (parts.Length == 2
                 && long.TryParse(parts[0], out _) && long.TryParse(parts[1], out _))
             {
-                return new ConstantExpr { Kind = ConstantKind.Rational, Value = raw };
+                return new ConstantExpr
+                {
+                    Kind = ConstantKind.Rational,
+                    Value = raw
+                };
             }
         }
 
-        return new ConstantExpr { Kind = ConstantKind.String, Value = raw };
+        return new ConstantExpr
+        {
+            Kind = ConstantKind.String,
+            Value = raw
+        };
     }
 
     // ── Expression reference rewriting ───────────────────────────────────
@@ -422,7 +467,11 @@ public static class SubgraphInliner
         return expr switch
         {
             FieldAccessExpr f => RewriteFieldAccess(f, prefix),
-            BinaryExpr b => b with { Left = RewriteExprRefs(b.Left, prefix), Right = RewriteExprRefs(b.Right, prefix) },
+            BinaryExpr b => b with
+            {
+                Left = RewriteExprRefs(b.Left, prefix),
+                Right = RewriteExprRefs(b.Right, prefix)
+            },
             CompareExpr c => c with
             {
                 Left = RewriteExprRefs(c.Left, prefix),
@@ -434,21 +483,36 @@ public static class SubgraphInliner
                 ThenExpr = RewriteExprRefs(i.ThenExpr, prefix),
                 ElseExpr = RewriteExprRefs(i.ElseExpr, prefix)
             },
-            NotExpr n => n with { Expr = RewriteExprRefs(n.Expr, prefix) },
+            NotExpr n => n with
+            {
+                Expr = RewriteExprRefs(n.Expr, prefix)
+            },
             AggregateExpr a => a with
             {
                 Predicate = a.Predicate is null ? null : RewriteExprRefs(a.Predicate, prefix),
                 ValueExpr = a.ValueExpr is null ? null : RewriteExprRefs(a.ValueExpr, prefix)
             },
-            BitSetExpr set => set with { Args = set.Args.Select(arg => RewriteExprRefs(arg, prefix)).ToArray() },
-            CallExpr call => call with { Args = call.Args.Select(arg => RewriteExprRefs(arg, prefix)).ToArray() },
+            BitSetExpr set => set with
+            {
+                Args = set.Args.Select(arg => RewriteExprRefs(arg, prefix)).ToArray()
+            },
+            CallExpr call => call with
+            {
+                Args = call.Args.Select(arg => RewriteExprRefs(arg, prefix)).ToArray()
+            },
             FoldExpr fold => fold with
             {
                 Init = RewriteExprRefs(fold.Init, prefix),
                 Body = RewriteExprRefs(fold.Body, prefix)
             },
-            MapExpr map => map with { Body = RewriteExprRefs(map.Body, prefix) },
-            FilterExpr filter => filter with { Predicate = RewriteExprRefs(filter.Predicate, prefix) },
+            MapExpr map => map with
+            {
+                Body = RewriteExprRefs(map.Body, prefix)
+            },
+            FilterExpr filter => filter with
+            {
+                Predicate = RewriteExprRefs(filter.Predicate, prefix)
+            },
             _ => expr // ConstantExpr and anything leaf-like
         };
     }
@@ -463,7 +527,10 @@ public static class SubgraphInliner
                 if (f.Path[0].StartsWith(marker, StringComparison.Ordinal) &&
                     f.Path[0].EndsWith("__", StringComparison.Ordinal))
                 {
-                    return f with { Path = [marker + prefix + f.Path[0][marker.Length..]] };
+                    return f with
+                    {
+                        Path = [marker + prefix + f.Path[0][marker.Length..]]
+                    };
                 }
             }
         }
@@ -475,7 +542,10 @@ public static class SubgraphInliner
         {
             var newPath = (string[])f.Path.Clone();
             newPath[1] = prefix + f.Path[1];
-            return f with { Path = newPath };
+            return f with
+            {
+                Path = newPath
+            };
         }
 
         return f;

@@ -202,6 +202,13 @@ internal sealed partial class SymbolicExecutor
                     CheckMap(map);
                     break;
                 case LibraryNode: throw Declined($"node '{node.Id}' is an unexpanded subgraph");
+                case DrawNode { BoundDistributions: not null } draw:
+                    if (Reserved(draw.StateWriteKey))
+                    {
+                        throw Declined($"node '{draw.Id}' writes a loop counter");
+                    }
+
+                    break;
                 case DrawNode draw when draw.DrawWeights is not { Length: > 0 }:
                     if (Reserved(draw.BoardStateKey))
                     {
@@ -1160,40 +1167,93 @@ internal sealed partial class SymbolicExecutor
 
     // ── Node outputs (GraphCompiler.CompileNodeOutput) ───────────────────
 
+    private (Term Value, Term State) CategoricalRow(DrawNode draw, DrawWeight[] weights, string name)
+    {
+        if (weights.Any(weight => weight.Weight < 0))
+        {
+            throw Declined($"draw '{draw.Id}' has a negative weight");
+        }
+
+        DrawWeight[] live = weights.Where(weight => weight.Weight > 0).ToArray();
+        if (live.Length == 0)
+        {
+            throw Declined($"draw '{draw.Id}' has no outcome of positive weight");
+        }
+
+        Rv rv = _f.NewRv(name, live.Select(weight => new BigInteger(weight.Weight)).ToArray());
+        _f.Budget.Tick(live.Length);
+        return (
+            _f.Table(rv, live.Select(weight => ExprValue.Number(new BigInteger(weight.Value) * _winScale)).ToArray()),
+            draw.StateWriteKey is null ? _f.NullT : _f.Table(rv, live.Select(DrawData.StateValue).ToArray()));
+    }
+
+    private Term FamilyDraw(DrawNode draw, DrawWeight[][] family, ref Dictionary<string, Field> state)
+    {
+        Term selector = Statement(Expression(draw.DistributionIndexExpressionId)!, state, $"draw '{draw.Id}' selector");
+        var occurrence = _drawCount[draw.Id] = _drawCount.GetValueOrDefault(draw.Id) + 1;
+        Term value;
+        Term selectedState;
+        if (selector is ConstTerm chosen && !chosen.IsErr)
+        {
+            int index;
+            try
+            {
+                index = DrawData.FamilyIndex(chosen.Value, family.Length);
+            }
+            catch (ExpressionEvaluationException)
+            {
+                throw Declined($"draw '{draw.Id}' has an invalid family selector");
+            }
+
+            (value, selectedState) = CategoricalRow(draw, family[index], $"{_scope}{draw.Id}#{occurrence}/{index}");
+        }
+        else
+        {
+            var choices = new Term[family.Length];
+            var states = new Term[family.Length];
+            for (var index = 0; index < family.Length; index++)
+            {
+                (choices[index], states[index]) = CategoricalRow(draw, family[index],
+                    $"{_scope}{draw.Id}#{occurrence}/{index}");
+            }
+
+            value = _f.Sel(selector, choices);
+            selectedState = _f.Sel(selector, states);
+            Record(value, $"draw '{draw.Id}' family lookup");
+        }
+
+        if (draw.StateWriteKey is { } key)
+        {
+            state = new Dictionary<string, Field>(state, StringComparer.Ordinal)
+            {
+                [key] = new(selectedState, false)
+            };
+        }
+
+        return value;
+    }
+
     private Term Output(Node node, Term input, bool deadEnd, ref Dictionary<string, Field> state)
     {
         switch (node)
         {
+            case DrawNode { BoundDistributions: { } family } draw: return FamilyDraw(draw, family, ref state);
             case DrawNode draw when draw.DrawWeights is not { Length: > 0 }: return Spin(draw, ref state);
             case MapNode map: return Map(map, input, state);
             case DrawNode draw:
             {
-                DrawWeight[] weights = draw.DrawWeights!;
-                if (weights.Any(w => w.Weight < 0))
-                {
-                    throw Declined($"draw '{draw.Id}' has a negative weight");
-                }
-
-                // The exact interpreter never visits an outcome of weight zero.
-                DrawWeight[] live = weights.Where(w => w.Weight > 0).ToArray();
-                if (live.Length == 0)
-                {
-                    throw Declined($"draw '{draw.Id}' has no outcome of positive weight");
-                }
-
                 var occurrence = _drawCount[draw.Id] = _drawCount.GetValueOrDefault(draw.Id) + 1;
-                Rv rv = _f.NewRv($"{_scope}{draw.Id}#{occurrence}",
-                    live.Select(w => new BigInteger(w.Weight)).ToArray());
-                _f.Budget.Tick(live.Length);
+                (Term value, Term outcomeState) =
+                    CategoricalRow(draw, draw.DrawWeights!, $"{_scope}{draw.Id}#{occurrence}");
                 if (draw.StateWriteKey is { } key)
                 {
                     state = new Dictionary<string, Field>(state, StringComparer.Ordinal)
                     {
-                        [key] = new(_f.Table(rv, live.Select(w => ExprValue.String(w.OutcomeId)).ToArray()), false)
+                        [key] = new(outcomeState, false)
                     };
                 }
 
-                return _f.Table(rv, live.Select(w => ExprValue.Number(new BigInteger(w.Value) * _winScale)).ToArray());
+                return value;
             }
             case DataNode data:
             {

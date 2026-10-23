@@ -1,4 +1,5 @@
 using System.Numerics;
+using SlotMath.Core.Expressions;
 using SlotMath.Core.Model;
 
 namespace SlotMath.Core.Compiler;
@@ -12,13 +13,19 @@ internal static class DistributionResolver
     internal const int MaxAssets = 1024;
     internal const int MaxOutcomes = 65_536;
     internal const int MaxTotalOutcomes = 262_144;
+    internal const int MaxFamilyMembers = 256;
+
+    private static bool RequiresBinding(DrawNode draw) => draw.DistributionId is not null
+                                                          || draw.DistributionIds is not null
+                                                          || (draw.DistributionIndexExpressionId is not null &&
+                                                              draw.BoundDistributions is null);
 
     internal static (GraphConfig Config, IReadOnlyList<CompileError> Errors) Resolve(GraphConfig graph)
     {
         if (graph.Distributions is null
-            && !graph.Nodes.OfType<DrawNode>().Any(draw => draw.DistributionId is not null)
+            && !graph.Nodes.OfType<DrawNode>().Any(RequiresBinding)
             && graph.Mechanics?.Values.Any(mechanic => mechanic.Nodes.OfType<DrawNode>()
-                .Any(draw => draw.DistributionId is not null)) != true)
+                .Any(RequiresBinding)) != true)
         {
             return (graph, Array.Empty<CompileError>());
         }
@@ -86,6 +93,18 @@ internal static class DistributionResolver
                     continue;
                 }
 
+                try
+                {
+                    DrawData.Validate([outcomes]);
+                }
+                catch (Exception exception) when (exception is ArgumentException or FormatException
+                                                      or ExpressionEvaluationException or DivideByZeroException
+                                                      or OverflowException)
+                {
+                    Error($"Distribution '{id}': {exception.Message}");
+                    continue;
+                }
+
                 assets.Add(id, outcomes.Select(outcome => outcome with
                 {
                 }).ToArray());
@@ -96,7 +115,7 @@ internal static class DistributionResolver
         {
             return nodes.Select(node =>
             {
-                if (node is not DrawNode { DistributionId: { } id } draw)
+                if (node is not DrawNode draw || !RequiresBinding(draw))
                 {
                     return node;
                 }
@@ -104,6 +123,52 @@ internal static class DistributionResolver
                 if (draw.DrawWeights is not null || draw.WeightExpressionId is not null)
                 {
                     Error("A distribution reference cannot also specify inline or expression weights.", draw.Id);
+                    return node;
+                }
+
+                if (draw.DistributionIds is { } ids)
+                {
+                    if (draw.DistributionId is not null || ids.Length is 0 or > MaxFamilyMembers
+                                                        || string.IsNullOrWhiteSpace(
+                                                            draw.DistributionIndexExpressionId))
+                    {
+                        Error("A categorical family requires 1..256 asset IDs and exactly one index expression.",
+                            draw.Id);
+                        return node;
+                    }
+
+                    var rows = new DrawWeight[ids.Length][];
+                    for (var index = 0; index < ids.Length; index++)
+                    {
+                        if (ids[index] is null || !assets.TryGetValue(ids[index], out DrawWeight[]? row))
+                        {
+                            Error($"Distribution family member '{ids[index]}' is not defined or is invalid.", draw.Id);
+                            return node;
+                        }
+
+                        rows[index] = row;
+                    }
+
+                    try
+                    {
+                        DrawData.Validate(rows);
+                    }
+                    catch (ArgumentException exception)
+                    {
+                        Error(exception.Message, draw.Id);
+                        return node;
+                    }
+
+                    return draw with
+                    {
+                        DistributionIds = null,
+                        BoundDistributions = rows
+                    };
+                }
+
+                if (draw.DistributionId is not { } id || draw.DistributionIndexExpressionId is not null)
+                {
+                    Error("A distribution index expression requires an explicit family.", draw.Id);
                     return node;
                 }
 

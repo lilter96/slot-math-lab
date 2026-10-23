@@ -38,6 +38,30 @@ public static class GraphValidator
         }
 
         config = distributed;
+        foreach (DrawNode draw in config.Nodes.OfType<DrawNode>())
+        {
+            try
+            {
+                DrawData.Validate(DrawData.Rows(draw));
+            }
+            catch (Exception exception) when (exception is ArgumentException or FormatException
+                                                  or ExpressionEvaluationException or DivideByZeroException
+                                                  or OverflowException)
+            {
+                errors.Add(new CompileError
+                {
+                    Code = ErrorCodes.InvalidGraph,
+                    NodeId = draw.Id,
+                    Message = exception.Message
+                });
+            }
+        }
+
+        if (errors.Count > 0)
+        {
+            return errors;
+        }
+
         try
         {
             EvidenceInput.Validate(config.EvidenceInputs ?? []);
@@ -772,7 +796,7 @@ public static class GraphValidator
         {
             var reference = node switch
             {
-                DrawNode d => d.WeightExpressionId,
+                DrawNode d => d.DistributionIndexExpressionId ?? d.WeightExpressionId,
                 ModifyStateNode m => m.ExpressionId,
                 BranchNode b => b.ConditionId,
                 LoopNode l => l.StopConditionId,
@@ -885,6 +909,22 @@ public static class GraphValidator
             // Check expression references on nodes
             switch (node)
             {
+                case DrawNode { DistributionIndexExpressionId: { } selector } draw:
+                    if (config.Expressions.TryGetValue(selector, out Expression? indexExpression))
+                    {
+                        foreach (TypeCheckError error in ExpressionTypeChecker.Check(indexExpression, ctx,
+                                     ExprType.Number))
+                        {
+                            errors.Add(new CompileError
+                            {
+                                NodeId = draw.Id,
+                                Code = ErrorCodes.ExpressionTypeError,
+                                Message = $"Distribution selector: {error.Message}"
+                            });
+                        }
+                    }
+
+                    break;
                 case DrawNode d when d.WeightExpressionId != null:
                     if (config.Expressions.TryGetValue(d.WeightExpressionId, out Expression? wExpr))
                     {

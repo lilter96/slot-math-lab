@@ -8,7 +8,7 @@ individually verified milestone; it does not complete the overall objective.
 
 | ID | Required result | Completion evidence | Current state |
 | --- | --- | --- | --- |
-| R1 | Immutable distribution assets, typed outcomes and finite family selection | JSON/reference/compiled/exact agreement, identity and override regressions | Static references and pooling verified; typed outcomes and families pending |
+| R1 | Immutable distribution assets, typed outcomes, finite families and bounded dynamic weight vectors | JSON/reference/compiled/exact agreement, identity and override regressions | Static references, typed outcomes and finite families verified; dynamic vectors pending |
 | R2 | Ordered DrawMany, including explicit mixed-table schedules | Scalar RNG transcript, following Draw, cancellation, snapshots and observations | Pending |
 | R3 | Let, typed record/tuple results, expression-valued collections and bounded composition | Lexical scope, exact arithmetic, shape and error-order regressions across execution paths | Pending |
 | R4 | Typed IR with state versions, effects and guarded analyses | IR inspection plus observation/exception/override/cancellation controls | Pending |
@@ -87,3 +87,46 @@ Generated logs, test results and the final source hash manifest are retained
 under `/tmp/modern-primitives-evidence/`, outside Git. No performance gain is
 claimed from the static milestone; typed outcomes, finite families, batching,
 designer integration and later compiler passes remain open in the table above.
+
+R1 typed/family contract: an outcome's optional `stateValue` is a scalar
+constant (`kind` and `value`), independent of its numeric payout-channel
+`value`. Missing `stateValue` retains the legacy string `outcomeId`. Integer
+and rational literals remain exact Numbers; Boolean and String are retained
+as such. Every outcome, including zero-weight positions, must have the same
+scalar type across a table and all members of a selected family. Invalid
+literals are compile errors, and literals are bounded to 4,096 characters.
+
+`Draw.distributionIds` explicitly lists 1..256 asset IDs in family order;
+`distributionIndexExpressionId` references a Number expression selecting an
+exact integer index. References, inline rows and legacy computed weights are
+mutually exclusive. Missing, negative, fractional, out-of-range and nonnumeric
+selectors fail before the Draw consumes random words or writes its result.
+Existing initial-state override guards apply to selector specialization too.
+Row lengths and zero positions are retained, with no union-domain padding.
+
+Canonical execution chooses a prebuilt Draw program; sampled execution chooses
+prebound operands with the compiled selector. Structured exact execution uses
+the existing `Sel` IR and one independent random variable per candidate row.
+For selector S, row variables Y_i independent of S and Z=Y_S give the required
+joint law P(S=s,Z=z)=P(S=s)P(Y_s=z). The selected state and payout use the same
+row variable, preserving their correlation. Constant selectors instantiate
+only the selected row. The original editable source contains references, not
+the private bound operand arrays. Full dynamic weight vectors remain a separate
+unfinished part of R1.
+
+The typed/family milestone passed the Release solution build, scoped formatting,
+84 selected Core cases and five preview API unit cases. The Core selection
+contains 26 new categorical cases, 17 asset cases, all 15 full game fixtures
+and 26 affected schema-derivation cases. Independent exact laws pin mean 363/4
+for a state-dependent family and mean 2,380 for the joint state/payout control
+7*D². Every sampling tier matches scalar alias transcripts, the following word
+and complete state. Invalid external selector overrides consume zero RNG words.
+Typed integer, wide integer, rational, Boolean and String data retain their
+values when settlement forces WinScale 10. Parameterized reusable bodies,
+source mutation and JSON round-trips are also covered.
+
+Both mandatory Rider profiles completed for all 11 touched C# files, repeated
+for the final test additions. Cleanup diffs were reviewed; existing third-party
+Roslyn provider warnings remain in local logs. No frontend or integration suite
+was needed for this kernel/model milestone. It adds capability; no new
+rounds/second claim is made before full-round performance comparisons.
