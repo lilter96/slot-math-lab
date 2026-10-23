@@ -75,7 +75,7 @@ for mutually exclusive CFG predecessors when graph memory SSA is added.
 
 The design separates resources, speculation and SSA reasoning, following
 [MLIR's effect model](https://mlir.llvm.org/docs/Rationale/SideEffectsAndSpeculation/).
-The upcoming state-version work follows the distinction between memory
+The state-version analysis follows the distinction between memory
 definitions, uses and merges described by
 [LLVM MemorySSA](https://llvm.org/docs/MemorySSA.html), while preserving this
 engine's defined exceptions and sequential continuation semantics.
@@ -114,7 +114,9 @@ All reported outcome statistics matched. Two cold observations per version
 are not a precise cost model; these runs show a preparation cost that later
 passes must justify, rather than a claimed speedup. The stage adds no IR
 interpretation to the spin loop. The subsequent memory stage is recorded in
-[the memory SSA contract](MEMORY_SSA.md); further transformations remain work.
+[the memory SSA contract](MEMORY_SSA.md). The first transformation is
+[conditional state constant propagation](STATE_PROPAGATION.md); CSE, LICM and
+dead intermediate elimination remain required work.
 
 Frozen Core SHA-256:
 `281e21003ad93169ad8075bdc2083523dc76bf07ed1d4c17f281f1c9dc1bde08`.

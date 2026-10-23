@@ -71,3 +71,10 @@ csharp_indent_case_contents_when_block = false
 resharper_csharp_place_simple_switch_expression_on_single_line = false
 resharper_csharp_wrap_switch_expression = chop_always
 resharper_csharp_keep_existing_switch_expression_arrangement = false
+
+[SlotMath.Core/Optimization/StateConstantPropagation.cs]
+# Match Rider's case-block and switch-expression layout in the propagation pass.
+csharp_indent_case_contents_when_block = false
+resharper_csharp_place_simple_switch_expression_on_single_line = false
+resharper_csharp_wrap_switch_expression = chop_always
+resharper_csharp_keep_existing_switch_expression_arrangement = false

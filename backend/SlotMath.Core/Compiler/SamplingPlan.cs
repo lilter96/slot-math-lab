@@ -53,6 +53,7 @@ internal sealed class SamplingPlanSlot(Slot<Dictionary<string, object?>, BigInte
     : Slot<Dictionary<string, object?>, BigInteger>, IAnnotationNode,
         ICompiledSampling<Dictionary<string, object?>, BigInteger>
 {
+    internal SamplingPreparation Preparation => plan.Preparation;
     object IAnnotationNode.InnerUntyped => reference;
 
     public ISamplingRunner<Dictionary<string, object?>, BigInteger> CreateRunner(Dictionary<string, object?> initial,
@@ -65,6 +66,8 @@ internal sealed class SamplingPlanSlot(Slot<Dictionary<string, object?>, BigInte
     public void Return(ICompiledSampling<Dictionary<string, object?>, BigInteger> instance) =>
         plan.Return((SamplingPlan)instance);
 }
+
+internal sealed record SamplingPreparation(GraphConfig Config, CompilerIr Ir, StatePropagationResult? Propagation);
 
 internal sealed class SamplingPlan : ICompiledSampling<Dictionary<string, object?>, BigInteger>
 {
@@ -93,21 +96,21 @@ internal sealed class SamplingPlan : ICompiledSampling<Dictionary<string, object
     private readonly SamplingShapes _shapes;
     private readonly bool _simplifyExpressions;
     private readonly GraphConfig _sourceConfig;
+    private readonly CompilerIr _sourceIr;
     private SamplingPlan? _general;
     private int _leased;
     private SamplingPlan? _withoutMasks;
 
     private SamplingPlan(GraphConfig config, BigInteger scale, IReadOnlyList<MeasurementDefinition> measurements,
         Dictionary<string, ExprValue> constants, SamplingShapes shapes, IReadOnlySet<string> maskFields,
-        bool simplifyExpressions = true)
+        bool simplifyExpressions = true, CompilerIr? sourceIr = null, SamplingPreparation? preparation = null)
     {
         _sourceConfig = config;
+        _sourceIr = sourceIr ?? CompilerIr.Build(config, measurements);
         _simplifyExpressions = simplifyExpressions;
-        if (simplifyExpressions)
-        {
-            config = GraphSimplifier.Specialize(config, constants, maskFields).Config;
-        }
-
+        Preparation = preparation ??
+                      Prepare(config, _sourceIr, constants, maskFields, measurements, simplifyExpressions);
+        config = Preparation.Config;
         _config = config;
         _scale = scale;
         _measurements = measurements;
@@ -237,6 +240,8 @@ internal sealed class SamplingPlan : ICompiledSampling<Dictionary<string, object
         }
     }
 
+    internal SamplingPreparation Preparation { get; }
+
     public ISamplingRunner<Dictionary<string, object?>, BigInteger> CreateRunner(Dictionary<string, object?> initial,
         MeasurementCollector? measurements = null, string[]? persistentKeys = null,
         LoopTerminationEvidence? loopEvidence = null)
@@ -246,11 +251,11 @@ internal sealed class SamplingPlan : ICompiledSampling<Dictionary<string, object
         SamplingPlan plan = initial.Keys.Any(_constants.ContainsKey)
             ? LazyInitializer.EnsureInitialized(ref _general,
                 () => new SamplingPlan(_sourceConfig, _scale, _measurements, NoConstants, _shapes,
-                    SamplingMaskState.None, _simplifyExpressions))
+                    SamplingMaskState.None, _simplifyExpressions, _sourceIr))
             : initial.Keys.Any(_maskFields.Contains)
                 ? LazyInitializer.EnsureInitialized(ref _withoutMasks,
                     () => new SamplingPlan(_sourceConfig, _scale, _measurements, _constants, _shapes,
-                        SamplingMaskState.None, _simplifyExpressions))
+                        SamplingMaskState.None, _simplifyExpressions, _sourceIr))
                 : this;
         return new Runner(plan, initial, measurements, persistentKeys, loopEvidence);
     }
@@ -279,18 +284,38 @@ internal sealed class SamplingPlan : ICompiledSampling<Dictionary<string, object
         IReadOnlySet<string> maskFields = SamplingMaskState.Infer(config, measurements);
         try
         {
-            Dictionary<string, ExprValue> constants = (ir ?? CompilerIr.Build(config, measurements)).StableInitialValues
+            ir ??= CompilerIr.Build(config, measurements);
+            Dictionary<string, ExprValue> constants = ir.StableInitialValues
                 .ToDictionary(pair => pair.Key, pair => pair.Value, StringComparer.Ordinal);
             plan = new SamplingPlan(config, scale, measurements, constants,
-                new SamplingShapes(), maskFields, simplifyExpressions);
+                new SamplingShapes(), maskFields, simplifyExpressions, ir);
         }
         catch (ConstantStateConflict)
         {
             plan = new SamplingPlan(config, scale, measurements, NoConstants, new SamplingShapes(), maskFields,
-                simplifyExpressions);
+                simplifyExpressions, ir);
         }
 
         return new SamplingPlanSlot(reference, plan);
+    }
+
+    private static SamplingPreparation Prepare(GraphConfig source, CompilerIr ir,
+        Dictionary<string, ExprValue> constants, IReadOnlySet<string> maskFields,
+        IReadOnlyList<MeasurementDefinition> measurements, bool simplify)
+    {
+        if (!simplify)
+        {
+            return new SamplingPreparation(source, ir, null);
+        }
+
+        StatePropagationResult propagation = StateConstantPropagation.Run(source, ir, constants);
+        GraphSimplification specialized = GraphSimplifier.Specialize(propagation.Config, constants, maskFields);
+        // Effect/read roots changed: build and verify fresh analyses rather than
+        // handing later passes the IR of the authored expression table.
+        CompilerIr updated = propagation.Changes.Count != 0 || specialized.Changes.Count != 0
+            ? CompilerIr.Build(specialized.Config, measurements)
+            : ir;
+        return new SamplingPreparation(specialized.Config, updated, propagation);
     }
 
     // Collects the names an expression assigns while iterating. False for a form this analysis does not know.
@@ -337,7 +362,8 @@ internal sealed class SamplingPlan : ICompiledSampling<Dictionary<string, object
     internal SamplingPlan Rent() =>
         Interlocked.CompareExchange(ref _leased, 1, 0) == 0 ? this :
         _idle.TryTake(out SamplingPlan? replica) ? replica :
-        new SamplingPlan(_sourceConfig, _scale, _measurements, _constants, _shapes, _maskFields, _simplifyExpressions);
+        new SamplingPlan(_sourceConfig, _scale, _measurements, _constants, _shapes, _maskFields, _simplifyExpressions,
+            _sourceIr, Preparation);
 
     internal void Return(SamplingPlan instance)
     {

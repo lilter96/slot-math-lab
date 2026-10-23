@@ -12,7 +12,7 @@ individually verified milestone; it does not complete the overall objective.
 | R2 | Ordered DrawMany, including explicit mixed-table schedules | Scalar RNG transcript, following Draw, cancellation, snapshots and observations | Backend verified; public contract docs/DRAW_MANY.md; dependency-aware migrations remain R17 |
 | R3 | Let, typed record/tuple results, expression-valued collections and bounded composition | Lexical scope, exact arithmetic, shape and error-order regressions across execution paths | Backend verified; contracts in docs/LEXICAL_EXPRESSIONS.md and docs/COLLECTION_EXPRESSIONS.md; designer integration remains R18 |
 | R4 | Typed IR with state versions, effects and guarded analyses | IR inspection plus observation/exception/override/cancellation controls | Backend verified; expression regions, continuation memory SSA, verifier and guarded facts; transformations remain R5/R6 |
-| R5 | SCCP, dominance-aware CSE, safe LICM and dead intermediate elimination | Independent equivalence controls and cost measurements; no mechanic dispatch | Pending |
+| R5 | SCCP, dominance-aware CSE, safe LICM and dead intermediate elimination | Independent equivalence controls and cost measurements; no mechanic dispatch | Partial: scalar conditional state propagation verified; CSE, LICM and dead intermediate elimination remain |
 | R6 | Lifetime/alias analysis, buffer reuse and safe collection fusion | Old snapshots, persistent sessions and measurement boundaries remain correct | Pending |
 | R7 | Bounded Reachable on arbitrary adjacency, including cyclic data graphs | Independent BFS oracle and independent JSON mechanics | Pending |
 | R8 | Scan and stable segmented compaction | Exact prefix oracle, exhaustive small segments and carried attributes | Pending |
@@ -352,3 +352,22 @@ analysis cost to justify in subsequent passes, not a spin-throughput gain.
 [Memory SSA](../MEMORY_SSA.md) records details and boundaries. R5–R18 remain
 required; automatic graph rewrites and game migrations have not been certified
 by these analysis-only controls.
+
+R5 first stage propagates scalar state facts through continuation calls,
+conditional branches and joins. It widens loop-carried writes, preserves
+legacy integer storage and treats absent facts as unknown rather than missing
+runtime fields. Shared expression IDs receive private per-use specializations.
+Observable writes, RNG order and cancellation checkpoints remain. Changed
+executables receive fresh verified IR; worker replicas share one preparation,
+and overridden initial assumptions rebind from the original source.
+
+Final verification passed 313 selected Core cases and five API preview cases,
+including 23 new propagation controls and all 15 seeded full-state game cases.
+Both Rider profiles, scoped formatting and the Release build passed for all
+three touched source files. The arithmetic control improved about 20% in the
+recorded run; branch measurements varied enough to change the apparent sign
+of the effect. Nine Lives and Le Militare measured near parity within overlapping
+ranges, with additional preparation cost.
+[The propagation contract](../STATE_PROPAGATION.md) records the controls and
+limits. This completes only the SCCP part of R5; CSE, LICM, dead intermediate
+elimination and R6–R18 remain required.
