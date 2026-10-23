@@ -48,12 +48,15 @@ public sealed class GraphCompiler
     private readonly bool _allowPlugins;
     private readonly bool _optimizeSampling;
     private readonly PluginHost? _pluginHost;
+    private readonly bool _simplifyExpressions;
 
-    public GraphCompiler(PluginHost? pluginHost = null, bool allowPlugins = true, bool optimizeSampling = true)
+    public GraphCompiler(PluginHost? pluginHost = null, bool allowPlugins = true, bool optimizeSampling = true,
+        bool simplifyExpressions = true)
     {
         _pluginHost = pluginHost;
         _allowPlugins = allowPlugins;
         _optimizeSampling = optimizeSampling;
+        _simplifyExpressions = simplifyExpressions;
     }
 
     private static IEnumerable<MeasurementField> MeasurementFields(FieldDescriptor field, string[] path)
@@ -201,7 +204,7 @@ public sealed class GraphCompiler
             }
 
             Slot<Dictionary<string, object?>, BigInteger> optimized = _optimizeSampling
-                ? SamplingPlan.Wrap(config, builder.WinScale, program, measurements ?? [])
+                ? SamplingPlan.Wrap(config, builder.WinScale, program, measurements ?? [], _simplifyExpressions)
                 : program;
             return CompileResult.Success(optimized) with
             {
