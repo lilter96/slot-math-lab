@@ -11,7 +11,7 @@ individually verified milestone; it does not complete the overall objective.
 | R1 | Immutable distribution assets, typed outcomes, finite families and bounded dynamic weight vectors | JSON/reference/compiled/exact agreement, identity and override regressions | Backend verified; public contract in docs/DISTRIBUTIONS.md; UI/migrations remain R18/R17 |
 | R2 | Ordered DrawMany, including explicit mixed-table schedules | Scalar RNG transcript, following Draw, cancellation, snapshots and observations | Backend verified; public contract docs/DRAW_MANY.md; dependency-aware migrations remain R17 |
 | R3 | Let, typed record/tuple results, expression-valued collections and bounded composition | Lexical scope, exact arithmetic, shape and error-order regressions across execution paths | Backend verified; contracts in docs/LEXICAL_EXPRESSIONS.md and docs/COLLECTION_EXPRESSIONS.md; designer integration remains R18 |
-| R4 | Typed IR with state versions, effects and guarded analyses | IR inspection plus observation/exception/override/cancellation controls | Expression SSA/effect analysis integrated; graph memory versions and phi merges remain |
+| R4 | Typed IR with state versions, effects and guarded analyses | IR inspection plus observation/exception/override/cancellation controls | Backend verified; expression regions, continuation memory SSA, verifier and guarded facts; transformations remain R5/R6 |
 | R5 | SCCP, dominance-aware CSE, safe LICM and dead intermediate elimination | Independent equivalence controls and cost measurements; no mechanic dispatch | Pending |
 | R6 | Lifetime/alias analysis, buffer reuse and safe collection fusion | Old snapshots, persistent sessions and measurement boundaries remain correct | Pending |
 | R7 | Bounded Reachable on arbitrary adjacency, including cyclic data graphs | Independent BFS oracle and independent JSON mechanics | Pending |
@@ -329,6 +329,26 @@ preview cases, including 36 new cases. Both mandatory Rider profiles, scoped
 formatting and the Release solution build passed for all eight source files.
 Cold compile controls retain identical outcome statistics and show modest but
 variable preparation overhead; [the IR contract](../COMPILER_IR.md) records
-ranges and limits. Graph memory versions, memory phi nodes and inter-node
-motion remain R4 work; R5–R18 remain required. This stage does not certify an
+ranges and limits. Graph memory versions and memory phi nodes are completed by the following
+stage. Inter-node transformations and R5–R18 remain required. This stage does not certify an
 automatic graph rewrite or a simulation-throughput improvement.
+
+R4 memory stage adds sparse whole-store versions and parameterized continuation
+functions. Ordered fan-out shares predecessor stores, true/false returns join
+in phis, and loops join entry/backedge states while preserving cap-before-stop,
+post-body counter reads, conditional win updates and exit classification.
+Measurement and final-settlement placement remain explicit. A clobber worklist
+handles cyclic phis and unknown writes; guarded single-field read reuse also
+checks ownership, overrides and observable/error/cancellation/RNG boundaries.
+The compiler verifies the module before using its write footprint for initial
+facts. No transformation recognizes game IDs or mechanic patterns.
+
+This completes the R4 backend contract. Final verification passed 290 selected
+Core cases and five API preview cases, including 18 new memory cases and the
+full current-game IR corpus. All six touched source files passed both Rider
+profiles, scoped formatting and the Release build. Cold preparation increased
+from 238–295 to 449–475 ms on Nine Lives in the recorded control. This is an
+analysis cost to justify in subsequent passes, not a spin-throughput gain.
+[Memory SSA](../MEMORY_SSA.md) records details and boundaries. R5–R18 remain
+required; automatic graph rewrites and game migrations have not been certified
+by these analysis-only controls.

@@ -1,14 +1,14 @@
 # Typed expression regions and compiler effects
 
-This is the first implementation stage of row R4. The compiler now builds an
+The expression stage of row R4 builds an
 internal IR for every resolved named expression, node port default, loop exit
 reason and measurement expression. `CompileResult.Ir` exposes it internally for
 inspection and verification. Compilation uses its write/binding summaries to
 choose immutable initial-state facts for the sampling plan.
 
-Graph memory versions, branch/loop memory phi nodes and inter-node motion are
-still required R4 work. This stage does not implement CSE, LICM or elimination
-of observable state. R5 and R6 remain separate work.
+[Graph memory SSA](MEMORY_SSA.md) adds verified state versions, branch/loop
+phis and guarded read queries. It supplies the write footprint used for initial
+facts. CSE, LICM and elimination of observable state remain R5/R6 work.
 
 ## Values, scopes and execution order
 
@@ -113,8 +113,8 @@ compile, to check functional output rather than steady-state throughput.
 All reported outcome statistics matched. Two cold observations per version
 are not a precise cost model; these runs show a preparation cost that later
 passes must justify, rather than a claimed speedup. The stage adds no IR
-interpretation to the spin loop. Generic memory SSA and further optimizations
-remain required work.
+interpretation to the spin loop. The subsequent memory stage is recorded in
+[the memory SSA contract](MEMORY_SSA.md); further transformations remain work.
 
 Frozen Core SHA-256:
 `281e21003ad93169ad8075bdc2083523dc76bf07ed1d4c17f281f1c9dc1bde08`.

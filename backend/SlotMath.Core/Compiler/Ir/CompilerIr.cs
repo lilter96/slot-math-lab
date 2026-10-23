@@ -34,17 +34,19 @@ internal sealed class CompilerIr
 {
     private CompilerIr(IReadOnlyDictionary<IrExpressionKey, ExpressionIr> expressions,
         IReadOnlyDictionary<string, NodeIr> nodes,
-        IrEffects effects, IReadOnlyDictionary<string, ExprValue> initial)
+        IrEffects effects, IReadOnlyDictionary<string, ExprValue> initial, MemorySsa memory)
     {
         Expressions = expressions;
         Nodes = nodes;
         Effects = effects;
         StableInitialValues = initial;
+        Memory = memory;
     }
 
     internal IReadOnlyDictionary<IrExpressionKey, ExpressionIr> Expressions { get; }
     internal IReadOnlyDictionary<string, NodeIr> Nodes { get; }
     internal IrEffects Effects { get; }
+    internal MemorySsa Memory { get; }
     internal IReadOnlyDictionary<string, ExprValue> StableInitialValues { get; }
 
     internal static CompilerIr Build(GraphConfig config, IReadOnlyList<MeasurementDefinition> measurements,
@@ -196,12 +198,20 @@ internal sealed class CompilerIr
 
         IrEffects all = IrEffects.Union(expressions.Values.Select(expression => expression.Effects)
             .Concat(nodes.Values.Select(node => node.Effects)));
-        var written = new HashSet<string>(all.Writes, StringComparer.Ordinal);
+        MemorySsa memory = MemorySsaBuilder.Build(config, nodes, expressions, measurements);
+        IReadOnlyList<string> memoryErrors = MemorySsaVerifier.Verify(memory);
+        if (memoryErrors.Count != 0)
+        {
+            throw new CompilationException(null, ErrorCodes.InvalidGraph,
+                "Compiler memory SSA verification failed: " + string.Join("; ", memoryErrors));
+        }
+
+        var written = new HashSet<string>(memory.WrittenFields, StringComparer.Ordinal);
         written.UnionWith(all.Bindings);
         written.UnionWith(MonetarySettlement.EvidenceKeys);
         written.UnionWith(["__default__", "__modified__"]);
         var initial = new Dictionary<string, ExprValue>(StringComparer.Ordinal);
-        if (all.Known)
+        if (all.Known && !memory.UnknownWrites)
         {
             foreach ((var key, JsonElement value) in config.InitialState ?? [])
             {
@@ -219,6 +229,6 @@ internal sealed class CompilerIr
         }
 
         return new CompilerIr(expressions.ToFrozenDictionary(), nodes.ToFrozenDictionary(StringComparer.Ordinal),
-            all, initial.ToFrozenDictionary(StringComparer.Ordinal));
+            all, initial.ToFrozenDictionary(StringComparer.Ordinal), memory);
     }
 }

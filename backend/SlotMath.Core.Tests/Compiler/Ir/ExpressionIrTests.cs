@@ -722,6 +722,7 @@ public sealed class ExpressionIrTests
         Assert.True(compiled.IsValid, string.Join(';', compiled.Errors));
         var ir = Assert.IsType<CompilerIr>(compiled.Ir);
         Assert.NotEmpty(ir.Expressions);
+        Assert.Empty(MemorySsaVerifier.Verify(ir.Memory));
         foreach ((IrExpressionKey key, ExpressionIr expression) in ir.Expressions)
         {
             Assert.True(IrVerifier.Verify(expression).Count == 0,
