@@ -102,6 +102,8 @@ public static class ExactExpressionEvaluator
             ProjectExpr project => LexicalValues.Project(Eval(project.Value, ctx), project.Path),
             ReachableExpr reachable => ReachabilityData.Evaluate(Eval(reachable.Adjacency, ctx),
                 Eval(reachable.Allowed, ctx), Eval(reachable.Seeds, ctx), reachable.VertexCount, ctx.CancellationToken),
+            ScanExpr scan => EvalScan(scan, ctx),
+            SegmentedCompactExpr compact => EvalCompact(compact, ctx),
             ConstantExpr c => EvalConstant(c),
             FieldAccessExpr f => EvalFieldAccess(f, ctx),
             BinaryExpr b => EvalBinary(b, ctx),
@@ -116,6 +118,26 @@ public static class ExactExpressionEvaluator
             FilterExpr fi => EvalFilter(fi, ctx),
             _ => throw new InvalidOperationException($"Unknown expression type: {expr.GetType().Name}")
         };
+    }
+
+    private static ExprValue EvalScan(ScanExpr scan, EvalContext context)
+    {
+        ExprValue source = Eval(scan.Source, context);
+        context.CancellationToken.ThrowIfCancellationRequested();
+        var count = CollectionPlanData.CheckScan(source, scan.Mode, scan.MaxItems);
+        return CollectionPlanData.Scan(source, scan.Mode, new ExprValue[count], context.CancellationToken);
+    }
+
+    private static ExprValue EvalCompact(SegmentedCompactExpr compact, EvalContext context)
+    {
+        ExprValue keep = Eval(compact.Keep, context);
+        ExprValue boundaries = Eval(compact.Boundaries, context);
+        context.CancellationToken.ThrowIfCancellationRequested();
+        (int Items, int Segments) shape = CollectionPlanData.CheckCompact(keep, boundaries, compact.Packing,
+            compact.MaxItems,
+            compact.MaxSegments);
+        return CollectionPlanData.Compact(keep, boundaries, compact.Packing, new ExprValue[shape.Items],
+            new ExprValue[shape.Segments], context.CancellationToken);
     }
 
     private static ExprValue EvalRecord(RecordExpr record, EvalContext context)

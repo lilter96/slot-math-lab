@@ -35,6 +35,8 @@ internal static class CollectionInputs
         TupleExpr e => e.Items,
         ProjectExpr e => [e.Value],
         ReachableExpr e => [e.Adjacency, e.Allowed, e.Seeds],
+        ScanExpr e => [e.Source],
+        SegmentedCompactExpr e => [e.Keep, e.Boundaries],
         BinaryExpr e => [e.Left, e.Right],
         CompareExpr e => [e.Left, e.Right],
         IfExpr e => [e.Condition, e.ThenExpr, e.ElseExpr],

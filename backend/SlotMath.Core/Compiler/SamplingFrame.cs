@@ -4,6 +4,7 @@ using System.Runtime.CompilerServices;
 using SlotMath.Core.Expressions;
 using SlotMath.Core.Math;
 using SlotMath.Core.Measurements;
+using SlotMath.Core.Model;
 
 namespace SlotMath.Core.Compiler;
 
@@ -315,6 +316,24 @@ internal sealed class SamplingFrame
         ExprValue[] result = NewArray(count);
         Array.Copy(values, result, count);
         return result;
+    }
+
+    internal ExprValue Scan(ExprValue source, ScanMode mode, int maxItems, bool reuseSource)
+    {
+        CancellationToken.ThrowIfCancellationRequested();
+        var length = CollectionPlanData.CheckScan(source, mode, maxItems);
+        ExprValue[] output = reuseSource && source.ItemsArray is { } owned ? owned : NewArray(length);
+        return CollectionPlanData.Scan(source, mode, output, CancellationToken);
+    }
+
+    internal ExprValue Compact(ExprValue keep, ExprValue boundaries, SegmentPacking packing,
+        int maxItems, int maxSegments)
+    {
+        CancellationToken.ThrowIfCancellationRequested();
+        (int Items, int Segments) shape =
+            CollectionPlanData.CheckCompact(keep, boundaries, packing, maxItems, maxSegments);
+        return CollectionPlanData.Compact(keep, boundaries, packing, NewArray(shape.Items), NewArray(shape.Segments),
+            CancellationToken);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

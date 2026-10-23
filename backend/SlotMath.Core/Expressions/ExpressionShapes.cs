@@ -136,6 +136,8 @@ internal static class ExpressionShapes
             (index.ToString(CultureInfo.InvariantCulture), Infer(item, context)))),
         ProjectExpr project => Project(Infer(project.Value, context), project.Path),
         FieldAccessExpr field => context.ResolveField(field.Path, field.Target),
+        ScanExpr => Array(Field("value", ExprType.Number)),
+        SegmentedCompactExpr => Compaction(),
         FilterExpr filter => CollectionInputs.Shape(CollectionInputs.Of(filter), context),
         MapExpr map => Array(Infer(map.Body, ArrayExpressionTypes.Bind(context,
                 IteratorItem(context, map.StateKey, map.ItemName, map.ItemType, map.Source),
@@ -149,6 +151,23 @@ internal static class ExpressionShapes
             Append(Infer(call.Args[0], context), Infer(call.Args[1], context)),
         FoldExpr fold => Fold(fold, context),
         _ => Scalar(expression, context)
+    };
+
+    internal static FieldDescriptor Compaction() => new()
+    {
+        Name = "compaction",
+        Type = ExprType.Record,
+        RecordFields =
+        [
+            Array(Field("value", ExprType.Number)) with
+            {
+                Name = "sources"
+            },
+            Array(Field("value", ExprType.Number)) with
+            {
+                Name = "freeCounts"
+            }
+        ]
     };
 
     internal static FieldDescriptor? Project(FieldDescriptor? value, string[] path)

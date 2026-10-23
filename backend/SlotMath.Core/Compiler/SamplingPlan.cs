@@ -343,6 +343,8 @@ internal sealed class SamplingPlan : ICompiledSampling<Dictionary<string, object
             ProjectExpr e => Variables(e.Value, names),
             ReachableExpr e => Variables(e.Adjacency, names) && Variables(e.Allowed, names) &&
                                Variables(e.Seeds, names),
+            ScanExpr e => Variables(e.Source, names),
+            SegmentedCompactExpr e => Variables(e.Keep, names) && Variables(e.Boundaries, names),
             NotExpr e => Variables(e.Expr, names),
             BinaryExpr e => Variables(e.Left, names) && Variables(e.Right, names),
             CompareExpr e => Variables(e.Left, names) && Variables(e.Right, names),

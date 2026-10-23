@@ -76,6 +76,8 @@ internal enum IrOp
     Call,
     BitSet,
     Reachable,
+    Scan,
+    SegmentedCompact,
     If,
     And,
     Or,

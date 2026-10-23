@@ -72,6 +72,14 @@ public static class ExpressionCost
             ProjectExpr e => Add(1, Child(e.Value)),
             ReachableExpr e => Add(Add(Add(Child(e.Adjacency), Child(e.Allowed)), Child(e.Seeds)),
                 e.VertexCount is >= 0 and <= ReachabilityData.MaxVertices ? 1 + 2L * e.VertexCount : long.MaxValue),
+            ScanExpr e => Add(Child(e.Source), e.MaxItems is >= 0 and <= CollectionInputs.MaxItems
+                ? 1L + e.MaxItems
+                : long.MaxValue),
+            SegmentedCompactExpr e => Add(Add(Child(e.Keep), Child(e.Boundaries)),
+                e.MaxItems is >= 0 and <= CollectionInputs.MaxItems &&
+                e.MaxSegments is >= 0 and <= CollectionInputs.MaxItems
+                    ? 2L + 3L * e.MaxItems + 2L * e.MaxSegments
+                    : long.MaxValue),
             NotExpr e => Add(1, Child(e.Expr)),
             BinaryExpr e => Add(1, Add(Child(e.Left), Child(e.Right))),
             CompareExpr e => Add(1, Add(Child(e.Left), Child(e.Right))),

@@ -531,6 +531,15 @@ public static class SubgraphInliner
                 Allowed = RewriteExprRefs(reachable.Allowed, prefix),
                 Seeds = RewriteExprRefs(reachable.Seeds, prefix)
             },
+            ScanExpr scan => scan with
+            {
+                Source = RewriteExprRefs(scan.Source, prefix)
+            },
+            SegmentedCompactExpr compact => compact with
+            {
+                Keep = RewriteExprRefs(compact.Keep, prefix),
+                Boundaries = RewriteExprRefs(compact.Boundaries, prefix)
+            },
             CallExpr call => call with
             {
                 Args = call.Args.Select(arg => RewriteExprRefs(arg, prefix)).ToArray()

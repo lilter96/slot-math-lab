@@ -128,3 +128,10 @@ operation with a vertex bound and cancellation/error/allocation effects.
 Dominated-predicate admission now checks recursive IR effects before adding
 assumptions; repeated cancellation-bearing predicates remain at their authored
 execution points. The effect check is structural and independent of mechanics.
+
+
+Scan and SegmentedCompact are explicit ordered IR operations with declared
+bounds, result shapes, cancellation, possible errors and allocation. Scan
+participates in private collection-origin analysis; compact record projections
+remain borrowed. [The contracts and regression evidence](SCAN_COMPACTION.md)
+include Boolean-to-numeric storage transfer and exact joint laws.

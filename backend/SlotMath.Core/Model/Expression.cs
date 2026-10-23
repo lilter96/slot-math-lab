@@ -24,9 +24,41 @@ namespace SlotMath.Core.Model;
 [JsonDerivedType(typeof(TupleExpr), "tuple")]
 [JsonDerivedType(typeof(ProjectExpr), "project")]
 [JsonDerivedType(typeof(ReachableExpr), "reachable")]
+[JsonDerivedType(typeof(ScanExpr), "scan")]
+[JsonDerivedType(typeof(SegmentedCompactExpr), "segmentedCompact")]
 public abstract record Expression
 {
     public string? Annotation { get; init; }
+}
+
+public enum ScanMode
+{
+    Inclusive,
+    Exclusive
+}
+
+public enum SegmentPacking
+{
+    Start,
+    End
+}
+
+/// <summary>Exact integer or Boolean-prefix sums in authored order.</summary>
+public sealed record ScanExpr : Expression
+{
+    public required Expression Source { get; init; }
+    public required ScanMode Mode { get; init; }
+    public required int MaxItems { get; init; }
+}
+
+/// <summary>Stable global source indices and free counts for explicit contiguous segments.</summary>
+public sealed record SegmentedCompactExpr : Expression
+{
+    public required Expression Keep { get; init; }
+    public required Expression Boundaries { get; init; }
+    public required SegmentPacking Packing { get; init; }
+    public required int MaxItems { get; init; }
+    public required int MaxSegments { get; init; }
 }
 
 /// <summary>Directed finite-set closure in an explicitly bounded 0..64 vertex domain.</summary>

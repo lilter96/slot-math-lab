@@ -202,8 +202,8 @@ public static class StateSchemaDeriver
     private static ExprType ProvisionalType(Expression? expr) => expr switch
     {
         LetExpr let => ProvisionalType(let.Body),
-        RecordExpr or TupleExpr => ExprType.Record,
-        MapExpr or FilterExpr => ExprType.Array,
+        RecordExpr or TupleExpr or SegmentedCompactExpr => ExprType.Record,
+        MapExpr or FilterExpr or ScanExpr => ExprType.Array,
         FoldExpr f => ContainsAppend(f.Body) ? ExprType.Array : ExprType.Number,
         CallExpr c when c.Function.Equals("append", StringComparison.OrdinalIgnoreCase) => ExprType.Array,
         _ => ExprType.Number

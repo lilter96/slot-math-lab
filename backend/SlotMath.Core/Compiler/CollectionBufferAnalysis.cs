@@ -98,7 +98,7 @@ internal sealed class CollectionBufferAnalysis
             var origins = new HashSet<int>();
             var borrowed = true;
             var unique = false;
-            if (allowed && operation.Code is IrOp.Map or IrOp.Filter)
+            if (allowed && operation.Code is IrOp.Map or IrOp.Filter or IrOp.Scan)
             {
                 origins.Add(operation.Result.Id);
                 borrowed = false;
@@ -159,7 +159,7 @@ internal sealed class CollectionBufferAnalysis
         return !BudgetReached && _ir.Collections.TryGetValue(consumer, out IReadOnlyList<int>? results) &&
                results.Count != 0 && results.All(result =>
                    _definitions.TryGetValue(result, out IrOperation? operation) &&
-                   operation.Code is IrOp.Map or IrOp.Filter && operation.Inputs.Count == 1 &&
+                   operation.Code is IrOp.Map or IrOp.Filter or IrOp.Scan && operation.Inputs.Count == 1 &&
                    Values.TryGetValue(operation.Inputs[0].Id, out BufferLifetime? source) && source.Unique);
     }
 

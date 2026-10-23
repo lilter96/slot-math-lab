@@ -15,7 +15,7 @@ individually verified milestone; it does not complete the overall objective.
 | R5 | SCCP, dominance-aware CSE, safe LICM and dead intermediate elimination | Independent equivalence controls and cost measurements; no mechanic dispatch | Backend verified for admitted scalar regions; contracts and measured limits in docs/STATE_PROPAGATION.md and docs/VALUE_REUSE.md; buffer/fusion remains R6 |
 | R6 | Lifetime/alias analysis, buffer reuse and safe collection fusion | Old snapshots, persistent sessions and measurement boundaries remain correct | Backend verified for private expression containers; bounded large-buffer retention and guarded constant-producer fusion; scope and measurements in docs/COLLECTION_BUFFERS.md |
 | R7 | Bounded Reachable on arbitrary adjacency, including cyclic data graphs | Independent BFS oracle and independent JSON mechanics | Backend verified: 0..64 exact mask domain, independent transitive-closure oracle and two JSON subgraphs; docs/REACHABLE.md; game migrations remain R17 and wider sets R15 |
-| R8 | Scan and stable segmented compaction | Exact prefix oracle, exhaustive small segments and carried attributes | Pending |
+| R8 | Scan and stable segmented compaction | Exact prefix oracle, exhaustive small segments and carried attributes | Backend verified: exact integer/Boolean prefixes, stable source plans, three carried attribute types; docs/SCAN_COMPACTION.md; game admission remains R17 |
 | R9 | Designer repeat over collections and runtime subgraph bindings where needed | Editable JSON, apply/undo, nested scopes and responsive visual acceptance | Pending |
 | R10 | Bounded foldWhile, any/all | Empty, early stop, short-circuit errors and resource bounds | Pending |
 | R11 | Indexed reduction/partition and deterministic scatter | Duplicate-index contract, typed values, snapshot and ownership controls | Pending |
@@ -452,3 +452,20 @@ measured 5.499x/9.331x versus a valid Fold relaxation composition on 15/25
 vertices, with identical outcome statistics and near-identical allocations.
 [Reachable](../REACHABLE.md) records bounds and the limit of this comparison.
 R8–R18 remain required; no current-game multiplier is inferred.
+
+
+R8 adds exact integer/Boolean inclusive/exclusive Scan and stable segmented
+compaction returning source indices and free counts. Independent prefix sums,
+exhaustive small segment plans, shared random exact laws and three-tier state,
+RNG, cancellation and persistent-export checks passed. A JSON subgraph applies
+one lexical plan to symbols, multipliers and Boolean attributes.
+
+Final verification passed 479 selected Core cases and five API previews,
+including 37 new cases and all 15 current-game state controls. Both Rider
+profiles covered 20 C# files and the JSON fixture; scoped formatting and the
+Release build passed. Prefix controls remove repeated Fold/append/record work
+and measured roughly 224x/351x on 64/128 items. Compaction32 measured 1.497x;
+128-item timing overlapped, and the five-item lookup control remained faster
+than the new operator. [Scan and compaction](../SCAN_COMPACTION.md) records
+actual schedules, ranges, allocation and limitations. No current-game spin
+multiplier is inferred. R9–R18 remain required for the full objective.

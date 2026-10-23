@@ -110,6 +110,12 @@ public static class ExpressionSimplifier
                 BitSetExpr s => [nameof(BitSetExpr), s.Op, s.Args.Select(Child).ToArray()],
                 ReachableExpr e =>
                     [nameof(ReachableExpr), e.VertexCount, Child(e.Adjacency), Child(e.Allowed), Child(e.Seeds)],
+                ScanExpr e => [nameof(ScanExpr), e.Mode, e.MaxItems, Child(e.Source)],
+                SegmentedCompactExpr e =>
+                [
+                    nameof(SegmentedCompactExpr), e.Packing, e.MaxItems, e.MaxSegments,
+                    Child(e.Keep), Child(e.Boundaries)
+                ],
                 MapExpr m =>
                 [
                     nameof(MapExpr), m.StateKey, Optional(m.Source), m.MaxItems, m.ItemName, m.IndexName, m.ItemType,
@@ -328,6 +334,17 @@ public static class ExpressionSimplifier
                         Allowed = Visit(reachable.Allowed),
                         Seeds = Visit(reachable.Seeds)
                     }; break;
+                case ScanExpr scan:
+                    rewritten = scan with
+                    {
+                        Source = Visit(scan.Source)
+                    }; break;
+                case SegmentedCompactExpr compact:
+                    rewritten = compact with
+                    {
+                        Keep = Visit(compact.Keep),
+                        Boundaries = Visit(compact.Boundaries)
+                    }; break;
                 case MapExpr map:
                     rewritten = map with
                     {
@@ -428,6 +445,8 @@ public static class ExpressionSimplifier
                 CallExpr e => e.Args.Any(Uses),
                 BitSetExpr e => e.Args.Any(Uses),
                 ReachableExpr e => Uses(e.Adjacency) || Uses(e.Allowed) || Uses(e.Seeds),
+                ScanExpr e => Uses(e.Source),
+                SegmentedCompactExpr e => Uses(e.Keep) || Uses(e.Boundaries),
                 ProjectExpr e => Uses(e.Value),
                 RecordExpr e => e.Fields.Any(field => Uses(field.Value)),
                 TupleExpr e => e.Items.Any(Uses),

@@ -461,6 +461,11 @@ internal sealed class Translator(TermFactory f)
                 Reads(reachable.Allowed, names);
                 Reads(reachable.Seeds, names);
                 break;
+            case ScanExpr scan: Reads(scan.Source, names); break;
+            case SegmentedCompactExpr compact:
+                Reads(compact.Keep, names);
+                Reads(compact.Boundaries, names);
+                break;
             case AggregateExpr aggregate:
                 if (aggregate.StateKey is { } aggregateKey)
                 {

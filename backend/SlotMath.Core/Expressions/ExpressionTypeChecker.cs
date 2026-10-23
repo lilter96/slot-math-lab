@@ -69,6 +69,8 @@ public static class ExpressionTypeChecker
             TupleExpr tuple => InferTuple(tuple, ctx, errors),
             ProjectExpr project => InferProject(project, ctx, errors),
             ReachableExpr reachable => InferReachable(reachable, ctx, errors),
+            ScanExpr scan => InferScan(scan, ctx, errors),
+            SegmentedCompactExpr compact => InferCompact(compact, ctx, errors),
             ConstantExpr c => InferConstant(c, ctx, errors),
             FieldAccessExpr f => InferFieldAccess(f, ctx, errors),
             BinaryExpr b => InferBinary(b, ctx, errors),
@@ -115,6 +117,50 @@ public static class ExpressionTypeChecker
         }
 
         return valid ? ExprType.Number : ExprType.Error;
+    }
+
+    private static bool PlanArray(Expression source, TypeCheckContext context, List<TypeCheckError> errors,
+        params ExprType[] itemTypes)
+    {
+        if (CollectionInputs.HasUnboundedIterator(source))
+        {
+            errors.Add(Error(source, "Every iterator composed into a bounded plan requires an explicit bound."));
+            return false;
+        }
+
+        ExprType type = Infer(source, context, errors);
+        FieldDescriptor? shape = ExpressionShapes.Infer(source, context);
+        return type == ExprType.Array && (shape?.ArrayIsEmpty == true ||
+                                          (ExpressionShapes.Item(shape) is { } item && itemTypes.Contains(item.Type)));
+    }
+
+    private static ExprType InferScan(ScanExpr scan, TypeCheckContext context, List<TypeCheckError> errors)
+    {
+        var valid = PlanArray(scan.Source, context, errors, ExprType.Number, ExprType.Boolean);
+        if (scan.MaxItems is < 0 or > CollectionInputs.MaxItems ||
+            scan.Mode is not (ScanMode.Inclusive or ScanMode.Exclusive) || !valid)
+        {
+            return Fail(scan, "Scan requires an integer/Boolean array, explicit 0..4096 bound and valid mode.", errors);
+        }
+
+        return ExprType.Array;
+    }
+
+    private static ExprType InferCompact(SegmentedCompactExpr compact, TypeCheckContext context,
+        List<TypeCheckError> errors)
+    {
+        var keep = PlanArray(compact.Keep, context, errors, ExprType.Boolean);
+        var boundaries = PlanArray(compact.Boundaries, context, errors, ExprType.Number);
+        if (!keep || !boundaries || compact.MaxItems is < 0 or > CollectionInputs.MaxItems ||
+            compact.MaxSegments is < 0 or > CollectionInputs.MaxItems ||
+            compact.Packing is not (SegmentPacking.Start or SegmentPacking.End))
+        {
+            return Fail(compact,
+                "Compaction requires Boolean keep flags, numeric offsets, explicit 0..4096 bounds and valid packing.",
+                errors);
+        }
+
+        return ExprType.Record;
     }
 
     private static ExprType InferLet(LetExpr let, TypeCheckContext context, List<TypeCheckError> errors)

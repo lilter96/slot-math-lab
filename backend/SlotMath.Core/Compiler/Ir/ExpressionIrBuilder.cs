@@ -76,7 +76,7 @@ internal sealed class ExpressionIrBuilder
     private IrValue Lower(Expression expression, Scope scope, int depth)
     {
         IrValue value = LowerCore(expression, scope, depth);
-        if (expression is MapExpr or FilterExpr)
+        if (expression is MapExpr or FilterExpr or ScanExpr)
         {
             if (!_collections.TryGetValue(expression, out List<int>? values))
             {
@@ -206,6 +206,15 @@ internal sealed class ExpressionIrBuilder
                     new IrEffects(IrEffect.MayThrow | IrEffect.Cancellation | IrEffect.Allocate),
                     [Visit(reachable.Adjacency), Visit(reachable.Allowed), Visit(reachable.Seeds)],
                     bound: reachable.VertexCount);
+            case ScanExpr scan:
+                return Emit(scope, IrOp.Scan, ExpressionShapes.Array(Shape(ExprType.Number)),
+                    new IrEffects(IrEffect.MayThrow | IrEffect.Cancellation | IrEffect.Allocate),
+                    [Visit(scan.Source)], detail: scan.Mode.ToString(), bound: scan.MaxItems);
+            case SegmentedCompactExpr compact:
+                return Emit(scope, IrOp.SegmentedCompact, ExpressionShapes.Compaction(),
+                    new IrEffects(IrEffect.MayThrow | IrEffect.Cancellation | IrEffect.Allocate),
+                    [Visit(compact.Keep), Visit(compact.Boundaries)],
+                    detail: compact.Packing + ":" + compact.MaxSegments, bound: compact.MaxItems);
             case CompareExpr compare:
                 return Scalar(scope, IrOp.Compare, expression, [Visit(compare.Left), Visit(compare.Right)],
                     ExprType.Boolean, compare.Op.ToString());

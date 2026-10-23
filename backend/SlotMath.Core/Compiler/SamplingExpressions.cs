@@ -308,6 +308,14 @@ internal sealed class SamplingExpressions(
                 Func<SamplingFrame, ExprValue> seeds = compile(reachable.Seeds);
                 return frame => ReachabilityData.Evaluate(adjacency(frame), allowed(frame), seeds(frame),
                     reachable.VertexCount, frame.CancellationToken);
+            case ScanExpr scan:
+                Func<SamplingFrame, ExprValue> scanSource = compile(scan.Source);
+                return frame => frame.Scan(scanSource(frame), scan.Mode, scan.MaxItems, false);
+            case SegmentedCompactExpr compact:
+                Func<SamplingFrame, ExprValue> keep = compile(compact.Keep);
+                Func<SamplingFrame, ExprValue> boundaries = compile(compact.Boundaries);
+                return frame => frame.Compact(keep(frame), boundaries(frame), compact.Packing, compact.MaxItems,
+                    compact.MaxSegments);
             case BinaryExpr b:
                 Func<SamplingFrame, ExprValue> left = compile(b.Left);
                 Func<SamplingFrame, ExprValue> right = compile(b.Right);

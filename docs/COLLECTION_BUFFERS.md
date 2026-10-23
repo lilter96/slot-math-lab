@@ -176,3 +176,14 @@ samples alone exclude hot native generation and are not an end-to-end cost model
 
 Frozen final Core SHA-256:
 `979409fcb22b789c115bfcb8ca79b306c697b17126451ec3d65ffa2e795fbf30`.
+
+
+## Scan storage
+
+R8 extends fresh allocation origins and unique-source transfer to Scan. A
+private Map/Filter/Scan source can transfer its buffer to Scan, and a private
+Scan can feed Map without another container. Homogeneous input kind is captured
+before overwriting a Boolean source with numeric prefixes. Borrowed state,
+record projections and escaping lexical aliases still block transfer.
+[Scan and compaction](SCAN_COMPACTION.md) records independent controls and the
+conservative ownership of compaction record arrays.

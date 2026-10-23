@@ -978,6 +978,24 @@ internal sealed class SamplingCodegen
                     typeof(ReachabilityData).GetMethod(nameof(ReachabilityData.Evaluate), Any)!,
                     Value(reachable.Adjacency), Value(reachable.Allowed), Value(reachable.Seeds),
                     Lx.Constant(reachable.VertexCount), Lx.Field(_frame, nameof(SamplingFrame.CancellationToken))));
+            case ScanExpr scan:
+                return Form("scan:" + scan.Mode + ":" + scan.MaxItems, () =>
+                {
+                    var reuse = _buffers?.CanReuseSource(scan) == true;
+                    _shape.Append(reuse ? "transfer-scan;" : "copy-scan;");
+                    if (reuse)
+                    {
+                        _reusedCollectionBuffers++;
+                    }
+
+                    return Lx.Call(_frame, typeof(SamplingFrame).GetMethod(nameof(SamplingFrame.Scan), Any)!,
+                        Value(scan.Source), Lx.Constant(scan.Mode), Lx.Constant(scan.MaxItems), Lx.Constant(reuse));
+                });
+            case SegmentedCompactExpr compact:
+                return Form("compact:" + compact.Packing + ":" + compact.MaxItems + ":" + compact.MaxSegments,
+                    () => Lx.Call(_frame, typeof(SamplingFrame).GetMethod(nameof(SamplingFrame.Compact), Any)!,
+                        Value(compact.Keep), Value(compact.Boundaries), Lx.Constant(compact.Packing),
+                        Lx.Constant(compact.MaxItems), Lx.Constant(compact.MaxSegments)));
             case RecordExpr record:
                 return RecordValue(record.Fields.Select(field => field.Name).ToArray(),
                     record.Fields.Select(field => field.Value).ToArray(), expression);
@@ -1735,7 +1753,7 @@ internal sealed class SamplingCodegen
         return expression switch
         {
             FieldAccessExpr { Target: null or "state" or "board", Path.Length: 1 } => true,
-            BitSetExpr or ReachableExpr or BinaryExpr or CompareExpr or NotExpr
+            BitSetExpr or ReachableExpr or ScanExpr or SegmentedCompactExpr or BinaryExpr or CompareExpr or NotExpr
                 or AggregateExpr { Func: AggregateFunc.Count } or MapExpr
                 or FilterExpr => true,
             IfExpr branch => ReadableResult(branch.ThenExpr) && ReadableResult(branch.ElseExpr),
@@ -1756,7 +1774,8 @@ internal sealed class SamplingCodegen
         {
             FieldAccessExpr { Target: null or "state" or "board", Path.Length: 1 } field =>
                 !_bindings.ContainsKey(field.Path[0]) && _normalizedWrites.Contains(_slot(field.Path[0])),
-            BitSetExpr or ReachableExpr or BinaryExpr or CompareExpr or NotExpr => true,
+            BitSetExpr or ReachableExpr or ScanExpr or SegmentedCompactExpr or BinaryExpr or CompareExpr
+                or NotExpr => true,
             IfExpr branch => NormalizedResult(branch.ThenExpr) && NormalizedResult(branch.ElseExpr),
             _ => false
         };
