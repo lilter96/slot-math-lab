@@ -91,6 +91,8 @@ public static class GraphValidator
             if (config.Nodes.OfType<MetricsSinkNode>().Any(s => s.Settlement is not null)
                 && (config.InitialState?.Keys.Any(MonetarySettlement.EvidenceKeys.Contains) == true
                     || config.Nodes.OfType<ModifyStateNode>()
+                        .Any(n => MonetarySettlement.EvidenceKeys.Contains(n.OutputKey))
+                    || config.Nodes.OfType<DrawManyNode>()
                         .Any(n => MonetarySettlement.EvidenceKeys.Contains(n.OutputKey))))
             {
                 throw new ArgumentException("Settlement evidence fields are reserved and cannot be authored.");
@@ -815,6 +817,7 @@ public static class GraphValidator
             var reference = node switch
             {
                 DrawNode d => d.WeightVectorExpressionId ?? d.DistributionIndexExpressionId ?? d.WeightExpressionId,
+                DrawManyNode batch => batch.CountExpressionId,
                 ModifyStateNode m => m.ExpressionId,
                 BranchNode b => b.ConditionId,
                 LoopNode l => l.StopConditionId,
@@ -927,6 +930,22 @@ public static class GraphValidator
             // Check expression references on nodes
             switch (node)
             {
+                case DrawManyNode { CountExpressionId: { } countId } batch:
+                    if (config.Expressions.TryGetValue(countId, out Expression? countExpression))
+                    {
+                        foreach (TypeCheckError error in ExpressionTypeChecker.Check(countExpression, ctx,
+                                     ExprType.Number))
+                        {
+                            errors.Add(new CompileError
+                            {
+                                NodeId = batch.Id,
+                                Code = ErrorCodes.ExpressionTypeError,
+                                Message = $"DrawMany count: {error.Message}"
+                            });
+                        }
+                    }
+
+                    break;
                 case DrawNode { WeightVectorExpressionId: { } vectorId } draw:
                     if (config.Expressions.TryGetValue(vectorId, out Expression? vectorExpression))
                     {

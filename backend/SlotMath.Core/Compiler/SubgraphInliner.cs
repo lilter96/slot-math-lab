@@ -315,6 +315,13 @@ public static class SubgraphInliner
 
         return node switch
         {
+            DrawManyNode batch => batch with
+            {
+                Id = id,
+                Inputs = inputs,
+                Outputs = outputs,
+                CountExpressionId = NsRef(batch.CountExpressionId, prefix)
+            },
             DrawNode d => d with
             {
                 Id = id,

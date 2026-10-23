@@ -9,7 +9,7 @@ individually verified milestone; it does not complete the overall objective.
 | ID | Required result | Completion evidence | Current state |
 | --- | --- | --- | --- |
 | R1 | Immutable distribution assets, typed outcomes, finite families and bounded dynamic weight vectors | JSON/reference/compiled/exact agreement, identity and override regressions | Backend verified; public contract in docs/DISTRIBUTIONS.md; UI/migrations remain R18/R17 |
-| R2 | Ordered DrawMany, including explicit mixed-table schedules | Scalar RNG transcript, following Draw, cancellation, snapshots and observations | Pending |
+| R2 | Ordered DrawMany, including explicit mixed-table schedules | Scalar RNG transcript, following Draw, cancellation, snapshots and observations | Backend verified; public contract docs/DRAW_MANY.md; dependency-aware migrations remain R17 |
 | R3 | Let, typed record/tuple results, expression-valued collections and bounded composition | Lexical scope, exact arithmetic, shape and error-order regressions across execution paths | Pending |
 | R4 | Typed IR with state versions, effects and guarded analyses | IR inspection plus observation/exception/override/cancellation controls | Pending |
 | R5 | SCCP, dominance-aware CSE, safe LICM and dead intermediate elimination | Independent equivalence controls and cost measurements; no mechanic dispatch | Pending |
@@ -194,3 +194,62 @@ ordinary Draw code shape; both sets of reports remain under
 `/tmp/modern-primitives-evidence/vector-benchmark{,-v2}/`. Remaining runtime
 allocation and its numeric-cache traversal are candidates for R6, not evidence
 of a zero-allocation runtime-vector path.
+
+R2 contract: a `drawMany` node declares a required `outputKey` and exactly one
+`distributionId` (repeat one asset) or `distributionIds` (explicit ordered
+schedule). A nullable fixed `count` defaults to one for a repeated distribution
+and to the schedule length otherwise. Alternatively `countExpressionId` requires
+an explicit `maxCount`, with no simultaneous fixed count. All counts and maxima
+are in [0,4096]; a scheduled count selects a prefix and cannot exceed the
+schedule length. An empty schedule and a zero count are valid.
+
+Each element performs exactly the ordinary scalar alias call, retaining zero
+positions, rejection sampling and order. The homogeneous typed data array is
+committed once after the batch completes. The value-channel is the last scalar
+payout in WinScale units; zero draws preserve the incoming value-channel.
+Count validation occurs before randomness or the output write. Cancellation
+cannot publish a partial array; consumed words still belong to the interrupted
+attempt under the existing lifecycle contract. Snapshot exports copy arrays,
+and persistent/observed execution retains the existing arena restrictions.
+
+Canonical execution composes ordinary Draw slots using immutable accumulator
+links; the compiled batch uses private array buffers. Structured execution
+builds independent element RVs and shared prefix arrays, selecting among at
+most 256 proven finite counts. It retains the joint dependence of count, array
+and final payout. A batch has one observation point. Migrating old per-draw
+fields or measurement points requires explicit dependency checks or preserves
+the scalar graph; no kernel pass recognizes authored mechanic patterns.
+
+R2 verification: the first 162-case affected Core selection passed with no
+failures, followed by a 30-case DrawMany-only run after four boundary/type cases
+were added. This covers 166 unique passing Core cases and five preview API unit
+cases. New controls include scalar alias transcripts and the following Draw in
+all tiers; zero/fixed/dynamic counts; schedule prefixes; 64/65 and 4,096 elements;
+wide/rational/Boolean/String arrays with WinScale 10; snapshots across runners
+and persistence; post-batch measurements; cancellation; reusable count bindings
+and editable JSON. Loop liveness now includes all stochastic operand reads;
+independent loop means 69/4, 169/6 and 59/4 cover batch, family and vector reads.
+The random-count joint law has mean 1269/8 and four independently pinned masses.
+
+Both mandatory Rider profiles completed for all 13 touched C# files and again
+for final test edits. Release build, scoped format and cleanup-diff review
+passed. Local logs and the frozen source manifest are under
+`/tmp/modern-primitives-evidence/`; generated outputs stay outside Git.
+
+A frozen Release control compared 30 scalar draws plus fused append assembly
+against one batch, on CPU 2 with one worker, mirrored scalar/batch/batch/scalar
+processes, 524,288 full rounds and 131,072 warmup rounds per process. Three timed
+repeats were collected, discarding the first. All statistical outputs matched.
+
+| Schedule | Scalar rounds/s [range] | Batch rounds/s [range] | Observed ratio |
+| --- | ---: | ---: | ---: |
+| Repeat one table | 1,160,800 [928,493–1,211,833] | 1,406,107 [1,402,757–1,417,477] | 1.211 |
+| Explicit mixed tables | 1,154,587 [994,308–1,278,203] | 1,197,758 [1,145,492–1,362,672] | 1.037 |
+
+Mixed ranges overlap substantially; this run does not establish a reliable
+mixed-table gain. Allocation stayed close: 7.25→7.22 and 8.34→8.31 bytes/round
+in the respective cases because the scalar baseline already reuses arrays.
+The relevant authored fragment shrinks from 30 Draw nodes plus one collection
+write to one DrawMany. These are local primitive controls, not whole-game
+performance estimates. Raw inputs and reports are retained in
+`/tmp/modern-primitives-evidence/batch-benchmark/`.

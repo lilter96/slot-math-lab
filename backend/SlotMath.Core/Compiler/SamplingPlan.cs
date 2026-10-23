@@ -262,6 +262,7 @@ internal sealed class SamplingPlan : ICompiledSampling<Dictionary<string, object
         // checked before compilation, rather than silently catching failures.
         if (config.Plugins.Length != 0 || config.Nodes.Any(n => n switch
             {
+                DrawManyNode batch => batch.BoundDistributions is null,
                 DrawNode d => d.BoundDistributions is null
                               && (d.DrawWeights is not { Length: > 0 } || d.WeightExpressionId is not null),
                 MapNode => true,
@@ -311,6 +312,7 @@ internal sealed class SamplingPlan : ICompiledSampling<Dictionary<string, object
         {
             switch (node)
             {
+                case DrawManyNode batch: written.Add(batch.OutputKey); break;
                 case ModifyStateNode { OutputKey: { } key }: written.Add(key); break;
                 case DrawNode { StateWriteKey: { } key }: written.Add(key); break;
                 case PutStateNode put: written.Add(put.StateKey); break;
@@ -687,6 +689,19 @@ internal sealed class SamplingPlan : ICompiledSampling<Dictionary<string, object
     {
         switch (node)
         {
+            case DrawManyNode batch:
+            {
+                SamplingDraw[] rows = batch.BoundDistributions!.Select(row => _shapes.BindDraw(row, _scale)).ToArray();
+                foreach (SamplingDraw row in rows)
+                foreach (ExprValue value in row.StateValues)
+                {
+                    _expressions.Remember(value);
+                }
+
+                var sampler = new SamplingDrawMany(rows, batch.RepeatDistribution, WriteSlot(batch.OutputKey),
+                    batch.Count, batch.MaxCount!.Value, batch.CountExpressionId is { } id ? Expression(id) : null);
+                return sampler.Run;
+            }
             case DrawNode { WeightVectorExpressionId: { } vectorId } draw:
             {
                 DrawWeight[] vectorOutcomes = draw.DrawWeights!;

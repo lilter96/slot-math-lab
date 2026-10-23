@@ -992,6 +992,8 @@ public sealed class GraphCompiler
         {
             switch (node)
             {
+                case DrawManyNode batch:
+                    return CompileDrawMany(batch);
                 case DrawNode d:
                     Slot<Dictionary<string, object?>, object?> drawSlot = CompileDraw(d);
                     return _ => drawSlot;
@@ -1019,7 +1021,52 @@ public sealed class GraphCompiler
             }
         }
 
-        // ── Draw ────────────────────────────────────────────────────────
+        private Func<object?, Slot<Dictionary<string, object?>, object?>> CompileDrawMany(DrawManyNode batch)
+        {
+            Slot<Dictionary<string, object?>, (ExprValue Data, object Value)>[] draws =
+                batch.BoundDistributions!.Select(row =>
+                {
+                    WeightSet weights = StaticWeights(row);
+                    Slot<Dictionary<string, object?>, (ExprValue Data, object Value)>[] outcomes = row.Select(outcome =>
+                            Slot.Pure<Dictionary<string, object?>, (ExprValue Data, object Value)>(
+                                (DrawData.StateValue(outcome), new BigInteger(outcome.Value) * WinScale)))
+                        .ToArray();
+                    return Slot.DrawFrom(_ => weights, outcomes);
+                }).ToArray();
+            Expression? countExpression = batch.CountExpressionId is { } id ? _config.Expressions![id] : null;
+
+            Slot<Dictionary<string, object?>, object?> Go(int index, int count, BatchItem? previous, object? value)
+            {
+                if (index == count)
+                {
+                    var data = new object?[count];
+                    BatchItem? item = previous;
+                    for (var position = count - 1; position >= 0; position--)
+                    {
+                        data[position] = item!.Data.ToStateObject();
+                        item = item.Previous;
+                    }
+
+                    return Slot.Modify<Dictionary<string, object?>>(state => new Dictionary<string, object?>(state)
+                    {
+                        [batch.OutputKey] = data
+                    }).Select(_ => value);
+                }
+
+                var choice = batch.RepeatDistribution ? 0 : index;
+                return draws[choice].SelectMany(outcome => Go(index + 1, count,
+                    new BatchItem(outcome.Data, previous), outcome.Value));
+            }
+
+            return countExpression is null
+                ? input => Go(0, batch.Count!.Value, null, input)
+                : input => Slot.GetState<Dictionary<string, object?>>().SelectMany(state =>
+                    Go(0, DrawManyData.Count(ExactExpressionEvaluator.Evaluate(countExpression,
+                        new EvalContext
+                        {
+                            State = state
+                        }), batch.MaxCount!.Value), null, input));
+        }
 
         private Slot<Dictionary<string, object?>, object?> CompileDraw(DrawNode drawNode)
         {
@@ -1636,6 +1683,10 @@ public sealed class GraphCompiler
                     "Lines requires exactly one payline set.")
             };
         }
+
+        // ── Draw ────────────────────────────────────────────────────────
+
+        private sealed record BatchItem(ExprValue Data, BatchItem? Previous);
     }
 }
 

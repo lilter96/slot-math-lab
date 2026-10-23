@@ -81,6 +81,14 @@ internal sealed class SamplingDraw(AliasMethod? alias, ExprValue[] names, object
     internal SamplingDraw WithAlias(AliasMethod prepared) => new(prepared, names, values);
 
     [MethodImpl(MethodImplOptions.NoInlining)]
+    internal object Pick(SeededRandom rng, out ExprValue data)
+    {
+        var index = alias!.Sample(rng);
+        data = names[index];
+        return values[index];
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
     public object Run(SamplingFrame frame, SeededRandom rng, int destination)
     {
         var index = alias!.Sample(rng);

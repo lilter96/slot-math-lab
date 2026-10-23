@@ -204,6 +204,13 @@ internal sealed partial class SymbolicExecutor
                     CheckMap(map);
                     break;
                 case LibraryNode: throw Declined($"node '{node.Id}' is an unexpanded subgraph");
+                case DrawManyNode batch:
+                    if (Reserved(batch.OutputKey))
+                    {
+                        throw Declined($"node '{batch.Id}' writes a loop counter");
+                    }
+
+                    break;
                 case DrawNode { WeightVectorExpressionId: not null } draw:
                     if (Reserved(draw.StateWriteKey))
                     {
@@ -1118,6 +1125,12 @@ internal sealed partial class SymbolicExecutor
 
             switch (node)
             {
+                case DrawManyNode batch: Translator.Reads(Expression(batch.CountExpressionId), names); break;
+                case DrawNode draw:
+                    Translator.Reads(Expression(draw.DistributionIndexExpressionId), names);
+                    Translator.Reads(Expression(draw.WeightVectorExpressionId), names);
+                    Translator.Reads(Expression(draw.WeightExpressionId), names);
+                    break;
                 case ModifyStateNode modify: Translator.Reads(Expression(modify.ExpressionId), names); break;
                 case BranchNode branch: Translator.Reads(Expression(branch.ConditionId), names); break;
                 case LoopNode other:
@@ -1297,10 +1310,73 @@ internal sealed partial class SymbolicExecutor
         return value;
     }
 
+    private Term BatchDraw(DrawManyNode batch, Term input, ref Dictionary<string, Field> state)
+    {
+        Term count = batch.Count is { } fixedCount
+            ? _f.Const(ExprValue.Number(fixedCount))
+            : Statement(Expression(batch.CountExpressionId)!, state, $"drawMany '{batch.Id}' count");
+        ExprValue[] possible = count is ConstTerm constant ? [constant.Value]
+            : count.Vals is { Length: <= 256 } values ? values
+            : throw Declined($"drawMany '{batch.Id}' has no bounded finite count support");
+        int[] counts;
+        try
+        {
+            counts = possible.Select(value => DrawManyData.Count(value, batch.MaxCount!.Value)).Distinct().ToArray();
+        }
+        catch (ExpressionEvaluationException)
+        {
+            throw Declined($"drawMany '{batch.Id}' has an invalid count");
+        }
+
+        if (counts.Length == 0)
+        {
+            throw Declined($"drawMany '{batch.Id}' has no count support");
+        }
+
+        var maximum = counts.Max();
+        _f.Budget.Tick(maximum);
+        var data = new Term[maximum];
+        var channels = new Term[maximum];
+        var occurrence = _drawCount[batch.Id] = _drawCount.GetValueOrDefault(batch.Id) + 1;
+        var scalar = new DrawNode
+        {
+            Id = batch.Id,
+            StateWriteKey = batch.OutputKey
+        };
+        for (var index = 0; index < maximum; index++)
+        {
+            (channels[index], data[index]) = CategoricalRow(scalar,
+                batch.BoundDistributions![batch.RepeatDistribution ? 0 : index],
+                $"{_scope}{batch.Id}#{occurrence}/{index}");
+        }
+
+        var positions = new Dictionary<ExprValue, int>(V.ValueComparer.Instance);
+        var arrays = new Term[counts.Length];
+        var outputs = new Term[counts.Length];
+        for (var index = 0; index < counts.Length; index++)
+        {
+            var length = counts[index];
+            _f.Budget.Tick(length + 1);
+            positions.Add(ExprValue.Number(length), index);
+            arrays[index] = _f.Arr(data.Take(length).ToArray());
+            outputs[index] = length == 0 ? input : channels[length - 1];
+        }
+
+        Term selector = _f.Index(count, positions, true);
+        Term output = _f.Sel(selector, outputs);
+        Record(output, $"drawMany '{batch.Id}' count lookup");
+        state = new Dictionary<string, Field>(state, StringComparer.Ordinal)
+        {
+            [batch.OutputKey] = new(_f.Sel(selector, arrays), false)
+        };
+        return output;
+    }
+
     private Term Output(Node node, Term input, bool deadEnd, ref Dictionary<string, Field> state)
     {
         switch (node)
         {
+            case DrawManyNode batch: return BatchDraw(batch, input, ref state);
             case DrawNode { WeightVectorExpressionId: not null } draw: return VectorDraw(draw, ref state);
             case DrawNode { BoundDistributions: { } family } draw: return FamilyDraw(draw, family, ref state);
             case DrawNode draw when draw.DrawWeights is not { Length: > 0 }: return Spin(draw, ref state);

@@ -52,6 +52,7 @@ public sealed record Edge
 
 [JsonPolymorphic(TypeDiscriminatorPropertyName = "nodeType")]
 [JsonDerivedType(typeof(DrawNode), "draw")]
+[JsonDerivedType(typeof(DrawManyNode), "drawMany")]
 [JsonDerivedType(typeof(GetStateNode), "getState")]
 [JsonDerivedType(typeof(PutStateNode), "putState")]
 [JsonDerivedType(typeof(ModifyStateNode), "modifyState")]
@@ -116,6 +117,19 @@ public sealed record DrawNode : Node
     ///     mechanics (scatter, lines, ways) read the board from state instead of from a Board object.
     /// </summary>
     public string? BoardStateKey { get; init; }
+}
+
+/// <summary>Ordered categorical draws, committed as one homogeneous state array.</summary>
+public sealed record DrawManyNode : Node
+{
+    public required string OutputKey { get; init; }
+    public string? DistributionId { get; init; }
+    public string[]? DistributionIds { get; init; }
+    public int? Count { get; init; }
+    public string? CountExpressionId { get; init; }
+    public int? MaxCount { get; init; }
+    [JsonIgnore] internal DrawWeight[][]? BoundDistributions { get; init; }
+    [JsonIgnore] internal bool RepeatDistribution { get; init; }
 }
 
 public sealed record GetStateNode : Node

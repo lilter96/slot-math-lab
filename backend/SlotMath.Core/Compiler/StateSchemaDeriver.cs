@@ -72,6 +72,17 @@ public static class StateSchemaDeriver
         {
             switch (node)
             {
+                case DrawManyNode batch:
+                    ExprType? itemType = batch.BoundDistributions!.SelectMany(row => row)
+                        .Select(outcome => DrawData.StateValue(outcome).Kind).Cast<ExprType?>().FirstOrDefault();
+                    fields[batch.OutputKey] = ExpressionShapes.Array(itemType is { } kind
+                            ? ExpressionShapes.Field("item", kind)
+                            : null, batch.MaxCount == 0 || batch.Count == 0)
+                        with
+                        {
+                            Name = batch.OutputKey
+                        };
+                    break;
                 case DrawNode d when IsReelDraw(d, config):
                     WriteArray(d.BoardStateKey ?? GridState.CellsKey);
                     Write(GridState.RowsKey, ExprType.Number);

@@ -20,12 +20,14 @@ internal static class DistributionResolver
                                                           || (draw.DistributionIndexExpressionId is not null &&
                                                               draw.BoundDistributions is null);
 
+    private static bool RequiresDataBinding(Node node) => (node is DrawNode draw && RequiresBinding(draw))
+                                                          || node is DrawManyNode { BoundDistributions: null };
+
     internal static (GraphConfig Config, IReadOnlyList<CompileError> Errors) Resolve(GraphConfig graph)
     {
         if (graph.Distributions is null
-            && !graph.Nodes.OfType<DrawNode>().Any(RequiresBinding)
-            && graph.Mechanics?.Values.Any(mechanic => mechanic.Nodes.OfType<DrawNode>()
-                .Any(RequiresBinding)) != true)
+            && !graph.Nodes.Any(RequiresDataBinding)
+            && graph.Mechanics?.Values.Any(mechanic => mechanic.Nodes.Any(RequiresDataBinding)) != true)
         {
             return (graph, Array.Empty<CompileError>());
         }
@@ -111,10 +113,84 @@ internal static class DistributionResolver
             }
         }
 
+        Node BindBatch(DrawManyNode batch)
+        {
+            if (batch.BoundDistributions is not null)
+            {
+                return batch;
+            }
+
+            var repeat = batch.DistributionId is not null;
+            if (string.IsNullOrWhiteSpace(batch.OutputKey)
+                || repeat == batch.DistributionIds is not null)
+            {
+                Error("DrawMany requires an output key and exactly one distribution or schedule.", batch.Id);
+                return batch;
+            }
+
+            var ids = repeat ? [batch.DistributionId!] : batch.DistributionIds!;
+            if (ids.Length > DrawManyData.MaxCount || (batch.CountExpressionId is not null
+                                                       && (string.IsNullOrWhiteSpace(batch.CountExpressionId) ||
+                                                           batch.Count is not null ||
+                                                           batch.MaxCount is null)))
+            {
+                Error("A dynamic DrawMany requires one count expression, an explicit maximum and no fixed count.",
+                    batch.Id);
+                return batch;
+            }
+
+            int? count = batch.CountExpressionId is null ? batch.Count ?? (repeat ? 1 : ids.Length) : null;
+            var maximum = batch.MaxCount ?? count!.Value;
+            if (maximum is < 0 or > DrawManyData.MaxCount || count is < 0 ||
+                (count is { } fixedCount && fixedCount > maximum)
+                || (!repeat && maximum > ids.Length))
+            {
+                Error("DrawMany count limits must be in [0,4096] and within its schedule.", batch.Id);
+                return batch;
+            }
+
+            var rows = new DrawWeight[ids.Length][];
+            for (var index = 0; index < ids.Length; index++)
+            {
+                if (ids[index] is null || !assets.TryGetValue(ids[index], out DrawWeight[]? row))
+                {
+                    Error($"DrawMany distribution '{ids[index]}' is missing or invalid.", batch.Id);
+                    return batch;
+                }
+
+                rows[index] = row;
+            }
+
+            try
+            {
+                DrawData.Validate(rows);
+            }
+            catch (ArgumentException exception)
+            {
+                Error(exception.Message, batch.Id);
+                return batch;
+            }
+
+            return batch with
+            {
+                DistributionId = null,
+                DistributionIds = null,
+                BoundDistributions = rows,
+                RepeatDistribution = repeat,
+                Count = count,
+                MaxCount = maximum
+            };
+        }
+
         Node[] Bind(Node[] nodes)
         {
             return nodes.Select(node =>
             {
+                if (node is DrawManyNode batch)
+                {
+                    return BindBatch(batch);
+                }
+
                 if (node is not DrawNode draw || !RequiresBinding(draw))
                 {
                     return node;
