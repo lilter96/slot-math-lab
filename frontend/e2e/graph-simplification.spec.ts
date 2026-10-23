@@ -54,7 +54,7 @@ async function exportModel(page: Page) {
     return JSON.parse(await readFile((await (await download).path())!, 'utf8'));
 }
 
-test('Simplify previews the complete nested model and applies one reversible exact edit', async ({page}) => {
+test('Simplify previews the complete nested model and applies one reversible exact edit', {tag: '@critical'}, async ({page}, testInfo) => {
     await page.goto('/build?load=' + encodeURIComponent(Buffer.from(encodeURIComponent(JSON.stringify(graph))).toString('base64')));
     await waitForWorkspace(page);
     const original = await exportModel(page);
@@ -62,6 +62,18 @@ test('Simplify previews the complete nested model and applies one reversible exa
     const dialog = page.getByRole('dialog', {name: 'Simplify graph', exact: true});
     await expect(dialog).toContainText('1 expression can be simplified.');
     await expect(dialog).toContainText('Calculate exact constants');
+    await dialog.getByText('Changed expressions', {exact: true}).click();
+    const originalViewport = page.viewportSize();
+    for (const viewport of [{width: 1440, height: 1000}, {width: 390, height: 844}]) {
+        await page.setViewportSize(viewport);
+        await expect(dialog).toBeInViewport();
+        expect(await dialog.evaluate(element => element.scrollWidth <= element.clientWidth)).toBe(true);
+        await testInfo.attach(`simplification-preview-${viewport.width}`, {
+            body: await page.screenshot({fullPage: true}),
+            contentType: 'image/png',
+        });
+    }
+    if (originalViewport) await page.setViewportSize(originalViewport);
     await saveValidatedDialog(page, 'Apply simplification');
     const simplified = await exportModel(page);
     expect(simplified.opaqueData).toEqual(original.opaqueData);
