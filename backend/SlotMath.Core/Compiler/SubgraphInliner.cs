@@ -475,6 +475,26 @@ public static class SubgraphInliner
         return expr switch
         {
             FieldAccessExpr f => RewriteFieldAccess(f, prefix),
+            LetExpr e => e with
+            {
+                Value = RewriteExprRefs(e.Value, prefix),
+                Body = RewriteExprRefs(e.Body, prefix)
+            },
+            RecordExpr e => e with
+            {
+                Fields = e.Fields.Select(field => field with
+                {
+                    Value = RewriteExprRefs(field.Value, prefix)
+                }).ToArray()
+            },
+            TupleExpr e => e with
+            {
+                Items = e.Items.Select(item => RewriteExprRefs(item, prefix)).ToArray()
+            },
+            ProjectExpr e => e with
+            {
+                Value = RewriteExprRefs(e.Value, prefix)
+            },
             BinaryExpr b => b with
             {
                 Left = RewriteExprRefs(b.Left, prefix),

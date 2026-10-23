@@ -75,13 +75,13 @@ public static class StateSchemaDeriver
                 case DrawManyNode batch:
                     ExprType? itemType = batch.BoundDistributions!.SelectMany(row => row)
                         .Select(outcome => DrawData.StateValue(outcome).Kind).Cast<ExprType?>().FirstOrDefault();
-                    fields[batch.OutputKey] = ExpressionShapes.Array(itemType is { } kind
-                            ? ExpressionShapes.Field("item", kind)
-                            : null, batch.MaxCount == 0 || batch.Count == 0)
-                        with
-                        {
-                            Name = batch.OutputKey
-                        };
+                    FieldDescriptor batchShape = ExpressionShapes.Array(
+                        itemType is { } kind ? ExpressionShapes.Field("item", kind) : null,
+                        batch.MaxCount == 0 || batch.Count == 0);
+                    fields[batch.OutputKey] = batchShape with
+                    {
+                        Name = batch.OutputKey
+                    };
                     break;
                 case DrawNode d when IsReelDraw(d, config):
                     WriteArray(d.BoardStateKey ?? GridState.CellsKey);
@@ -190,11 +190,10 @@ public static class StateSchemaDeriver
         return fields.Values.OrderBy(f => f.Name, StringComparer.Ordinal).ToArray();
     }
 
+    // A reel-strip draw publishes the board array and its dimensions into state.
     private static bool IsReelDraw(DrawNode d, GraphConfig config) =>
-        // A reel-strip draw (no inline weight expression, reel sets present)
-        // publishes the board array + its dimensions into state.
-        d.DrawWeights is not { Length: > 0 } && d.BoundDistributions is null
-                                             && d.WeightExpressionId == null && config.ReelSets.Length > 0;
+        d.DrawWeights is not { Length: > 0 } && d.BoundDistributions is null && d.WeightExpressionId == null
+        && config.ReelSets.Length > 0;
 
     private static Expression? LookupExpr(GraphConfig config, string? id) =>
         id != null && config.Expressions != null && config.Expressions.TryGetValue(id, out Expression? e) ? e : null;
@@ -202,6 +201,8 @@ public static class StateSchemaDeriver
     /// <summary>Shape-based seed so array-accumulating folds don't converge to Number.</summary>
     private static ExprType ProvisionalType(Expression? expr) => expr switch
     {
+        LetExpr let => ProvisionalType(let.Body),
+        RecordExpr or TupleExpr => ExprType.Record,
         MapExpr or FilterExpr => ExprType.Array,
         FoldExpr f => ContainsAppend(f.Body) ? ExprType.Array : ExprType.Number,
         CallExpr c when c.Function.Equals("append", StringComparison.OrdinalIgnoreCase) => ExprType.Array,

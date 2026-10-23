@@ -1,8 +1,9 @@
 using System.Collections;
-using System.Globalization;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using SlotMath.Core.Expressions;
+using SlotMath.Core.Math;
+using SlotMath.Core.Measurements;
 
 namespace SlotMath.Core.Compiler;
 
@@ -14,12 +15,15 @@ internal struct SamplingCell
     public bool HasRaw;
     public object? Raw;
     private ExprValue _value;
+
     private bool _deferred;
+
     // Present, converted and non-null: a read needs no further checks.
-    private bool _readable;
     public readonly ExprValue Value => _deferred ? StateValues.Convert(Raw) : _value;
-    internal readonly bool Readable => _readable;
+    internal bool Readable { get; private set; }
+
     internal readonly ExprValue StoredValue => _value;
+
     internal readonly ulong StoredMask
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -29,16 +33,33 @@ internal struct SamplingCell
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static SamplingCell Typed(ExprValue value)
     {
-        if (value.ContainsSymbols) value = NormalizeStored(value);
-        return new() { Present = true, _value = value, _readable = value.Kind != ExprType.Null };
+        if (value.ContainsSymbols)
+        {
+            value = NormalizeStored(value);
+        }
+
+        return new SamplingCell
+        {
+            Present = true,
+            _value = value,
+            Readable = value.Kind != ExprType.Null
+        };
     }
+
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void SetTyped(ExprValue value)
     {
-        if (value.ContainsSymbols) value = NormalizeStored(value);
-        Present = true; HasRaw = false; Raw = null; _deferred = false;
+        if (value.ContainsSymbols)
+        {
+            value = NormalizeStored(value);
+        }
+
+        Present = true;
+        HasRaw = false;
+        Raw = null;
+        _deferred = false;
         _value = value;
-        _readable = value.Kind != ExprType.Null;
+        Readable = value.Kind != ExprType.Null;
     }
 
     private static readonly object[] SmallIntegers = Enumerable.Range(0, 256).Select(value => (object)value).ToArray();
@@ -50,46 +71,93 @@ internal struct SamplingCell
         HasRaw = true,
         Raw = (uint)value < SmallIntegers.Length ? SmallIntegers[value] : value,
         _value = ExprValue.Number(value),
-        _readable = true,
+        Readable = true
     };
 
     public static SamplingCell FromRaw(object? raw)
     {
         // Unused state and untaken conditional branches must not evaluate an
         // unsupported value during frame construction or binding.
-        var cell = new SamplingCell { Present = true, HasRaw = true, Raw = raw };
-        try { cell._value = StateValues.Convert(raw); cell._readable = cell._value.Kind != ExprType.Null; }
-        catch (ExpressionEvaluationException) { cell._deferred = true; }
+        var cell = new SamplingCell
+        {
+            Present = true,
+            HasRaw = true,
+            Raw = raw
+        };
+        try
+        {
+            cell._value = StateValues.Convert(raw);
+            cell.Readable = cell._value.Kind != ExprType.Null;
+        }
+        catch (ExpressionEvaluationException)
+        {
+            cell._deferred = true;
+        }
+
         return cell;
     }
-    public readonly bool TryCachedValue(out ExprValue value) { value = _value; return !_deferred; }
+
+    public readonly bool TryCachedValue(out ExprValue value)
+    {
+        value = _value;
+        return !_deferred;
+    }
+
     public readonly ExprValue ReadValue(string location) => _deferred ? StateValues.Convert(Raw, location) : _value;
-    public readonly bool IsRecord => _value.Kind == ExprType.Record || HasRaw && Raw is IDictionary<string, object?> or IReadOnlyDictionary<string, object?>;
+
+    public readonly bool IsRecord => _value.Kind == ExprType.Record ||
+                                     (HasRaw && Raw is IDictionary<string, object?>
+                                         or IReadOnlyDictionary<string, object?>);
+
     private static readonly object BoxedZero = BigInteger.Zero;
 
     public readonly object? Export()
     {
-        if (HasRaw) return Raw;
-        var value = Value;
+        if (HasRaw)
+        {
+            return Raw;
+        }
+
+        ExprValue value = Value;
         return value.IsInlineInteger && value.InlineInteger == 0 ? BoxedZero : value.ToStateObject();
     }
 
     // ToStateObject turns symbols into strings, including inside arrays.
     private static ExprValue NormalizeStored(ExprValue value)
     {
-        if (!value.ContainsSymbols) return value;
-        if (value.Kind == ExprType.Symbol) return ExprValue.String(value.StringValue!);
-        if (value.Kind == ExprType.Record) return ExprValue.Record(value.RecordValue!.ToDictionary(p => p.Key, p => NormalizeStored(p.Value), StringComparer.Ordinal));
-        if (value.Kind != ExprType.Array) return value;
+        if (!value.ContainsSymbols)
+        {
+            return value;
+        }
+
+        if (value.Kind == ExprType.Symbol)
+        {
+            return ExprValue.String(value.StringValue!);
+        }
+
+        if (value.Kind == ExprType.Record)
+        {
+            return ExprValue.Record(value.RecordValue!.ToDictionary(p => p.Key, p => NormalizeStored(p.Value),
+                StringComparer.Ordinal));
+        }
+
+        if (value.Kind != ExprType.Array)
+        {
+            return value;
+        }
+
         ExprValue[]? copy = null;
         for (var i = 0; i < value.ArrayValue!.Count; i++)
         {
-            var item = value.ArrayValue[i]; var normalized = NormalizeStored(item);
+            ExprValue item = value.ArrayValue[i];
+            ExprValue normalized = NormalizeStored(item);
             if (!item.Equals(normalized))
             {
-                copy ??= value.ArrayValue.ToArray(); copy[i] = normalized;
+                copy ??= value.ArrayValue.ToArray();
+                copy[i] = normalized;
             }
         }
+
         return copy is null ? value : ExprValue.Array(copy);
     }
 
@@ -98,26 +166,55 @@ internal struct SamplingCell
     public readonly int RequireArrayCount(string key, string? location = null)
     {
         location ??= key;
-        if (!Present) throw new ExpressionEvaluationException("EVAL_MISSING_STATE", $"State array '{key}' is absent.", key);
-        if (HasRaw && Raw is null or ExprValue { Kind: ExprType.Null }) StateValues.RequireReadable(ExprValue.Null, location);
+        if (!Present)
+        {
+            throw new ExpressionEvaluationException("EVAL_MISSING_STATE", $"State array '{key}' is absent.", key);
+        }
+
+        if (HasRaw && Raw is null or ExprValue { Kind: ExprType.Null })
+        {
+            StateValues.RequireReadable(ExprValue.Null, location);
+        }
+
         if (HasRaw)
         {
-            if (Raw is ExprValue { Kind: ExprType.Array } typed) return typed.ArrayValue!.Count;
-            if (Raw is IList list) return list.Count;
-            if (Raw is IEnumerable enumerable && Raw is not (string or IDictionary or IReadOnlyDictionary<string, object?>)) return enumerable.Cast<object?>().Count();
+            if (Raw is ExprValue { Kind: ExprType.Array } typed)
+            {
+                return typed.ArrayValue!.Count;
+            }
+
+            if (Raw is IList list)
+            {
+                return list.Count;
+            }
+
+            if (Raw is IEnumerable enumerable &&
+                Raw is not (string or IDictionary or IReadOnlyDictionary<string, object?>))
+            {
+                return enumerable.Cast<object?>().Count();
+            }
         }
-        else if (_value.Kind == ExprType.Array) return _value.ArrayValue!.Count;
+        else if (_value.Kind == ExprType.Array)
+        {
+            return _value.ArrayValue!.Count;
+        }
+
         throw new ExpressionEvaluationException("EVAL_TYPE_ERROR", $"State field '{key}' must be an array.", location);
     }
+
     public readonly SamplingCell Item(int index)
     {
-        if (!HasRaw) return Typed(Value.ArrayValue![index]);
+        if (!HasRaw)
+        {
+            return Typed(Value.ArrayValue![index]);
+        }
+
         return Raw switch
         {
             ExprValue { Kind: ExprType.Array } typed => FromRaw(typed.ArrayValue![index]),
             object?[] a => FromRaw(a[index]),
             IList a => FromRaw(a[index]),
-            _ => FromRaw(((IEnumerable)Raw!).Cast<object?>().ElementAt(index)),
+            _ => FromRaw(((IEnumerable)Raw!).Cast<object?>().ElementAt(index))
         };
     }
 
@@ -125,47 +222,83 @@ internal struct SamplingCell
     {
         location ??= $"{key}.{index}";
         var length = RequireArrayCount(key, location);
-        if (index < 0 || index >= length) throw StateValues.IndexError(index, length, location);
+        if (index < 0 || index >= length)
+        {
+            throw StateValues.IndexError(index, length, location);
+        }
+
         return StateValues.RequireReadable(Item(index).ReadValue(location), location);
     }
 }
 
 internal sealed class SamplingFrame
 {
-    public SlotMath.Core.Measurements.SettlementContext? Settlement { get; set; }
-    public SlotMath.Core.Math.LoopTerminationEvidence? LoopEvidence;
-    public BigInteger RawPayout { get; set; }
-
     public readonly SamplingCell[] Cells;
+    private readonly Dictionary<string, object?> _extra;
     private readonly SamplingCell[] _initial;
     private readonly IReadOnlyDictionary<string, int> _layout;
-    private readonly Dictionary<string, object?> _extra;
-    public SlotMath.Core.Measurements.MeasurementCollector? Measurements;
     public CancellationToken CancellationToken;
-    private int _operations;
+    internal LexicalBinding? Locals;
+    public LoopTerminationEvidence? LoopEvidence;
+    public MeasurementCollector? Measurements;
     private SamplingArrayArena? _arrays;
+    private int _operations;
 
-    public SamplingFrame(IReadOnlyDictionary<string, int> layout, SamplingCell[] defaults, Dictionary<string, object?> initial, bool reuseArrays = false)
+    public SamplingFrame(IReadOnlyDictionary<string, int> layout, SamplingCell[] defaults,
+        Dictionary<string, object?> initial, bool reuseArrays = false)
     {
         _layout = layout;
         _initial = (SamplingCell[])defaults.Clone();
-        _extra = new();
+        _extra = new Dictionary<string, object?>();
         foreach (var (key, value) in initial)
-            if (layout.TryGetValue(key, out var index)) _initial[index] = SamplingCell.FromRaw(value);
-            else _extra[key] = value;
+        {
+            if (layout.TryGetValue(key, out var index))
+            {
+                _initial[index] = SamplingCell.FromRaw(value);
+            }
+            else
+            {
+                _extra[key] = value;
+            }
+        }
+
         Cells = new SamplingCell[defaults.Length];
-        if (reuseArrays) _arrays = new();
+        if (reuseArrays)
+        {
+            _arrays = new SamplingArrayArena();
+        }
     }
+
+    public SettlementContext? Settlement { get; set; }
+    public BigInteger RawPayout { get; set; }
 
     public void Reset(CancellationToken token, bool[]? retained = null)
     {
         token.ThrowIfCancellationRequested();
-        if (retained is not null) _arrays = null;
+        if (retained is not null)
+        {
+            _arrays = null;
+        }
+
         _arrays?.Reset();
-        if (retained is null) Array.Copy(_initial, Cells, _initial.Length);
-        else for (var i = 0; i < _initial.Length; i++) if (!retained[i]) Cells[i] = _initial[i];
+        if (retained is null)
+        {
+            Array.Copy(_initial, Cells, _initial.Length);
+        }
+        else
+        {
+            for (var i = 0; i < _initial.Length; i++)
+            {
+                if (!retained[i])
+                {
+                    Cells[i] = _initial[i];
+                }
+            }
+        }
+
         CancellationToken = token;
         Settlement = null;
+        Locals = null;
         _operations = 0;
     }
 
@@ -174,8 +307,12 @@ internal sealed class SamplingFrame
 
     internal ExprValue[] ResizeArray(ExprValue[] values, int count)
     {
-        if (count == values.Length) return values;
-        var result = NewArray(count);
+        if (count == values.Length)
+        {
+            return values;
+        }
+
+        ExprValue[] result = NewArray(count);
         Array.Copy(values, result, count);
         return result;
     }
@@ -183,29 +320,41 @@ internal sealed class SamplingFrame
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void CheckCancellation()
     {
-        if ((++_operations & 255) == 0) CancellationToken.ThrowIfCancellationRequested();
+        if ((++_operations & 255) == 0)
+        {
+            CancellationToken.ThrowIfCancellationRequested();
+        }
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public ExprValue Read(int index, string location)
     {
-        ref readonly var cell = ref Cells[index];
+        ref readonly SamplingCell cell = ref Cells[index];
         return cell.Readable ? cell.StoredValue : ReadChecked(index, location);
     }
 
-    /// <summary>Assigns a field to itself. A cell that already holds a typed
-    /// value is left as it is; any other cell is read and stored as usual.</summary>
+    /// <summary>
+    ///     Assigns a field to itself. A cell that already holds a typed
+    ///     value is left as it is; any other cell is read and stored as usual.
+    /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void Touch(int index, string location)
     {
-        ref var cell = ref Cells[index];
-        if (!cell.Readable || cell.HasRaw) cell.SetTyped(Read(index, location));
+        ref SamplingCell cell = ref Cells[index];
+        if (!cell.Readable || cell.HasRaw)
+        {
+            cell.SetTyped(Read(index, location));
+        }
     }
 
     private ExprValue ReadChecked(int index, string location)
     {
         if (!Cells[index].Present)
-            throw new ExpressionEvaluationException("EVAL_MISSING_STATE", $"State field '{location}' is absent.", location);
+        {
+            throw new ExpressionEvaluationException("EVAL_MISSING_STATE", $"State field '{location}' is absent.",
+                location);
+        }
+
         return StateValues.RequireReadable(Cells[index].ReadValue(location), location);
     }
 
@@ -213,7 +362,13 @@ internal sealed class SamplingFrame
     {
         var state = new Dictionary<string, object?>(_extra);
         foreach (var (key, index) in _layout)
-            if (Cells[index].Present) state[key] = Snapshot(Cells[index].Export());
+        {
+            if (Cells[index].Present)
+            {
+                state[key] = Snapshot(Cells[index].Export());
+            }
+        }
+
         return state;
     }
 
@@ -225,7 +380,7 @@ internal sealed class SamplingFrame
         object?[] a => a.Select(Snapshot).ToArray(),
         Array a => a.Clone(),
         List<object?> a => a.Select(Snapshot).ToList(),
-        _ => value,
+        _ => value
     };
 }
 
@@ -245,11 +400,23 @@ internal sealed class SamplingArrayArena
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal ExprValue[] Rent(int length)
     {
-        if (length == 0) return [];
-        if ((uint)length > MaxLength) return new ExprValue[length];
+        if (length == 0)
+        {
+            return [];
+        }
+
+        if ((uint)length > MaxLength)
+        {
+            return new ExprValue[length];
+        }
+
         var position = _cursors[length]++;
-        var buffers = _buffers[length];
-        if (buffers is not null && position < buffers.Count) return buffers[position];
+        List<ExprValue[]>? buffers = _buffers[length];
+        if (buffers is not null && position < buffers.Count)
+        {
+            return buffers[position];
+        }
+
         var values = new ExprValue[length];
         if (_retained < MaxBuffers)
         {
@@ -257,6 +424,7 @@ internal sealed class SamplingArrayArena
             buffers.Add(values);
             _retained++;
         }
+
         return values;
     }
 }

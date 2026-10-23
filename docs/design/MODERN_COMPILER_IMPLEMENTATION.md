@@ -10,7 +10,7 @@ individually verified milestone; it does not complete the overall objective.
 | --- | --- | --- | --- |
 | R1 | Immutable distribution assets, typed outcomes, finite families and bounded dynamic weight vectors | JSON/reference/compiled/exact agreement, identity and override regressions | Backend verified; public contract in docs/DISTRIBUTIONS.md; UI/migrations remain R18/R17 |
 | R2 | Ordered DrawMany, including explicit mixed-table schedules | Scalar RNG transcript, following Draw, cancellation, snapshots and observations | Backend verified; public contract docs/DRAW_MANY.md; dependency-aware migrations remain R17 |
-| R3 | Let, typed record/tuple results, expression-valued collections and bounded composition | Lexical scope, exact arithmetic, shape and error-order regressions across execution paths | Pending |
+| R3 | Let, typed record/tuple results, expression-valued collections and bounded composition | Lexical scope, exact arithmetic, shape and error-order regressions across execution paths | Lexical/record backend verified (docs/LEXICAL_EXPRESSIONS.md); collection inputs and bounded composition remain |
 | R4 | Typed IR with state versions, effects and guarded analyses | IR inspection plus observation/exception/override/cancellation controls | Pending |
 | R5 | SCCP, dominance-aware CSE, safe LICM and dead intermediate elimination | Independent equivalence controls and cost measurements; no mechanic dispatch | Pending |
 | R6 | Lifetime/alias analysis, buffer reuse and safe collection fusion | Old snapshots, persistent sessions and measurement boundaries remain correct | Pending |
@@ -253,3 +253,24 @@ The relevant authored fragment shrinks from 30 Draw nodes plus one collection
 write to one DrawMany. These are local primitive controls, not whole-game
 performance estimates. Raw inputs and reports are retained in
 `/tmp/modern-primitives-evidence/batch-benchmark/`.
+
+R3 lexical/record milestone: `let` has eager, nonrecursive bindings in a
+namespace separate from state; ordered records and positional record tuples
+retain typed nested shapes. Canonical evaluation, closure sampling, generated
+IL and hot-tier sampling agree. The structured exact evaluator carries shared
+random-variable dependencies through records and passes lexical operands to
+opaque expressions without changing the identity used to intern those terms.
+Strict sequencing preserves potentially failing unused initializers.
+
+The serializer-derived expression schema now exports registered variants once
+and uses a shared reference for nested expressions, preserving nullability and
+required discriminators without raising authored JSON depth limits. Scope and
+schema regressions passed 462 selected Core cases and five API preview cases,
+including 40 new lexical/schema cases and 64 generated arithmetic controls.
+Both mandatory Rider profiles covered all 20 changed source files; final
+scoped formatting and the Release solution build passed. Large generative
+sweeps, convergence runs, integration and browser suites were not run for this
+milestone. No game-wide throughput claim is made. Records and fallback lexical
+environments still allocate; lifetime-based removal remains required R6 work.
+Expression-valued collection inputs and bounded nested composition remain R3
+work, and designer integration remains R18 work.

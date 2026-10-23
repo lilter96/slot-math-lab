@@ -27,7 +27,11 @@ public static class ExpressionCost
     public static long Compute(Expression expr) => expr switch
     {
         ConstantExpr => 1,
-        FieldAccessExpr => 1,
+        FieldAccessExpr or LocalExpr => 1,
+        LetExpr e => 1 + Compute(e.Value) + Compute(e.Body),
+        RecordExpr e => 1 + e.Fields.Sum(field => Compute(field.Value)),
+        TupleExpr e => 1 + e.Items.Sum(Compute),
+        ProjectExpr e => 1 + Compute(e.Value),
         NotExpr n => 1 + Compute(n.Expr),
         BinaryExpr b => 1 + Compute(b.Left) + Compute(b.Right),
         CompareExpr c => 1 + Compute(c.Left) + Compute(c.Right),

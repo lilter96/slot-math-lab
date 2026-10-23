@@ -177,6 +177,37 @@ internal sealed class SamplingExpressions(
     {
         switch (expression)
         {
+            case LetExpr let:
+            {
+                Func<SamplingFrame, ExprValue> value = compile(let.Value);
+                Func<SamplingFrame, ExprValue> letBody = compile(let.Body);
+                return frame =>
+                {
+                    ExprValue evaluated = value(frame);
+                    LexicalBinding? previous = frame.Locals;
+                    frame.Locals = new LexicalBinding(let.Name, evaluated, previous);
+                    try
+                    {
+                        return letBody(frame);
+                    }
+                    finally
+                    {
+                        frame.Locals = previous;
+                    }
+                };
+            }
+            case LocalExpr local:
+                return frame => LexicalValues.Read(frame.Locals, local.Name, local.Path);
+            case ProjectExpr project:
+            {
+                Func<SamplingFrame, ExprValue> value = compile(project.Value);
+                return frame => LexicalValues.Project(value(frame), project.Path);
+            }
+            case RecordExpr record:
+                return Record(record.Fields.Select(field => field.Name).ToArray(),
+                    record.Fields.Select(field => field.Value).ToArray(), compile);
+            case TupleExpr tuple:
+                return Record(LexicalValues.TupleNames(tuple.Items.Length), tuple.Items, compile, "tuple");
             case ConstantExpr c:
                 ExprValue constant;
                 try
@@ -284,8 +315,10 @@ internal sealed class SamplingExpressions(
 
                     return b.Op switch
                     {
-                        BinaryOp.Add => ExprValue.Add(l, r), BinaryOp.Sub => ExprValue.Sub(l, r),
-                        BinaryOp.Mul => ExprValue.Mul(l, r), BinaryOp.Div => ExprValue.Div(l, r),
+                        BinaryOp.Add => ExprValue.Add(l, r),
+                        BinaryOp.Sub => ExprValue.Sub(l, r),
+                        BinaryOp.Mul => ExprValue.Mul(l, r),
+                        BinaryOp.Div => ExprValue.Div(l, r),
                         _ => throw new ExpressionEvaluationException("EVAL_INVALID_OPERATOR",
                             "Unknown binary operator.")
                     };
@@ -488,6 +521,28 @@ internal sealed class SamplingExpressions(
             ? n
             : 0);
 
+    private static Func<SamplingFrame, ExprValue> Record(string[] names, Expression[] fields,
+        Func<Expression, Func<SamplingFrame, ExprValue>> compile, string location = "record")
+    {
+        if (fields.Length > LexicalValues.MaxFields)
+        {
+            return _ => throw new ExpressionEvaluationException("EVAL_RECORD_BUDGET",
+                $"A {location} exceeds 64 fields.", location);
+        }
+
+        Func<SamplingFrame, ExprValue>[] values = fields.Select(compile).ToArray();
+        return frame =>
+        {
+            var evaluated = new ExprValue[values.Length];
+            for (var index = 0; index < values.Length; index++)
+            {
+                evaluated[index] = values[index](frame);
+            }
+
+            return LexicalValues.Record(names, evaluated);
+        };
+    }
+
     internal static bool CompareValues(CompareOp op, ExprValue l, ExprValue r)
     {
         if (op is CompareOp.Eq or CompareOp.Neq && l.Kind == r.Kind &&
@@ -500,7 +555,9 @@ internal sealed class SamplingExpressions(
         {
             return op switch
             {
-                CompareOp.Eq => l.BoolValue == r.BoolValue, CompareOp.Neq => l.BoolValue != r.BoolValue, _ => false
+                CompareOp.Eq => l.BoolValue == r.BoolValue,
+                CompareOp.Neq => l.BoolValue != r.BoolValue,
+                _ => false
             };
         }
 
@@ -510,8 +567,13 @@ internal sealed class SamplingExpressions(
                 r.Kind == ExprType.String ? r.StringValue : r.ToString(), StringComparison.Ordinal);
         return op switch
         {
-            CompareOp.Eq => cmp == 0, CompareOp.Neq => cmp != 0, CompareOp.Lt => cmp < 0, CompareOp.Gt => cmp > 0,
-            CompareOp.Lte => cmp <= 0, CompareOp.Gte => cmp >= 0, _ => false
+            CompareOp.Eq => cmp == 0,
+            CompareOp.Neq => cmp != 0,
+            CompareOp.Lt => cmp < 0,
+            CompareOp.Gt => cmp > 0,
+            CompareOp.Lte => cmp <= 0,
+            CompareOp.Gte => cmp >= 0,
+            _ => false
         };
     }
 

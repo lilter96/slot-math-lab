@@ -53,6 +53,7 @@ public static class SamplingOptions
 internal sealed class SamplingOperands(
     int[] slots,
     string[] texts,
+    string[][] paths,
     long[] numbers,
     ExprValue[] values,
     ExprValue[][] arrays,
@@ -65,6 +66,7 @@ internal sealed class SamplingOperands(
     public readonly SamplingDraw[] Draws = draws;
     public readonly long[] Numbers = numbers;
     public readonly SamplingExpressions Owner = owner;
+    public readonly string[][] Paths = paths;
     public readonly int[] Slots = slots;
     public readonly string[] Texts = texts;
     public readonly ExprValue[] Values = values;
@@ -539,6 +541,7 @@ internal sealed class SamplingCodegen
     private readonly List<Func<SamplingFrame, ExprValue>> _closures = [];
     private readonly List<SamplingDraw> _draws = [];
     private readonly LxParameter _frame = Lx.Parameter(typeof(SamplingFrame), "frame");
+    private readonly Dictionary<string, (LxParameter Value, int Id)> _lexical = new(StringComparer.Ordinal);
     private readonly bool _literalOperands;
     private readonly List<LxParameter> _locals = [];
     private readonly HashSet<int> _normalizedWrites = [];
@@ -546,6 +549,7 @@ internal sealed class SamplingCodegen
     private readonly LxParameter _operands = Lx.Parameter(typeof(SamplingOperands), "operands");
 
     private readonly SamplingExpressions _owner;
+    private readonly List<string[]> _paths = [];
     private readonly HashSet<int> _readableWrites = [];
     private readonly StringBuilder _shape = new();
     private readonly Func<string, int> _slot;
@@ -553,6 +557,7 @@ internal sealed class SamplingCodegen
     private readonly List<string> _texts = [];
     private readonly List<ExprValue> _values = [];
     private int _iteration;
+    private int _lexicalId;
 
     private SamplingSubexpressions? _subexpressions;
 
@@ -706,7 +711,8 @@ internal sealed class SamplingCodegen
         return (code, Operands());
     }
 
-    private SamplingOperands Operands() => new([.. _slots], [.. _texts], [.. _numbers], [.. _values], [.. _arrays],
+    private SamplingOperands Operands() => new([.. _slots], [.. _texts], [.. _paths], [.. _numbers], [.. _values],
+        [.. _arrays],
         [.. _draws], [.. _closures], _owner);
 
     private LxParameter Local(Type type)
@@ -823,6 +829,64 @@ internal sealed class SamplingCodegen
 
         switch (expression)
         {
+            case LetExpr let:
+                return Form("let", () =>
+                {
+                    Lx initializer = Value(let.Value);
+                    LxParameter value = Local(typeof(ExprValue));
+                    LxParameter previousFrame = Local(typeof(LexicalBinding));
+                    var hadPrevious = _lexical.TryGetValue(let.Name, out (LxParameter Value, int Id) previous);
+                    _lexical[let.Name] = (value, ++_lexicalId);
+                    Lx body;
+                    try
+                    {
+                        body = Value(let.Body);
+                    }
+                    finally
+                    {
+                        if (hadPrevious)
+                        {
+                            _lexical[let.Name] = previous;
+                        }
+                        else
+                        {
+                            _lexical.Remove(let.Name);
+                        }
+                    }
+
+                    // Fallback closures compile separately and read locals through the frame.
+                    // The IL local still gives native children direct access; finally restores
+                    // the outer lexical scope even when a child fails.
+                    Lx bindings = Lx.Field(_frame, nameof(SamplingFrame.Locals));
+                    return Lx.Block(
+                        Lx.Assign(value, initializer),
+                        Lx.Assign(previousFrame, bindings),
+                        Lx.Assign(bindings,
+                            Lx.New(typeof(LexicalBinding).GetConstructors()[0], Text(let.Name), value, previousFrame)),
+                        Lx.TryFinally(body, Lx.Block(Lx.Assign(bindings, previousFrame), Lx.Empty())));
+                });
+            case LocalExpr local:
+                if (_lexical.TryGetValue(local.Name, out (LxParameter Value, int Id) lexical))
+                {
+                    _shape.Append("local:").Append(lexical.Id).Append(';');
+                    return Lx.Call(typeof(LexicalValues).GetMethod(nameof(LexicalValues.Project), Any)!, lexical.Value,
+                        Operand(nameof(SamplingOperands.Paths), _paths, local.Path), Text("local." + local.Name));
+                }
+
+                _shape.Append("local-frame;");
+                return Lx.Call(typeof(LexicalValues).GetMethod(nameof(LexicalValues.Read), Any)!,
+                    Lx.Field(_frame, nameof(SamplingFrame.Locals)), Text(local.Name),
+                    Operand(nameof(SamplingOperands.Paths), _paths, local.Path));
+            case ProjectExpr project:
+                return Form("project", () =>
+                    Lx.Call(typeof(LexicalValues).GetMethod(nameof(LexicalValues.Project), Any)!,
+                        Value(project.Value), Operand(nameof(SamplingOperands.Paths), _paths, project.Path),
+                        Text("project")));
+            case RecordExpr record:
+                return RecordValue(record.Fields.Select(field => field.Name).ToArray(),
+                    record.Fields.Select(field => field.Value).ToArray(), expression);
+            case TupleExpr tuple:
+                return RecordValue(LexicalValues.TupleNames(tuple.Items.Length), tuple.Items, expression);
             case ConstantExpr:
                 return TryConstant(expression, out ExprValue constant) ? Literal(constant) : Interpreted(expression);
             case FieldAccessExpr { Target: null or "state" or "board", Path.Length: 1 } field
@@ -891,6 +955,18 @@ internal sealed class SamplingCodegen
             default:
                 return Interpreted(expression);
         }
+    }
+
+    private Lx RecordValue(string[] names, Expression[] fields, Expression original)
+    {
+        if (fields.Length > LexicalValues.MaxFields)
+        {
+            return Interpreted(original);
+        }
+
+        return Form("record", () => Lx.Call(typeof(LexicalValues).GetMethod(nameof(LexicalValues.Record), Any)!,
+            Operand(nameof(SamplingOperands.Paths), _paths, names),
+            Lx.NewArrayInit(typeof(ExprValue), fields.Select(Value))));
     }
 
     // Raw null bindings report null-value errors, whereas typed null state

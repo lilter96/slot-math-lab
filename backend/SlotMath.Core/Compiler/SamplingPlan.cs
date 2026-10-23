@@ -375,7 +375,11 @@ internal sealed class SamplingPlan : ICompiledSampling<Dictionary<string, object
 
         return expression switch
         {
-            null or ConstantExpr or FieldAccessExpr => true,
+            null or ConstantExpr or FieldAccessExpr or LocalExpr => true,
+            LetExpr e => Variables(e.Value, names) && Variables(e.Body, names),
+            RecordExpr e => e.Fields.All(field => Variables(field.Value, names)),
+            TupleExpr e => e.Items.All(item => Variables(item, names)),
+            ProjectExpr e => Variables(e.Value, names),
             NotExpr e => Variables(e.Expr, names),
             BinaryExpr e => Variables(e.Left, names) && Variables(e.Right, names),
             CompareExpr e => Variables(e.Left, names) && Variables(e.Right, names),
@@ -692,8 +696,7 @@ internal sealed class SamplingPlan : ICompiledSampling<Dictionary<string, object
             case DrawManyNode batch:
             {
                 SamplingDraw[] rows = batch.BoundDistributions!.Select(row => _shapes.BindDraw(row, _scale)).ToArray();
-                foreach (SamplingDraw row in rows)
-                foreach (ExprValue value in row.StateValues)
+                foreach (ExprValue value in rows.SelectMany(row => row.StateValues))
                 {
                     _expressions.Remember(value);
                 }
@@ -734,8 +737,7 @@ internal sealed class SamplingPlan : ICompiledSampling<Dictionary<string, object
             case DrawNode { BoundDistributions: { } family } draw:
             {
                 SamplingDraw[] choices = family.Select(row => _shapes.BindDraw(row, _scale)).ToArray();
-                foreach (SamplingDraw choice in choices)
-                foreach (ExprValue value in choice.StateValues)
+                foreach (ExprValue value in choices.SelectMany(choice => choice.StateValues))
                 {
                     _expressions.Remember(value);
                 }

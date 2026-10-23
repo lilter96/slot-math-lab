@@ -23,6 +23,8 @@ internal sealed record Binding(string Name, Term Value, Binding? Next);
 
 internal sealed class Translator(TermFactory f)
 {
+    private Binding? _lexical;
+
     public Term Translate(Expression expression, Dictionary<string, Field> state) => Go(expression, state, null);
 
     private Term? Lookup(string name, Dictionary<string, Field> state, Binding? bound)
@@ -59,6 +61,51 @@ internal sealed class Translator(TermFactory f)
         f.Budget.Tick();
         switch (expression)
         {
+            case LetExpr let:
+            {
+                Term value = Go(let.Value, state, bound);
+                Binding? previous = _lexical;
+                _lexical = new Binding(let.Name, value, previous);
+                // Eager let must retain a failing initializer even if its result is unused.
+                try
+                {
+                    return f.Seq(value, Go(let.Body, state, bound));
+                }
+                finally
+                {
+                    _lexical = previous;
+                }
+            }
+            case LocalExpr local:
+            {
+                for (Binding? binding = _lexical; binding is not null; binding = binding.Next)
+                {
+                    if (binding.Name == local.Name)
+                    {
+                        return f.Path(binding.Value, local.Path);
+                    }
+                }
+
+                return Fail();
+            }
+            case RecordExpr record:
+                if (record.Fields.Length > LexicalValues.MaxFields || record.Fields.Any(field =>
+                                                                       string.IsNullOrWhiteSpace(field.Name))
+                                                                   || record.Fields.Select(field => field.Name)
+                                                                       .Distinct(StringComparer.Ordinal).Count() !=
+                                                                   record.Fields.Length)
+                {
+                    return Fail();
+                }
+
+                return f.Record(record.Fields.Select(field => field.Name).ToArray(),
+                    record.Fields.Select(field => Go(field.Value, state, bound)).ToArray());
+            case TupleExpr tuple:
+                return tuple.Items.Length > LexicalValues.MaxFields
+                    ? Fail()
+                    : f.Record(LexicalValues.TupleNames(tuple.Items.Length),
+                        tuple.Items.Select(item => Go(item, state, bound)).ToArray());
+            case ProjectExpr project: return f.Path(Go(project.Value, state, bound), project.Path);
             case ConstantExpr constant: return Constant(constant);
             case FieldAccessExpr access: return Access(access, state, bound);
             case BinaryExpr { Op: BinaryOp.And or BinaryOp.Or } logical:
@@ -278,7 +325,19 @@ internal sealed class Translator(TermFactory f)
             args.Add(value);
         }
 
-        return f.Opaque(expression, [.. present], [.. args]);
+        var localNames = new List<string>();
+        for (Binding? binding = _lexical; binding is not null; binding = binding.Next)
+        {
+            if (localNames.Contains(binding.Name, StringComparer.Ordinal))
+            {
+                continue;
+            }
+
+            localNames.Add(binding.Name);
+            args.Add(binding.Value);
+        }
+
+        return f.Opaque(expression, [.. present], [.. localNames], [.. args]);
     }
 
     /// <summary>Every top-level state name the expression can read.</summary>
@@ -289,6 +348,25 @@ internal sealed class Translator(TermFactory f)
             case FieldAccessExpr access
                 when access.Path.Length > 0 && access.Target is null or "state" or "board":
                 names.Add(access.Path[0]); break;
+            case LetExpr let:
+                Reads(let.Value, names);
+                Reads(let.Body, names);
+                break;
+            case RecordExpr record:
+                foreach (RecordFieldExpr field in record.Fields)
+                {
+                    Reads(field.Value, names);
+                }
+
+                break;
+            case TupleExpr tuple:
+                foreach (Expression item in tuple.Items)
+                {
+                    Reads(item, names);
+                }
+
+                break;
+            case ProjectExpr project: Reads(project.Value, names); break;
             case BinaryExpr binary:
                 Reads(binary.Left, names);
                 Reads(binary.Right, names);

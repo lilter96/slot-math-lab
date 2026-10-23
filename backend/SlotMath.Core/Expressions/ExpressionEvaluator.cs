@@ -25,6 +25,8 @@ namespace SlotMath.Core.Expressions;
 /// </summary>
 public sealed class EvalContext
 {
+    internal LexicalBinding? Locals { get; init; }
+
     public SettlementContext? Measurement { get; init; }
 
     /// <summary>The current recurrence state (nullable).</summary>
@@ -37,6 +39,15 @@ public sealed class EvalContext
     public Func<string, double>? SymbolToNumericValue { get; init; }
 
     public static EvalContext Empty { get; } = new();
+
+    internal EvalContext WithLocal(string name, ExprValue value) => new()
+    {
+        State = State,
+        Measurement = Measurement,
+        DecorationParser = DecorationParser,
+        SymbolToNumericValue = SymbolToNumericValue,
+        Locals = new LexicalBinding(name, value, Locals)
+    };
 }
 
 /// <summary>
@@ -82,6 +93,11 @@ public static class ExactExpressionEvaluator
     {
         return expr switch
         {
+            LetExpr let => Eval(let.Body, ctx.WithLocal(let.Name, Eval(let.Value, ctx))),
+            LocalExpr local => LexicalValues.Read(ctx.Locals, local.Name, local.Path),
+            RecordExpr record => EvalRecord(record, ctx),
+            TupleExpr tuple => EvalTuple(tuple, ctx),
+            ProjectExpr project => LexicalValues.Project(Eval(project.Value, ctx), project.Path),
             ConstantExpr c => EvalConstant(c),
             FieldAccessExpr f => EvalFieldAccess(f, ctx),
             BinaryExpr b => EvalBinary(b, ctx),
@@ -98,11 +114,47 @@ public static class ExactExpressionEvaluator
         };
     }
 
+    private static ExprValue EvalRecord(RecordExpr record, EvalContext context)
+    {
+        if (record.Fields.Length > LexicalValues.MaxFields)
+        {
+            throw new ExpressionEvaluationException("EVAL_RECORD_BUDGET", "A record exceeds 64 fields.", "record");
+        }
+
+        var values = new ExprValue[record.Fields.Length];
+        for (var index = 0; index < values.Length; index++)
+        {
+            values[index] = Eval(record.Fields[index].Value, context);
+        }
+
+        return LexicalValues.Record(record.Fields.Select(field => field.Name).ToArray(), values);
+    }
+
+    private static ExprValue EvalTuple(TupleExpr tuple, EvalContext context)
+    {
+        if (tuple.Items.Length > LexicalValues.MaxFields)
+        {
+            throw new ExpressionEvaluationException("EVAL_RECORD_BUDGET", "A tuple exceeds 64 fields.", "tuple");
+        }
+
+        var values = new ExprValue[tuple.Items.Length];
+        for (var index = 0; index < values.Length; index++)
+        {
+            values[index] = Eval(tuple.Items[index], context);
+        }
+
+        return LexicalValues.Record(LexicalValues.TupleNames(values.Length), values);
+    }
+
     private static ExprValue EvalBitSet(BitSetExpr set, EvalContext ctx)
     {
-        var first = set.Args.Length > 0 ? Eval(set.Args[0], ctx) : default;
-        var second = set.Args.Length > 1 ? Eval(set.Args[1], ctx) : default;
-        for (var i = 2; i < set.Args.Length; i++) Eval(set.Args[i], ctx);
+        ExprValue first = set.Args.Length > 0 ? Eval(set.Args[0], ctx) : default;
+        ExprValue second = set.Args.Length > 1 ? Eval(set.Args[1], ctx) : default;
+        for (var i = 2; i < set.Args.Length; i++)
+        {
+            Eval(set.Args[i], ctx);
+        }
+
         return BitSetOperations.Evaluate(set.Op, set.Args.Length, first, second);
     }
 
@@ -314,9 +366,13 @@ public static class ExactExpressionEvaluator
             {
                 var iterCtx = new EvalContext
                 {
-                    State = new Dictionary<string, object?>(baseState) { [a.ItemName] = item },
+                    State = new Dictionary<string, object?>(baseState)
+                    {
+                        [a.ItemName] = item
+                    },
                     DecorationParser = ctx.DecorationParser,
                     Measurement = ctx.Measurement,
+                    Locals = ctx.Locals,
                     SymbolToNumericValue = ctx.SymbolToNumericValue
                 };
 
@@ -447,6 +503,7 @@ public static class ExactExpressionEvaluator
                     State = iterState,
                     DecorationParser = ctx.DecorationParser,
                     Measurement = ctx.Measurement,
+                    Locals = ctx.Locals,
                     SymbolToNumericValue = ctx.SymbolToNumericValue
                 });
             index++;
@@ -494,7 +551,10 @@ public static class ExactExpressionEvaluator
         var index = 0;
         foreach (var item in arr)
         {
-            var iterState = new Dictionary<string, object?>(baseState) { [m.ItemName] = item };
+            var iterState = new Dictionary<string, object?>(baseState)
+            {
+                [m.ItemName] = item
+            };
             if (m.IndexName != null)
             {
                 iterState[m.IndexName] = index;
@@ -506,6 +566,7 @@ public static class ExactExpressionEvaluator
                     State = iterState,
                     DecorationParser = ctx.DecorationParser,
                     Measurement = ctx.Measurement,
+                    Locals = ctx.Locals,
                     SymbolToNumericValue = ctx.SymbolToNumericValue
                 }));
             index++;
@@ -531,7 +592,10 @@ public static class ExactExpressionEvaluator
         var index = 0;
         foreach (var item in arr)
         {
-            var iterState = new Dictionary<string, object?>(baseState) { [f.ItemName] = item };
+            var iterState = new Dictionary<string, object?>(baseState)
+            {
+                [f.ItemName] = item
+            };
             if (f.IndexName != null)
             {
                 iterState[f.IndexName] = index;
@@ -543,6 +607,7 @@ public static class ExactExpressionEvaluator
                     State = iterState,
                     DecorationParser = ctx.DecorationParser,
                     Measurement = ctx.Measurement,
+                    Locals = ctx.Locals,
                     SymbolToNumericValue = ctx.SymbolToNumericValue
                 });
             if (pred.Kind != ExprType.Boolean)

@@ -12,7 +12,10 @@ public static class SchemaEmitter
 {
     public const string CurrentSchemaVersion = "1.0.0";
 
-    private static readonly JsonSerializerOptions s_writeOptions = new() { WriteIndented = true };
+    private static readonly JsonSerializerOptions s_writeOptions = new()
+    {
+        WriteIndented = true
+    };
 
     private static JsonSchema? s_schema;
 
@@ -41,25 +44,97 @@ public static class SchemaEmitter
         CamelCaseProperties(node);
         // The general schema generator sees only the abstract Expression base.
         // Export its polymorphic JSON contract from the serializer metadata.
-        var options = new JsonSerializerOptions(JsonOptions.Default)
-        {
-            TypeInfoResolver = JsonOptions.Default.TypeInfoResolver ?? new DefaultJsonTypeInfoResolver()
-        };
-        JsonNode expression = options.GetJsonSchemaAsNode(typeof(Expression),
-            new JsonSchemaExporterOptions { TreatNullObliviousAsNonNullable = true });
-        RebaseReferences(expression, "#/$defs/expression");
-        node["$defs"]!["expression"] = expression;
+        node["$defs"]!["expression"] = ExpressionSchema();
         JsonNode? defaultValue = node["$defs"]?["dictionaryOfStringAndPort"]?["additionalProperties"]?["properties"];
         if (defaultValue is JsonObject port)
         {
+            var absent = new JsonObject
+            {
+                ["type"] = "null"
+            };
+            var reference = new JsonObject
+            {
+                ["$ref"] = "#/$defs/expression"
+            };
             port["defaultValue"] = new JsonObject
             {
-                ["anyOf"] = new JsonArray(new JsonObject { ["type"] = "null" },
-                    new JsonObject { ["$ref"] = "#/$defs/expression" })
+                ["anyOf"] = new JsonArray(absent, reference)
             };
         }
 
         return JsonSerializer.Serialize(node, s_writeOptions);
+    }
+
+    private static JsonNode ExpressionSchema()
+    {
+        const string root = "#/$defs/expression";
+        var resolver = new DefaultJsonTypeInfoResolver();
+        JsonPolymorphismOptions metadata =
+            resolver.GetTypeInfo(typeof(Expression), JsonOptions.Default).PolymorphismOptions!;
+        var exportResolver = new DefaultJsonTypeInfoResolver();
+        exportResolver.Modifiers.Add(info =>
+        {
+            if (info.Type == typeof(Expression))
+            {
+                info.PolymorphismOptions = null;
+            }
+        });
+        var options = new JsonSerializerOptions(JsonOptions.Default)
+        {
+            TypeInfoResolver = exportResolver
+        };
+        var exporter = new JsonSchemaExporterOptions
+        {
+            TreatNullObliviousAsNonNullable = true,
+            TransformSchemaNode = (context, schema) =>
+            {
+                if (context.TypeInfo.Type != typeof(Expression))
+                {
+                    return schema;
+                }
+
+                var reference = new JsonObject
+                {
+                    ["$ref"] = root
+                };
+                return context.PropertyInfo?.IsGetNullable == true
+                    ? new JsonObject
+                    {
+                        ["anyOf"] = new JsonArray(new JsonObject
+                        {
+                            ["type"] = "null"
+                        }, reference)
+                    }
+                    : reference;
+            }
+        };
+        // Export each registered shape once. Nested expressions reference the union
+        // instead of recursively expanding every polymorphic shape at every property.
+        var variants = new JsonArray();
+        foreach (JsonDerivedType derived in metadata.DerivedTypes)
+        {
+            JsonNode variant = options.GetJsonSchemaAsNode(derived.DerivedType, exporter);
+            RebaseReferences(variant, root + "/oneOf/" + variants.Count);
+            JsonObject properties = variant["properties"]!.AsObject();
+            properties[metadata.TypeDiscriminatorPropertyName] = new JsonObject
+            {
+                ["const"] = JsonSerializer.SerializeToNode(derived.TypeDiscriminator)
+            };
+            JsonArray? required = variant["required"]?.AsArray();
+            if (required is null)
+            {
+                required = new JsonArray();
+                variant["required"] = required;
+            }
+
+            required.Add(metadata.TypeDiscriminatorPropertyName);
+            variants.Add(variant);
+        }
+
+        return new JsonObject
+        {
+            ["oneOf"] = variants
+        };
     }
 
     private static void RebaseReferences(JsonNode node, string prefix)
@@ -67,7 +142,7 @@ public static class SchemaEmitter
         if (node is JsonObject obj)
         {
             if (obj["$ref"] is JsonValue reference && reference.TryGetValue<string>(out var path) &&
-                path.StartsWith('#'))
+                path.StartsWith('#') && path != "#/$defs/expression")
             {
                 obj["$ref"] = prefix + path[1..];
             }

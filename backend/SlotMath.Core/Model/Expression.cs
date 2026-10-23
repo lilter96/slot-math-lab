@@ -18,9 +18,52 @@ namespace SlotMath.Core.Model;
 [JsonDerivedType(typeof(FoldExpr), "fold")]
 [JsonDerivedType(typeof(MapExpr), "map")]
 [JsonDerivedType(typeof(FilterExpr), "filter")]
+[JsonDerivedType(typeof(LetExpr), "let")]
+[JsonDerivedType(typeof(LocalExpr), "local")]
+[JsonDerivedType(typeof(RecordExpr), "record")]
+[JsonDerivedType(typeof(TupleExpr), "tuple")]
+[JsonDerivedType(typeof(ProjectExpr), "project")]
 public abstract record Expression
 {
     public string? Annotation { get; init; }
+}
+
+/// <summary>Eager, nonrecursive lexical binding. It never writes recurrence state.</summary>
+public sealed record LetExpr : Expression
+{
+    public required string Name { get; init; }
+    public required Expression Value { get; init; }
+    public required Expression Body { get; init; }
+}
+
+public sealed record LocalExpr : Expression
+{
+    public required string Name { get; init; }
+    public string[] Path { get; init; } = [];
+}
+
+public sealed record RecordFieldExpr
+{
+    public required string Name { get; init; }
+    public required Expression Value { get; init; }
+}
+
+/// <summary>Fields evaluate eagerly in authored order; field names must be unique.</summary>
+public sealed record RecordExpr : Expression
+{
+    public RecordFieldExpr[] Fields { get; init; } = [];
+}
+
+/// <summary>Positional record, addressed with static field names "0", "1", ... .</summary>
+public sealed record TupleExpr : Expression
+{
+    public Expression[] Items { get; init; } = [];
+}
+
+public sealed record ProjectExpr : Expression
+{
+    public required Expression Value { get; init; }
+    public required string[] Path { get; init; }
 }
 
 // ── Constant ───────────────────────────────────────────────────────────
@@ -31,7 +74,7 @@ public enum ConstantKind
     Integer,
     Rational,
     Boolean,
-    String,
+    String
 }
 
 public sealed record ConstantExpr : Expression
@@ -53,12 +96,12 @@ public sealed record FieldAccessExpr : Expression
 [JsonConverter(typeof(JsonStringEnumConverter))]
 public enum BinaryOp
 {
-    Add,        // +
-    Sub,        // -
-    Mul,        // *
-    Div,        // /
-    And,        // &&
-    Or,         // ||
+    Add, // +
+    Sub, // -
+    Mul, // *
+    Div, // /
+    And, // &&
+    Or // ||
 }
 
 public sealed record BinaryExpr : Expression
@@ -73,12 +116,12 @@ public sealed record BinaryExpr : Expression
 [JsonConverter(typeof(JsonStringEnumConverter))]
 public enum CompareOp
 {
-    Eq,         // ==
-    Neq,        // !=
-    Lt,         // <
-    Gt,         // >
-    Lte,        // <=
-    Gte,        // >=
+    Eq, // ==
+    Neq, // !=
+    Lt, // <
+    Gt, // >
+    Lte, // <=
+    Gte // >=
 }
 
 public sealed record CompareExpr : Expression
@@ -106,7 +149,7 @@ public enum AggregateFunc
     Product,
     Count,
     Min,
-    Max,
+    Max
 }
 
 // ── State-array aggregation (sum/product/count/min/max with a predicate) ──
@@ -126,8 +169,8 @@ public sealed record AggregateExpr : Expression
     public required AggregateFunc Func { get; init; }
 
     /// <summary>
-    /// Key in the state dictionary whose value is the array to aggregate over
-    /// (invariant 4: a "board" is just a user-defined array in state S).
+    ///     Key in the state dictionary whose value is the array to aggregate over
+    ///     (invariant 4: a "board" is just a user-defined array in state S).
     /// </summary>
     public required string StateKey { get; init; }
 
@@ -141,9 +184,9 @@ public sealed record AggregateExpr : Expression
     public Expression? Predicate { get; init; }
 
     /// <summary>
-    /// Optional selector extracting the numeric value to aggregate from each
-    /// element (e.g. <c>item.multiplier</c>). If absent, the element itself is
-    /// aggregated (parsed to a number when it is a numeric string/value).
+    ///     Optional selector extracting the numeric value to aggregate from each
+    ///     element (e.g. <c>item.multiplier</c>). If absent, the element itself is
+    ///     aggregated (parsed to a number when it is a numeric string/value).
     /// </summary>
     public Expression? ValueExpr { get; init; }
 }
@@ -158,7 +201,12 @@ public sealed record NotExpr : Expression
 [JsonConverter(typeof(JsonStringEnumConverter))]
 public enum BitSetOp
 {
-    Union, Intersect, Except, Shift, Count, First,
+    Union,
+    Intersect,
+    Except,
+    Shift,
+    Count,
+    First
 }
 
 /// <summary>Finite sets on positions 0..63. Masks are exact unsigned 64-bit integers.</summary>
@@ -192,7 +240,10 @@ public sealed record MapExpr : Expression
     /// <summary>Name bound to the current array element inside the lambda body.</summary>
     public required string ItemName { get; init; }
 
-    /// <summary>Optional name bound to the current element's 0-based index (invariant 4: enables position-aware board mechanics).</summary>
+    /// <summary>
+    ///     Optional name bound to the current element's 0-based index (invariant 4: enables position-aware board
+    ///     mechanics).
+    /// </summary>
     public string? IndexName { get; init; }
 
     /// <summary>Lambda body — evaluated once per element; may not contain fold/map/filter.</summary>
@@ -218,7 +269,10 @@ public sealed record FilterExpr : Expression
     /// <summary>Name bound to the current array element inside the predicate.</summary>
     public required string ItemName { get; init; }
 
-    /// <summary>Optional name bound to the current element's 0-based index (invariant 4: enables position-aware board mechanics).</summary>
+    /// <summary>
+    ///     Optional name bound to the current element's 0-based index (invariant 4: enables position-aware board
+    ///     mechanics).
+    /// </summary>
     public string? IndexName { get; init; }
 
     /// <summary>Predicate — must return Boolean; may not contain fold/map/filter.</summary>
@@ -249,7 +303,10 @@ public sealed record FoldExpr : Expression
     /// <summary>Name bound to the current array element inside the lambda body.</summary>
     public required string ItemName { get; init; }
 
-    /// <summary>Optional name bound to the current element's 0-based index (invariant 4: enables position-aware board mechanics).</summary>
+    /// <summary>
+    ///     Optional name bound to the current element's 0-based index (invariant 4: enables position-aware board
+    ///     mechanics).
+    /// </summary>
     public string? IndexName { get; init; }
 
     /// <summary>Initial accumulator value.</summary>

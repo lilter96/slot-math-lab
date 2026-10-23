@@ -386,7 +386,9 @@ internal enum Op : byte
     Arr,
     Tuple,
     Opaque,
-    Index
+    Index,
+    Record,
+    Seq
 }
 
 internal abstract class Term
@@ -837,6 +839,8 @@ internal sealed class TermFactory
                 case Op.Extract:
                     // GraphCompiler.ExtractBigInteger: an integer amount is itself, anything else is zero.
                     return a[0].Kind == ExprType.Number && a[0].NumberDenominator.IsOne ? a[0] : V.Zero;
+                case Op.Seq: return a[1];
+                case Op.Record: return LexicalValues.Record((string[])payload!, a.ToArray());
                 case Op.Arr or Op.Tuple:
                     return ExprValue.ArrayOwned(a.ToArray(), false);
                 case Op.Call:
@@ -879,15 +883,22 @@ internal sealed class TermFactory
                     };
                     return StateValues.Read(nestedState, ["value", .. segments]);
                 default:
-                    var state = new Dictionary<string, object?>(names!.Length);
-                    for (var i = 0; i < names.Length; i++)
+                    var state = new Dictionary<string, object?>(aux);
+                    for (var i = 0; i < aux; i++)
                     {
-                        state[names[i]] = a[i].ToStateObject();
+                        state[names![i]] = a[i].ToStateObject();
+                    }
+
+                    LexicalBinding? locals = null;
+                    for (var i = a.Length - 1; i >= aux; i--)
+                    {
+                        locals = new LexicalBinding(names![i], a[i], locals);
                     }
 
                     return ExactExpressionEvaluator.Evaluate((Expression)payload!, new EvalContext
                     {
-                        State = state
+                        State = state,
+                        Locals = locals
                     });
             }
         }
@@ -959,7 +970,7 @@ internal sealed class TermFactory
         }
 
         // An array of terms keeps its elements visible; everything else over one variable is tabulated.
-        if (code != Op.Arr && CommonRv(args) is { } rv)
+        if (code is not (Op.Arr or Op.Record) && CommonRv(args) is { } rv)
         {
             ExprValue[] table = Rent(rv.Count);
             var buffer = new ExprValue[args.Length];
@@ -1037,7 +1048,7 @@ internal sealed class TermFactory
     /// <summary>Exact abstraction: apply the operator to every combination of the arguments' known values.</summary>
     private bool Abstract(OpTerm term)
     {
-        if (term.Code is Op.Arr or Op.Tuple)
+        if (term.Code is Op.Arr or Op.Tuple or Op.Record)
         {
             return false;
         }
@@ -1136,6 +1147,11 @@ internal sealed class TermFactory
 
                 break;
             case Op.Arr or Op.Tuple: term.Kinds = V.Arr; break;
+            case Op.Record: term.Kinds = V.Rec; break;
+            case Op.Seq:
+                term.Kinds = a[1].Kinds;
+                term.Vals = a[1].Vals;
+                break;
             case Op.Call:
                 var function = (string)term.Payload!;
                 term.OwnFail = true;
@@ -1266,8 +1282,25 @@ internal sealed class TermFactory
 
     public Term Arr(Term[] elements) => MakeOp(Op.Arr, 0, null, null, elements);
 
-    public Term Path(Term value, string[] segments) =>
-        segments.Length == 0 && (value.Kinds & V.Null) == 0 ? value : MakeOp(Op.Path, 0, segments, null, [value]);
+    public Term Seq(Term first, Term second) => first.Pure ? second : MakeOp(Op.Seq, 0, null, null, [first, second]);
+
+    public Term Record(string[] names, Term[] fields) => MakeOp(Op.Record, 0, names, null, fields);
+
+    public Term Path(Term value, string[] segments)
+    {
+        if (segments.Length == 0 && (value.Kinds & V.Null) == 0)
+        {
+            return value;
+        }
+
+        if (segments.Length > 0 && value is OpTerm { Code: Op.Record, CanErr: false } record)
+        {
+            var index = Array.IndexOf((string[])record.Payload!, segments[0]);
+            return index < 0 ? ErrT : Path(record.Args[index], segments[1..]);
+        }
+
+        return MakeOp(Op.Path, 0, segments, null, [value]);
+    }
 
     public Term Call(string function, Term[] args)
     {
@@ -1316,8 +1349,10 @@ internal sealed class TermFactory
     }
 
 
-    public Term Opaque(Expression expression, string[] names, Term[] args) =>
-        MakeOp(Op.Opaque, 0, expression, names, args);
+    public Term Opaque(Expression expression, string[] names, string[] localNames, Term[] args) =>
+        // Keep expression identity in the payload so ordinary opaque terms still intern.
+        // Aux separates state operands from the lexical operands in the shared name list.
+        MakeOp(Op.Opaque, names.Length, expression, localNames.Length == 0 ? names : [.. names, .. localNames], args);
 
     /// <summary>
     ///     The position of the term's value in a table. A total table lists every value the term takes; a partial one

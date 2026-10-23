@@ -90,6 +90,15 @@ public static class ExpressionSimplifier
             object?[]? shape = expression switch
             {
                 ConstantExpr c => [nameof(ConstantExpr), c.Kind, c.Value],
+                LocalExpr e => [nameof(LocalExpr), e.Name, e.Path],
+                LetExpr e => [nameof(LetExpr), e.Name, Child(e.Value), Child(e.Body)],
+                RecordExpr e =>
+                [
+                    nameof(RecordExpr), e.Fields.Select(field => field.Name).ToArray(),
+                    e.Fields.Select(field => Child(field.Value)).ToArray()
+                ],
+                TupleExpr e => [nameof(TupleExpr), e.Items.Select(Child).ToArray()],
+                ProjectExpr e => [nameof(ProjectExpr), Child(e.Value), e.Path],
                 FieldAccessExpr f => [nameof(FieldAccessExpr), f.Target, f.Path],
                 BinaryExpr b => [nameof(BinaryExpr), b.Op, Child(b.Left), Child(b.Right)],
                 CompareExpr c => [nameof(CompareExpr), c.Op, Child(c.Left), Child(c.Right)],
@@ -193,6 +202,34 @@ public static class ExpressionSimplifier
             Expression rewritten;
             switch (expression)
             {
+                case LetExpr let:
+                    rewritten = let with
+                    {
+                        Value = Visit(let.Value),
+                        Body = Rewrite(let.Body, new Dictionary<int, bool>(), bound, depth + 1)
+                    };
+                    break;
+                case RecordExpr record:
+                    rewritten = record with
+                    {
+                        Fields = record.Fields.Select(field => field with
+                        {
+                            Value = Visit(field.Value)
+                        }).ToArray()
+                    };
+                    break;
+                case TupleExpr tuple:
+                    rewritten = tuple with
+                    {
+                        Items = tuple.Items.Select(Visit).ToArray()
+                    };
+                    break;
+                case ProjectExpr project:
+                    rewritten = project with
+                    {
+                        Value = Visit(project.Value)
+                    };
+                    break;
                 case IfExpr branch:
                     Expression condition = Visit(branch.Condition);
                     if (Bool(condition, out var taken))

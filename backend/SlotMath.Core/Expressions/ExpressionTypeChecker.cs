@@ -15,7 +15,7 @@ namespace SlotMath.Core.Expressions;
 public static class ExpressionTypeChecker
 {
     /// <summary>
-    /// Check an expression and return all type errors.  Empty list = valid.
+    ///     Check an expression and return all type errors.  Empty list = valid.
     /// </summary>
     public static IReadOnlyList<TypeCheckError> Check(Expression expr, TypeCheckContext ctx)
     {
@@ -25,13 +25,13 @@ public static class ExpressionTypeChecker
     }
 
     /// <summary>
-    /// Check and also verify the expression type matches the expected type.
+    ///     Check and also verify the expression type matches the expected type.
     /// </summary>
     public static IReadOnlyList<TypeCheckError> Check(
         Expression expr, TypeCheckContext ctx, ExprType expectedType)
     {
         var errors = new List<TypeCheckError>();
-        var inferred = Infer(expr, ctx, errors);
+        ExprType inferred = Infer(expr, ctx, errors);
 
         if (errors.Count == 0 && inferred != expectedType && inferred != ExprType.Error)
         {
@@ -47,9 +47,9 @@ public static class ExpressionTypeChecker
     }
 
     /// <summary>
-    /// Best-effort inference of an expression's result type, ignoring errors.
-    /// Used by state-schema derivation (Graph Truth → Everything Derived): a
-    /// state field's type is the type of the expression that writes it.
+    ///     Best-effort inference of an expression's result type, ignoring errors.
+    ///     Used by state-schema derivation (Graph Truth → Everything Derived): a
+    ///     state field's type is the type of the expression that writes it.
     /// </summary>
     public static ExprType InferType(Expression expr, TypeCheckContext ctx)
     {
@@ -63,6 +63,11 @@ public static class ExpressionTypeChecker
     {
         return expr switch
         {
+            LetExpr let => InferLet(let, ctx, errors),
+            LocalExpr local => InferLocal(local, ctx, errors),
+            RecordExpr record => InferRecord(record, ctx, errors),
+            TupleExpr tuple => InferTuple(tuple, ctx, errors),
+            ProjectExpr project => InferProject(project, ctx, errors),
             ConstantExpr c => InferConstant(c, ctx, errors),
             FieldAccessExpr f => InferFieldAccess(f, ctx, errors),
             BinaryExpr b => InferBinary(b, ctx, errors),
@@ -75,11 +80,83 @@ public static class ExpressionTypeChecker
             FoldExpr f => InferFold(f, ctx, errors),
             MapExpr m => InferMap(m, ctx, errors),
             FilterExpr fi => InferFilter(fi, ctx, errors),
-            _ => Fail(expr, $"Unknown expression type: {expr.GetType().Name}", errors),
+            _ => Fail(expr, $"Unknown expression type: {expr.GetType().Name}", errors)
         };
     }
 
     // ── Constant ─────────────────────────────────────────────────────────
+
+    private static ExprType InferLet(LetExpr let, TypeCheckContext context, List<TypeCheckError> errors)
+    {
+        if (string.IsNullOrWhiteSpace(let.Name) || let.Name.Length > 128)
+        {
+            return Fail(let, "A local name requires 1..128 nonempty characters.", errors);
+        }
+
+        ExprType type = Infer(let.Value, context, errors);
+        FieldDescriptor? value = ExpressionShapes.Infer(let.Value, context);
+        if (type == ExprType.Error || value is null)
+        {
+            return ExprType.Error;
+        }
+
+        return Infer(let.Body, context.WithLocal(let.Name, value), errors);
+    }
+
+    private static ExprType InferLocal(LocalExpr local, TypeCheckContext context, List<TypeCheckError> errors)
+    {
+        FieldDescriptor? value = ExpressionShapes.Infer(local, context);
+        return value is null || value.Type is ExprType.Error or ExprType.Null
+            ? Fail(local, $"Unknown or unreadable local '{local.Name}'.", errors)
+            : value.Type;
+    }
+
+    private static ExprType InferRecord(RecordExpr record, TypeCheckContext context, List<TypeCheckError> errors)
+    {
+        if (record.Fields.Length > LexicalValues.MaxFields || record.Fields.Any(field =>
+                                                               string.IsNullOrWhiteSpace(field.Name))
+                                                           || record.Fields.Select(field => field.Name)
+                                                               .Distinct(StringComparer.Ordinal).Count() !=
+                                                           record.Fields.Length)
+        {
+            return Fail(record, "Records require at most 64 unique nonempty field names.", errors);
+        }
+
+        foreach (RecordFieldExpr field in record.Fields)
+        {
+            Infer(field.Value, context, errors);
+        }
+
+        return ExprType.Record;
+    }
+
+    private static ExprType InferTuple(TupleExpr tuple, TypeCheckContext context, List<TypeCheckError> errors)
+    {
+        if (tuple.Items.Length > LexicalValues.MaxFields)
+        {
+            return Fail(tuple, "Tuples require at most 64 elements.", errors);
+        }
+
+        foreach (Expression item in tuple.Items)
+        {
+            Infer(item, context, errors);
+        }
+
+        return ExprType.Record;
+    }
+
+    private static ExprType InferProject(ProjectExpr project, TypeCheckContext context, List<TypeCheckError> errors)
+    {
+        if (Infer(project.Value, context, errors) == ExprType.Error)
+        {
+            return ExprType.Error;
+        }
+
+        FieldDescriptor? value = ExpressionShapes.Project(ExpressionShapes.Infer(project.Value, context), project.Path);
+        return value is null || value.Type is ExprType.Error or ExprType.Null
+            ? Fail(project, "Projection requires a known readable static path.", errors)
+            : value.Type;
+    }
 
     private static ExprType InferConstant(ConstantExpr c, TypeCheckContext ctx, List<TypeCheckError> errors)
     {
@@ -88,7 +165,7 @@ public static class ExpressionTypeChecker
             ConstantKind.Integer or ConstantKind.Rational => ExprType.Number,
             ConstantKind.Boolean => ExprType.Boolean,
             ConstantKind.String => ExprType.String,
-            _ => Fail(c, $"Unknown constant kind: {c.Kind}", errors),
+            _ => Fail(c, $"Unknown constant kind: {c.Kind}", errors)
         };
     }
 
@@ -97,9 +174,11 @@ public static class ExpressionTypeChecker
     private static ExprType InferFieldAccess(FieldAccessExpr f, TypeCheckContext ctx, List<TypeCheckError> errors)
     {
         if (f.Path.Length == 0)
+        {
             return Fail(f, "Field access path is empty.", errors);
+        }
 
-        var resolved = ctx.ResolvePath(f.Path, f.Target);
+        ExprType? resolved = ctx.ResolvePath(f.Path, f.Target);
         if (resolved is null or ExprType.Error)
         {
             var where = f.Target ?? "board";
@@ -107,7 +186,11 @@ public static class ExpressionTypeChecker
                 $"Unknown field '{string.Join(".", f.Path)}' on {where}.", errors);
         }
 
-        if (resolved == ExprType.Null) return Fail(f, $"Field '{string.Join(".", f.Path)}' is null; supply an explicit value before reading it.", errors);
+        if (resolved == ExprType.Null)
+        {
+            return Fail(f, $"Field '{string.Join(".", f.Path)}' is null; supply an explicit value before reading it.",
+                errors);
+        }
 
         return resolved.Value;
     }
@@ -116,11 +199,13 @@ public static class ExpressionTypeChecker
 
     private static ExprType InferBinary(BinaryExpr b, TypeCheckContext ctx, List<TypeCheckError> errors)
     {
-        var left = Infer(b.Left, ctx, errors);
-        var right = Infer(b.Right, ctx, errors);
+        ExprType left = Infer(b.Left, ctx, errors);
+        ExprType right = Infer(b.Right, ctx, errors);
 
         if (left == ExprType.Error || right == ExprType.Error)
+        {
             return ExprType.Error;
+        }
 
         return b.Op switch
         {
@@ -130,7 +215,7 @@ public static class ExpressionTypeChecker
             BinaryOp.And or BinaryOp.Or =>
                 CheckLogical(b, left, right, errors),
 
-            _ => Fail(b, $"Unknown binary operator: {b.Op}", errors),
+            _ => Fail(b, $"Unknown binary operator: {b.Op}", errors)
         };
     }
 
@@ -138,9 +223,15 @@ public static class ExpressionTypeChecker
         List<TypeCheckError> errors)
     {
         if (left != ExprType.Number)
+        {
             errors.Add(Error(b, $"Left operand of '{b.Op}' must be Number, got {left}."));
+        }
+
         if (right != ExprType.Number)
+        {
             errors.Add(Error(b, $"Right operand of '{b.Op}' must be Number, got {right}."));
+        }
+
         return left == ExprType.Number && right == ExprType.Number ? ExprType.Number : ExprType.Error;
     }
 
@@ -148,9 +239,15 @@ public static class ExpressionTypeChecker
         List<TypeCheckError> errors)
     {
         if (left != ExprType.Boolean)
+        {
             errors.Add(Error(b, $"Left operand of '{b.Op}' must be Boolean, got {left}."));
+        }
+
         if (right != ExprType.Boolean)
+        {
             errors.Add(Error(b, $"Right operand of '{b.Op}' must be Boolean, got {right}."));
+        }
+
         return left == ExprType.Boolean && right == ExprType.Boolean ? ExprType.Boolean : ExprType.Error;
     }
 
@@ -158,11 +255,13 @@ public static class ExpressionTypeChecker
 
     private static ExprType InferCompare(CompareExpr c, TypeCheckContext ctx, List<TypeCheckError> errors)
     {
-        var left = Infer(c.Left, ctx, errors);
-        var right = Infer(c.Right, ctx, errors);
+        ExprType left = Infer(c.Left, ctx, errors);
+        ExprType right = Infer(c.Right, ctx, errors);
 
         if (left == ExprType.Error || right == ExprType.Error)
+        {
             return ExprType.Error;
+        }
 
         // Eq/Neq work on any compatible types; ordering comparisons require Number.
         var isOrdered = c.Op is CompareOp.Lt or CompareOp.Gt or CompareOp.Lte or CompareOp.Gte;
@@ -170,17 +269,25 @@ public static class ExpressionTypeChecker
         if (isOrdered)
         {
             if (left != ExprType.Number)
+            {
                 errors.Add(Error(c, $"Left operand of '{c.Op}' must be Number, got {left}."));
+            }
+
             if (right != ExprType.Number)
+            {
                 errors.Add(Error(c, $"Right operand of '{c.Op}' must be Number, got {right}."));
+            }
+
             return left == ExprType.Number && right == ExprType.Number ? ExprType.Boolean : ExprType.Error;
         }
 
         // Eq/Neq: types must match (with Symbol/String coercion)
-        var l = left == ExprType.Symbol ? ExprType.String : left;
-        var r = right == ExprType.Symbol ? ExprType.String : right;
+        ExprType l = left == ExprType.Symbol ? ExprType.String : left;
+        ExprType r = right == ExprType.Symbol ? ExprType.String : right;
         if (l != r)
+        {
             errors.Add(Error(c, $"Cannot compare {left} with {right} using '{c.Op}'."));
+        }
 
         return ExprType.Boolean;
     }
@@ -189,21 +296,30 @@ public static class ExpressionTypeChecker
 
     private static ExprType InferIf(IfExpr i, TypeCheckContext ctx, List<TypeCheckError> errors)
     {
-        var cond = Infer(i.Condition, ctx, errors);
+        ExprType cond = Infer(i.Condition, ctx, errors);
         if (cond != ExprType.Boolean && cond != ExprType.Error)
+        {
             errors.Add(Error(i, $"If condition must be Boolean, got {cond}."));
+        }
 
-        var thenType = Infer(i.ThenExpr, ctx, errors);
-        var elseType = Infer(i.ElseExpr, ctx, errors);
+        ExprType thenType = Infer(i.ThenExpr, ctx, errors);
+        ExprType elseType = Infer(i.ElseExpr, ctx, errors);
 
-        if (thenType == ExprType.Error) return elseType;
-        if (elseType == ExprType.Error) return thenType;
+        if (thenType == ExprType.Error)
+        {
+            return elseType;
+        }
+
+        if (elseType == ExprType.Error)
+        {
+            return thenType;
+        }
 
         if (thenType != elseType)
         {
             // Allow Symbol ↔ String coercion
-            var t = thenType == ExprType.Symbol ? ExprType.String : thenType;
-            var e = elseType == ExprType.Symbol ? ExprType.String : elseType;
+            ExprType t = thenType == ExprType.Symbol ? ExprType.String : thenType;
+            ExprType e = elseType == ExprType.Symbol ? ExprType.String : elseType;
             if (t != e)
             {
                 errors.Add(Error(i,
@@ -223,7 +339,7 @@ public static class ExpressionTypeChecker
         // array named by StateKey (invariant 4); inside the predicate and the
         // value selector the current element is bound under ItemName as a
         // virtual state field, exactly like fold/map/filter.
-        var lambdaFields = ctx.StateFields.ToList();
+        List<FieldDescriptor> lambdaFields = ctx.StateFields.ToList();
         lambdaFields.Add(BindItem(a, ctx, a.StateKey, a.ItemName, a.ItemType, errors));
 
         var lambdaCtx = new TypeCheckContext
@@ -231,16 +347,19 @@ public static class ExpressionTypeChecker
             ExpectedType = ExprType.Boolean,
             BoardFields = ctx.BoardFields,
             MeasurementFields = ctx.MeasurementFields,
+            LocalFields = ctx.LocalFields,
             StateFields = lambdaFields,
             CellFields = ctx.CellFields,
-            DecorationTypes = ctx.DecorationTypes,
+            DecorationTypes = ctx.DecorationTypes
         };
 
         if (a.Predicate != null)
         {
-            var predType = Infer(a.Predicate, lambdaCtx, errors);
+            ExprType predType = Infer(a.Predicate, lambdaCtx, errors);
             if (predType != ExprType.Boolean && predType != ExprType.Error)
+            {
                 errors.Add(Error(a, $"Aggregate predicate must be Boolean, got {predType}."));
+            }
         }
 
         // ValueExpr (selector) is evaluated in the element context; for
@@ -252,15 +371,18 @@ public static class ExpressionTypeChecker
                 ExpectedType = ExprType.Number,
                 BoardFields = ctx.BoardFields,
                 MeasurementFields = ctx.MeasurementFields,
+                LocalFields = ctx.LocalFields,
                 StateFields = lambdaFields,
                 CellFields = ctx.CellFields,
-                DecorationTypes = ctx.DecorationTypes,
+                DecorationTypes = ctx.DecorationTypes
             };
-            var valType = Infer(a.ValueExpr, valCtx, errors);
+            ExprType valType = Infer(a.ValueExpr, valCtx, errors);
             if (a.Func is AggregateFunc.Sum or AggregateFunc.Product
                     or AggregateFunc.Min or AggregateFunc.Max
                 && valType != ExprType.Number && valType != ExprType.Error)
+            {
                 errors.Add(Error(a, $"Aggregate {a.Func} value selector must be Number, got {valType}."));
+            }
         }
 
         return ExprType.Number;
@@ -270,9 +392,12 @@ public static class ExpressionTypeChecker
 
     private static ExprType InferNot(NotExpr n, TypeCheckContext ctx, List<TypeCheckError> errors)
     {
-        var inner = Infer(n.Expr, ctx, errors);
+        ExprType inner = Infer(n.Expr, ctx, errors);
         if (inner != ExprType.Boolean && inner != ExprType.Error)
+        {
             errors.Add(Error(n, $"'not' requires Boolean operand, got {inner}."));
+        }
+
         return ExprType.Boolean;
     }
 
@@ -281,14 +406,25 @@ public static class ExpressionTypeChecker
     private static ExprType InferBitSet(BitSetExpr set, TypeCheckContext ctx, List<TypeCheckError> errors)
     {
         var arity = BitSetOperations.Arity(set.Op);
-        if (arity == 0) return Fail(set, "Unknown finite-set operation.", errors);
-        if (set.Args.Length != arity) return Fail(set, $"Finite-set {set.Op} requires {arity} operands.", errors);
-        foreach (var argument in set.Args)
+        if (arity == 0)
         {
-            var type = Infer(argument, ctx, errors);
-            if (type is not (ExprType.Number or ExprType.Error))
-                errors.Add(Error(set, $"Finite-set {set.Op} requires numeric operands, got {type}."));
+            return Fail(set, "Unknown finite-set operation.", errors);
         }
+
+        if (set.Args.Length != arity)
+        {
+            return Fail(set, $"Finite-set {set.Op} requires {arity} operands.", errors);
+        }
+
+        foreach (Expression argument in set.Args)
+        {
+            ExprType type = Infer(argument, ctx, errors);
+            if (type is not (ExprType.Number or ExprType.Error))
+            {
+                errors.Add(Error(set, $"Finite-set {set.Op} requires numeric operands, got {type}."));
+            }
+        }
+
         return ExprType.Number;
     }
 
@@ -298,27 +434,56 @@ public static class ExpressionTypeChecker
         if (fn is "length" or "contains" or "append" or "index")
         {
             var count = fn == "length" ? 1 : 2;
-            if (c.Args.Length != count) return Fail(c, $"Function '{fn}' expects {count} arguments, got {c.Args.Length}.", errors);
-            var first = Infer(c.Args[0], ctx, errors);
-            var second = count == 2 ? Infer(c.Args[1], ctx, errors) : ExprType.Error;
-            if (first == ExprType.Error || count == 2 && second == ExprType.Error) return ExprType.Error;
+            if (c.Args.Length != count)
+            {
+                return Fail(c, $"Function '{fn}' expects {count} arguments, got {c.Args.Length}.", errors);
+            }
+
+            ExprType first = Infer(c.Args[0], ctx, errors);
+            ExprType second = count == 2 ? Infer(c.Args[1], ctx, errors) : ExprType.Error;
+            if (first == ExprType.Error || (count == 2 && second == ExprType.Error))
+            {
+                return ExprType.Error;
+            }
+
             if (fn is "length" or "contains")
             {
                 if (first is not (ExprType.Array or ExprType.String or ExprType.Symbol))
+                {
                     return Fail(c, $"Function '{fn}' requires an array or text.", errors);
+                }
+
                 if (fn == "contains" && first != ExprType.Array && second is not (ExprType.String or ExprType.Symbol))
+                {
                     return Fail(c, "String contains requires a text substring.", errors);
+                }
+
                 return fn == "length" ? ExprType.Number : ExprType.Boolean;
             }
-            if (first != ExprType.Array) return Fail(c, $"Function '{fn}' requires an array.", errors);
-            if (fn == "append") return ExprType.Array;
-            if (second != ExprType.Number) return Fail(c, "Function 'index' requires a numeric integer position.", errors);
-            var element = ArrayExpressionTypes.Infer(c.Args[0], ctx).ItemType;
-            return element ?? Fail(c, "Function 'index' requires a known homogeneous array element type; mixed or unknown elements need an explicit typed selector.", errors);
+
+            if (first != ExprType.Array)
+            {
+                return Fail(c, $"Function '{fn}' requires an array.", errors);
+            }
+
+            if (fn == "append")
+            {
+                return ExprType.Array;
+            }
+
+            if (second != ExprType.Number)
+            {
+                return Fail(c, "Function 'index' requires a numeric integer position.", errors);
+            }
+
+            ExprType? element = ArrayExpressionTypes.Infer(c.Args[0], ctx).ItemType;
+            return element ?? Fail(c,
+                "Function 'index' requires a known homogeneous array element type; mixed or unknown elements need an explicit typed selector.",
+                errors);
         }
 
         // Built-in functions: a closed set — no user-defined recursion.
-        var (returnType, argTypes) = fn switch
+        (ExprType returnType, ExprType[] argTypes) = fn switch
         {
             "abs" => (ExprType.Number, new[] { ExprType.Number }),
             "min" => (ExprType.Number, new[] { ExprType.Number, ExprType.Number }),
@@ -328,11 +493,13 @@ public static class ExpressionTypeChecker
             "round" => (ExprType.Number, new[] { ExprType.Number }),
             "tonumber" => (ExprType.Number, new[] { ExprType.String }),
             "tostring" => (ExprType.String, new[] { ExprType.Number }),
-            _ => (ExprType.Error, Array.Empty<ExprType>()),
+            _ => (ExprType.Error, Array.Empty<ExprType>())
         };
 
         if (returnType == ExprType.Error)
+        {
             return Fail(c, $"Unknown function: '{c.Function}'.", errors);
+        }
 
         if (c.Args.Length != argTypes.Length)
         {
@@ -343,7 +510,7 @@ public static class ExpressionTypeChecker
 
         for (var i = 0; i < c.Args.Length; i++)
         {
-            var argType = Infer(c.Args[i], ctx, errors);
+            ExprType argType = Infer(c.Args[i], ctx, errors);
             if (argType != argTypes[i] && argType != ExprType.Error)
             {
                 // Allow Symbol → String coercion
@@ -362,7 +529,7 @@ public static class ExpressionTypeChecker
 
     private static ExprType InferFold(FoldExpr f, TypeCheckContext ctx, List<TypeCheckError> errors)
     {
-        var initType = Infer(f.Init, ctx, errors);
+        ExprType initType = Infer(f.Init, ctx, errors);
 
         // One level of bounded iteration only — a fold body may not contain
         // another fold, map, or filter.  Nested iterators would multiply the
@@ -378,27 +545,44 @@ public static class ExpressionTypeChecker
         }
 
         // Lambda context: acc and item added as virtual state fields
-        var lambdaFields = ctx.StateFields.ToList();
+        List<FieldDescriptor> lambdaFields = ctx.StateFields.ToList();
         lambdaFields.Add(ExpressionShapes.Infer(f.Init, ctx) is { } initialShape
-            ? initialShape with { Name = f.AccName } : new FieldDescriptor { Name = f.AccName, Type = initType });
+            ? initialShape with
+            {
+                Name = f.AccName
+            }
+            : new FieldDescriptor
+            {
+                Name = f.AccName,
+                Type = initType
+            });
         lambdaFields.Add(BindItem(f, ctx, f.StateKey, f.ItemName, f.ItemType, errors));
         if (f.IndexName != null)
-            lambdaFields.Add(new FieldDescriptor { Name = f.IndexName, Type = ExprType.Number });
+        {
+            lambdaFields.Add(new FieldDescriptor
+            {
+                Name = f.IndexName,
+                Type = ExprType.Number
+            });
+        }
 
         var lambdaCtx = new TypeCheckContext
         {
             ExpectedType = initType,
             BoardFields = ctx.BoardFields,
             MeasurementFields = ctx.MeasurementFields,
+            LocalFields = ctx.LocalFields,
             StateFields = lambdaFields,
             CellFields = ctx.CellFields,
-            DecorationTypes = ctx.DecorationTypes,
+            DecorationTypes = ctx.DecorationTypes
         };
 
-        var bodyType = Infer(f.Body, lambdaCtx, errors);
+        ExprType bodyType = Infer(f.Body, lambdaCtx, errors);
         if (bodyType != initType && bodyType != ExprType.Error)
+        {
             errors.Add(Error(f,
                 $"FoldExpr body returns {bodyType} but must match init type {initType}."));
+        }
 
         return initType;
     }
@@ -415,19 +599,26 @@ public static class ExpressionTypeChecker
             return ExprType.Array;
         }
 
-        var lambdaFields = ctx.StateFields.ToList();
+        List<FieldDescriptor> lambdaFields = ctx.StateFields.ToList();
         lambdaFields.Add(BindItem(m, ctx, m.StateKey, m.ItemName, m.ItemType, errors));
         if (m.IndexName != null)
-            lambdaFields.Add(new FieldDescriptor { Name = m.IndexName, Type = ExprType.Number });
+        {
+            lambdaFields.Add(new FieldDescriptor
+            {
+                Name = m.IndexName,
+                Type = ExprType.Number
+            });
+        }
 
         var lambdaCtx = new TypeCheckContext
         {
             ExpectedType = ExprType.Number,
             BoardFields = ctx.BoardFields,
             MeasurementFields = ctx.MeasurementFields,
+            LocalFields = ctx.LocalFields,
             StateFields = lambdaFields,
             CellFields = ctx.CellFields,
-            DecorationTypes = ctx.DecorationTypes,
+            DecorationTypes = ctx.DecorationTypes
         };
 
         Infer(m.Body, lambdaCtx, errors);
@@ -446,55 +637,75 @@ public static class ExpressionTypeChecker
             return ExprType.Array;
         }
 
-        var lambdaFields = ctx.StateFields.ToList();
+        List<FieldDescriptor> lambdaFields = ctx.StateFields.ToList();
         lambdaFields.Add(BindItem(fi, ctx, fi.StateKey, fi.ItemName, fi.ItemType, errors));
         if (fi.IndexName != null)
-            lambdaFields.Add(new FieldDescriptor { Name = fi.IndexName, Type = ExprType.Number });
+        {
+            lambdaFields.Add(new FieldDescriptor
+            {
+                Name = fi.IndexName,
+                Type = ExprType.Number
+            });
+        }
 
         var lambdaCtx = new TypeCheckContext
         {
             ExpectedType = ExprType.Boolean,
             BoardFields = ctx.BoardFields,
             MeasurementFields = ctx.MeasurementFields,
+            LocalFields = ctx.LocalFields,
             StateFields = lambdaFields,
             CellFields = ctx.CellFields,
-            DecorationTypes = ctx.DecorationTypes,
+            DecorationTypes = ctx.DecorationTypes
         };
 
-        var predType = Infer(fi.Predicate, lambdaCtx, errors);
+        ExprType predType = Infer(fi.Predicate, lambdaCtx, errors);
         if (predType != ExprType.Boolean && predType != ExprType.Error)
+        {
             errors.Add(Error(fi, $"Filter predicate must be Boolean, got {predType}."));
+        }
 
         return ExprType.Array;
     }
 
     // ── Helpers ──────────────────────────────────────────────────────────
 
-    private static FieldDescriptor BindItem(Expression expression, TypeCheckContext context, string source, string name, ExprType declared, List<TypeCheckError> errors)
+    private static FieldDescriptor BindItem(Expression expression, TypeCheckContext context, string source, string name,
+        ExprType declared, List<TypeCheckError> errors)
     {
-        var known = ExpressionShapes.Item(context.ResolveField([source], "state"));
+        FieldDescriptor? known = ExpressionShapes.Item(context.ResolveField([source], "state"));
         if (known is not null && known.Type != declared)
-            errors.Add(Error(expression, $"Iterator item type {declared} differs from the {known.Type} items in '{source}'."));
+        {
+            errors.Add(Error(expression,
+                $"Iterator item type {declared} differs from the {known.Type} items in '{source}'."));
+        }
+
         return ExpressionShapes.IteratorItem(context, source, name, declared);
     }
 
     /// <summary>
-    /// True if the expression tree contains a fold, map, or filter anywhere.
-    /// Used to enforce one-level-of-bounded-iteration: no nested iterators.
+    ///     True if the expression tree contains a fold, map, or filter anywhere.
+    ///     Used to enforce one-level-of-bounded-iteration: no nested iterators.
     /// </summary>
     private static bool ContainsBoundedIterator(Expression expr) => expr switch
     {
+        LetExpr e => ContainsBoundedIterator(e.Value) || ContainsBoundedIterator(e.Body),
+        RecordExpr e => e.Fields.Any(field => ContainsBoundedIterator(field.Value)),
+        TupleExpr e => e.Items.Any(ContainsBoundedIterator),
+        ProjectExpr e => ContainsBoundedIterator(e.Value),
         FoldExpr => true,
         MapExpr => true,
         FilterExpr => true,
         BinaryExpr b => ContainsBoundedIterator(b.Left) || ContainsBoundedIterator(b.Right),
         CompareExpr c => ContainsBoundedIterator(c.Left) || ContainsBoundedIterator(c.Right),
-        IfExpr i => ContainsBoundedIterator(i.Condition) || ContainsBoundedIterator(i.ThenExpr) || ContainsBoundedIterator(i.ElseExpr),
+        IfExpr i => ContainsBoundedIterator(i.Condition) || ContainsBoundedIterator(i.ThenExpr) ||
+                    ContainsBoundedIterator(i.ElseExpr),
         NotExpr n => ContainsBoundedIterator(n.Expr),
-        AggregateExpr a => a.Predicate != null && ContainsBoundedIterator(a.Predicate),
+        AggregateExpr a => (a.Predicate != null && ContainsBoundedIterator(a.Predicate)) ||
+                           (a.ValueExpr != null && ContainsBoundedIterator(a.ValueExpr)),
         CallExpr call => call.Args.Any(ContainsBoundedIterator),
         BitSetExpr set => set.Args.Any(ContainsBoundedIterator),
-        _ => false, // ConstantExpr, FieldAccessExpr — leaves
+        _ => false // ConstantExpr, FieldAccessExpr — leaves
     };
 
     private static ExprType Fail(Expression expr, string message, List<TypeCheckError> errors)
@@ -508,6 +719,6 @@ public static class ExpressionTypeChecker
         {
             Message = message,
             NodeAnnotation = expr.Annotation,
-            Code = "TYPE_ERROR",
+            Code = "TYPE_ERROR"
         };
 }
