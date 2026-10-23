@@ -2,6 +2,7 @@ using System.Collections.Concurrent;
 using System.Globalization;
 using System.Numerics;
 using System.Text.Json;
+using SlotMath.Core.Compiler.Ir;
 using SlotMath.Core.Expressions;
 using SlotMath.Core.Math;
 using SlotMath.Core.Measurements;
@@ -256,7 +257,7 @@ internal sealed class SamplingPlan : ICompiledSampling<Dictionary<string, object
 
     public static Slot<Dictionary<string, object?>, BigInteger> Wrap(GraphConfig config, BigInteger scale,
         Slot<Dictionary<string, object?>, BigInteger> reference, IReadOnlyList<MeasurementDefinition> measurements,
-        bool simplifyExpressions = true)
+        bool simplifyExpressions = true, CompilerIr? ir = null)
     {
         // Unsupported operators use the general interpreter. Eligibility is
         // checked before compilation, rather than silently catching failures.
@@ -278,7 +279,9 @@ internal sealed class SamplingPlan : ICompiledSampling<Dictionary<string, object
         IReadOnlySet<string> maskFields = SamplingMaskState.Infer(config, measurements);
         try
         {
-            plan = new SamplingPlan(config, scale, measurements, ConstantState(config, measurements),
+            Dictionary<string, ExprValue> constants = (ir ?? CompilerIr.Build(config, measurements)).StableInitialValues
+                .ToDictionary(pair => pair.Key, pair => pair.Value, StringComparer.Ordinal);
+            plan = new SamplingPlan(config, scale, measurements, constants,
                 new SamplingShapes(), maskFields, simplifyExpressions);
         }
         catch (ConstantStateConflict)
@@ -288,73 +291,6 @@ internal sealed class SamplingPlan : ICompiledSampling<Dictionary<string, object
         }
 
         return new SamplingPlanSlot(reference, plan);
-    }
-
-    // Initial state that no node, loop, settlement or iteration variable can
-    // assign. Such a field holds its initial value for every round of a runner
-    // whose own initial state does not override it.
-    private static Dictionary<string, ExprValue> ConstantState(GraphConfig config,
-        IReadOnlyList<MeasurementDefinition> measurements)
-    {
-        var written =
-            new HashSet<string>(MonetarySettlement.EvidenceKeys, StringComparer.Ordinal)
-            {
-                "__modified__",
-                "__default__"
-            };
-        var expressions = new List<Expression?>();
-        if (config.Expressions is { } shared)
-        {
-            expressions.AddRange(shared.Values);
-        }
-
-        foreach (Node node in config.Nodes)
-        {
-            switch (node)
-            {
-                case DrawManyNode batch: written.Add(batch.OutputKey); break;
-                case ModifyStateNode { OutputKey: { } key }: written.Add(key); break;
-                case DrawNode { StateWriteKey: { } key }: written.Add(key); break;
-                case PutStateNode put: written.Add(put.StateKey); break;
-                case DataNode data: written.Add(data.StateKey); break;
-                case LoopNode loop:
-                    written.Add($"__exitReason_{loop.Id}__");
-                    written.Add($"__iter_{loop.Id}__");
-                    written.Add($"__wins_{loop.Id}__");
-                    expressions.Add(loop.ExitReason);
-                    break;
-            }
-        }
-
-        foreach (MeasurementDefinition d in measurements)
-        {
-            expressions.AddRange([
-                d.Value, d.Filter, d.Options?.Group, d.Options?.Pair, d.Options?.Weight, d.Options?.AwardId,
-                d.Options?.EntryFilter, d.Options?.ExitFilter, d.Options?.ExitReason
-            ]);
-        }
-
-        if (!expressions.All(e => Variables(e, written)))
-        {
-            return NoConstants;
-        }
-
-        var constants = new Dictionary<string, ExprValue>(StringComparer.Ordinal);
-        foreach ((var key, JsonElement value) in config.InitialState ?? new Dictionary<string, JsonElement>())
-        {
-            if (written.Contains(key))
-            {
-                continue;
-            }
-
-            SamplingCell cell = SamplingCell.FromRaw(InitialStateValues.Materialize(value));
-            if (cell.Readable)
-            {
-                constants[key] = cell.StoredValue;
-            }
-        }
-
-        return constants;
     }
 
     // Collects the names an expression assigns while iterating. False for a form this analysis does not know.

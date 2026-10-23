@@ -1,4 +1,5 @@
 using System.Numerics;
+using SlotMath.Core.Compiler.Ir;
 using SlotMath.Core.Math.Structured;
 using SlotMath.Core.Measurements;
 using SlotMath.Core.Monad;
@@ -20,6 +21,8 @@ public sealed record CompileResult
 
     /// <summary>Canonical immutable program for exact evaluation and equivalence checks.</summary>
     public Slot<Dictionary<string, object?>, BigInteger>? ReferenceProgram { get; init; }
+
+    internal CompilerIr? Ir { get; init; }
 
     public MeasurementSchema? MeasurementSchema { get; init; }
     public string SamplingEngine { get; init; } = "reference-interpreter";
@@ -44,11 +47,19 @@ public sealed record CompileResult
 
     /// <summary>Create a successful result with a compiled program.</summary>
     public static CompileResult Success(Slot<Dictionary<string, object?>, BigInteger> program) =>
-        new() { Program = program, Errors = Array.Empty<CompileError>() };
+        new()
+        {
+            Program = program,
+            Errors = Array.Empty<CompileError>()
+        };
 
     /// <summary>Create a failure result with a list of errors.</summary>
     public static CompileResult Failure(IReadOnlyList<CompileError> errors) =>
-        new() { Program = null, Errors = errors };
+        new()
+        {
+            Program = null,
+            Errors = errors
+        };
 
     /// <summary>Create a failure result with a single error.</summary>
     public static CompileResult Failure(CompileError error) =>

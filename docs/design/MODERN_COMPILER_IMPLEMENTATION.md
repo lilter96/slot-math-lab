@@ -11,7 +11,7 @@ individually verified milestone; it does not complete the overall objective.
 | R1 | Immutable distribution assets, typed outcomes, finite families and bounded dynamic weight vectors | JSON/reference/compiled/exact agreement, identity and override regressions | Backend verified; public contract in docs/DISTRIBUTIONS.md; UI/migrations remain R18/R17 |
 | R2 | Ordered DrawMany, including explicit mixed-table schedules | Scalar RNG transcript, following Draw, cancellation, snapshots and observations | Backend verified; public contract docs/DRAW_MANY.md; dependency-aware migrations remain R17 |
 | R3 | Let, typed record/tuple results, expression-valued collections and bounded composition | Lexical scope, exact arithmetic, shape and error-order regressions across execution paths | Backend verified; contracts in docs/LEXICAL_EXPRESSIONS.md and docs/COLLECTION_EXPRESSIONS.md; designer integration remains R18 |
-| R4 | Typed IR with state versions, effects and guarded analyses | IR inspection plus observation/exception/override/cancellation controls | Pending |
+| R4 | Typed IR with state versions, effects and guarded analyses | IR inspection plus observation/exception/override/cancellation controls | Expression SSA/effect analysis integrated; graph memory versions and phi merges remain |
 | R5 | SCCP, dominance-aware CSE, safe LICM and dead intermediate elimination | Independent equivalence controls and cost measurements; no mechanic dispatch | Pending |
 | R6 | Lifetime/alias analysis, buffer reuse and safe collection fusion | Old snapshots, persistent sessions and measurement boundaries remain correct | Pending |
 | R7 | Bounded Reachable on arbitrary adjacency, including cyclic data graphs | Independent BFS oracle and independent JSON mechanics | Pending |
@@ -317,3 +317,18 @@ performance estimate or proof for removing observable authored fields.
 [The collection contract](../COLLECTION_EXPRESSIONS.md) records method, ranges,
 limits and the retained negative control. R4–R6 and all game migrations remain
 required.
+
+R4 first stage builds ordered typed SSA expression regions, conservative
+read/write/error/RNG/observation/cancellation/allocation effects, snapshot guards
+and a dominance/effect-summary verifier. Structured root keys avoid collisions
+between authored IDs/port names. The sampling compiler consumes the IR's write
+and scoped-binding summaries to select immutable initial facts; unknown
+operations invalidate those facts. The expression IR is inspected for all 15
+current games. The first stage passed 272 selected Core cases and five API
+preview cases, including 36 new cases. Both mandatory Rider profiles, scoped
+formatting and the Release solution build passed for all eight source files.
+Cold compile controls retain identical outcome statistics and show modest but
+variable preparation overhead; [the IR contract](../COMPILER_IR.md) records
+ranges and limits. Graph memory versions, memory phi nodes and inter-node
+motion remain R4 work; R5–R18 remain required. This stage does not certify an
+automatic graph rewrite or a simulation-throughput improvement.

@@ -2,6 +2,7 @@ using System.Globalization;
 using System.Numerics;
 using System.Text.Json;
 using SlotMath.Core.Catalog;
+using SlotMath.Core.Compiler.Ir;
 using SlotMath.Core.Expressions;
 using SlotMath.Core.Math.Structured;
 using SlotMath.Core.Measurements;
@@ -185,6 +186,7 @@ public sealed class GraphCompiler
                 return CompileResult.Failure(measurementErrors);
             }
 
+            var ir = CompilerIr.Build(config, measurements ?? [], fields);
             var builder = new ProgramBuilder(config, _pluginHost, measurements ?? []);
             Slot<Dictionary<string, object?>, BigInteger> raw = builder.Build();
             BigInteger cap = new BigInteger(config.Nodes.OfType<MetricsSinkNode>().Single().WinCap!.Value) *
@@ -213,11 +215,12 @@ public sealed class GraphCompiler
             }
 
             Slot<Dictionary<string, object?>, BigInteger> optimized = _optimizeSampling
-                ? SamplingPlan.Wrap(config, builder.WinScale, program, measurements ?? [], _simplifyExpressions)
+                ? SamplingPlan.Wrap(config, builder.WinScale, program, measurements ?? [], _simplifyExpressions, ir)
                 : program;
             return CompileResult.Success(optimized) with
             {
                 WinScale = builder.WinScale,
+                Ir = ir,
                 ReferenceProgram = program,
                 Structured = new StructuredModel(config, initialValues, cap),
                 MeasurementSchema = schema,
