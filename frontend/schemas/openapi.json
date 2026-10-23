@@ -6,7 +6,7 @@
   },
   "servers": [
     {
-      "url": "http://127.0.0.1:5264/"
+      "url": "http://127.0.0.1:5271/"
     }
   ],
   "paths": {
@@ -322,6 +322,35 @@
         "responses": {
           "200": {
             "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/validate/simplify": {
+      "post": {
+        "tags": [
+          "GraphSimplificationEndpoint"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GraphSimplificationRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GraphSimplificationResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -3912,6 +3941,88 @@
                 "$ref": "#/components/schemas/DiagnosticRetention"
               }
             ]
+          }
+        }
+      },
+      "GraphSimplificationChange": {
+        "required": [
+          "path",
+          "beforeCost",
+          "afterCost",
+          "rules"
+        ],
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "string"
+          },
+          "beforeCost": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "afterCost": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "rules": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        }
+      },
+      "GraphSimplificationRequest": {
+        "required": [
+          "config"
+        ],
+        "type": "object",
+        "properties": {
+          "config": {
+            "$ref": "#/components/schemas/JsonElement"
+          }
+        }
+      },
+      "GraphSimplificationResponse": {
+        "required": [
+          "config",
+          "sourceHash",
+          "candidateHash",
+          "changes",
+          "retained",
+          "visitedExpressions",
+          "budgetReached"
+        ],
+        "type": "object",
+        "properties": {
+          "config": {
+            "$ref": "#/components/schemas/JsonElement"
+          },
+          "sourceHash": {
+            "type": "string"
+          },
+          "candidateHash": {
+            "type": "string"
+          },
+          "changes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/GraphSimplificationChange"
+            }
+          },
+          "retained": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "visitedExpressions": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "budgetReached": {
+            "type": "boolean"
           }
         }
       },
@@ -7956,6 +8067,9 @@
   "tags": [
     {
       "name": "SlotMath.Api"
+    },
+    {
+      "name": "GraphSimplificationEndpoint"
     }
   ]
 }

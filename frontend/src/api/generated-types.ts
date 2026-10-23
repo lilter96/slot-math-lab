@@ -1868,6 +1868,45 @@ export type paths = {
         patch?: never;
         trace?: never;
     };
+    "/api/validate/simplify": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["GraphSimplificationRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["GraphSimplificationResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/ready": {
         parameters: {
             query?: never;
@@ -2565,6 +2604,29 @@ export type components = {
             report: components["schemas"]["GraphEnumerationReport"];
             retention?: null | components["schemas"]["DiagnosticRetention"];
             runtimeProvenance: components["schemas"]["RuntimeProvenance"];
+        };
+        GraphSimplificationChange: {
+            /** Format: int64 */
+            afterCost: number;
+            /** Format: int64 */
+            beforeCost: number;
+            path: string;
+            rules: {
+                [key: string]: number;
+            };
+        };
+        GraphSimplificationRequest: {
+            config: components["schemas"]["JsonElement"];
+        };
+        GraphSimplificationResponse: {
+            budgetReached: boolean;
+            candidateHash: string;
+            changes: components["schemas"]["GraphSimplificationChange"][];
+            config: components["schemas"]["JsonElement"];
+            retained: string[];
+            sourceHash: string;
+            /** Format: int32 */
+            visitedExpressions: number;
         };
         IndependentRoundExposureOutput: {
             assumptions?: string;

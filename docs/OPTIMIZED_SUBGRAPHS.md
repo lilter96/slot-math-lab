@@ -1,5 +1,11 @@
 # Build with reusable subgraphs
 
+Use **Simplify graph** in Build to preview exact expression simplifications across
+the complete draft, including open and shared subgraphs. Apply commits one
+validated edit; **Undo simplification** restores it. The compiler also specializes
+immutable data automatically. See [automatic graph simplification](GRAPH_SIMPLIFICATION.md)
+for the rewrite contracts, limits and performance comparison controls.
+
 In Build, expand **Ready subgraphs** in the palette. Open **Cluster pays** or
 **Cascading clusters**, or inspect their subgraph directly. **Restore my model**
 returns to the draft you had open, including its subgraph navigation and selection.

@@ -8,6 +8,7 @@ using SlotMath.Core.Measurements;
 using SlotMath.Core.Mechanics;
 using SlotMath.Core.Model;
 using SlotMath.Core.Monad;
+using SlotMath.Core.Optimization;
 using SlotMath.Core.Random;
 
 namespace SlotMath.Core.Compiler;
@@ -88,13 +89,23 @@ internal sealed class SamplingPlan : ICompiledSampling<Dictionary<string, object
     private readonly Func<SamplingFrame, SeededRandom, BigInteger> _run;
     private readonly BigInteger _scale;
     private readonly SamplingShapes _shapes;
+    private readonly bool _simplifyExpressions;
+    private readonly GraphConfig _sourceConfig;
     private SamplingPlan? _general;
     private int _leased;
     private SamplingPlan? _withoutMasks;
 
     private SamplingPlan(GraphConfig config, BigInteger scale, IReadOnlyList<MeasurementDefinition> measurements,
-        Dictionary<string, ExprValue> constants, SamplingShapes shapes, IReadOnlySet<string> maskFields)
+        Dictionary<string, ExprValue> constants, SamplingShapes shapes, IReadOnlySet<string> maskFields,
+        bool simplifyExpressions = true)
     {
+        _sourceConfig = config;
+        _simplifyExpressions = simplifyExpressions;
+        if (simplifyExpressions)
+        {
+            config = GraphSimplifier.Specialize(config, constants, maskFields).Config;
+        }
+
         _config = config;
         _scale = scale;
         _measurements = measurements;
@@ -212,16 +223,19 @@ internal sealed class SamplingPlan : ICompiledSampling<Dictionary<string, object
         // from a different value of one uses a plan without that assumption.
         SamplingPlan plan = initial.Keys.Any(_constants.ContainsKey)
             ? LazyInitializer.EnsureInitialized(ref _general,
-                () => new SamplingPlan(_config, _scale, _measurements, NoConstants, _shapes, SamplingMaskState.None))
+                () => new SamplingPlan(_sourceConfig, _scale, _measurements, NoConstants, _shapes,
+                    SamplingMaskState.None, _simplifyExpressions))
             : initial.Keys.Any(_maskFields.Contains)
                 ? LazyInitializer.EnsureInitialized(ref _withoutMasks,
-                    () => new SamplingPlan(_config, _scale, _measurements, _constants, _shapes, SamplingMaskState.None))
+                    () => new SamplingPlan(_sourceConfig, _scale, _measurements, _constants, _shapes,
+                        SamplingMaskState.None, _simplifyExpressions))
                 : this;
         return new Runner(plan, initial, measurements, persistentKeys, loopEvidence);
     }
 
     public static Slot<Dictionary<string, object?>, BigInteger> Wrap(GraphConfig config, BigInteger scale,
-        Slot<Dictionary<string, object?>, BigInteger> reference, IReadOnlyList<MeasurementDefinition> measurements)
+        Slot<Dictionary<string, object?>, BigInteger> reference, IReadOnlyList<MeasurementDefinition> measurements,
+        bool simplifyExpressions = true)
     {
         // Unsupported operators use the general interpreter. Eligibility is
         // checked before compilation, rather than silently catching failures.
@@ -242,11 +256,12 @@ internal sealed class SamplingPlan : ICompiledSampling<Dictionary<string, object
         try
         {
             plan = new SamplingPlan(config, scale, measurements, ConstantState(config, measurements),
-                new SamplingShapes(), maskFields);
+                new SamplingShapes(), maskFields, simplifyExpressions);
         }
         catch (ConstantStateConflict)
         {
-            plan = new SamplingPlan(config, scale, measurements, NoConstants, new SamplingShapes(), maskFields);
+            plan = new SamplingPlan(config, scale, measurements, NoConstants, new SamplingShapes(), maskFields,
+                simplifyExpressions);
         }
 
         return new SamplingPlanSlot(reference, plan);
@@ -261,7 +276,8 @@ internal sealed class SamplingPlan : ICompiledSampling<Dictionary<string, object
         var written =
             new HashSet<string>(MonetarySettlement.EvidenceKeys, StringComparer.Ordinal)
             {
-                "__modified__", "__default__"
+                "__modified__",
+                "__default__"
             };
         var expressions = new List<Expression?>();
         if (config.Expressions is { } shared)
@@ -354,7 +370,7 @@ internal sealed class SamplingPlan : ICompiledSampling<Dictionary<string, object
     internal SamplingPlan Rent() =>
         Interlocked.CompareExchange(ref _leased, 1, 0) == 0 ? this :
         _idle.TryTake(out SamplingPlan? replica) ? replica :
-        new SamplingPlan(_config, _scale, _measurements, _constants, _shapes, _maskFields);
+        new SamplingPlan(_sourceConfig, _scale, _measurements, _constants, _shapes, _maskFields, _simplifyExpressions);
 
     internal void Return(SamplingPlan instance)
     {

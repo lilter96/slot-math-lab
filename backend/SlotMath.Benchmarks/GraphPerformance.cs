@@ -154,7 +154,8 @@ internal static class GraphPerformance
             : JsonSerializer.Deserialize<GraphConfig>(File.ReadAllText(path), JsonOptions.Default)!;
         SamplingOptions.Tier = Enum.Parse<SamplingTier>(Option("--tier", "Tiered"), true);
         var compileTimer = Stopwatch.StartNew();
-        CompileResult compiled = new GraphCompiler(optimizeSampling: !args.Contains("--reference")).Compile(graph);
+        CompileResult compiled = new GraphCompiler(optimizeSampling: !args.Contains("--reference"),
+            simplifyExpressions: !args.Contains("--no-simplification")).Compile(graph);
         if (!compiled.IsValid)
         {
             throw new InvalidOperationException(string.Join("; ", compiled.Errors.Select(e => e.Message)));
@@ -267,6 +268,7 @@ internal static class GraphPerformance
         {
             configHash = ConfigHash.Compute(graph),
             engine = compiled.SamplingEngine,
+            expressionSimplification = !args.Contains("--no-simplification"),
             seed = 42,
             rounds,
             warmup,
