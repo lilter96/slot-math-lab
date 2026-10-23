@@ -386,10 +386,13 @@ internal sealed class SamplingPlan : ICompiledSampling<Dictionary<string, object
             IfExpr e => Variables(e.Condition, names) && Variables(e.ThenExpr, names) && Variables(e.ElseExpr, names),
             CallExpr e => e.Args.All(a => Variables(a, names)),
             BitSetExpr e => e.Args.All(a => Variables(a, names)),
-            AggregateExpr e => Named(e.ItemName) && Variables(e.Predicate, names) && Variables(e.ValueExpr, names),
-            MapExpr e => Named(e.ItemName, e.IndexName) && Variables(e.Body, names),
-            FilterExpr e => Named(e.ItemName, e.IndexName) && Variables(e.Predicate, names),
-            FoldExpr e => Named(e.AccName, e.ItemName, e.IndexName) && Variables(e.Init, names) &&
+            AggregateExpr e => Variables(e.Source, names) && Named(e.ItemName) && Variables(e.Predicate, names) &&
+                               Variables(e.ValueExpr, names),
+            MapExpr e => Variables(e.Source, names) && Named(e.ItemName, e.IndexName) && Variables(e.Body, names),
+            FilterExpr e => Variables(e.Source, names) && Named(e.ItemName, e.IndexName) &&
+                            Variables(e.Predicate, names),
+            FoldExpr e => Variables(e.Source, names) && Named(e.AccName, e.ItemName, e.IndexName) &&
+                          Variables(e.Init, names) &&
                           Variables(e.Body, names),
             _ => false
         };

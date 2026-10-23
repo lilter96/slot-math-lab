@@ -172,7 +172,13 @@ public sealed record AggregateExpr : Expression
     ///     Key in the state dictionary whose value is the array to aggregate over
     ///     (invariant 4: a "board" is just a user-defined array in state S).
     /// </summary>
-    public required string StateKey { get; init; }
+    public string? StateKey { get; init; }
+
+    /// <summary>Array-valued expression, exclusive with StateKey. Requires MaxItems.</summary>
+    public Expression? Source { get; init; }
+
+    /// <summary>Explicit cardinality bound (0..4096), required for bounded composition.</summary>
+    public int? MaxItems { get; init; }
 
     /// <summary>Name bound to the current array element inside Predicate and ValueExpr.</summary>
     public string ItemName { get; init; } = "item";
@@ -230,12 +236,18 @@ public sealed record CallExpr : Expression
 //
 //  Transforms every element of the array stored at state[StateKey] via
 //  the Body expression.  Returns ExprType.Array (a new array of
-//  transformed values).  No nested iteration allowed in Body.
+//  transformed values).  Explicit MaxItems bounds permit bounded composition.
 
 public sealed record MapExpr : Expression
 {
     /// <summary>Key in the state dictionary whose value is the array to map over.</summary>
-    public required string StateKey { get; init; }
+    public string? StateKey { get; init; }
+
+    /// <summary>Array-valued expression, exclusive with StateKey. Requires MaxItems.</summary>
+    public Expression? Source { get; init; }
+
+    /// <summary>Explicit cardinality bound (0..4096), required for bounded composition.</summary>
+    public int? MaxItems { get; init; }
 
     /// <summary>Name bound to the current array element inside the lambda body.</summary>
     public required string ItemName { get; init; }
@@ -246,7 +258,7 @@ public sealed record MapExpr : Expression
     /// </summary>
     public string? IndexName { get; init; }
 
-    /// <summary>Lambda body — evaluated once per element; may not contain fold/map/filter.</summary>
+    /// <summary>Lambda body — evaluated once per element; nested iterators require explicit bounds.</summary>
     public required Expression Body { get; init; }
 
     /// <summary>Expected type of array items (defaults to String).</summary>
@@ -258,13 +270,18 @@ public sealed record MapExpr : Expression
 //  filter(state[StateKey], ItemName => Predicate)
 //
 //  Keeps only elements for which Predicate is true.  Returns
-//  ExprType.Array (a new array of the same element type).  No nested
-//  iteration allowed in Predicate.
+//  ExprType.Array (a new array of the same element type).  Explicit bounds allow nested iteration in Predicate.
 
 public sealed record FilterExpr : Expression
 {
     /// <summary>Key in the state dictionary whose value is the array to filter.</summary>
-    public required string StateKey { get; init; }
+    public string? StateKey { get; init; }
+
+    /// <summary>Array-valued expression, exclusive with StateKey. Requires MaxItems.</summary>
+    public Expression? Source { get; init; }
+
+    /// <summary>Explicit cardinality bound (0..4096), required for bounded composition.</summary>
+    public int? MaxItems { get; init; }
 
     /// <summary>Name bound to the current array element inside the predicate.</summary>
     public required string ItemName { get; init; }
@@ -275,7 +292,7 @@ public sealed record FilterExpr : Expression
     /// </summary>
     public string? IndexName { get; init; }
 
-    /// <summary>Predicate — must return Boolean; may not contain fold/map/filter.</summary>
+    /// <summary>Predicate — must return Boolean; nested iterators require explicit bounds.</summary>
     public required Expression Predicate { get; init; }
 
     /// <summary>Expected type of array items (defaults to String).</summary>
@@ -289,13 +306,19 @@ public sealed record FilterExpr : Expression
 //  Iterates over the array stored at state[StateKey].  The accumulator
 //  (AccName) and current item (ItemName) are bound into the state dict
 //  for each iteration; the Body expression accesses them as
-//  state.AccName and state.ItemName.  No nested fold allowed (one level
-//  of bounded iteration keeps the grammar exact-analysable).
+//  state.AccName and state.ItemName.  Explicit bounds permit composition; legacy state-key forms retain
+//  their one-level nesting restriction.
 
 public sealed record FoldExpr : Expression
 {
     /// <summary>Key in the state dictionary whose value is the array to fold over.</summary>
-    public required string StateKey { get; init; }
+    public string? StateKey { get; init; }
+
+    /// <summary>Array-valued expression, exclusive with StateKey. Requires MaxItems.</summary>
+    public Expression? Source { get; init; }
+
+    /// <summary>Explicit cardinality bound (0..4096), required for bounded composition.</summary>
+    public int? MaxItems { get; init; }
 
     /// <summary>Name bound to the accumulator inside the lambda body.</summary>
     public required string AccName { get; init; }

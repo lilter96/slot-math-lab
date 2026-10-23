@@ -335,6 +335,11 @@ public static class ExpressionTypeChecker
 
     private static ExprType InferAggregate(AggregateExpr a, TypeCheckContext ctx, List<TypeCheckError> errors)
     {
+        if (!ValidateCollection(a, ctx, errors))
+        {
+            return ExprType.Number;
+        }
+
         // Aggregates always return Number. The aggregation iterates the state
         // array named by StateKey (invariant 4); inside the predicate and the
         // value selector the current element is bound under ItemName as a
@@ -348,7 +353,8 @@ public static class ExpressionTypeChecker
             BoardFields = ctx.BoardFields,
             MeasurementFields = ctx.MeasurementFields,
             LocalFields = ctx.LocalFields,
-            StateFields = lambdaFields,
+            StateFields = lambdaFields.GroupBy(field => field.Name, StringComparer.Ordinal)
+                .Select(group => group.Last()).ToArray(),
             CellFields = ctx.CellFields,
             DecorationTypes = ctx.DecorationTypes
         };
@@ -372,7 +378,8 @@ public static class ExpressionTypeChecker
                 BoardFields = ctx.BoardFields,
                 MeasurementFields = ctx.MeasurementFields,
                 LocalFields = ctx.LocalFields,
-                StateFields = lambdaFields,
+                StateFields = lambdaFields.GroupBy(field => field.Name, StringComparer.Ordinal)
+                    .Select(group => group.Last()).ToArray(),
                 CellFields = ctx.CellFields,
                 DecorationTypes = ctx.DecorationTypes
             };
@@ -531,16 +538,15 @@ public static class ExpressionTypeChecker
     {
         ExprType initType = Infer(f.Init, ctx, errors);
 
-        // One level of bounded iteration only — a fold body may not contain
-        // another fold, map, or filter.  Nested iterators would multiply the
-        // iteration bound and break the "bounded by array size → exact-analysable"
-        // guarantee (CLAUDE.md G9 / level-b grammar).  Reject before recursing
-        // into the body so the error is precise and not buried under secondary errors.
-        if (ContainsBoundedIterator(f.Body))
+        if (!ValidateCollection(f, ctx, errors))
+        {
+            return initType;
+        }
+
+        if (f.MaxItems is null && ContainsBoundedIterator(f.Body))
         {
             errors.Add(Error(f,
-                "Nested fold is not allowed: a fold body may not contain another " +
-                "fold, map, or filter (one level of bounded iteration keeps the grammar exact-analysable)."));
+                "Nested fold is not allowed: a fold body may not contain another fold, map, or filter (one level of bounded iteration keeps the grammar exact-analysable)."));
             return initType;
         }
 
@@ -572,7 +578,8 @@ public static class ExpressionTypeChecker
             BoardFields = ctx.BoardFields,
             MeasurementFields = ctx.MeasurementFields,
             LocalFields = ctx.LocalFields,
-            StateFields = lambdaFields,
+            StateFields = lambdaFields.GroupBy(field => field.Name, StringComparer.Ordinal)
+                .Select(group => group.Last()).ToArray(),
             CellFields = ctx.CellFields,
             DecorationTypes = ctx.DecorationTypes
         };
@@ -591,7 +598,12 @@ public static class ExpressionTypeChecker
 
     private static ExprType InferMap(MapExpr m, TypeCheckContext ctx, List<TypeCheckError> errors)
     {
-        if (ContainsBoundedIterator(m.Body))
+        if (!ValidateCollection(m, ctx, errors))
+        {
+            return ExprType.Array;
+        }
+
+        if (m.MaxItems is null && ContainsBoundedIterator(m.Body))
         {
             errors.Add(Error(m,
                 "Nested iteration is not allowed in a map body: map/filter/fold may not be nested " +
@@ -616,7 +628,8 @@ public static class ExpressionTypeChecker
             BoardFields = ctx.BoardFields,
             MeasurementFields = ctx.MeasurementFields,
             LocalFields = ctx.LocalFields,
-            StateFields = lambdaFields,
+            StateFields = lambdaFields.GroupBy(field => field.Name, StringComparer.Ordinal)
+                .Select(group => group.Last()).ToArray(),
             CellFields = ctx.CellFields,
             DecorationTypes = ctx.DecorationTypes
         };
@@ -629,7 +642,12 @@ public static class ExpressionTypeChecker
 
     private static ExprType InferFilter(FilterExpr fi, TypeCheckContext ctx, List<TypeCheckError> errors)
     {
-        if (ContainsBoundedIterator(fi.Predicate))
+        if (!ValidateCollection(fi, ctx, errors))
+        {
+            return ExprType.Array;
+        }
+
+        if (fi.MaxItems is null && ContainsBoundedIterator(fi.Predicate))
         {
             errors.Add(Error(fi,
                 "Nested iteration is not allowed in a filter predicate: map/filter/fold may not be nested " +
@@ -654,7 +672,8 @@ public static class ExpressionTypeChecker
             BoardFields = ctx.BoardFields,
             MeasurementFields = ctx.MeasurementFields,
             LocalFields = ctx.LocalFields,
-            StateFields = lambdaFields,
+            StateFields = lambdaFields.GroupBy(field => field.Name, StringComparer.Ordinal)
+                .Select(group => group.Last()).ToArray(),
             CellFields = ctx.CellFields,
             DecorationTypes = ctx.DecorationTypes
         };
@@ -670,17 +689,81 @@ public static class ExpressionTypeChecker
 
     // ── Helpers ──────────────────────────────────────────────────────────
 
-    private static FieldDescriptor BindItem(Expression expression, TypeCheckContext context, string source, string name,
+    private static bool ValidateCollection(Expression expression, TypeCheckContext context, List<TypeCheckError> errors)
+    {
+        CollectionInput input = CollectionInputs.Of(expression);
+        if (input.StateKey is null == input.Source is null ||
+            (input.StateKey is not null && string.IsNullOrWhiteSpace(input.StateKey)))
+        {
+            errors.Add(Error(expression, "A collection requires exactly one nonempty StateKey or Source."));
+            return false;
+        }
+
+        if (input.MaxItems is < 0 or > CollectionInputs.MaxItems ||
+            (input.Source is not null && input.MaxItems is null))
+        {
+            errors.Add(Error(expression,
+                "Source requires MaxItems in 0..4096; a StateKey may declare the same bound."));
+            return false;
+        }
+
+        string?[] bindings = expression switch
+        {
+            MapExpr e => [e.ItemName, e.IndexName],
+            FilterExpr e => [e.ItemName, e.IndexName],
+            FoldExpr e => [e.AccName, e.ItemName, e.IndexName],
+            AggregateExpr e => [e.ItemName],
+            _ => []
+        };
+        var names = bindings.OfType<string>().ToArray();
+        if (input.MaxItems is not null && (names.Any(name => string.IsNullOrWhiteSpace(name) || name.Length > 128)
+                                           || names.Distinct(StringComparer.Ordinal).Count() != names.Length))
+        {
+            errors.Add(Error(expression,
+                "Bounded iterator bindings require distinct nonblank names of at most 128 characters."));
+            return false;
+        }
+
+        if (input.MaxItems is not null &&
+            CollectionInputs.Children(expression).Any(CollectionInputs.HasUnboundedIterator))
+        {
+            errors.Add(Error(expression,
+                "Every iterator composed within a bounded collection requires an explicit MaxItems bound."));
+            return false;
+        }
+
+        if (input.MaxItems is not null && input.Source is null)
+        {
+            FieldDescriptor? shape = CollectionInputs.Shape(input, context);
+            if (shape is not null && shape.Type != ExprType.Array)
+            {
+                errors.Add(Error(expression, "Bounded collection StateKey must name an array."));
+                return false;
+            }
+        }
+
+        if (input.Source is not null && Infer(input.Source, context, errors) is not (ExprType.Array or ExprType.Error))
+        {
+            errors.Add(Error(expression, "Collection Source must be an array-valued expression."));
+            return false;
+        }
+
+        return true;
+    }
+
+    private static FieldDescriptor BindItem(Expression expression, TypeCheckContext context, string? source,
+        string name,
         ExprType declared, List<TypeCheckError> errors)
     {
-        FieldDescriptor? known = ExpressionShapes.Item(context.ResolveField([source], "state"));
+        FieldDescriptor? known =
+            ExpressionShapes.Item(CollectionInputs.Shape(CollectionInputs.Of(expression), context));
         if (known is not null && known.Type != declared)
         {
             errors.Add(Error(expression,
                 $"Iterator item type {declared} differs from the {known.Type} items in '{source}'."));
         }
 
-        return ExpressionShapes.IteratorItem(context, source, name, declared);
+        return ExpressionShapes.IteratorItem(context, source, name, declared, CollectionInputs.Of(expression).Source);
     }
 
     /// <summary>
@@ -701,7 +784,8 @@ public static class ExpressionTypeChecker
         IfExpr i => ContainsBoundedIterator(i.Condition) || ContainsBoundedIterator(i.ThenExpr) ||
                     ContainsBoundedIterator(i.ElseExpr),
         NotExpr n => ContainsBoundedIterator(n.Expr),
-        AggregateExpr a => (a.Predicate != null && ContainsBoundedIterator(a.Predicate)) ||
+        AggregateExpr a => (a.Source != null && ContainsBoundedIterator(a.Source)) ||
+                           (a.Predicate != null && ContainsBoundedIterator(a.Predicate)) ||
                            (a.ValueExpr != null && ContainsBoundedIterator(a.ValueExpr)),
         CallExpr call => call.Args.Any(ContainsBoundedIterator),
         BitSetExpr set => set.Args.Any(ContainsBoundedIterator),

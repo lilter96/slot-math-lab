@@ -909,7 +909,7 @@ internal sealed class SamplingCodegen
                 return Lx.Call(_frame, ReadField, Operand(nameof(SamplingOperands.Slots), _slots, _slot(field.Path[0])),
                     Text(field.Path[0]));
             case AggregateExpr { Func: AggregateFunc.Count } count:
-                return Iterate(count.StateKey, count.ItemName, null,
+                return Iterate(CollectionInputs.Of(count), count.ItemName, null,
                     count.Predicate ?? new ConstantExpr
                     {
                         Kind = ConstantKind.Boolean,
@@ -917,11 +917,12 @@ internal sealed class SamplingCodegen
                     }, true,
                     counting: true, selectedValue: count.ValueExpr);
             case FoldExpr fold:
-                return Iterate(fold.StateKey, fold.ItemName, fold.IndexName, fold.Body, false, fold.Init, fold.AccName);
+                return Iterate(CollectionInputs.Of(fold), fold.ItemName, fold.IndexName, fold.Body, false, fold.Init,
+                    fold.AccName);
             case MapExpr map:
-                return Iterate(map.StateKey, map.ItemName, map.IndexName, map.Body, false);
+                return Iterate(CollectionInputs.Of(map), map.ItemName, map.IndexName, map.Body, false);
             case FilterExpr filter:
-                return Iterate(filter.StateKey, filter.ItemName, filter.IndexName, filter.Predicate, true);
+                return Iterate(CollectionInputs.Of(filter), filter.ItemName, filter.IndexName, filter.Predicate, true);
             case IfExpr branch:
                 return Form("if", () =>
                 {
@@ -985,17 +986,23 @@ internal sealed class SamplingCodegen
     // the generated body read its element/index without repeated frame lookups.
     // Frame bindings are still published for interpreted nested forms, and
     // restored even on errors or cancellation.
-    private Lx Iterate(string key, string itemName, string? indexName, Expression body, bool filter,
+    private Lx Iterate(CollectionInput input, string itemName, string? indexName, Expression body, bool filter,
         Expression? init = null, string? accName = null, bool counting = false, Expression? selectedValue = null) =>
         Form(
             (counting ? "count" : init is not null ? "fold" : filter ? "filter" : "map") +
             (indexName is null ? "-item" : "-indexed"), () =>
             {
-                if (!filter && !counting && init is null
-                    && _owner.TryConstant(StateField(key),
+                var key = input.Key;
+                Expression sourceExpression = input.Source ?? StateField(key);
+                var shadowedSource = sourceExpression is FieldAccessExpr { Path.Length: 1 } sourceField &&
+                                     _bindings.ContainsKey(sourceField.Path[0]);
+                if (!filter && !counting && init is null && !shadowedSource
+                    && _owner.TryConstant(sourceExpression,
                         out ExprValue unchanging)
                     && unchanging.ItemsArray is { Length: <= 32 } entries && !unchanging.ContainsSymbols &&
-                    !HasNull(unchanging))
+                    !HasNull(unchanging) && (input.MaxItems is null ||
+                                             (input.MaxItems is >= 0 and <= CollectionInputs.MaxItems &&
+                                              entries.Length <= input.MaxItems)))
                 {
                     return ConstantMap(entries, itemName, indexName, body);
                 }
@@ -1005,6 +1012,7 @@ internal sealed class SamplingCodegen
                 var maskFold = init is not null && KnownMask(init) && KnownMask(body, accName, itemName, indexName);
                 _shape.Append(maskFold ? "mask-accumulator;" : "value-accumulator;");
                 Lx? initial = init is null ? null : maskFold ? KnownMaskValue(init) : Value(init);
+                Lx? expressionSource = input.Source is null ? null : Value(input.Source);
                 LxParameter source = Local(typeof(SamplingCell));
                 LxParameter typedItems = Local(typeof(ExprValue[]));
                 LxParameter element = Local(typeof(ExprValue));
@@ -1026,7 +1034,7 @@ internal sealed class SamplingCodegen
                     return Lx.ArrayAccess(cells, Operand(nameof(SamplingOperands.Slots), _slots, slot));
                 }
 
-                if (_bindings.TryGetValue(key, out IterationBinding? sourceBinding))
+                if (input.Source is null && _bindings.TryGetValue(key, out IterationBinding? sourceBinding))
                 {
                     sourceBinding.NeedsFrame = true;
                 }
@@ -1034,10 +1042,17 @@ internal sealed class SamplingCodegen
                 Lx sourceCell;
                 Lx? constantItems = null;
                 var constantLength = -1;
-                if (_owner.TryConstant(StateField(key),
-                        out ExprValue constantSource)
-                    && constantSource.ItemsArray is { } sourceItems && !constantSource.ContainsSymbols &&
-                    !HasNull(constantSource))
+                if (expressionSource is not null)
+                {
+                    _shape.Append("expression-source;");
+                    sourceCell = Lx.Call(typeof(SamplingCell).GetMethod(nameof(SamplingCell.Typed), Any)!,
+                        expressionSource);
+                }
+                else if (!_bindings.ContainsKey(key) && _owner.TryConstant(StateField(key),
+                                                         out ExprValue constantSource)
+                                                     && constantSource.ItemsArray is { } sourceItems &&
+                                                     !constantSource.ContainsSymbols &&
+                                                     !HasNull(constantSource))
                 {
                     _shape.Append("constant-source:").Append(sourceItems.Length).Append(';');
                     constantLength = sourceItems.Length;
@@ -1252,6 +1267,46 @@ internal sealed class SamplingCodegen
                 {
                     initialize.Add(Lx.Assign(typedItems, constantItems));
                     initialize.Add(Lx.Assign(length, Lx.Constant(constantLength)));
+                    if (input.MaxItems is { } bound)
+                    {
+                        _shape.Append("bounded-constant;");
+                        initialize.Add(Lx.Call(
+                            typeof(CollectionInputs).GetMethod(nameof(CollectionInputs.CheckCount), Any)!, length,
+                            Lx.Convert(Operand(nameof(SamplingOperands.Numbers), _numbers, bound), typeof(int)),
+                            Text(input.Location)));
+                    }
+                }
+                else if (expressionSource is not null)
+                {
+                    // An expression already returns a typed value. Keep it in that
+                    // representation instead of returning a large state-cell pair.
+                    _shape.Append("bounded-value-source;");
+                    LxParameter valueSource = Local(typeof(ExprValue));
+                    initialize.Add(Lx.Assign(valueSource, Lx.Call(
+                        typeof(SamplingCollectionSource).GetMethod(nameof(SamplingCollectionSource.ReadValue), Any)!,
+                        expressionSource,
+                        Lx.Convert(Operand(nameof(SamplingOperands.Numbers), _numbers, input.MaxItems ?? -1),
+                            typeof(int)), Text(input.Location), length)));
+                    initialize.Add(Lx.Assign(typedItems,
+                        Lx.Property(valueSource, typeof(ExprValue).GetProperty(nameof(ExprValue.ItemsArray), Any)!)));
+                    initialize.Add(Lx.IfThen(Lx.Equal(typedItems, Lx.Constant(null, typeof(ExprValue[]))),
+                        Lx.Block(Lx.Assign(source, Lx.Call(typed, valueSource)), Lx.Empty())));
+                }
+                else if (input.MaxItems is not null)
+                {
+                    _shape.Append("bounded-source;");
+                    LxParameter collection = Local(typeof(SamplingCollectionValue));
+                    initialize.Add(Lx.Assign(collection, Lx.Call(
+                        typeof(SamplingCollectionSource).GetMethod(nameof(SamplingCollectionSource.Read), Any)!,
+                        sourceCell,
+                        Lx.Convert(Operand(nameof(SamplingOperands.Numbers), _numbers, input.MaxItems ?? -1),
+                            typeof(int)), Text(key), Text(input.Location))));
+                    initialize.Add(Lx.Assign(source, Lx.Property(collection, nameof(SamplingCollectionValue.Cell))));
+                    initialize.Add(Lx.Assign(length, Lx.Property(collection, nameof(SamplingCollectionValue.Length))));
+                    initialize.Add(Lx.Assign(typedItems, Lx.Condition(Lx.Field(source, nameof(SamplingCell.HasRaw)),
+                        Lx.Constant(null, typeof(ExprValue[])), Lx.Property(
+                            Lx.Property(source, nameof(SamplingCell.Value)),
+                            typeof(ExprValue).GetProperty(nameof(ExprValue.ItemsArray), Any)!))));
                 }
                 else
                 {

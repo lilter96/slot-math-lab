@@ -10,7 +10,7 @@ individually verified milestone; it does not complete the overall objective.
 | --- | --- | --- | --- |
 | R1 | Immutable distribution assets, typed outcomes, finite families and bounded dynamic weight vectors | JSON/reference/compiled/exact agreement, identity and override regressions | Backend verified; public contract in docs/DISTRIBUTIONS.md; UI/migrations remain R18/R17 |
 | R2 | Ordered DrawMany, including explicit mixed-table schedules | Scalar RNG transcript, following Draw, cancellation, snapshots and observations | Backend verified; public contract docs/DRAW_MANY.md; dependency-aware migrations remain R17 |
-| R3 | Let, typed record/tuple results, expression-valued collections and bounded composition | Lexical scope, exact arithmetic, shape and error-order regressions across execution paths | Lexical/record backend verified (docs/LEXICAL_EXPRESSIONS.md); collection inputs and bounded composition remain |
+| R3 | Let, typed record/tuple results, expression-valued collections and bounded composition | Lexical scope, exact arithmetic, shape and error-order regressions across execution paths | Backend verified; contracts in docs/LEXICAL_EXPRESSIONS.md and docs/COLLECTION_EXPRESSIONS.md; designer integration remains R18 |
 | R4 | Typed IR with state versions, effects and guarded analyses | IR inspection plus observation/exception/override/cancellation controls | Pending |
 | R5 | SCCP, dominance-aware CSE, safe LICM and dead intermediate elimination | Independent equivalence controls and cost measurements; no mechanic dispatch | Pending |
 | R6 | Lifetime/alias analysis, buffer reuse and safe collection fusion | Old snapshots, persistent sessions and measurement boundaries remain correct | Pending |
@@ -272,5 +272,48 @@ scoped formatting and the Release solution build passed. Large generative
 sweeps, convergence runs, integration and browser suites were not run for this
 milestone. No game-wide throughput claim is made. Records and fallback lexical
 environments still allocate; lifetime-based removal remains required R6 work.
-Expression-valued collection inputs and bounded nested composition remain R3
-work, and designer integration remains R18 work.
+Expression-valued collection inputs and bounded nested composition are verified
+in the following R3 backend milestone. Designer integration remains R18 work.
+
+R3 bounded composition adds nullable `source` and `maxItems` to map, filter,
+fold and all five aggregate functions. Exactly one source/state-key input is
+required. Explicit bounds are 0–4096; all iterators composed inside a bounded
+form must declare their own bounds. Cardinality is checked before body entry,
+fold initializes before reading its source, and completed producer passes
+precede consumer bodies. Legacy JSON omits nullable properties. Cost estimates
+multiply nested bounds, add sequential work and saturate safely instead of
+wrapping. Shapes, lexical scopes, expression references and loop liveness
+include the source expression.
+
+Numeric aggregates retain symbolic arithmetic when their elements are visible.
+The same 64-choice binomial control that exceeded a one-million-work budget
+with opaque aggregation now returns all 65 exact masses within that budget,
+with independently checked mean 320, second moment 102592 and variance 192.
+Strict Count selectors and empty min/max errors remain observable. Conditional
+sources retain shared random variables across loop iterations, verified against
+complete classic distributions in unrolled and forced-chain execution.
+
+Initial verification passed 531 selected Core cases and five API preview
+cases. The final typed-source lowering passed all 180 affected Core cases,
+including 71 new source/composition cases. Tests include 128 complete-round
+seed comparisons per sampling tier, runtime overrides of proven constants,
+wide/rational values, cancellation and repeated failure restoration. Both
+mandatory Rider profiles covered all 14 touched source files; scoped formatting
+and the Release solution build passed. Large generative, convergence,
+integration and browser suites were not run for this milestone. Automatic
+state-field removal and collection fusion remain R4–R6 work and require
+observation/error-order proofs.
+
+The R3 primitive simulation control initially showed no gain; a warmed
+immutable-array comparison had a 0.929 median ratio with overlapping ranges.
+Inspection identified an unnecessary state-cell conversion of expression
+results. The final generic typed-value lowering preserves validation and
+normalization while avoiding that large intermediate. Final matched ABBA
+controls measured 1.038× for immutable inputs and 1.100× for inputs written
+during the round, with nonoverlapping retained ranges and identical live
+statistics. Allocation rates stayed near 6.63 bytes/round. The Modify fragment
+shrinks 3→1, while full controls shrink 5→3 and 6→4. This is not a full-game
+performance estimate or proof for removing observable authored fields.
+[The collection contract](../COLLECTION_EXPRESSIONS.md) records method, ranges,
+limits and the retained negative control. R4–R6 and all game migrations remain
+required.

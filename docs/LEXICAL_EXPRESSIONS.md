@@ -107,9 +107,10 @@ from lexical names. Expression cost includes initializer, body, field and
 projection work; lexical binding itself does not authorize dropping failures.
 
 This contract covers the lexical/record part of implementation row R3.
-Expression-valued collection inputs and bounded nested composition remain
-separate required R3 work. Designer forms and schema/type generation remain
-R18 work. No game-wide throughput gain has been measured for these forms.
+Expression-valued collection inputs and bounded nested composition are covered
+by [the collection contract](COLLECTION_EXPRESSIONS.md). Designer forms and
+schema/type generation remain R18 work. No game-wide throughput gain has been
+measured for these forms.
 
 ## Schema generation
 

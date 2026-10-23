@@ -112,10 +112,11 @@ internal static class ExpressionShapes
     private static bool SameItem(FieldDescriptor a, FieldDescriptor b) =>
         a.Type != ExprType.Array || Same(Item(a), Item(b));
 
-    internal static FieldDescriptor IteratorItem(TypeCheckContext context, string source, string binding,
-        ExprType declared)
+    internal static FieldDescriptor IteratorItem(TypeCheckContext context, string? source, string binding,
+        ExprType declared, Expression? sourceExpression = null)
     {
-        FieldDescriptor? item = Item(context.ResolveField([source], "state"));
+        FieldDescriptor? item = Item(sourceExpression is not null ? Infer(sourceExpression, context) :
+            source is not null ? context.ResolveField([source], "state") : null);
         return item?.Type == declared
             ? item with
             {
@@ -135,11 +136,11 @@ internal static class ExpressionShapes
             (index.ToString(CultureInfo.InvariantCulture), Infer(item, context)))),
         ProjectExpr project => Project(Infer(project.Value, context), project.Path),
         FieldAccessExpr field => context.ResolveField(field.Path, field.Target),
-        FilterExpr filter => context.ResolveField([filter.StateKey], "state"),
+        FilterExpr filter => CollectionInputs.Shape(CollectionInputs.Of(filter), context),
         MapExpr map => Array(Infer(map.Body, ArrayExpressionTypes.Bind(context,
-                IteratorItem(context, map.StateKey, map.ItemName, map.ItemType),
+                IteratorItem(context, map.StateKey, map.ItemName, map.ItemType, map.Source),
                 Field(map.IndexName ?? "__unused_index__", ExprType.Number))),
-            context.ResolveField([map.StateKey], "state")?.ArrayIsEmpty == true),
+            CollectionInputs.Shape(CollectionInputs.Of(map), context)?.ArrayIsEmpty == true),
         IfExpr conditional => Join(Infer(conditional.ThenExpr, context), Infer(conditional.ElseExpr, context)),
         CallExpr call when call.Function.Equals("index", StringComparison.OrdinalIgnoreCase) && call.Args.Length == 2 =>
             Item(Infer(call.Args[0], context)),
@@ -201,7 +202,7 @@ internal static class ExpressionShapes
                 Name = fold.AccName
             };
             FieldDescriptor? body = Infer(fold.Body, ArrayExpressionTypes.Bind(context, accumulator,
-                IteratorItem(context, fold.StateKey, fold.ItemName, fold.ItemType),
+                IteratorItem(context, fold.StateKey, fold.ItemName, fold.ItemType, fold.Source),
                 Field(fold.IndexName ?? "__unused_index__", ExprType.Number)));
             FieldDescriptor? next = Join(initial, body);
             if (Same(result, next))

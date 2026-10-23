@@ -220,43 +220,104 @@ internal sealed class Translator(TermFactory f)
         _ => null
     };
 
+    private Term? CollectionSource(Expression expression, Dictionary<string, Field> state, Binding? bound)
+    {
+        CollectionInput input = CollectionInputs.Of(expression);
+        Term? value = input.Source is { } source ? Go(source, state, bound) :
+            input.StateKey is { } key ? Lookup(key, state, bound) : null;
+        if (value is not null && input.MaxItems is { } maximum && Elements(value) is { } elements
+            && (maximum is < 0 or > CollectionInputs.MaxItems || elements.Length > maximum))
+        {
+            return Fail();
+        }
+
+        return value;
+    }
+
     private Term Aggregate(AggregateExpr aggregate, Dictionary<string, Field> state, Binding? bound)
     {
-        if (aggregate.Func != AggregateFunc.Count || aggregate.ValueExpr is not null)
+        if (aggregate.Func is not (AggregateFunc.Sum or AggregateFunc.Product or AggregateFunc.Count
+                or AggregateFunc.Min or AggregateFunc.Max)
+            || CollectionSource(aggregate, state, bound) is not { } source || Elements(source) is not { } elements)
         {
             return Opaque(aggregate, state, bound);
         }
 
-        // The evaluator reads the array straight from the state dictionary, where iteration bindings are also stored.
-        if (Lookup(aggregate.StateKey, state, bound) is not { } source || Elements(source) is not { } elements)
-        {
-            return Opaque(aggregate, state, bound);
-        }
-
-        if (aggregate.Predicate is null)
+        if (aggregate.Func == AggregateFunc.Count && aggregate.Predicate is null && aggregate.ValueExpr is null)
         {
             return f.Const(ExprValue.Number(elements.Length));
         }
 
-        var parts = new List<(ExprValue, Term)>(elements.Length);
+        Term total = aggregate.Func == AggregateFunc.Product ? f.OneT : f.ZeroT;
+        Term any = f.FalseT;
         foreach (Term element in elements)
         {
-            Term holds = Go(aggregate.Predicate, state, new Binding(aggregate.ItemName, element, bound));
-            Term counted = f.If(holds, f.OneT, f.ZeroT);
-            if (!counted.IsNum)
+            var inner = new Binding(aggregate.ItemName, element, bound);
+            Term holds = aggregate.Predicate is null ? f.TrueT : Go(aggregate.Predicate, state, inner);
+            if (holds is ConstTerm { IsErr: false, Value.Kind: ExprType.Boolean, Value.BoolValue: false })
             {
-                return counted is ConstTerm { IsErr: true } ? counted : Opaque(aggregate, state, bound);
+                continue;
             }
 
-            parts.Add((V.One, counted));
+            if (holds is ConstTerm { IsErr: true })
+            {
+                return holds;
+            }
+
+            if (!holds.IsBool)
+            {
+                return Opaque(aggregate, state, bound);
+            }
+
+            Term selected;
+            if (aggregate.ValueExpr is { } selector)
+            {
+                selected = Go(selector, state, inner);
+            }
+            else if (element.IsNum || aggregate.Func == AggregateFunc.Count)
+            {
+                selected = element;
+            }
+            else if (element is ConstTerm constant)
+            {
+                ExprValue value = constant.Value;
+                selected = value.Kind is ExprType.String or ExprType.Symbol && BigInteger.TryParse(value.StringValue,
+                    NumberStyles.Integer, CultureInfo.InvariantCulture, out BigInteger number)
+                    ? f.Const(ExprValue.Number(number))
+                    : f.ZeroT;
+            }
+            else
+            {
+                return Opaque(aggregate, state, bound);
+            }
+
+            if (aggregate.Func != AggregateFunc.Count && !selected.IsNum && selected is not ConstTerm { IsErr: true })
+            {
+                return Opaque(aggregate, state, bound);
+            }
+
+            Term update = aggregate.Func switch
+            {
+                AggregateFunc.Count => f.Arith(BinaryOp.Add, total, f.Seq(selected, f.OneT)),
+                AggregateFunc.Sum => f.Arith(BinaryOp.Add, total, selected),
+                AggregateFunc.Product => f.Arith(BinaryOp.Mul, total, selected),
+                AggregateFunc.Min => f.If(any, f.Call("min", [total, selected]), selected),
+                _ => f.If(any, f.Call("max", [total, selected]), selected)
+            };
+            total = f.If(holds, update, total);
+            any = f.Logic(true, any, holds);
         }
 
-        return f.Lin(V.Zero, parts);
+        // An empty selected set is undefined for min/max; total preserves errors
+        // even when the final selection guard would otherwise skip its evaluation.
+        return aggregate.Func is AggregateFunc.Min or AggregateFunc.Max
+            ? f.Seq(total, f.If(any, total, f.ErrT))
+            : total;
     }
 
     private Term Map(MapExpr map, Dictionary<string, Field> state, Binding? bound)
     {
-        if (Lookup(map.StateKey, state, bound) is not { } source || Elements(source) is not { } elements)
+        if (CollectionSource(map, state, bound) is not { } source || Elements(source) is not { } elements)
         {
             return Opaque(map, state, bound);
         }
@@ -282,12 +343,12 @@ internal sealed class Translator(TermFactory f)
 
     private Term Fold(FoldExpr fold, Dictionary<string, Field> state, Binding? bound)
     {
-        if (Lookup(fold.StateKey, state, bound) is not { } source || Elements(source) is not { } elements)
+        Term accumulator = Go(fold.Init, state, bound);
+        if (CollectionSource(fold, state, bound) is not { } source || Elements(source) is not { } elements)
         {
             return Opaque(fold, state, bound);
         }
 
-        Term accumulator = Go(fold.Init, state, bound);
         for (var i = 0; i < elements.Length; i++)
         {
             // An iteration need not read the accumulator, so one that can fail is not unrolled.
@@ -396,20 +457,40 @@ internal sealed class Translator(TermFactory f)
 
                 break;
             case AggregateExpr aggregate:
-                names.Add(aggregate.StateKey);
+                if (aggregate.StateKey is { } aggregateKey)
+                {
+                    names.Add(aggregateKey);
+                }
+
+                Reads(aggregate.Source, names);
                 Reads(aggregate.Predicate, names);
                 Reads(aggregate.ValueExpr, names);
                 break;
             case MapExpr map:
-                names.Add(map.StateKey);
+                if (map.StateKey is { } mapKey)
+                {
+                    names.Add(mapKey);
+                }
+
+                Reads(map.Source, names);
                 Reads(map.Body, names);
                 break;
             case FilterExpr filter:
-                names.Add(filter.StateKey);
+                if (filter.StateKey is { } filterKey)
+                {
+                    names.Add(filterKey);
+                }
+
+                Reads(filter.Source, names);
                 Reads(filter.Predicate, names);
                 break;
             case FoldExpr fold:
-                names.Add(fold.StateKey);
+                if (fold.StateKey is { } foldKey)
+                {
+                    names.Add(foldKey);
+                }
+
+                Reads(fold.Source, names);
                 Reads(fold.Init, names);
                 Reads(fold.Body, names);
                 break;

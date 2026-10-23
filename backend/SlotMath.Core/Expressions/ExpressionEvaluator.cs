@@ -354,7 +354,7 @@ public static class ExactExpressionEvaluator
         // (selector) can reference it — exactly like fold/map/filter.  Elements
         // may be plain symbols or cell records; ValueExpr extracts the numeric
         // value to aggregate.  No engine Board type (invariant 4).
-        IEnumerable<object?>? arr = ExtractStateArray(a.StateKey, ctx.State);
+        IEnumerable<object?>? arr = ReadCollection(a, ctx);
 
         var values = new List<ExprValue>();
         if (arr != null)
@@ -475,7 +475,7 @@ public static class ExactExpressionEvaluator
     {
         ExprValue acc = Eval(f.Init, ctx);
 
-        IEnumerable<object?>? arr = ExtractStateArray(f.StateKey, ctx.State);
+        IEnumerable<object?>? arr = ReadCollection(f, ctx);
         if (arr == null)
         {
             return acc;
@@ -512,21 +512,53 @@ public static class ExactExpressionEvaluator
         return acc;
     }
 
-    private static IEnumerable<object?>? ExtractStateArray(string key, object? state)
+    private static IEnumerable<object?> ReadCollection(Expression expression, EvalContext context)
+    {
+        CollectionInput input = CollectionInputs.Of(expression);
+        if (input.Source is { } source)
+        {
+            return CollectionInputs.Values(Eval(source, context), input.MaxItems ?? -1, input.Location)
+                .Select(value => value.ToStateObject());
+        }
+
+        return ExtractStateArray(input.StateKey!, context.State, input.MaxItems, input.Location)!;
+    }
+
+    private static IEnumerable<object?>? ExtractStateArray(string key, object? state, int? bound = null,
+        string? location = null)
     {
         if (state is IDictionary<string, object?> dict && dict.TryGetValue(key, out var val))
         {
-            return val switch
+            IEnumerable<object?> values = val switch
             {
                 null => throw new ExpressionEvaluationException("EVAL_NULL_VALUE",
                     $"State field '{key}' is null; supply an explicit array.", key),
                 string[] sarr => sarr.Cast<object?>(),
                 object[] oarr => oarr,
                 ExprValue { Kind: ExprType.Array } typed => typed.ArrayValue!.Cast<object?>(),
-                IEnumerable en when val is not string && val is not IDictionary => en.Cast<object?>(),
+                IEnumerable en when val is not (string or IDictionary or IReadOnlyDictionary<string, object?>) => en
+                    .Cast<object?>(),
                 _ => throw new ExpressionEvaluationException("EVAL_TYPE_ERROR",
                     $"State field '{key}' must be an array.", key)
             };
+            if (bound is not { } maximum)
+            {
+                return values;
+            }
+
+            if (val is ICollection sized)
+            {
+                CollectionInputs.CheckCount(sized.Count, maximum, location!);
+                return values;
+            }
+
+            if (val is ExprValue { Kind: ExprType.Array } array)
+            {
+                CollectionInputs.CheckCount(array.ArrayValue!.Count, maximum, location!);
+                return values;
+            }
+
+            return CollectionInputs.BoundedItems(values, maximum, location!);
         }
 
         throw new ExpressionEvaluationException("EVAL_MISSING_STATE", $"State array '{key}' is absent.", key);
@@ -538,7 +570,7 @@ public static class ExactExpressionEvaluator
 
     private static ExprValue EvalMap(MapExpr m, EvalContext ctx)
     {
-        IEnumerable<object?>? arr = ExtractStateArray(m.StateKey, ctx.State);
+        IEnumerable<object?>? arr = ReadCollection(m, ctx);
         if (arr == null)
         {
             return ExprValue.Array([]);
@@ -579,7 +611,7 @@ public static class ExactExpressionEvaluator
 
     private static ExprValue EvalFilter(FilterExpr f, EvalContext ctx)
     {
-        IEnumerable<object?>? arr = ExtractStateArray(f.StateKey, ctx.State);
+        IEnumerable<object?>? arr = ReadCollection(f, ctx);
         if (arr == null)
         {
             return ExprValue.Array([]);

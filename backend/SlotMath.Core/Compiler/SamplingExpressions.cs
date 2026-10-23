@@ -355,7 +355,7 @@ internal sealed class SamplingExpressions(
                     return BitSetOperations.Evaluate(set.Op, operands.Length, first, second);
                 };
             case FoldExpr f:
-                var source = slot(f.StateKey);
+                Func<SamplingFrame, SamplingCollectionValue> readSource = BindCollection(f, compile);
                 var acc = Variable(f.AccName);
                 var item = Variable(f.ItemName);
                 var position = f.IndexName is null ? -1 : Variable(f.IndexName);
@@ -364,8 +364,9 @@ internal sealed class SamplingExpressions(
                 return s =>
                 {
                     ExprValue value = init(s);
-                    SamplingCell array = s.Cells[source];
-                    var length = array.RequireArrayCount(f.StateKey);
+                    SamplingCollectionValue collection = readSource(s);
+                    SamplingCell array = collection.Cell;
+                    var length = collection.Length;
                     SamplingCell savedAcc = s.Cells[acc];
                     SamplingCell savedItem = s.Cells[item];
                     SamplingCell savedIndex = position < 0 ? default : s.Cells[position];
@@ -397,10 +398,10 @@ internal sealed class SamplingExpressions(
                     }
                 };
             case MapExpr m:
-                return CompileMap(m.StateKey, slot(m.StateKey), Variable(m.ItemName),
+                return CompileMap(BindCollection(m, compile), Variable(m.ItemName),
                     m.IndexName is null ? -1 : Variable(m.IndexName), compile(m.Body), false);
             case FilterExpr f:
-                return CompileMap(f.StateKey, slot(f.StateKey), Variable(f.ItemName),
+                return CompileMap(BindCollection(f, compile), Variable(f.ItemName),
                     f.IndexName is null ? -1 : Variable(f.IndexName), compile(f.Predicate), true);
             case AggregateExpr a:
                 if (a.Func is not (AggregateFunc.Sum or AggregateFunc.Product or AggregateFunc.Min or AggregateFunc.Max
@@ -409,14 +410,15 @@ internal sealed class SamplingExpressions(
                     throw new ExpressionEvaluationException("EVAL_INVALID_OPERATOR", "Unknown aggregate operator.");
                 }
 
-                var src = slot(a.StateKey);
+                Func<SamplingFrame, SamplingCollectionValue> readAggregate = BindCollection(a, compile);
                 var binding = Variable(a.ItemName);
                 Func<SamplingFrame, ExprValue>? predicate = a.Predicate is null ? null : compile(a.Predicate);
                 Func<SamplingFrame, ExprValue>? selector = a.ValueExpr is null ? null : compile(a.ValueExpr);
                 return s =>
                 {
-                    SamplingCell array = s.Cells[src];
-                    var length = array.RequireArrayCount(a.StateKey);
+                    SamplingCollectionValue collection = readAggregate(s);
+                    SamplingCell array = collection.Cell;
+                    var length = collection.Length;
                     SamplingCell saved = s.Cells[binding];
                     var count = 0;
                     ExprValue total = ExprValue.Number(a.Func == AggregateFunc.Product ? 1 : 0);
@@ -465,11 +467,37 @@ internal sealed class SamplingExpressions(
         }
     }
 
-    private static Func<SamplingFrame, ExprValue> CompileMap(string key, int source, int binding, int position,
+    private Func<SamplingFrame, SamplingCollectionValue> BindCollection(Expression expression,
+        Func<Expression, Func<SamplingFrame, ExprValue>> compile)
+    {
+        CollectionInput input = CollectionInputs.Of(expression);
+        if (input.Source is { } source)
+        {
+            Func<SamplingFrame, ExprValue> value = compile(source);
+            return frame => SamplingCollectionSource.Read(SamplingCell.Typed(value(frame)), input.MaxItems ?? -1,
+                input.Key, input.Location);
+        }
+
+        var index = slot(input.StateKey!);
+        if (input.MaxItems is { } bound)
+        {
+            return frame => SamplingCollectionSource.Read(frame.Cells[index], bound, input.Key, input.Location);
+        }
+
+        return frame =>
+        {
+            SamplingCell cell = frame.Cells[index];
+            return new SamplingCollectionValue(cell, cell.RequireArrayCount(input.Key));
+        };
+    }
+
+    private static Func<SamplingFrame, ExprValue> CompileMap(Func<SamplingFrame, SamplingCollectionValue> readSource,
+        int binding, int position,
         Func<SamplingFrame, ExprValue> body, bool filter) => s =>
     {
-        SamplingCell array = s.Cells[source];
-        var length = array.RequireArrayCount(key);
+        SamplingCollectionValue collection = readSource(s);
+        SamplingCell array = collection.Cell;
+        var length = collection.Length;
         SamplingCell savedItem = s.Cells[binding];
         SamplingCell savedIndex = position < 0 ? default : s.Cells[position];
         var values = new ExprValue[length];

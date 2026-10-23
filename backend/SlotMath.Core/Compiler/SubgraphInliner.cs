@@ -517,6 +517,7 @@ public static class SubgraphInliner
             },
             AggregateExpr a => a with
             {
+                Source = a.Source is null ? null : RewriteExprRefs(a.Source, prefix),
                 Predicate = a.Predicate is null ? null : RewriteExprRefs(a.Predicate, prefix),
                 ValueExpr = a.ValueExpr is null ? null : RewriteExprRefs(a.ValueExpr, prefix)
             },
@@ -530,15 +531,18 @@ public static class SubgraphInliner
             },
             FoldExpr fold => fold with
             {
+                Source = fold.Source is null ? null : RewriteExprRefs(fold.Source, prefix),
                 Init = RewriteExprRefs(fold.Init, prefix),
                 Body = RewriteExprRefs(fold.Body, prefix)
             },
             MapExpr map => map with
             {
+                Source = map.Source is null ? null : RewriteExprRefs(map.Source, prefix),
                 Body = RewriteExprRefs(map.Body, prefix)
             },
             FilterExpr filter => filter with
             {
+                Source = filter.Source is null ? null : RewriteExprRefs(filter.Source, prefix),
                 Predicate = RewriteExprRefs(filter.Predicate, prefix)
             },
             _ => expr // ConstantExpr and anything leaf-like

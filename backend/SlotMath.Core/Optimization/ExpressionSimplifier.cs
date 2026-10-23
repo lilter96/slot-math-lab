@@ -106,17 +106,26 @@ public static class ExpressionSimplifier
                 NotExpr n => [nameof(NotExpr), Child(n.Expr)],
                 CallExpr c => [nameof(CallExpr), c.Function, c.Args.Select(Child).ToArray()],
                 BitSetExpr s => [nameof(BitSetExpr), s.Op, s.Args.Select(Child).ToArray()],
-                MapExpr m => [nameof(MapExpr), m.StateKey, m.ItemName, m.IndexName, m.ItemType, Child(m.Body)],
+                MapExpr m =>
+                [
+                    nameof(MapExpr), m.StateKey, Optional(m.Source), m.MaxItems, m.ItemName, m.IndexName, m.ItemType,
+                    Child(m.Body)
+                ],
                 FilterExpr f =>
-                    [nameof(FilterExpr), f.StateKey, f.ItemName, f.IndexName, f.ItemType, Child(f.Predicate)],
+                [
+                    nameof(FilterExpr), f.StateKey, Optional(f.Source), f.MaxItems, f.ItemName, f.IndexName, f.ItemType,
+                    Child(f.Predicate)
+                ],
                 FoldExpr f =>
                 [
-                    nameof(FoldExpr), f.StateKey, f.ItemName, f.IndexName, f.AccName, f.ItemType, Child(f.Init),
+                    nameof(FoldExpr), f.StateKey, Optional(f.Source), f.MaxItems, f.ItemName, f.IndexName, f.AccName,
+                    f.ItemType, Child(f.Init),
                     Child(f.Body)
                 ],
                 AggregateExpr a =>
                 [
-                    nameof(AggregateExpr), a.Func, a.StateKey, a.ItemName, a.ItemType, Optional(a.Predicate),
+                    nameof(AggregateExpr), a.Func, a.StateKey, Optional(a.Source), a.MaxItems, a.ItemName, a.ItemType,
+                    Optional(a.Predicate),
                     Optional(a.ValueExpr)
                 ],
                 _ => null
@@ -306,22 +315,26 @@ public static class ExpressionSimplifier
                 case MapExpr map:
                     rewritten = map with
                     {
+                        Source = map.Source is null ? null : Visit(map.Source),
                         Body = InIteration(map.Body, map.ItemName, map.IndexName)
                     }; break;
                 case FilterExpr filter:
                     rewritten = filter with
                     {
+                        Source = filter.Source is null ? null : Visit(filter.Source),
                         Predicate = InIteration(filter.Predicate, filter.ItemName, filter.IndexName)
                     }; break;
                 case FoldExpr fold:
                     rewritten = fold with
                     {
+                        Source = fold.Source is null ? null : Visit(fold.Source),
                         Init = Visit(fold.Init),
                         Body = InIteration(fold.Body, fold.ItemName, fold.IndexName, fold.AccName)
                     }; break;
                 case AggregateExpr aggregate:
                     rewritten = aggregate with
                     {
+                        Source = aggregate.Source is null ? null : Visit(aggregate.Source),
                         Predicate = aggregate.Predicate is { } predicate
                             ? InIteration(predicate, aggregate.ItemName)
                             : null,
