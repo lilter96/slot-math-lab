@@ -16,7 +16,7 @@ individually verified milestone; it does not complete the overall objective.
 | R6 | Lifetime/alias analysis, buffer reuse and safe collection fusion | Old snapshots, persistent sessions and measurement boundaries remain correct | Backend verified for private expression containers; bounded large-buffer retention and guarded constant-producer fusion; scope and measurements in docs/COLLECTION_BUFFERS.md |
 | R7 | Bounded Reachable on arbitrary adjacency, including cyclic data graphs | Independent BFS oracle and independent JSON mechanics | Backend verified: 0..64 exact mask domain, independent transitive-closure oracle and two JSON subgraphs; docs/REACHABLE.md; game migrations remain R17 and wider sets R15 |
 | R8 | Scan and stable segmented compaction | Exact prefix oracle, exhaustive small segments and carried attributes | Backend verified: exact integer/Boolean prefixes, stable source plans, three carried attribute types; docs/SCAN_COMPACTION.md; game admission remains R17 |
-| R9 | Designer repeat over collections and runtime subgraph bindings where needed | Editable JSON, apply/undo, nested scopes and responsive visual acceptance | Pending |
+| R9 | Designer repeat over collections and runtime subgraph bindings where needed | Editable JSON, apply/undo, nested scopes and responsive visual acceptance | Verified authoring via existing bounded Map/Loop and typed state bindings; six-node editable wrapper, snapshot/error/undo/nested and desktop/phone controls; docs/COLLECTION_REPEAT.md; migrations remain R17 |
 | R10 | Bounded foldWhile, any/all | Empty, early stop, short-circuit errors and resource bounds | Pending |
 | R11 | Indexed reduction/partition and deterministic scatter | Duplicate-index contract, typed values, snapshot and ownership controls | Pending |
 | R12 | Cost-admitted finite-domain pretabulation | Full domain oracle, errors, cache identity, memory/work bounds and negative controls | Pending |
@@ -469,3 +469,26 @@ and measured roughly 224x/351x on 64/128 items. Compaction32 measured 1.497x;
 than the new operator. [Scan and compaction](../SCAN_COMPACTION.md) records
 actual schedules, ranges, allocation and limitations. No current-game spin
 multiplier is inferred. R9–R18 remain required for the full objective.
+
+
+R9 adds a collection-repeat designer that wraps a selected State Library call
+with a six-node editable JSON definition. A bounded identity Map snapshots the
+source, existing Loop controls visits, and ordinary ModifyState atoms bind
+index/item before the unchanged parameterized body. Explicit binding schemas
+support scalars, arrays and records. Source mutation, empty/exact/overlong
+inputs, nested distinct bindings, original parameters, ordered draws and the
+following categorical choice have independent controls. No new kernel loop or
+named mechanic dispatch is introduced.
+
+Generic compiler corrections resolve named values before type validation and
+retain initial seeds during delayed recursive shape inference. Eleven new Core
+controls pin valid recurrences, actual scalar types, invalid operands and
+missing/cyclic references. Verification covers 579 unique selected Core cases:
+577 initial successes plus the two registry-race cases after a 41-case affected
+rerun. Removing an unrelated test fixture's unused global registry cleanup
+eliminates that race. Five API previews, one isolated-database cache check,
+27 frontend unit cases and six selected API/browser scenarios passed.
+Both Rider profiles completed five C# and six frontend files, followed by scoped
+format/lint and backend/frontend builds. [Collection repeat](../COLLECTION_REPEAT.md)
+records source/undo boundaries and desktop/phone acceptance. No spin-rate gain
+is claimed from the authoring wrapper; R10–R18 and all-game admission remain.

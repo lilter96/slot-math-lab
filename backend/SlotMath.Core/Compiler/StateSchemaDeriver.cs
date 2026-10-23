@@ -44,6 +44,9 @@ public static class StateSchemaDeriver
             fields[key] = ExpressionShapes.FromJson(key, value);
         }
 
+        // Initial values seed recursive type equations. An unresolved dependency
+        // during an early pass must not permanently poison a seeded recurrence.
+        var initialShapes = new Dictionary<string, FieldDescriptor>(fields, StringComparer.Ordinal);
         var authored = new HashSet<string>(config.StateSchema.Select(s => s.Name), StringComparer.Ordinal);
 
         void Write(string key, ExprType type)
@@ -143,7 +146,11 @@ public static class StateSchemaDeriver
             .ToArray();
         for (var pass = 0; pass <= config.Nodes.OfType<ModifyStateNode>().Count(); pass++)
         {
-            TypeCheckContext ctx = BuildContext(fields);
+            TypeCheckContext ctx = BuildContext(fields.ToDictionary(pair => pair.Key,
+                pair => pair.Value.Type == ExprType.Error &&
+                        initialShapes.TryGetValue(pair.Key, out FieldDescriptor? seed)
+                    ? seed
+                    : pair.Value, StringComparer.Ordinal));
             var changed = false;
             foreach (IGrouping<string, ModifyStateNode> group in writers)
             {

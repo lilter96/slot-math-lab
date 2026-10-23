@@ -165,17 +165,21 @@ public sealed class GraphCompiler
             });
         }
 
-        // Phase 1: Validate
-        IReadOnlyList<CompileError> errors = GraphValidator.Validate(config, _pluginHost);
-        if (errors.Count > 0)
-        {
-            return CompileResult.Failure(errors);
-        }
-
-        // Phase 2: Compile
         try
         {
+            // Resolve named values before schema inference and type checking. A
+            // parameterized recurrence must see the actual operand type rather
+            // than poisoning its output shape with an unresolved reference.
             config = ExpressionResolver.Resolve(config);
+
+            // Phase 1: Validate the expanded atomic graph and expressions.
+            IReadOnlyList<CompileError> errors = GraphValidator.Validate(config, _pluginHost);
+            if (errors.Count > 0)
+            {
+                return CompileResult.Failure(errors);
+            }
+
+            // Phase 2: Compile.
             IReadOnlyList<FieldDescriptor> fields = StateSchemaDeriver.Derive(config);
             var schema = new MeasurementSchema(
                 config.Nodes.Select(n => new MeasurementPoint(n.Id, n.Label ?? n.Id)).ToArray(),

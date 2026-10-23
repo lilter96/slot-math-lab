@@ -12,6 +12,7 @@ import ModelNavigation from '../components/editor/ModelNavigation';
 import {metricProvenance} from '../lib/metricEvidence';
 import GraphValidation from '../components/editor/GraphValidation';
 import GraphSimplification from '../components/editor/GraphSimplification';
+import CollectionRepeat from '../components/editor/CollectionRepeat';
 
 export default function Build() {
     const [showPalette, setShowPalette] = useState(false);
@@ -94,6 +95,7 @@ export default function Build() {
                                 onClick={() => setShowPalette(value => !value)}>Add nodes
                         </button>
                         <GraphSimplification/>
+                        <CollectionRepeat/>
                         <button className="btn" aria-label="Open mechanic manager" onClick={() => {
                             useAppStore.getState().selectNode(null);
                             setPanelMode('mechanics');
