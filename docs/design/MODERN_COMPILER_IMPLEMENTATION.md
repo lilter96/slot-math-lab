@@ -14,7 +14,7 @@ individually verified milestone; it does not complete the overall objective.
 | R4 | Typed IR with state versions, effects and guarded analyses | IR inspection plus observation/exception/override/cancellation controls | Backend verified; expression regions, continuation memory SSA, verifier and guarded facts; transformations remain R5/R6 |
 | R5 | SCCP, dominance-aware CSE, safe LICM and dead intermediate elimination | Independent equivalence controls and cost measurements; no mechanic dispatch | Backend verified for admitted scalar regions; contracts and measured limits in docs/STATE_PROPAGATION.md and docs/VALUE_REUSE.md; buffer/fusion remains R6 |
 | R6 | Lifetime/alias analysis, buffer reuse and safe collection fusion | Old snapshots, persistent sessions and measurement boundaries remain correct | Backend verified for private expression containers; bounded large-buffer retention and guarded constant-producer fusion; scope and measurements in docs/COLLECTION_BUFFERS.md |
-| R7 | Bounded Reachable on arbitrary adjacency, including cyclic data graphs | Independent BFS oracle and independent JSON mechanics | Pending |
+| R7 | Bounded Reachable on arbitrary adjacency, including cyclic data graphs | Independent BFS oracle and independent JSON mechanics | Backend verified: 0..64 exact mask domain, independent transitive-closure oracle and two JSON subgraphs; docs/REACHABLE.md; game migrations remain R17 and wider sets R15 |
 | R8 | Scan and stable segmented compaction | Exact prefix oracle, exhaustive small segments and carried attributes | Pending |
 | R9 | Designer repeat over collections and runtime subgraph bindings where needed | Editable JSON, apply/undo, nested scopes and responsive visual acceptance | Pending |
 | R10 | Bounded foldWhile, any/all | Empty, early stop, short-circuit errors and resource bounds | Pending |
@@ -423,3 +423,32 @@ games remained within overlapping ranges. [Collection buffers](../COLLECTION_BUF
 records domains, negative controls, warmup and cancellation limits. R7–R18
 remain required, including new primitives, all-game migrations and designer
 release verification. No arbitrary throwing Map fusion is claimed.
+
+R7 implements bounded directed Reachable from authored adjacency masks, allowed
+vertices and seed masks. The result is the least allowed closed set, with
+explicit 0..64 domain and disallowed seeds intersected away. All rows are
+validated, including unreachable rows. Fixed stack storage and a word frontier
+visit each vertex at most once; cyclic data graphs require no convergence
+heuristic. Exact masks, errors, eager/lazy operand boundaries and cancellation
+are represented in all evaluation paths and IR. No geometry or named mechanic
+selects behavior.
+
+A new IR-effect guard also prevents dominated-predicate simplification from
+erasing repeated cancellation-bearing traversals. A negative regression
+reproduced the removed second call before the guard. Canonical and structured
+exact laws agree with an independent three-point payout mixture; sampling tiers
+retain RNG audits, the following word and complete seeded state. Two editable
+JSON Library subgraphs verify composition and namespaced expression operands.
+
+Final verification passed 441 selected Core cases and five API previews,
+plus one supplementary pinned queue-BFS case after its own validation: 442
+unique Core cases, including 33 new controls and all 15 seeded game states.
+Floyd-Warshall covers every directed three-vertex graph and all masks; the
+queue oracle adds directed graphs through 64 vertices. Both mandatory cleanup
+profiles completed all 18 C# sources and both JSON
+fixtures (JSON required the isolated Rider frontend), then scoped formatting
+and the Release build passed. Paired million-round optimized-JIT diagnostics
+measured 5.499x/9.331x versus a valid Fold relaxation composition on 15/25
+vertices, with identical outcome statistics and near-identical allocations.
+[Reachable](../REACHABLE.md) records bounds and the limit of this comparison.
+R8–R18 remain required; no current-game multiplier is inferred.

@@ -1,0 +1,127 @@
+{
+    "schemaVersion": "1.0.0",
+    "id": "reachable-restricted-network",
+    "name": "reachable-restricted-network",
+    "initialState": {
+        "adjacency": [
+            8,
+            4,
+            2,
+            2
+        ]
+    },
+    "mechanics": {
+        "walk": {
+            "name": "Directed reachability",
+            "description": "Generic closure over authored adjacency; no geometry or reward rules in the operator.",
+            "nodes": [
+                {
+                    "nodeType": "modifyState",
+                    "id": "close",
+                    "expressionId": "count",
+                    "outputKey": "win",
+                    "inputs": {
+                        "state": {
+                            "name": "state",
+                            "type": "State"
+                        }
+                    },
+                    "outputs": {
+                        "state": {
+                            "name": "state",
+                            "type": "State"
+                        }
+                    }
+                }
+            ],
+            "edges": [],
+            "expressions": {
+                "set": {
+                    "exprType": "reachable",
+                    "vertexCount": 4,
+                    "adjacency": {
+                        "exprType": "fieldAccess",
+                        "target": "state",
+                        "path": [
+                            "adjacency"
+                        ]
+                    },
+                    "allowed": {
+                        "exprType": "fieldAccess",
+                        "target": "state",
+                        "path": [
+                            "expressions",
+                            "permit"
+                        ]
+                    },
+                    "seeds": {
+                        "exprType": "fieldAccess",
+                        "target": "state",
+                        "path": [
+                            "expressions",
+                            "start"
+                        ]
+                    }
+                },
+                "count": {
+                    "exprType": "bitset",
+                    "op": "Count",
+                    "args": [
+                        {
+                            "exprType": "fieldAccess",
+                            "target": "state",
+                            "path": [
+                                "expressions",
+                                "set"
+                            ]
+                        }
+                    ]
+                }
+            }
+        }
+    },
+    "nodes": [
+        {
+            "nodeType": "library",
+            "id": "network",
+            "mechanicName": "walk",
+            "parameters": {
+                "permit": "15",
+                "start": "8"
+            },
+            "inputs": {
+                "state": {
+                    "name": "state",
+                    "type": "State"
+                }
+            },
+            "outputs": {
+                "state": {
+                    "name": "state",
+                    "type": "State"
+                }
+            }
+        },
+        {
+            "nodeType": "metricsSink",
+            "id": "sink",
+            "winStateKey": "win",
+            "winCap": 100,
+            "inputs": {
+                "state": {
+                    "name": "state",
+                    "type": "State"
+                }
+            }
+        }
+    ],
+    "edges": [
+        {
+            "id": "done",
+            "sourceNodeId": "network",
+            "sourcePort": "state",
+            "targetNodeId": "sink",
+            "targetPort": "state"
+        }
+    ]
+}

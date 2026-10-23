@@ -201,6 +201,11 @@ internal sealed class ExpressionIrBuilder
             case BinaryExpr binary:
                 return Scalar(scope, IrOp.Binary, expression, [Visit(binary.Left), Visit(binary.Right)],
                     ExprType.Number, binary.Op.ToString());
+            case ReachableExpr reachable:
+                return Emit(scope, IrOp.Reachable, Shape(ExprType.Number),
+                    new IrEffects(IrEffect.MayThrow | IrEffect.Cancellation | IrEffect.Allocate),
+                    [Visit(reachable.Adjacency), Visit(reachable.Allowed), Visit(reachable.Seeds)],
+                    bound: reachable.VertexCount);
             case CompareExpr compare:
                 return Scalar(scope, IrOp.Compare, expression, [Visit(compare.Left), Visit(compare.Right)],
                     ExprType.Boolean, compare.Op.ToString());

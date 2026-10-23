@@ -23,9 +23,19 @@ namespace SlotMath.Core.Model;
 [JsonDerivedType(typeof(RecordExpr), "record")]
 [JsonDerivedType(typeof(TupleExpr), "tuple")]
 [JsonDerivedType(typeof(ProjectExpr), "project")]
+[JsonDerivedType(typeof(ReachableExpr), "reachable")]
 public abstract record Expression
 {
     public string? Annotation { get; init; }
+}
+
+/// <summary>Directed finite-set closure in an explicitly bounded 0..64 vertex domain.</summary>
+public sealed record ReachableExpr : Expression
+{
+    public required Expression Adjacency { get; init; }
+    public required Expression Allowed { get; init; }
+    public required Expression Seeds { get; init; }
+    public required int VertexCount { get; init; }
 }
 
 /// <summary>Eager, nonrecursive lexical binding. It never writes recurrence state.</summary>

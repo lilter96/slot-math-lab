@@ -973,6 +973,11 @@ internal sealed class SamplingCodegen
                     Lx.Call(typeof(LexicalValues).GetMethod(nameof(LexicalValues.Project), Any)!,
                         Value(project.Value), Operand(nameof(SamplingOperands.Paths), _paths, project.Path),
                         Text("project")));
+            case ReachableExpr reachable:
+                return Form("reachable:" + reachable.VertexCount, () => Lx.Call(
+                    typeof(ReachabilityData).GetMethod(nameof(ReachabilityData.Evaluate), Any)!,
+                    Value(reachable.Adjacency), Value(reachable.Allowed), Value(reachable.Seeds),
+                    Lx.Constant(reachable.VertexCount), Lx.Field(_frame, nameof(SamplingFrame.CancellationToken))));
             case RecordExpr record:
                 return RecordValue(record.Fields.Select(field => field.Name).ToArray(),
                     record.Fields.Select(field => field.Value).ToArray(), expression);
@@ -1730,7 +1735,8 @@ internal sealed class SamplingCodegen
         return expression switch
         {
             FieldAccessExpr { Target: null or "state" or "board", Path.Length: 1 } => true,
-            BitSetExpr or BinaryExpr or CompareExpr or NotExpr or AggregateExpr { Func: AggregateFunc.Count } or MapExpr
+            BitSetExpr or ReachableExpr or BinaryExpr or CompareExpr or NotExpr
+                or AggregateExpr { Func: AggregateFunc.Count } or MapExpr
                 or FilterExpr => true,
             IfExpr branch => ReadableResult(branch.ThenExpr) && ReadableResult(branch.ElseExpr),
             FoldExpr fold => ReadableResult(fold.Init) && ReadableResult(fold.Body),
@@ -1750,7 +1756,7 @@ internal sealed class SamplingCodegen
         {
             FieldAccessExpr { Target: null or "state" or "board", Path.Length: 1 } field =>
                 !_bindings.ContainsKey(field.Path[0]) && _normalizedWrites.Contains(_slot(field.Path[0])),
-            BitSetExpr or BinaryExpr or CompareExpr or NotExpr => true,
+            BitSetExpr or ReachableExpr or BinaryExpr or CompareExpr or NotExpr => true,
             IfExpr branch => NormalizedResult(branch.ThenExpr) && NormalizedResult(branch.ElseExpr),
             _ => false
         };

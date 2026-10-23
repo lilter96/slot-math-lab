@@ -34,6 +34,7 @@ internal static class CollectionInputs
         RecordExpr e => e.Fields.Select(field => field.Value),
         TupleExpr e => e.Items,
         ProjectExpr e => [e.Value],
+        ReachableExpr e => [e.Adjacency, e.Allowed, e.Seeds],
         BinaryExpr e => [e.Left, e.Right],
         CompareExpr e => [e.Left, e.Right],
         IfExpr e => [e.Condition, e.ThenExpr, e.ElseExpr],

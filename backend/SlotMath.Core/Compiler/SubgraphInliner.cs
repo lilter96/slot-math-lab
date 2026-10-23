@@ -525,6 +525,12 @@ public static class SubgraphInliner
             {
                 Args = set.Args.Select(arg => RewriteExprRefs(arg, prefix)).ToArray()
             },
+            ReachableExpr reachable => reachable with
+            {
+                Adjacency = RewriteExprRefs(reachable.Adjacency, prefix),
+                Allowed = RewriteExprRefs(reachable.Allowed, prefix),
+                Seeds = RewriteExprRefs(reachable.Seeds, prefix)
+            },
             CallExpr call => call with
             {
                 Args = call.Args.Select(arg => RewriteExprRefs(arg, prefix)).ToArray()

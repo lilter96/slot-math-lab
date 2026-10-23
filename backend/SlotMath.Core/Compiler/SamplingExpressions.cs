@@ -302,6 +302,12 @@ internal sealed class SamplingExpressions(
             case NotExpr n:
                 Func<SamplingFrame, ExprValue> operand = compile(n.Expr);
                 return s => ExprValue.Bool(!Truth(operand(s)));
+            case ReachableExpr reachable:
+                Func<SamplingFrame, ExprValue> adjacency = compile(reachable.Adjacency);
+                Func<SamplingFrame, ExprValue> allowed = compile(reachable.Allowed);
+                Func<SamplingFrame, ExprValue> seeds = compile(reachable.Seeds);
+                return frame => ReachabilityData.Evaluate(adjacency(frame), allowed(frame), seeds(frame),
+                    reachable.VertexCount, frame.CancellationToken);
             case BinaryExpr b:
                 Func<SamplingFrame, ExprValue> left = compile(b.Left);
                 Func<SamplingFrame, ExprValue> right = compile(b.Right);

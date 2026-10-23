@@ -33,6 +33,7 @@ public static class ExpressionSimplifier
         private const int MaxDepth = 128;
         private const int MaxLiteralLength = 4096;
         private readonly Dictionary<Expression, int> _keys = new(ReferenceEqualityComparer.Instance);
+        private readonly Dictionary<int, bool> _reusablePredicates = new();
         private readonly Dictionary<string, int> _rules = new(StringComparer.Ordinal);
         private readonly Dictionary<string, int> _signatures = new(StringComparer.Ordinal);
 
@@ -107,6 +108,8 @@ public static class ExpressionSimplifier
                 NotExpr n => [nameof(NotExpr), Child(n.Expr)],
                 CallExpr c => [nameof(CallExpr), c.Function, c.Args.Select(Child).ToArray()],
                 BitSetExpr s => [nameof(BitSetExpr), s.Op, s.Args.Select(Child).ToArray()],
+                ReachableExpr e =>
+                    [nameof(ReachableExpr), e.VertexCount, Child(e.Adjacency), Child(e.Allowed), Child(e.Seeds)],
                 MapExpr m =>
                 [
                     nameof(MapExpr), m.StateKey, Optional(m.Source), m.MaxItems, m.ItemName, m.IndexName, m.ItemType,
@@ -175,6 +178,11 @@ public static class ExpressionSimplifier
                     if (++_assumptionSteps > maxVisits || level > MaxDepth)
                     {
                         _limited = true;
+                        return;
+                    }
+
+                    if (!ReusablePredicate(proven))
+                    {
                         return;
                     }
 
@@ -313,6 +321,13 @@ public static class ExpressionSimplifier
                     {
                         Args = set.Args.Select(Visit).ToArray()
                     }; break;
+                case ReachableExpr reachable:
+                    rewritten = reachable with
+                    {
+                        Adjacency = Visit(reachable.Adjacency),
+                        Allowed = Visit(reachable.Allowed),
+                        Seeds = Visit(reachable.Seeds)
+                    }; break;
                 case MapExpr map:
                     rewritten = map with
                     {
@@ -412,6 +427,7 @@ public static class ExpressionSimplifier
                 NotExpr e => Uses(e.Expr),
                 CallExpr e => e.Args.Any(Uses),
                 BitSetExpr e => e.Args.Any(Uses),
+                ReachableExpr e => Uses(e.Adjacency) || Uses(e.Allowed) || Uses(e.Seeds),
                 ProjectExpr e => Uses(e.Value),
                 RecordExpr e => e.Fields.Any(field => Uses(field.Value)),
                 TupleExpr e => e.Items.Any(Uses),
@@ -423,6 +439,33 @@ public static class ExpressionSimplifier
                                    (e.ValueExpr is not null && Uses(e.ValueExpr)),
                 _ => true
             };
+        }
+
+        private bool ReusablePredicate(Expression expression)
+        {
+            var key = Key(expression);
+            if (_limited)
+            {
+                return false;
+            }
+
+            if (_reusablePredicates.TryGetValue(key, out var cached))
+            {
+                return cached;
+            }
+
+            var cost = ExpressionCost.Compute(expression);
+            if (cost > 10000 || cost > maxVisits - _assumptionSteps)
+            {
+                return _reusablePredicates[key] = false;
+            }
+
+            _assumptionSteps += (int)cost;
+            IrEffects effects = ExpressionIrBuilder.Build(expression, TypeCheckContext.Default).Effects;
+            const IrEffect barriers = IrEffect.Cancellation | IrEffect.Unknown | IrEffect.WriteState |
+                                      IrEffect.Random | IrEffect.Observe;
+            return _reusablePredicates[key] = effects.Known && (effects.Flags & barriers) == 0 &&
+                                              effects.Bindings.Count == 0;
         }
 
         private bool TryLiteral(Expression expression, HashSet<string> bound, out ConstantExpr literal)
@@ -596,7 +639,7 @@ public static class ExpressionSimplifier
                 !bound.Contains(field.Path[0]) && numericFields?.Contains(field.Path[0]) == true,
             ConstantExpr { Kind: ConstantKind.Integer or ConstantKind.Rational } => true,
             BinaryExpr { Op: BinaryOp.Add or BinaryOp.Sub or BinaryOp.Mul or BinaryOp.Div } => true,
-            BitSetExpr => true,
+            BitSetExpr or ReachableExpr => true,
             CallExpr c => c.Function.ToLowerInvariant() is "abs" or "min" or "max" or "floor" or "ceil" or "round"
                 or "length" or "tonumber",
             IfExpr i => NumericResult(i.ThenExpr, bound, depth + 1) && NumericResult(i.ElseExpr, bound, depth + 1),

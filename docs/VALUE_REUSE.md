@@ -149,3 +149,9 @@ require their own complete-round admission measurements.
 
 Frozen Core SHA-256:
 `0db619add9dd8451e4b06d76561c6ad1648275b8863e92085cd1862bfd8cdadd`.
+
+Subsequent R7 integration also guards the expression simplifier's dominated
+predicate assumptions using IR effects. A predicate containing cancellation,
+observations, RNG, unknown operations, writes or iterator bindings cannot be
+erased merely because an identical earlier predicate succeeded. This preserves
+repeated Reachable polling and applies the same rule to other effectful forms.

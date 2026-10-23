@@ -75,6 +75,7 @@ internal enum IrOp
     Not,
     Call,
     BitSet,
+    Reachable,
     If,
     And,
     Or,

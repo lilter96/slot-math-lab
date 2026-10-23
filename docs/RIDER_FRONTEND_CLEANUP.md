@@ -52,3 +52,11 @@ Use the owner's Rider code-style settings and each source file's applicable Edit
 Verified on 2026-10-12 for all **92** graph-studios source/test files: Reformat succeeded at 23:33:26 and Full Cleanup at 23:33:58. The latter ran Optimize Imports and Reformat through Rider's frontend engine. See the maintained [delivery summary](design/graph-studios/DELIVERY.md); generated cleanup manifests and Rider log excerpts remain local in the ignored evidence directory. Both profiles and their scope were captured locally; the previous failed CLI logs remain retained.
 
 JetBrains documents [selected-file/folder cleanup and the built-in profiles](https://www.jetbrains.com/help/rider/Code_Cleanup__Index.html).
+
+The same temporary-solution workflow applies to backend JSON fixtures when
+`dotnet jb cleanupcode` reports them as **Skipping**. A CLI exit code of zero
+does not certify those files. Select only the JSON files in TaskFiles and run
+both built-in profiles in an isolated Rider instance. Verified with Rider
+2026.1.2 on 2026-10-24: two Reachable JSON subgraphs completed both profiles
+with `frontend result = Success`; the log named both JsonFile inputs and no
+backend cleanup files. Keep the profile/scope evidence outside Git.

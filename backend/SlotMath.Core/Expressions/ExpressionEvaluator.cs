@@ -25,6 +25,7 @@ namespace SlotMath.Core.Expressions;
 /// </summary>
 public sealed class EvalContext
 {
+    public CancellationToken CancellationToken { get; init; }
     internal LexicalBinding? Locals { get; init; }
 
     public SettlementContext? Measurement { get; init; }
@@ -46,7 +47,8 @@ public sealed class EvalContext
         Measurement = Measurement,
         DecorationParser = DecorationParser,
         SymbolToNumericValue = SymbolToNumericValue,
-        Locals = new LexicalBinding(name, value, Locals)
+        Locals = new LexicalBinding(name, value, Locals),
+        CancellationToken = CancellationToken
     };
 }
 
@@ -98,6 +100,8 @@ public static class ExactExpressionEvaluator
             RecordExpr record => EvalRecord(record, ctx),
             TupleExpr tuple => EvalTuple(tuple, ctx),
             ProjectExpr project => LexicalValues.Project(Eval(project.Value, ctx), project.Path),
+            ReachableExpr reachable => ReachabilityData.Evaluate(Eval(reachable.Adjacency, ctx),
+                Eval(reachable.Allowed, ctx), Eval(reachable.Seeds, ctx), reachable.VertexCount, ctx.CancellationToken),
             ConstantExpr c => EvalConstant(c),
             FieldAccessExpr f => EvalFieldAccess(f, ctx),
             BinaryExpr b => EvalBinary(b, ctx),
@@ -372,6 +376,7 @@ public static class ExactExpressionEvaluator
                     },
                     DecorationParser = ctx.DecorationParser,
                     Measurement = ctx.Measurement,
+                    CancellationToken = ctx.CancellationToken,
                     Locals = ctx.Locals,
                     SymbolToNumericValue = ctx.SymbolToNumericValue
                 };
@@ -503,6 +508,7 @@ public static class ExactExpressionEvaluator
                     State = iterState,
                     DecorationParser = ctx.DecorationParser,
                     Measurement = ctx.Measurement,
+                    CancellationToken = ctx.CancellationToken,
                     Locals = ctx.Locals,
                     SymbolToNumericValue = ctx.SymbolToNumericValue
                 });
@@ -598,6 +604,7 @@ public static class ExactExpressionEvaluator
                     State = iterState,
                     DecorationParser = ctx.DecorationParser,
                     Measurement = ctx.Measurement,
+                    CancellationToken = ctx.CancellationToken,
                     Locals = ctx.Locals,
                     SymbolToNumericValue = ctx.SymbolToNumericValue
                 }));
@@ -639,6 +646,7 @@ public static class ExactExpressionEvaluator
                     State = iterState,
                     DecorationParser = ctx.DecorationParser,
                     Measurement = ctx.Measurement,
+                    CancellationToken = ctx.CancellationToken,
                     Locals = ctx.Locals,
                     SymbolToNumericValue = ctx.SymbolToNumericValue
                 });

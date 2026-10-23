@@ -122,3 +122,9 @@ state-backed arrays and unproven aliases retain copying.
 
 Frozen Core SHA-256:
 `281e21003ad93169ad8075bdc2083523dc76bf07ed1d4c17f281f1c9dc1bde08`.
+
+The [Reachable primitive](REACHABLE.md) adds an explicit ordered numeric
+operation with a vertex bound and cancellation/error/allocation effects.
+Dominated-predicate admission now checks recursive IR effects before adding
+assumptions; repeated cancellation-bearing predicates remain at their authored
+execution points. The effect check is structural and independent of mechanics.

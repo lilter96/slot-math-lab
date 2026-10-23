@@ -203,6 +203,7 @@ internal static class SamplingMaskState
                 return System.Math.Max(Width(branch.ThenExpr, fields, accumulator, accumulatorWidth, item, index),
                     Width(branch.ElseExpr, fields, accumulator, accumulatorWidth, item, index));
             case BitSetExpr { Args.Length: 1, Op: BitSetOp.Count }: return 7;
+            case ReachableExpr reachable: return reachable.VertexCount is >= 0 and <= 64 ? reachable.VertexCount : 64;
             case BitSetExpr { Args.Length: 2 } set:
                 var left = Width(set.Args[0], fields, accumulator, accumulatorWidth, item, index);
                 var right = Width(set.Args[1], fields, accumulator, accumulatorWidth, item, index);
@@ -282,6 +283,7 @@ internal static class SamplingMaskState
                 Args.Length: 2, Op: BitSetOp.Union or BitSetOp.Intersect or BitSetOp.Except or BitSetOp.Shift
             }:
             case BitSetExpr { Args.Length: 1, Op: BitSetOp.Count }:
+            case ReachableExpr:
                 // Errors occur before assignment; every successful result fits.
                 return true;
             case FoldExpr fold:

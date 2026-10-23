@@ -70,6 +70,8 @@ public static class ExpressionCost
             RecordExpr e => Add(1, Sum(e.Fields.Select(field => field.Value))),
             TupleExpr e => Add(1, Sum(e.Items)),
             ProjectExpr e => Add(1, Child(e.Value)),
+            ReachableExpr e => Add(Add(Add(Child(e.Adjacency), Child(e.Allowed)), Child(e.Seeds)),
+                e.VertexCount is >= 0 and <= ReachabilityData.MaxVertices ? 1 + 2L * e.VertexCount : long.MaxValue),
             NotExpr e => Add(1, Child(e.Expr)),
             BinaryExpr e => Add(1, Add(Child(e.Left), Child(e.Right))),
             CompareExpr e => Add(1, Add(Child(e.Left), Child(e.Right))),

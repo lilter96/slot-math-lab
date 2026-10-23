@@ -68,6 +68,7 @@ public static class ExpressionTypeChecker
             RecordExpr record => InferRecord(record, ctx, errors),
             TupleExpr tuple => InferTuple(tuple, ctx, errors),
             ProjectExpr project => InferProject(project, ctx, errors),
+            ReachableExpr reachable => InferReachable(reachable, ctx, errors),
             ConstantExpr c => InferConstant(c, ctx, errors),
             FieldAccessExpr f => InferFieldAccess(f, ctx, errors),
             BinaryExpr b => InferBinary(b, ctx, errors),
@@ -85,6 +86,36 @@ public static class ExpressionTypeChecker
     }
 
     // ── Constant ─────────────────────────────────────────────────────────
+
+    private static ExprType InferReachable(ReachableExpr expression, TypeCheckContext context,
+        List<TypeCheckError> errors)
+    {
+        ExprType adjacency = Infer(expression.Adjacency, context, errors);
+        ExprType allowed = Infer(expression.Allowed, context, errors);
+        ExprType seeds = Infer(expression.Seeds, context, errors);
+        FieldDescriptor? shape = ExpressionShapes.Infer(expression.Adjacency, context);
+        var valid = true;
+        if (expression.VertexCount is < 0 or > ReachabilityData.MaxVertices)
+        {
+            errors.Add(Error(expression, "Reachable vertexCount must be in 0..64."));
+            valid = false;
+        }
+
+        if (adjacency != ExprType.Array || (shape?.ArrayIsEmpty != true &&
+                                            ExpressionShapes.Item(shape)?.Type != ExprType.Number))
+        {
+            errors.Add(Error(expression, "Reachable adjacency must be an array of Number masks."));
+            valid = false;
+        }
+
+        if (allowed != ExprType.Number || seeds != ExprType.Number)
+        {
+            errors.Add(Error(expression, "Reachable allowed and seeds must be Number masks."));
+            valid = false;
+        }
+
+        return valid ? ExprType.Number : ExprType.Error;
+    }
 
     private static ExprType InferLet(LetExpr let, TypeCheckContext context, List<TypeCheckError> errors)
     {

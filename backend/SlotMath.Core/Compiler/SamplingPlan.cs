@@ -341,6 +341,8 @@ internal sealed class SamplingPlan : ICompiledSampling<Dictionary<string, object
             RecordExpr e => e.Fields.All(field => Variables(field.Value, names)),
             TupleExpr e => e.Items.All(item => Variables(item, names)),
             ProjectExpr e => Variables(e.Value, names),
+            ReachableExpr e => Variables(e.Adjacency, names) && Variables(e.Allowed, names) &&
+                               Variables(e.Seeds, names),
             NotExpr e => Variables(e.Expr, names),
             BinaryExpr e => Variables(e.Left, names) && Variables(e.Right, names),
             CompareExpr e => Variables(e.Left, names) && Variables(e.Right, names),

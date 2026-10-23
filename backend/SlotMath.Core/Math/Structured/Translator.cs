@@ -456,6 +456,11 @@ internal sealed class Translator(TermFactory f)
                 }
 
                 break;
+            case ReachableExpr reachable:
+                Reads(reachable.Adjacency, names);
+                Reads(reachable.Allowed, names);
+                Reads(reachable.Seeds, names);
+                break;
             case AggregateExpr aggregate:
                 if (aggregate.StateKey is { } aggregateKey)
                 {
