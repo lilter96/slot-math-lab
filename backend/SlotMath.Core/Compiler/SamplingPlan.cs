@@ -656,25 +656,14 @@ internal sealed class SamplingPlan : ICompiledSampling<Dictionary<string, object
         {
             case DrawNode draw:
                 DrawWeight[] weights = draw.DrawWeights!;
-                AliasMethod alias = WeightSet.FromIntegers(weights.Select(w => w.Weight).ToArray()).AliasTable;
-                var values = weights.Select(w => (object)(new BigInteger(w.Value) * _scale)).ToArray();
-                ExprValue[] names = weights.Select(w => ExprValue.String(w.OutcomeId)).ToArray();
-                foreach (ExprValue name in names)
+                SamplingDraw boundDraw = _shapes.BindDraw(weights, _scale);
+                foreach (ExprValue name in boundDraw.StateValues)
                 {
                     _expressions.Remember(name);
                 }
 
                 var destination = draw.StateWriteKey is null ? -1 : WriteSlot(draw.StateWriteKey);
-                return (s, rng, _) =>
-                {
-                    var index = alias.Sample(rng);
-                    if (destination >= 0)
-                    {
-                        s.Cells[destination].SetTyped(names[index]);
-                    }
-
-                    return values[index];
-                };
+                return (s, rng, _) => boundDraw.Run(s, rng, destination);
             case ModifyStateNode modify:
                 Func<SamplingFrame, ExprValue>? expression = Expression(modify.ExpressionId);
                 if (expression is null)

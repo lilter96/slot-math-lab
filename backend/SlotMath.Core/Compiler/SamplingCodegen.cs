@@ -5,6 +5,7 @@ using System.Numerics;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Text;
+using System.Text.Json;
 using SlotMath.Core.Expressions;
 using SlotMath.Core.Model;
 using SlotMath.Core.Random;
@@ -76,6 +77,7 @@ internal sealed class SamplingOperands(
 internal sealed class SamplingDraw(AliasMethod alias, ExprValue[] names, object[] values)
 {
     private readonly SamplingCell[] _outcomes = names.Select(SamplingCell.Typed).ToArray();
+    internal IReadOnlyList<ExprValue> StateValues => names;
 
     [MethodImpl(MethodImplOptions.NoInlining)]
     public object Run(SamplingFrame frame, SeededRandom rng, int destination)
@@ -169,7 +171,25 @@ internal sealed class SamplingShapes
     private readonly ConcurrentDictionary<string, Lazy<Delegate>> _code =
         new(StringComparer.Ordinal);
 
+    private readonly ConcurrentDictionary<string, Lazy<SamplingDraw>> _draws = new(StringComparer.Ordinal);
+
     public int Count => _code.Count;
+    internal int BoundDrawCount => _draws.Count;
+
+    internal SamplingDraw BindDraw(DrawWeight[] outcomes, BigInteger scale)
+    {
+        // Intern bound immutable operands as well as generated code. The complete
+        // ordered payload distinguishes equal probabilities with different values.
+        var key = JsonSerializer.Serialize(new
+        {
+            Scale = scale.ToString(CultureInfo.InvariantCulture),
+            Outcomes = outcomes
+        }, JsonOptions.Default);
+        return _draws.GetOrAdd(key, _ => new Lazy<SamplingDraw>(() => new SamplingDraw(
+            WeightSet.FromIntegers(outcomes.Select(outcome => outcome.Weight).ToArray()).AliasTable,
+            outcomes.Select(outcome => ExprValue.String(outcome.OutcomeId)).ToArray(),
+            outcomes.Select(outcome => (object)(new BigInteger(outcome.Value) * scale)).ToArray()))).Value;
+    }
 
     public T Get<T>(string shape, Func<T> compile) where T : Delegate =>
         (T)_code.GetOrAdd(shape, _ => new Lazy<Delegate>(compile)).Value;
@@ -625,10 +645,7 @@ internal sealed class SamplingCodegen
                 case DrawNode draw:
                     generator._shape.Append(draw.StateWriteKey is null ? "draw-value;" : "draw-state;");
                     DrawWeight[] weights = draw.DrawWeights!;
-                    var data = new SamplingDraw(
-                        WeightSet.FromIntegers(weights.Select(w => w.Weight).ToArray()).AliasTable,
-                        weights.Select(w => ExprValue.String(w.OutcomeId)).ToArray(),
-                        weights.Select(w => (object)(new BigInteger(w.Value) * scale)).ToArray());
+                    SamplingDraw data = owner.Shapes.BindDraw(weights, scale);
                     body.Add(Lx.Assign(input,
                         Lx.Call(generator.Operand(nameof(SamplingOperands.Draws), generator._draws, data),
                             typeof(SamplingDraw).GetMethod(nameof(SamplingDraw.Run))!, generator._frame, rng,

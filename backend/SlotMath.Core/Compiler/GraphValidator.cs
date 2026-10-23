@@ -30,6 +30,14 @@ public static class GraphValidator
         TypeCheckContext? typeCheckContext = null)
     {
         var errors = new List<CompileError>();
+        (GraphConfig distributed, IReadOnlyList<CompileError> distributionErrors) =
+            DistributionResolver.Resolve(config);
+        if (distributionErrors.Count > 0)
+        {
+            return distributionErrors;
+        }
+
+        config = distributed;
         try
         {
             EvidenceInput.Validate(config.EvidenceInputs ?? []);
@@ -48,12 +56,20 @@ public static class GraphValidator
         }
         catch (ArgumentException ex)
         {
-            errors.Add(new CompileError { Code = ErrorCodes.InvalidGraph, Message = ex.Message });
+            errors.Add(new CompileError
+            {
+                Code = ErrorCodes.InvalidGraph,
+                Message = ex.Message
+            });
         }
 
         if (config.Nodes.Length == 0)
         {
-            errors.Add(new CompileError { Code = ErrorCodes.InvalidGraph, Message = "Graph has no nodes." });
+            errors.Add(new CompileError
+            {
+                Code = ErrorCodes.InvalidGraph,
+                Message = "Graph has no nodes."
+            });
             return errors;
         }
 
@@ -103,7 +119,12 @@ public static class GraphValidator
         }
         catch (CompilationException ex)
         {
-            errors.Add(new CompileError { NodeId = ex.NodeId, Code = ex.ErrorCode, Message = ex.Message });
+            errors.Add(new CompileError
+            {
+                NodeId = ex.NodeId,
+                Code = ex.ErrorCode,
+                Message = ex.Message
+            });
             return errors;
         }
         catch (JsonException)
@@ -398,7 +419,10 @@ public static class GraphValidator
         var entryNodes = new HashSet<string>(allNodes.Where(n =>
             incoming.ContainsKey(n) && incoming[n].Count == 0));
 
-        return new AdjacencyInfo(incoming, outgoing, allNodes) { EntryNodes = entryNodes };
+        return new AdjacencyInfo(incoming, outgoing, allNodes)
+        {
+            EntryNodes = entryNodes
+        };
     }
 
     private static void ValidateAcyclicityAndReachability(
@@ -776,7 +800,7 @@ public static class GraphValidator
         var exprToNodes = new Dictionary<string, List<string>>();
         foreach (Node node in config.Nodes)
         {
-            foreach ((var _, Port port) in node.Inputs)
+            foreach ((_, Port port) in node.Inputs)
             {
                 if (port.DefaultValue is FieldAccessExpr fa
                     && fa.Target == "state"

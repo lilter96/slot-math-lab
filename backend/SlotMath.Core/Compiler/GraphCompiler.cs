@@ -135,6 +135,15 @@ public sealed class GraphCompiler
             return CompileResult.Failure(subgraphErrors.ToList());
         }
 
+        (GraphConfig distributed, IReadOnlyList<CompileError> distributionErrors) =
+            DistributionResolver.Resolve(config);
+        if (distributionErrors.Count > 0)
+        {
+            return CompileResult.Failure(distributionErrors);
+        }
+
+        config = distributed;
+
         // Phase 0b: Inline subgraph (LibraryNode) references to their atoms.
         // After this the graph contains only primitives, which the validator
         // and builder already handle in full.
@@ -374,6 +383,7 @@ public sealed class GraphCompiler
         // The compiler's state shape: a string-keyed dictionary.
         // Aliased locally to keep signatures readable.
         private readonly GraphConfig _config;
+        private readonly Dictionary<DrawWeight[], WeightSet> _drawWeights = new(ReferenceEqualityComparer.Instance);
         private readonly Dictionary<string, List<Edge>> _incoming;
         private readonly Dictionary<string, Node> _nodeMap;
         private readonly HashSet<string> _observed;
@@ -1027,7 +1037,12 @@ public sealed class GraphCompiler
             if (drawNode.DrawWeights is { Length: > 0 })
             {
                 DrawWeight[]? dw = drawNode.DrawWeights;
-                WeightSet inlineWeights = WeightSet.FromIntegers(Array.ConvertAll(dw, w => w.Weight));
+                if (!_drawWeights.TryGetValue(dw, out WeightSet? inlineWeights))
+                {
+                    inlineWeights = WeightSet.FromIntegers(Array.ConvertAll(dw, w => w.Weight));
+                    _drawWeights.Add(dw, inlineWeights);
+                }
+
                 return BuildDrawSlot(_ => inlineWeights, dw, drawNode.StateWriteKey);
             }
 
