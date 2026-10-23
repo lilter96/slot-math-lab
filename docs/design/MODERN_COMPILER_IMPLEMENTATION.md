@@ -13,7 +13,7 @@ individually verified milestone; it does not complete the overall objective.
 | R3 | Let, typed record/tuple results, expression-valued collections and bounded composition | Lexical scope, exact arithmetic, shape and error-order regressions across execution paths | Backend verified; contracts in docs/LEXICAL_EXPRESSIONS.md and docs/COLLECTION_EXPRESSIONS.md; designer integration remains R18 |
 | R4 | Typed IR with state versions, effects and guarded analyses | IR inspection plus observation/exception/override/cancellation controls | Backend verified; expression regions, continuation memory SSA, verifier and guarded facts; transformations remain R5/R6 |
 | R5 | SCCP, dominance-aware CSE, safe LICM and dead intermediate elimination | Independent equivalence controls and cost measurements; no mechanic dispatch | Backend verified for admitted scalar regions; contracts and measured limits in docs/STATE_PROPAGATION.md and docs/VALUE_REUSE.md; buffer/fusion remains R6 |
-| R6 | Lifetime/alias analysis, buffer reuse and safe collection fusion | Old snapshots, persistent sessions and measurement boundaries remain correct | Pending |
+| R6 | Lifetime/alias analysis, buffer reuse and safe collection fusion | Old snapshots, persistent sessions and measurement boundaries remain correct | Backend verified for private expression containers; bounded large-buffer retention and guarded constant-producer fusion; scope and measurements in docs/COLLECTION_BUFFERS.md |
 | R7 | Bounded Reachable on arbitrary adjacency, including cyclic data graphs | Independent BFS oracle and independent JSON mechanics | Pending |
 | R8 | Scan and stable segmented compaction | Exact prefix oracle, exhaustive small segments and carried attributes | Pending |
 | R9 | Designer repeat over collections and runtime subgraph bindings where needed | Editable JSON, apply/undo, nested scopes and responsive visual acceptance | Pending |
@@ -397,3 +397,29 @@ ranges. [Scalar reuse](../VALUE_REUSE.md) records admission scope, measurements
 and preparation limits. This completes the admitted R5 backend passes; R6–R18,
 including ownership/fusion, new primitives, all-game migrations and designer
 release verification, remain required for the full objective.
+
+R6 adds lazy expression-SSA use counts and allocation origins. Only a private
+Map/Filter container with a unique use can transfer its typed storage. Let
+projections and conditional returns retain ownership only through unique
+paths; state inputs, escaping aliases and nested elements remain borrowed.
+Source normalization, stable compaction and producer-before-consumer errors
+are preserved. Unknown effects and exhausted analysis budgets decline proofs.
+
+A proven constant Map producer can become a virtual source. Cancelable tokens
+and raw getters retain preflight; a total typed producer with an uncancelable
+token can skip its physical loop while advancing the same logical checkpoint
+clock. The arena additionally supports sparse exact-length buckets through
+4,096 under shared caps of 256 buffers and 16,384 element positions, retaining
+the original small-array path and worst-case element capacity.
+
+Final verification passed 409 selected Core cases and five API previews,
+including 28 new controls and all 15 seeded game state cases. All seven touched
+sources passed both Rider profiles, scoped formatting and the Release build;
+the final retention edits repeated both profiles on their two files.
+The 256-element three-Map control fell from 12,423 to 63 B/round. Default
+timing exposed incomplete JIT warmup, retained in the evidence. A separate
+optimized-JIT diagnostic measured 1.254x on that control, while two current
+games remained within overlapping ranges. [Collection buffers](../COLLECTION_BUFFERS.md)
+records domains, negative controls, warmup and cancellation limits. R7–R18
+remain required, including new primitives, all-game migrations and designer
+release verification. No arbitrary throwing Map fusion is claimed.

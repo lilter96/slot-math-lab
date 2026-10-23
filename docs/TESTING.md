@@ -43,3 +43,21 @@ Browser runs use one worker because their real API shares resource and quota bud
 CI rejects `test.only`, keeps the HTML report, failure context/screenshots and retry traces for 14 days, and uploads artifacts even when a job fails. A retry-assisted pass is reported separately from a first-attempt pass in verification records. An affected workflow can be run directly with `npx playwright test e2e/<file>.spec.ts`, narrowed with `--grep` when appropriate. Shared runtime changes also use affected tests during ordinary iterations; a complete local regression is reserved for a substantial integrated feature or an explicit request. Required release verification applies at release time.
 
 Playwright's [official tag/filter mechanism](https://playwright.dev/docs/test-annotations#tag-tests) provides the selection without a second set of test implementations.
+
+## Performance evidence
+
+Separate allocation measurements from throughput admission. Retain every paired
+result and inspect repeat-by-repeat rates and actual completed round counts.
+Discarding one measurement does not prove steady state: R6 controls showed a
+several-fold rate change across later repeats with identical counts/outcomes.
+Increase warmup or report a separate optimized-JIT diagnostic; do not select
+only the favorable timing samples.
+
+For a controlled diagnostic, `DOTNET_TieredCompilation=0` disables background
+tier transitions for both compared processes. Keep project defaults unchanged
+and label the resulting environment explicitly; it does not certify the same
+throughput for default tiered startup. See the primary [.NET compilation
+settings](https://learn.microsoft.com/en-us/dotnet/core/runtime-config/compilation).
+Preserve fixed seeds, logical stream schedules, configuration identity, worker
+count, machine/CPU affinity, warmup and measurement sizes. Compare full outcome
+statistics, histograms and loop/cap evidence before interpreting timing changes.

@@ -326,6 +326,27 @@ internal sealed class SamplingFrame
         }
     }
 
+    // Only a caller that has proved every skipped operation total may use this.
+    // An uncancelable token has no poll side effects, but its logical clock remains.
+    internal bool TryAdvanceCancellationCheckpoints(int count)
+    {
+        if (count < 0 || CancellationToken.CanBeCanceled)
+        {
+            return false;
+        }
+
+        _operations = unchecked(_operations + count);
+        return true;
+    }
+
+    internal static void ValidateArrayAllocationLength(int length)
+    {
+        if (length < 0)
+        {
+            throw new OverflowException("Array dimensions exceeded supported range.");
+        }
+    }
+
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public ExprValue Read(int index, string location)
     {
@@ -384,18 +405,32 @@ internal sealed class SamplingFrame
     };
 }
 
-// Arrays remain distinct and immutable throughout a round. No typed value
-// escapes an unmeasured, stateless runner: state export copies recursively.
-// Bound retained memory; large arrays and unusually large rounds allocate.
+// Arena rentals stay distinct during a round. Compiler-proven transfers of dead
+// private buffers are separate. State export copies recursively; persistence
+// disables the arena. Both retained buffer count and element capacity are bounded.
 internal sealed class SamplingArrayArena
 {
     private const int MaxLength = 64;
+    private const int MaxCachedLength = CollectionInputs.MaxItems;
     private const int MaxBuffers = 256;
+    private const int MaxElements = MaxLength * MaxBuffers;
     private readonly List<ExprValue[]>?[] _buffers = new List<ExprValue[]>?[MaxLength + 1];
     private readonly int[] _cursors = new int[MaxLength + 1];
+    private int _elements;
+    private Dictionary<int, LargeBucket>? _large;
     private int _retained;
 
-    internal void Reset() => Array.Clear(_cursors);
+    internal void Reset()
+    {
+        Array.Clear(_cursors);
+        if (_large is not null)
+        {
+            foreach (LargeBucket bucket in _large.Values)
+            {
+                bucket.Cursor = 0;
+            }
+        }
+    }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal ExprValue[] Rent(int length)
@@ -407,7 +442,7 @@ internal sealed class SamplingArrayArena
 
         if ((uint)length > MaxLength)
         {
-            return new ExprValue[length];
+            return RentLarge(length);
         }
 
         var position = _cursors[length]++;
@@ -418,13 +453,52 @@ internal sealed class SamplingArrayArena
         }
 
         var values = new ExprValue[length];
-        if (_retained < MaxBuffers)
+        if (_retained < MaxBuffers && length <= MaxElements - _elements)
         {
             buffers ??= _buffers[length] = new List<ExprValue[]>(4);
             buffers.Add(values);
             _retained++;
+            _elements += length;
         }
 
         return values;
+    }
+
+    private ExprValue[] RentLarge(int length)
+    {
+        if ((uint)length > MaxCachedLength)
+        {
+            return new ExprValue[length];
+        }
+
+        LargeBucket? bucket = _large?.GetValueOrDefault(length);
+        if (bucket is not null && bucket.Cursor < bucket.Values.Count)
+        {
+            return bucket.Values[bucket.Cursor++];
+        }
+
+        var values = new ExprValue[length];
+        if (_retained < MaxBuffers && length <= MaxElements - _elements)
+        {
+            _large ??= new Dictionary<int, LargeBucket>();
+            if (bucket is null)
+            {
+                bucket = new LargeBucket();
+                _large.Add(length, bucket);
+            }
+
+            bucket.Values.Add(values);
+            bucket.Cursor++;
+            _retained++;
+            _elements += length;
+        }
+
+        return values;
+    }
+
+    private sealed class LargeBucket
+    {
+        internal readonly List<ExprValue[]> Values = [];
+        internal int Cursor;
     }
 }

@@ -28,7 +28,7 @@ Boolean/comparison and finite-set operators) with static cost at least five.
 Their successful results are immutable scalar values. Inferred external shapes
 alone do not establish ownership of array or record results. Packed mask
 outputs are excluded from scalar capture, preserving their representation.
-Array/record ownership and buffer reuse belong to R6.
+[Collection ownership and buffer lowering](COLLECTION_BUFFERS.md) follow in R6.
 
 Only groups with multiple valid uses allocate a local. The analysis charges
 AST work and invalidation scans, limits serialized signature data, and discards
@@ -144,8 +144,8 @@ Cold compile samples were 547.5/552.4 ms before versus 538.0/543.9 ms after
 for Nine Lives, and 578.3/584.2 versus 588.6/590.4 ms for Le Militare. These
 are only two cold observations per version. Tiered native generation occurs
 after the hot threshold, so cold compile time alone does not include all
-preparation work. Further game migrations and R6 buffer/fusion work require
-their own complete-round admission measurements.
+preparation work. R6 collection-buffer lowering is recorded separately; further game migrations
+require their own complete-round admission measurements.
 
 Frozen Core SHA-256:
 `0db619add9dd8451e4b06d76561c6ad1648275b8863e92085cd1862bfd8cdadd`.

@@ -11,6 +11,7 @@ namespace SlotMath.Core.Compiler.Ir;
 /// </summary>
 internal sealed class ExpressionIrBuilder
 {
+    private readonly Dictionary<Expression, List<int>> _collections = new(ReferenceEqualityComparer.Instance);
     private readonly IReadOnlyDictionary<string, ExprValue> _facts;
     private readonly Dictionary<string, ExprValue> _usedGuards = new(StringComparer.Ordinal);
     private int _operation;
@@ -34,7 +35,10 @@ internal sealed class ExpressionIrBuilder
         var scope = new Scope(context);
         IrValue value = builder.Lower(expression, scope, 0);
         return new ExpressionIr(builder.Finish(scope, "root", value),
-            builder._usedGuards.ToFrozenDictionary(StringComparer.Ordinal));
+            builder._usedGuards.ToFrozenDictionary(StringComparer.Ordinal), expression,
+            builder._collections.ToFrozenDictionary(pair => pair.Key,
+                pair => (IReadOnlyList<int>)pair.Value.AsReadOnly(),
+                (IEqualityComparer<Expression>)ReferenceEqualityComparer.Instance));
     }
 
     private IrRegion Finish(Scope scope, string role, IrValue value) => new(++_region, role,
@@ -70,6 +74,22 @@ internal sealed class ExpressionIrBuilder
     }
 
     private IrValue Lower(Expression expression, Scope scope, int depth)
+    {
+        IrValue value = LowerCore(expression, scope, depth);
+        if (expression is MapExpr or FilterExpr)
+        {
+            if (!_collections.TryGetValue(expression, out List<int>? values))
+            {
+                _collections[expression] = values = [];
+            }
+
+            values.Add(value.Id);
+        }
+
+        return value;
+    }
+
+    private IrValue LowerCore(Expression expression, Scope scope, int depth)
     {
         if (depth > 128)
         {

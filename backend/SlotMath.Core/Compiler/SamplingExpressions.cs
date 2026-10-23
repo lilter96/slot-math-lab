@@ -26,7 +26,8 @@ internal sealed class SamplingExpressions(
     SamplingShapes? shapes = null,
     IReadOnlySet<string>? maskFields = null,
     IReadOnlySet<string>? inlineMaskFields = null,
-    CompilerIr? ir = null)
+    CompilerIr? ir = null,
+    bool optimizeCollections = true)
 {
     private static readonly IReadOnlyDictionary<string, ExprValue> None = new Dictionary<string, ExprValue>();
     private readonly IReadOnlyDictionary<string, ExprValue> _constants = constants ?? None;
@@ -40,6 +41,19 @@ internal sealed class SamplingExpressions(
     private readonly SamplingTier _tier = tier ?? SamplingOptions.Tier;
     internal SamplingShapes Shapes { get; } = shapes ?? new SamplingShapes();
     internal CompilerIr? Ir { get; } = ir;
+
+    internal CollectionBufferAnalysis? Buffers(Expression expression)
+    {
+        if (!optimizeCollections)
+        {
+            return null;
+        }
+
+        ExpressionIr? owned = Ir?.Expressions.Values.FirstOrDefault(root => ReferenceEquals(root.Source, expression));
+        ExpressionIr source = owned ?? ExpressionIrBuilder.Build(expression, TypeCheckContext.Default);
+        return source.Collections.Count == 0 ? null : source.Buffers;
+    }
+
     internal bool IsMaskField(string name) => _maskFields.Contains(name);
 
     internal bool IsInlineMaskField(string name) => _inlineMaskFields.Contains(name);

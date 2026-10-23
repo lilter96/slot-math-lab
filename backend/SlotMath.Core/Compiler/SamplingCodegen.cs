@@ -73,6 +73,8 @@ internal sealed class SamplingOperands(
     internal int ReusedScalarEvaluations { get; init; }
     internal int InvariantScalarValues { get; init; }
     internal int EliminatedStateStores { get; init; }
+    internal int ReusedCollectionBuffers { get; init; }
+    internal int FusedCollectionPasses { get; init; }
 }
 
 // Bound data for an ordinary scalar Draw. Sampling preserves its two RNG
@@ -561,10 +563,13 @@ internal sealed class SamplingCodegen
     private readonly List<int> _slots = [];
     private readonly List<string> _texts = [];
     private readonly List<ExprValue> _values = [];
+    private CollectionBufferAnalysis? _buffers;
     private int _eliminatedStateStores;
+    private int _fusedCollectionPasses;
     private int _invariantScalarValues;
     private int _iteration;
     private int _lexicalId;
+    private int _reusedCollectionBuffers;
     private int _reusedScalarEvaluations;
 
     private SamplingSubexpressions? _subexpressions;
@@ -584,14 +589,20 @@ internal sealed class SamplingCodegen
     public static (Func<SamplingFrame, SamplingOperands?, ExprValue> Code, SamplingOperands Operands) CompileValue(
         SamplingExpressions owner, Func<string, int> slot, Expression expression)
     {
-        var generator = new SamplingCodegen(owner, slot);
+        var generator = new SamplingCodegen(owner, slot)
+        {
+            _buffers = owner.Buffers(expression)
+        };
         return generator.Finish<ExprValue>("value:", generator.Value(expression));
     }
 
     public static (Func<SamplingFrame, SamplingOperands?, bool> Code, SamplingOperands Operands) CompileCondition(
         SamplingExpressions owner, Func<string, int> slot, Expression expression)
     {
-        var generator = new SamplingCodegen(owner, slot);
+        var generator = new SamplingCodegen(owner, slot)
+        {
+            _buffers = owner.Buffers(expression)
+        };
         return generator.Finish<bool>("condition:", generator.Condition(expression));
     }
 
@@ -599,7 +610,10 @@ internal sealed class SamplingCodegen
         SamplingExpressions owner, Func<string, int> slot, Expression expression, int destination, bool integer,
         bool inlineMask = false)
     {
-        var generator = new SamplingCodegen(owner, slot);
+        var generator = new SamplingCodegen(owner, slot)
+        {
+            _buffers = owner.Buffers(expression)
+        };
         return generator.Finish<bool>(integer ? "write-integer:" : "write:",
             Lx.Block(generator.Write(expression, destination, integer, inlineMask), Lx.Constant(true)));
     }
@@ -717,6 +731,7 @@ internal sealed class SamplingCodegen
                     }
                     else
                     {
+                        generator._buffers = owner.Buffers(expression);
                         body.Add(generator.Write(expression, destination, modify.OutputKey is null,
                             modify.OutputKey is { } outputKey && owner.IsInlineMaskField(outputKey),
                             reuse.Groups.TryGetValue(modify.Id, out var group) ? group : null,
@@ -786,7 +801,9 @@ internal sealed class SamplingCodegen
     {
         ReusedScalarEvaluations = _reusedScalarEvaluations,
         InvariantScalarValues = _invariantScalarValues,
-        EliminatedStateStores = _eliminatedStateStores
+        EliminatedStateStores = _eliminatedStateStores,
+        ReusedCollectionBuffers = _reusedCollectionBuffers,
+        FusedCollectionPasses = _fusedCollectionPasses
     };
 
     private LxParameter Local(Type type)
@@ -994,9 +1011,24 @@ internal sealed class SamplingCodegen
                 return Iterate(CollectionInputs.Of(fold), fold.ItemName, fold.IndexName, fold.Body, false, fold.Init,
                     fold.AccName);
             case MapExpr map:
-                return Iterate(CollectionInputs.Of(map), map.ItemName, map.IndexName, map.Body, false);
+                if (_buffers?.TryConstantProducer(map, out ExprValue repeated) == true &&
+                    map.Source is MapExpr producer)
+                {
+                    _shape.Append("virtual-map-source;");
+                    _fusedCollectionPasses++;
+                    LxParameter producedLength = Local(typeof(int));
+                    Lx preflight = Iterate(CollectionInputs.Of(producer), producer.ItemName, producer.IndexName,
+                        producer.Body, false, discardValues: true, captureLength: producedLength);
+                    Lx consumer = Iterate(CollectionInputs.Of(map), map.ItemName, map.IndexName, map.Body, false,
+                        virtualItem: repeated, virtualLength: producedLength);
+                    return Lx.Block(preflight, consumer);
+                }
+
+                return Iterate(CollectionInputs.Of(map), map.ItemName, map.IndexName, map.Body, false,
+                    ownerExpression: map);
             case FilterExpr filter:
-                return Iterate(CollectionInputs.Of(filter), filter.ItemName, filter.IndexName, filter.Predicate, true);
+                return Iterate(CollectionInputs.Of(filter), filter.ItemName, filter.IndexName, filter.Predicate, true,
+                    ownerExpression: filter);
             case IfExpr branch:
                 return Form("if", () =>
                 {
@@ -1061,7 +1093,9 @@ internal sealed class SamplingCodegen
     // Frame bindings are still published for interpreted nested forms, and
     // restored even on errors or cancellation.
     private Lx Iterate(CollectionInput input, string itemName, string? indexName, Expression body, bool filter,
-        Expression? init = null, string? accName = null, bool counting = false, Expression? selectedValue = null) =>
+        Expression? init = null, string? accName = null, bool counting = false, Expression? selectedValue = null,
+        Expression? ownerExpression = null, bool discardValues = false, LxParameter? captureLength = null,
+        ExprValue? virtualItem = null, LxParameter? virtualLength = null) =>
         Form(
             (counting ? "count" : init is not null ? "fold" : filter ? "filter" : "map") +
             (indexName is null ? "-item" : "-indexed"), () =>
@@ -1070,7 +1104,7 @@ internal sealed class SamplingCodegen
                 Expression sourceExpression = input.Source ?? StateField(key);
                 var shadowedSource = sourceExpression is FieldAccessExpr { Path.Length: 1 } sourceField &&
                                      _bindings.ContainsKey(sourceField.Path[0]);
-                if (!filter && !counting && init is null && !shadowedSource
+                if (!filter && !counting && !discardValues && virtualItem is null && init is null && !shadowedSource
                     && _owner.TryConstant(sourceExpression,
                         out ExprValue unchanging)
                     && unchanging.ItemsArray is { Length: <= 32 } entries && !unchanging.ContainsSymbols &&
@@ -1086,7 +1120,7 @@ internal sealed class SamplingCodegen
                 var maskFold = init is not null && KnownMask(init) && KnownMask(body, accName, itemName, indexName);
                 _shape.Append(maskFold ? "mask-accumulator;" : "value-accumulator;");
                 Lx? initial = init is null ? null : maskFold ? KnownMaskValue(init) : Value(init);
-                Lx? expressionSource = input.Source is null ? null : Value(input.Source);
+                Lx? expressionSource = input.Source is null || virtualItem is not null ? null : Value(input.Source);
                 LxParameter source = Local(typeof(SamplingCell));
                 LxParameter typedItems = Local(typeof(ExprValue[]));
                 LxParameter element = Local(typeof(ExprValue));
@@ -1108,7 +1142,8 @@ internal sealed class SamplingCodegen
                     return Lx.ArrayAccess(cells, Operand(nameof(SamplingOperands.Slots), _slots, slot));
                 }
 
-                if (input.Source is null && _bindings.TryGetValue(key, out IterationBinding? sourceBinding))
+                if (virtualItem is null && input.Source is null &&
+                    _bindings.TryGetValue(key, out IterationBinding? sourceBinding))
                 {
                     sourceBinding.NeedsFrame = true;
                 }
@@ -1116,7 +1151,12 @@ internal sealed class SamplingCodegen
                 Lx sourceCell;
                 Lx? constantItems = null;
                 var constantLength = -1;
-                if (expressionSource is not null)
+                if (virtualItem is not null)
+                {
+                    _shape.Append("virtual-source;");
+                    sourceCell = Lx.Default(typeof(SamplingCell));
+                }
+                else if (expressionSource is not null)
                 {
                     _shape.Append("expression-source;");
                     sourceCell = Lx.Call(typeof(SamplingCell).GetMethod(nameof(SamplingCell.Typed), Any)!,
@@ -1172,7 +1212,7 @@ internal sealed class SamplingCodegen
                     : new IterationBinding($"acc:{iteration};", name => maskFold
                         ? AccumulatorValue()
                         : Lx.Call(readable, accumulator!, Text(name)), maskFold ? accumulator : null);
-                Lx hasTypedItems = constantItems is not null
+                Lx hasTypedItems = constantItems is not null || virtualItem is not null
                     ? Lx.Constant(true)
                     : Lx.NotEqual(typedItems, Lx.Constant(null, typeof(ExprValue[])));
 
@@ -1182,10 +1222,11 @@ internal sealed class SamplingCodegen
                         Lx.Property(item, nameof(SamplingCell.FilterValue)));
                 }
 
-                var itemBinding = new IterationBinding($"item:{iteration};", name => constantItems is not null
-                    ? element
-                    : Lx.Call(readable,
-                        Lx.Condition(hasTypedItems, element, Lx.Call(item, readValue, Text(name))), Text(name)));
+                var itemBinding = new IterationBinding($"item:{iteration};", name =>
+                    constantItems is not null || virtualItem is not null
+                        ? element
+                        : Lx.Call(readable,
+                            Lx.Condition(hasTypedItems, element, Lx.Call(item, readValue, Text(name))), Text(name)));
                 IterationBinding? indexBinding = indexName is null
                     ? null
                     : new IterationBinding($"index:{iteration};",
@@ -1269,7 +1310,8 @@ internal sealed class SamplingCodegen
                 var publish = itemBinding.NeedsFrame || accBinding?.NeedsFrame == true ||
                               indexBinding?.NeedsFrame == true;
                 _shape.Append(publish ? "published;" : "local;");
-                BlockExpression take = counting ? Lx.Block(selected!, Lx.PostIncrementAssign(count), Lx.Empty()) :
+                BlockExpression take = discardValues ? Lx.Block(selector, Lx.Empty()) :
+                    counting ? Lx.Block(selected!, Lx.PostIncrementAssign(count), Lx.Empty()) :
                     init is not null ? Lx.Block(Lx.Assign(result, selector), Lx.Empty()) : Lx.Block(
                         Lx.Assign(result, filter ? ItemValue() : selector),
                         Lx.Assign(Lx.ArrayAccess(values, count), result),
@@ -1278,12 +1320,15 @@ internal sealed class SamplingCodegen
                 var steps = new List<Lx>
                 {
                     Lx.Call(_frame, checkCancellation),
-                    Lx.IfThenElse(hasTypedItems,
-                        publish
-                            ? Lx.Block(Lx.Assign(element, Lx.ArrayIndex(typedItems, cursor)),
-                                Lx.Assign(item, Lx.Call(typed, element)), Lx.Empty())
-                            : Lx.Block(Lx.Assign(element, Lx.ArrayIndex(typedItems, cursor)), Lx.Empty()),
-                        Lx.Block(Lx.Assign(item, Lx.Call(source, getItem, cursor)), Lx.Empty()))
+                    virtualItem is { } virtualValue
+                        ? Lx.Block(Lx.Assign(element, Literal(virtualValue)),
+                            publish ? Lx.Block(Lx.Assign(item, Lx.Call(typed, element)), Lx.Empty()) : Lx.Empty())
+                        : Lx.IfThenElse(hasTypedItems,
+                            publish
+                                ? Lx.Block(Lx.Assign(element, Lx.ArrayIndex(typedItems, cursor)),
+                                    Lx.Assign(item, Lx.Call(typed, element)), Lx.Empty())
+                                : Lx.Block(Lx.Assign(element, Lx.ArrayIndex(typedItems, cursor)), Lx.Empty()),
+                            Lx.Block(Lx.Assign(item, Lx.Call(source, getItem, cursor)), Lx.Empty()))
                 };
                 if (accCell is not null)
                 {
@@ -1344,7 +1389,15 @@ internal sealed class SamplingCodegen
                     initialize.Add(Lx.Assign(result, initial));
                 }
 
-                if (constantItems is not null)
+                if (virtualItem is not null)
+                {
+                    initialize.Add(Lx.Assign(length, Lx.Call(
+                        typeof(CollectionInputs).GetMethod(nameof(CollectionInputs.CheckCount), Any)!, virtualLength!,
+                        Lx.Convert(Operand(nameof(SamplingOperands.Numbers), _numbers, input.MaxItems ?? -1),
+                            typeof(int)),
+                        Text(input.Location))));
+                }
+                else if (constantItems is not null)
                 {
                     initialize.Add(Lx.Assign(typedItems, constantItems));
                     initialize.Add(Lx.Assign(length, Lx.Constant(constantLength)));
@@ -1417,6 +1470,26 @@ internal sealed class SamplingCodegen
                 }
 
                 Lx execute = publish ? Lx.TryFinally(loop, Lx.Block(restore)) : loop;
+                if (captureLength is not null)
+                {
+                    initialize.Add(Lx.Assign(captureLength, length));
+                }
+
+                if (discardValues)
+                {
+                    _shape.Append("producer-preflight;");
+                    initialize.Add(Lx.Call(typeof(SamplingFrame).GetMethod(
+                        nameof(SamplingFrame.ValidateArrayAllocationLength), Any)!, length));
+                    Lx maySkip = Lx.AndAlso(Lx.NotEqual(typedItems, Lx.Constant(null, typeof(ExprValue[]))),
+                        Lx.AndAlso(Lx.Equal(Lx.ArrayLength(typedItems), length), Lx.Call(_frame,
+                            typeof(SamplingFrame).GetMethod(nameof(SamplingFrame.TryAdvanceCancellationCheckpoints),
+                                Any)!, length)));
+                    initialize.Add(Lx.Assign(cursor, Lx.Constant(0)));
+                    initialize.Add(Lx.IfThen(Lx.Not(maySkip), execute));
+                    initialize.Add(Lx.Call(NumberOf, Lx.Constant(0L)));
+                    return Lx.Block(initialize);
+                }
+
                 if (counting)
                 {
                     initialize.AddRange([
@@ -1435,11 +1508,22 @@ internal sealed class SamplingCodegen
                     return Lx.Block(initialize);
                 }
 
+                var reuseBuffer = virtualItem is null && ownerExpression is not null &&
+                                  _buffers?.CanReuseSource(ownerExpression) == true;
+                Lx allocate = Lx.Call(_frame, typeof(SamplingFrame).GetMethod(nameof(SamplingFrame.NewArray), Any)!,
+                    length);
+                if (reuseBuffer)
+                {
+                    _shape.Append("reuse-private-buffer;");
+                    _reusedCollectionBuffers++;
+                    allocate = Lx.Condition(Lx.NotEqual(typedItems, Lx.Constant(null, typeof(ExprValue[]))), typedItems,
+                        allocate);
+                }
+
                 initialize.AddRange([
                     Lx.Assign(cursor, Lx.Constant(0)), Lx.Assign(count, Lx.Constant(0)),
                     Lx.Assign(symbols, Lx.Constant(false)),
-                    Lx.Assign(values,
-                        Lx.Call(_frame, typeof(SamplingFrame).GetMethod(nameof(SamplingFrame.NewArray), Any)!, length)),
+                    Lx.Assign(values, allocate),
                     execute,
                     Lx.IfThen(Lx.NotEqual(count, length), Lx.Assign(values, Lx.Call(_frame, resize, values, count))),
                     Lx.Call(owned, values, symbols)

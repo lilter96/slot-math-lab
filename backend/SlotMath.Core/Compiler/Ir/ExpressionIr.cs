@@ -1,5 +1,6 @@
 using System.Collections.Frozen;
 using SlotMath.Core.Expressions;
+using SlotMath.Core.Model;
 
 namespace SlotMath.Core.Compiler.Ir;
 
@@ -120,9 +121,22 @@ internal sealed record IrOperation(
     IReadOnlyList<string>? Path = null,
     int? Bound = null);
 
-internal sealed class ExpressionIr(IrRegion root, IReadOnlyDictionary<string, ExprValue> guards)
+internal sealed class ExpressionIr(
+    IrRegion root,
+    IReadOnlyDictionary<string, ExprValue> guards,
+    Expression? source = null,
+    IReadOnlyDictionary<Expression, IReadOnlyList<int>>? collections = null)
 {
+    private CollectionBufferAnalysis? _buffers;
     internal IrRegion Root { get; } = root;
+    internal Expression? Source { get; } = source;
+
+    internal IReadOnlyDictionary<Expression, IReadOnlyList<int>> Collections { get; } = collections ??
+        FrozenDictionary<Expression, IReadOnlyList<int>>.Empty;
+
+    internal CollectionBufferAnalysis Buffers => LazyInitializer.EnsureInitialized(ref _buffers,
+        () => CollectionBufferAnalysis.Build(this));
+
     internal IrEffects Effects => Root.Effects;
     internal IReadOnlyDictionary<string, ExprValue> Guards { get; } = guards;
     internal bool AcceptsOverrides(IEnumerable<string> overriddenFields) => !overriddenFields.Any(Guards.ContainsKey);
