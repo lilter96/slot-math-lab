@@ -1,6 +1,7 @@
 using System.Collections.Concurrent;
 using System.Globalization;
 using System.Numerics;
+using SlotMath.Core.Compiler.Ir;
 using SlotMath.Core.Expressions;
 using SlotMath.Core.Model;
 using SlotMath.Core.Random;
@@ -24,7 +25,8 @@ internal sealed class SamplingExpressions(
     IReadOnlyDictionary<string, ExprValue>? constants = null,
     SamplingShapes? shapes = null,
     IReadOnlySet<string>? maskFields = null,
-    IReadOnlySet<string>? inlineMaskFields = null)
+    IReadOnlySet<string>? inlineMaskFields = null,
+    CompilerIr? ir = null)
 {
     private static readonly IReadOnlyDictionary<string, ExprValue> None = new Dictionary<string, ExprValue>();
     private readonly IReadOnlyDictionary<string, ExprValue> _constants = constants ?? None;
@@ -37,6 +39,7 @@ internal sealed class SamplingExpressions(
 
     private readonly SamplingTier _tier = tier ?? SamplingOptions.Tier;
     internal SamplingShapes Shapes { get; } = shapes ?? new SamplingShapes();
+    internal CompilerIr? Ir { get; } = ir;
     internal bool IsMaskField(string name) => _maskFields.Contains(name);
 
     internal bool IsInlineMaskField(string name) => _inlineMaskFields.Contains(name);

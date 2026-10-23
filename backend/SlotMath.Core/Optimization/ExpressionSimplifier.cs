@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Text.Json;
+using SlotMath.Core.Compiler.Ir;
 using SlotMath.Core.Expressions;
 using SlotMath.Core.Model;
 
@@ -345,6 +346,17 @@ public static class ExpressionSimplifier
                 default: rewritten = expression; break;
             }
 
+            if (rewritten is LetExpr dead && !UsesLocal(dead.Body, dead.Name, 0) && !_limited &&
+                ExpressionCost.Compute(dead.Value) <= 10000)
+            {
+                ExpressionIr initializer = ExpressionIrBuilder.Build(dead.Value, TypeCheckContext.Default);
+                if (initializer.Effects.CanSpeculate && initializer.Effects.Reads.Count == 0 &&
+                    initializer.Effects.Bindings.Count == 0)
+                {
+                    return Changed(expression, dead.Body, "dead-local");
+                }
+            }
+
             if (rewritten is not ConstantExpr && TryLiteral(rewritten, bound, out ConstantExpr literal))
             {
                 return Changed(expression, literal,
@@ -374,6 +386,43 @@ public static class ExpressionSimplifier
             }
 
             return rewritten;
+        }
+
+        private bool UsesLocal(Expression expression, string name, int depth)
+        {
+            if (++_assumptionSteps > maxVisits || depth > MaxDepth)
+            {
+                _limited = true;
+                return true;
+            }
+
+            bool Uses(Expression child)
+            {
+                return UsesLocal(child, name, depth + 1);
+            }
+
+            return expression switch
+            {
+                LocalExpr local => local.Name == name,
+                LetExpr let => Uses(let.Value) || (let.Name != name && Uses(let.Body)),
+                ConstantExpr or FieldAccessExpr => false,
+                BinaryExpr e => Uses(e.Left) || Uses(e.Right),
+                CompareExpr e => Uses(e.Left) || Uses(e.Right),
+                IfExpr e => Uses(e.Condition) || Uses(e.ThenExpr) || Uses(e.ElseExpr),
+                NotExpr e => Uses(e.Expr),
+                CallExpr e => e.Args.Any(Uses),
+                BitSetExpr e => e.Args.Any(Uses),
+                ProjectExpr e => Uses(e.Value),
+                RecordExpr e => e.Fields.Any(field => Uses(field.Value)),
+                TupleExpr e => e.Items.Any(Uses),
+                MapExpr e => (e.Source is not null && Uses(e.Source)) || Uses(e.Body),
+                FilterExpr e => (e.Source is not null && Uses(e.Source)) || Uses(e.Predicate),
+                FoldExpr e => (e.Source is not null && Uses(e.Source)) || Uses(e.Init) || Uses(e.Body),
+                AggregateExpr e => (e.Source is not null && Uses(e.Source)) ||
+                                   (e.Predicate is not null && Uses(e.Predicate)) ||
+                                   (e.ValueExpr is not null && Uses(e.ValueExpr)),
+                _ => true
+            };
         }
 
         private bool TryLiteral(Expression expression, HashSet<string> bound, out ConstantExpr literal)

@@ -121,7 +121,7 @@ internal sealed class SamplingPlan : ICompiledSampling<Dictionary<string, object
         _outgoing = config.Nodes.ToDictionary(n => n.Id,
             n => config.Edges.Where(e => e.SourceNodeId == n.Id).ToArray());
         _expressions = new SamplingExpressions(SlotIndex, constants: constants, shapes: shapes, maskFields: maskFields,
-            inlineMaskFields: SamplingMaskState.InferInline(config, maskFields));
+            inlineMaskFields: SamplingMaskState.InferInline(config, maskFields), ir: Preparation.Ir);
         foreach (DrawNode draw in config.Nodes.OfType<DrawNode>())
         {
             if (draw.WeightVectorExpressionId is not { } vectorId

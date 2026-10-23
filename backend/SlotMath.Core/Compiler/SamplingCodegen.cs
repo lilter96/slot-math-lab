@@ -70,6 +70,9 @@ internal sealed class SamplingOperands(
     public readonly int[] Slots = slots;
     public readonly string[] Texts = texts;
     public readonly ExprValue[] Values = values;
+    internal int ReusedScalarEvaluations { get; init; }
+    internal int InvariantScalarValues { get; init; }
+    internal int EliminatedStateStores { get; init; }
 }
 
 // Bound data for an ordinary scalar Draw. Sampling preserves its two RNG
@@ -536,9 +539,11 @@ internal sealed class SamplingCodegen
         typeof(SamplingExpressions).GetMethod(nameof(SamplingExpressions.Call), Any)!;
 
     private readonly List<ExprValue[]> _arrays = [];
+    private readonly Dictionary<int, LxParameter> _availableScalars = [];
 
     private readonly Dictionary<string, IterationBinding> _bindings = new(StringComparer.Ordinal);
     private readonly List<Func<SamplingFrame, ExprValue>> _closures = [];
+    private readonly Dictionary<int, (LxParameter Value, LxParameter Present)> _deferredStores = [];
     private readonly List<SamplingDraw> _draws = [];
     private readonly LxParameter _frame = Lx.Parameter(typeof(SamplingFrame), "frame");
     private readonly Dictionary<string, (LxParameter Value, int Id)> _lexical = new(StringComparer.Ordinal);
@@ -556,8 +561,11 @@ internal sealed class SamplingCodegen
     private readonly List<int> _slots = [];
     private readonly List<string> _texts = [];
     private readonly List<ExprValue> _values = [];
+    private int _eliminatedStateStores;
+    private int _invariantScalarValues;
     private int _iteration;
     private int _lexicalId;
+    private int _reusedScalarEvaluations;
 
     private SamplingSubexpressions? _subexpressions;
 
@@ -596,13 +604,34 @@ internal sealed class SamplingCodegen
             Lx.Block(generator.Write(expression, destination, integer, inlineMask), Lx.Constant(true)));
     }
 
-    private Lx Write(Expression expression, int destination, bool integer, bool inlineMask = false)
+    private Lx Write(Expression expression, int destination, bool integer, bool inlineMask = false,
+        int? reuseGroup = null, bool deferStore = false)
     {
         inlineMask = inlineMask && !integer && KnownMask(expression);
         _shape.Append(inlineMask ? "write-inline-mask(" : integer ? "write-integer(" : "write(");
         LxParameter result = Local(typeof(ExprValue));
-        BinaryExpression evaluate = Lx.Assign(result,
-            inlineMask ? Lx.Call(NumberOf, Lx.Convert(KnownMaskValue(expression), typeof(long))) : Value(expression));
+        Lx value;
+        if (reuseGroup is { } existing && _availableScalars.TryGetValue(existing, out LxParameter? cached))
+        {
+            _shape.Append("available-scalar:").Append(existing).Append(';');
+            _reusedScalarEvaluations++;
+            value = cached;
+        }
+        else
+        {
+            value = inlineMask
+                ? Lx.Call(NumberOf, Lx.Convert(KnownMaskValue(expression), typeof(long)))
+                : Value(expression);
+            if (reuseGroup is { } group)
+            {
+                _shape.Append("capture-scalar:").Append(group).Append(';');
+                LxParameter captured = Local(typeof(ExprValue));
+                _availableScalars.Add(group, captured);
+                value = Lx.Assign(captured, value);
+            }
+        }
+
+        BinaryExpression evaluate = Lx.Assign(result, value);
         Lx stored = result;
         if (integer)
         {
@@ -610,10 +639,26 @@ internal sealed class SamplingCodegen
                 Lx.Call(result, typeof(ExprValue).GetMethod(nameof(ExprValue.AsInteger))!));
         }
 
-        IndexExpression cell = Lx.ArrayAccess(Lx.Field(_frame, nameof(SamplingFrame.Cells)),
-            Operand(nameof(SamplingOperands.Slots), _slots, destination));
-        MethodCallExpression write = Lx.Call(cell, typeof(SamplingCell).GetMethod(nameof(SamplingCell.SetTyped))!,
-            stored);
+        Lx write;
+        if (deferStore)
+        {
+            if (!_deferredStores.TryGetValue(destination, out (LxParameter Value, LxParameter Present) pending))
+            {
+                pending = (Local(typeof(ExprValue)), Local(typeof(bool)));
+                _deferredStores.Add(destination, pending);
+            }
+
+            _shape.Append("deferred-write:").Append(destination).Append(';');
+            write = Lx.Block(Lx.Assign(pending.Value, stored), Lx.Assign(pending.Present, Lx.Constant(true)),
+                Lx.Empty());
+        }
+        else
+        {
+            IndexExpression cell = Lx.ArrayAccess(Lx.Field(_frame, nameof(SamplingFrame.Cells)),
+                Operand(nameof(SamplingOperands.Slots), _slots, destination));
+            write = Lx.Call(cell, typeof(SamplingCell).GetMethod(nameof(SamplingCell.SetTyped))!, stored);
+        }
+
         if (integer || ReadableResult(expression))
         {
             _readableWrites.Add(destination);
@@ -635,6 +680,10 @@ internal sealed class SamplingCodegen
             Func<DrawNode, SamplingDraw>? bindDraw = null)
     {
         var generator = new SamplingCodegen(owner, slot, true);
+        var reuse = ScalarReusePlan.Build(nodes, expressions, owner.Ir,
+            admit: node => node.OutputKey is null || !owner.IsInlineMaskField(node.OutputKey));
+        var deferred = DeferredStorePlan.Build(nodes, expressions, owner.Ir);
+        generator._eliminatedStateStores = deferred.EliminatedStores;
         ParameterExpression rng = Lx.Parameter(typeof(SeededRandom), "rng");
         ParameterExpression input = Lx.Parameter(typeof(object), "input");
         var body = new List<Lx>();
@@ -669,7 +718,9 @@ internal sealed class SamplingCodegen
                     else
                     {
                         body.Add(generator.Write(expression, destination, modify.OutputKey is null,
-                            modify.OutputKey is { } outputKey && owner.IsInlineMaskField(outputKey)));
+                            modify.OutputKey is { } outputKey && owner.IsInlineMaskField(outputKey),
+                            reuse.Groups.TryGetValue(modify.Id, out var group) ? group : null,
+                            deferred.Fields.Contains(modify.OutputKey ?? "__modified__")));
                     }
 
                     break;
@@ -696,10 +747,28 @@ internal sealed class SamplingCodegen
         }
 
         body.Add(discardOutput ? Lx.Constant(null, typeof(object)) : input);
+        Lx execute = Lx.Block(body);
+        if (generator._deferredStores.Count != 0)
+        {
+            var initialize = new List<Lx>();
+            var publish = new List<Lx>();
+            foreach ((var destination, (LxParameter Value, LxParameter Present) pending) in generator._deferredStores)
+            {
+                initialize.Add(Lx.Assign(pending.Present, Lx.Constant(false)));
+                IndexExpression cell = Lx.ArrayAccess(Lx.Field(generator._frame, nameof(SamplingFrame.Cells)),
+                    generator.Operand(nameof(SamplingOperands.Slots), generator._slots, destination));
+                publish.Add(Lx.IfThen(pending.Present,
+                    Lx.Call(cell, typeof(SamplingCell).GetMethod(nameof(SamplingCell.SetTyped))!, pending.Value)));
+            }
+
+            initialize.Add(Lx.TryFinally(execute, Lx.Block(publish)));
+            execute = Lx.Block(initialize);
+        }
+
         Func<SamplingFrame, SamplingOperands?, SeededRandom, object?, object?> code = owner.Shapes.Get(
             (discardOutput ? "run-null:" : "run:") + generator._shape, () => Lx
                 .Lambda<Func<SamplingFrame, SamplingOperands?, SeededRandom, object?, object?>>(
-                    Lx.Block(generator._locals, body), generator._frame, generator._operands, rng, input).Compile());
+                    Lx.Block(generator._locals, execute), generator._frame, generator._operands, rng, input).Compile());
         return (code, generator.Operands());
     }
 
@@ -713,7 +782,12 @@ internal sealed class SamplingCodegen
 
     private SamplingOperands Operands() => new([.. _slots], [.. _texts], [.. _paths], [.. _numbers], [.. _values],
         [.. _arrays],
-        [.. _draws], [.. _closures], _owner);
+        [.. _draws], [.. _closures], _owner)
+    {
+        ReusedScalarEvaluations = _reusedScalarEvaluations,
+        InvariantScalarValues = _invariantScalarValues,
+        EliminatedStateStores = _eliminatedStateStores
+    };
 
     private LxParameter Local(Type type)
     {
@@ -1134,7 +1208,8 @@ internal sealed class SamplingCodegen
                 Lx selector;
                 Lx? selected = null;
                 SamplingSubexpressions? parentSubexpressions = _subexpressions;
-                var selectorSubexpressions = SamplingSubexpressions.Create(body, Local);
+                var selectorSubexpressions = SamplingSubexpressions.Create(body, Local,
+                    new[] { itemName, indexName, accName }.OfType<string>());
                 _subexpressions = selectorSubexpressions;
                 try
                 {
@@ -1258,6 +1333,12 @@ internal sealed class SamplingCodegen
 
                 restore.Add(Lx.Empty());
                 var initialize = new List<Lx>();
+                if (selectorSubexpressions is not null)
+                {
+                    initialize.AddRange(selectorSubexpressions.ResetInvariants());
+                    _invariantScalarValues += selectorSubexpressions.InvariantCount;
+                }
+
                 if (initial is not null)
                 {
                     initialize.Add(Lx.Assign(result, initial));

@@ -115,8 +115,9 @@ are not a precise cost model; these runs show a preparation cost that later
 passes must justify, rather than a claimed speedup. The stage adds no IR
 interpretation to the spin loop. The subsequent memory stage is recorded in
 [the memory SSA contract](MEMORY_SSA.md). The first transformation is
-[conditional state constant propagation](STATE_PROPAGATION.md); CSE, LICM and
-dead intermediate elimination remain required work.
+[conditional state constant propagation](STATE_PROPAGATION.md), followed by
+[scalar value reuse, lazy invariants and intermediate-store elimination](VALUE_REUSE.md).
+Array ownership and collection fusion remain R6 work.
 
 Frozen Core SHA-256:
 `281e21003ad93169ad8075bdc2083523dc76bf07ed1d4c17f281f1c9dc1bde08`.

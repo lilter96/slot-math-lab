@@ -64,10 +64,12 @@ rewriting. Exhaustion discards all partial rewrites. Numeric and string fact
 size limits keep retained values bounded. No graph is dispatched by a game,
 mechanic name or authored layout.
 
-This stage performs no CSE, LICM or dead-store elimination. Observable state
-writes and cancellation checkpoints are retained. Those remaining R5 passes
-must prove dominance, effect compatibility and observation/exception behavior
-before deleting or relocating work. R6 buffer/fusion work remains separate.
+This SCCP transformation itself performs no CSE, LICM or dead-store
+elimination. Logical state writes and cancellation checkpoints are retained.
+The following [scalar reuse stage](VALUE_REUSE.md) implements admitted
+value reuse, lazy collection invariants, dead lexical values and deferred
+physical stores with observation/exception controls. R6 buffer/fusion work
+remains separate.
 
 ## Regression controls
 

@@ -12,7 +12,7 @@ individually verified milestone; it does not complete the overall objective.
 | R2 | Ordered DrawMany, including explicit mixed-table schedules | Scalar RNG transcript, following Draw, cancellation, snapshots and observations | Backend verified; public contract docs/DRAW_MANY.md; dependency-aware migrations remain R17 |
 | R3 | Let, typed record/tuple results, expression-valued collections and bounded composition | Lexical scope, exact arithmetic, shape and error-order regressions across execution paths | Backend verified; contracts in docs/LEXICAL_EXPRESSIONS.md and docs/COLLECTION_EXPRESSIONS.md; designer integration remains R18 |
 | R4 | Typed IR with state versions, effects and guarded analyses | IR inspection plus observation/exception/override/cancellation controls | Backend verified; expression regions, continuation memory SSA, verifier and guarded facts; transformations remain R5/R6 |
-| R5 | SCCP, dominance-aware CSE, safe LICM and dead intermediate elimination | Independent equivalence controls and cost measurements; no mechanic dispatch | Partial: scalar conditional state propagation verified; CSE, LICM and dead intermediate elimination remain |
+| R5 | SCCP, dominance-aware CSE, safe LICM and dead intermediate elimination | Independent equivalence controls and cost measurements; no mechanic dispatch | Backend verified for admitted scalar regions; contracts and measured limits in docs/STATE_PROPAGATION.md and docs/VALUE_REUSE.md; buffer/fusion remains R6 |
 | R6 | Lifetime/alias analysis, buffer reuse and safe collection fusion | Old snapshots, persistent sessions and measurement boundaries remain correct | Pending |
 | R7 | Bounded Reachable on arbitrary adjacency, including cyclic data graphs | Independent BFS oracle and independent JSON mechanics | Pending |
 | R8 | Scan and stable segmented compaction | Exact prefix oracle, exhaustive small segments and carried attributes | Pending |
@@ -369,5 +369,31 @@ recorded run; branch measurements varied enough to change the apparent sign
 of the effect. Nine Lives and Le Militare measured near parity within overlapping
 ranges, with additional preparation cost.
 [The propagation contract](../STATE_PROPAGATION.md) records the controls and
-limits. This completes only the SCCP part of R5; CSE, LICM, dead intermediate
-elimination and R6–R18 remain required.
+limits. This completes the SCCP part of R5; the following stage supplies scalar
+reuse and intermediate elimination. R6–R18 remain required.
+
+R5 scalar-reuse stage consumes owned expression/effect IR to number successful
+values in straight continuations. Complete write footprints invalidate dependent
+values; RNG, observations, unknown effects and scoped iteration block reuse.
+Packed mask outputs retain their representation. Native collection loops can
+retain a proven invariant scalar lazily, resetting at collection invocation
+rather than element boundaries. A bounded lexical-use analysis removes only
+unused total Let initializers.
+
+Repeated physical stores can be deferred only for keys never read inside an
+admitted run. A generated finally publishes the latest completed stored value
+on success, evaluation failure or cancellation. Original eager evaluations,
+logical state fields and checkpoints remain observable. First-write failures,
+legacy truncation, packed masks and Draw overwrites have independent controls.
+No game names or authored mechanic patterns select behavior.
+
+The stage passed 381 selected Core cases and five API preview cases, including
+29 new controls and all 15 current-game seeded full-state cases. All eight
+touched C# files passed both Rider profiles, scoped formatting and the Release
+build. ABBA controls measured 2.656x on repeated scalar work and 1.233x on a
+64-item invariant Map round, with unchanged statistics and allocations. Store
+controls and two current paid-round games stayed near parity within overlapping
+ranges. [Scalar reuse](../VALUE_REUSE.md) records admission scope, measurements
+and preparation limits. This completes the admitted R5 backend passes; R6–R18,
+including ownership/fusion, new primitives, all-game migrations and designer
+release verification, remain required for the full objective.
