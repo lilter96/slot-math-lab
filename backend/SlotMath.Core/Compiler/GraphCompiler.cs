@@ -389,6 +389,7 @@ public sealed class GraphCompiler
         private readonly HashSet<string> _observed;
         private readonly Dictionary<string, List<Edge>> _outgoing;
         private readonly PluginHost? _pluginHost;
+        private readonly ExactWeightVectorCache _weightVectors = new();
 
         private readonly decimal _winScaleDecimal;
 
@@ -1022,6 +1023,18 @@ public sealed class GraphCompiler
 
         private Slot<Dictionary<string, object?>, object?> CompileDraw(DrawNode drawNode)
         {
+            if (drawNode.WeightVectorExpressionId is { } vectorId)
+            {
+                Expression vector = _config.Expressions![vectorId];
+                DrawWeight[] outcomes = drawNode.DrawWeights!;
+                return BuildDrawSlot(state => _weightVectors.Get(
+                        ExactExpressionEvaluator.Evaluate(vector, new EvalContext
+                        {
+                            State = state
+                        }), outcomes.Length),
+                    outcomes, drawNode.StateWriteKey);
+            }
+
             if (drawNode.BoundDistributions is { } family)
             {
                 Expression selector = _config.Expressions![drawNode.DistributionIndexExpressionId!];

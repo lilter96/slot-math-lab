@@ -74,15 +74,28 @@ internal sealed class SamplingOperands(
 // operations and publishes the same typed outcome and boxed value as the
 // interpreted plan. Keeping this body shared avoids copying the PRNG into
 // every instruction of a generated straight run.
-internal sealed class SamplingDraw(AliasMethod alias, ExprValue[] names, object[] values)
+internal sealed class SamplingDraw(AliasMethod? alias, ExprValue[] names, object[] values)
 {
     private readonly SamplingCell[] _outcomes = names.Select(SamplingCell.Typed).ToArray();
     internal IReadOnlyList<ExprValue> StateValues => names;
+    internal SamplingDraw WithAlias(AliasMethod prepared) => new(prepared, names, values);
 
     [MethodImpl(MethodImplOptions.NoInlining)]
     public object Run(SamplingFrame frame, SeededRandom rng, int destination)
     {
-        var index = alias.Sample(rng);
+        var index = alias!.Sample(rng);
+        if (destination >= 0)
+        {
+            frame.Cells[destination] = _outcomes[index];
+        }
+
+        return values[index];
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    internal object RunWeighted(SamplingFrame frame, SeededRandom rng, int destination, AliasMethod selected)
+    {
+        var index = selected.Sample(rng);
         if (destination >= 0)
         {
             frame.Cells[destination] = _outcomes[index];
@@ -172,21 +185,25 @@ internal sealed class SamplingShapes
         new(StringComparer.Ordinal);
 
     private readonly ConcurrentDictionary<string, Lazy<SamplingDraw>> _draws = new(StringComparer.Ordinal);
+    internal ExactWeightVectorCache WeightVectors { get; } = new();
 
     public int Count => _code.Count;
     internal int BoundDrawCount => _draws.Count;
 
-    internal SamplingDraw BindDraw(DrawWeight[] outcomes, BigInteger scale)
+    internal SamplingDraw BindDraw(DrawWeight[] outcomes, BigInteger scale, bool dynamicWeights = false)
     {
         // Intern bound immutable operands as well as generated code. The complete
         // ordered payload distinguishes equal probabilities with different values.
         var key = JsonSerializer.Serialize(new
         {
             Scale = scale.ToString(CultureInfo.InvariantCulture),
+            DynamicWeights = dynamicWeights,
             Outcomes = outcomes
         }, JsonOptions.Default);
         return _draws.GetOrAdd(key, _ => new Lazy<SamplingDraw>(() => new SamplingDraw(
-            WeightSet.FromIntegers(outcomes.Select(outcome => outcome.Weight).ToArray()).AliasTable,
+            dynamicWeights
+                ? null
+                : WeightSet.FromIntegers(outcomes.Select(outcome => outcome.Weight).ToArray()).AliasTable,
             outcomes.Select(DrawData.StateValue).ToArray(),
             outcomes.Select(outcome => (object)(new BigInteger(outcome.Value) * scale)).ToArray()))).Value;
     }
@@ -601,7 +618,8 @@ internal sealed class SamplingCodegen
     public static (Func<SamplingFrame, SamplingOperands?, SeededRandom, object?, object?> Code,
         SamplingOperands Operands) CompileRun(
             SamplingExpressions owner, Func<string, int> slot, IReadOnlyList<Node> nodes,
-            IReadOnlyDictionary<string, Expression> expressions, BigInteger scale, bool discardOutput = false)
+            IReadOnlyDictionary<string, Expression> expressions, BigInteger scale, bool discardOutput = false,
+            Func<DrawNode, SamplingDraw>? bindDraw = null)
     {
         var generator = new SamplingCodegen(owner, slot, true);
         ParameterExpression rng = Lx.Parameter(typeof(SeededRandom), "rng");
@@ -645,7 +663,7 @@ internal sealed class SamplingCodegen
                 case DrawNode draw:
                     generator._shape.Append(draw.StateWriteKey is null ? "draw-value;" : "draw-state;");
                     DrawWeight[] weights = draw.DrawWeights!;
-                    SamplingDraw data = owner.Shapes.BindDraw(weights, scale);
+                    SamplingDraw data = bindDraw?.Invoke(draw) ?? owner.Shapes.BindDraw(weights, scale);
                     body.Add(Lx.Assign(input,
                         Lx.Call(generator.Operand(nameof(SamplingOperands.Draws), generator._draws, data),
                             typeof(SamplingDraw).GetMethod(nameof(SamplingDraw.Run))!, generator._frame, rng,

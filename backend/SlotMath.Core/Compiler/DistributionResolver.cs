@@ -128,9 +128,10 @@ internal static class DistributionResolver
 
                 if (draw.DistributionIds is { } ids)
                 {
-                    if (draw.DistributionId is not null || ids.Length is 0 or > MaxFamilyMembers
-                                                        || string.IsNullOrWhiteSpace(
-                                                            draw.DistributionIndexExpressionId))
+                    if (draw.WeightVectorExpressionId is not null || draw.DistributionId is not null ||
+                        ids.Length is 0 or > MaxFamilyMembers
+                        || string.IsNullOrWhiteSpace(
+                            draw.DistributionIndexExpressionId))
                     {
                         Error("A categorical family requires 1..256 asset IDs and exactly one index expression.",
                             draw.Id);

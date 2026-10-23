@@ -86,6 +86,7 @@ internal sealed class SamplingPlan : ICompiledSampling<Dictionary<string, object
     private readonly IReadOnlyList<MeasurementDefinition> _measurements;
     private readonly Dictionary<string, Node> _nodes;
     private readonly Dictionary<string, Edge[]> _outgoing;
+    private readonly Dictionary<string, SamplingDraw> _preparedVectors = new(StringComparer.Ordinal);
     private readonly Func<SamplingFrame, SeededRandom, BigInteger> _run;
     private readonly BigInteger _scale;
     private readonly SamplingShapes _shapes;
@@ -117,6 +118,26 @@ internal sealed class SamplingPlan : ICompiledSampling<Dictionary<string, object
             n => config.Edges.Where(e => e.SourceNodeId == n.Id).ToArray());
         _expressions = new SamplingExpressions(SlotIndex, constants: constants, shapes: shapes, maskFields: maskFields,
             inlineMaskFields: SamplingMaskState.InferInline(config, maskFields));
+        foreach (DrawNode draw in config.Nodes.OfType<DrawNode>())
+        {
+            if (draw.WeightVectorExpressionId is not { } vectorId
+                || !_expressions.TryConstant(config.Expressions![vectorId], out ExprValue immutableVector))
+            {
+                continue;
+            }
+
+            try
+            {
+                DrawWeight[] outcomes = draw.DrawWeights!;
+                AliasMethod alias = shapes.WeightVectors.Get(immutableVector, outcomes.Length).AliasTable;
+                _preparedVectors.Add(draw.Id, shapes.BindDraw(outcomes, scale, true).WithAlias(alias));
+            }
+            catch (ExpressionEvaluationException)
+            {
+                // A failing immutable operand must still fail only when its Draw executes.
+            }
+        }
+
         for (var i = 0; i < measurements.Count; i++)
         {
             _measurementExpressions[i] = new MeasurementBinding<SamplingFrame>(
@@ -436,8 +457,15 @@ internal sealed class SamplingPlan : ICompiledSampling<Dictionary<string, object
                     modify.OutputKey is { } key && _expressions.IsInlineMaskField(key)), output, null, null);
     }
 
-    private static bool StraightNode(Node node) => node is ModifyStateNode
-        or DrawNode { BoundDistributions: null };
+    private bool StraightNode(Node node) => node is ModifyStateNode
+                                            || (node is DrawNode { BoundDistributions: null } draw
+                                                && (draw.WeightVectorExpressionId is null ||
+                                                    _preparedVectors.ContainsKey(draw.Id)));
+
+    private SamplingDraw BindScalarDraw(DrawNode draw) =>
+        _preparedVectors.TryGetValue(draw.Id, out SamplingDraw? prepared)
+            ? prepared
+            : _shapes.BindDraw(draw.DrawWeights!, _scale);
 
     private Chain CompileChain(string id, string? sink)
     {
@@ -592,7 +620,8 @@ internal sealed class SamplingPlan : ICompiledSampling<Dictionary<string, object
             }
 
             SamplingRunDelegate native =
-                _expressions.BindRun(runNodes, _config.Expressions!, _scale, Interpreted, discardOutput);
+                _expressions.BindRun(runNodes, _config.Expressions!, _scale, Interpreted, discardOutput,
+                    BindScalarDraw);
             chain = tail is null ? native.Invoke : (s, rng, input) => tail(s, rng, native.Invoke(s, rng, input));
         }
         else
@@ -658,6 +687,35 @@ internal sealed class SamplingPlan : ICompiledSampling<Dictionary<string, object
     {
         switch (node)
         {
+            case DrawNode { WeightVectorExpressionId: { } vectorId } draw:
+            {
+                DrawWeight[] vectorOutcomes = draw.DrawWeights!;
+                if (_preparedVectors.TryGetValue(draw.Id, out SamplingDraw? prepared))
+                {
+                    var preparedDestination = draw.StateWriteKey is null ? -1 : WriteSlot(draw.StateWriteKey);
+                    foreach (ExprValue value in prepared.StateValues)
+                    {
+                        _expressions.Remember(value);
+                    }
+
+                    return (frame, rng, _) => prepared.Run(frame, rng, preparedDestination);
+                }
+
+                SamplingDraw vectorData = _shapes.BindDraw(vectorOutcomes, _scale, true);
+                foreach (ExprValue name in vectorData.StateValues)
+                {
+                    _expressions.Remember(name);
+                }
+
+                Func<SamplingFrame, ExprValue> vector = Expression(vectorId)!;
+                var vectorDestination = draw.StateWriteKey is null ? -1 : WriteSlot(draw.StateWriteKey);
+                return (frame, rng, _) =>
+                {
+                    WeightSet selectedWeights =
+                        _shapes.WeightVectors.Get(vector(frame), vectorOutcomes.Length, frame.CancellationToken);
+                    return vectorData.RunWeighted(frame, rng, vectorDestination, selectedWeights.AliasTable);
+                };
+            }
             case DrawNode { BoundDistributions: { } family } draw:
             {
                 SamplingDraw[] choices = family.Select(row => _shapes.BindDraw(row, _scale)).ToArray();

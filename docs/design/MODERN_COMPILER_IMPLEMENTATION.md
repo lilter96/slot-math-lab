@@ -8,7 +8,7 @@ individually verified milestone; it does not complete the overall objective.
 
 | ID | Required result | Completion evidence | Current state |
 | --- | --- | --- | --- |
-| R1 | Immutable distribution assets, typed outcomes, finite families and bounded dynamic weight vectors | JSON/reference/compiled/exact agreement, identity and override regressions | Static references, typed outcomes and finite families verified; dynamic vectors pending |
+| R1 | Immutable distribution assets, typed outcomes, finite families and bounded dynamic weight vectors | JSON/reference/compiled/exact agreement, identity and override regressions | Backend verified; public contract in docs/DISTRIBUTIONS.md; UI/migrations remain R18/R17 |
 | R2 | Ordered DrawMany, including explicit mixed-table schedules | Scalar RNG transcript, following Draw, cancellation, snapshots and observations | Pending |
 | R3 | Let, typed record/tuple results, expression-valued collections and bounded composition | Lexical scope, exact arithmetic, shape and error-order regressions across execution paths | Pending |
 | R4 | Typed IR with state versions, effects and guarded analyses | IR inspection plus observation/exception/override/cancellation controls | Pending |
@@ -130,3 +130,67 @@ for the final test additions. Cleanup diffs were reviewed; existing third-party
 Roslyn provider warnings remain in local logs. No frontend or integration suite
 was needed for this kernel/model milestone. It adds capability; no new
 rounds/second claim is made before full-round performance comparisons.
+
+R1 weight-vector contract: `Draw.weightVectorExpressionId` names an expression
+returning a homogeneous Number array with exactly one entry per fixed outcome.
+It may use inline outcomes or `distributionId`; it is mutually exclusive with
+the legacy scalar weight expression and family selection. The vector replaces
+the table's static weights, so inline zero placeholders are allowed. Its
+length is at most 4,096, weights are nonnegative and at least one is positive.
+Position order and zeros are retained.
+
+The bounded converter retains exact rational masses by taking a common
+denominator without proportional normalization. Limits: 8,192 combined bits
+per input number, 65,536 total input bits, 16,384 denominator bits and 262,144
+projected scaled coefficient bits. Validation and resource failure occur before
+the Draw consumes RNG or writes state. The numeric cache is program-scoped,
+thread-safe and bounded by 64 entries, 8,192 retained scalar positions and
+1,048,576 charged numeric bits. Keys own snapshots; lookups compare values,
+including rational numerators and denominators. Valid oversized cache entries
+are evaluated without retention. These are charged numeric bounds, not a
+claim about exact total CLR heap size.
+
+The reference interpreter evaluates the current vector; compiled sampling
+uses bound output data and the numeric alias cache. Proven immutable default
+vectors are partially evaluated, with the existing initial-override fallback
+restoring the general path. Failed partial evaluation retains runtime errors.
+Prepared vectors participate in the same straight-run lowering and generated
+code shape as ordinary static Draw; there is no retained dynamic getter on
+that path. Binding maps are private compilation data and never source syntax.
+Structured exact evaluation supports constant vectors and up to 64 finite
+vector values through the existing `Index`/`Sel` IR, preserving the selector,
+state and payout joint law. Nonfinite or over-budget support explicitly
+declines. The legacy scalar expression behavior remains unchanged.
+
+The final vector milestone passed a 142-case affected Core selection, followed
+by 13 sampling-tier equivalence cases after review of the required cleanup
+diffs, plus five preview API cases. The Core cases include 37 new numeric and
+compiler vector regressions. Initial failures in three tests came from assuming
+an existing runner re-imports externally mutated initial arrays every round;
+the corrected tests import the changed input into a new runner and separately
+verify a graph changing its weights between Draws. Pure cache-key mutation
+controls passed throughout. Failed evidence remains local. Final Release build,
+scoped format and both Rider profiles completed for all 13 touched C# files,
+with final-file passes repeated after edits. No broad integration suite ran.
+
+A same-binary 128-outcome control measured static Draw, immutable vector and
+runtime-rebound vector in mirrored order. All 18 complete statistical outputs
+matched, including histograms and loop evidence. Each process used CPU 2,
+one worker, 1,048,576 rounds, 131,072 warmup rounds and three timed repetitions,
+discarding the first. The shared host used .NET 10.0.13.
+
+| Path | Median rounds/s | Retained range | Bytes/round |
+| --- | ---: | ---: | ---: |
+| Static Draw | 4,843,118 | 4,822,272–4,867,704 | 12.79 |
+| Prepared immutable vector | 4,877,239 | 4,843,692–4,918,179 | 12.79 |
+| Runtime vector plus one equivalent state write | 642,013 | 615,846–664,904 | 44.79 |
+
+The prepared/static ratio is 1.007 and their ranges overlap. The prepared/runtime
+ratio is 7.60, including the additional runtime state write, so it does not
+isolate cache performance or imply a game-wide speedup. An earlier lowering
+kept a dynamic chain around already prepared operands and measured 10.7%
+below the matched static control. That negative control prompted reuse of the
+ordinary Draw code shape; both sets of reports remain under
+`/tmp/modern-primitives-evidence/vector-benchmark{,-v2}/`. Remaining runtime
+allocation and its numeric-cache traversal are candidates for R6, not evidence
+of a zero-allocation runtime-vector path.

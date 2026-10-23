@@ -2,6 +2,7 @@ using System.Text.Json;
 using SlotMath.Core.Expressions;
 using SlotMath.Core.Model;
 using SlotMath.Core.Plugins;
+using SlotMath.Core.Random;
 
 namespace SlotMath.Core.Compiler;
 
@@ -40,6 +41,23 @@ public static class GraphValidator
         config = distributed;
         foreach (DrawNode draw in config.Nodes.OfType<DrawNode>())
         {
+            if (draw.WeightVectorExpressionId is not null
+                && (draw.WeightExpressionId is not null || draw.BoundDistributions is not null
+                                                        || draw.DrawWeights is not
+                                                        {
+                                                            Length: > 0 and <= ExactWeightVector
+                                                                .MaxLength
+                                                        }))
+            {
+                errors.Add(new CompileError
+                {
+                    Code = ErrorCodes.InvalidGraph,
+                    NodeId = draw.Id,
+                    Message =
+                        "A weight vector requires 1..4096 fixed outcomes and cannot also select a family or legacy computed weights."
+                });
+            }
+
             try
             {
                 DrawData.Validate(DrawData.Rows(draw));
@@ -796,7 +814,7 @@ public static class GraphValidator
         {
             var reference = node switch
             {
-                DrawNode d => d.DistributionIndexExpressionId ?? d.WeightExpressionId,
+                DrawNode d => d.WeightVectorExpressionId ?? d.DistributionIndexExpressionId ?? d.WeightExpressionId,
                 ModifyStateNode m => m.ExpressionId,
                 BranchNode b => b.ConditionId,
                 LoopNode l => l.StopConditionId,
@@ -909,6 +927,34 @@ public static class GraphValidator
             // Check expression references on nodes
             switch (node)
             {
+                case DrawNode { WeightVectorExpressionId: { } vectorId } draw:
+                    if (config.Expressions.TryGetValue(vectorId, out Expression? vectorExpression))
+                    {
+                        IReadOnlyList<TypeCheckError> vectorErrors =
+                            ExpressionTypeChecker.Check(vectorExpression, ctx, ExprType.Array);
+                        foreach (TypeCheckError error in vectorErrors)
+                        {
+                            errors.Add(new CompileError
+                            {
+                                NodeId = draw.Id,
+                                Code = ErrorCodes.ExpressionTypeError,
+                                Message = $"Weight vector: {error.Message}"
+                            });
+                        }
+
+                        if (vectorErrors.Count == 0 && ArrayExpressionTypes.Infer(vectorExpression, ctx).ItemType !=
+                            ExprType.Number)
+                        {
+                            errors.Add(new CompileError
+                            {
+                                NodeId = draw.Id,
+                                Code = ErrorCodes.ExpressionTypeError,
+                                Message = "A weight vector requires a known homogeneous Number array."
+                            });
+                        }
+                    }
+
+                    break;
                 case DrawNode { DistributionIndexExpressionId: { } selector } draw:
                     if (config.Expressions.TryGetValue(selector, out Expression? indexExpression))
                     {

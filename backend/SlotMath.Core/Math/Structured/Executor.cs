@@ -2,6 +2,7 @@ using System.Globalization;
 using System.Numerics;
 using SlotMath.Core.Expressions;
 using SlotMath.Core.Model;
+using SlotMath.Core.Random;
 
 namespace SlotMath.Core.Math.Structured;
 
@@ -89,6 +90,7 @@ internal sealed partial class SymbolicExecutor
     private readonly Dictionary<string, List<Edge>> _outgoing = new();
     private readonly Dictionary<(string, string?), List<string>> _spines = new();
     private readonly Translator _translator;
+    private readonly ExactWeightVectorCache _weightVectors = new();
     private readonly BigInteger _winScale;
     private Dictionary<string, int> _drawCount = new();
     private Term _guard;
@@ -202,6 +204,13 @@ internal sealed partial class SymbolicExecutor
                     CheckMap(map);
                     break;
                 case LibraryNode: throw Declined($"node '{node.Id}' is an unexpanded subgraph");
+                case DrawNode { WeightVectorExpressionId: not null } draw:
+                    if (Reserved(draw.StateWriteKey))
+                    {
+                        throw Declined($"node '{draw.Id}' writes a loop counter");
+                    }
+
+                    break;
                 case DrawNode { BoundDistributions: not null } draw:
                     if (Reserved(draw.StateWriteKey))
                     {
@@ -1167,24 +1176,79 @@ internal sealed partial class SymbolicExecutor
 
     // ── Node outputs (GraphCompiler.CompileNodeOutput) ───────────────────
 
-    private (Term Value, Term State) CategoricalRow(DrawNode draw, DrawWeight[] weights, string name)
+    private (Term Value, Term State) CategoricalRow(DrawNode draw, DrawWeight[] weights, string name) =>
+        CategoricalRow(draw, weights, weights.Select(weight => new BigInteger(weight.Weight)).ToArray(), name);
+
+    private (Term Value, Term State) CategoricalRow(DrawNode draw, DrawWeight[] outcomes,
+        IReadOnlyList<BigInteger> weights, string name)
     {
-        if (weights.Any(weight => weight.Weight < 0))
+        if (weights.Any(weight => weight.Sign < 0))
         {
             throw Declined($"draw '{draw.Id}' has a negative weight");
         }
 
-        DrawWeight[] live = weights.Where(weight => weight.Weight > 0).ToArray();
+        var live = Enumerable.Range(0, weights.Count).Where(index => weights[index].Sign > 0).ToArray();
         if (live.Length == 0)
         {
             throw Declined($"draw '{draw.Id}' has no outcome of positive weight");
         }
 
-        Rv rv = _f.NewRv(name, live.Select(weight => new BigInteger(weight.Weight)).ToArray());
+        Rv rv = _f.NewRv(name, live.Select(index => weights[index]).ToArray());
         _f.Budget.Tick(live.Length);
         return (
-            _f.Table(rv, live.Select(weight => ExprValue.Number(new BigInteger(weight.Value) * _winScale)).ToArray()),
-            draw.StateWriteKey is null ? _f.NullT : _f.Table(rv, live.Select(DrawData.StateValue).ToArray()));
+            _f.Table(rv,
+                live.Select(index => ExprValue.Number(new BigInteger(outcomes[index].Value) * _winScale)).ToArray()),
+            draw.StateWriteKey is null
+                ? _f.NullT
+                : _f.Table(rv, live.Select(index => DrawData.StateValue(outcomes[index])).ToArray()));
+    }
+
+    private Term VectorDraw(DrawNode draw, ref Dictionary<string, Field> state)
+    {
+        Term vector = Statement(Expression(draw.WeightVectorExpressionId)!, state, $"draw '{draw.Id}' weights");
+        ExprValue[] vectors = vector is ConstTerm constant ? [constant.Value]
+            : vector.Vals is { Length: <= 64 } values ? values.Distinct(V.ValueComparer.Instance).ToArray()
+            : throw Declined($"draw '{draw.Id}' has no bounded finite weight-vector support");
+        if (vectors.Length == 0)
+        {
+            throw Declined($"draw '{draw.Id}' has no weight-vector support");
+        }
+
+        DrawWeight[] outcomes = draw.DrawWeights!;
+        var positions = new Dictionary<ExprValue, int>(V.ValueComparer.Instance);
+        var choices = new Term[vectors.Length];
+        var states = new Term[vectors.Length];
+        var occurrence = _drawCount[draw.Id] = _drawCount.GetValueOrDefault(draw.Id) + 1;
+        for (var index = 0; index < vectors.Length; index++)
+        {
+            _f.Budget.Tick(outcomes.Length);
+            WeightSet weights;
+            try
+            {
+                weights = _weightVectors.Get(vectors[index], outcomes.Length);
+            }
+            catch (ExpressionEvaluationException exception)
+            {
+                throw Declined($"draw '{draw.Id}' has invalid weight-vector support: {exception.Code}");
+            }
+
+            positions.Add(vectors[index], index);
+            (choices[index], states[index]) = CategoricalRow(draw, outcomes, weights.Numerators,
+                $"{_scope}{draw.Id}#{occurrence}/weights-{index}");
+        }
+
+        Term selector = _f.Index(vector, positions, true);
+        Term value = _f.Sel(selector, choices);
+        Record(value, $"draw '{draw.Id}' weight-vector lookup");
+        if (draw.StateWriteKey is { } key)
+        {
+            state = new Dictionary<string, Field>(state, StringComparer.Ordinal)
+            {
+                [key] = new(_f.Sel(selector, states), false)
+            };
+        }
+
+        return value;
     }
 
     private Term FamilyDraw(DrawNode draw, DrawWeight[][] family, ref Dictionary<string, Field> state)
@@ -1237,6 +1301,7 @@ internal sealed partial class SymbolicExecutor
     {
         switch (node)
         {
+            case DrawNode { WeightVectorExpressionId: not null } draw: return VectorDraw(draw, ref state);
             case DrawNode { BoundDistributions: { } family } draw: return FamilyDraw(draw, family, ref state);
             case DrawNode draw when draw.DrawWeights is not { Length: > 0 }: return Spin(draw, ref state);
             case MapNode map: return Map(map, input, state);

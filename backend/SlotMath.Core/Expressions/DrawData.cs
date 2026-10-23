@@ -1,3 +1,4 @@
+using System.Runtime.CompilerServices;
 using SlotMath.Core.Model;
 
 namespace SlotMath.Core.Expressions;
@@ -41,7 +42,14 @@ internal static class DrawData
     internal static ExprType StateType(DrawNode draw) =>
         Rows(draw).SelectMany(row => row).Select(outcome => StateValue(outcome).Kind).FirstOrDefault(ExprType.String);
 
-    internal static int FamilyIndex(ExprValue value, int length)
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal static int FamilyIndex(ExprValue value, int length) =>
+        value.IsInlineInteger && (ulong)value.InlineInteger < (ulong)length
+            ? (int)value.InlineInteger
+            : CheckedFamilyIndex(value, length);
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private static int CheckedFamilyIndex(ExprValue value, int length)
     {
         const string location = "distribution.selector";
         if (value.Kind != ExprType.Number)

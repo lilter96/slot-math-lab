@@ -321,6 +321,7 @@ public static class SubgraphInliner
                 Inputs = inputs,
                 Outputs = outputs,
                 WeightExpressionId = NsRef(d.WeightExpressionId, prefix),
+                WeightVectorExpressionId = NsRef(d.WeightVectorExpressionId, prefix),
                 DistributionIndexExpressionId = NsRef(d.DistributionIndexExpressionId, prefix)
             },
             GetStateNode g => g with

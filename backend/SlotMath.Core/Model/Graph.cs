@@ -100,6 +100,9 @@ public sealed record DrawNode : Node
 
     public string? WeightExpressionId { get; init; }
 
+    /// <summary>Expression returning a bounded exact numeric weight per ordered outcome.</summary>
+    public string? WeightVectorExpressionId { get; init; }
+
     /// <summary>Inline weighted outcomes. When present, used instead of ReelSets.</summary>
     public DrawWeight[]? DrawWeights { get; init; }
 
