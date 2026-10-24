@@ -22,7 +22,10 @@ namespace SlotMath.Core.Tests.Math.Games;
 /// </summary>
 public class GameClientTraceTests
 {
-    private static readonly JsonSerializerOptions Compact = new() { WriteIndented = false };
+    private static readonly JsonSerializerOptions Compact = new()
+    {
+        WriteIndented = false
+    };
 
     public static TheoryData<string> Games =>
         ["ancient-dragon", "woodland-whisper", "le-militare", "x7-club", "nine-lives"];
@@ -44,7 +47,11 @@ public class GameClientTraceTests
 
             (Rational win, Dict state) =
                 graph.Replay(round.GetProperty("draws").EnumerateArray().Select(draw => draw.GetInt32()));
-            traces.Add(new JsonObject { ["win"] = Number(win), ["trace"] = Written(graph, state) });
+            traces.Add(new JsonObject
+            {
+                ["win"] = Number(win),
+                ["trace"] = Written(graph, state)
+            });
         }
 
         var name = $"{game}.client.traces.json";
@@ -55,7 +62,9 @@ public class GameClientTraceTests
         }
         else
         {
-            Assert.True(replayed == File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "TestData", "Games", name)),
+            Assert.True(JsonNode.DeepEquals(JsonNode.Parse(replayed),
+                    JsonNode.Parse(File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "TestData", "Games",
+                        name)))),
                 $"{name} is not what the graph leaves for the rounds of {game}.client.golden.json; rewrite it with UPDATE_GAME_TRACES=1.");
         }
     }

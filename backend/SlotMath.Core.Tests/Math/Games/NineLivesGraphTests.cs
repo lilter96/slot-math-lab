@@ -203,9 +203,21 @@ public class NineLivesGraphTests(ITestOutputHelper output)
         // the graph.
         Dictionary<string, long> Draw(string mechanic, int draws = 1)
         {
+            Node[] nodes = graph.Mechanics![mechanic].Nodes;
+            DrawManyNode? batch = nodes.OfType<DrawManyNode>().SingleOrDefault();
+            if (batch is not null)
+            {
+                Assert.Empty(nodes.OfType<DrawNode>());
+                Assert.Equal(draws, batch.Count);
+                Assert.Null(batch.DistributionIds);
+                Assert.NotNull(batch.DistributionId);
+                return graph.Distributions![batch.DistributionId].Outcomes
+                    .ToDictionary(outcome => outcome.OutcomeId, outcome => outcome.Weight);
+            }
+
             Dictionary<string, long>[] tables =
             [
-                .. graph.Mechanics![mechanic].Nodes.OfType<DrawNode>().Select(draw =>
+                .. nodes.OfType<DrawNode>().Select(draw =>
                     draw.DrawWeights!.ToDictionary(outcome => outcome.OutcomeId, outcome => outcome.Weight))
             ];
             Assert.Equal(draws, tables.Length);

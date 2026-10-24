@@ -821,9 +821,10 @@ public sealed class GraphCompiler
         ///     allowing the chain to be a single shared Slot instance.
         ///     (State-op nodes never reach this check — they take the
         ///     pass-through path.)
+        ///     Empty batches retain the incoming value; a dynamic count may be empty.
         /// </summary>
         private static bool IsInputIndependent(Node node) =>
-            node is DrawNode or LoopNode or DataNode;
+            node is DrawNode or LoopNode or DataNode or DrawManyNode { Count: > 0, CountExpressionId: null };
 
         // ── Data source (generic) ────────────────────────────────────────
 
@@ -1063,6 +1064,16 @@ public sealed class GraphCompiler
                 var choice = batch.RepeatDistribution ? 0 : index;
                 return draws[choice].SelectMany(outcome => Go(index + 1, count,
                     new BatchItem(outcome.Data, previous), outcome.Value));
+            }
+
+            if (countExpression is null && batch.Count is > 0)
+            {
+                // A nonempty batch replaces its incoming value with its first
+                // draw's channel. Bind its root once, like an ordinary Draw:
+                // fresh incoming state objects must not destroy continuation
+                // identity and exact memoization inside a surrounding loop.
+                Slot<Dictionary<string, object?>, object?> fixedProgram = Go(0, batch.Count.Value, null, null);
+                return _ => fixedProgram;
             }
 
             return countExpression is null

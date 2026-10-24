@@ -6,6 +6,16 @@ designer workflows, game migrations, regressions and measured admission rules.
 The user explicitly authorized this scope on 2026-10-23. A completed row is an
 individually verified milestone; it does not complete the overall objective.
 
+The user raised final acceptance on 2026-10-24: every one of the 15 full game
+configurations must reach at least 1,000,000 complete rounds/second with one
+worker, have a substantially smaller editable atomic graph, and support easy
+game creation in the service. Complete rounds include their cascades and
+awarded/bought features. Internal free spins are not extra completed paid
+rounds. Mathematical laws, RNG/replay, settlement and observations remain
+constraints. Existing game migrations and whole-round measurements now follow
+each admitted capability rather than waiting for the end of backend work.
+This is an outstanding acceptance target, not an achieved performance claim.
+
 | ID | Required result | Completion evidence | Current state |
 | --- | --- | --- | --- |
 | R1 | Immutable distribution assets, typed outcomes, finite families and bounded dynamic weight vectors | JSON/reference/compiled/exact agreement, identity and override regressions | Backend verified; public contract in docs/DISTRIBUTIONS.md; UI/migrations remain R18/R17 |
@@ -24,7 +34,7 @@ individually verified milestone; it does not complete the overall objective.
 | R14 | SIMD execution across existing logical streams | Scalar transcript, rejection, chunk schedule and ordered aggregation parity | Pending |
 | R15 | Exact authoring of 64-bit masks and bounded wider finite sets | 53/54/63/64-bit literals and multiword independent set oracle | Pending |
 | R16 | Bounded equality saturation and measured extraction | Guarded total pure regions, saturation budgets, equivalence and cost controls | Pending |
-| R17 | Integrate approved capabilities into all 15 full game configurations | JSON remains editable and atomic; seeded outputs, observations and complete-round benchmarks | Pending |
+| R17 | Integrate approved capabilities into all 15 full game configurations | JSON remains editable and atomic; seeded outputs, observations and complete-round benchmarks | In progress: four Nine Lives/X7 variants use ordered batches and smaller graphs; 54 backend cases and 1,024 final replay controls pass; all-15 baseline remains below 1M; docs/GAME_PRIMITIVE_MIGRATIONS.md |
 | R18 | Designer forms, shared-data impact previews, schema generation and release | Ownership/staleness/undo/browser coverage, scoped Rider cleanup and required CI | Pending |
 
 The baseline is merge commit `c325ae74aaca46771f2a0abee69d2a4b92f623c8`.

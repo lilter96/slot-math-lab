@@ -3,6 +3,7 @@ using System.Text.Json;
 using SlotMath.Core.Compiler;
 using SlotMath.Core.Expressions;
 using SlotMath.Core.Math;
+using SlotMath.Core.Math.Regime;
 using SlotMath.Core.Math.Structured;
 using SlotMath.Core.Measurements;
 using SlotMath.Core.Model;
@@ -13,6 +14,112 @@ namespace SlotMath.Core.Tests.Compiler;
 [Collection("SamplingOptions")]
 public class DrawManyTests
 {
+    [Fact]
+    public void FixedBatchesInRepeatedControlFlowRetainExactMemoization()
+    {
+        var source = new GraphConfig
+        {
+            SchemaVersion = "1.0.0",
+            Distributions = Assets(),
+            Expressions = new Dictionary<string, Expression>
+            {
+                ["score"] = Sum()
+            },
+            Nodes =
+            [
+                new LoopNode
+                {
+                    Id = "repeat",
+                    MaxIterations = 20,
+                    Inputs = Ports(),
+                    Outputs = new Dictionary<string, Port>
+                    {
+                        ["body"] = new()
+                        {
+                            Name = "body",
+                            Type = PortType.State
+                        },
+                        ["exit"] = new()
+                        {
+                            Name = "exit",
+                            Type = PortType.State
+                        }
+                    }
+                },
+                new GetStateNode
+                {
+                    Id = "before",
+                    Inputs = Ports(),
+                    Outputs = Ports()
+                },
+                Repeat(2) with
+                {
+                    Id = "batch",
+                    OutputKey = "items",
+                    Inputs = Ports(),
+                    Outputs = Ports()
+                },
+                new GetStateNode
+                {
+                    Id = "done",
+                    Inputs = Ports(),
+                    Outputs = Ports()
+                },
+                new ModifyStateNode
+                {
+                    Id = "score",
+                    OutputKey = "win",
+                    ExpressionId = "score",
+                    Inputs = Ports(),
+                    Outputs = Ports()
+                },
+                new MetricsSinkNode
+                {
+                    Id = "sink",
+                    WinStateKey = "win",
+                    WinCap = 100,
+                    Inputs = Ports()
+                }
+            ],
+            Edges =
+            [
+                Edge("repeat", "before") with
+                {
+                    SourcePort = "body"
+                },
+                Edge("before", "batch"), Edge("batch", "done"),
+                Edge("repeat", "score") with
+                {
+                    SourcePort = "exit"
+                },
+                Edge("score", "sink")
+            ]
+        };
+        CompileResult compiled = new GraphCompiler().Compile(source);
+        Assert.True(compiled.IsValid, string.Join(';', compiled.Errors));
+        ExactResult<Dictionary<string, object?>, BigInteger> exact = ExactInterpreter.Evaluate(
+            compiled.ReferenceProgram!, new Dictionary<string, object?>(),
+            StateHasher.CanonicalHash, new ExactConfig
+            {
+                Budget = new Budget
+                {
+                    MaxBranches = 5000
+                }
+            });
+        Dist<BigInteger> law = exact.ValueDistribution();
+        var expected = new Dictionary<BigInteger, Rational>
+        {
+            [4] = new(1, 16),
+            [9] = new(6, 16),
+            [14] = new(9, 16)
+        };
+        Assert.Equal(3, law.Count);
+        foreach (Dist<BigInteger>.Entry row in law.Entries)
+        {
+            Assert.Equal(expected[row.Value], new Rational(row.Numerator, law.Denominator));
+        }
+    }
+
     private static Dictionary<string, Port> Ports() => new()
     {
         ["state"] = new Port
