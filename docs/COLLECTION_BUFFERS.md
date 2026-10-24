@@ -187,3 +187,15 @@ before overwriting a Boolean source with numeric prefixes. Borrowed state,
 record projections and escaping lexical aliases still block transfer.
 [Scan and compaction](SCAN_COMPACTION.md) records independent controls and the
 conservative ownership of compaction record arrays.
+
+
+## Indexed array storage
+
+R11 adds fresh origins for Scatter and the outer PartitionIndices container.
+A unique first Scatter operand can transfer only after all three operands have
+been counted for aliases. Indices/values validate and snapshot before updating
+that storage. Borrowed state and escaping targets retain copies. The kernel
+still validates the whole target, so transfer does not change its O(N+M) work.
+Map can consume a unique partition outer array; nested index-group arrays stay
+borrowed, and empty groups share immutable empty storage. [Indexed arrays](INDEXED_ARRAYS.md)
+record mode, snapshot, symbol metadata and performance controls.

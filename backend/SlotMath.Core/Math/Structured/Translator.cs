@@ -466,6 +466,12 @@ internal sealed class Translator(TermFactory f)
                 Reads(reachable.Allowed, names);
                 Reads(reachable.Seeds, names);
                 break;
+            case ScatterExpr scatter:
+                Reads(scatter.Target, names);
+                Reads(scatter.Indices, names);
+                Reads(scatter.Values, names);
+                break;
+            case PartitionIndicesExpr partition: Reads(partition.Labels, names); break;
             case ScanExpr scan: Reads(scan.Source, names); break;
             case SegmentedCompactExpr compact:
                 Reads(compact.Keep, names);

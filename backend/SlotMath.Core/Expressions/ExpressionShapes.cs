@@ -137,6 +137,10 @@ internal static class ExpressionShapes
         ProjectExpr project => Project(Infer(project.Value, context), project.Path),
         FieldAccessExpr field => context.ResolveField(field.Path, field.Target),
         ScanExpr => Array(Field("value", ExprType.Number)),
+        ScatterExpr scatter => Scatter(scatter, context),
+        PartitionIndicesExpr partition => Array(
+            Array(Field("value", ExprType.Number), Infer(partition.Labels, context)?.ArrayIsEmpty == true),
+            partition.BucketCount == 0),
         SegmentedCompactExpr => Compaction(),
         FilterExpr filter => CollectionInputs.Shape(CollectionInputs.Of(filter), context),
         MapExpr map => Array(Infer(map.Body, ArrayExpressionTypes.Bind(context,
@@ -152,6 +156,27 @@ internal static class ExpressionShapes
         FoldExpr fold => Fold(fold, context),
         _ => Scalar(expression, context)
     };
+
+    private static FieldDescriptor Scatter(ScatterExpr expression, TypeCheckContext context)
+    {
+        FieldDescriptor? target = Infer(expression.Target, context), values = Infer(expression.Values, context);
+
+        FieldDescriptor? Logical(FieldDescriptor? shape)
+        {
+            return shape?.Type == ExprType.Symbol
+                ? shape with
+                {
+                    Type = ExprType.String
+                }
+                : shape;
+        }
+
+        FieldDescriptor? item = expression.Mode == ScatterMode.Sum ? Field("value", ExprType.Number)
+            : values?.ArrayIsEmpty == true ? Logical(Item(target))
+            : target?.ArrayIsEmpty == true ? Logical(Item(values))
+            : Join(Logical(Item(target)), Logical(Item(values)));
+        return Array(item, target?.ArrayIsEmpty == true);
+    }
 
     internal static FieldDescriptor Compaction() => new()
     {

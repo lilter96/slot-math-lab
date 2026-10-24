@@ -76,7 +76,7 @@ internal sealed class ExpressionIrBuilder
     private IrValue Lower(Expression expression, Scope scope, int depth)
     {
         IrValue value = LowerCore(expression, scope, depth);
-        if (expression is MapExpr or FilterExpr or ScanExpr)
+        if (expression is MapExpr or FilterExpr or ScanExpr or ScatterExpr or PartitionIndicesExpr)
         {
             if (!_collections.TryGetValue(expression, out List<int>? values))
             {
@@ -206,6 +206,16 @@ internal sealed class ExpressionIrBuilder
                     new IrEffects(IrEffect.MayThrow | IrEffect.Cancellation | IrEffect.Allocate),
                     [Visit(reachable.Adjacency), Visit(reachable.Allowed), Visit(reachable.Seeds)],
                     bound: reachable.VertexCount);
+            case ScatterExpr scatter:
+                return Emit(scope, IrOp.Scatter, ExpressionShapes.Infer(scatter, scope.Context),
+                    new IrEffects(IrEffect.MayThrow | IrEffect.Cancellation | IrEffect.Allocate),
+                    [Visit(scatter.Target), Visit(scatter.Indices), Visit(scatter.Values)],
+                    detail: scatter.Mode + ":" + scatter.MaxUpdates, bound: scatter.MaxItems);
+            case PartitionIndicesExpr partition:
+                return Emit(scope, IrOp.PartitionIndices, ExpressionShapes.Infer(partition, scope.Context),
+                    new IrEffects(IrEffect.MayThrow | IrEffect.Cancellation | IrEffect.Allocate),
+                    [Visit(partition.Labels)],
+                    detail: partition.BucketCount.ToString(CultureInfo.InvariantCulture), bound: partition.MaxItems);
             case ScanExpr scan:
                 return Emit(scope, IrOp.Scan, ExpressionShapes.Array(Shape(ExprType.Number)),
                     new IrEffects(IrEffect.MayThrow | IrEffect.Cancellation | IrEffect.Allocate),

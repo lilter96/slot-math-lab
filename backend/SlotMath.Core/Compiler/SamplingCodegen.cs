@@ -978,6 +978,24 @@ internal sealed class SamplingCodegen
                     typeof(ReachabilityData).GetMethod(nameof(ReachabilityData.Evaluate), Any)!,
                     Value(reachable.Adjacency), Value(reachable.Allowed), Value(reachable.Seeds),
                     Lx.Constant(reachable.VertexCount), Lx.Field(_frame, nameof(SamplingFrame.CancellationToken))));
+            case ScatterExpr scatter:
+                return Form("scatter:" + scatter.Mode + ":" + scatter.MaxItems + ":" + scatter.MaxUpdates, () =>
+                {
+                    var reuse = _buffers?.CanReuseSource(scatter) == true;
+                    _shape.Append(reuse ? "transfer-scatter;" : "copy-scatter;");
+                    if (reuse)
+                    {
+                        _reusedCollectionBuffers++;
+                    }
+
+                    return Lx.Call(_frame, typeof(SamplingFrame).GetMethod(nameof(SamplingFrame.Scatter), Any)!,
+                        Value(scatter.Target), Value(scatter.Indices), Value(scatter.Values), Lx.Constant(scatter.Mode),
+                        Lx.Constant(scatter.MaxItems), Lx.Constant(scatter.MaxUpdates), Lx.Constant(reuse));
+                });
+            case PartitionIndicesExpr partition:
+                return Form("partition:" + partition.BucketCount + ":" + partition.MaxItems, () =>
+                    Lx.Call(_frame, typeof(SamplingFrame).GetMethod(nameof(SamplingFrame.Partition), Any)!,
+                        Value(partition.Labels), Lx.Constant(partition.BucketCount), Lx.Constant(partition.MaxItems)));
             case ScanExpr scan:
                 return Form("scan:" + scan.Mode + ":" + scan.MaxItems, () =>
                 {
@@ -1831,7 +1849,8 @@ internal sealed class SamplingCodegen
         return expression switch
         {
             FieldAccessExpr { Target: null or "state" or "board", Path.Length: 1 } => true,
-            BitSetExpr or ReachableExpr or ScanExpr or SegmentedCompactExpr or BinaryExpr or CompareExpr or NotExpr
+            BitSetExpr or ReachableExpr or ScanExpr or SegmentedCompactExpr or ScatterExpr or PartitionIndicesExpr
+                or BinaryExpr or CompareExpr or NotExpr
                 or AggregateExpr { Func: AggregateFunc.Count } or MapExpr
                 or FilterExpr => true,
             IfExpr branch => ReadableResult(branch.ThenExpr) && ReadableResult(branch.ElseExpr),
@@ -1852,7 +1871,8 @@ internal sealed class SamplingCodegen
         {
             FieldAccessExpr { Target: null or "state" or "board", Path.Length: 1 } field =>
                 !_bindings.ContainsKey(field.Path[0]) && _normalizedWrites.Contains(_slot(field.Path[0])),
-            BitSetExpr or ReachableExpr or ScanExpr or SegmentedCompactExpr or BinaryExpr or CompareExpr
+            BitSetExpr or ReachableExpr or ScanExpr or SegmentedCompactExpr or PartitionIndicesExpr
+                or ScatterExpr { Mode: ScatterMode.Sum } or BinaryExpr or CompareExpr
                 or NotExpr => true,
             IfExpr branch => NormalizedResult(branch.ThenExpr) && NormalizedResult(branch.ElseExpr),
             _ => false

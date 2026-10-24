@@ -80,6 +80,16 @@ public static class ExpressionCost
                 e.MaxSegments is >= 0 and <= CollectionInputs.MaxItems
                     ? 2L + 3L * e.MaxItems + 2L * e.MaxSegments
                     : long.MaxValue),
+            ScatterExpr e => Add(Add(Add(Child(e.Target), Child(e.Indices)), Child(e.Values)),
+                e.MaxItems is >= 0 and <= CollectionInputs.MaxItems &&
+                e.MaxUpdates is >= 0 and <= CollectionInputs.MaxItems
+                    ? 1L + e.MaxItems + 3L * e.MaxUpdates
+                    : long.MaxValue),
+            PartitionIndicesExpr e => Add(Child(e.Labels),
+                e.MaxItems is >= 0 and <= CollectionInputs.MaxItems &&
+                e.BucketCount is >= 0 and <= CollectionInputs.MaxItems
+                    ? 1L + 2L * e.MaxItems + e.BucketCount
+                    : long.MaxValue),
             NotExpr e => Add(1, Child(e.Expr)),
             BinaryExpr e => Add(1, Add(Child(e.Left), Child(e.Right))),
             CompareExpr e => Add(1, Add(Child(e.Left), Child(e.Right))),

@@ -37,6 +37,8 @@ internal static class CollectionInputs
         ProjectExpr e => [e.Value],
         ReachableExpr e => [e.Adjacency, e.Allowed, e.Seeds],
         ScanExpr e => [e.Source],
+        ScatterExpr e => [e.Target, e.Indices, e.Values],
+        PartitionIndicesExpr e => [e.Labels],
         SegmentedCompactExpr e => [e.Keep, e.Boundaries],
         BinaryExpr e => [e.Left, e.Right],
         CompareExpr e => [e.Left, e.Right],

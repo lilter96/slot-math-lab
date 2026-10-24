@@ -18,7 +18,7 @@ individually verified milestone; it does not complete the overall objective.
 | R8 | Scan and stable segmented compaction | Exact prefix oracle, exhaustive small segments and carried attributes | Backend verified: exact integer/Boolean prefixes, stable source plans, three carried attribute types; docs/SCAN_COMPACTION.md; game admission remains R17 |
 | R9 | Designer repeat over collections and runtime subgraph bindings where needed | Editable JSON, apply/undo, nested scopes and responsive visual acceptance | Verified authoring via existing bounded Map/Loop and typed state bindings; six-node editable wrapper, snapshot/error/undo/nested and desktop/phone controls; docs/COLLECTION_REPEAT.md; migrations remain R17 |
 | R10 | Bounded foldWhile, any/all | Empty, early stop, short-circuit errors and resource bounds | Backend verified: optional Fold.WhileCondition, typed pre-item guard and editable Any/All compositions; 36 new controls, measured early/middle/full-scan limits; docs/FOLD_WHILE.md; forms/migrations remain R18/R17 |
-| R11 | Indexed reduction/partition and deterministic scatter | Duplicate-index contract, typed values, snapshot and ownership controls | Pending |
+| R11 | Indexed reduction/partition and deterministic scatter | Duplicate-index contract, typed values, snapshot and ownership controls | Backend verified: typed Scatter Reject/Last/Sum and stable PartitionIndices; 41 new controls, full-round positive/negative admission; docs/INDEXED_ARRAYS.md; migrations/forms remain R17/R18 |
 | R12 | Cost-admitted finite-domain pretabulation | Full domain oracle, errors, cache identity, memory/work bounds and negative controls | Pending |
 | R13 | Additively constrained independent-product sampling via bounded DP | Exact joint-law oracle and explicit RNG/source identity | Pending |
 | R14 | SIMD execution across existing logical streams | Scalar transcript, rejection, chunk schedule and ordered aggregation parity | Pending |
@@ -518,3 +518,26 @@ matching at index 0/1. Middle timing overlapped, while a complete scan regressed
 to 0.635x with unchanged allocation and outcome statistics. [Guarded folds](../FOLD_WHILE.md)
 record exact schedules, ranges and the negative admission control. No current
 production-game multiplier is inferred. R11–R18 remain required.
+
+
+R11 implements two generic bounded capabilities after typed-composition and
+packed-plane prototype comparisons. Scatter has explicit RejectDuplicates,
+LastWriteWins and ordered exact Sum; the latter supplies indexed reduction over
+an explicit target. PartitionIndices returns stable original-index lists for a
+dense label domain, with empty buckets retained. All operands are eager,
+validation/error order is fixed, update snapshots protect aliases, and
+cancellation is explicit. SSA counts every scatter input before admitting
+private target transfer; partition nested groups remain borrowed.
+
+Final verification passed 656 selected Core cases and five API previews,
+including 41 new cases and all 15 seeded game-state controls. All 20 sources
+completed both Rider profiles, scoped formatting and the Release build. A
+shared flag's exact joint law, three-tier full state/RNG audits/following word,
+persistent snapshots and editable Library operand references agree.
+Five extra old/new full-round pairs retain complete exact laws and 128 seeded
+state/RNG comparisons each. Paired throughput improved 2.505x for eight updates
+of 64 items, 1.448x for 64 sums into eight cells and 1.401x for full index groups.
+The single update regressed to 0.691x, and a 15-cell packed-plane count query
+remained faster (new ratio 0.518x). [Indexed arrays](../INDEXED_ARRAYS.md)
+record prototypes, actual full-round ranges and rejection criteria. No current
+game migration or production multiplier is claimed. R12–R18 remain required.

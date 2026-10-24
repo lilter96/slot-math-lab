@@ -78,6 +78,8 @@ internal enum IrOp
     Reachable,
     Scan,
     SegmentedCompact,
+    Scatter,
+    PartitionIndices,
     If,
     And,
     Or,

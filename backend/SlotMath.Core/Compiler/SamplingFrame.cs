@@ -327,6 +327,33 @@ internal sealed class SamplingFrame
         return result;
     }
 
+    internal ExprValue Scatter(ExprValue target, ExprValue indices, ExprValue values, ScatterMode mode, int maxItems,
+        int maxUpdates, bool reuseTarget)
+    {
+        CancellationToken.ThrowIfCancellationRequested();
+        (int Items, int Updates) shape =
+            IndexedArrayData.CheckScatter(target, indices, values, mode, maxItems, maxUpdates);
+        ExprValue[] output = reuseTarget && target.ItemsArray is { } owned ? owned : NewArray(shape.Items);
+        return IndexedArrayData.Scatter(target, indices, values, mode, output, NewArray(shape.Updates),
+            CancellationToken);
+    }
+
+    internal ExprValue Partition(ExprValue labels, int buckets, int maxItems)
+    {
+        CancellationToken.ThrowIfCancellationRequested();
+        var length = IndexedArrayData.CheckPartition(labels, buckets, maxItems);
+        Span<int> keys = stackalloc int[length], counts = stackalloc int[buckets];
+        IndexedArrayData.PartitionPlan(labels, keys, counts, CancellationToken);
+        ExprValue[] groups = NewArray(buckets);
+        for (var bucket = 0; bucket < groups.Length; bucket++)
+        {
+            CancellationToken.ThrowIfCancellationRequested();
+            groups[bucket] = ExprValue.ArrayOwned(counts[bucket] == 0 ? [] : NewArray(counts[bucket]), false);
+        }
+
+        return IndexedArrayData.Partition(groups, keys, counts, CancellationToken);
+    }
+
     internal ExprValue Scan(ExprValue source, ScanMode mode, int maxItems, bool reuseSource)
     {
         CancellationToken.ThrowIfCancellationRequested();

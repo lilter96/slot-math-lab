@@ -26,9 +26,37 @@ namespace SlotMath.Core.Model;
 [JsonDerivedType(typeof(ReachableExpr), "reachable")]
 [JsonDerivedType(typeof(ScanExpr), "scan")]
 [JsonDerivedType(typeof(SegmentedCompactExpr), "segmentedCompact")]
+[JsonDerivedType(typeof(ScatterExpr), "scatter")]
+[JsonDerivedType(typeof(PartitionIndicesExpr), "partitionIndices")]
 public abstract record Expression
 {
     public string? Annotation { get; init; }
+}
+
+public enum ScatterMode
+{
+    RejectDuplicates,
+    LastWriteWins,
+    Sum
+}
+
+/// <summary>Ordered indexed updates; Sum is an exact indexed reduction over the supplied target.</summary>
+public sealed record ScatterExpr : Expression
+{
+    public required Expression Target { get; init; }
+    public required Expression Indices { get; init; }
+    public required Expression Values { get; init; }
+    public required ScatterMode Mode { get; init; }
+    public required int MaxItems { get; init; }
+    public required int MaxUpdates { get; init; }
+}
+
+/// <summary>Stable original indices grouped by an explicitly bounded dense label domain.</summary>
+public sealed record PartitionIndicesExpr : Expression
+{
+    public required Expression Labels { get; init; }
+    public required int BucketCount { get; init; }
+    public required int MaxItems { get; init; }
 }
 
 public enum ScanMode

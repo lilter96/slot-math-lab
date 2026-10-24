@@ -531,6 +531,16 @@ public static class SubgraphInliner
                 Allowed = RewriteExprRefs(reachable.Allowed, prefix),
                 Seeds = RewriteExprRefs(reachable.Seeds, prefix)
             },
+            ScatterExpr scatter => scatter with
+            {
+                Target = RewriteExprRefs(scatter.Target, prefix),
+                Indices = RewriteExprRefs(scatter.Indices, prefix),
+                Values = RewriteExprRefs(scatter.Values, prefix)
+            },
+            PartitionIndicesExpr partition => partition with
+            {
+                Labels = RewriteExprRefs(partition.Labels, prefix)
+            },
             ScanExpr scan => scan with
             {
                 Source = RewriteExprRefs(scan.Source, prefix)

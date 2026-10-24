@@ -143,3 +143,11 @@ item access occurs after success. Effects retain cancellation and possible
 errors, preventing speculative or dominated-predicate removal. Native shape
 identity distinguishes ordinary and guarded folds. [The fold contract](FOLD_WHILE.md)
 records resource checks, runtime accumulator types and independent joint laws.
+
+
+Scatter and PartitionIndices emit ordered, bounded array IR with explicit
+allocation, error and cancellation effects. Scatter's first input is its target;
+all inputs participate in SSA use counts before a private-storage decision.
+Partition has a nested numeric array result and only its outer allocation is
+eligible to propagate ownership. [The indexed contract](INDEXED_ARRAYS.md)
+includes type-shape joins, every-operand inlining and joint exact/RNG controls.

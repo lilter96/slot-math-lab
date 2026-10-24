@@ -70,6 +70,8 @@ public static class ExpressionTypeChecker
             ProjectExpr project => InferProject(project, ctx, errors),
             ReachableExpr reachable => InferReachable(reachable, ctx, errors),
             ScanExpr scan => InferScan(scan, ctx, errors),
+            ScatterExpr scatter => InferScatter(scatter, ctx, errors),
+            PartitionIndicesExpr partition => InferPartition(partition, ctx, errors),
             SegmentedCompactExpr compact => InferCompact(compact, ctx, errors),
             ConstantExpr c => InferConstant(c, ctx, errors),
             FieldAccessExpr f => InferFieldAccess(f, ctx, errors),
@@ -132,6 +134,55 @@ public static class ExpressionTypeChecker
         FieldDescriptor? shape = ExpressionShapes.Infer(source, context);
         return type == ExprType.Array && (shape?.ArrayIsEmpty == true ||
                                           (ExpressionShapes.Item(shape) is { } item && itemTypes.Contains(item.Type)));
+    }
+
+    private static ExprType InferScatter(ScatterExpr scatter, TypeCheckContext context, List<TypeCheckError> errors)
+    {
+        ExprType[] kinds = scatter.Mode == ScatterMode.Sum
+            ? [ExprType.Number]
+            : [ExprType.Number, ExprType.Boolean, ExprType.String, ExprType.Symbol, ExprType.Record, ExprType.Array];
+        var target = PlanArray(scatter.Target, context, errors, kinds);
+        var indices = PlanArray(scatter.Indices, context, errors, ExprType.Number);
+        var values = PlanArray(scatter.Values, context, errors, kinds);
+        if (!target || !indices || !values || scatter.MaxItems is < 0 or > CollectionInputs.MaxItems ||
+            scatter.MaxUpdates is < 0 or > CollectionInputs.MaxItems ||
+            scatter.Mode is not (ScatterMode.RejectDuplicates or ScatterMode.LastWriteWins or ScatterMode.Sum))
+        {
+            return Fail(scatter,
+                "Scatter requires typed arrays, numeric indices, explicit 0..4096 bounds and a valid duplicate policy.",
+                errors);
+        }
+
+        FieldDescriptor? a = ExpressionShapes.Infer(scatter.Target, context),
+            b = ExpressionShapes.Infer(scatter.Values, context);
+
+        ExprType? Kind(FieldDescriptor? array)
+        {
+            return ExpressionShapes.Item(array)?.Type == ExprType.Symbol
+                ? ExprType.String
+                : ExpressionShapes.Item(array)?.Type;
+        }
+
+        if (a?.ArrayIsEmpty != true && b?.ArrayIsEmpty != true && Kind(a) != Kind(b))
+        {
+            return Fail(scatter, "Scatter target and values must have the same element type.", errors);
+        }
+
+        return ExprType.Array;
+    }
+
+    private static ExprType InferPartition(PartitionIndicesExpr partition, TypeCheckContext context,
+        List<TypeCheckError> errors)
+    {
+        if (!PlanArray(partition.Labels, context, errors, ExprType.Number) ||
+            partition.BucketCount is < 0 or > CollectionInputs.MaxItems ||
+            partition.MaxItems is < 0 or > CollectionInputs.MaxItems)
+        {
+            return Fail(partition, "PartitionIndices requires numeric labels and explicit 0..4096 bucket/item bounds.",
+                errors);
+        }
+
+        return ExprType.Array;
     }
 
     private static ExprType InferScan(ScanExpr scan, TypeCheckContext context, List<TypeCheckError> errors)

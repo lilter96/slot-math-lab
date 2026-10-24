@@ -111,6 +111,12 @@ public static class ExpressionSimplifier
                 ReachableExpr e =>
                     [nameof(ReachableExpr), e.VertexCount, Child(e.Adjacency), Child(e.Allowed), Child(e.Seeds)],
                 ScanExpr e => [nameof(ScanExpr), e.Mode, e.MaxItems, Child(e.Source)],
+                ScatterExpr e =>
+                [
+                    nameof(ScatterExpr), e.Mode, e.MaxItems, e.MaxUpdates, Child(e.Target), Child(e.Indices),
+                    Child(e.Values)
+                ],
+                PartitionIndicesExpr e => [nameof(PartitionIndicesExpr), e.BucketCount, e.MaxItems, Child(e.Labels)],
                 SegmentedCompactExpr e =>
                 [
                     nameof(SegmentedCompactExpr), e.Packing, e.MaxItems, e.MaxSegments,
@@ -334,6 +340,18 @@ public static class ExpressionSimplifier
                         Allowed = Visit(reachable.Allowed),
                         Seeds = Visit(reachable.Seeds)
                     }; break;
+                case ScatterExpr scatter:
+                    rewritten = scatter with
+                    {
+                        Target = Visit(scatter.Target),
+                        Indices = Visit(scatter.Indices),
+                        Values = Visit(scatter.Values)
+                    }; break;
+                case PartitionIndicesExpr partition:
+                    rewritten = partition with
+                    {
+                        Labels = Visit(partition.Labels)
+                    }; break;
                 case ScanExpr scan:
                     rewritten = scan with
                     {
@@ -449,6 +467,8 @@ public static class ExpressionSimplifier
                 BitSetExpr e => e.Args.Any(Uses),
                 ReachableExpr e => Uses(e.Adjacency) || Uses(e.Allowed) || Uses(e.Seeds),
                 ScanExpr e => Uses(e.Source),
+                ScatterExpr e => Uses(e.Target) || Uses(e.Indices) || Uses(e.Values),
+                PartitionIndicesExpr e => Uses(e.Labels),
                 SegmentedCompactExpr e => Uses(e.Keep) || Uses(e.Boundaries),
                 ProjectExpr e => Uses(e.Value),
                 RecordExpr e => e.Fields.Any(field => Uses(field.Value)),

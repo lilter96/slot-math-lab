@@ -308,6 +308,15 @@ internal sealed class SamplingExpressions(
                 Func<SamplingFrame, ExprValue> seeds = compile(reachable.Seeds);
                 return frame => ReachabilityData.Evaluate(adjacency(frame), allowed(frame), seeds(frame),
                     reachable.VertexCount, frame.CancellationToken);
+            case ScatterExpr scatter:
+                Func<SamplingFrame, ExprValue> target = compile(scatter.Target),
+                    destinations = compile(scatter.Indices),
+                    updates = compile(scatter.Values);
+                return frame => frame.Scatter(target(frame), destinations(frame), updates(frame), scatter.Mode,
+                    scatter.MaxItems, scatter.MaxUpdates, false);
+            case PartitionIndicesExpr partition:
+                Func<SamplingFrame, ExprValue> labels = compile(partition.Labels);
+                return frame => frame.Partition(labels(frame), partition.BucketCount, partition.MaxItems);
             case ScanExpr scan:
                 Func<SamplingFrame, ExprValue> scanSource = compile(scan.Source);
                 return frame => frame.Scan(scanSource(frame), scan.Mode, scan.MaxItems, false);

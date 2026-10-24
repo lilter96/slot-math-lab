@@ -103,6 +103,8 @@ public static class ExactExpressionEvaluator
             ReachableExpr reachable => ReachabilityData.Evaluate(Eval(reachable.Adjacency, ctx),
                 Eval(reachable.Allowed, ctx), Eval(reachable.Seeds, ctx), reachable.VertexCount, ctx.CancellationToken),
             ScanExpr scan => EvalScan(scan, ctx),
+            ScatterExpr scatter => EvalScatter(scatter, ctx),
+            PartitionIndicesExpr partition => EvalPartition(partition, ctx),
             SegmentedCompactExpr compact => EvalCompact(compact, ctx),
             ConstantExpr c => EvalConstant(c),
             FieldAccessExpr f => EvalFieldAccess(f, ctx),
@@ -118,6 +120,36 @@ public static class ExactExpressionEvaluator
             FilterExpr fi => EvalFilter(fi, ctx),
             _ => throw new InvalidOperationException($"Unknown expression type: {expr.GetType().Name}")
         };
+    }
+
+    private static ExprValue EvalScatter(ScatterExpr scatter, EvalContext context)
+    {
+        ExprValue target = Eval(scatter.Target, context),
+            indices = Eval(scatter.Indices, context),
+            values = Eval(scatter.Values, context);
+        context.CancellationToken.ThrowIfCancellationRequested();
+        (int Items, int Updates) shape = IndexedArrayData.CheckScatter(target, indices, values, scatter.Mode,
+            scatter.MaxItems,
+            scatter.MaxUpdates);
+        return IndexedArrayData.Scatter(target, indices, values, scatter.Mode, new ExprValue[shape.Items],
+            new ExprValue[shape.Updates], context.CancellationToken);
+    }
+
+    private static ExprValue EvalPartition(PartitionIndicesExpr partition, EvalContext context)
+    {
+        ExprValue labels = Eval(partition.Labels, context);
+        context.CancellationToken.ThrowIfCancellationRequested();
+        var length = IndexedArrayData.CheckPartition(labels, partition.BucketCount, partition.MaxItems);
+        Span<int> keys = stackalloc int[length], counts = stackalloc int[partition.BucketCount];
+        IndexedArrayData.PartitionPlan(labels, keys, counts, context.CancellationToken);
+        var groups = new ExprValue[partition.BucketCount];
+        for (var bucket = 0; bucket < groups.Length; bucket++)
+        {
+            context.CancellationToken.ThrowIfCancellationRequested();
+            groups[bucket] = ExprValue.ArrayOwned(counts[bucket] == 0 ? [] : new ExprValue[counts[bucket]], false);
+        }
+
+        return IndexedArrayData.Partition(groups, keys, counts, context.CancellationToken);
     }
 
     private static ExprValue EvalScan(ScanExpr scan, EvalContext context)

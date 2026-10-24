@@ -210,7 +210,7 @@ public static class StateSchemaDeriver
     {
         LetExpr let => ProvisionalType(let.Body),
         RecordExpr or TupleExpr or SegmentedCompactExpr => ExprType.Record,
-        MapExpr or FilterExpr or ScanExpr => ExprType.Array,
+        MapExpr or FilterExpr or ScanExpr or ScatterExpr or PartitionIndicesExpr => ExprType.Array,
         FoldExpr f => ContainsAppend(f.Body) ? ExprType.Array : ExprType.Number,
         CallExpr c when c.Function.Equals("append", StringComparison.OrdinalIgnoreCase) => ExprType.Array,
         _ => ExprType.Number
