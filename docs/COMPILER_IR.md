@@ -135,3 +135,11 @@ bounds, result shapes, cancellation, possible errors and allocation. Scan
 participates in private collection-origin analysis; compact record projections
 remain borrowed. [The contracts and regression evidence](SCAN_COMPACTION.md)
 include Boolean-to-numeric storage transfer and exact joint laws.
+
+
+A Fold with WhileCondition emits FoldWhile IR with an ordered guard region
+before the body region. Only accumulator/index parameters belong to the guard;
+item access occurs after success. Effects retain cancellation and possible
+errors, preventing speculative or dominated-predicate removal. Native shape
+identity distinguishes ordinary and guarded folds. [The fold contract](FOLD_WHILE.md)
+records resource checks, runtime accumulator types and independent joint laws.

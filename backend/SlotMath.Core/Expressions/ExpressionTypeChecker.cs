@@ -627,6 +627,11 @@ public static class ExpressionTypeChecker
             return initType;
         }
 
+        if (f.WhileCondition is not null && f.MaxItems is null)
+        {
+            errors.Add(Error(f, "Fold WhileCondition requires an explicit MaxItems in 0..4096."));
+        }
+
         // Lambda context: acc and item added as virtual state fields
         List<FieldDescriptor> lambdaFields = ctx.StateFields.ToList();
         lambdaFields.Add(ExpressionShapes.Infer(f.Init, ctx) is { } initialShape
@@ -660,6 +665,30 @@ public static class ExpressionTypeChecker
             CellFields = ctx.CellFields,
             DecorationTypes = ctx.DecorationTypes
         };
+
+        if (f.WhileCondition is not null)
+        {
+            TypeCheckContext guardContext = new()
+            {
+                ExpectedType = ExprType.Boolean,
+                BoardFields =
+                    ctx.BoardFields.Where(field =>
+                        !string.Equals(field.Name, f.ItemName, StringComparison.OrdinalIgnoreCase)).ToArray(),
+                MeasurementFields = ctx.MeasurementFields,
+                LocalFields = ctx.LocalFields,
+                StateFields = lambdaCtx.StateFields.Where(field => field.Name != f.ItemName).ToArray(),
+                CellFields =
+                    ctx.CellFields.Where(field =>
+                        !string.Equals(field.Name, f.ItemName, StringComparison.OrdinalIgnoreCase)).ToArray(),
+                DecorationTypes = ctx.DecorationTypes
+            };
+            ExprType guardType = Infer(f.WhileCondition, guardContext, errors);
+            if (guardType is not (ExprType.Boolean or ExprType.Error))
+            {
+                errors.Add(
+                    Error(f, "Fold WhileCondition must be Boolean and cannot read its unavailable current item."));
+            }
+        }
 
         ExprType bodyType = Infer(f.Body, lambdaCtx, errors);
         if (bodyType != initType && bodyType != ExprType.Error)

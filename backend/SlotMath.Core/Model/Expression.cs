@@ -377,6 +377,10 @@ public sealed record FoldExpr : Expression
     /// <summary>Initial accumulator value.</summary>
     public required Expression Init { get; init; }
 
+    /// <summary>Boolean guard before reading each next item; binds accumulator/index, not ItemName. Requires MaxItems.</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public Expression? WhileCondition { get; init; }
+
     /// <summary>Lambda body — must return the same type as Init.</summary>
     public required Expression Body { get; init; }
 

@@ -16,7 +16,8 @@ internal static class CollectionInputs
     {
         MapExpr e => new CollectionInput(e.StateKey, e.Source, e.MaxItems, "map"),
         FilterExpr e => new CollectionInput(e.StateKey, e.Source, e.MaxItems, "filter"),
-        FoldExpr e => new CollectionInput(e.StateKey, e.Source, e.MaxItems, "fold"),
+        FoldExpr e => new CollectionInput(e.StateKey, e.Source, e.MaxItems,
+            e.WhileCondition is null ? "fold" : "foldWhile"),
         AggregateExpr e => new CollectionInput(e.StateKey, e.Source, e.MaxItems, "aggregate"),
         _ => throw new ArgumentException("A collection expression is required.", nameof(expression))
     };
@@ -45,7 +46,7 @@ internal static class CollectionInputs
         BitSetExpr e => e.Args,
         MapExpr e => new[] { e.Source, e.Body }.OfType<Expression>(),
         FilterExpr e => new[] { e.Source, e.Predicate }.OfType<Expression>(),
-        FoldExpr e => new[] { e.Init, e.Source, e.Body }.OfType<Expression>(),
+        FoldExpr e => new[] { e.Init, e.Source, e.WhileCondition, e.Body }.OfType<Expression>(),
         AggregateExpr e => new[] { e.Source, e.Predicate, e.ValueExpr }.OfType<Expression>(),
         _ => []
     };
@@ -53,6 +54,18 @@ internal static class CollectionInputs
     internal static bool HasUnboundedIterator(Expression expression) =>
         (expression is MapExpr or FilterExpr or FoldExpr or AggregateExpr && Of(expression).MaxItems is null)
         || Children(expression).Any(HasUnboundedIterator);
+
+    internal static ExprValue CheckAccumulator(ExprValue value, ExprType expected)
+    {
+        if (value.Kind != expected && !(value.Kind is ExprType.String or ExprType.Symbol &&
+                                        expected is ExprType.String or ExprType.Symbol))
+        {
+            throw new ExpressionEvaluationException("EVAL_TYPE_ERROR",
+                "Fold WhileCondition body must retain the initialized accumulator type.", "foldWhile.body");
+        }
+
+        return value;
+    }
 
     internal static int CheckCount(int count, int bound, string location)
     {

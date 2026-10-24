@@ -357,7 +357,7 @@ internal sealed class SamplingPlan : ICompiledSampling<Dictionary<string, object
             FilterExpr e => Variables(e.Source, names) && Named(e.ItemName, e.IndexName) &&
                             Variables(e.Predicate, names),
             FoldExpr e => Variables(e.Source, names) && Named(e.AccName, e.ItemName, e.IndexName) &&
-                          Variables(e.Init, names) &&
+                          Variables(e.Init, names) && Variables(e.WhileCondition, names) &&
                           Variables(e.Body, names),
             _ => false
         };

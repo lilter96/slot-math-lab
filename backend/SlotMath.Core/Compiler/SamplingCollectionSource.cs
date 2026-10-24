@@ -15,6 +15,25 @@ internal static class SamplingCollectionSource
         return source.ContainsSymbols ? SamplingCell.Typed(source).Value : source;
     }
 
+    internal static ExprValue ReadIndexedValue(ExprValue source, int bound, string location, out int length)
+    {
+        length = CollectionInputs.Length(source, bound, location);
+        return source;
+    }
+
+    internal static SamplingCollectionValue ReadIndexed(SamplingCell source, int bound, string key, string location)
+    {
+        if (source.HasRaw && source.Raw is IEnumerable &&
+            source.Raw is not (IList or ExprValue or string or IDictionary or IReadOnlyDictionary<string, object?>))
+        {
+            throw new ExpressionEvaluationException("EVAL_TYPE_ERROR",
+                "A short-circuit collection requires an indexed array with a known length.", location);
+        }
+
+        return new SamplingCollectionValue(source,
+            CollectionInputs.CheckCount(source.RequireArrayCount(key), bound, location));
+    }
+
     internal static SamplingCollectionValue Read(SamplingCell source, int bound, string key, string location)
     {
         // Bound streaming state inputs before counting them, and enumerate once.

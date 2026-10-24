@@ -1032,7 +1032,7 @@ internal sealed class SamplingCodegen
                     counting: true, selectedValue: count.ValueExpr);
             case FoldExpr fold:
                 return Iterate(CollectionInputs.Of(fold), fold.ItemName, fold.IndexName, fold.Body, false, fold.Init,
-                    fold.AccName);
+                    fold.AccName, whileCondition: fold.WhileCondition);
             case MapExpr map:
                 if (_buffers?.TryConstantProducer(map, out ExprValue repeated) == true &&
                     map.Source is MapExpr producer)
@@ -1118,10 +1118,10 @@ internal sealed class SamplingCodegen
     private Lx Iterate(CollectionInput input, string itemName, string? indexName, Expression body, bool filter,
         Expression? init = null, string? accName = null, bool counting = false, Expression? selectedValue = null,
         Expression? ownerExpression = null, bool discardValues = false, LxParameter? captureLength = null,
-        ExprValue? virtualItem = null, LxParameter? virtualLength = null) =>
+        ExprValue? virtualItem = null, LxParameter? virtualLength = null, Expression? whileCondition = null) =>
         Form(
             (counting ? "count" : init is not null ? "fold" : filter ? "filter" : "map") +
-            (indexName is null ? "-item" : "-indexed"), () =>
+            (indexName is null ? "-item" : "-indexed") + (whileCondition is null ? "" : "-while"), () =>
             {
                 var key = input.Key;
                 Expression sourceExpression = input.Source ?? StateField(key);
@@ -1269,6 +1269,32 @@ internal sealed class SamplingCodegen
                     _bindings[indexName] = indexBinding!;
                 }
 
+                Lx? keepGoing = null;
+                if (whileCondition is not null)
+                {
+                    SamplingSubexpressions? previous = _subexpressions;
+                    _subexpressions = null;
+                    var unavailableItem = new IterationBinding("unavailable-item;", name => Lx.Throw(
+                        Lx.New(
+                            typeof(ExpressionEvaluationException).GetConstructor([
+                                typeof(string), typeof(string), typeof(string)
+                            ])!,
+                            Lx.Constant("EVAL_MISSING_STATE"),
+                            Lx.Constant("The current item is unavailable before the guard."), Text(name)),
+                        typeof(ExprValue)));
+                    _bindings[itemName] = unavailableItem;
+                    try
+                    {
+                        keepGoing = Condition(whileCondition);
+                    }
+                    finally
+                    {
+                        itemBinding.NeedsFrame |= unavailableItem.NeedsFrame;
+                        _bindings[itemName] = itemBinding;
+                        _subexpressions = previous;
+                    }
+                }
+
                 Lx selector;
                 Lx? selected = null;
                 SamplingSubexpressions? parentSubexpressions = _subexpressions;
@@ -1330,6 +1356,13 @@ internal sealed class SamplingCodegen
                     }
                 }
 
+                if (whileCondition is not null && !maskFold)
+                {
+                    selector = Lx.Call(
+                        typeof(CollectionInputs).GetMethod(nameof(CollectionInputs.CheckAccumulator), Any)!,
+                        selector, Lx.Property(result, nameof(ExprValue.Kind)));
+                }
+
                 var publish = itemBinding.NeedsFrame || accBinding?.NeedsFrame == true ||
                               indexBinding?.NeedsFrame == true;
                 _shape.Append(publish ? "published;" : "local;");
@@ -1340,19 +1373,36 @@ internal sealed class SamplingCodegen
                         Lx.Assign(Lx.ArrayAccess(values, count), result),
                         Lx.Assign(symbols, Lx.Or(symbols, Lx.Property(result, nameof(ExprValue.ContainsSymbols)))),
                         Lx.PostIncrementAssign(count), Lx.Empty());
+                Lx readItem = virtualItem is { } virtualValue
+                    ? Lx.Block(Lx.Assign(element, Literal(virtualValue)),
+                        publish ? Lx.Block(Lx.Assign(item, Lx.Call(typed, element)), Lx.Empty()) : Lx.Empty())
+                    : Lx.IfThenElse(hasTypedItems,
+                        publish
+                            ? Lx.Block(Lx.Assign(element, Lx.ArrayIndex(typedItems, cursor)),
+                                Lx.Assign(item, Lx.Call(typed, element)), Lx.Empty())
+                            : Lx.Block(Lx.Assign(element, Lx.ArrayIndex(typedItems, cursor)), Lx.Empty()),
+                        Lx.Block(Lx.Assign(item, Lx.Call(source, getItem, cursor)), Lx.Empty()));
+                if (whileCondition is not null && expressionSource is not null)
+                {
+                    readItem = Lx.Block(readItem, Lx.IfThen(hasTypedItems,
+                        Lx.Assign(element, Lx.Property(Lx.Call(typed, element), nameof(SamplingCell.Value)))));
+                }
+
+                LabelTarget end = Lx.Label();
                 var steps = new List<Lx>
                 {
-                    Lx.Call(_frame, checkCancellation),
-                    virtualItem is { } virtualValue
-                        ? Lx.Block(Lx.Assign(element, Literal(virtualValue)),
-                            publish ? Lx.Block(Lx.Assign(item, Lx.Call(typed, element)), Lx.Empty()) : Lx.Empty())
-                        : Lx.IfThenElse(hasTypedItems,
-                            publish
-                                ? Lx.Block(Lx.Assign(element, Lx.ArrayIndex(typedItems, cursor)),
-                                    Lx.Assign(item, Lx.Call(typed, element)), Lx.Empty())
-                                : Lx.Block(Lx.Assign(element, Lx.ArrayIndex(typedItems, cursor)), Lx.Empty()),
-                            Lx.Block(Lx.Assign(item, Lx.Call(source, getItem, cursor)), Lx.Empty()))
+                    Lx.Call(_frame, checkCancellation)
                 };
+                if (whileCondition is null)
+                {
+                    steps.Add(readItem);
+                }
+                else
+                {
+                    steps.Add(Lx.Call(Lx.Field(_frame, nameof(SamplingFrame.CancellationToken)),
+                        typeof(CancellationToken).GetMethod(nameof(CancellationToken.ThrowIfCancellationRequested))!));
+                }
+
                 if (accCell is not null)
                 {
                     steps.Add(Lx.Assign(accumulator!, maskFold
@@ -1365,7 +1415,7 @@ internal sealed class SamplingCodegen
                     }
                 }
 
-                if (publish)
+                if (publish && whileCondition is null)
                 {
                     steps.Add(Lx.Assign(itemCell, item));
                 }
@@ -1376,6 +1426,21 @@ internal sealed class SamplingCodegen
                         Lx.Call(typed, Lx.Call(NumberOf, Lx.Convert(cursor, typeof(long))))));
                 }
 
+                if (keepGoing is not null)
+                {
+                    if (publish)
+                    {
+                        steps.Add(Lx.Assign(itemCell, Lx.Default(typeof(SamplingCell))));
+                    }
+
+                    steps.Add(Lx.IfThen(Lx.Not(keepGoing), Lx.Break(end)));
+                    steps.Add(readItem);
+                    if (publish)
+                    {
+                        steps.Add(Lx.Assign(itemCell, item));
+                    }
+                }
+
                 if (selectorSubexpressions is not null)
                 {
                     steps.AddRange(selectorSubexpressions.Reset());
@@ -1384,7 +1449,6 @@ internal sealed class SamplingCodegen
                 steps.Add(filter ? Lx.IfThen(selector, take) : take);
                 steps.Add(Lx.PostIncrementAssign(cursor));
                 steps.Add(Lx.Empty());
-                LabelTarget end = Lx.Label();
                 LoopExpression loop =
                     Lx.Loop(Lx.IfThenElse(Lx.LessThan(cursor, length), Lx.Block(steps), Lx.Break(end)), end);
                 var restore = new List<Lx>();
@@ -1424,8 +1488,9 @@ internal sealed class SamplingCodegen
                 {
                     initialize.Add(Lx.Assign(typedItems, constantItems));
                     initialize.Add(Lx.Assign(length, Lx.Constant(constantLength)));
-                    if (input.MaxItems is { } bound)
+                    if (input.MaxItems is not null || whileCondition is not null)
                     {
+                        var bound = input.MaxItems ?? -1;
                         _shape.Append("bounded-constant;");
                         initialize.Add(Lx.Call(
                             typeof(CollectionInputs).GetMethod(nameof(CollectionInputs.CheckCount), Any)!, length,
@@ -1440,21 +1505,28 @@ internal sealed class SamplingCodegen
                     _shape.Append("bounded-value-source;");
                     LxParameter valueSource = Local(typeof(ExprValue));
                     initialize.Add(Lx.Assign(valueSource, Lx.Call(
-                        typeof(SamplingCollectionSource).GetMethod(nameof(SamplingCollectionSource.ReadValue), Any)!,
+                        typeof(SamplingCollectionSource).GetMethod(whileCondition is null
+                            ? nameof(SamplingCollectionSource.ReadValue)
+                            : nameof(SamplingCollectionSource.ReadIndexedValue), Any)!,
                         expressionSource,
                         Lx.Convert(Operand(nameof(SamplingOperands.Numbers), _numbers, input.MaxItems ?? -1),
                             typeof(int)), Text(input.Location), length)));
                     initialize.Add(Lx.Assign(typedItems,
                         Lx.Property(valueSource, typeof(ExprValue).GetProperty(nameof(ExprValue.ItemsArray), Any)!)));
                     initialize.Add(Lx.IfThen(Lx.Equal(typedItems, Lx.Constant(null, typeof(ExprValue[]))),
-                        Lx.Block(Lx.Assign(source, Lx.Call(typed, valueSource)), Lx.Empty())));
+                        Lx.Block(Lx.Assign(source, Lx.Call(whileCondition is null
+                                ? typed
+                                : typeof(SamplingCell).GetMethod(nameof(SamplingCell.ArraySource), Any)!, valueSource)),
+                            Lx.Empty())));
                 }
-                else if (input.MaxItems is not null)
+                else if (input.MaxItems is not null || whileCondition is not null)
                 {
                     _shape.Append("bounded-source;");
                     LxParameter collection = Local(typeof(SamplingCollectionValue));
                     initialize.Add(Lx.Assign(collection, Lx.Call(
-                        typeof(SamplingCollectionSource).GetMethod(nameof(SamplingCollectionSource.Read), Any)!,
+                        typeof(SamplingCollectionSource).GetMethod(whileCondition is null
+                            ? nameof(SamplingCollectionSource.Read)
+                            : nameof(SamplingCollectionSource.ReadIndexed), Any)!,
                         sourceCell,
                         Lx.Convert(Operand(nameof(SamplingOperands.Numbers), _numbers, input.MaxItems ?? -1),
                             typeof(int)), Text(key), Text(input.Location))));
@@ -1476,6 +1548,12 @@ internal sealed class SamplingCodegen
                             Lx.Property(Lx.Property(source, nameof(SamplingCell.Value)),
                                 typeof(ExprValue).GetProperty(nameof(ExprValue.ItemsArray), Any)!)))
                     ]);
+                }
+
+                if (whileCondition is not null)
+                {
+                    initialize.Add(Lx.Call(Lx.Field(_frame, nameof(SamplingFrame.CancellationToken)),
+                        typeof(CancellationToken).GetMethod(nameof(CancellationToken.ThrowIfCancellationRequested))!));
                 }
 
                 if (publish)

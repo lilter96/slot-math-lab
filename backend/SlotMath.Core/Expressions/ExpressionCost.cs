@@ -89,7 +89,9 @@ public static class ExpressionCost
             CallExpr e => Add(1, Sum(e.Args)),
             MapExpr e => Iteration(e, Child(e.Body)),
             FilterExpr e => Iteration(e, Child(e.Predicate)),
-            FoldExpr e => Iteration(e, Child(e.Body), Child(e.Init)),
+            FoldExpr e => e.WhileCondition is not null && e.MaxItems is null
+                ? long.MaxValue
+                : Iteration(e, Add(Child(e.WhileCondition), Child(e.Body)), Child(e.Init)),
             _ => 1
         };
     }

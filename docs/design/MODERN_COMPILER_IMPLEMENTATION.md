@@ -17,7 +17,7 @@ individually verified milestone; it does not complete the overall objective.
 | R7 | Bounded Reachable on arbitrary adjacency, including cyclic data graphs | Independent BFS oracle and independent JSON mechanics | Backend verified: 0..64 exact mask domain, independent transitive-closure oracle and two JSON subgraphs; docs/REACHABLE.md; game migrations remain R17 and wider sets R15 |
 | R8 | Scan and stable segmented compaction | Exact prefix oracle, exhaustive small segments and carried attributes | Backend verified: exact integer/Boolean prefixes, stable source plans, three carried attribute types; docs/SCAN_COMPACTION.md; game admission remains R17 |
 | R9 | Designer repeat over collections and runtime subgraph bindings where needed | Editable JSON, apply/undo, nested scopes and responsive visual acceptance | Verified authoring via existing bounded Map/Loop and typed state bindings; six-node editable wrapper, snapshot/error/undo/nested and desktop/phone controls; docs/COLLECTION_REPEAT.md; migrations remain R17 |
-| R10 | Bounded foldWhile, any/all | Empty, early stop, short-circuit errors and resource bounds | Pending |
+| R10 | Bounded foldWhile, any/all | Empty, early stop, short-circuit errors and resource bounds | Backend verified: optional Fold.WhileCondition, typed pre-item guard and editable Any/All compositions; 36 new controls, measured early/middle/full-scan limits; docs/FOLD_WHILE.md; forms/migrations remain R18/R17 |
 | R11 | Indexed reduction/partition and deterministic scatter | Duplicate-index contract, typed values, snapshot and ownership controls | Pending |
 | R12 | Cost-admitted finite-domain pretabulation | Full domain oracle, errors, cache identity, memory/work bounds and negative controls | Pending |
 | R13 | Additively constrained independent-product sampling via bounded DP | Exact joint-law oracle and explicit RNG/source identity | Pending |
@@ -492,3 +492,29 @@ Both Rider profiles completed five C# and six frontend files, followed by scoped
 format/lint and backend/frontend builds. [Collection repeat](../COLLECTION_REPEAT.md)
 records source/undo boundaries and desktop/phone acceptance. No spin-rate gain
 is claimed from the authoring wrapper; R10–R18 and all-game admission remain.
+
+
+R10 adds an optional bounded WhileCondition to Fold, checking accumulator/index
+before fetching the next item. Ordinary folds retain their JSON and execution
+path. Any/All are editable compositions, with no named function dispatch.
+Known-count sources, strict Boolean guards, initialized accumulator kinds,
+entry/iteration cancellation and scoped restoration are enforced. IR and native
+shape identity distinguish the control flow; exact evaluation preserves shared
+state and lexical dependencies through the existing opaque deterministic term.
+
+Independent controls cover Boolean truth tables, exact integer prefixes,
+throwing getters/streams, empty/false/error/resource order, board aliases,
+nested scopes, typed records, symbol normalization and persistent arrays.
+A negative test first reproduced unchecked native missing-bound execution;
+the fixed mutable/immutable paths agree with canonical and cold execution.
+The six-flag joint law has independently pinned masses and mean 33671/4096;
+three sampling tiers retain full state, independent alias RNG audits and the
+following word. Final verification passed 615 selected Core cases and five API
+previews, including 36 new cases and all 15 seeded game-state controls. Both
+Rider profiles, scoped formatting and the Release build passed for 17 sources.
+
+Paired million-round optimized-JIT controls measured 4.065x for a 256-item query
+matching at index 0/1. Middle timing overlapped, while a complete scan regressed
+to 0.635x with unchanged allocation and outcome statistics. [Guarded folds](../FOLD_WHILE.md)
+record exact schedules, ranges and the negative admission control. No current
+production-game multiplier is inferred. R11–R18 remain required.

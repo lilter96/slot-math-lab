@@ -129,7 +129,7 @@ public static class ExpressionSimplifier
                 FoldExpr f =>
                 [
                     nameof(FoldExpr), f.StateKey, Optional(f.Source), f.MaxItems, f.ItemName, f.IndexName, f.AccName,
-                    f.ItemType, Child(f.Init),
+                    f.ItemType, Child(f.Init), Optional(f.WhileCondition),
                     Child(f.Body)
                 ],
                 AggregateExpr a =>
@@ -362,6 +362,9 @@ public static class ExpressionSimplifier
                     {
                         Source = fold.Source is null ? null : Visit(fold.Source),
                         Init = Visit(fold.Init),
+                        WhileCondition = fold.WhileCondition is null
+                            ? null
+                            : InIteration(fold.WhileCondition, fold.IndexName, fold.AccName),
                         Body = InIteration(fold.Body, fold.ItemName, fold.IndexName, fold.AccName)
                     }; break;
                 case AggregateExpr aggregate:
@@ -452,7 +455,8 @@ public static class ExpressionSimplifier
                 TupleExpr e => e.Items.Any(Uses),
                 MapExpr e => (e.Source is not null && Uses(e.Source)) || Uses(e.Body),
                 FilterExpr e => (e.Source is not null && Uses(e.Source)) || Uses(e.Predicate),
-                FoldExpr e => (e.Source is not null && Uses(e.Source)) || Uses(e.Init) || Uses(e.Body),
+                FoldExpr e => (e.Source is not null && Uses(e.Source)) || Uses(e.Init) ||
+                              (e.WhileCondition is not null && Uses(e.WhileCondition)) || Uses(e.Body),
                 AggregateExpr e => (e.Source is not null && Uses(e.Source)) ||
                                    (e.Predicate is not null && Uses(e.Predicate)) ||
                                    (e.ValueExpr is not null && Uses(e.ValueExpr)),

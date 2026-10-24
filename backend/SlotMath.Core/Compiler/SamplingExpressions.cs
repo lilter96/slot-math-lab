@@ -392,12 +392,18 @@ internal sealed class SamplingExpressions(
                 var position = f.IndexName is null ? -1 : Variable(f.IndexName);
                 Func<SamplingFrame, ExprValue> init = compile(f.Init);
                 Func<SamplingFrame, ExprValue> body = compile(f.Body);
+                Func<SamplingFrame, ExprValue>? guard = f.WhileCondition is null ? null : compile(f.WhileCondition);
                 return s =>
                 {
                     ExprValue value = init(s);
                     SamplingCollectionValue collection = readSource(s);
                     SamplingCell array = collection.Cell;
                     var length = collection.Length;
+                    if (guard is not null)
+                    {
+                        s.CancellationToken.ThrowIfCancellationRequested();
+                    }
+
                     SamplingCell savedAcc = s.Cells[acc];
                     SamplingCell savedItem = s.Cells[item];
                     SamplingCell savedIndex = position < 0 ? default : s.Cells[position];
@@ -406,14 +412,39 @@ internal sealed class SamplingExpressions(
                         for (var j = 0; j < length; j++)
                         {
                             s.CheckCancellation();
+                            if (guard is not null)
+                            {
+                                s.CancellationToken.ThrowIfCancellationRequested();
+                            }
+
                             s.Cells[acc] = SamplingCell.Typed(value);
-                            s.Cells[item] = array.Item(j);
+                            if (guard is null)
+                            {
+                                s.Cells[item] = array.Item(j);
+                            }
+
                             if (position >= 0)
                             {
                                 s.Cells[position] = SamplingCell.FromInt(j);
                             }
 
+                            if (guard is not null)
+                            {
+                                s.Cells[item] = default;
+                                if (!Truth(guard(s)))
+                                {
+                                    break;
+                                }
+
+                                s.Cells[item] = array.Item(j);
+                            }
+
+                            ExprType accumulatorType = value.Kind;
                             value = body(s);
+                            if (guard is not null)
+                            {
+                                value = CollectionInputs.CheckAccumulator(value, accumulatorType);
+                            }
                         }
 
                         return value;
@@ -502,6 +533,20 @@ internal sealed class SamplingExpressions(
         Func<Expression, Func<SamplingFrame, ExprValue>> compile)
     {
         CollectionInput input = CollectionInputs.Of(expression);
+        if (expression is FoldExpr { WhileCondition: not null })
+        {
+            if (input.Source is { } indexedSource)
+            {
+                Func<SamplingFrame, ExprValue> value = compile(indexedSource);
+                return frame => SamplingCollectionSource.ReadIndexed(SamplingCell.ArraySource(value(frame)),
+                    input.MaxItems ?? -1, input.Key, input.Location);
+            }
+
+            var indexedSlot = slot(input.StateKey!);
+            return frame => SamplingCollectionSource.ReadIndexed(frame.Cells[indexedSlot], input.MaxItems ?? -1,
+                input.Key, input.Location);
+        }
+
         if (input.Source is { } source)
         {
             Func<SamplingFrame, ExprValue> value = compile(source);

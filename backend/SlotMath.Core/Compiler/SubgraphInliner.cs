@@ -548,6 +548,7 @@ public static class SubgraphInliner
             {
                 Source = fold.Source is null ? null : RewriteExprRefs(fold.Source, prefix),
                 Init = RewriteExprRefs(fold.Init, prefix),
+                WhileCondition = fold.WhileCondition is null ? null : RewriteExprRefs(fold.WhileCondition, prefix),
                 Body = RewriteExprRefs(fold.Body, prefix)
             },
             MapExpr map => map with

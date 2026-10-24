@@ -464,6 +464,20 @@ internal sealed class ExpressionIrBuilder
                 FoldExpr e => e.Body,
                 _ => throw new InvalidOperationException()
             };
+            if (expression is FoldExpr { WhileCondition: { } condition } guarded)
+            {
+                Scope guard = Child(scope, ArrayExpressionTypes.Bind(scope.Context,
+                    bindings.Where(binding => binding.Name != itemName).ToArray()));
+                guard.State.Remove(itemName);
+                guard.State[guarded.AccName] = Parameter(guard, guarded.AccName, init?.Shape);
+                if (indexName is not null)
+                {
+                    guard.State[indexName] = Parameter(guard, indexName, Shape(ExprType.Number));
+                }
+
+                regions.Add(Finish(guard, "while-before-item", Lower(condition, guard, depth + 1)));
+            }
+
             IrValue result = Lower(child, body, depth + 1);
             regions.Add(Finish(body, expression is FilterExpr ? "predicate" : "body", result));
             shape = expression is MapExpr
@@ -471,7 +485,9 @@ internal sealed class ExpressionIrBuilder
                 : expression is FilterExpr
                     ? source.Shape
                     : init?.Shape;
-            code = expression is MapExpr ? IrOp.Map : expression is FilterExpr ? IrOp.Filter : IrOp.Fold;
+            code = expression is MapExpr ? IrOp.Map
+                : expression is FilterExpr ? IrOp.Filter
+                : expression is FoldExpr { WhileCondition: not null } ? IrOp.FoldWhile : IrOp.Fold;
         }
 
         var own = new IrEffects(

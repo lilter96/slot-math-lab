@@ -86,6 +86,7 @@ internal enum IrOp
     Map,
     Filter,
     Fold,
+    FoldWhile,
     Aggregate,
     AggregateStep,
     Opaque

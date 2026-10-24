@@ -31,6 +31,15 @@ internal struct SamplingCell
         get => _value.MaskUnchecked;
     }
 
+    // Collection adapters validate the outer shape before borrowing this container.
+    // Normalize only selected elements, preserving short-circuit item access.
+    internal static SamplingCell ArraySource(ExprValue value) => new()
+    {
+        Present = true,
+        _value = value,
+        Readable = value.Kind != ExprType.Null
+    };
+
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static SamplingCell Typed(ExprValue value)
     {

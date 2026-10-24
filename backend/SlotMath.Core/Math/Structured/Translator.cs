@@ -343,6 +343,11 @@ internal sealed class Translator(TermFactory f)
 
     private Term Fold(FoldExpr fold, Dictionary<string, Field> state, Binding? bound)
     {
+        if (fold.WhileCondition is not null)
+        {
+            return Opaque(fold, state, bound);
+        }
+
         Term accumulator = Go(fold.Init, state, bound);
         if (CollectionSource(fold, state, bound) is not { } source || Elements(source) is not { } elements)
         {
@@ -502,6 +507,7 @@ internal sealed class Translator(TermFactory f)
 
                 Reads(fold.Source, names);
                 Reads(fold.Init, names);
+                Reads(fold.WhileCondition, names);
                 Reads(fold.Body, names);
                 break;
         }

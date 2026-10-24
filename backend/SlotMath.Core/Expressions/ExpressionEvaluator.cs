@@ -501,6 +501,10 @@ public static class ExactExpressionEvaluator
     private static ExprValue EvalFold(FoldExpr f, EvalContext ctx)
     {
         ExprValue acc = Eval(f.Init, ctx);
+        if (f.WhileCondition is not null)
+        {
+            return EvalFoldWhile(f, ctx, acc);
+        }
 
         IEnumerable<object?>? arr = ReadCollection(f, ctx);
         if (arr == null)
@@ -538,6 +542,86 @@ public static class ExactExpressionEvaluator
         }
 
         return acc;
+    }
+
+    private static ExprValue EvalFoldWhile(FoldExpr fold, EvalContext context, ExprValue accumulator)
+    {
+        CollectionInput input = CollectionInputs.Of(fold);
+        var maximum = input.MaxItems ?? -1;
+        int count;
+        Func<int, object?> item;
+        if (input.Source is { } source)
+        {
+            ExprValue value = Eval(source, context);
+            count = CollectionInputs.Length(value, maximum, input.Location);
+            item = index => value.ArrayValue![index].ToStateObject();
+        }
+        else
+        {
+            if (context.State is not IDictionary<string, object?> fields ||
+                !fields.TryGetValue(input.StateKey!, out var raw))
+            {
+                throw new ExpressionEvaluationException("EVAL_MISSING_STATE", "State array is absent.", input.Key);
+            }
+
+            if (raw is null or ExprValue { Kind: ExprType.Null })
+            {
+                StateValues.RequireReadable(ExprValue.Null, input.Key);
+            }
+
+            if (raw is ExprValue { Kind: ExprType.Array } typed)
+            {
+                count = CollectionInputs.CheckCount(typed.ArrayValue!.Count, maximum, input.Location);
+                item = index => typed.ArrayValue[index];
+            }
+            else if (raw is IList indexed)
+            {
+                count = CollectionInputs.CheckCount(indexed.Count, maximum, input.Location);
+                item = index => indexed[index];
+            }
+            else
+            {
+                throw new ExpressionEvaluationException("EVAL_TYPE_ERROR",
+                    "A short-circuit collection requires an indexed array with a known length.", input.Location);
+            }
+        }
+
+        ExprType accumulatorType = accumulator.Kind;
+        context.CancellationToken.ThrowIfCancellationRequested();
+        IDictionary<string, object?> baseState =
+            context.State as IDictionary<string, object?> ?? new Dictionary<string, object?>();
+        for (var index = 0; index < count; index++)
+        {
+            context.CancellationToken.ThrowIfCancellationRequested();
+            var state = new Dictionary<string, object?>(baseState)
+            {
+                [fold.AccName] = ExprValueToStateObject(accumulator)
+            };
+            state.Remove(fold.ItemName);
+            if (fold.IndexName is not null)
+            {
+                state[fold.IndexName] = index;
+            }
+
+            EvalContext iteration = new()
+            {
+                State = state,
+                Locals = context.Locals,
+                Measurement = context.Measurement,
+                DecorationParser = context.DecorationParser,
+                SymbolToNumericValue = context.SymbolToNumericValue,
+                CancellationToken = context.CancellationToken
+            };
+            if (!EvaluateAsBool(fold.WhileCondition!, iteration))
+            {
+                break;
+            }
+
+            state[fold.ItemName] = item(index);
+            accumulator = CollectionInputs.CheckAccumulator(Eval(fold.Body, iteration), accumulatorType);
+        }
+
+        return accumulator;
     }
 
     private static IEnumerable<object?> ReadCollection(Expression expression, EvalContext context)
