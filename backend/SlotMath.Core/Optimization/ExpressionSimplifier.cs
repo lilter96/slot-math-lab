@@ -60,7 +60,8 @@ public static class ExpressionSimplifier
             _rules[rule] = _rules.GetValueOrDefault(rule) + 1;
             return replacement with
             {
-                Annotation = source.Annotation ?? replacement.Annotation
+                Annotation = source.Annotation ?? replacement.Annotation,
+                Precompute = replacement.Precompute ?? source.Precompute
             };
         }
 

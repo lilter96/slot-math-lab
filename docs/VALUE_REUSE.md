@@ -155,3 +155,10 @@ predicate assumptions using IR effects. A predicate containing cancellation,
 observations, RNG, unknown operations, writes or iterator bindings cannot be
 erased merely because an identical earlier predicate succeeded. This preserves
 repeated Reachable polling and applies the same rule to other effectful forms.
+
+
+[Finite-domain precomputation](FINITE_PRECOMPUTATION.md) adds bounded reuse
+across invocations only for explicit finite-domain hints. The original editable
+body remains the fallback, captured immutable parameters belong to table
+identity, and shared container results retain borrowed ownership. It uses
+construction/amortization admission rather than assuming a table is faster.

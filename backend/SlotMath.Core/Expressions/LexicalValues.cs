@@ -8,6 +8,21 @@ internal static class LexicalValues
 {
     internal const int MaxFields = 64;
 
+    internal static bool TryRead(LexicalBinding? binding, string name, out ExprValue value)
+    {
+        for (LexicalBinding? current = binding; current is not null; current = current.Previous)
+        {
+            if (current.Name == name)
+            {
+                value = current.Value;
+                return true;
+            }
+        }
+
+        value = default;
+        return false;
+    }
+
     internal static ExprValue Read(LexicalBinding? binding, string name, string[] path)
     {
         for (LexicalBinding? current = binding; current is not null; current = current.Previous)

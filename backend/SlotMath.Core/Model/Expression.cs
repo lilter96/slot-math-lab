@@ -31,6 +31,9 @@ namespace SlotMath.Core.Model;
 public abstract record Expression
 {
     public string? Annotation { get; init; }
+
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public PrecomputationHint? Precompute { get; init; }
 }
 
 public enum ScatterMode

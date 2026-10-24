@@ -151,3 +151,10 @@ all inputs participate in SSA use counts before a private-storage decision.
 Partition has a nested numeric array result and only its outer allocation is
 eligible to propagate ownership. [The indexed contract](INDEXED_ARRAYS.md)
 includes type-shape joins, every-operand inlining and joint exact/RNG controls.
+
+
+[Finite-domain precomputation](FINITE_PRECOMPUTATION.md) retains the ordinary
+expression IR and uses its effects/read sets for admission. Explicit local
+domains seed typed root parameters; state and lexical bindings remain distinct.
+Resource analysis precedes IR constant evaluation and table construction.
+A miss preserves the original expression, including lazy branches and errors.

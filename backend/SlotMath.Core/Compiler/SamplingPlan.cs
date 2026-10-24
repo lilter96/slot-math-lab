@@ -54,6 +54,7 @@ internal sealed class SamplingPlanSlot(Slot<Dictionary<string, object?>, BigInte
         ICompiledSampling<Dictionary<string, object?>, BigInteger>
 {
     internal SamplingPreparation Preparation => plan.Preparation;
+    internal FinitePrecomputationCache Precomputations => plan.Precomputations;
     object IAnnotationNode.InnerUntyped => reference;
 
     public ISamplingRunner<Dictionary<string, object?>, BigInteger> CreateRunner(Dictionary<string, object?> initial,
@@ -241,6 +242,7 @@ internal sealed class SamplingPlan : ICompiledSampling<Dictionary<string, object
     }
 
     internal SamplingPreparation Preparation { get; }
+    internal FinitePrecomputationCache Precomputations => _shapes.Precomputations;
 
     public ISamplingRunner<Dictionary<string, object?>, BigInteger> CreateRunner(Dictionary<string, object?> initial,
         MeasurementCollector? measurements = null, string[]? persistentKeys = null,

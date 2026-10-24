@@ -472,7 +472,7 @@ public static class SubgraphInliner
     /// </summary>
     private static Expression RewriteExprRefs(Expression expr, string prefix)
     {
-        return expr switch
+        Expression rewritten = expr switch
         {
             FieldAccessExpr f => RewriteFieldAccess(f, prefix),
             LetExpr e => e with
@@ -573,6 +573,29 @@ public static class SubgraphInliner
             },
             _ => expr // ConstantExpr and anything leaf-like
         };
+        if (rewritten.Precompute is { Domains: not null } hint)
+        {
+            rewritten = rewritten with
+            {
+                Precompute = hint with
+                {
+                    Domains = hint.Domains.Select(domain =>
+                        domain is not null && !string.IsNullOrEmpty(domain.Name) &&
+                        domain.Scope == PrecomputationScope.State
+                            ? domain with
+                            {
+                                Name = ((FieldAccessExpr)RewriteFieldAccess(new FieldAccessExpr
+                                {
+                                    Target = "state",
+                                    Path = [domain.Name]
+                                }, prefix)).Path[0]
+                            }
+                            : domain!).ToArray()
+                }
+            };
+        }
+
+        return rewritten;
     }
 
     private static Expression RewriteFieldAccess(FieldAccessExpr f, string prefix)

@@ -58,6 +58,7 @@ internal sealed class SamplingOperands(
     ExprValue[] values,
     ExprValue[][] arrays,
     SamplingDraw[] draws,
+    FiniteTable[] precomputations,
     Func<SamplingFrame, ExprValue>[] closures,
     SamplingExpressions owner)
 {
@@ -67,9 +68,11 @@ internal sealed class SamplingOperands(
     public readonly long[] Numbers = numbers;
     public readonly SamplingExpressions Owner = owner;
     public readonly string[][] Paths = paths;
+    public readonly FiniteTable[] Precomputations = precomputations;
     public readonly int[] Slots = slots;
     public readonly string[] Texts = texts;
     public readonly ExprValue[] Values = values;
+    internal int PrecomputedExpressions { get; init; }
     internal int ReusedScalarEvaluations { get; init; }
     internal int InvariantScalarValues { get; init; }
     internal int EliminatedStateStores { get; init; }
@@ -201,6 +204,7 @@ internal sealed class SamplingShapes
 
     private readonly ConcurrentDictionary<string, Lazy<SamplingDraw>> _draws = new(StringComparer.Ordinal);
     internal ExactWeightVectorCache WeightVectors { get; } = new();
+    internal FinitePrecomputationCache Precomputations { get; } = new();
 
     public int Count => _code.Count;
     internal int BoundDrawCount => _draws.Count;
@@ -557,6 +561,7 @@ internal sealed class SamplingCodegen
 
     private readonly SamplingExpressions _owner;
     private readonly List<string[]> _paths = [];
+    private readonly List<FiniteTable> _precomputations = [];
     private readonly HashSet<int> _readableWrites = [];
     private readonly StringBuilder _shape = new();
     private readonly Func<string, int> _slot;
@@ -568,7 +573,9 @@ internal sealed class SamplingCodegen
     private int _fusedCollectionPasses;
     private int _invariantScalarValues;
     private int _iteration;
+    private int _lexicalFrameUses;
     private int _lexicalId;
+    private int _precomputedExpressions;
     private int _reusedCollectionBuffers;
     private int _reusedScalarEvaluations;
 
@@ -797,8 +804,9 @@ internal sealed class SamplingCodegen
 
     private SamplingOperands Operands() => new([.. _slots], [.. _texts], [.. _paths], [.. _numbers], [.. _values],
         [.. _arrays],
-        [.. _draws], [.. _closures], _owner)
+        [.. _draws], [.. _precomputations], [.. _closures], _owner)
     {
+        PrecomputedExpressions = _precomputedExpressions,
         ReusedScalarEvaluations = _reusedScalarEvaluations,
         InvariantScalarValues = _invariantScalarValues,
         EliminatedStateStores = _eliminatedStateStores,
@@ -835,6 +843,7 @@ internal sealed class SamplingCodegen
 
     private Lx Interpreted(Expression expression)
     {
+        _lexicalFrameUses++;
         foreach (IterationBinding binding in _bindings.Values)
         {
             binding.NeedsFrame = true;
@@ -912,6 +921,11 @@ internal sealed class SamplingCodegen
 
     private Lx ValueCore(Expression expression)
     {
+        if (expression.Precompute is not null && _owner.Precomputation(expression).Table is { } table)
+        {
+            return Precomputed(expression, table);
+        }
+
         expression = _owner.Reduce(expression);
         if (TryBoundValue(expression, out ExprValue unchanging))
         {
@@ -929,6 +943,7 @@ internal sealed class SamplingCodegen
                     var hadPrevious = _lexical.TryGetValue(let.Name, out (LxParameter Value, int Id) previous);
                     _lexical[let.Name] = (value, ++_lexicalId);
                     Lx body;
+                    var beforeFrameUses = _lexicalFrameUses;
                     try
                     {
                         body = Value(let.Body);
@@ -944,6 +959,14 @@ internal sealed class SamplingCodegen
                             _lexical.Remove(let.Name);
                         }
                     }
+
+                    if (beforeFrameUses == _lexicalFrameUses)
+                    {
+                        _shape.Append("lexical-local;");
+                        return Lx.Block(Lx.Assign(value, initializer), body);
+                    }
+
+                    _shape.Append("lexical-frame;");
 
                     // Fallback closures compile separately and read locals through the frame.
                     // The IL local still gives native children direct access; finally restores
@@ -964,6 +987,7 @@ internal sealed class SamplingCodegen
                         Operand(nameof(SamplingOperands.Paths), _paths, local.Path), Text("local." + local.Name));
                 }
 
+                _lexicalFrameUses++;
                 _shape.Append("local-frame;");
                 return Lx.Call(typeof(LexicalValues).GetMethod(nameof(LexicalValues.Read), Any)!,
                     Lx.Field(_frame, nameof(SamplingFrame.Locals)), Text(local.Name),
@@ -1104,6 +1128,60 @@ internal sealed class SamplingCodegen
                 return Interpreted(expression);
         }
     }
+
+    private Lx Precomputed(Expression expression, FiniteTable table) => Form("precompute:" + table.Domains.Length, () =>
+    {
+        _precomputedExpressions++;
+        Lx bound = Operand(nameof(SamplingOperands.Precomputations), _precomputations, table);
+        LxParameter row = Local(typeof(int)), value = Local(typeof(ExprValue)), contribution = Local(typeof(int));
+        Lx all = Lx.Constant(true);
+        for (var index = 0; index < table.Domains.Length; index++)
+        {
+            FiniteDomain domain = table.Domains[index];
+            Lx probe;
+            if (domain.Scope == PrecomputationScope.Local &&
+                _lexical.TryGetValue(domain.Name, out (LxParameter Value, int Id) local))
+            {
+                _shape.Append("probe-local:").Append(local.Id).Append(';');
+                probe = Lx.Block(Lx.Assign(value, local.Value), Lx.Constant(true));
+            }
+            else if (domain.Scope == PrecomputationScope.Local)
+            {
+                _lexicalFrameUses++;
+                _shape.Append("probe-local-frame;");
+                probe = Lx.Call(typeof(LexicalValues).GetMethod(nameof(LexicalValues.TryRead), Any)!,
+                    Lx.Field(_frame, nameof(SamplingFrame.Locals)), Text(domain.Name), value);
+            }
+            else if (_bindings.TryGetValue(domain.Name, out IterationBinding? binding))
+            {
+                _shape.Append("probe-iteration:").Append(binding.Shape);
+                probe = binding.Probe is { } safe ? safe(value) :
+                    binding.Constant is { } literal ? Lx.Block(Lx.Assign(value, Literal(literal)), Lx.Constant(true)) :
+                    Lx.Constant(false);
+            }
+            else
+            {
+                _shape.Append("probe-state;");
+                IndexExpression cell = Lx.ArrayAccess(Lx.Field(_frame, nameof(SamplingFrame.Cells)),
+                    Operand(nameof(SamplingOperands.Slots), _slots, _slot(domain.Name)));
+                probe = Lx.AndAlso(Lx.Field(cell, nameof(SamplingCell.Present)),
+                    Lx.Call(cell, typeof(SamplingCell).GetMethod(nameof(SamplingCell.TryCachedValue), Any)!, value));
+            }
+
+            Lx found = Lx.AndAlso(probe,
+                Lx.Call(bound, typeof(FiniteTable).GetMethod(nameof(FiniteTable.TryArgument), Any)!, Lx.Constant(index),
+                    value, contribution));
+            all = Lx.AndAlso(all, Lx.AndAlso(found, Lx.Block(Lx.AddAssign(row, contribution), Lx.Constant(true))));
+        }
+
+        Lx fallback = Value(expression with
+        {
+            Precompute = null
+        });
+        return Lx.Block(Lx.Assign(row, Lx.Constant(0)),
+            Lx.Condition(all, Lx.Call(bound, typeof(FiniteTable).GetMethod(nameof(FiniteTable.Result), Any)!, row),
+                fallback));
+    });
 
     private Lx RecordValue(string[] names, Expression[] fields, Expression original)
     {
@@ -1252,7 +1330,10 @@ internal sealed class SamplingCodegen
                     ? null
                     : new IterationBinding($"acc:{iteration};", name => maskFold
                         ? AccumulatorValue()
-                        : Lx.Call(readable, accumulator!, Text(name)), maskFold ? accumulator : null);
+                        : Lx.Call(readable, accumulator!, Text(name)), maskFold ? accumulator : null)
+                    {
+                        Probe = destination => Lx.Block(Lx.Assign(destination, AccumulatorValue()), Lx.Constant(true))
+                    };
                 Lx hasTypedItems = constantItems is not null || virtualItem is not null
                     ? Lx.Constant(true)
                     : Lx.NotEqual(typedItems, Lx.Constant(null, typeof(ExprValue[])));
@@ -1267,12 +1348,21 @@ internal sealed class SamplingCodegen
                     constantItems is not null || virtualItem is not null
                         ? element
                         : Lx.Call(readable,
-                            Lx.Condition(hasTypedItems, element, Lx.Call(item, readValue, Text(name))), Text(name)));
+                            Lx.Condition(hasTypedItems, element, Lx.Call(item, readValue, Text(name))), Text(name)))
+                {
+                    Probe = destination => Lx.Condition(hasTypedItems,
+                        Lx.Block(Lx.Assign(destination, element), Lx.Constant(true)),
+                        Lx.Call(item, typeof(SamplingCell).GetMethod(nameof(SamplingCell.TryCachedValue), Any)!,
+                            destination))
+                };
                 IterationBinding? indexBinding = indexName is null
                     ? null
                     : new IterationBinding($"index:{iteration};",
                         _ => Lx.Call(NumberOf, Lx.Convert(cursor, typeof(long))))
                     {
+                        Probe = destination =>
+                            Lx.Block(Lx.Assign(destination, Lx.Call(NumberOf, Lx.Convert(cursor, typeof(long)))),
+                                Lx.Constant(true)),
                         Integer = Lx.Convert(cursor, typeof(long)),
                         ShiftDistance = constantLength is >= 0 and <= 64 ? cursor : null
                     };
@@ -2112,6 +2202,12 @@ internal sealed class SamplingCodegen
 
     private Lx Condition(Expression expression)
     {
+        if (expression.Precompute is not null && _owner.Precomputation(expression).Table is { } table)
+        {
+            return Lx.Call(typeof(SamplingExpressions).GetMethod(nameof(SamplingExpressions.RequiredBoolean))!,
+                Precomputed(expression, table));
+        }
+
         expression = _owner.Reduce(expression);
         if (_owner.TryConstantBool(expression, out var decided))
         {
@@ -2345,6 +2441,7 @@ internal sealed class SamplingCodegen
     private sealed record IterationBinding(string Shape, Func<string, Lx> Read, Lx? Mask = null)
     {
         public bool NeedsFrame { get; set; }
+        public Func<LxParameter, Lx>? Probe { get; init; }
         public Lx? Integer { get; init; }
         public Lx? ShiftDistance { get; init; }
         public ExprValue? Constant { get; init; }

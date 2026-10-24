@@ -29,10 +29,27 @@ internal sealed class ExpressionIrBuilder
     private static IrEffects Throwing => new(IrEffect.MayThrow);
 
     internal static ExpressionIr Build(Expression expression, TypeCheckContext context,
-        IReadOnlyDictionary<string, ExprValue>? facts = null)
+        IReadOnlyDictionary<string, ExprValue>? facts = null,
+        IReadOnlyDictionary<string, FieldDescriptor>? locals = null)
     {
+        if (locals is not null)
+        {
+            foreach (KeyValuePair<string, FieldDescriptor> pair in locals)
+            {
+                context = context.WithLocal(pair.Key, pair.Value);
+            }
+        }
+
         var builder = new ExpressionIrBuilder(context, facts);
         var scope = new Scope(context);
+        if (locals is not null)
+        {
+            foreach (KeyValuePair<string, FieldDescriptor> pair in locals)
+            {
+                scope.Locals[pair.Key] = builder.Parameter(scope, pair.Key, pair.Value);
+            }
+        }
+
         IrValue value = builder.Lower(expression, scope, 0);
         return new ExpressionIr(builder.Finish(scope, "root", value),
             builder._usedGuards.ToFrozenDictionary(StringComparer.Ordinal), expression,
