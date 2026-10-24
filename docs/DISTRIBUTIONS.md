@@ -131,3 +131,11 @@ Static and prepared ranges overlap. Runtime includes an extra equivalent state
 write; this comparison does not isolate alias-cache cost or estimate whole-game
 speedups. Full method, negative control and allocation figures are retained in
 the implementation matrix.
+
+
+[Conditional products](CONDITIONAL_PRODUCTS.md) can prepare bounded independent
+variables subject to an additive integer range, then emit ordinary families and
+editable JSON atoms. They add no runtime dispatch. Their new conditional draw
+schedule has a distinct source identity; exact law equivalence does not imply
+seed replay equivalence with a former flat or pattern-based graph. Small flat
+tables can be faster, as the complete-round negative control documents.

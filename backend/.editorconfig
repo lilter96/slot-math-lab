@@ -92,3 +92,9 @@ resharper_csharp_keep_existing_switch_expression_arrangement = false
 [SlotMath.Core/Compiler/PrecomputationAnalysis.cs]
 # Match Rider's case-block layout in the bounded precomputation analysis.
 csharp_indent_case_contents_when_block = false
+
+[SlotMath.Core.Tests/Compiler/ConditionalProductTests.cs]
+# Preserve one switch arm per line in both Rider and dotnet format.
+resharper_csharp_place_simple_switch_expression_on_single_line = false
+resharper_csharp_wrap_switch_expression = chop_always
+resharper_csharp_keep_existing_switch_expression_arrangement = false
