@@ -363,6 +363,28 @@ internal static class SamplingOps
         return ExprValue.Div(l, r);
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static ExprValue FloorDivide(ExprValue l, ExprValue r)
+    {
+        if (l.IsInlineInteger && r.IsInlineInteger)
+        {
+            long numerator = l.InlineInteger, denominator = r.InlineInteger;
+            if (denominator != 0 && !(numerator == long.MinValue && denominator == -1))
+            {
+                var quotient = numerator / denominator;
+                if ((numerator ^ denominator) < 0 && numerator % denominator != 0)
+                {
+                    quotient--;
+                }
+
+                return ExprValue.Number(quotient);
+            }
+        }
+
+        // Keep exact wide/rational arithmetic and the original located errors.
+        return NumericFunctions.Call("floor", Div(l, r), default, 1);
+    }
+
     private static void RequireNumbers(BinaryOp op, ExprValue l, ExprValue r)
     {
         if (l.Kind != ExprType.Number || r.Kind != ExprType.Number)
@@ -2343,6 +2365,9 @@ internal sealed class SamplingCodegen
 
         switch (function, args.Length)
         {
+            case ("floor", 1) when args[0] is BinaryExpr { Op: BinaryOp.Div } quotient:
+                return Form("floor-divide", () => Lx.Call(Op(nameof(SamplingOps.FloorDivide)),
+                    Value(quotient.Left), Value(quotient.Right)));
             case ("tonumber", 1):
                 return Form(function, () =>
                 {

@@ -392,8 +392,15 @@ internal sealed class SamplingExpressions(
                 Func<SamplingFrame, ExprValue> cr = compile(c.Right);
                 return s => ExprValue.Bool(CompareValues(c.Op, cl(s), cr(s)));
             case CallExpr c:
-                Func<SamplingFrame, ExprValue>[] args = c.Args.Select(compile).ToArray();
                 var function = c.Function.ToLowerInvariant();
+                if (function == "floor" && c.Args is [BinaryExpr { Op: BinaryOp.Div } quotient])
+                {
+                    Func<SamplingFrame, ExprValue> numerator = compile(quotient.Left),
+                        denominator = compile(quotient.Right);
+                    return frame => SamplingOps.FloorDivide(numerator(frame), denominator(frame));
+                }
+
+                Func<SamplingFrame, ExprValue>[] args = c.Args.Select(compile).ToArray();
                 return s =>
                 {
                     ExprValue a = args.Length > 0 ? args[0](s) : ExprValue.Number(0);

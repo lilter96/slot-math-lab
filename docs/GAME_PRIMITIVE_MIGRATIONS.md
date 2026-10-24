@@ -135,6 +135,11 @@ Rates are shared-host observations, not a capacity guarantee.
 The heavy bonus cases remain the largest gap. Managed hot-stack and allocation
 profiles identify exact-number temporaries and array work as major costs;
 subsequent generic backend changes must be measured against this baseline.
+[Exact integer floor division](BACKEND_PERFORMANCE.md) subsequently measured
+3.52–4.61x on the three heavy Le Militare features and 1.28x on its ordinary
+spin, with identical full-round statistics and 1,950 state/RNG replay controls.
+Nine Lives and Woodland holdout timing ranges overlap. This is a generic
+compiler improvement; graph sizes are unchanged and the final target remains open.
 UI/editor work and mobile browser follow-up are preserved separately at the
 user's request to prioritize backend performance.
 
