@@ -70,3 +70,45 @@ This compiler change leaves authored graph sizes unchanged. Existing game graph
 reductions remain documented separately. Continue profiling the resulting
 backend, reducing array work and admitting further generic optimizations and
 editable game migrations before resuming UI work.
+
+## Retaining more small arrays within the existing element budget
+
+On 1,024 seeded complete rounds per configuration, the old arena retained 256
+buffers but only 5,691 of its permitted 16,384 elements for super/elite. The
+buffer-count cap prevented it from using the remaining payload capacity. The
+count cap is now 1,024, while the element cap remains 16,384. This permits more
+small buffers; it also permits more array headers and bucket metadata. Nothing
+preallocates the full capacity, and buffers remain distinct inside each round.
+
+The same audit now retains 752–753 buffers and 16,383 elements for super/elite.
+Their mean small-buffer misses fall from 223.90 to 72.59 and from 117.55 to
+29.27 per round. Nine Lives Buy falls from 20.76 misses to zero. Woodland Buy
+and X7 Buy already fit the old limits and remain zero-miss controls. These are
+observed samples, not allocation-free guarantees for every possible round.
+
+The Release build and both cleanup profiles passed for the two touched files.
+The affected selection passed 80 cases. After resolving a formatter disagreement
+in an existing test fixture, both profiles and the final scoped format check
+passed again for that file, followed by its nine tests. The kernel binary stayed
+identical through that test-only adjustment. All 1,950 complete-state/RNG replay
+comparisons against the previous floor-division kernel match.
+
+The following adjacent old/new measurements isolate the cache change, using the
+same ABBA method above. Buy cases use 16,384 measured and 8,192 warmup rounds;
+feature and ordinary-spin schedules retain the previous counts. Every full
+statistical result is identical across repetitions and variants.
+
+| Full configuration | Before rounds/s | After rounds/s | Before B/round | After B/round |
+| --- | ---: | ---: | ---: | ---: |
+| le-militare.super | 2,512 | 2,556 | 83,073.3 | 26,606.9 |
+| le-militare.elite | 3,558 | 3,604 | 44,338.9 | 9,990.5 |
+| le-militare.standard | 9,074 | 9,178 | 4,122.5 | 499.5 |
+| le-militare.spin | 112,788 | 112,214 | 49.2 | 25.0 |
+| nine-lives.buy | 19,165 | 19,786 | 3,440.6 | 71.8 |
+| woodland-whisper.buy | 16,381 | 16,379 | 61.3 | 61.3 |
+| x7-club.buy | 152,295 | 152,070 | 60.8 | 60.8 |
+
+Super improves by 1.75%, with disjoint ranges of 2,506–2,531 and 2,538–2,570.
+The other ranges overlap; their medians do not establish a throughput gain.
+This change chiefly reduces allocation and is retained for that result. It does
+not materially close the remaining gap to one million complete rounds/second.

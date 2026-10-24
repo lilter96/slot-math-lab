@@ -467,8 +467,12 @@ internal sealed class SamplingArrayArena
 {
     private const int MaxLength = 64;
     private const int MaxCachedLength = CollectionInputs.MaxItems;
-    private const int MaxBuffers = 256;
-    private const int MaxElements = MaxLength * MaxBuffers;
+
+    private const int MaxBuffers = 1024;
+
+    // Count and payload budgets are independent: many small arrays need not
+    // exhaust retention while most of the existing element budget is unused.
+    private const int MaxElements = 16_384;
     private readonly List<ExprValue[]>?[] _buffers = new List<ExprValue[]>?[MaxLength + 1];
     private readonly int[] _cursors = new int[MaxLength + 1];
     private int _elements;

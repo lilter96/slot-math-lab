@@ -57,9 +57,12 @@ It does not mutate a retained state array or an earlier exported snapshot.
 
 The original fast buckets for lengths up to 64 remain. Sparse buckets additionally
 retain exact lengths from 65 through 4,096, without allocating a dense table for
-all lengths. Both categories share a maximum of 256 buffers and 16,384 element
-positions, matching the original worst-case element capacity. Headers and bucket
-metadata are separately bounded by the retained buffer count.
+all lengths. Both categories share a maximum of 1,024 buffers and 16,384 element
+positions, matching the original worst-case element capacity. The count budget
+is independent of the payload budget: many small buffers can occupy the existing
+element capacity instead of stopping after 256 rentals. Headers and bucket
+metadata are separately bounded by the retained buffer count and can grow with
+that count. Retention is demand-driven; the full capacity is not preallocated.
 
 Every rental within a round is distinct. Exhausted capacity and lengths above
 4,096 allocate without retention. Reset rewinds cursors, not live buffers inside
