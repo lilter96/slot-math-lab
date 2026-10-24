@@ -147,6 +147,8 @@ internal static class GraphPerformance
         var rounds = int.Parse(Option("--rounds", "20000"));
         var repeats = int.Parse(Option("--repeats", "3"));
         var workers = int.Parse(Option("--workers", "1"));
+        var symbolFile = Option("--profile-symbols", "");
+        SamplingNativeProfile.Configure(symbolFile.Length != 0);
         GraphConfig graph = args.Contains("--numeric-sum")
             ? NumericSumBenchmark.Graph(int.Parse(Option("--numeric-sum", "1024"),
                     CultureInfo.InvariantCulture), int.Parse(Option("--sum-stride", "1"), CultureInfo.InvariantCulture),
@@ -162,6 +164,30 @@ internal static class GraphPerformance
         }
 
         compileTimer.Stop();
+
+        void SaveProfileSymbols()
+        {
+            if (symbolFile.Length == 0)
+            {
+                return;
+            }
+
+            File.WriteAllText(symbolFile, JsonSerializer.Serialize(new
+            {
+                configHash = ConfigHash.Compute(graph),
+                coreBinarySha256 =
+                    Convert.ToHexStringLower(
+                        SHA256.HashData(File.ReadAllBytes(typeof(GraphCompiler).Assembly.Location))),
+                tier = SamplingOptions.Tier.ToString(),
+                truncated = SamplingNativeProfile.Truncated,
+                symbols = SamplingNativeProfile.Snapshot()
+            }, new JsonSerializerOptions
+            {
+                WriteIndented = true,
+                PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+            }));
+        }
+
         if (args.Contains("--exact") && args.Contains("--allocations"))
         {
             using var profile = new AllocationProfile();
@@ -207,11 +233,13 @@ internal static class GraphPerformance
 
         var warmup = int.Parse(Option("--warmup", "20000"));
         Execute(warmup); // warmed code and alias tables, outside measurements
+        SaveProfileSymbols();
         if (args.Contains("--allocations"))
         {
             using var profile = new AllocationProfile();
             Execute(rounds);
             profile.Report(rounds);
+            SaveProfileSymbols();
             return;
         }
 
@@ -264,6 +292,7 @@ internal static class GraphPerformance
                 $"{i + 1}: {rounds / timer.Elapsed.TotalSeconds:N0} rounds/s; {allocated / (double)rounds:N0} B/round; RTP {snapshot.Mean:R}; cpu {cpuMs / timer.Elapsed.TotalMilliseconds:N2} cores; gc {string.Join('/', gcCounts)}, pause {pauseMs:N0} ms of {timer.Elapsed.TotalMilliseconds:N0} ms");
         }
 
+        SaveProfileSymbols();
         var report = new
         {
             configHash = ConfigHash.Compute(graph),

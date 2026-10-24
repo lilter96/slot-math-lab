@@ -622,7 +622,7 @@ internal sealed class SamplingCodegen
         {
             _buffers = owner.Buffers(expression)
         };
-        return generator.Finish<ExprValue>("value:", generator.Value(expression));
+        return generator.Finish<ExprValue>("value:", generator.Value(expression), expression);
     }
 
     public static (Func<SamplingFrame, SamplingOperands?, bool> Code, SamplingOperands Operands) CompileCondition(
@@ -632,7 +632,7 @@ internal sealed class SamplingCodegen
         {
             _buffers = owner.Buffers(expression)
         };
-        return generator.Finish<bool>("condition:", generator.Condition(expression));
+        return generator.Finish<bool>("condition:", generator.Condition(expression), expression);
     }
 
     public static (Func<SamplingFrame, SamplingOperands?, bool> Code, SamplingOperands Operands) CompileWrite(
@@ -644,7 +644,7 @@ internal sealed class SamplingCodegen
             _buffers = owner.Buffers(expression)
         };
         return generator.Finish<bool>(integer ? "write-integer:" : "write:",
-            Lx.Block(generator.Write(expression, destination, integer, inlineMask), Lx.Constant(true)));
+            Lx.Block(generator.Write(expression, destination, integer, inlineMask), Lx.Constant(true)), expression);
     }
 
     private Lx Write(Expression expression, int destination, bool integer, bool inlineMask = false,
@@ -809,17 +809,24 @@ internal sealed class SamplingCodegen
             execute = Lx.Block(initialize);
         }
 
+        var cacheKey = (discardOutput ? "run-null:" : "run:") + generator._shape;
+        var methodName = SamplingNativeProfile.Register("run", cacheKey, nodes);
         Func<SamplingFrame, SamplingOperands?, SeededRandom, object?, object?> code = owner.Shapes.Get(
-            (discardOutput ? "run-null:" : "run:") + generator._shape, () => Lx
+            cacheKey, () => Lx
                 .Lambda<Func<SamplingFrame, SamplingOperands?, SeededRandom, object?, object?>>(
-                    Lx.Block(generator._locals, execute), generator._frame, generator._operands, rng, input).Compile());
+                    Lx.Block(generator._locals, execute), methodName, false,
+                    [generator._frame, generator._operands, rng, input]).Compile());
         return (code, generator.Operands());
     }
 
-    private (Func<SamplingFrame, SamplingOperands?, T> Code, SamplingOperands Operands) Finish<T>(string kind, Lx body)
+    private (Func<SamplingFrame, SamplingOperands?, T> Code, SamplingOperands Operands) Finish<T>(string kind, Lx body,
+        Expression source)
     {
-        Func<SamplingFrame, SamplingOperands?, T> code = _owner.Shapes.Get(kind + _shape,
-            () => Lx.Lambda<Func<SamplingFrame, SamplingOperands?, T>>(Lx.Block(_locals, body), _frame, _operands)
+        var key = kind + _shape;
+        var methodName = SamplingNativeProfile.Register(kind, key, expression: source);
+        Func<SamplingFrame, SamplingOperands?, T> code = _owner.Shapes.Get(key,
+            () => Lx.Lambda<Func<SamplingFrame, SamplingOperands?, T>>(Lx.Block(_locals, body), methodName, false,
+                    [_frame, _operands])
                 .Compile());
         return (code, Operands());
     }

@@ -112,3 +112,55 @@ Super improves by 1.75%, with disjoint ranges of 2,506–2,531 and 2,538–2,570
 The other ranges overlap; their medians do not establish a throughput gain.
 This change chiefly reduces allocation and is retained for that result. It does
 not materially close the remaining gap to one million complete rounds/second.
+
+## Mapping profiles to authored operations
+
+Generated sampling methods now have stable `sml_*` names derived from their code
+shape. Code cache keys are unchanged. The benchmark's optional
+`--profile-symbols /tmp/profile-symbols.json` writes a bounded map from method
+names to source node IDs or expression JSON. All source bindings of shared code
+remain represented. The file includes the configuration hash, kernel binary
+SHA-256, sampling tier and an explicit truncation flag; the limit is 4,096 sites.
+Names and metadata are produced during code generation, without instrumenting
+individual rounds. Capture is disabled unless explicitly requested.
+
+Both Rider profiles, the Release solution build and scoped formatting passed for
+the four source files. The affected selection passed 36 tests, including two
+new controls for actual method names, shared code with distinct bindings and
+located errors, node provenance, and 64 independent draw/RNG audit controls.
+
+For a normal-runtime profile, leave .NET tiering/PGO overrides unset, use the
+service's `Tiered` sampling mode, and wait until the symbol file is written after
+warmup before attaching. Capture the same complete configuration on one worker.
+Retain the binary and map with the trace. Profiling and intentionally interrupted
+long runs are not throughput measurements.
+
+The installed `dotnet-trace` 10 supports managed thread-stack sampling and runtime
+GC/JIT events. Its managed samples describe thread stacks over time; kernel CPU
+sampling is a separate `collect-linux` mode. The host's unprivileged perf policy
+currently prevents the latter; no host policy was changed. See the
+[Microsoft tracing documentation](https://learn.microsoft.com/en-us/dotnet/core/diagnostics/dotnet-trace).
+JetBrains dotTrace 2026.2.3.1 also successfully captured a 20-second Sampling
+snapshot with `CpuInstruction` measurement after actual warmup. The CLI procedure
+follows the [JetBrains profiling documentation](https://www.jetbrains.com/help/profiler/Performance_Profiling__Profiling_Using_the_Command_Line.html).
+The snapshot is retained for independent inspection; collecting it alone does
+not establish agreement between profilers.
+
+Aggregate trace summaries can mix the simulation and tracing-control threads.
+Analyze the time-weighted execution-thread stack intervals, remove synthetic
+time-marker frames when assigning self time, and preserve source-map ambiguity
+when several bindings share one method. A short manifest-control thread must
+not become the apparent dominant game cost.
+
+Likewise, `PollGC` stack samples are not a measurement of GC pause duration.
+The unprofiled super cache-control run measured a median 1.254 ms of GC pauses
+in 1,602.719 ms, versus 0.515 ms in 1,136.579 ms for elite and zero pauses for
+standard. The cache's allocation reduction does not justify assigning those
+stack samples to actual collector pauses.
+
+The named profile of the normal .NET/Tiered super round still places about
+14–15% of execution-thread stack time in the weighted group-size block. That
+block scans all cell weights for each group. Branch/loop control also remains
+prominent, while JIT inlining changes attribution relative to the earlier
+optimized-JIT diagnostic. Further fixes must be selected and re-profiled in the
+normal runtime mode, with separate unprofiled full-round comparisons.
