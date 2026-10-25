@@ -145,6 +145,15 @@ user's request to prioritize backend performance.
 
 ## Remaining work
 
+The next admitted migration uses a binary contribution mask in all eight Le
+Militare variants and their six small fixtures. Group sizing uses existing
+finite-set expressions; original numeric weights remain supported by the shared
+authoring helper. Final old/new complete-round measurements improve 1.21–1.41x
+in the normal runtime, with all 2,048 replay/RNG controls, selected regressions
+and the small exact control passing. [Backend performance](BACKEND_PERFORMANCE.md)
+records the hardware profile, rejected control-flow experiments, geometry oracle,
+source changes and measurement conditions. This does not achieve the final target.
+
 Continue the backend toward the one-million target across all 15 cases, with
 real-game migrations and paired measurements per admitted capability. Retain
 exact arithmetic, source/replay identity and the complete-round denominator.

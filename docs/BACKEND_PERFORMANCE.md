@@ -164,3 +164,75 @@ block scans all cell weights for each group. Branch/loop control also remains
 prominent, while JIT inlining changes attribution relative to the earlier
 optimized-JIT diagnostic. Further fixes must be selected and re-profiled in the
 normal runtime mode, with separate unprofiled full-round comparisons.
+
+## Hardware samples and binary cell contributions
+
+Privileged, process-scoped kernel sampling subsequently became available through
+the host account's existing permissions. The host perf policy stayed unchanged.
+The successful Linux perf capture uses a monotonic clock (`record -k 1`), .NET
+JIT maps, `inject -j` and an explicitly selected owned process. Its 19,956 CPU
+samples had no recorded loss. Weighted group sizing accounted for 15.11% of
+CPU samples, tumble settlement for 8.52%, loop control for 7.75%, and the branch
+wrapper for 2.69%. Managed stack-residency attribution had overstated the latter.
+The .NET kernel trace collector also succeeded, but its bundled reader rejected
+a label kind; that undecoded trace is not used as CPU attribution evidence.
+
+Terminal-branch fusion passed 108 affected tests and 1,950 full-state/RNG controls,
+but paired measurements across all 15 games established no throughput benefit.
+A cached frame-array reference and invariant-mask-load prototypes also failed
+their real-game performance controls. These experiments are not shipped.
+
+The admitted change removes repeated algorithmic work in authored JSON. Le
+Militare's cell contributions are binary: a cell counts zero or one. A giant
+wild counts at its top cell. A 30-bit `countedCells` mask replaces the private
+30-element `cellCounts` array, and group size becomes
+`popcount(group & countedCells)`. A six-element fold over armed columns prepares
+the mask using ordinary If, Fold, index and finite-set expressions. Numeric
+weights remain available through the generic cluster authoring helper; an
+optional `weightsMask` selects the editable binary-mask composition. Weighted
+traversal and pruning rules retain their previous behavior.
+
+The two game generators and all eight full/six small Le configurations were
+updated immediately. No mechanic-specific kernel, compiler or API behavior was
+added. The original server and independent golden answers are unchanged. One
+derived client-state cache was refreshed for the private representation change.
+All 2,048 old/new seeded traced/untraced controls preserve payout, remaining
+state, RNG audit and the following word. The only state differences are retired
+`cellCounts`, replacement `countedCells` and its constant column-mask table.
+Each replacement mask is also checked against the old cell vector.
+
+The maintained regression checks every armed-column state and individual cell
+basis vector against an independent geometry-based weight oracle, including
+empty/full/mixed groups and the small board. Final validation passed 32 selected
+Core cases and one small-model exact comparison in its original branch budget.
+The Release build, scoped formatting, TypeScript check, two-file ESLint and
+38-fixture export check passed. Both Rider profiles completed for all 18 touched
+source files, including the TS/JSON solution-item scope. JSON whitespace grew
+under mandatory formatting; canonical full-graph JSON shrank by 1,256 bytes per
+configuration. Stored graph node counts are unchanged by this representation.
+
+### Actual maintained configurations, normal runtime
+
+One frozen kernel runs both JSON versions on CPU 2 with one worker, normal .NET
+tiering/PGO and the service's Tiered sampling mode. ABBA processes each retain
+two of three measurements. All cases warm 32,768 complete rounds; feature cases
+measure 16,384 per repetition and ordinary entries measure 131,072. Full outcome
+statistics and loop evidence match exactly. Timing ranges are disjoint for all
+eight admitted cases. These remain shared-host kernel measurements.
+
+| Complete configuration | Before rounds/s | After rounds/s | Ratio |
+| --- | ---: | ---: | ---: |
+| le-militare.spin | 154,469 | 214,471 | 1.388 |
+| le-militare.standard | 11,072 | 14,196 | 1.282 |
+| le-militare.super | 3,183 | 3,838 | 1.206 |
+| le-militare.elite | 4,441 | 5,549 | 1.250 |
+| le-militare.chance | 96,455 | 128,145 | 1.329 |
+| le-militare.air-raid | 129,225 | 182,012 | 1.409 |
+| le-militare.siege.spin | 154,436 | 210,367 | 1.362 |
+| le-militare.recon.spin | 148,767 | 205,265 | 1.380 |
+
+A preliminary short Standard run appeared slower. Increasing warmup and measured
+rounds removed that result; the longer repeated control and final maintained
+measurements both show a gain. The short run does not establish a steady-state
+regression or isolate a specific JIT cause. The one-million complete-round target
+remains open for every configuration.
