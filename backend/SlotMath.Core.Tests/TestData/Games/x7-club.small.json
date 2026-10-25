@@ -77,6 +77,15 @@
             "0",
             "0"
         ],
+        "paylineCells": [
+            [
+                0,
+                1,
+                2
+            ]
+        ],
+        "lineDescriptor": 0,
+        "lineDescriptors": [],
         "wildSymbol": "5",
         "linePays": [
             [
@@ -2906,672 +2915,10 @@
                 }
             }
         },
-        "payline": {
-            "name": "payline",
-            "description": "One payline, left to right: the first symbol that is not a Wild sets what the line pays as, Wilds stand in for it, and the longest run from the first reel is looked up in the paytable.",
+        "line-evaluation": {
+            "name": "line-evaluation",
+            "description": "Evaluate the leftmost matching run on each line; retain line details only when recording the played round.",
             "nodes": [
-                {
-                    "nodeType": "modifyState",
-                    "id": "symbol",
-                    "label": "Which symbol the line pays as",
-                    "outputKey": "lineSymbol",
-                    "expressionId": "symbol",
-                    "inputs": {
-                        "state": {
-                            "name": "state",
-                            "type": "State"
-                        }
-                    },
-                    "outputs": {
-                        "state": {
-                            "name": "state",
-                            "type": "State"
-                        }
-                    }
-                },
-                {
-                    "nodeType": "modifyState",
-                    "id": "count",
-                    "label": "How many reels match from the left",
-                    "outputKey": "lineCount",
-                    "expressionId": "count",
-                    "inputs": {
-                        "state": {
-                            "name": "state",
-                            "type": "State"
-                        }
-                    },
-                    "outputs": {
-                        "state": {
-                            "name": "state",
-                            "type": "State"
-                        }
-                    }
-                },
-                {
-                    "nodeType": "modifyState",
-                    "id": "pay",
-                    "label": "Look the payout up: the symbol's row, the count's column",
-                    "outputKey": "linePay",
-                    "expressionId": "pay",
-                    "inputs": {
-                        "state": {
-                            "name": "state",
-                            "type": "State"
-                        }
-                    },
-                    "outputs": {
-                        "state": {
-                            "name": "state",
-                            "type": "State"
-                        }
-                    }
-                },
-                {
-                    "nodeType": "modifyState",
-                    "id": "total",
-                    "label": "Add it to the spin's line win",
-                    "outputKey": "lineCoins",
-                    "expressionId": "total",
-                    "inputs": {
-                        "state": {
-                            "name": "state",
-                            "type": "State"
-                        }
-                    },
-                    "outputs": {
-                        "state": {
-                            "name": "state",
-                            "type": "State"
-                        }
-                    }
-                },
-                {
-                    "nodeType": "modifyState",
-                    "id": "trace-pay",
-                    "label": "Remember this line's payout",
-                    "outputKey": "linePayouts",
-                    "expressionId": "trace-pay",
-                    "inputs": {
-                        "state": {
-                            "name": "state",
-                            "type": "State"
-                        }
-                    },
-                    "outputs": {
-                        "state": {
-                            "name": "state",
-                            "type": "State"
-                        }
-                    }
-                },
-                {
-                    "nodeType": "modifyState",
-                    "id": "trace-symbol",
-                    "label": "Remember this line's symbol",
-                    "outputKey": "lineSymbols",
-                    "expressionId": "trace-symbol",
-                    "inputs": {
-                        "state": {
-                            "name": "state",
-                            "type": "State"
-                        }
-                    },
-                    "outputs": {
-                        "state": {
-                            "name": "state",
-                            "type": "State"
-                        }
-                    }
-                },
-                {
-                    "nodeType": "modifyState",
-                    "id": "trace-count",
-                    "label": "Remember this line's length",
-                    "outputKey": "lineCounts",
-                    "expressionId": "trace-count",
-                    "inputs": {
-                        "state": {
-                            "name": "state",
-                            "type": "State"
-                        }
-                    },
-                    "outputs": {
-                        "state": {
-                            "name": "state",
-                            "type": "State"
-                        }
-                    }
-                }
-            ],
-            "edges": [
-                {
-                    "id": "symbol.state->count",
-                    "sourceNodeId": "symbol",
-                    "sourcePort": "state",
-                    "targetNodeId": "count",
-                    "targetPort": "state"
-                },
-                {
-                    "id": "count.state->pay",
-                    "sourceNodeId": "count",
-                    "sourcePort": "state",
-                    "targetNodeId": "pay",
-                    "targetPort": "state"
-                },
-                {
-                    "id": "pay.state->total",
-                    "sourceNodeId": "pay",
-                    "sourcePort": "state",
-                    "targetNodeId": "total",
-                    "targetPort": "state"
-                },
-                {
-                    "id": "total.state->trace-pay",
-                    "sourceNodeId": "total",
-                    "sourcePort": "state",
-                    "targetNodeId": "trace-pay",
-                    "targetPort": "state"
-                },
-                {
-                    "id": "trace-pay.state->trace-symbol",
-                    "sourceNodeId": "trace-pay",
-                    "sourcePort": "state",
-                    "targetNodeId": "trace-symbol",
-                    "targetPort": "state"
-                },
-                {
-                    "id": "trace-symbol.state->trace-count",
-                    "sourceNodeId": "trace-symbol",
-                    "sourcePort": "state",
-                    "targetNodeId": "trace-count",
-                    "targetPort": "state"
-                }
-            ],
-            "expressions": {
-                "symbol": {
-                    "exprType": "if",
-                    "condition": {
-                        "exprType": "compare",
-                        "op": "Neq",
-                        "left": {
-                            "exprType": "call",
-                            "function": "index",
-                            "args": [
-                                {
-                                    "exprType": "fieldAccess",
-                                    "target": "state",
-                                    "path": [
-                                        "board"
-                                    ]
-                                },
-                                {
-                                    "exprType": "fieldAccess",
-                                    "target": "state",
-                                    "path": [
-                                        "expressions",
-                                        "p0"
-                                    ]
-                                }
-                            ]
-                        },
-                        "right": {
-                            "exprType": "fieldAccess",
-                            "target": "state",
-                            "path": [
-                                "wildSymbol"
-                            ]
-                        }
-                    },
-                    "thenExpr": {
-                        "exprType": "call",
-                        "function": "index",
-                        "args": [
-                            {
-                                "exprType": "fieldAccess",
-                                "target": "state",
-                                "path": [
-                                    "board"
-                                ]
-                            },
-                            {
-                                "exprType": "fieldAccess",
-                                "target": "state",
-                                "path": [
-                                    "expressions",
-                                    "p0"
-                                ]
-                            }
-                        ]
-                    },
-                    "elseExpr": {
-                        "exprType": "if",
-                        "condition": {
-                            "exprType": "compare",
-                            "op": "Neq",
-                            "left": {
-                                "exprType": "call",
-                                "function": "index",
-                                "args": [
-                                    {
-                                        "exprType": "fieldAccess",
-                                        "target": "state",
-                                        "path": [
-                                            "board"
-                                        ]
-                                    },
-                                    {
-                                        "exprType": "fieldAccess",
-                                        "target": "state",
-                                        "path": [
-                                            "expressions",
-                                            "p1"
-                                        ]
-                                    }
-                                ]
-                            },
-                            "right": {
-                                "exprType": "fieldAccess",
-                                "target": "state",
-                                "path": [
-                                    "wildSymbol"
-                                ]
-                            }
-                        },
-                        "thenExpr": {
-                            "exprType": "call",
-                            "function": "index",
-                            "args": [
-                                {
-                                    "exprType": "fieldAccess",
-                                    "target": "state",
-                                    "path": [
-                                        "board"
-                                    ]
-                                },
-                                {
-                                    "exprType": "fieldAccess",
-                                    "target": "state",
-                                    "path": [
-                                        "expressions",
-                                        "p1"
-                                    ]
-                                }
-                            ]
-                        },
-                        "elseExpr": {
-                            "exprType": "call",
-                            "function": "index",
-                            "args": [
-                                {
-                                    "exprType": "fieldAccess",
-                                    "target": "state",
-                                    "path": [
-                                        "board"
-                                    ]
-                                },
-                                {
-                                    "exprType": "fieldAccess",
-                                    "target": "state",
-                                    "path": [
-                                        "expressions",
-                                        "p2"
-                                    ]
-                                }
-                            ]
-                        }
-                    }
-                },
-                "count": {
-                    "exprType": "if",
-                    "condition": {
-                        "exprType": "binary",
-                        "op": "Or",
-                        "left": {
-                            "exprType": "compare",
-                            "op": "Eq",
-                            "left": {
-                                "exprType": "call",
-                                "function": "index",
-                                "args": [
-                                    {
-                                        "exprType": "fieldAccess",
-                                        "target": "state",
-                                        "path": [
-                                            "board"
-                                        ]
-                                    },
-                                    {
-                                        "exprType": "fieldAccess",
-                                        "target": "state",
-                                        "path": [
-                                            "expressions",
-                                            "p1"
-                                        ]
-                                    }
-                                ]
-                            },
-                            "right": {
-                                "exprType": "fieldAccess",
-                                "target": "state",
-                                "path": [
-                                    "lineSymbol"
-                                ]
-                            }
-                        },
-                        "right": {
-                            "exprType": "compare",
-                            "op": "Eq",
-                            "left": {
-                                "exprType": "call",
-                                "function": "index",
-                                "args": [
-                                    {
-                                        "exprType": "fieldAccess",
-                                        "target": "state",
-                                        "path": [
-                                            "board"
-                                        ]
-                                    },
-                                    {
-                                        "exprType": "fieldAccess",
-                                        "target": "state",
-                                        "path": [
-                                            "expressions",
-                                            "p1"
-                                        ]
-                                    }
-                                ]
-                            },
-                            "right": {
-                                "exprType": "fieldAccess",
-                                "target": "state",
-                                "path": [
-                                    "wildSymbol"
-                                ]
-                            }
-                        }
-                    },
-                    "thenExpr": {
-                        "exprType": "if",
-                        "condition": {
-                            "exprType": "binary",
-                            "op": "Or",
-                            "left": {
-                                "exprType": "compare",
-                                "op": "Eq",
-                                "left": {
-                                    "exprType": "call",
-                                    "function": "index",
-                                    "args": [
-                                        {
-                                            "exprType": "fieldAccess",
-                                            "target": "state",
-                                            "path": [
-                                                "board"
-                                            ]
-                                        },
-                                        {
-                                            "exprType": "fieldAccess",
-                                            "target": "state",
-                                            "path": [
-                                                "expressions",
-                                                "p2"
-                                            ]
-                                        }
-                                    ]
-                                },
-                                "right": {
-                                    "exprType": "fieldAccess",
-                                    "target": "state",
-                                    "path": [
-                                        "lineSymbol"
-                                    ]
-                                }
-                            },
-                            "right": {
-                                "exprType": "compare",
-                                "op": "Eq",
-                                "left": {
-                                    "exprType": "call",
-                                    "function": "index",
-                                    "args": [
-                                        {
-                                            "exprType": "fieldAccess",
-                                            "target": "state",
-                                            "path": [
-                                                "board"
-                                            ]
-                                        },
-                                        {
-                                            "exprType": "fieldAccess",
-                                            "target": "state",
-                                            "path": [
-                                                "expressions",
-                                                "p2"
-                                            ]
-                                        }
-                                    ]
-                                },
-                                "right": {
-                                    "exprType": "fieldAccess",
-                                    "target": "state",
-                                    "path": [
-                                        "wildSymbol"
-                                    ]
-                                }
-                            }
-                        },
-                        "thenExpr": {
-                            "exprType": "constant",
-                            "kind": "Integer",
-                            "value": "3"
-                        },
-                        "elseExpr": {
-                            "exprType": "constant",
-                            "kind": "Integer",
-                            "value": "2"
-                        }
-                    },
-                    "elseExpr": {
-                        "exprType": "constant",
-                        "kind": "Integer",
-                        "value": "1"
-                    }
-                },
-                "pay": {
-                    "exprType": "call",
-                    "function": "index",
-                    "args": [
-                        {
-                            "exprType": "call",
-                            "function": "index",
-                            "args": [
-                                {
-                                    "exprType": "fieldAccess",
-                                    "target": "state",
-                                    "path": [
-                                        "linePays"
-                                    ]
-                                },
-                                {
-                                    "exprType": "call",
-                                    "function": "toNumber",
-                                    "args": [
-                                        {
-                                            "exprType": "fieldAccess",
-                                            "target": "state",
-                                            "path": [
-                                                "lineSymbol"
-                                            ]
-                                        }
-                                    ]
-                                }
-                            ]
-                        },
-                        {
-                            "exprType": "fieldAccess",
-                            "target": "state",
-                            "path": [
-                                "lineCount"
-                            ]
-                        }
-                    ]
-                },
-                "total": {
-                    "exprType": "binary",
-                    "op": "Add",
-                    "left": {
-                        "exprType": "fieldAccess",
-                        "target": "state",
-                        "path": [
-                            "lineCoins"
-                        ]
-                    },
-                    "right": {
-                        "exprType": "fieldAccess",
-                        "target": "state",
-                        "path": [
-                            "linePay"
-                        ]
-                    }
-                },
-                "trace-pay": {
-                    "exprType": "if",
-                    "condition": {
-                        "exprType": "fieldAccess",
-                        "target": "state",
-                        "path": [
-                            "traceEnabled"
-                        ]
-                    },
-                    "thenExpr": {
-                        "exprType": "call",
-                        "function": "append",
-                        "args": [
-                            {
-                                "exprType": "fieldAccess",
-                                "target": "state",
-                                "path": [
-                                    "linePayouts"
-                                ]
-                            },
-                            {
-                                "exprType": "fieldAccess",
-                                "target": "state",
-                                "path": [
-                                    "linePay"
-                                ]
-                            }
-                        ]
-                    },
-                    "elseExpr": {
-                        "exprType": "fieldAccess",
-                        "target": "state",
-                        "path": [
-                            "linePayouts"
-                        ]
-                    }
-                },
-                "trace-symbol": {
-                    "exprType": "if",
-                    "condition": {
-                        "exprType": "fieldAccess",
-                        "target": "state",
-                        "path": [
-                            "traceEnabled"
-                        ]
-                    },
-                    "thenExpr": {
-                        "exprType": "call",
-                        "function": "append",
-                        "args": [
-                            {
-                                "exprType": "fieldAccess",
-                                "target": "state",
-                                "path": [
-                                    "lineSymbols"
-                                ]
-                            },
-                            {
-                                "exprType": "fieldAccess",
-                                "target": "state",
-                                "path": [
-                                    "lineSymbol"
-                                ]
-                            }
-                        ]
-                    },
-                    "elseExpr": {
-                        "exprType": "fieldAccess",
-                        "target": "state",
-                        "path": [
-                            "lineSymbols"
-                        ]
-                    }
-                },
-                "trace-count": {
-                    "exprType": "if",
-                    "condition": {
-                        "exprType": "fieldAccess",
-                        "target": "state",
-                        "path": [
-                            "traceEnabled"
-                        ]
-                    },
-                    "thenExpr": {
-                        "exprType": "call",
-                        "function": "append",
-                        "args": [
-                            {
-                                "exprType": "fieldAccess",
-                                "target": "state",
-                                "path": [
-                                    "lineCounts"
-                                ]
-                            },
-                            {
-                                "exprType": "fieldAccess",
-                                "target": "state",
-                                "path": [
-                                    "lineCount"
-                                ]
-                            }
-                        ]
-                    },
-                    "elseExpr": {
-                        "exprType": "fieldAccess",
-                        "target": "state",
-                        "path": [
-                            "lineCounts"
-                        ]
-                    }
-                }
-            }
-        },
-        "paylines": {
-            "name": "paylines",
-            "description": "All 1 paylines of the game, each one the same payline subgraph placed on different board cells.",
-            "nodes": [
-                {
-                    "nodeType": "modifyState",
-                    "id": "reset",
-                    "label": "Start the line win at zero",
-                    "outputKey": "lineCoins",
-                    "expressionId": "reset",
-                    "inputs": {
-                        "state": {
-                            "name": "state",
-                            "type": "State"
-                        }
-                    },
-                    "outputs": {
-                        "state": {
-                            "name": "state",
-                            "type": "State"
-                        }
-                    }
-                },
                 {
                     "nodeType": "modifyState",
                     "id": "clear-linePayouts",
@@ -3630,10 +2977,11 @@
                     }
                 },
                 {
-                    "nodeType": "library",
-                    "id": "line-1",
-                    "label": "Payline 1",
-                    "mechanicName": "payline",
+                    "nodeType": "modifyState",
+                    "id": "clear-lineDescriptors",
+                    "label": "Clear lineDescriptors",
+                    "outputKey": "lineDescriptors",
+                    "expressionId": "clear-lineDescriptors",
                     "inputs": {
                         "state": {
                             "name": "state",
@@ -3645,22 +2993,222 @@
                             "name": "state",
                             "type": "State"
                         }
+                    }
+                },
+                {
+                    "nodeType": "branch",
+                    "id": "played",
+                    "label": "Retain line details for a played round",
+                    "conditionId": "played",
+                    "inputs": {
+                        "state": {
+                            "name": "state",
+                            "type": "State"
+                        }
                     },
-                    "parameters": {
-                        "p0": "0",
-                        "p1": "1",
-                        "p2": "2"
+                    "outputs": {
+                        "true": {
+                            "name": "true",
+                            "type": "State"
+                        },
+                        "false": {
+                            "name": "false",
+                            "type": "State"
+                        }
+                    }
+                },
+                {
+                    "nodeType": "modifyState",
+                    "id": "last",
+                    "label": "Result of the last line",
+                    "outputKey": "lineDescriptor",
+                    "expressionId": "last",
+                    "inputs": {
+                        "state": {
+                            "name": "state",
+                            "type": "State"
+                        }
+                    },
+                    "outputs": {
+                        "state": {
+                            "name": "state",
+                            "type": "State"
+                        }
+                    }
+                },
+                {
+                    "nodeType": "modifyState",
+                    "id": "last-symbol",
+                    "label": "Symbol of the last line",
+                    "outputKey": "lineSymbol",
+                    "expressionId": "last-symbol",
+                    "inputs": {
+                        "state": {
+                            "name": "state",
+                            "type": "State"
+                        }
+                    },
+                    "outputs": {
+                        "state": {
+                            "name": "state",
+                            "type": "State"
+                        }
+                    }
+                },
+                {
+                    "nodeType": "modifyState",
+                    "id": "last-count",
+                    "label": "Matched length of the last line",
+                    "outputKey": "lineCount",
+                    "expressionId": "last-count",
+                    "inputs": {
+                        "state": {
+                            "name": "state",
+                            "type": "State"
+                        }
+                    },
+                    "outputs": {
+                        "state": {
+                            "name": "state",
+                            "type": "State"
+                        }
+                    }
+                },
+                {
+                    "nodeType": "modifyState",
+                    "id": "last-payout",
+                    "label": "Payout of the last line",
+                    "outputKey": "linePay",
+                    "expressionId": "last-payout",
+                    "inputs": {
+                        "state": {
+                            "name": "state",
+                            "type": "State"
+                        }
+                    },
+                    "outputs": {
+                        "state": {
+                            "name": "state",
+                            "type": "State"
+                        }
+                    }
+                },
+                {
+                    "nodeType": "modifyState",
+                    "id": "evaluate",
+                    "label": "Evaluate every line once",
+                    "outputKey": "lineDescriptors",
+                    "expressionId": "evaluate",
+                    "inputs": {
+                        "state": {
+                            "name": "state",
+                            "type": "State"
+                        }
+                    },
+                    "outputs": {
+                        "state": {
+                            "name": "state",
+                            "type": "State"
+                        }
+                    }
+                },
+                {
+                    "nodeType": "modifyState",
+                    "id": "payouts",
+                    "label": "Payout of each line",
+                    "outputKey": "linePayouts",
+                    "expressionId": "payouts",
+                    "inputs": {
+                        "state": {
+                            "name": "state",
+                            "type": "State"
+                        }
+                    },
+                    "outputs": {
+                        "state": {
+                            "name": "state",
+                            "type": "State"
+                        }
+                    }
+                },
+                {
+                    "nodeType": "modifyState",
+                    "id": "symbols",
+                    "label": "Symbol of each line",
+                    "outputKey": "lineSymbols",
+                    "expressionId": "symbols",
+                    "inputs": {
+                        "state": {
+                            "name": "state",
+                            "type": "State"
+                        }
+                    },
+                    "outputs": {
+                        "state": {
+                            "name": "state",
+                            "type": "State"
+                        }
+                    }
+                },
+                {
+                    "nodeType": "modifyState",
+                    "id": "counts",
+                    "label": "Matched length of each line",
+                    "outputKey": "lineCounts",
+                    "expressionId": "counts",
+                    "inputs": {
+                        "state": {
+                            "name": "state",
+                            "type": "State"
+                        }
+                    },
+                    "outputs": {
+                        "state": {
+                            "name": "state",
+                            "type": "State"
+                        }
+                    }
+                },
+                {
+                    "nodeType": "modifyState",
+                    "id": "played-total",
+                    "label": "Sum the line payouts",
+                    "outputKey": "lineCoins",
+                    "expressionId": "played-total",
+                    "inputs": {
+                        "state": {
+                            "name": "state",
+                            "type": "State"
+                        }
+                    },
+                    "outputs": {
+                        "state": {
+                            "name": "state",
+                            "type": "State"
+                        }
+                    }
+                },
+                {
+                    "nodeType": "modifyState",
+                    "id": "analysis-total",
+                    "label": "Sum line payouts without retaining line arrays",
+                    "outputKey": "lineCoins",
+                    "expressionId": "analysis-total",
+                    "inputs": {
+                        "state": {
+                            "name": "state",
+                            "type": "State"
+                        }
+                    },
+                    "outputs": {
+                        "state": {
+                            "name": "state",
+                            "type": "State"
+                        }
                     }
                 }
             ],
             "edges": [
-                {
-                    "id": "reset.state->clear-linePayouts",
-                    "sourceNodeId": "reset",
-                    "sourcePort": "state",
-                    "targetNodeId": "clear-linePayouts",
-                    "targetPort": "state"
-                },
                 {
                     "id": "clear-linePayouts.state->clear-lineSymbols",
                     "sourceNodeId": "clear-linePayouts",
@@ -3676,19 +3224,98 @@
                     "targetPort": "state"
                 },
                 {
-                    "id": "clear-lineCounts.state->line-1",
+                    "id": "clear-lineCounts.state->clear-lineDescriptors",
                     "sourceNodeId": "clear-lineCounts",
                     "sourcePort": "state",
-                    "targetNodeId": "line-1",
+                    "targetNodeId": "clear-lineDescriptors",
+                    "targetPort": "state"
+                },
+                {
+                    "id": "clear-lineDescriptors.state->played",
+                    "sourceNodeId": "clear-lineDescriptors",
+                    "sourcePort": "state",
+                    "targetNodeId": "played",
+                    "targetPort": "state"
+                },
+                {
+                    "id": "evaluate.state->payouts",
+                    "sourceNodeId": "evaluate",
+                    "sourcePort": "state",
+                    "targetNodeId": "payouts",
+                    "targetPort": "state"
+                },
+                {
+                    "id": "payouts.state->symbols",
+                    "sourceNodeId": "payouts",
+                    "sourcePort": "state",
+                    "targetNodeId": "symbols",
+                    "targetPort": "state"
+                },
+                {
+                    "id": "symbols.state->counts",
+                    "sourceNodeId": "symbols",
+                    "sourcePort": "state",
+                    "targetNodeId": "counts",
+                    "targetPort": "state"
+                },
+                {
+                    "id": "counts.state->played-total",
+                    "sourceNodeId": "counts",
+                    "sourcePort": "state",
+                    "targetNodeId": "played-total",
+                    "targetPort": "state"
+                },
+                {
+                    "id": "played.true->evaluate",
+                    "sourceNodeId": "played",
+                    "sourcePort": "true",
+                    "targetNodeId": "evaluate",
+                    "targetPort": "state"
+                },
+                {
+                    "id": "played.false->analysis-total",
+                    "sourceNodeId": "played",
+                    "sourcePort": "false",
+                    "targetNodeId": "analysis-total",
+                    "targetPort": "state"
+                },
+                {
+                    "id": "played-total.state->last",
+                    "sourceNodeId": "played-total",
+                    "sourcePort": "state",
+                    "targetNodeId": "last",
+                    "targetPort": "state"
+                },
+                {
+                    "id": "analysis-total.state->last",
+                    "sourceNodeId": "analysis-total",
+                    "sourcePort": "state",
+                    "targetNodeId": "last",
+                    "targetPort": "state"
+                },
+                {
+                    "id": "last.state->last-symbol",
+                    "sourceNodeId": "last",
+                    "sourcePort": "state",
+                    "targetNodeId": "last-symbol",
+                    "targetPort": "state"
+                },
+                {
+                    "id": "last-symbol.state->last-count",
+                    "sourceNodeId": "last-symbol",
+                    "sourcePort": "state",
+                    "targetNodeId": "last-count",
+                    "targetPort": "state"
+                },
+                {
+                    "id": "last-count.state->last-payout",
+                    "sourceNodeId": "last-count",
+                    "sourcePort": "state",
+                    "targetNodeId": "last-payout",
                     "targetPort": "state"
                 }
             ],
             "expressions": {
-                "reset": {
-                    "exprType": "constant",
-                    "kind": "Integer",
-                    "value": "0"
-                },
                 "clear-linePayouts": {
                     "exprType": "fieldAccess",
                     "target": "state",
@@ -3709,6 +3336,2191 @@
                     "path": [
                         "emptyArray"
                     ]
+                },
+                "clear-lineDescriptors": {
+                    "exprType": "fieldAccess",
+                    "target": "state",
+                    "path": [
+                        "emptyArray"
+                    ]
+                },
+                "played": {
+                    "exprType": "fieldAccess",
+                    "target": "state",
+                    "path": [
+                        "traceEnabled"
+                    ]
+                },
+                "evaluate": {
+                    "exprType": "map",
+                    "stateKey": "paylineCells",
+                    "itemName": "line",
+                    "itemType": "Array",
+                    "maxItems": 1,
+                    "body": {
+                        "exprType": "let",
+                        "name": "lineCell0",
+                        "value": {
+                            "exprType": "call",
+                            "function": "toNumber",
+                            "args": [
+                                {
+                                    "exprType": "call",
+                                    "function": "index",
+                                    "args": [
+                                        {
+                                            "exprType": "fieldAccess",
+                                            "target": "state",
+                                            "path": [
+                                                "board"
+                                            ]
+                                        },
+                                        {
+                                            "exprType": "call",
+                                            "function": "index",
+                                            "args": [
+                                                {
+                                                    "exprType": "fieldAccess",
+                                                    "target": "state",
+                                                    "path": [
+                                                        "line"
+                                                    ]
+                                                },
+                                                {
+                                                    "exprType": "constant",
+                                                    "kind": "Integer",
+                                                    "value": "0"
+                                                }
+                                            ]
+                                        }
+                                    ]
+                                }
+                            ]
+                        },
+                        "body": {
+                            "exprType": "if",
+                            "condition": {
+                                "exprType": "compare",
+                                "op": "Eq",
+                                "left": {
+                                    "exprType": "local",
+                                    "name": "lineCell0"
+                                },
+                                "right": {
+                                    "exprType": "call",
+                                    "function": "toNumber",
+                                    "args": [
+                                        {
+                                            "exprType": "fieldAccess",
+                                            "target": "state",
+                                            "path": [
+                                                "wildSymbol"
+                                            ]
+                                        }
+                                    ]
+                                }
+                            },
+                            "thenExpr": {
+                                "exprType": "let",
+                                "name": "lineCell1",
+                                "value": {
+                                    "exprType": "call",
+                                    "function": "toNumber",
+                                    "args": [
+                                        {
+                                            "exprType": "call",
+                                            "function": "index",
+                                            "args": [
+                                                {
+                                                    "exprType": "fieldAccess",
+                                                    "target": "state",
+                                                    "path": [
+                                                        "board"
+                                                    ]
+                                                },
+                                                {
+                                                    "exprType": "call",
+                                                    "function": "index",
+                                                    "args": [
+                                                        {
+                                                            "exprType": "fieldAccess",
+                                                            "target": "state",
+                                                            "path": [
+                                                                "line"
+                                                            ]
+                                                        },
+                                                        {
+                                                            "exprType": "constant",
+                                                            "kind": "Integer",
+                                                            "value": "1"
+                                                        }
+                                                    ]
+                                                }
+                                            ]
+                                        }
+                                    ]
+                                },
+                                "body": {
+                                    "exprType": "if",
+                                    "condition": {
+                                        "exprType": "compare",
+                                        "op": "Eq",
+                                        "left": {
+                                            "exprType": "local",
+                                            "name": "lineCell1"
+                                        },
+                                        "right": {
+                                            "exprType": "call",
+                                            "function": "toNumber",
+                                            "args": [
+                                                {
+                                                    "exprType": "fieldAccess",
+                                                    "target": "state",
+                                                    "path": [
+                                                        "wildSymbol"
+                                                    ]
+                                                }
+                                            ]
+                                        }
+                                    },
+                                    "thenExpr": {
+                                        "exprType": "let",
+                                        "name": "lineCell2",
+                                        "value": {
+                                            "exprType": "call",
+                                            "function": "toNumber",
+                                            "args": [
+                                                {
+                                                    "exprType": "call",
+                                                    "function": "index",
+                                                    "args": [
+                                                        {
+                                                            "exprType": "fieldAccess",
+                                                            "target": "state",
+                                                            "path": [
+                                                                "board"
+                                                            ]
+                                                        },
+                                                        {
+                                                            "exprType": "call",
+                                                            "function": "index",
+                                                            "args": [
+                                                                {
+                                                                    "exprType": "fieldAccess",
+                                                                    "target": "state",
+                                                                    "path": [
+                                                                        "line"
+                                                                    ]
+                                                                },
+                                                                {
+                                                                    "exprType": "constant",
+                                                                    "kind": "Integer",
+                                                                    "value": "2"
+                                                                }
+                                                            ]
+                                                        }
+                                                    ]
+                                                }
+                                            ]
+                                        },
+                                        "body": {
+                                            "exprType": "binary",
+                                            "op": "Add",
+                                            "left": {
+                                                "exprType": "binary",
+                                                "op": "Mul",
+                                                "left": {
+                                                    "exprType": "local",
+                                                    "name": "lineCell2"
+                                                },
+                                                "right": {
+                                                    "exprType": "constant",
+                                                    "kind": "Integer",
+                                                    "value": "4"
+                                                }
+                                            },
+                                            "right": {
+                                                "exprType": "constant",
+                                                "kind": "Integer",
+                                                "value": "3"
+                                            }
+                                        }
+                                    },
+                                    "elseExpr": {
+                                        "exprType": "let",
+                                        "name": "lineCell2",
+                                        "value": {
+                                            "exprType": "call",
+                                            "function": "toNumber",
+                                            "args": [
+                                                {
+                                                    "exprType": "call",
+                                                    "function": "index",
+                                                    "args": [
+                                                        {
+                                                            "exprType": "fieldAccess",
+                                                            "target": "state",
+                                                            "path": [
+                                                                "board"
+                                                            ]
+                                                        },
+                                                        {
+                                                            "exprType": "call",
+                                                            "function": "index",
+                                                            "args": [
+                                                                {
+                                                                    "exprType": "fieldAccess",
+                                                                    "target": "state",
+                                                                    "path": [
+                                                                        "line"
+                                                                    ]
+                                                                },
+                                                                {
+                                                                    "exprType": "constant",
+                                                                    "kind": "Integer",
+                                                                    "value": "2"
+                                                                }
+                                                            ]
+                                                        }
+                                                    ]
+                                                }
+                                            ]
+                                        },
+                                        "body": {
+                                            "exprType": "if",
+                                            "condition": {
+                                                "exprType": "binary",
+                                                "op": "Or",
+                                                "left": {
+                                                    "exprType": "compare",
+                                                    "op": "Eq",
+                                                    "left": {
+                                                        "exprType": "local",
+                                                        "name": "lineCell2"
+                                                    },
+                                                    "right": {
+                                                        "exprType": "local",
+                                                        "name": "lineCell1"
+                                                    }
+                                                },
+                                                "right": {
+                                                    "exprType": "compare",
+                                                    "op": "Eq",
+                                                    "left": {
+                                                        "exprType": "local",
+                                                        "name": "lineCell2"
+                                                    },
+                                                    "right": {
+                                                        "exprType": "call",
+                                                        "function": "toNumber",
+                                                        "args": [
+                                                            {
+                                                                "exprType": "fieldAccess",
+                                                                "target": "state",
+                                                                "path": [
+                                                                    "wildSymbol"
+                                                                ]
+                                                            }
+                                                        ]
+                                                    }
+                                                }
+                                            },
+                                            "thenExpr": {
+                                                "exprType": "binary",
+                                                "op": "Add",
+                                                "left": {
+                                                    "exprType": "binary",
+                                                    "op": "Mul",
+                                                    "left": {
+                                                        "exprType": "local",
+                                                        "name": "lineCell1"
+                                                    },
+                                                    "right": {
+                                                        "exprType": "constant",
+                                                        "kind": "Integer",
+                                                        "value": "4"
+                                                    }
+                                                },
+                                                "right": {
+                                                    "exprType": "constant",
+                                                    "kind": "Integer",
+                                                    "value": "3"
+                                                }
+                                            },
+                                            "elseExpr": {
+                                                "exprType": "binary",
+                                                "op": "Add",
+                                                "left": {
+                                                    "exprType": "binary",
+                                                    "op": "Mul",
+                                                    "left": {
+                                                        "exprType": "local",
+                                                        "name": "lineCell1"
+                                                    },
+                                                    "right": {
+                                                        "exprType": "constant",
+                                                        "kind": "Integer",
+                                                        "value": "4"
+                                                    }
+                                                },
+                                                "right": {
+                                                    "exprType": "constant",
+                                                    "kind": "Integer",
+                                                    "value": "2"
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            },
+                            "elseExpr": {
+                                "exprType": "let",
+                                "name": "lineCell1",
+                                "value": {
+                                    "exprType": "call",
+                                    "function": "toNumber",
+                                    "args": [
+                                        {
+                                            "exprType": "call",
+                                            "function": "index",
+                                            "args": [
+                                                {
+                                                    "exprType": "fieldAccess",
+                                                    "target": "state",
+                                                    "path": [
+                                                        "board"
+                                                    ]
+                                                },
+                                                {
+                                                    "exprType": "call",
+                                                    "function": "index",
+                                                    "args": [
+                                                        {
+                                                            "exprType": "fieldAccess",
+                                                            "target": "state",
+                                                            "path": [
+                                                                "line"
+                                                            ]
+                                                        },
+                                                        {
+                                                            "exprType": "constant",
+                                                            "kind": "Integer",
+                                                            "value": "1"
+                                                        }
+                                                    ]
+                                                }
+                                            ]
+                                        }
+                                    ]
+                                },
+                                "body": {
+                                    "exprType": "if",
+                                    "condition": {
+                                        "exprType": "binary",
+                                        "op": "Or",
+                                        "left": {
+                                            "exprType": "compare",
+                                            "op": "Eq",
+                                            "left": {
+                                                "exprType": "local",
+                                                "name": "lineCell1"
+                                            },
+                                            "right": {
+                                                "exprType": "local",
+                                                "name": "lineCell0"
+                                            }
+                                        },
+                                        "right": {
+                                            "exprType": "compare",
+                                            "op": "Eq",
+                                            "left": {
+                                                "exprType": "local",
+                                                "name": "lineCell1"
+                                            },
+                                            "right": {
+                                                "exprType": "call",
+                                                "function": "toNumber",
+                                                "args": [
+                                                    {
+                                                        "exprType": "fieldAccess",
+                                                        "target": "state",
+                                                        "path": [
+                                                            "wildSymbol"
+                                                        ]
+                                                    }
+                                                ]
+                                            }
+                                        }
+                                    },
+                                    "thenExpr": {
+                                        "exprType": "let",
+                                        "name": "lineCell2",
+                                        "value": {
+                                            "exprType": "call",
+                                            "function": "toNumber",
+                                            "args": [
+                                                {
+                                                    "exprType": "call",
+                                                    "function": "index",
+                                                    "args": [
+                                                        {
+                                                            "exprType": "fieldAccess",
+                                                            "target": "state",
+                                                            "path": [
+                                                                "board"
+                                                            ]
+                                                        },
+                                                        {
+                                                            "exprType": "call",
+                                                            "function": "index",
+                                                            "args": [
+                                                                {
+                                                                    "exprType": "fieldAccess",
+                                                                    "target": "state",
+                                                                    "path": [
+                                                                        "line"
+                                                                    ]
+                                                                },
+                                                                {
+                                                                    "exprType": "constant",
+                                                                    "kind": "Integer",
+                                                                    "value": "2"
+                                                                }
+                                                            ]
+                                                        }
+                                                    ]
+                                                }
+                                            ]
+                                        },
+                                        "body": {
+                                            "exprType": "if",
+                                            "condition": {
+                                                "exprType": "binary",
+                                                "op": "Or",
+                                                "left": {
+                                                    "exprType": "compare",
+                                                    "op": "Eq",
+                                                    "left": {
+                                                        "exprType": "local",
+                                                        "name": "lineCell2"
+                                                    },
+                                                    "right": {
+                                                        "exprType": "local",
+                                                        "name": "lineCell0"
+                                                    }
+                                                },
+                                                "right": {
+                                                    "exprType": "compare",
+                                                    "op": "Eq",
+                                                    "left": {
+                                                        "exprType": "local",
+                                                        "name": "lineCell2"
+                                                    },
+                                                    "right": {
+                                                        "exprType": "call",
+                                                        "function": "toNumber",
+                                                        "args": [
+                                                            {
+                                                                "exprType": "fieldAccess",
+                                                                "target": "state",
+                                                                "path": [
+                                                                    "wildSymbol"
+                                                                ]
+                                                            }
+                                                        ]
+                                                    }
+                                                }
+                                            },
+                                            "thenExpr": {
+                                                "exprType": "binary",
+                                                "op": "Add",
+                                                "left": {
+                                                    "exprType": "binary",
+                                                    "op": "Mul",
+                                                    "left": {
+                                                        "exprType": "local",
+                                                        "name": "lineCell0"
+                                                    },
+                                                    "right": {
+                                                        "exprType": "constant",
+                                                        "kind": "Integer",
+                                                        "value": "4"
+                                                    }
+                                                },
+                                                "right": {
+                                                    "exprType": "constant",
+                                                    "kind": "Integer",
+                                                    "value": "3"
+                                                }
+                                            },
+                                            "elseExpr": {
+                                                "exprType": "binary",
+                                                "op": "Add",
+                                                "left": {
+                                                    "exprType": "binary",
+                                                    "op": "Mul",
+                                                    "left": {
+                                                        "exprType": "local",
+                                                        "name": "lineCell0"
+                                                    },
+                                                    "right": {
+                                                        "exprType": "constant",
+                                                        "kind": "Integer",
+                                                        "value": "4"
+                                                    }
+                                                },
+                                                "right": {
+                                                    "exprType": "constant",
+                                                    "kind": "Integer",
+                                                    "value": "2"
+                                                }
+                                            }
+                                        }
+                                    },
+                                    "elseExpr": {
+                                        "exprType": "binary",
+                                        "op": "Add",
+                                        "left": {
+                                            "exprType": "binary",
+                                            "op": "Mul",
+                                            "left": {
+                                                "exprType": "local",
+                                                "name": "lineCell0"
+                                            },
+                                            "right": {
+                                                "exprType": "constant",
+                                                "kind": "Integer",
+                                                "value": "4"
+                                            }
+                                        },
+                                        "right": {
+                                            "exprType": "constant",
+                                            "kind": "Integer",
+                                            "value": "1"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "payouts": {
+                    "exprType": "map",
+                    "stateKey": "lineDescriptors",
+                    "itemName": "descriptor",
+                    "itemType": "Number",
+                    "maxItems": 1,
+                    "body": {
+                        "exprType": "let",
+                        "name": "lineResult",
+                        "value": {
+                            "exprType": "fieldAccess",
+                            "target": "state",
+                            "path": [
+                                "descriptor"
+                            ]
+                        },
+                        "body": {
+                            "exprType": "call",
+                            "function": "index",
+                            "args": [
+                                {
+                                    "exprType": "call",
+                                    "function": "index",
+                                    "args": [
+                                        {
+                                            "exprType": "fieldAccess",
+                                            "target": "state",
+                                            "path": [
+                                                "linePays"
+                                            ]
+                                        },
+                                        {
+                                            "exprType": "call",
+                                            "function": "floor",
+                                            "args": [
+                                                {
+                                                    "exprType": "binary",
+                                                    "op": "Div",
+                                                    "left": {
+                                                        "exprType": "local",
+                                                        "name": "lineResult"
+                                                    },
+                                                    "right": {
+                                                        "exprType": "constant",
+                                                        "kind": "Integer",
+                                                        "value": "4"
+                                                    }
+                                                }
+                                            ]
+                                        }
+                                    ]
+                                },
+                                {
+                                    "exprType": "binary",
+                                    "op": "Sub",
+                                    "left": {
+                                        "exprType": "local",
+                                        "name": "lineResult"
+                                    },
+                                    "right": {
+                                        "exprType": "binary",
+                                        "op": "Mul",
+                                        "left": {
+                                            "exprType": "call",
+                                            "function": "floor",
+                                            "args": [
+                                                {
+                                                    "exprType": "binary",
+                                                    "op": "Div",
+                                                    "left": {
+                                                        "exprType": "local",
+                                                        "name": "lineResult"
+                                                    },
+                                                    "right": {
+                                                        "exprType": "constant",
+                                                        "kind": "Integer",
+                                                        "value": "4"
+                                                    }
+                                                }
+                                            ]
+                                        },
+                                        "right": {
+                                            "exprType": "constant",
+                                            "kind": "Integer",
+                                            "value": "4"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                },
+                "symbols": {
+                    "exprType": "map",
+                    "stateKey": "lineDescriptors",
+                    "itemName": "descriptor",
+                    "itemType": "Number",
+                    "maxItems": 1,
+                    "body": {
+                        "exprType": "call",
+                        "function": "toString",
+                        "args": [
+                            {
+                                "exprType": "call",
+                                "function": "floor",
+                                "args": [
+                                    {
+                                        "exprType": "binary",
+                                        "op": "Div",
+                                        "left": {
+                                            "exprType": "fieldAccess",
+                                            "target": "state",
+                                            "path": [
+                                                "descriptor"
+                                            ]
+                                        },
+                                        "right": {
+                                            "exprType": "constant",
+                                            "kind": "Integer",
+                                            "value": "4"
+                                        }
+                                    }
+                                ]
+                            }
+                        ]
+                    }
+                },
+                "counts": {
+                    "exprType": "map",
+                    "stateKey": "lineDescriptors",
+                    "itemName": "descriptor",
+                    "itemType": "Number",
+                    "maxItems": 1,
+                    "body": {
+                        "exprType": "binary",
+                        "op": "Sub",
+                        "left": {
+                            "exprType": "fieldAccess",
+                            "target": "state",
+                            "path": [
+                                "descriptor"
+                            ]
+                        },
+                        "right": {
+                            "exprType": "binary",
+                            "op": "Mul",
+                            "left": {
+                                "exprType": "call",
+                                "function": "floor",
+                                "args": [
+                                    {
+                                        "exprType": "binary",
+                                        "op": "Div",
+                                        "left": {
+                                            "exprType": "fieldAccess",
+                                            "target": "state",
+                                            "path": [
+                                                "descriptor"
+                                            ]
+                                        },
+                                        "right": {
+                                            "exprType": "constant",
+                                            "kind": "Integer",
+                                            "value": "4"
+                                        }
+                                    }
+                                ]
+                            },
+                            "right": {
+                                "exprType": "constant",
+                                "kind": "Integer",
+                                "value": "4"
+                            }
+                        }
+                    }
+                },
+                "played-total": {
+                    "exprType": "aggregate",
+                    "func": "Sum",
+                    "stateKey": "linePayouts",
+                    "itemName": "item",
+                    "itemType": "Number",
+                    "maxItems": 1,
+                    "valueExpr": {
+                        "exprType": "fieldAccess",
+                        "target": "state",
+                        "path": [
+                            "item"
+                        ]
+                    }
+                },
+                "analysis-total": {
+                    "exprType": "aggregate",
+                    "func": "Sum",
+                    "stateKey": "paylineCells",
+                    "itemName": "line",
+                    "itemType": "Array",
+                    "maxItems": 1,
+                    "valueExpr": {
+                        "exprType": "let",
+                        "name": "lineResult",
+                        "value": {
+                            "exprType": "let",
+                            "name": "lineCell0",
+                            "value": {
+                                "exprType": "call",
+                                "function": "toNumber",
+                                "args": [
+                                    {
+                                        "exprType": "call",
+                                        "function": "index",
+                                        "args": [
+                                            {
+                                                "exprType": "fieldAccess",
+                                                "target": "state",
+                                                "path": [
+                                                    "board"
+                                                ]
+                                            },
+                                            {
+                                                "exprType": "call",
+                                                "function": "index",
+                                                "args": [
+                                                    {
+                                                        "exprType": "fieldAccess",
+                                                        "target": "state",
+                                                        "path": [
+                                                            "line"
+                                                        ]
+                                                    },
+                                                    {
+                                                        "exprType": "constant",
+                                                        "kind": "Integer",
+                                                        "value": "0"
+                                                    }
+                                                ]
+                                            }
+                                        ]
+                                    }
+                                ]
+                            },
+                            "body": {
+                                "exprType": "if",
+                                "condition": {
+                                    "exprType": "compare",
+                                    "op": "Eq",
+                                    "left": {
+                                        "exprType": "local",
+                                        "name": "lineCell0"
+                                    },
+                                    "right": {
+                                        "exprType": "call",
+                                        "function": "toNumber",
+                                        "args": [
+                                            {
+                                                "exprType": "fieldAccess",
+                                                "target": "state",
+                                                "path": [
+                                                    "wildSymbol"
+                                                ]
+                                            }
+                                        ]
+                                    }
+                                },
+                                "thenExpr": {
+                                    "exprType": "let",
+                                    "name": "lineCell1",
+                                    "value": {
+                                        "exprType": "call",
+                                        "function": "toNumber",
+                                        "args": [
+                                            {
+                                                "exprType": "call",
+                                                "function": "index",
+                                                "args": [
+                                                    {
+                                                        "exprType": "fieldAccess",
+                                                        "target": "state",
+                                                        "path": [
+                                                            "board"
+                                                        ]
+                                                    },
+                                                    {
+                                                        "exprType": "call",
+                                                        "function": "index",
+                                                        "args": [
+                                                            {
+                                                                "exprType": "fieldAccess",
+                                                                "target": "state",
+                                                                "path": [
+                                                                    "line"
+                                                                ]
+                                                            },
+                                                            {
+                                                                "exprType": "constant",
+                                                                "kind": "Integer",
+                                                                "value": "1"
+                                                            }
+                                                        ]
+                                                    }
+                                                ]
+                                            }
+                                        ]
+                                    },
+                                    "body": {
+                                        "exprType": "if",
+                                        "condition": {
+                                            "exprType": "compare",
+                                            "op": "Eq",
+                                            "left": {
+                                                "exprType": "local",
+                                                "name": "lineCell1"
+                                            },
+                                            "right": {
+                                                "exprType": "call",
+                                                "function": "toNumber",
+                                                "args": [
+                                                    {
+                                                        "exprType": "fieldAccess",
+                                                        "target": "state",
+                                                        "path": [
+                                                            "wildSymbol"
+                                                        ]
+                                                    }
+                                                ]
+                                            }
+                                        },
+                                        "thenExpr": {
+                                            "exprType": "let",
+                                            "name": "lineCell2",
+                                            "value": {
+                                                "exprType": "call",
+                                                "function": "toNumber",
+                                                "args": [
+                                                    {
+                                                        "exprType": "call",
+                                                        "function": "index",
+                                                        "args": [
+                                                            {
+                                                                "exprType": "fieldAccess",
+                                                                "target": "state",
+                                                                "path": [
+                                                                    "board"
+                                                                ]
+                                                            },
+                                                            {
+                                                                "exprType": "call",
+                                                                "function": "index",
+                                                                "args": [
+                                                                    {
+                                                                        "exprType": "fieldAccess",
+                                                                        "target": "state",
+                                                                        "path": [
+                                                                            "line"
+                                                                        ]
+                                                                    },
+                                                                    {
+                                                                        "exprType": "constant",
+                                                                        "kind": "Integer",
+                                                                        "value": "2"
+                                                                    }
+                                                                ]
+                                                            }
+                                                        ]
+                                                    }
+                                                ]
+                                            },
+                                            "body": {
+                                                "exprType": "binary",
+                                                "op": "Add",
+                                                "left": {
+                                                    "exprType": "binary",
+                                                    "op": "Mul",
+                                                    "left": {
+                                                        "exprType": "local",
+                                                        "name": "lineCell2"
+                                                    },
+                                                    "right": {
+                                                        "exprType": "constant",
+                                                        "kind": "Integer",
+                                                        "value": "4"
+                                                    }
+                                                },
+                                                "right": {
+                                                    "exprType": "constant",
+                                                    "kind": "Integer",
+                                                    "value": "3"
+                                                }
+                                            }
+                                        },
+                                        "elseExpr": {
+                                            "exprType": "let",
+                                            "name": "lineCell2",
+                                            "value": {
+                                                "exprType": "call",
+                                                "function": "toNumber",
+                                                "args": [
+                                                    {
+                                                        "exprType": "call",
+                                                        "function": "index",
+                                                        "args": [
+                                                            {
+                                                                "exprType": "fieldAccess",
+                                                                "target": "state",
+                                                                "path": [
+                                                                    "board"
+                                                                ]
+                                                            },
+                                                            {
+                                                                "exprType": "call",
+                                                                "function": "index",
+                                                                "args": [
+                                                                    {
+                                                                        "exprType": "fieldAccess",
+                                                                        "target": "state",
+                                                                        "path": [
+                                                                            "line"
+                                                                        ]
+                                                                    },
+                                                                    {
+                                                                        "exprType": "constant",
+                                                                        "kind": "Integer",
+                                                                        "value": "2"
+                                                                    }
+                                                                ]
+                                                            }
+                                                        ]
+                                                    }
+                                                ]
+                                            },
+                                            "body": {
+                                                "exprType": "if",
+                                                "condition": {
+                                                    "exprType": "binary",
+                                                    "op": "Or",
+                                                    "left": {
+                                                        "exprType": "compare",
+                                                        "op": "Eq",
+                                                        "left": {
+                                                            "exprType": "local",
+                                                            "name": "lineCell2"
+                                                        },
+                                                        "right": {
+                                                            "exprType": "local",
+                                                            "name": "lineCell1"
+                                                        }
+                                                    },
+                                                    "right": {
+                                                        "exprType": "compare",
+                                                        "op": "Eq",
+                                                        "left": {
+                                                            "exprType": "local",
+                                                            "name": "lineCell2"
+                                                        },
+                                                        "right": {
+                                                            "exprType": "call",
+                                                            "function": "toNumber",
+                                                            "args": [
+                                                                {
+                                                                    "exprType": "fieldAccess",
+                                                                    "target": "state",
+                                                                    "path": [
+                                                                        "wildSymbol"
+                                                                    ]
+                                                                }
+                                                            ]
+                                                        }
+                                                    }
+                                                },
+                                                "thenExpr": {
+                                                    "exprType": "binary",
+                                                    "op": "Add",
+                                                    "left": {
+                                                        "exprType": "binary",
+                                                        "op": "Mul",
+                                                        "left": {
+                                                            "exprType": "local",
+                                                            "name": "lineCell1"
+                                                        },
+                                                        "right": {
+                                                            "exprType": "constant",
+                                                            "kind": "Integer",
+                                                            "value": "4"
+                                                        }
+                                                    },
+                                                    "right": {
+                                                        "exprType": "constant",
+                                                        "kind": "Integer",
+                                                        "value": "3"
+                                                    }
+                                                },
+                                                "elseExpr": {
+                                                    "exprType": "binary",
+                                                    "op": "Add",
+                                                    "left": {
+                                                        "exprType": "binary",
+                                                        "op": "Mul",
+                                                        "left": {
+                                                            "exprType": "local",
+                                                            "name": "lineCell1"
+                                                        },
+                                                        "right": {
+                                                            "exprType": "constant",
+                                                            "kind": "Integer",
+                                                            "value": "4"
+                                                        }
+                                                    },
+                                                    "right": {
+                                                        "exprType": "constant",
+                                                        "kind": "Integer",
+                                                        "value": "2"
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                },
+                                "elseExpr": {
+                                    "exprType": "let",
+                                    "name": "lineCell1",
+                                    "value": {
+                                        "exprType": "call",
+                                        "function": "toNumber",
+                                        "args": [
+                                            {
+                                                "exprType": "call",
+                                                "function": "index",
+                                                "args": [
+                                                    {
+                                                        "exprType": "fieldAccess",
+                                                        "target": "state",
+                                                        "path": [
+                                                            "board"
+                                                        ]
+                                                    },
+                                                    {
+                                                        "exprType": "call",
+                                                        "function": "index",
+                                                        "args": [
+                                                            {
+                                                                "exprType": "fieldAccess",
+                                                                "target": "state",
+                                                                "path": [
+                                                                    "line"
+                                                                ]
+                                                            },
+                                                            {
+                                                                "exprType": "constant",
+                                                                "kind": "Integer",
+                                                                "value": "1"
+                                                            }
+                                                        ]
+                                                    }
+                                                ]
+                                            }
+                                        ]
+                                    },
+                                    "body": {
+                                        "exprType": "if",
+                                        "condition": {
+                                            "exprType": "binary",
+                                            "op": "Or",
+                                            "left": {
+                                                "exprType": "compare",
+                                                "op": "Eq",
+                                                "left": {
+                                                    "exprType": "local",
+                                                    "name": "lineCell1"
+                                                },
+                                                "right": {
+                                                    "exprType": "local",
+                                                    "name": "lineCell0"
+                                                }
+                                            },
+                                            "right": {
+                                                "exprType": "compare",
+                                                "op": "Eq",
+                                                "left": {
+                                                    "exprType": "local",
+                                                    "name": "lineCell1"
+                                                },
+                                                "right": {
+                                                    "exprType": "call",
+                                                    "function": "toNumber",
+                                                    "args": [
+                                                        {
+                                                            "exprType": "fieldAccess",
+                                                            "target": "state",
+                                                            "path": [
+                                                                "wildSymbol"
+                                                            ]
+                                                        }
+                                                    ]
+                                                }
+                                            }
+                                        },
+                                        "thenExpr": {
+                                            "exprType": "let",
+                                            "name": "lineCell2",
+                                            "value": {
+                                                "exprType": "call",
+                                                "function": "toNumber",
+                                                "args": [
+                                                    {
+                                                        "exprType": "call",
+                                                        "function": "index",
+                                                        "args": [
+                                                            {
+                                                                "exprType": "fieldAccess",
+                                                                "target": "state",
+                                                                "path": [
+                                                                    "board"
+                                                                ]
+                                                            },
+                                                            {
+                                                                "exprType": "call",
+                                                                "function": "index",
+                                                                "args": [
+                                                                    {
+                                                                        "exprType": "fieldAccess",
+                                                                        "target": "state",
+                                                                        "path": [
+                                                                            "line"
+                                                                        ]
+                                                                    },
+                                                                    {
+                                                                        "exprType": "constant",
+                                                                        "kind": "Integer",
+                                                                        "value": "2"
+                                                                    }
+                                                                ]
+                                                            }
+                                                        ]
+                                                    }
+                                                ]
+                                            },
+                                            "body": {
+                                                "exprType": "if",
+                                                "condition": {
+                                                    "exprType": "binary",
+                                                    "op": "Or",
+                                                    "left": {
+                                                        "exprType": "compare",
+                                                        "op": "Eq",
+                                                        "left": {
+                                                            "exprType": "local",
+                                                            "name": "lineCell2"
+                                                        },
+                                                        "right": {
+                                                            "exprType": "local",
+                                                            "name": "lineCell0"
+                                                        }
+                                                    },
+                                                    "right": {
+                                                        "exprType": "compare",
+                                                        "op": "Eq",
+                                                        "left": {
+                                                            "exprType": "local",
+                                                            "name": "lineCell2"
+                                                        },
+                                                        "right": {
+                                                            "exprType": "call",
+                                                            "function": "toNumber",
+                                                            "args": [
+                                                                {
+                                                                    "exprType": "fieldAccess",
+                                                                    "target": "state",
+                                                                    "path": [
+                                                                        "wildSymbol"
+                                                                    ]
+                                                                }
+                                                            ]
+                                                        }
+                                                    }
+                                                },
+                                                "thenExpr": {
+                                                    "exprType": "binary",
+                                                    "op": "Add",
+                                                    "left": {
+                                                        "exprType": "binary",
+                                                        "op": "Mul",
+                                                        "left": {
+                                                            "exprType": "local",
+                                                            "name": "lineCell0"
+                                                        },
+                                                        "right": {
+                                                            "exprType": "constant",
+                                                            "kind": "Integer",
+                                                            "value": "4"
+                                                        }
+                                                    },
+                                                    "right": {
+                                                        "exprType": "constant",
+                                                        "kind": "Integer",
+                                                        "value": "3"
+                                                    }
+                                                },
+                                                "elseExpr": {
+                                                    "exprType": "binary",
+                                                    "op": "Add",
+                                                    "left": {
+                                                        "exprType": "binary",
+                                                        "op": "Mul",
+                                                        "left": {
+                                                            "exprType": "local",
+                                                            "name": "lineCell0"
+                                                        },
+                                                        "right": {
+                                                            "exprType": "constant",
+                                                            "kind": "Integer",
+                                                            "value": "4"
+                                                        }
+                                                    },
+                                                    "right": {
+                                                        "exprType": "constant",
+                                                        "kind": "Integer",
+                                                        "value": "2"
+                                                    }
+                                                }
+                                            }
+                                        },
+                                        "elseExpr": {
+                                            "exprType": "binary",
+                                            "op": "Add",
+                                            "left": {
+                                                "exprType": "binary",
+                                                "op": "Mul",
+                                                "left": {
+                                                    "exprType": "local",
+                                                    "name": "lineCell0"
+                                                },
+                                                "right": {
+                                                    "exprType": "constant",
+                                                    "kind": "Integer",
+                                                    "value": "4"
+                                                }
+                                            },
+                                            "right": {
+                                                "exprType": "constant",
+                                                "kind": "Integer",
+                                                "value": "1"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        },
+                        "body": {
+                            "exprType": "call",
+                            "function": "index",
+                            "args": [
+                                {
+                                    "exprType": "call",
+                                    "function": "index",
+                                    "args": [
+                                        {
+                                            "exprType": "fieldAccess",
+                                            "target": "state",
+                                            "path": [
+                                                "linePays"
+                                            ]
+                                        },
+                                        {
+                                            "exprType": "call",
+                                            "function": "floor",
+                                            "args": [
+                                                {
+                                                    "exprType": "binary",
+                                                    "op": "Div",
+                                                    "left": {
+                                                        "exprType": "local",
+                                                        "name": "lineResult"
+                                                    },
+                                                    "right": {
+                                                        "exprType": "constant",
+                                                        "kind": "Integer",
+                                                        "value": "4"
+                                                    }
+                                                }
+                                            ]
+                                        }
+                                    ]
+                                },
+                                {
+                                    "exprType": "binary",
+                                    "op": "Sub",
+                                    "left": {
+                                        "exprType": "local",
+                                        "name": "lineResult"
+                                    },
+                                    "right": {
+                                        "exprType": "binary",
+                                        "op": "Mul",
+                                        "left": {
+                                            "exprType": "call",
+                                            "function": "floor",
+                                            "args": [
+                                                {
+                                                    "exprType": "binary",
+                                                    "op": "Div",
+                                                    "left": {
+                                                        "exprType": "local",
+                                                        "name": "lineResult"
+                                                    },
+                                                    "right": {
+                                                        "exprType": "constant",
+                                                        "kind": "Integer",
+                                                        "value": "4"
+                                                    }
+                                                }
+                                            ]
+                                        },
+                                        "right": {
+                                            "exprType": "constant",
+                                            "kind": "Integer",
+                                            "value": "4"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                },
+                "last": {
+                    "exprType": "if",
+                    "condition": {
+                        "exprType": "fieldAccess",
+                        "target": "state",
+                        "path": [
+                            "traceEnabled"
+                        ]
+                    },
+                    "thenExpr": {
+                        "exprType": "call",
+                        "function": "index",
+                        "args": [
+                            {
+                                "exprType": "fieldAccess",
+                                "target": "state",
+                                "path": [
+                                    "lineDescriptors"
+                                ]
+                            },
+                            {
+                                "exprType": "constant",
+                                "kind": "Integer",
+                                "value": "0"
+                            }
+                        ]
+                    },
+                    "elseExpr": {
+                        "exprType": "let",
+                        "name": "lineCell0",
+                        "value": {
+                            "exprType": "call",
+                            "function": "toNumber",
+                            "args": [
+                                {
+                                    "exprType": "call",
+                                    "function": "index",
+                                    "args": [
+                                        {
+                                            "exprType": "fieldAccess",
+                                            "target": "state",
+                                            "path": [
+                                                "board"
+                                            ]
+                                        },
+                                        {
+                                            "exprType": "call",
+                                            "function": "index",
+                                            "args": [
+                                                {
+                                                    "exprType": "call",
+                                                    "function": "index",
+                                                    "args": [
+                                                        {
+                                                            "exprType": "fieldAccess",
+                                                            "target": "state",
+                                                            "path": [
+                                                                "paylineCells"
+                                                            ]
+                                                        },
+                                                        {
+                                                            "exprType": "constant",
+                                                            "kind": "Integer",
+                                                            "value": "0"
+                                                        }
+                                                    ]
+                                                },
+                                                {
+                                                    "exprType": "constant",
+                                                    "kind": "Integer",
+                                                    "value": "0"
+                                                }
+                                            ]
+                                        }
+                                    ]
+                                }
+                            ]
+                        },
+                        "body": {
+                            "exprType": "if",
+                            "condition": {
+                                "exprType": "compare",
+                                "op": "Eq",
+                                "left": {
+                                    "exprType": "local",
+                                    "name": "lineCell0"
+                                },
+                                "right": {
+                                    "exprType": "call",
+                                    "function": "toNumber",
+                                    "args": [
+                                        {
+                                            "exprType": "fieldAccess",
+                                            "target": "state",
+                                            "path": [
+                                                "wildSymbol"
+                                            ]
+                                        }
+                                    ]
+                                }
+                            },
+                            "thenExpr": {
+                                "exprType": "let",
+                                "name": "lineCell1",
+                                "value": {
+                                    "exprType": "call",
+                                    "function": "toNumber",
+                                    "args": [
+                                        {
+                                            "exprType": "call",
+                                            "function": "index",
+                                            "args": [
+                                                {
+                                                    "exprType": "fieldAccess",
+                                                    "target": "state",
+                                                    "path": [
+                                                        "board"
+                                                    ]
+                                                },
+                                                {
+                                                    "exprType": "call",
+                                                    "function": "index",
+                                                    "args": [
+                                                        {
+                                                            "exprType": "call",
+                                                            "function": "index",
+                                                            "args": [
+                                                                {
+                                                                    "exprType": "fieldAccess",
+                                                                    "target": "state",
+                                                                    "path": [
+                                                                        "paylineCells"
+                                                                    ]
+                                                                },
+                                                                {
+                                                                    "exprType": "constant",
+                                                                    "kind": "Integer",
+                                                                    "value": "0"
+                                                                }
+                                                            ]
+                                                        },
+                                                        {
+                                                            "exprType": "constant",
+                                                            "kind": "Integer",
+                                                            "value": "1"
+                                                        }
+                                                    ]
+                                                }
+                                            ]
+                                        }
+                                    ]
+                                },
+                                "body": {
+                                    "exprType": "if",
+                                    "condition": {
+                                        "exprType": "compare",
+                                        "op": "Eq",
+                                        "left": {
+                                            "exprType": "local",
+                                            "name": "lineCell1"
+                                        },
+                                        "right": {
+                                            "exprType": "call",
+                                            "function": "toNumber",
+                                            "args": [
+                                                {
+                                                    "exprType": "fieldAccess",
+                                                    "target": "state",
+                                                    "path": [
+                                                        "wildSymbol"
+                                                    ]
+                                                }
+                                            ]
+                                        }
+                                    },
+                                    "thenExpr": {
+                                        "exprType": "let",
+                                        "name": "lineCell2",
+                                        "value": {
+                                            "exprType": "call",
+                                            "function": "toNumber",
+                                            "args": [
+                                                {
+                                                    "exprType": "call",
+                                                    "function": "index",
+                                                    "args": [
+                                                        {
+                                                            "exprType": "fieldAccess",
+                                                            "target": "state",
+                                                            "path": [
+                                                                "board"
+                                                            ]
+                                                        },
+                                                        {
+                                                            "exprType": "call",
+                                                            "function": "index",
+                                                            "args": [
+                                                                {
+                                                                    "exprType": "call",
+                                                                    "function": "index",
+                                                                    "args": [
+                                                                        {
+                                                                            "exprType": "fieldAccess",
+                                                                            "target": "state",
+                                                                            "path": [
+                                                                                "paylineCells"
+                                                                            ]
+                                                                        },
+                                                                        {
+                                                                            "exprType": "constant",
+                                                                            "kind": "Integer",
+                                                                            "value": "0"
+                                                                        }
+                                                                    ]
+                                                                },
+                                                                {
+                                                                    "exprType": "constant",
+                                                                    "kind": "Integer",
+                                                                    "value": "2"
+                                                                }
+                                                            ]
+                                                        }
+                                                    ]
+                                                }
+                                            ]
+                                        },
+                                        "body": {
+                                            "exprType": "binary",
+                                            "op": "Add",
+                                            "left": {
+                                                "exprType": "binary",
+                                                "op": "Mul",
+                                                "left": {
+                                                    "exprType": "local",
+                                                    "name": "lineCell2"
+                                                },
+                                                "right": {
+                                                    "exprType": "constant",
+                                                    "kind": "Integer",
+                                                    "value": "4"
+                                                }
+                                            },
+                                            "right": {
+                                                "exprType": "constant",
+                                                "kind": "Integer",
+                                                "value": "3"
+                                            }
+                                        }
+                                    },
+                                    "elseExpr": {
+                                        "exprType": "let",
+                                        "name": "lineCell2",
+                                        "value": {
+                                            "exprType": "call",
+                                            "function": "toNumber",
+                                            "args": [
+                                                {
+                                                    "exprType": "call",
+                                                    "function": "index",
+                                                    "args": [
+                                                        {
+                                                            "exprType": "fieldAccess",
+                                                            "target": "state",
+                                                            "path": [
+                                                                "board"
+                                                            ]
+                                                        },
+                                                        {
+                                                            "exprType": "call",
+                                                            "function": "index",
+                                                            "args": [
+                                                                {
+                                                                    "exprType": "call",
+                                                                    "function": "index",
+                                                                    "args": [
+                                                                        {
+                                                                            "exprType": "fieldAccess",
+                                                                            "target": "state",
+                                                                            "path": [
+                                                                                "paylineCells"
+                                                                            ]
+                                                                        },
+                                                                        {
+                                                                            "exprType": "constant",
+                                                                            "kind": "Integer",
+                                                                            "value": "0"
+                                                                        }
+                                                                    ]
+                                                                },
+                                                                {
+                                                                    "exprType": "constant",
+                                                                    "kind": "Integer",
+                                                                    "value": "2"
+                                                                }
+                                                            ]
+                                                        }
+                                                    ]
+                                                }
+                                            ]
+                                        },
+                                        "body": {
+                                            "exprType": "if",
+                                            "condition": {
+                                                "exprType": "binary",
+                                                "op": "Or",
+                                                "left": {
+                                                    "exprType": "compare",
+                                                    "op": "Eq",
+                                                    "left": {
+                                                        "exprType": "local",
+                                                        "name": "lineCell2"
+                                                    },
+                                                    "right": {
+                                                        "exprType": "local",
+                                                        "name": "lineCell1"
+                                                    }
+                                                },
+                                                "right": {
+                                                    "exprType": "compare",
+                                                    "op": "Eq",
+                                                    "left": {
+                                                        "exprType": "local",
+                                                        "name": "lineCell2"
+                                                    },
+                                                    "right": {
+                                                        "exprType": "call",
+                                                        "function": "toNumber",
+                                                        "args": [
+                                                            {
+                                                                "exprType": "fieldAccess",
+                                                                "target": "state",
+                                                                "path": [
+                                                                    "wildSymbol"
+                                                                ]
+                                                            }
+                                                        ]
+                                                    }
+                                                }
+                                            },
+                                            "thenExpr": {
+                                                "exprType": "binary",
+                                                "op": "Add",
+                                                "left": {
+                                                    "exprType": "binary",
+                                                    "op": "Mul",
+                                                    "left": {
+                                                        "exprType": "local",
+                                                        "name": "lineCell1"
+                                                    },
+                                                    "right": {
+                                                        "exprType": "constant",
+                                                        "kind": "Integer",
+                                                        "value": "4"
+                                                    }
+                                                },
+                                                "right": {
+                                                    "exprType": "constant",
+                                                    "kind": "Integer",
+                                                    "value": "3"
+                                                }
+                                            },
+                                            "elseExpr": {
+                                                "exprType": "binary",
+                                                "op": "Add",
+                                                "left": {
+                                                    "exprType": "binary",
+                                                    "op": "Mul",
+                                                    "left": {
+                                                        "exprType": "local",
+                                                        "name": "lineCell1"
+                                                    },
+                                                    "right": {
+                                                        "exprType": "constant",
+                                                        "kind": "Integer",
+                                                        "value": "4"
+                                                    }
+                                                },
+                                                "right": {
+                                                    "exprType": "constant",
+                                                    "kind": "Integer",
+                                                    "value": "2"
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            },
+                            "elseExpr": {
+                                "exprType": "let",
+                                "name": "lineCell1",
+                                "value": {
+                                    "exprType": "call",
+                                    "function": "toNumber",
+                                    "args": [
+                                        {
+                                            "exprType": "call",
+                                            "function": "index",
+                                            "args": [
+                                                {
+                                                    "exprType": "fieldAccess",
+                                                    "target": "state",
+                                                    "path": [
+                                                        "board"
+                                                    ]
+                                                },
+                                                {
+                                                    "exprType": "call",
+                                                    "function": "index",
+                                                    "args": [
+                                                        {
+                                                            "exprType": "call",
+                                                            "function": "index",
+                                                            "args": [
+                                                                {
+                                                                    "exprType": "fieldAccess",
+                                                                    "target": "state",
+                                                                    "path": [
+                                                                        "paylineCells"
+                                                                    ]
+                                                                },
+                                                                {
+                                                                    "exprType": "constant",
+                                                                    "kind": "Integer",
+                                                                    "value": "0"
+                                                                }
+                                                            ]
+                                                        },
+                                                        {
+                                                            "exprType": "constant",
+                                                            "kind": "Integer",
+                                                            "value": "1"
+                                                        }
+                                                    ]
+                                                }
+                                            ]
+                                        }
+                                    ]
+                                },
+                                "body": {
+                                    "exprType": "if",
+                                    "condition": {
+                                        "exprType": "binary",
+                                        "op": "Or",
+                                        "left": {
+                                            "exprType": "compare",
+                                            "op": "Eq",
+                                            "left": {
+                                                "exprType": "local",
+                                                "name": "lineCell1"
+                                            },
+                                            "right": {
+                                                "exprType": "local",
+                                                "name": "lineCell0"
+                                            }
+                                        },
+                                        "right": {
+                                            "exprType": "compare",
+                                            "op": "Eq",
+                                            "left": {
+                                                "exprType": "local",
+                                                "name": "lineCell1"
+                                            },
+                                            "right": {
+                                                "exprType": "call",
+                                                "function": "toNumber",
+                                                "args": [
+                                                    {
+                                                        "exprType": "fieldAccess",
+                                                        "target": "state",
+                                                        "path": [
+                                                            "wildSymbol"
+                                                        ]
+                                                    }
+                                                ]
+                                            }
+                                        }
+                                    },
+                                    "thenExpr": {
+                                        "exprType": "let",
+                                        "name": "lineCell2",
+                                        "value": {
+                                            "exprType": "call",
+                                            "function": "toNumber",
+                                            "args": [
+                                                {
+                                                    "exprType": "call",
+                                                    "function": "index",
+                                                    "args": [
+                                                        {
+                                                            "exprType": "fieldAccess",
+                                                            "target": "state",
+                                                            "path": [
+                                                                "board"
+                                                            ]
+                                                        },
+                                                        {
+                                                            "exprType": "call",
+                                                            "function": "index",
+                                                            "args": [
+                                                                {
+                                                                    "exprType": "call",
+                                                                    "function": "index",
+                                                                    "args": [
+                                                                        {
+                                                                            "exprType": "fieldAccess",
+                                                                            "target": "state",
+                                                                            "path": [
+                                                                                "paylineCells"
+                                                                            ]
+                                                                        },
+                                                                        {
+                                                                            "exprType": "constant",
+                                                                            "kind": "Integer",
+                                                                            "value": "0"
+                                                                        }
+                                                                    ]
+                                                                },
+                                                                {
+                                                                    "exprType": "constant",
+                                                                    "kind": "Integer",
+                                                                    "value": "2"
+                                                                }
+                                                            ]
+                                                        }
+                                                    ]
+                                                }
+                                            ]
+                                        },
+                                        "body": {
+                                            "exprType": "if",
+                                            "condition": {
+                                                "exprType": "binary",
+                                                "op": "Or",
+                                                "left": {
+                                                    "exprType": "compare",
+                                                    "op": "Eq",
+                                                    "left": {
+                                                        "exprType": "local",
+                                                        "name": "lineCell2"
+                                                    },
+                                                    "right": {
+                                                        "exprType": "local",
+                                                        "name": "lineCell0"
+                                                    }
+                                                },
+                                                "right": {
+                                                    "exprType": "compare",
+                                                    "op": "Eq",
+                                                    "left": {
+                                                        "exprType": "local",
+                                                        "name": "lineCell2"
+                                                    },
+                                                    "right": {
+                                                        "exprType": "call",
+                                                        "function": "toNumber",
+                                                        "args": [
+                                                            {
+                                                                "exprType": "fieldAccess",
+                                                                "target": "state",
+                                                                "path": [
+                                                                    "wildSymbol"
+                                                                ]
+                                                            }
+                                                        ]
+                                                    }
+                                                }
+                                            },
+                                            "thenExpr": {
+                                                "exprType": "binary",
+                                                "op": "Add",
+                                                "left": {
+                                                    "exprType": "binary",
+                                                    "op": "Mul",
+                                                    "left": {
+                                                        "exprType": "local",
+                                                        "name": "lineCell0"
+                                                    },
+                                                    "right": {
+                                                        "exprType": "constant",
+                                                        "kind": "Integer",
+                                                        "value": "4"
+                                                    }
+                                                },
+                                                "right": {
+                                                    "exprType": "constant",
+                                                    "kind": "Integer",
+                                                    "value": "3"
+                                                }
+                                            },
+                                            "elseExpr": {
+                                                "exprType": "binary",
+                                                "op": "Add",
+                                                "left": {
+                                                    "exprType": "binary",
+                                                    "op": "Mul",
+                                                    "left": {
+                                                        "exprType": "local",
+                                                        "name": "lineCell0"
+                                                    },
+                                                    "right": {
+                                                        "exprType": "constant",
+                                                        "kind": "Integer",
+                                                        "value": "4"
+                                                    }
+                                                },
+                                                "right": {
+                                                    "exprType": "constant",
+                                                    "kind": "Integer",
+                                                    "value": "2"
+                                                }
+                                            }
+                                        }
+                                    },
+                                    "elseExpr": {
+                                        "exprType": "binary",
+                                        "op": "Add",
+                                        "left": {
+                                            "exprType": "binary",
+                                            "op": "Mul",
+                                            "left": {
+                                                "exprType": "local",
+                                                "name": "lineCell0"
+                                            },
+                                            "right": {
+                                                "exprType": "constant",
+                                                "kind": "Integer",
+                                                "value": "4"
+                                            }
+                                        },
+                                        "right": {
+                                            "exprType": "constant",
+                                            "kind": "Integer",
+                                            "value": "1"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "last-symbol": {
+                    "exprType": "call",
+                    "function": "toString",
+                    "args": [
+                        {
+                            "exprType": "call",
+                            "function": "floor",
+                            "args": [
+                                {
+                                    "exprType": "binary",
+                                    "op": "Div",
+                                    "left": {
+                                        "exprType": "fieldAccess",
+                                        "target": "state",
+                                        "path": [
+                                            "lineDescriptor"
+                                        ]
+                                    },
+                                    "right": {
+                                        "exprType": "constant",
+                                        "kind": "Integer",
+                                        "value": "4"
+                                    }
+                                }
+                            ]
+                        }
+                    ]
+                },
+                "last-count": {
+                    "exprType": "binary",
+                    "op": "Sub",
+                    "left": {
+                        "exprType": "fieldAccess",
+                        "target": "state",
+                        "path": [
+                            "lineDescriptor"
+                        ]
+                    },
+                    "right": {
+                        "exprType": "binary",
+                        "op": "Mul",
+                        "left": {
+                            "exprType": "call",
+                            "function": "floor",
+                            "args": [
+                                {
+                                    "exprType": "binary",
+                                    "op": "Div",
+                                    "left": {
+                                        "exprType": "fieldAccess",
+                                        "target": "state",
+                                        "path": [
+                                            "lineDescriptor"
+                                        ]
+                                    },
+                                    "right": {
+                                        "exprType": "constant",
+                                        "kind": "Integer",
+                                        "value": "4"
+                                    }
+                                }
+                            ]
+                        },
+                        "right": {
+                            "exprType": "constant",
+                            "kind": "Integer",
+                            "value": "4"
+                        }
+                    }
+                },
+                "last-payout": {
+                    "exprType": "let",
+                    "name": "lineResult",
+                    "value": {
+                        "exprType": "fieldAccess",
+                        "target": "state",
+                        "path": [
+                            "lineDescriptor"
+                        ]
+                    },
+                    "body": {
+                        "exprType": "call",
+                        "function": "index",
+                        "args": [
+                            {
+                                "exprType": "call",
+                                "function": "index",
+                                "args": [
+                                    {
+                                        "exprType": "fieldAccess",
+                                        "target": "state",
+                                        "path": [
+                                            "linePays"
+                                        ]
+                                    },
+                                    {
+                                        "exprType": "call",
+                                        "function": "floor",
+                                        "args": [
+                                            {
+                                                "exprType": "binary",
+                                                "op": "Div",
+                                                "left": {
+                                                    "exprType": "local",
+                                                    "name": "lineResult"
+                                                },
+                                                "right": {
+                                                    "exprType": "constant",
+                                                    "kind": "Integer",
+                                                    "value": "4"
+                                                }
+                                            }
+                                        ]
+                                    }
+                                ]
+                            },
+                            {
+                                "exprType": "binary",
+                                "op": "Sub",
+                                "left": {
+                                    "exprType": "local",
+                                    "name": "lineResult"
+                                },
+                                "right": {
+                                    "exprType": "binary",
+                                    "op": "Mul",
+                                    "left": {
+                                        "exprType": "call",
+                                        "function": "floor",
+                                        "args": [
+                                            {
+                                                "exprType": "binary",
+                                                "op": "Div",
+                                                "left": {
+                                                    "exprType": "local",
+                                                    "name": "lineResult"
+                                                },
+                                                "right": {
+                                                    "exprType": "constant",
+                                                    "kind": "Integer",
+                                                    "value": "4"
+                                                }
+                                            }
+                                        ]
+                                    },
+                                    "right": {
+                                        "exprType": "constant",
+                                        "kind": "Integer",
+                                        "value": "4"
+                                    }
+                                }
+                            }
+                        ]
+                    }
                 }
             }
         },
@@ -3758,7 +5570,7 @@
                     "nodeType": "library",
                     "id": "lines",
                     "label": "Pay the lines",
-                    "mechanicName": "paylines",
+                    "mechanicName": "line-evaluation",
                     "inputs": {
                         "state": {
                             "name": "state",

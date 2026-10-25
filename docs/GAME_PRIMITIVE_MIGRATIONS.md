@@ -187,3 +187,65 @@ Continue the backend toward the one-million target across all 15 cases, with
 real-game migrations and paired measurements per admitted capability. Retain
 exact arithmetic, source/replay identity and the complete-round denominator.
 Return to editor integration after backend performance work.
+
+
+## Full game-graph rebuild: first line-evaluation stage
+
+The active rebuild covers all maintained game families and their small models,
+followed by profiling and correction of weak execution paths. Product UI work
+is deferred until speed and graph reduction are achieved. The game-authoring
+TypeScript emits mathematical JSON; these changes do not redesign the UI.
+Reference models, all 37 graph inputs and original client contracts were frozen
+outside Git before the rebuild. Independent original-server goldens remain unchanged.
+
+The new line evaluator uses ordinary Let/Local, conditional, array-index and
+bounded collection expressions. Each needed line cell is read once. The first
+nonwild symbol and stopped prefix length are packed into a scalar descriptor.
+Analysis sums payouts directly without per-line result arrays; played rounds
+materialize their line details. The previous payline template stays available
+for existing studio-created models; the three maintained payline families now
+compose the new evaluator. No kernel primitive or mechanic dispatch was added.
+
+Ancient Dragon, Woodland Whisper and the paid line section of X7 were migrated
+immediately, including their eight affected full/small JSON fixtures. Baseline
+source-node totals change 72->51, 89->63 and 92->76 respectively. Canonical JSON
+currently grows (59,337->95,536; 68,508->102,912; 67,172->105,166 bytes), because
+scalar expressions replace repeated subgraph placements. Source node count alone
+does not establish compactness; reducing this expression expansion remains work.
+
+A single frozen accepted kernel runs old and new full graph data on CPU 2 with
+one worker, normal .NET tiering/PGO and Tiered sampling. ABBA processes measure
+three repetitions, discard the first and compare all outcome/loop statistics.
+
+| Complete configuration | Old rounds/s | Rebuilt lines rounds/s | Ratio | Timing ranges |
+| --- | ---: | ---: | ---: | --- |
+| Ancient Dragon | 346,848 | 385,585 | 1.112 | disjoint gain |
+| Woodland Whisper buy | 24,292 | 28,804 | 1.186 | disjoint gain |
+| X7 Club paid | 473,394 | 480,365 | 1.015 | overlap |
+
+These are preliminary frozen-data timings, not final acceptance of the complete
+rebuild. Allocation per round is unchanged. Original-round goldens replay unchanged; played-round checks cover both
+sampling tiers. Five small exact-model laws retain their original rational RTPs
+and budgets. The new prefix evaluator also has an independent exhaustive
+four-symbol-line oracle and a stopped-prefix lazy-read case. A separate 1,032
+old/new replay comparison retains payout, every original state field, audit and
+the following RNG word exactly. Added private fields are lineDescriptor,
+lineDescriptors and immutable paylineCells. Derived client-trace fixtures add
+only the first two: every existing trace field and win matches all 36 original
+trace rows, without changing original-server expected inputs/results.
+
+Remaining rebuild work includes full reel/field formation, pick/hold/boost
+mechanics, both cluster-game families, the independent lab demo and dependent
+starters. The next data layout experiments target packed finite vectors and
+elimination of intermediate field arrays, with generic atomic capabilities only
+where profiling and a standalone mathematical contract justify them.
+
+Final validation of this first stage passes 29 selected Core cases: the six prefix
+cases, original rounds, played-round rules in both sampling tiers, three regenerated
+trace snapshots and five small exact laws. The first trace check failed solely on
+new private keys; regeneration was accepted only after an independent comparison
+proved every original key/value and win unchanged in all 36 rows. All 16 touched
+source/fixture files received Reformat Code then Full Cleanup, with CLI evidence
+for C# and exact-file solution scope evidence for authoring/JSON. Scoped ESLint,
+TypeScript checking and the 38-fixture source check pass. Pre/post-cleanup full
+JSON values match the timed snapshots. No product UI files were changed.
