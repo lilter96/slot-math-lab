@@ -54,7 +54,7 @@ When existing atoms cannot express an operation, document the gap and propose th
 
 After every code change, run **Reformat Code**, then **Built-in: Full Cleanup**, on all source files you touched, including new files, before final validation or delivery. Repeat after subsequent edits. Scope both passes to your task's files; never clean the entire repository or another agent's changes.
 
-Project hooks in `.codex/hooks.json` record a per-session source baseline and run both passes on touched backend files at `Stop`, including edits committed during the session. Start Codex in the assigned workspace, trust the project, and review/trust both hooks through `/hooks`. They require a new or restarted session to capture the baseline. Cleanup requests a continuation for diff review and validation; unchanged cleaned files are skipped. Failures and unsupported files are reported explicitly; repeated failures are surfaced without an endless continuation loop. Hooks do not replace relevant tests.
+Automatic Rider cleanup hooks are disabled. Do not install SessionStart/Stop cleanup hooks or force continuation after cleanup. The retired script is an inert compatibility entry point for sessions that cached its old command. Formatting and relevant tests remain part of delivery.
 
 Use Rider's rules: `backend/.editorconfig` takes precedence over JetBrains settings; `.config/rider-cleanup.DotSettings` preserves the Full Cleanup selection read from the owner's Rider 2026.1 settings. No custom formatting overrides were found there. Respect additional solution-shared settings if introduced.
 
