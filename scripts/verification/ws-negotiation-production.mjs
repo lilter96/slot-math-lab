@@ -1,9 +1,10 @@
 import { waitForRunLaunch, saveMeasurement } from './requests.mjs';
 import { chromium } from '../../frontend/node_modules/playwright/index.mjs';
 import { expect } from '../../frontend/node_modules/@playwright/test/index.mjs';
-import { readFile, writeFile } from 'node:fs/promises';
+import { readFile, writeFile, mkdir } from 'node:fs/promises';
 import { createHash } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
+await mkdir(new URL('../../artifacts/verification/', import.meta.url), { recursive: true });
 
 const root = fileURLToPath(new URL('../..', import.meta.url)), base = process.env.REALTIME_BASE_URL;
 if (!base) throw new Error('Set REALTIME_BASE_URL to the authenticated deployment.');
@@ -58,7 +59,7 @@ async function signIn() {
 }
 const count = async () => Number((await page.getByTestId('sample-count').innerText()).replaceAll(',', ''));
 try {
-  await page.goto(base + '/build?project=dog-house'); await signIn();
+  await page.goto(base + '/build?project=nine-lives'); await signIn();
   const script = await page.locator('script[src*="/assets/index-"]').getAttribute('src');
   if (!script) throw new Error('Could not identify the deployed frontend bundle.');
   const bundle = await context.request.get(base + script);
@@ -66,10 +67,10 @@ try {
   report.frontend = { asset: script, sha256: createHash('sha256').update(await bundle.body()).digest('hex') };
   await page.getByRole('tab', { name: 'Simulate', exact: true }).click();
   await page.getByRole('button', { name: '＋ Track metric', exact: true }).click();
-  await page.getByLabel('Metric name').fill('Sticky FS transport evidence');
+  await page.getByLabel('Metric name').fill('FS transport evidence');
   await page.getByLabel('Metric observation level').selectOption('node');
-  await page.getByLabel('Metric graph node').selectOption('free-spin/snapshot-winHistory');
-  await page.getByLabel('Metric numeric expression').fill('state.spinCoins / 20');
+  await page.getByLabel('Metric graph node').selectOption('round/paid-body/trigger-body/free-spins-body/record-winHistory');
+  await page.getByLabel('Metric numeric expression').fill('(state.spinClusterCoins + state.spinCollectionCoins) / 20');
   const validationAttempts = [];
   if (validationRetrySeconds) await page.route('**/api/runs/measurements/schema', route => {
     if (route.request().method() !== 'POST' || !route.request().postDataJSON().measurements?.length) return route.continue();
@@ -156,7 +157,7 @@ try {
 finally {
   await page.goto('about:blank').catch(() => {});
   for (const id of owned) await cancel(id);
-  await writeFile(root + '/docs/verification/' + (process.env.REALTIME_REPORT_FILE ?? 'ws-negotiation-production.json'), JSON.stringify(report, null, 2) + '\n');
+  await writeFile(root + '/artifacts/verification/' + (process.env.REALTIME_REPORT_FILE ?? 'ws-negotiation-production.json'), JSON.stringify(report, null, 2) + '\n');
   await browser.close();
 }
 console.log(JSON.stringify({ success: report.success, run: report.run.id, quotas: report.quotas,

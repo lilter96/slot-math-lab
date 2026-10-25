@@ -1,9 +1,10 @@
 import { saveMeasurement, waitForRunLaunch } from './requests.mjs';
 import { chromium } from '../../frontend/node_modules/playwright/index.mjs';
 import { expect } from '../../frontend/node_modules/@playwright/test/index.mjs';
-import { readFile, writeFile } from 'node:fs/promises';
+import { readFile, writeFile, mkdir } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { createHash } from 'node:crypto';
+await mkdir(new URL('../../artifacts/verification/', import.meta.url), { recursive: true });
 
 const root = fileURLToPath(new URL('../..', import.meta.url)), base = process.env.MEASUREMENTS_BASE_URL;
 if (!base) throw new Error('Set MEASUREMENTS_BASE_URL to the authenticated deployment.');
@@ -85,7 +86,7 @@ try {
   const report = { checkedAt: new Date().toISOString(), endpoint: base,
     specification: 'One feature entry precedes division by zero, with no reveal, exit or settled paid round. One failed paid round and one open feature instance are retained only as lifecycle evidence; all numeric statistics remain undefined.',
     frontendAsset: asset, frontendSha256: createHash('sha256').update(bytes).digest('hex'), runs: records, browserErrors: errors };
-  await writeFile(process.env.MEASUREMENTS_REPORT_FILE ?? root + '/docs/verification/interrupted-lifecycle-production.json', JSON.stringify(report, null, 2) + '\n');
+  await writeFile(process.env.MEASUREMENTS_REPORT_FILE ?? root + '/artifacts/verification/interrupted-lifecycle-production.json', JSON.stringify(report, null, 2) + '\n');
   console.log(JSON.stringify({ runId: records[0].runId, enginesAgree: true, browserErrors: errors, resultsUrl: base + '/results?run=' + records[0].runId }));
 } finally {
   await page.goto('about:blank').catch(() => {});

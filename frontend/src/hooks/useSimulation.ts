@@ -1,3 +1,4 @@
+import { browserStorageKey } from '../lib/browserIdentity';
 import { validateExecution, sameExecution } from '../lib/measurements/execution';
 import { LIMITS, progressBatchSize } from '../lib/limits';
 import { chartMeasurements, serializeCheckpoint } from '../lib/measurements/checkpoints';
@@ -11,9 +12,7 @@ export { terminal };
 export type { LiveProgress, RunSnapshot };
 import { useAppStore } from '../store';
 import { rootProject, loadProject } from '../lib/projectFiles';
-import { createDogHouseGraph } from '../games/doghouse/graph';
-import { createExpectationGraph } from '../games/doghouse/expectationGraph';
-import { graphRequest, type GraphRound } from '../games/doghouse/api';
+import { graphRequest } from '../lib/graphApi';
 
 import { samePlan, definition, type MeasurementDefinition } from '../lib/measurements/model';
 import { useMeasurementWorkspace } from '../lib/measurements/store';
@@ -26,7 +25,7 @@ interface Session {
   connection: ConnectionPhase; health: ConnectionHealth; receivedAt: number; events: { time: string; text: string }[];
   history: RunSnapshot[]; launchNote: string;
 }
-const key = 'slotmath-simulation-v2';
+const key = browserStorageKey('slotmath-simulation-v2');
 const initialHealth: ConnectionHealth = { phase: 'idle', reconnects: 0, attempts: 0, lastConfirmedAt: 0, lastSocketAt: 0, roundTripMs: null, nextRetryAt: null };
 const defaults: Session = { run: null, progress: null, points: [], reference: null, target: null,
   referenceNote: 'Run the model to calculate its exact reference.', model: '', error: '', starting: false,
@@ -71,21 +70,23 @@ let launchController: AbortController | null = null;
 async function launchRequest<T>(path: string, body: unknown, signal: AbortSignal): Promise<T> {
   signal.throwIfAborted();
   const init = { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) };
-  try { return await request<T>(path, init); }
-  catch (error) {
-    if (!(error instanceof HttpFailure) || error.status !== 429) throw error;
-    const delay = error.retryAfterMs || 5000;
-    if (delay > 60000) throw error;
+  for (let attempt = 0; ; attempt++) {
     signal.throwIfAborted();
-    const note = `Server rate limit · retrying the rejected request in ${Math.ceil(delay / 1000)}s. No run has been queued by this request.`;
-    useSession.setState({ launchNote: note }); log(note);
-    await new Promise<void>((resolve, reject) => {
-      const aborted = () => { clearTimeout(timer); reject(signal.reason); };
-      const timer = setTimeout(() => { signal.removeEventListener('abort', aborted); resolve(); }, delay);
-      signal.addEventListener('abort', aborted, { once: true });
-    });
-    signal.throwIfAborted(); useSession.setState({ launchNote: 'Retrying the rejected launch request…' });
-    return request<T>(path, init);
+    try { return await request<T>(path, init); }
+    catch (error) {
+      if (!(error instanceof HttpFailure) || error.status !== 429 || attempt >= 2) throw error;
+      const delay = error.retryAfterMs || 5000;
+      if (delay > 60000) throw error;
+      signal.throwIfAborted();
+      const note = `Server rate limit · retrying the rejected request in ${Math.ceil(delay / 1000)}s. No run has been queued by this request.`;
+      useSession.setState({ launchNote: note }); log(note);
+      await new Promise<void>((resolve, reject) => {
+        const aborted = () => { clearTimeout(timer); reject(signal.reason); };
+        const timer = setTimeout(() => { signal.removeEventListener('abort', aborted); resolve(); }, delay);
+        signal.addEventListener('abort', aborted, { once: true });
+      });
+      signal.throwIfAborted(); useSession.setState({ launchNote: 'Retrying the rejected launch request…' });
+    }
   }
 }
 function recordTerminal(run: RunSnapshot) {
@@ -161,14 +162,14 @@ export async function startSimulation(seed: number, samples: number, workers: nu
       loadProject(useAppStore.getState().verificationSource!);
       useAppStore.setState({ verificationSource: null, graphTrail: [] });
     }
-    if (!useAppStore.getState().nodes.length) loadProject(createDogHouseGraph());
     const config = rootProject();
     if (!config) throw new Error('Build a valid model before running.');
     const measurements = useMeasurementWorkspace.getState().metrics.map(definition);
     const verificationProfile = useMeasurementWorkspace.getState().verificationProfile;
     if (verificationProfile) validateProfile(verificationProfile, measurements);
     if (execution) validateExecution(execution, samples, workers);
-    const target = Number((config.initialState as Record<string, unknown>)?.targetRtpPercent) / 100;
+    const initial = config.initialState as Record<string, unknown>;
+    const target = Number(initial?.targetRtpPercent) / 100;
     const history = useSession.getState().history;
     useSession.setState({ starting: true, error: '', launchNote: '' });
     log('Saving and pinning the full constructor graph');
@@ -191,16 +192,8 @@ export async function startSimulation(seed: number, samples: number, workers: nu
       try {
         let reference: number | null = null;
         let note = 'Exact evaluation exceeded its budget; target is not a verified reference.';
-        try {
-          const proof = createExpectationGraph(config);
-          const result = await graphRequest<GraphRound>('play/round', { config: proof, seed: 42, roundIndex: 0 });
-          const value = result.state.expectedRtp as { displayValue: number };
-          reference = value.displayValue;
-          note = 'Exact expectation from the editable constructor proof; not an exact payout distribution.';
-        } catch {
-          const result = await graphRequest<{ rtp?: number; provenance?: string }>('evaluate/light', { config, seed });
-          if (result.provenance === 'Exact' && result.rtp !== undefined) { reference = result.rtp; note = 'Exact expectation of this pinned graph.'; }
-        }
+        const result = await graphRequest<{ rtp?: number; provenance?: string }>('evaluate/light', { config, seed });
+        if (result.provenance === 'Exact' && result.rtp !== undefined) { reference = result.rtp; note = 'Exact expectation of this pinned graph.'; }
         if (useSession.getState().run?.id === run.id) useSession.setState({ reference, referenceNote: note });
       } catch (e) {
         if (useSession.getState().run?.id === run.id) useSession.setState({ referenceNote: `Reference unavailable: ${String(e)}` });

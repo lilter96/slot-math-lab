@@ -8,14 +8,14 @@ namespace SlotMath.Core.Model;
 public enum PortType
 {
     /// <summary>
-    /// A board-shaped payload: a flat row-major symbol array carried in the
-    /// recurrence state (state["board"] + rows/cols).  This is a graph-edge
-    /// DATA CONTRACT, NOT a kernel data type — invariant 4 (no engine `Board`
-    /// type) is about the removed `Board` CLASS, which no longer exists; the
-    /// board is just a user-defined state array.  A `map` node with a Board
-    /// input port and a Wins output port marks a sanctioned fast-path
-    /// evaluator (invariant 11): the compiler recognises this shape and routes
-    /// the state to the registered IFastPathEvaluator.
+    ///     A board-shaped payload: a flat row-major symbol array carried in the
+    ///     recurrence state (state["board"] + rows/cols).  This is a graph-edge
+    ///     DATA CONTRACT, NOT a kernel data type — invariant 4 (no engine `Board`
+    ///     type) is about the removed `Board` CLASS, which no longer exists; the
+    ///     board is just a user-defined state array.  A `map` node with a Board
+    ///     input port and a Wins output port marks a sanctioned fast-path
+    ///     evaluator (invariant 11): the compiler recognises this shape and routes
+    ///     the state to the registered IFastPathEvaluator.
     /// </summary>
     Board,
     State,
@@ -25,7 +25,7 @@ public enum PortType
     Boolean,
     String,
     Symbol,
-    Trigger,
+    Trigger
 }
 
 // ── Port ───────────────────────────────────────────────────────────────
@@ -52,6 +52,7 @@ public sealed record Edge
 
 [JsonPolymorphic(TypeDiscriminatorPropertyName = "nodeType")]
 [JsonDerivedType(typeof(DrawNode), "draw")]
+[JsonDerivedType(typeof(DrawManyNode), "drawMany")]
 [JsonDerivedType(typeof(GetStateNode), "getState")]
 [JsonDerivedType(typeof(PutStateNode), "putState")]
 [JsonDerivedType(typeof(ModifyStateNode), "modifyState")]
@@ -75,26 +76,60 @@ public sealed record DrawWeight
 {
     public required string OutcomeId { get; init; }
     public long Weight { get; init; }
+
     /// <summary>Numeric value produced when this outcome is drawn. Can be any integer — not necessarily monetary.</summary>
     public long Value { get; init; }
+
+    /// <summary>Optional typed state data, independent of the scaled payout-channel Value.</summary>
+    public ConstantExpr? StateValue { get; init; }
 }
 
 // ── Primitive nodes ────────────────────────────────────────────────────
 
 public sealed record DrawNode : Node
 {
+    /// <summary>Compile-time reference to ordered categorical data in GraphConfig.Distributions.</summary>
+    public string? DistributionId { get; init; }
+
+    /// <summary>Ordered asset IDs forming a finite categorical family.</summary>
+    public string[]? DistributionIds { get; init; }
+
+    /// <summary>Expression selecting a family member by an exact zero-based integer.</summary>
+    public string? DistributionIndexExpressionId { get; init; }
+
+    [JsonIgnore] internal DrawWeight[][]? BoundDistributions { get; init; }
+
     public string? WeightExpressionId { get; init; }
+
+    /// <summary>Expression returning a bounded exact numeric weight per ordered outcome.</summary>
+    public string? WeightVectorExpressionId { get; init; }
+
     /// <summary>Inline weighted outcomes. When present, used instead of ReelSets.</summary>
     public DrawWeight[]? DrawWeights { get; init; }
+
     /// <summary>When set, the drawn outcomeId is written to this state key after each draw.</summary>
     public string? StateWriteKey { get; init; }
+
     /// <summary>
-    /// When set, a flat array of the drawn symbol IDs (row-major order) is written to this
-    /// state key after each reel draw, making the board available as a state array for
-    /// level-(b) fold/map/filter expressions. This is the mechanism that lets pure subgraph
-    /// mechanics (scatter, lines, ways) read the board from state instead of from a Board object.
+    ///     When set, a flat array of the drawn symbol IDs (row-major order) is written to this
+    ///     state key after each reel draw, making the board available as a state array for
+    ///     level-(b) fold/map/filter expressions. This is the mechanism that lets pure subgraph
+    ///     mechanics (scatter, lines, ways) read the board from state instead of from a Board object.
     /// </summary>
     public string? BoardStateKey { get; init; }
+}
+
+/// <summary>Ordered categorical draws, committed as one homogeneous state array.</summary>
+public sealed record DrawManyNode : Node
+{
+    public required string OutputKey { get; init; }
+    public string? DistributionId { get; init; }
+    public string[]? DistributionIds { get; init; }
+    public int? Count { get; init; }
+    public string? CountExpressionId { get; init; }
+    public int? MaxCount { get; init; }
+    [JsonIgnore] internal DrawWeight[][]? BoundDistributions { get; init; }
+    [JsonIgnore] internal bool RepeatDistribution { get; init; }
 }
 
 public sealed record GetStateNode : Node
@@ -112,13 +147,12 @@ public sealed record ModifyStateNode : Node
     public string? ExpressionId { get; init; }
 
     /// <summary>
-    /// When set, the expression's typed result (string / number / boolean) is
-    /// written to this state key.  When null, legacy behaviour applies: the
-    /// numeric result is written to the internal "__modified__" key.
-    ///
-    /// This is the atom that lets a graph compute a value over state — e.g. a
-    /// fold producing a win symbol, or a conditional producing a payout — with
-    /// no evaluator/transform molecule.
+    ///     When set, the expression's typed result (string / number / boolean) is
+    ///     written to this state key.  When null, legacy behaviour applies: the
+    ///     numeric result is written to the internal "__modified__" key.
+    ///     This is the atom that lets a graph compute a value over state — e.g. a
+    ///     fold producing a win symbol, or a conditional producing a payout — with
+    ///     no evaluator/transform molecule.
     /// </summary>
     public string? OutputKey { get; init; }
 }
@@ -149,17 +183,17 @@ public sealed record MetricsSinkNode : Node
     public string? MetricId { get; init; }
 
     /// <summary>
-    /// When set, the spin's win amount is read from this state key instead of
-    /// the data-flow input value.  This lets a pure atom + expression pipeline
-    /// (Draw → Modify(expression) → Sink) deliver its win with no
-    /// evaluator/transform molecule producing a Win[].
+    ///     When set, the spin's win amount is read from this state key instead of
+    ///     the data-flow input value.  This lets a pure atom + expression pipeline
+    ///     (Draw → Modify(expression) → Sink) deliver its win with no
+    ///     evaluator/transform molecule producing a Win[].
     /// </summary>
     public string? WinStateKey { get; init; }
 
     /// <summary>
-    /// Declared round win cap (D6/D19).  The compiler rejects a graph whose
-    /// MetricsSink has no cap (MISSING_WIN_CAP).  The cap is the maximum total
-    /// win per round in game units; wins above this value are clamped.
+    ///     Declared round win cap (D6/D19).  The compiler rejects a graph whose
+    ///     MetricsSink has no cap (MISSING_WIN_CAP).  The cap is the maximum total
+    ///     win per round in game units; wins above this value are clamped.
     /// </summary>
     public long? WinCap { get; init; }
 }
@@ -175,12 +209,12 @@ public sealed record LibraryNode : Node
 // ── Data-source node ─────────────────────────────────────────────────────
 
 /// <summary>
-/// A generic data source: writes a named array of values into the recurrence
-/// state, where downstream nodes and level-(b) expressions (fold/map/filter,
-/// aggregations, index access) can work with it. Data is data — a paytable,
-/// payline set, reel strip, multiplier ladder, or any other table is just a
-/// <see cref="DataNode"/>; the engine special-cases none of them (invariant 7).
-/// Integer-valued entries are exposed as numbers; everything else as strings.
+///     A generic data source: writes a named array of values into the recurrence
+///     state, where downstream nodes and level-(b) expressions (fold/map/filter,
+///     aggregations, index access) can work with it. Data is data — a paytable,
+///     payline set, reel strip, multiplier ladder, or any other table is just a
+///     <see cref="DataNode" />; the engine special-cases none of them (invariant 7).
+///     Integer-valued entries are exposed as numbers; everything else as strings.
 /// </summary>
 public sealed record DataNode : Node
 {

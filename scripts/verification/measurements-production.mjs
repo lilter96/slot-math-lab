@@ -1,12 +1,13 @@
 import { waitForRunLaunch, saveMeasurement } from './requests.mjs';
 import { chromium } from '../../frontend/node_modules/playwright/index.mjs';
 import { expect } from '../../frontend/node_modules/@playwright/test/index.mjs';
-import { readFile, writeFile } from 'node:fs/promises';
+import { readFile, writeFile, mkdir } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
+await mkdir(new URL('../../artifacts/verification/', import.meta.url), { recursive: true });
 const root = fileURLToPath(new URL('../..', import.meta.url));
 const base = process.env.MEASUREMENTS_BASE_URL;
 if (!base) throw new Error('Set MEASUREMENTS_BASE_URL to the deployment to verify.');
-const sourceId = process.env.MEASUREMENTS_SOURCE_RUN ?? new URL(JSON.parse(await readFile(root + '/docs/verification/results-production.json', 'utf8')).resultsUrl).searchParams.get('run');
+const sourceId = process.env.MEASUREMENTS_SOURCE_RUN ?? new URL(JSON.parse(await readFile(root + '/artifacts/verification/results-production.json', 'utf8')).resultsUrl).searchParams.get('run');
 const browser = await chromium.launch({ executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE });
 const context = await browser.newContext({ ignoreHTTPSErrors: true, viewport: { width: 1560, height: 1100 } });
 const page = await context.newPage(), errors = [], owned = [], report = { checkedAt: new Date().toISOString(), endpoint: base, sourceRunId: sourceId };
@@ -22,7 +23,7 @@ async function completed(id) {
 }
 async function capture(name) {
   const style = await page.addStyleTag({ content: 'body{height:auto!important;overflow:auto!important}#root,.app{height:auto!important;min-height:100vh}.simulation-workspace{overflow:visible!important}' });
-  await page.screenshot({ path: root + '/docs/verification/' + name, fullPage: true }); await style.evaluate(node => node.remove());
+  await page.screenshot({ path: root + '/artifacts/verification/' + name, fullPage: true }); await style.evaluate(node => node.remove());
 }
 async function metric(name, nodeId, value, unit, filter) {
   await page.getByRole('button', { name: '＋ Track metric', exact: true }).click(); await page.getByLabel('Metric name').fill(name);
@@ -37,13 +38,13 @@ try {
   await page.goto(base + '/simulate'); await page.getByLabel('Username').fill(process.env.MEASUREMENTS_USER ?? 'operator');
   await page.getByLabel('Password').fill((await readFile(process.env.MEASUREMENTS_PASSWORD_FILE ?? root + '/production-secrets/operator-password.txt', 'utf8')).trim());
   await Promise.all([page.waitForNavigation({ waitUntil: 'networkidle' }), page.getByRole('button', { name: 'Sign in', exact: true }).click()]);
-  const source = await request('/api/runs/' + sourceId + '/evidence'); if (!source.inputVerified) throw new Error('Pinned source graph cannot be verified.');
+  const source = await request('/api/runs/' + sourceId + '/evidence'); if (!source.inputVerified || source.model.name !== 'Nine Lives' || source.pinnedConfig?.initialState?.entryBuy === true) throw new Error('A verified Nine Lives source run is required. Run results-production.mjs first or set MEASUREMENTS_SOURCE_RUN.');
   await page.goto(base + `/results?run=${sourceId}&view=reproducibility`); await page.getByRole('button', { name: 'Open pinned graph ↗', exact: true }).click();
-  await expect(page.locator('.react-flow__node')).toHaveCount(12); await page.getByRole('tab', { name: 'Simulate', exact: true }).click();
-  await metric('Sticky FS payout', 'free-spin/snapshot-winHistory', 'state.spinCoins / 20', '× stake');
-  await metric('Long-bonus FS payout', 'free-spin/snapshot-winHistory', 'state.spinCoins / 20', '× stake', 'state.fsCount >= 18');
-  await metric('Awarded spins per bonus', 'free-spins', 'state.fsCount', 'spins');
-  await metric('Bonus round payout', null, null, '× stake', 'state.fsCount > 0');
+  await expect(page.locator('.react-flow__node')).toHaveCount(4); await page.getByRole('tab', { name: 'Simulate', exact: true }).click();
+  await metric('FS payout', 'round/paid-body/trigger-body/free-spins-body/record-winHistory', '(state.spinClusterCoins + state.spinCollectionCoins) / 20', '× stake');
+  await metric('High-multiplier FS payout', 'round/paid-body/trigger-body/free-spins-body/record-winHistory', '(state.spinClusterCoins + state.spinCollectionCoins) / 20', '× stake', 'state.multiplier >= 10');
+  await metric('Resolved spins per bonus', 'round/paid-body/trigger-body/completed', 'state.spinIndex - 1', 'spins');
+  await metric('Bonus round payout', null, null, '× stake', 'state.bonusCompleted');
   await page.getByLabel('Simulation spins').fill('100000'); await page.getByLabel('Simulation workers').selectOption('2');
   const frames = [];
   page.on('websocket', socket => socket.on('framereceived', ({ payload }) => { for (const raw of String(payload).split('\x1e')) {
@@ -60,20 +61,20 @@ try {
   report.liveMeasurementFrames = frames.filter(f => f.measurements?.length === 4).length;
   report.runId = run.id; report.configHash = run.configHash; report.measurementHash = run.measurementHash; report.measurements = values;
   report.rounds = final.progress.sampleCount; report.observedRtp = final.progress.runningRtp; report.elapsedMs = final.progress.elapsedMs;
-  await expect(page.getByText('Exact expectation', { exact: true }).locator('..')).toContainText('98.000%', { timeout: 30000 });
-  const firstCard = page.getByRole('article', { name: 'Tracked metric Sticky FS payout', exact: true });
+  await expect(page.getByText('Exact expectation', { exact: true }).locator('..')).toContainText('—', { timeout: 30000 });
+  const firstCard = page.getByRole('article', { name: 'Tracked metric FS payout', exact: true });
   await firstCard.getByRole('button', { name: 'Observed range', exact: true }).click();
   await expect(firstCard.getByRole('button', { name: 'Observed range', exact: true })).toHaveAttribute('aria-pressed', 'true');
   await firstCard.getByRole('button', { name: 'Observed range', exact: true }).click();
   await expect(firstCard.getByRole('button', { name: 'Observed range', exact: true })).toHaveAttribute('aria-pressed', 'false');
-  await firstCard.getByLabel('Chart statistic for Sticky FS payout', { exact: true }).selectOption('max');
+  await firstCard.getByLabel('Chart statistic for FS payout', { exact: true }).selectOption('max');
   await expect(firstCard.locator('.plot-readout strong')).toContainText('Maximum');
-  await firstCard.getByLabel('Chart statistic for Sticky FS payout', { exact: true }).selectOption('mean');
+  await firstCard.getByLabel('Chart statistic for FS payout', { exact: true }).selectOption('mean');
   report.independentChartScalesVerified = true;
   await capture('measurements-production-dashboard.png');
   const pending = page.waitForEvent('download'); await page.getByRole('button', { name: '↓ Export evidence', exact: true }).click();
   const bundle = JSON.parse(await readFile(await (await pending).path(), 'utf8'));
-  if (!bundle.pinnedGraph.inputVerified || bundle.run.measurementHash !== run.measurementHash || bundle.exactReference !== .98 || JSON.stringify(bundle.progress.measurements) !== JSON.stringify(values)) throw new Error('Export loses pinned measurement or mathematical evidence.');
+  if (!bundle.pinnedGraph.inputVerified || bundle.run.measurementHash !== run.measurementHash || bundle.exactReference != null || JSON.stringify(bundle.progress.measurements) !== JSON.stringify(values)) throw new Error('Export loses pinned measurement or mathematical evidence.');
   report.evidenceExportVerified = true; report.exactReference = bundle.exactReference;
   await page.goto(base + `/results?run=${run.id}`); await expect(page.getByRole('heading', { name: 'Tracked measurements', exact: true })).toBeVisible();
   await page.getByRole('button', { name: 'Replay pinned run', exact: true }).click(); await page.getByLabel('Pinned run workers').selectOption('1');
@@ -90,19 +91,19 @@ try {
   report.uninstrumentedGameStatisticsMatch = true; report.uninstrumentedElapsedMs = baselineFinal.progress.elapsedMs;
   report.timingRatio = final.progress.elapsedMs / Math.max(1, baselineFinal.progress.elapsedMs); // One timing observation, not a benchmark guarantee.
   await page.evaluate(() => localStorage.clear()); await page.goto(base + `/simulate?run=${run.id}`);
-  await expect(page.getByRole('article', { name: 'Tracked metric Sticky FS payout', exact: true })).toBeVisible();
+  await expect(page.getByRole('article', { name: 'Tracked metric FS payout', exact: true })).toBeVisible();
   await expect(page.getByTestId('sample-count')).toHaveText('100,000'); await expect(page.getByRole('button', { name: /^▶ Start new run$/ })).toBeEnabled();
   report.emptyStoragePermalinkVerified = true;
   await page.setViewportSize({ width: 390, height: 844 });
   if (!await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)) throw new Error('Mobile dashboard overflows horizontally.');
-  await page.getByRole('button', { name: 'Display settings for Sticky FS payout', exact: true }).click();
-  const card = page.getByRole('article', { name: 'Tracked metric Sticky FS payout', exact: true });
+  await page.getByRole('button', { name: 'Display settings for FS payout', exact: true }).click();
+  const card = page.getByRole('article', { name: 'Tracked metric FS payout', exact: true });
   await card.getByRole('checkbox', { name: 'Minimum', exact: true }).uncheck(); await card.getByRole('checkbox', { name: 'Maximum', exact: true }).uncheck();
   await expect(card.locator('[data-statistic=min]')).toHaveCount(0); await expect(card.locator('[data-statistic=mean]')).not.toHaveText('—');
   report.mobileAverageOnlyVerified = true; await capture('measurements-production-mobile.png');
   report.browserErrors = errors; if (errors.length) throw new Error(errors.join('; '));
   report.simulateUrl = base + `/simulate?run=${run.id}`; report.resultsUrl = base + `/results?run=${run.id}`;
-  await writeFile(root + '/docs/verification/measurements-production.json', JSON.stringify(report, null, 2) + '\n'); console.log(JSON.stringify(report));
+  await writeFile(root + '/artifacts/verification/measurements-production.json', JSON.stringify(report, null, 2) + '\n'); console.log(JSON.stringify(report));
 } finally {
   for (const id of owned) await context.request.delete(base + '/api/runs/' + id).catch(() => {});
   await browser.close();

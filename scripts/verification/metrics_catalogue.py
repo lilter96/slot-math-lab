@@ -5,9 +5,9 @@ import json
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
-SOURCE = ROOT / 'docs/slot-math-metrics.catalog.json'
+SOURCE = ROOT / 'frontend/schemas/metrics-catalogue.json'
 TARGET = ROOT / 'frontend/src/lib/measurements/catalog.generated.json'
-COVERAGE = ROOT / 'docs/verification/metrics-coverage.json'
+COVERAGE = ROOT / 'frontend/schemas/metrics-coverage.json'
 NATIVE_COVERAGE = ROOT / 'frontend/src/lib/measurements/implementation.generated.json'
 
 def main():

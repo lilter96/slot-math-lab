@@ -1,14 +1,17 @@
+using System.Text.Json;
+
 namespace SlotMath.Core.Model;
 
 // ── State field schema ─────────────────────────────────────────────────
 
 /// <summary>
-/// Declares a named key in the game's recurrence state dictionary,
-/// making it visible to the expression type-checker.
+///     Declares a named key in the game's recurrence state dictionary,
+///     making it visible to the expression type-checker.
 /// </summary>
 public sealed record StateFieldSchema
 {
     public required string Name { get; init; }
+
     /// <summary>"string" | "number" | "boolean". Defaults to "number".</summary>
     public string? Type { get; init; }
 }
@@ -29,9 +32,10 @@ public sealed record GraphConfig
     public PaylineSet[] PaylineSets { get; init; } = Array.Empty<PaylineSet>();
     public ReelStrip[] ReelStrips { get; init; } = Array.Empty<ReelStrip>();
     public ReelSet[] ReelSets { get; init; } = Array.Empty<ReelSet>();
+    public Dictionary<string, DistributionAsset>? Distributions { get; init; }
     public BoardConfig? BoardConfig { get; init; }
 
-    public Dictionary<string, System.Text.Json.JsonElement>? InitialState { get; init; }
+    public Dictionary<string, JsonElement>? InitialState { get; init; }
 
     // The graph
     public Node[] Nodes { get; init; } = Array.Empty<Node>();
@@ -54,7 +58,7 @@ public sealed record GraphConfig
 
 public sealed record CustomMechanic
 {
-    public Dictionary<string, System.Text.Json.JsonElement>? InitialState { get; init; }
+    public Dictionary<string, JsonElement>? InitialState { get; init; }
     public required string Name { get; init; }
     public string? Description { get; init; }
     public Node[] Nodes { get; init; } = Array.Empty<Node>();

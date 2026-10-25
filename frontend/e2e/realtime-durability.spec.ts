@@ -5,7 +5,7 @@ async function launch(page: Page) {
   // Launch can wait through an explicit 60s production quota rejection. Socket
   // recovery/heartbeat deadlines below remain independent and unchanged.
   test.setTimeout(Math.max(test.info().timeout, 180000));
-  await page.goto('/build?project=dog-house');
+  await page.goto('/build?project=nine-lives');
   await page.getByRole('tab', { name: 'Simulate', exact: true }).click();
   await page.getByLabel('Simulation spins').fill('1000000000');
   const created = waitForRunLaunch(page);
@@ -52,7 +52,7 @@ test('established sockets recover repeatedly with stable run identity and cumula
   await expect(page.getByTestId('stream-status')).toContainText('3 reconnects');
   const final = await stopped(page, request, run.id);
   expect(final.configHash).toBe(run.configHash); expect(final.seed).toBe(run.seed);
-  await page.screenshot({ path: '../docs/verification/realtime-recovered.png', fullPage: true });
+  await page.screenshot({ path: '../artifacts/verification/realtime-recovered.png', fullPage: true });
 });
 
 test('negotiation quota delays survive SignalR wrapping and manual wake without retrying early', async ({ page, request }) => {
@@ -163,11 +163,19 @@ test('duplicate, reordered and malformed frames cannot regress or poison the das
   const before = await count(page);
   for (let i = 0; i < 4; i++) socket!.send(JSON.stringify(previous) + '\x1e');
   const invalid = structuredClone(previous!); invalid.arguments![0].sequence = 99999999;
-  invalid.arguments![0].sampleCount = 9999999; invalid.arguments![0].runningRtp = 999;
+  // A corrupt count must exceed the requested population, regardless of sampler speed.
+  const corruptCount = Number(invalid.arguments![0].totalSamples) + 1;
+  invalid.arguments![0].sampleCount = corruptCount; invalid.arguments![0].runningRtp = 999;
+  // Invalid frames trigger authoritative reconciliation. Observe that read before checking the UI.
+  const reconciled = page.waitForResponse(response => new URL(response.url()).pathname === `/api/runs/${run.id}`
+    && response.request().method() === 'GET' && response.status() === 200, { timeout: 70000 });
   socket!.send(JSON.stringify(invalid) + '\x1e');
+  await reconciled;
   await expect.poll(() => count(page)).toBeGreaterThanOrEqual(before);
-  expect(await count(page)).toBeLessThan(9999999);
+  expect(await count(page)).toBeLessThan(corruptCount);
   await expect(page.getByTestId('live-rtp')).not.toContainText('99900');
+  const observed = JSON.parse(await page.evaluate(() => localStorage.getItem('slotmath-simulation-v2')!));
+  expect(observed.progress.sequence).toBeLessThan(Number(invalid.arguments![0].sequence));
   const final = await stopped(page, request, run.id);
   expect(final.progress.sequence).toBeLessThan(99999999);
 });

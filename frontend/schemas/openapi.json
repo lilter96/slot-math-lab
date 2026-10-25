@@ -6,7 +6,7 @@
   },
   "servers": [
     {
-      "url": "http://localhost:5152/"
+      "url": "http://127.0.0.1:5271/"
     }
   ],
   "paths": {
@@ -39,7 +39,14 @@
         },
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EvaluationOutput"
+                }
+              }
+            }
           }
         }
       }
@@ -69,6 +76,18 @@
                 }
               }
             }
+          }
+        }
+      }
+    },
+    "/api/features": {
+      "get": {
+        "tags": [
+          "SlotMath.Api"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
           }
         }
       }
@@ -303,6 +322,35 @@
         "responses": {
           "200": {
             "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/validate/simplify": {
+      "post": {
+        "tags": [
+          "GraphSimplificationEndpoint"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GraphSimplificationRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GraphSimplificationResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -985,6 +1033,35 @@
         }
       }
     },
+    "/api/runs/latest-model": {
+      "post": {
+        "tags": [
+          "SlotMath.Api"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateConfigRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LatestModelRunResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/runs/{id}/evidence": {
       "get": {
         "tags": [
@@ -1382,28 +1459,6 @@
         }
       }
     },
-    "/api/ai/auto-tune": {
-      "post": {
-        "tags": [
-          "SlotMath.Api"
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/AutoTuneRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "OK"
-          }
-        }
-      }
-    },
     "/api/ai/lint": {
       "post": {
         "tags": [
@@ -1436,6 +1491,28 @@
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/ExplainRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/ai/auto-tune": {
+      "post": {
+        "tags": [
+          "SlotMath.Api"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AutoTuneRequest"
               }
             }
           },
@@ -2770,6 +2847,149 @@
           }
         }
       },
+      "EvaluationOutput": {
+        "type": "object",
+        "properties": {
+          "requestedMode": {
+            "type": "string"
+          },
+          "requestedEvidence": {
+            "type": "string"
+          },
+          "actualStrategy": {
+            "type": "string"
+          },
+          "provenance": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "method": {
+            "type": "string"
+          },
+          "rtp": {
+            "type": "number",
+            "format": "double"
+          },
+          "lower": {
+            "type": "number",
+            "format": "double"
+          },
+          "upper": {
+            "type": "number",
+            "format": "double"
+          },
+          "rationalRtp": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "prunedMass": {
+            "type": "number",
+            "format": "double"
+          },
+          "samples": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "requestedSamples": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "seed": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "degreeOfParallelism": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "hitFrequency": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
+          },
+          "rationalHitFrequency": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "distribution": {
+            "type": "string"
+          },
+          "streamScheme": {
+            "type": "string"
+          },
+          "chunkSize": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "samplingEngine": {
+            "type": "string"
+          },
+          "variance": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
+          },
+          "analysis": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/PayoutAnalysisOutput"
+              }
+            ]
+          },
+          "solver": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/SolverDiagnosticsOutput"
+              }
+            ]
+          },
+          "loops": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/LoopEvaluationOutput"
+            }
+          },
+          "maxObserved": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
+          },
+          "elapsedMs": {
+            "type": "number",
+            "format": "double"
+          },
+          "configHash": {
+            "type": "string"
+          },
+          "note": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
       "EvidenceInput": {
         "required": [
           "kind",
@@ -2891,6 +3111,25 @@
           "unit": {
             "type": "string",
             "default": "value units"
+          }
+        }
+      },
+      "ExactNumberOutput": {
+        "required": [
+          "rational",
+          "display"
+        ],
+        "type": "object",
+        "properties": {
+          "rational": {
+            "type": "string"
+          },
+          "display": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
           }
         }
       },
@@ -3154,6 +3393,9 @@
               "null",
               "string"
             ]
+          },
+          "ownerId": {
+            "type": "string"
           }
         }
       },
@@ -3363,6 +3605,25 @@
               "null",
               "string"
             ]
+          }
+        }
+      },
+      "ExposureTailOutput": {
+        "required": [
+          "probability",
+          "lossQuantile",
+          "lossExpectedShortfall"
+        ],
+        "type": "object",
+        "properties": {
+          "probability": {
+            "type": "string"
+          },
+          "lossQuantile": {
+            "$ref": "#/components/schemas/ExactNumberOutput"
+          },
+          "lossExpectedShortfall": {
+            "$ref": "#/components/schemas/ExactNumberOutput"
           }
         }
       },
@@ -3626,6 +3887,24 @@
             "type": "integer",
             "format": "int32",
             "default": 10000
+          },
+          "analysis": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/PayoutAnalysisRequest"
+              }
+            ]
+          },
+          "evidence": {
+            "type": "string",
+            "default": "Report"
+          },
+          "diagnostics": {
+            "type": "boolean",
+            "default": false
           }
         }
       },
@@ -3661,6 +3940,205 @@
               {
                 "$ref": "#/components/schemas/DiagnosticRetention"
               }
+            ]
+          }
+        }
+      },
+      "GraphSimplificationChange": {
+        "required": [
+          "path",
+          "beforeCost",
+          "afterCost",
+          "rules"
+        ],
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "string"
+          },
+          "beforeCost": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "afterCost": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "rules": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        }
+      },
+      "GraphSimplificationRequest": {
+        "required": [
+          "config"
+        ],
+        "type": "object",
+        "properties": {
+          "config": {
+            "$ref": "#/components/schemas/JsonElement"
+          }
+        }
+      },
+      "GraphSimplificationResponse": {
+        "required": [
+          "config",
+          "sourceHash",
+          "candidateHash",
+          "changes",
+          "retained",
+          "visitedExpressions",
+          "budgetReached"
+        ],
+        "type": "object",
+        "properties": {
+          "config": {
+            "$ref": "#/components/schemas/JsonElement"
+          },
+          "sourceHash": {
+            "type": "string"
+          },
+          "candidateHash": {
+            "type": "string"
+          },
+          "changes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/GraphSimplificationChange"
+            }
+          },
+          "retained": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "visitedExpressions": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "budgetReached": {
+            "type": "boolean"
+          }
+        }
+      },
+      "IndependentRoundExposureOutput": {
+        "required": [
+          "status"
+        ],
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string"
+          },
+          "reason": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "rounds": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "initialReserve": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "assumptions": {
+            "type": "string"
+          },
+          "meanLoss": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/ExactNumberOutput"
+              }
+            ]
+          },
+          "lossVariance": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/ExactNumberOutput"
+              }
+            ]
+          },
+          "tails": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/ExposureTailOutput"
+            }
+          },
+          "probabilityFinalLossExceedsReserve": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/ExactNumberOutput"
+              }
+            ]
+          },
+          "ruinStatus": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "ruinReason": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "probabilityRuinByHorizon": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/ExactNumberOutput"
+              }
+            ]
+          },
+          "conditionalExpectedRuinRound": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/ExactNumberOutput"
+              }
+            ]
+          }
+        }
+      },
+      "IndependentRoundExposureRequest": {
+        "type": "object",
+        "properties": {
+          "rounds": {
+            "type": "integer",
+            "format": "int64",
+            "default": 100
+          },
+          "initialReserve": {
+            "type": [
+              "null",
+              "string"
             ]
           }
         }
@@ -3765,6 +4243,28 @@
         }
       },
       "JsonElement": {},
+      "LatestModelRunResponse": {
+        "required": [
+          "modelHash",
+          "evidence"
+        ],
+        "type": "object",
+        "properties": {
+          "modelHash": {
+            "type": "string"
+          },
+          "evidence": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/RunEvidence"
+              }
+            ]
+          }
+        }
+      },
       "LikelihoodAtom": {
         "required": [
           "id",
@@ -3817,6 +4317,40 @@
               "null",
               "number"
             ],
+            "format": "double"
+          }
+        }
+      },
+      "LoopEvaluationOutput": {
+        "type": "object",
+        "properties": {
+          "loopId": {
+            "type": "string"
+          },
+          "evaluation": {
+            "type": "string"
+          },
+          "iterationCap": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "runs": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "states": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "expectedCapHits": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
+          },
+          "prunedMass": {
+            "type": "number",
             "format": "double"
           }
         }
@@ -5150,6 +5684,261 @@
           }
         }
       },
+      "PayoutAnalysisOutput": {
+        "required": [
+          "status"
+        ],
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string"
+          },
+          "reason": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "units": {
+            "type": "string"
+          },
+          "stake": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "rtpForStake": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/ExactNumberOutput"
+              }
+            ]
+          },
+          "mean": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/ExactNumberOutput"
+              }
+            ]
+          },
+          "secondMoment": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/ExactNumberOutput"
+              }
+            ]
+          },
+          "thirdMoment": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/ExactNumberOutput"
+              }
+            ]
+          },
+          "fourthMoment": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/ExactNumberOutput"
+              }
+            ]
+          },
+          "variance": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/ExactNumberOutput"
+              }
+            ]
+          },
+          "centralThirdMoment": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/ExactNumberOutput"
+              }
+            ]
+          },
+          "centralFourthMoment": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/ExactNumberOutput"
+              }
+            ]
+          },
+          "coefficientOfVariationSquared": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/ExactNumberOutput"
+              }
+            ]
+          },
+          "coefficientOfVariation": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
+          },
+          "skewness": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
+          },
+          "skewnessSquared": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/ExactNumberOutput"
+              }
+            ]
+          },
+          "excessKurtosis": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/ExactNumberOutput"
+              }
+            ]
+          },
+          "tails": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/TailRiskOutput"
+            }
+          },
+          "thresholds": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/PayoutThresholdOutput"
+            }
+          },
+          "planning": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/RtpPlanningOutput"
+              }
+            ]
+          },
+          "independentRounds": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/IndependentRoundExposureOutput"
+              }
+            ]
+          }
+        }
+      },
+      "PayoutAnalysisRequest": {
+        "type": "object",
+        "properties": {
+          "momentOrder": {
+            "type": "integer",
+            "format": "int32",
+            "default": 4
+          },
+          "tailProbabilities": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "string"
+            }
+          },
+          "payoutThresholds": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "string"
+            }
+          },
+          "stake": {
+            "type": "string",
+            "default": "1"
+          },
+          "rtpHalfWidth": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "independentRounds": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/IndependentRoundExposureRequest"
+              }
+            ]
+          }
+        }
+      },
+      "PayoutThresholdOutput": {
+        "required": [
+          "threshold",
+          "cdf",
+          "survivalInclusive"
+        ],
+        "type": "object",
+        "properties": {
+          "threshold": {
+            "type": "string"
+          },
+          "cdf": {
+            "$ref": "#/components/schemas/ExactNumberOutput"
+          },
+          "survivalInclusive": {
+            "$ref": "#/components/schemas/ExactNumberOutput"
+          }
+        }
+      },
       "PlayRequest": {
         "required": [
           "config"
@@ -5596,6 +6385,33 @@
           },
           "retention": {
             "$ref": "#/components/schemas/DiagnosticRetention"
+          }
+        }
+      },
+      "RtpPlanningOutput": {
+        "required": [
+          "stake",
+          "rtpHalfWidth",
+          "normal95Rounds",
+          "chebyshev95Rounds",
+          "assumptions"
+        ],
+        "type": "object",
+        "properties": {
+          "stake": {
+            "type": "string"
+          },
+          "rtpHalfWidth": {
+            "type": "string"
+          },
+          "normal95Rounds": {
+            "type": "string"
+          },
+          "chebyshev95Rounds": {
+            "type": "string"
+          },
+          "assumptions": {
+            "type": "string"
           }
         }
       },
@@ -6485,6 +7301,94 @@
           }
         }
       },
+      "SolverAttemptOutput": {
+        "required": [
+          "loopMode",
+          "succeeded",
+          "declinedReason",
+          "work",
+          "elapsedMs",
+          "payoutLawRequested",
+          "payoutLawNeededForSettlement",
+          "payoutLawAttempted"
+        ],
+        "type": "object",
+        "properties": {
+          "loopMode": {
+            "type": "string"
+          },
+          "succeeded": {
+            "type": "boolean"
+          },
+          "declinedReason": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "work": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "elapsedMs": {
+            "type": "number",
+            "format": "double"
+          },
+          "payoutLawRequested": {
+            "type": "boolean"
+          },
+          "payoutLawNeededForSettlement": {
+            "type": "boolean"
+          },
+          "payoutLawAttempted": {
+            "type": "boolean"
+          }
+        }
+      },
+      "SolverDiagnosticsOutput": {
+        "required": [
+          "plan",
+          "work",
+          "attempts",
+          "convolution",
+          "storage"
+        ],
+        "type": "object",
+        "properties": {
+          "plan": {
+            "type": "string"
+          },
+          "work": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "attempts": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SolverAttemptOutput"
+            }
+          },
+          "convolution": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/StructuredExactDiagnostics"
+              }
+            ]
+          },
+          "storage": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/StorageCounterOutput"
+            }
+          }
+        }
+      },
       "StateDwell": {
         "required": [
           "state",
@@ -6517,6 +7421,27 @@
           }
         }
       },
+      "StorageCounterOutput": {
+        "required": [
+          "kind",
+          "current",
+          "peak"
+        ],
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string"
+          },
+          "current": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "peak": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
       "StratumAllocation": {
         "required": [
           "id",
@@ -6530,6 +7455,65 @@
           "samples": {
             "type": "integer",
             "format": "int32"
+          }
+        }
+      },
+      "StructuredExactDiagnostics": {
+        "required": [
+          "convolutions",
+          "transformConvolutions",
+          "directConvolutionPairs",
+          "largestConvolutionSpan",
+          "largestConvolutionCoefficientBits"
+        ],
+        "type": "object",
+        "properties": {
+          "convolutions": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "transformConvolutions": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "directConvolutionPairs": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "largestConvolutionSpan": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "largestConvolutionCoefficientBits": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "TailRiskOutput": {
+        "required": [
+          "probability",
+          "payoutQuantile",
+          "payoutExpectedShortfall",
+          "operatorLossQuantile",
+          "operatorLossExpectedShortfall"
+        ],
+        "type": "object",
+        "properties": {
+          "probability": {
+            "type": "string"
+          },
+          "payoutQuantile": {
+            "$ref": "#/components/schemas/ExactNumberOutput"
+          },
+          "payoutExpectedShortfall": {
+            "$ref": "#/components/schemas/ExactNumberOutput"
+          },
+          "operatorLossQuantile": {
+            "$ref": "#/components/schemas/ExactNumberOutput"
+          },
+          "operatorLossExpectedShortfall": {
+            "$ref": "#/components/schemas/ExactNumberOutput"
           }
         }
       },
@@ -7083,6 +8067,9 @@
   "tags": [
     {
       "name": "SlotMath.Api"
+    },
+    {
+      "name": "GraphSimplificationEndpoint"
     }
   ]
 }

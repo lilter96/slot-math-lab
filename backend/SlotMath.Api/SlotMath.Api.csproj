@@ -10,7 +10,7 @@
     <PackageReference Include="Hangfire.MemoryStorage" Version="1.8.*" />
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.0" />
     <PackageReference Include="Microsoft.OpenApi" Version="2.7.5" />
-    <PackageReference Include="System.Security.Cryptography.Xml" Version="10.0.12" />
+    <PackageReference Include="System.Security.Cryptography.Xml" Version="10.0.13" />
     <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.8" />
     <PackageReference Include="Microsoft.EntityFrameworkCore" Version="10.0.0" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.0" />
@@ -29,7 +29,7 @@
     <!-- Sampling workers allocate about 1 KB per round. Server GC's default
          dynamic adaptation (DATAS) keeps gen0 small and collects ten times as
          often, which costs about a quarter of multi-worker throughput
-         (docs/PERFORMANCE.md). Fixed per-core heaps do not. -->
+         (docs/SYSTEM.ru.md#performance). Fixed per-core heaps do not. -->
     <ServerGarbageCollection>true</ServerGarbageCollection>
     <GarbageCollectionAdaptationMode>0</GarbageCollectionAdaptationMode>
   </PropertyGroup>

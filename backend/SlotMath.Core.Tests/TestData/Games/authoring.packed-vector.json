@@ -1,0 +1,769 @@
+{
+    "read": {
+        "exprType": "bitset",
+        "op": "Intersect",
+        "args": [
+            {
+                "exprType": "bitset",
+                "op": "Shift",
+                "args": [
+                    {
+                        "exprType": "fieldAccess",
+                        "target": "state",
+                        "path": [
+                            "packed"
+                        ]
+                    },
+                    {
+                        "exprType": "binary",
+                        "op": "Mul",
+                        "left": {
+                            "exprType": "fieldAccess",
+                            "target": "state",
+                            "path": [
+                                "position"
+                            ]
+                        },
+                        "right": {
+                            "exprType": "constant",
+                            "kind": "Integer",
+                            "value": "-3"
+                        }
+                    }
+                ]
+            },
+            {
+                "exprType": "constant",
+                "kind": "Integer",
+                "value": "7"
+            }
+        ]
+    },
+    "count": {
+        "exprType": "bitset",
+        "op": "Count",
+        "args": [
+            {
+                "exprType": "let",
+                "name": "packedXor",
+                "value": {
+                    "exprType": "bitset",
+                    "op": "Union",
+                    "args": [
+                        {
+                            "exprType": "bitset",
+                            "op": "Except",
+                            "args": [
+                                {
+                                    "exprType": "fieldAccess",
+                                    "target": "state",
+                                    "path": [
+                                        "packed"
+                                    ]
+                                },
+                                {
+                                    "exprType": "constant",
+                                    "kind": "Integer",
+                                    "value": "1755"
+                                }
+                            ]
+                        },
+                        {
+                            "exprType": "bitset",
+                            "op": "Except",
+                            "args": [
+                                {
+                                    "exprType": "constant",
+                                    "kind": "Integer",
+                                    "value": "1755"
+                                },
+                                {
+                                    "exprType": "fieldAccess",
+                                    "target": "state",
+                                    "path": [
+                                        "packed"
+                                    ]
+                                }
+                            ]
+                        }
+                    ]
+                },
+                "body": {
+                    "exprType": "bitset",
+                    "op": "Except",
+                    "args": [
+                        {
+                            "exprType": "constant",
+                            "kind": "Integer",
+                            "value": "585"
+                        },
+                        {
+                            "exprType": "bitset",
+                            "op": "Union",
+                            "args": [
+                                {
+                                    "exprType": "bitset",
+                                    "op": "Union",
+                                    "args": [
+                                        {
+                                            "exprType": "bitset",
+                                            "op": "Shift",
+                                            "args": [
+                                                {
+                                                    "exprType": "local",
+                                                    "name": "packedXor"
+                                                },
+                                                {
+                                                    "exprType": "constant",
+                                                    "kind": "Integer",
+                                                    "value": "0"
+                                                }
+                                            ]
+                                        },
+                                        {
+                                            "exprType": "bitset",
+                                            "op": "Shift",
+                                            "args": [
+                                                {
+                                                    "exprType": "local",
+                                                    "name": "packedXor"
+                                                },
+                                                {
+                                                    "exprType": "constant",
+                                                    "kind": "Integer",
+                                                    "value": "-1"
+                                                }
+                                            ]
+                                        }
+                                    ]
+                                },
+                                {
+                                    "exprType": "bitset",
+                                    "op": "Shift",
+                                    "args": [
+                                        {
+                                            "exprType": "local",
+                                            "name": "packedXor"
+                                        },
+                                        {
+                                            "exprType": "constant",
+                                            "kind": "Integer",
+                                            "value": "-2"
+                                        }
+                                    ]
+                                }
+                            ]
+                        }
+                    ]
+                }
+            }
+        ]
+    },
+    "replace": {
+        "exprType": "let",
+        "name": "packedMatches",
+        "value": {
+            "exprType": "let",
+            "name": "packedXor",
+            "value": {
+                "exprType": "bitset",
+                "op": "Union",
+                "args": [
+                    {
+                        "exprType": "bitset",
+                        "op": "Except",
+                        "args": [
+                            {
+                                "exprType": "fieldAccess",
+                                "target": "state",
+                                "path": [
+                                    "packed"
+                                ]
+                            },
+                            {
+                                "exprType": "constant",
+                                "kind": "Integer",
+                                "value": "1755"
+                            }
+                        ]
+                    },
+                    {
+                        "exprType": "bitset",
+                        "op": "Except",
+                        "args": [
+                            {
+                                "exprType": "constant",
+                                "kind": "Integer",
+                                "value": "1755"
+                            },
+                            {
+                                "exprType": "fieldAccess",
+                                "target": "state",
+                                "path": [
+                                    "packed"
+                                ]
+                            }
+                        ]
+                    }
+                ]
+            },
+            "body": {
+                "exprType": "bitset",
+                "op": "Except",
+                "args": [
+                    {
+                        "exprType": "constant",
+                        "kind": "Integer",
+                        "value": "585"
+                    },
+                    {
+                        "exprType": "bitset",
+                        "op": "Union",
+                        "args": [
+                            {
+                                "exprType": "bitset",
+                                "op": "Union",
+                                "args": [
+                                    {
+                                        "exprType": "bitset",
+                                        "op": "Shift",
+                                        "args": [
+                                            {
+                                                "exprType": "local",
+                                                "name": "packedXor"
+                                            },
+                                            {
+                                                "exprType": "constant",
+                                                "kind": "Integer",
+                                                "value": "0"
+                                            }
+                                        ]
+                                    },
+                                    {
+                                        "exprType": "bitset",
+                                        "op": "Shift",
+                                        "args": [
+                                            {
+                                                "exprType": "local",
+                                                "name": "packedXor"
+                                            },
+                                            {
+                                                "exprType": "constant",
+                                                "kind": "Integer",
+                                                "value": "-1"
+                                            }
+                                        ]
+                                    }
+                                ]
+                            },
+                            {
+                                "exprType": "bitset",
+                                "op": "Shift",
+                                "args": [
+                                    {
+                                        "exprType": "local",
+                                        "name": "packedXor"
+                                    },
+                                    {
+                                        "exprType": "constant",
+                                        "kind": "Integer",
+                                        "value": "-2"
+                                    }
+                                ]
+                            }
+                        ]
+                    }
+                ]
+            }
+        },
+        "body": {
+            "exprType": "bitset",
+            "op": "Union",
+            "args": [
+                {
+                    "exprType": "bitset",
+                    "op": "Except",
+                    "args": [
+                        {
+                            "exprType": "fieldAccess",
+                            "target": "state",
+                            "path": [
+                                "packed"
+                            ]
+                        },
+                        {
+                            "exprType": "binary",
+                            "op": "Mul",
+                            "left": {
+                                "exprType": "local",
+                                "name": "packedMatches"
+                            },
+                            "right": {
+                                "exprType": "constant",
+                                "kind": "Integer",
+                                "value": "7"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "exprType": "binary",
+                    "op": "Mul",
+                    "left": {
+                        "exprType": "local",
+                        "name": "packedMatches"
+                    },
+                    "right": {
+                        "exprType": "fieldAccess",
+                        "target": "state",
+                        "path": [
+                            "replacement"
+                        ]
+                    }
+                }
+            ]
+        }
+    },
+    "decode": {
+        "exprType": "map",
+        "stateKey": "packedIndices",
+        "itemName": "packedPosition",
+        "itemType": "Number",
+        "maxItems": 4,
+        "body": {
+            "exprType": "call",
+            "function": "toString",
+            "args": [
+                {
+                    "exprType": "bitset",
+                    "op": "Intersect",
+                    "args": [
+                        {
+                            "exprType": "bitset",
+                            "op": "Shift",
+                            "args": [
+                                {
+                                    "exprType": "fieldAccess",
+                                    "target": "state",
+                                    "path": [
+                                        "packed"
+                                    ]
+                                },
+                                {
+                                    "exprType": "binary",
+                                    "op": "Mul",
+                                    "left": {
+                                        "exprType": "fieldAccess",
+                                        "target": "state",
+                                        "path": [
+                                            "packedPosition"
+                                        ]
+                                    },
+                                    "right": {
+                                        "exprType": "constant",
+                                        "kind": "Integer",
+                                        "value": "-3"
+                                    }
+                                }
+                            ]
+                        },
+                        {
+                            "exprType": "constant",
+                            "kind": "Integer",
+                            "value": "7"
+                        }
+                    ]
+                }
+            ]
+        }
+    },
+    "initialState": {
+        "packed": 0,
+        "packedIndices": [
+            0,
+            1,
+            2,
+            3
+        ]
+    },
+    "wide": {
+        "read": {
+            "exprType": "bitset",
+            "op": "Intersect",
+            "args": [
+                {
+                    "exprType": "bitset",
+                    "op": "Shift",
+                    "args": [
+                        {
+                            "exprType": "fieldAccess",
+                            "target": "state",
+                            "path": [
+                                "packed"
+                            ]
+                        },
+                        {
+                            "exprType": "binary",
+                            "op": "Mul",
+                            "left": {
+                                "exprType": "fieldAccess",
+                                "target": "state",
+                                "path": [
+                                    "position"
+                                ]
+                            },
+                            "right": {
+                                "exprType": "constant",
+                                "kind": "Integer",
+                                "value": "-3"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "exprType": "constant",
+                    "kind": "Integer",
+                    "value": "7"
+                }
+            ]
+        },
+        "count": {
+            "exprType": "bitset",
+            "op": "Count",
+            "args": [
+                {
+                    "exprType": "let",
+                    "name": "packedXor",
+                    "value": {
+                        "exprType": "bitset",
+                        "op": "Union",
+                        "args": [
+                            {
+                                "exprType": "bitset",
+                                "op": "Except",
+                                "args": [
+                                    {
+                                        "exprType": "fieldAccess",
+                                        "target": "state",
+                                        "path": [
+                                            "packed"
+                                        ]
+                                    },
+                                    {
+                                        "exprType": "constant",
+                                        "kind": "Integer",
+                                        "value": "3952873730080618203"
+                                    }
+                                ]
+                            },
+                            {
+                                "exprType": "bitset",
+                                "op": "Except",
+                                "args": [
+                                    {
+                                        "exprType": "constant",
+                                        "kind": "Integer",
+                                        "value": "3952873730080618203"
+                                    },
+                                    {
+                                        "exprType": "fieldAccess",
+                                        "target": "state",
+                                        "path": [
+                                            "packed"
+                                        ]
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    "body": {
+                        "exprType": "bitset",
+                        "op": "Except",
+                        "args": [
+                            {
+                                "exprType": "constant",
+                                "kind": "Integer",
+                                "value": "1317624576693539401"
+                            },
+                            {
+                                "exprType": "bitset",
+                                "op": "Union",
+                                "args": [
+                                    {
+                                        "exprType": "bitset",
+                                        "op": "Union",
+                                        "args": [
+                                            {
+                                                "exprType": "bitset",
+                                                "op": "Shift",
+                                                "args": [
+                                                    {
+                                                        "exprType": "local",
+                                                        "name": "packedXor"
+                                                    },
+                                                    {
+                                                        "exprType": "constant",
+                                                        "kind": "Integer",
+                                                        "value": "0"
+                                                    }
+                                                ]
+                                            },
+                                            {
+                                                "exprType": "bitset",
+                                                "op": "Shift",
+                                                "args": [
+                                                    {
+                                                        "exprType": "local",
+                                                        "name": "packedXor"
+                                                    },
+                                                    {
+                                                        "exprType": "constant",
+                                                        "kind": "Integer",
+                                                        "value": "-1"
+                                                    }
+                                                ]
+                                            }
+                                        ]
+                                    },
+                                    {
+                                        "exprType": "bitset",
+                                        "op": "Shift",
+                                        "args": [
+                                            {
+                                                "exprType": "local",
+                                                "name": "packedXor"
+                                            },
+                                            {
+                                                "exprType": "constant",
+                                                "kind": "Integer",
+                                                "value": "-2"
+                                            }
+                                        ]
+                                    }
+                                ]
+                            }
+                        ]
+                    }
+                }
+            ]
+        },
+        "replace": {
+            "exprType": "let",
+            "name": "packedMatches",
+            "value": {
+                "exprType": "let",
+                "name": "packedXor",
+                "value": {
+                    "exprType": "bitset",
+                    "op": "Union",
+                    "args": [
+                        {
+                            "exprType": "bitset",
+                            "op": "Except",
+                            "args": [
+                                {
+                                    "exprType": "fieldAccess",
+                                    "target": "state",
+                                    "path": [
+                                        "packed"
+                                    ]
+                                },
+                                {
+                                    "exprType": "constant",
+                                    "kind": "Integer",
+                                    "value": "3952873730080618203"
+                                }
+                            ]
+                        },
+                        {
+                            "exprType": "bitset",
+                            "op": "Except",
+                            "args": [
+                                {
+                                    "exprType": "constant",
+                                    "kind": "Integer",
+                                    "value": "3952873730080618203"
+                                },
+                                {
+                                    "exprType": "fieldAccess",
+                                    "target": "state",
+                                    "path": [
+                                        "packed"
+                                    ]
+                                }
+                            ]
+                        }
+                    ]
+                },
+                "body": {
+                    "exprType": "bitset",
+                    "op": "Except",
+                    "args": [
+                        {
+                            "exprType": "constant",
+                            "kind": "Integer",
+                            "value": "1317624576693539401"
+                        },
+                        {
+                            "exprType": "bitset",
+                            "op": "Union",
+                            "args": [
+                                {
+                                    "exprType": "bitset",
+                                    "op": "Union",
+                                    "args": [
+                                        {
+                                            "exprType": "bitset",
+                                            "op": "Shift",
+                                            "args": [
+                                                {
+                                                    "exprType": "local",
+                                                    "name": "packedXor"
+                                                },
+                                                {
+                                                    "exprType": "constant",
+                                                    "kind": "Integer",
+                                                    "value": "0"
+                                                }
+                                            ]
+                                        },
+                                        {
+                                            "exprType": "bitset",
+                                            "op": "Shift",
+                                            "args": [
+                                                {
+                                                    "exprType": "local",
+                                                    "name": "packedXor"
+                                                },
+                                                {
+                                                    "exprType": "constant",
+                                                    "kind": "Integer",
+                                                    "value": "-1"
+                                                }
+                                            ]
+                                        }
+                                    ]
+                                },
+                                {
+                                    "exprType": "bitset",
+                                    "op": "Shift",
+                                    "args": [
+                                        {
+                                            "exprType": "local",
+                                            "name": "packedXor"
+                                        },
+                                        {
+                                            "exprType": "constant",
+                                            "kind": "Integer",
+                                            "value": "-2"
+                                        }
+                                    ]
+                                }
+                            ]
+                        }
+                    ]
+                }
+            },
+            "body": {
+                "exprType": "bitset",
+                "op": "Union",
+                "args": [
+                    {
+                        "exprType": "bitset",
+                        "op": "Except",
+                        "args": [
+                            {
+                                "exprType": "fieldAccess",
+                                "target": "state",
+                                "path": [
+                                    "packed"
+                                ]
+                            },
+                            {
+                                "exprType": "binary",
+                                "op": "Mul",
+                                "left": {
+                                    "exprType": "local",
+                                    "name": "packedMatches"
+                                },
+                                "right": {
+                                    "exprType": "constant",
+                                    "kind": "Integer",
+                                    "value": "7"
+                                }
+                            }
+                        ]
+                    },
+                    {
+                        "exprType": "binary",
+                        "op": "Mul",
+                        "left": {
+                            "exprType": "local",
+                            "name": "packedMatches"
+                        },
+                        "right": {
+                            "exprType": "fieldAccess",
+                            "target": "state",
+                            "path": [
+                                "replacement"
+                            ]
+                        }
+                    }
+                ]
+            }
+        },
+        "decode": {
+            "exprType": "map",
+            "stateKey": "packedIndices",
+            "itemName": "packedPosition",
+            "itemType": "Number",
+            "maxItems": 21,
+            "body": {
+                "exprType": "call",
+                "function": "toString",
+                "args": [
+                    {
+                        "exprType": "bitset",
+                        "op": "Intersect",
+                        "args": [
+                            {
+                                "exprType": "bitset",
+                                "op": "Shift",
+                                "args": [
+                                    {
+                                        "exprType": "fieldAccess",
+                                        "target": "state",
+                                        "path": [
+                                            "packed"
+                                        ]
+                                    },
+                                    {
+                                        "exprType": "binary",
+                                        "op": "Mul",
+                                        "left": {
+                                            "exprType": "fieldAccess",
+                                            "target": "state",
+                                            "path": [
+                                                "packedPosition"
+                                            ]
+                                        },
+                                        "right": {
+                                            "exprType": "constant",
+                                            "kind": "Integer",
+                                            "value": "-3"
+                                        }
+                                    }
+                                ]
+                            },
+                            {
+                                "exprType": "constant",
+                                "kind": "Integer",
+                                "value": "7"
+                            }
+                        ]
+                    }
+                ]
+            }
+        }
+    }
+}

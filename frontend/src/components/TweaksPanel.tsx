@@ -19,41 +19,11 @@ export default function TweaksPanel() {
   const [collapsed, setCollapsed] = useState(true);
 
   return (
-    <div
-      style={{
-        position: 'fixed',
-        left: 16,
-        bottom: 16,
-        zIndex: 100,
-        width: 240,
-        background: 'var(--bg-1)',
-        border: '1px solid var(--line-2)',
-        borderRadius: 12,
-        boxShadow: 'var(--shadow-pop)',
-        fontSize: '11.5px',
-        overflow: 'hidden',
-      }}
-    >
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          padding: '10px 14px',
-          cursor: 'pointer',
-          userSelect: 'none',
-          borderBottom: collapsed ? 'none' : '1px solid var(--line)',
-        }}
-        onClick={() => setCollapsed(!collapsed)}
-      >
-        <b style={{ fontSize: 12, fontWeight: 600 }}>Tweaks</b>
-        <span style={{ color: 'var(--faint)', fontSize: 10 }}>
-          {collapsed ? '▶' : '▼'}
-        </span>
-      </div>
+    <div className="appearance-menu" onKeyDown={event => { if (event.key === 'Escape') { setCollapsed(true); event.currentTarget.querySelector('button')?.focus(); } }}>
+      <button className="btn" aria-label="Appearance settings" aria-expanded={!collapsed} onClick={() => setCollapsed(!collapsed)}>⚙</button>
 
       {!collapsed && (
-        <div
+        <div className="appearance-controls"
           style={{
             padding: '2px 14px 14px',
             display: 'flex',
@@ -83,6 +53,7 @@ export default function TweaksPanel() {
                 <button
                   key={color}
                   aria-label={`Accent color ${color}`}
+                  aria-pressed={tweaks.accent === color}
                   onClick={() => setTweak('accent', color)}
                   style={{
                     width: 26,

@@ -211,10 +211,10 @@ public class MeasurementApiTests : IClassFixture<WebApplicationFactory<Program>>
     [Fact]
     public async Task SchemaIncludesInlinedNodesAndDerivedFieldTypes()
     {
-        var fixture = JsonSerializer.Deserialize<GraphConfig>(File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "TestData", "DogHouse", "dog-house-mini-ui.json")), SlotMath.Core.JsonOptions.Default)!;
+        var fixture = JsonSerializer.Deserialize<GraphConfig>(File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "TestData", "LabDemo", "lab-demo-mini.json")), SlotMath.Core.JsonOptions.Default)!;
         var response = await client.PostAsJsonAsync("/api/runs/measurements/schema", new { config = JsonSerializer.SerializeToElement(fixture, SlotMath.Core.JsonOptions.Default) });
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         var schema = await response.Content.ReadFromJsonAsync<MeasurementSchema>(); Assert.NotEmpty(schema!.Points); Assert.NotEmpty(schema.Fields);
-        Assert.Contains(schema.Points, p => p.NodeId.Contains('/')); Assert.Contains(schema.Fields, f => f.Name == "spinCoins" && f.Type == "Number");
+        Assert.Contains(schema.Points, p => p.NodeId.Contains('/')); Assert.Contains(schema.Fields, f => f.Name == "evalWin" && f.Type == "Number");
     }
 }

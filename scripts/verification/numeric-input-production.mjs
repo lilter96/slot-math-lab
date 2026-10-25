@@ -1,8 +1,9 @@
 import { saveValidatedDialog, waitForRunLaunch, saveMeasurement } from './requests.mjs';
 import { chromium } from '../../frontend/node_modules/playwright/index.mjs';
 import { expect } from '../../frontend/node_modules/@playwright/test/index.mjs';
-import { readFile, writeFile } from 'node:fs/promises';
+import { readFile, writeFile, mkdir } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
+await mkdir(new URL('../../artifacts/verification/', import.meta.url), { recursive: true });
 
 const root = fileURLToPath(new URL('../..', import.meta.url)), base = process.env.MEASUREMENTS_BASE_URL;
 if (!base) throw new Error('Set MEASUREMENTS_BASE_URL to the authenticated deployment.');
@@ -89,11 +90,11 @@ try {
   await page.evaluate(() => localStorage.clear()); await page.goto(base + `/simulate?run=${id}`); await page.reload(); await checkSignal();
   await expect(page.getByLabel('Verification profile result')).toHaveAttribute('data-profile-status', 'criteriaMet');
   await page.getByRole('article', { name: 'Tracked metric Tiny signal', exact: true }).getByRole('heading').scrollIntoViewIfNeeded();
-  await page.screenshot({ path: root + '/docs/verification/numeric-input-desktop.png' });
+  await page.screenshot({ path: root + '/artifacts/verification/numeric-input-desktop.png' });
   await page.setViewportSize({ width: 390, height: 844 }); await page.reload(); await checkSignal();
   if (!await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)) throw new Error('Numeric dashboard overflows mobile viewport.');
   await page.getByRole('article', { name: 'Tracked metric Tiny signal', exact: true }).getByRole('heading').scrollIntoViewIfNeeded();
-  await page.screenshot({ path: root + '/docs/verification/numeric-input-mobile.png' });
+  await page.screenshot({ path: root + '/artifacts/verification/numeric-input-mobile.png' });
   report.runs = evidence.map(e => ({ id: e.run.id, execution: e.run.execution, paidRounds: e.run.progress.sampleCount, measurements: e.run.progress.measurements, profileHash: e.run.verificationProfileHash, profileReport: e.diagnostics.find(d => d.kind === 'verification-profile')?.output, runtimeProvenance: e.run.runtimeProvenance }));
   report.replayId = replay.id; report.bitIdenticalAcrossEngines = true; report.authoritativeExportVerified = true; report.emptyWorkspaceRestoreVerified = true;
   report.responsive = { desktop: true, mobile: true }; report.webSocketFrames = frames.filter(f => owned.includes(f.runId) && f.measurements?.length).length;
@@ -102,6 +103,6 @@ try {
 } catch (error) { report.success = false; report.error = String(error); throw error; }
 finally {
   for (const id of owned) { const response = await context.request.get(base + '/api/runs/' + id).catch(() => null); if (response?.ok() && ['pending', 'running'].includes((await response.json()).status)) await context.request.delete(base + '/api/runs/' + id); }
-  await writeFile(root + '/docs/verification/numeric-input-production.json', JSON.stringify(report, null, 2) + '\n'); await browser.close();
+  await writeFile(root + '/artifacts/verification/numeric-input-production.json', JSON.stringify(report, null, 2) + '\n'); await browser.close();
 }
 console.log(JSON.stringify({ success: report.success, runs: report.runs.map(r => r.id), replay: report.replayId, measurementFrames: report.webSocketFrames }));

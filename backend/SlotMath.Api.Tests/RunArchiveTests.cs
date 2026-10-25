@@ -23,10 +23,39 @@ public class RunArchiveTests : IClassFixture<WebApplicationFactory<Program>>
         runs = factory.Services.GetRequiredService<InMemoryRunStore>();
     }
     private static GraphConfig Fixture(string name) => JsonSerializer.Deserialize<GraphConfig>(File.ReadAllText(
-        Path.Combine(AppContext.BaseDirectory, "TestData", "DogHouse", "dog-house-mini-ui.json")), SlotMath.Core.JsonOptions.Default)! with
+        Path.Combine(AppContext.BaseDirectory, "TestData", "LabDemo", "lab-demo-mini.json")), SlotMath.Core.JsonOptions.Default)! with
     { Id = null, Name = name };
     private RunEntry Seed(string configId, int version = 1, long seed = 42) => configs.UseVersion(configId, version, entry =>
         runs.Create(configId, seed, entry.Version, 1000, CanonicalHash.Compute(entry.Config)))!;
+    [Fact]
+    public async Task LatestModelLookup_MatchesPinnedInputAcrossDocumentIds_WithoutCreatingOrRunningAnything()
+    {
+        var config = Fixture("Overview " + Guid.NewGuid());
+        var id = configs.Create(config); var first = Seed(id);
+        runs.Update(first.Id, "completed", "{}");
+        var newer = Seed(id, seed: 43);
+        runs.Update(newer.Id, "completed", "{}");
+        var pending = Seed(id, seed: 44);
+        var unrelated = Seed(configs.Create(config with { Name = "Different model" }));
+        runs.Update(unrelated.Id, "completed", "{}");
+        var unverified = runs.Create(id, configVersion: 1, configHash: new string('b', 64));
+        runs.Update(unverified.Id, "completed", "{}");
+        configs.Update(id, config with { Name = "Changed latest version" });
+        var count = runs.List().Count; var versionCount = configs.GetVersions(id).Count;
+        var response = await client.PostAsJsonAsync("/api/runs/latest-model", new { config = config with { Id = "different-local-copy" } }, SlotMath.Core.JsonOptions.Default);
+        response.EnsureSuccessStatusCode();
+        var match = (await response.Content.ReadFromJsonAsync<LatestModelRunResponse>())!;
+        Assert.Equal(newer.Id, match.Evidence!.Run.Id); Assert.True(match.Evidence.InputVerified);
+        Assert.Equal(CanonicalHash.Compute(config with { Id = null }), match.ModelHash);
+        Assert.Equal(match.ModelHash, match.Evidence.Model.ModelHash);
+        Assert.Equal(newer.ConfigHash, match.Evidence.ComputedConfigHash);
+        Assert.Equal(count, runs.List().Count); Assert.Equal(versionCount, configs.GetVersions(id).Count);
+        Assert.Equal("pending", runs.Get(pending.Id)!.Status);
+        var changedInput = config with { Nodes = config.Nodes.Select(node => node is MetricsSinkNode sink ? sink with { WinCap = sink.WinCap + 1 } : node).ToArray() };
+        var changed = await client.PostAsJsonAsync("/api/runs/latest-model", new { config = changedInput }, SlotMath.Core.JsonOptions.Default);
+        Assert.Null((await changed.Content.ReadFromJsonAsync<LatestModelRunResponse>())!.Evidence);
+        Assert.Equal(HttpStatusCode.BadRequest, (await client.PostAsJsonAsync("/api/runs/latest-model", new { config = new { } })).StatusCode);
+    }
     [Fact]
     public async Task StableCursor_SearchAndStatusCounts_DoNotReturnBulkEvidence()
     {

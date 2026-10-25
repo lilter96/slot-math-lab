@@ -34,8 +34,16 @@ appsettings.*.json
 !appsettings.Production.json
 .playwright-mcp/
 *.png
+# Screenshots are ignored above; the art of the ported games is not a screenshot.
+!frontend/public/assets/**/*.png
 
 production-secrets/
 frontend/test-results/
 frontend/playwright-report/
 __pycache__/
+frontend/.workbench-playwright.config.ts
+
+frontend/.cross-browser-playwright.config.ts
+
+# Generated verification reports, browser captures and local diagnostics.
+/artifacts/

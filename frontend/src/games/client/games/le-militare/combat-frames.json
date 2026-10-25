@@ -1,0 +1,14 @@
+{
+  "COMBAT_MISSILE": {
+    "x": 400,
+    "y": 45,
+    "width": 220,
+    "height": 735
+  },
+  "COMBAT_PLANE": {
+    "x": 115,
+    "y": 830,
+    "width": 850,
+    "height": 580
+  }
+}

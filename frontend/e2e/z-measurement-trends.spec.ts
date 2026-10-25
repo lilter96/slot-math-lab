@@ -46,5 +46,5 @@ test('Native charts select counts and higher moments, retain them after reload a
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   await expect(selector).toBeVisible();
   await expect.poll(() => chart.getByRole('img').evaluate((svg: SVGSVGElement) => svg.getScreenCTM()!.a * parseFloat(getComputedStyle(svg.querySelector('.plot-label')!).fontSize))).toBeGreaterThanOrEqual(9.5);
-  await page.screenshot({ path: '../docs/verification/measurement-trends-mobile.png', fullPage: true });
+  await page.screenshot({ path: '../artifacts/verification/measurement-trends-mobile.png', fullPage: true });
 });

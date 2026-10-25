@@ -19,4 +19,10 @@ export default defineConfig([
       globals: globals.browser,
     },
   },
+  {
+    // The slot game client ported from tgslots is kept as it was written, with the lint rules it was written under.
+    files: ['src/games/client/**/*.ts'],
+    linterOptions: { reportUnusedDisableDirectives: 'off' },
+    rules: { '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }] },
+  },
 ])

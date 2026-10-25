@@ -1,7 +1,8 @@
 using System.Text.Json;
-using SlotMath.Core;
+using System.Text.Json.Nodes;
+using Json.Schema;
+using SlotMath.Core.Compiler;
 using SlotMath.Core.Model;
-using Xunit;
 using Xunit.Abstractions;
 
 namespace SlotMath.Core.Tests;
@@ -28,7 +29,7 @@ public class SchemaExportTests(ITestOutputHelper output)
         // If we can't find it, output for manual inspection
         if (!Directory.Exists(schemasDir))
         {
-            output.WriteLine($"Schemas dir not found. Schema JSON:");
+            output.WriteLine("Schemas dir not found. Schema JSON:");
             output.WriteLine(schemaJson);
             output.WriteLine($"Base dir: {baseDir}");
             return;
@@ -53,13 +54,50 @@ public class SchemaExportTests(ITestOutputHelper output)
     public void SchemaIsValidJson()
     {
         var schemaJson = SchemaEmitter.GetSchemaJson();
-        using var doc = System.Text.Json.JsonDocument.Parse(schemaJson);
+        using JsonDocument doc = JsonDocument.Parse(schemaJson);
         Assert.Equal(JsonValueKind.Object, doc.RootElement.ValueKind);
     }
 
-    [Fact]
-    public void SchemaVersionConstantMatches()
+    [Theory]
+    [InlineData("null")]
+    [InlineData(
+        "{\"exprType\":\"binary\",\"op\":\"Add\",\"left\":null,\"right\":{\"exprType\":\"constant\",\"kind\":\"Integer\",\"value\":\"1\"}}")]
+    public void SharedExpressionSchemaRejectsNull(string json)
     {
-        Assert.Equal("1.0.0", SchemaEmitter.CurrentSchemaVersion);
+        JsonNode exported = JsonNode.Parse(SchemaEmitter.GetSchemaJson())!;
+        var schema = new JsonObject { ["$defs"] = exported["$defs"]!.DeepClone(), ["$ref"] = "#/$defs/expression" };
+        using JsonDocument instance = JsonDocument.Parse(json);
+        Assert.False(JsonSchema.FromText(schema.ToJsonString()).Evaluate(instance.RootElement).IsValid);
     }
+
+    [Fact]
+    public void OptionalPortDefaultStillAcceptsNull()
+    {
+        JsonNode exported = JsonNode.Parse(SchemaEmitter.GetSchemaJson())!;
+        var schema = new JsonObject
+        {
+            ["$defs"] = exported["$defs"]!.DeepClone(),
+            ["$ref"] = "#/$defs/dictionaryOfStringAndPort"
+        };
+        using JsonDocument instance =
+            JsonDocument.Parse("{\"in\":{\"name\":\"in\",\"type\":\"Number\",\"defaultValue\":null}}");
+        Assert.True(JsonSchema.FromText(schema.ToJsonString()).Evaluate(instance.RootElement).IsValid);
+    }
+
+    [Fact]
+    public void NullNamedExpressionReturnsCodedValidationError()
+    {
+        var graph = new GraphConfig
+        {
+            SchemaVersion = "1.0.0",
+            Nodes = [new MetricsSinkNode { Id = "sink", WinCap = 10 }],
+            Expressions = new Dictionary<string, Expression> { ["bad"] = null! }
+        };
+        CompileError error = Assert.Single(GraphValidator.Validate(graph, null));
+        Assert.Equal(ErrorCodes.ExpressionTypeError, error.Code);
+        Assert.Contains("cannot be null", error.Message);
+    }
+
+    [Fact]
+    public void SchemaVersionConstantMatches() => Assert.Equal("1.0.0", SchemaEmitter.CurrentSchemaVersion);
 }

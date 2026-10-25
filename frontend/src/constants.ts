@@ -1,5 +1,5 @@
 // ═══════════════════════════════════════════════════════════════════════════
-//  Normative constants from the PRD (CLAUDE.md v3.1).
+//  Normative constants from the PRD (docs/SYSTEM.ru.md#numbers).
 //
 //  This is the frontend mirror of backend/SlotMath.Core/SlotMathConstants.cs.
 //  The two MUST be kept in lock-step — changing a value is a PRD change.

@@ -16,11 +16,15 @@ namespace SlotMath.Core.Math.Regime;
 // ═══════════════════════════════════════════════════════════════════════════
 
 /// <summary>
-/// Configuration for the hybrid (regime-aware) evaluator.
+///     Configuration for the hybrid (regime-aware) evaluator.
 /// </summary>
 public sealed class RegimeConfig
 {
+    /// <summary>Retain the exact outcome law for explicitly requested population queries. Never set for sampling.</summary>
+    public bool RetainExactDistribution { get; init; }
+
     public int ChunkSize { get; init; } = SlotMathConstants.Prng.Chunk;
+
     /// <summary>Budget controlling exact vs sampled fallback.</summary>
     public Budget Budget { get; init; } = Budget.Default;
 
@@ -46,48 +50,48 @@ public sealed class RegimeConfig
     public int ProgressReportInterval { get; init; } = 1000;
 
     /// <summary>
-    /// Optional callback invoked every <see cref="ProgressReportInterval"/> spins
-    /// with a snapshot of current statistics.
+    ///     Optional callback invoked every <see cref="ProgressReportInterval" /> spins
+    ///     with a snapshot of current statistics.
     /// </summary>
     public Action<SampledProgress>? ProgressCallback { get; init; }
 
     /// <summary>
-    /// When true, always uses sampled (skip exact attempt).
-    /// Useful for testing the fallback path.
+    ///     When true, always uses sampled (skip exact attempt).
+    ///     Useful for testing the fallback path.
     /// </summary>
     public bool ForceSampled { get; init; }
 
     /// <summary>
-    /// Worker threads for sampled evaluation (see
-    /// <see cref="SampledConfig.DegreeOfParallelism"/>).  Results stay
-    /// deterministic per seed regardless of this value.
+    ///     Worker threads for sampled evaluation (see
+    ///     <see cref="SampledConfig.DegreeOfParallelism" />).  Results stay
+    ///     deterministic per seed regardless of this value.
     /// </summary>
     public int DegreeOfParallelism { get; init; } = 1;
 
     /// <summary>
-    /// Sub-credit scale of the program's win amounts (from
-    /// <see cref="SlotMath.Core.Compiler.CompileResult.WinScale"/>).  Reports
-    /// are converted back to credit units — exactly on the exact path.
+    ///     Sub-credit scale of the program's win amounts (from
+    ///     <see cref="SlotMath.Core.Compiler.CompileResult.WinScale" />).  Reports
+    ///     are converted back to credit units — exactly on the exact path.
     /// </summary>
     public BigInteger WinScale { get; init; } = BigInteger.One;
 }
 
 /// <summary>
-/// The hybrid evaluator — the top-level entry point for G8 regime-aware
-/// evaluation.  Combines exact and sampled interpreters, budget enforcement,
-/// plugin detection, and strategy reporting.
+///     The hybrid evaluator — the top-level entry point for G8 regime-aware
+///     evaluation.  Combines exact and sampled interpreters, budget enforcement,
+///     plugin detection, and strategy reporting.
 /// </summary>
 public static class HybridEvaluator
 {
     /// <summary>
-    /// Evaluate a program with regime detection, budget control, and
-    /// automatic exact → sampled fallback.
+    ///     Evaluate a program with regime detection, budget control, and
+    ///     automatic exact → sampled fallback.
     /// </summary>
     /// <param name="program">The slot program to evaluate.</param>
     /// <param name="initialState">Initial game state.</param>
     /// <param name="recurrenceHasher">Hash function for memoization.</param>
     /// <param name="config">Regime configuration.</param>
-    /// <returns>A <see cref="RegimeResult"/> with metrics and strategy metadata.</returns>
+    /// <returns>A <see cref="RegimeResult" /> with metrics and strategy metadata.</returns>
     public static RegimeResult Evaluate<S>(
         Slot<S, BigInteger> program,
         S initialState,
@@ -98,15 +102,15 @@ public static class HybridEvaluator
         config ??= new RegimeConfig();
 
         // ── Step 1: Analyze the program ─────────────────────────────────
-        var analysis = ProgramAnalyzer.Analyze(program);
+        ProgramAnalysis analysis = ProgramAnalyzer.Analyze(program);
 
         // ── Step 2: Determine strategy ──────────────────────────────────
         var strategies = new List<SubgraphStrategy>();
 
         // Build subgraph strategy records from analysis.
-        foreach (var sg in analysis.Subgraphs)
+        foreach (SubgraphAnnotation sg in analysis.Subgraphs)
         {
-            var strategy = sg.ContainsPlugin
+            EvaluationStrategy strategy = sg.ContainsPlugin
                 ? EvaluationStrategy.Sampled
                 : analysis.EstimatedBranches <= (config.Budget.MaxBranches ?? long.MaxValue)
                     ? EvaluationStrategy.Exact
@@ -132,7 +136,7 @@ public static class HybridEvaluator
         // Always add a root subgraph.
         if (!analysis.Subgraphs.Any(s => s.SubgraphId == "root"))
         {
-            var rootStrategy = analysis.ContainsPlugin || config.ForceSampled
+            EvaluationStrategy rootStrategy = analysis.ContainsPlugin || config.ForceSampled
                 ? EvaluationStrategy.Sampled
                 : analysis.EstimatedBranches <= (config.Budget.MaxBranches ?? long.MaxValue)
                     ? EvaluationStrategy.Exact
@@ -155,7 +159,7 @@ public static class HybridEvaluator
         }
 
         // ── Step 3: Evaluate ────────────────────────────────────────────
-        var overallStrategy = strategies.Any(s => s.Strategy == EvaluationStrategy.Sampled)
+        EvaluationStrategy overallStrategy = strategies.Any(s => s.Strategy == EvaluationStrategy.Sampled)
             ? EvaluationStrategy.Sampled
             : EvaluationStrategy.Exact;
 
@@ -164,18 +168,21 @@ public static class HybridEvaluator
         // for now, any plugin forces sampled for the entire program.
 
         if (config.ForceSampled)
+        {
             overallStrategy = EvaluationStrategy.Sampled;
+        }
 
         var budgetExceeded = false;
         SlotMathReport? report;
         Provenance aggregateProvenance;
+        Dist<BigInteger>? distribution = null;
 
         if (overallStrategy == EvaluationStrategy.Exact && !analysis.ContainsPlugin && !config.ForceSampled)
         {
             // ── Try exact evaluation within budget ─────────────────────
             try
             {
-                var exactConfig = config.ExactOverrides ?? new ExactConfig();
+                ExactConfig exactConfig = config.ExactOverrides ?? new ExactConfig();
                 exactConfig = new ExactConfig
                 {
                     EpsilonNumerator = exactConfig.EpsilonNumerator,
@@ -183,16 +190,21 @@ public static class HybridEvaluator
                     Budget = config.Budget
                 };
 
-                var exactResult = ExactInterpreter.Evaluate(
+                ExactResult<S, BigInteger> exactResult = ExactInterpreter.Evaluate(
                     program, initialState, recurrenceHasher, exactConfig);
 
+                Dist<BigInteger> law = exactResult.ValueDistribution();
                 report = ExactMetrics.Compute(
-                    exactResult.ValueDistribution(),
+                    law,
                     config.MaxWinCap,
                     numHistogramBins: config.HistogramBins,
                     winScale: config.WinScale);
 
                 aggregateProvenance = report.AggregateProvenance;
+                if (config.RetainExactDistribution)
+                {
+                    distribution = law;
+                }
 
                 // Update strategy records with actual provenance.
                 for (var i = 0; i < strategies.Count; i++)
@@ -206,6 +218,7 @@ public static class HybridEvaluator
                         Provenance = aggregateProvenance
                     };
                 }
+
                 overallStrategy = EvaluationStrategy.Exact;
             }
             catch (BudgetExceededException)
@@ -239,13 +252,17 @@ public static class HybridEvaluator
 
             for (var i = 0; i < strategies.Count; i++)
             {
-                strategies[i] = strategies[i] with { Provenance = Provenance.Sampled };
+                strategies[i] = strategies[i] with
+                {
+                    Provenance = Provenance.Sampled
+                };
             }
         }
 
         return new RegimeResult
         {
             Report = report!,
+            ExactDistribution = distribution,
             SubgraphStrategies = strategies,
             AggregateProvenance = aggregateProvenance,
             OverallStrategy = overallStrategy,
@@ -276,7 +293,7 @@ public static class HybridEvaluator
             WinScale = (double)config.WinScale
         };
 
-        var sampledResult = SampledInterpreter.Evaluate(
+        SampledResult<S> sampledResult = SampledInterpreter.Evaluate(
             program, initialState, sampledConfig);
 
         return SampledMetrics.ComputeFromResult(sampledResult);

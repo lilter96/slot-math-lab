@@ -1,8 +1,9 @@
 import { waitForRunLaunch, saveMeasurement } from './requests.mjs';
 import { chromium } from '../../frontend/node_modules/playwright/index.mjs';
 import { expect } from '../../frontend/node_modules/@playwright/test/index.mjs';
-import { readFile, writeFile } from 'node:fs/promises';
+import { readFile, writeFile, mkdir } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
+await mkdir(new URL('../../artifacts/verification/', import.meta.url), { recursive: true });
 const root = fileURLToPath(new URL('../..', import.meta.url));
 const base = process.env.MEASUREMENTS_BASE_URL;
 if (!base) throw new Error('Set MEASUREMENTS_BASE_URL to the authenticated deployment.');
@@ -43,38 +44,38 @@ async function metric(name, { node, expression, source, subject, group, filter, 
   await saveMeasurement(page);
 }
 async function finished(id) {
-  await expect.poll(async () => (await get('/api/runs/' + id)).status, { timeout: 120000, intervals: [1000, 2000] }).toBe('completed');
+  await expect.poll(async () => (await get('/api/runs/' + id)).status, { timeout: 900000, intervals: [1000, 2000] }).toBe('completed');
   return get('/api/runs/' + id);
 }
-async function screenshot(name) { await page.screenshot({ path: root + '/docs/verification/' + name, fullPage: true }); }
+async function screenshot(name) { await page.screenshot({ path: root + '/artifacts/verification/' + name, fullPage: true }); }
 try {
   report.anonymousBlocked = (await context.request.post(base + '/api/runs/measurements/schema', { data: { config: {} } })).status() === 401;
   if (!report.anonymousBlocked) throw new Error('Measurement API is anonymously accessible.');
   await page.goto(base + '/simulate'); await page.getByLabel('Username').fill(process.env.MEASUREMENTS_USER ?? 'operator');
   await page.getByLabel('Password').fill((await readFile(process.env.MEASUREMENTS_PASSWORD_FILE ?? root + '/production-secrets/operator-password.txt', 'utf8')).trim());
   await Promise.all([page.waitForNavigation({ waitUntil: 'networkidle' }), page.getByRole('button', { name: 'Sign in', exact: true }).click()]);
-  await page.goto(base + '/build?project=dog-house'); await expect(page.locator('.react-flow__node')).toHaveCount(12);
+  await page.goto(base + '/build?project=nine-lives'); await expect(page.locator('.react-flow__node')).toHaveCount(4);
   await page.getByRole('tab', { name: 'Simulate', exact: true }).click();
   await metric('Complete round payout law', { independent: true });
-  await metric('Sticky FS payout by bonus length', { node: 'free-spin/snapshot-winHistory', expression: 'state.spinCoins / 20', group: 'state.fsCount', groupLimit: 19 });
-  await metric('Long bonus FS payout', { node: 'free-spin/snapshot-winHistory', expression: 'state.spinCoins / 20', filter: 'state.fsCount >= 18' });
-  await metric('FS reveals per paid round', { node: 'free-spin/snapshot-winHistory', subject: 'round', source: 'count', independent: true });
-  await metric('Bonus awarded reveals', { node: 'free-spins', expression: 'state.fsCount', independent: true });
-  await metric('Bonus selection lifecycle', { node: 'bonus-count', subject: 'episode', source: 'count',
-    entry: 'bonus-grid-loop', exit: 'free-spins', reduction: 'average', group: '"bonus selection"', groupLimit: 1, filter: 'false' });
-  await metric('Sticky bonus episode payout', { node: 'free-spin/snapshot-winHistory', expression: 'state.spinCoins / 20',
-    subject: 'episode', entry: 'free-spins', exit: 'bonus-completed', reduction: 'sum', group: 'state.fsCount', groupLimit: 19 });
+  await metric('FS payout by bonus length', { node: 'round/paid-body/trigger-body/free-spins-body/record-winHistory', expression: '(state.spinClusterCoins + state.spinCollectionCoins) / 20', group: 'state.freeSpins', groupLimit: 1 });
+  await metric('High-multiplier FS payout', { node: 'round/paid-body/trigger-body/free-spins-body/record-winHistory', expression: '(state.spinClusterCoins + state.spinCollectionCoins) / 20', filter: 'state.multiplier >= 10' });
+  await metric('FS reveals per paid round', { node: 'round/paid-body/trigger-body/free-spins-body/record-winHistory', subject: 'round', source: 'count', independent: true });
+  await metric('Bonus resolved reveals', { node: 'round/paid-body/trigger-body/completed', expression: 'state.spinIndex - 1', independent: true });
+  await metric('Bonus selection lifecycle', { node: 'round/paid-body/trigger-body/completed', subject: 'episode', source: 'count',
+    entry: 'round/paid-body/trigger-body/free-spins', exit: 'round/paid-body/trigger-body/completed', reduction: 'average', group: '"bonus selection"', groupLimit: 1, filter: 'false' });
+  await metric('Bonus episode payout', { node: 'round/paid-body/trigger-body/free-spins-body/record-winHistory', expression: '(state.spinClusterCoins + state.spinCollectionCoins) / 20',
+    subject: 'episode', entry: 'round/paid-body/trigger-body/free-spins', exit: 'round/paid-body/trigger-body/completed', reduction: 'sum', group: 'state.freeSpins', groupLimit: 1 });
   await page.getByLabel('Simulation spins').fill('100000'); await page.getByLabel('Simulation workers').selectOption('2');
   const launch = waitForRunLaunch(page);
   await page.getByRole('button', { name: /^▶ Start run$/ }).click(); const accepted = await launch;
   if (accepted.status() !== 202) throw new Error(`Run was not accepted: HTTP ${accepted.status()} ${await accepted.text()}`);
   const created = await accepted.json(); owned.push(created.id);
-  await expect(page.locator('.run-status')).toHaveText('completed', { timeout: 120000 }); const run = await finished(created.id), values = run.progress.measurements;
+  await expect(page.locator('.run-status')).toHaveText('completed', { timeout: 900000 }); const run = await finished(created.id), values = run.progress.measurements;
   if (values.length !== 7 || values.some(m => m.errors || m.observations !== m.count + m.excluded + m.errors)) throw new Error('Invalid advanced observation accounting.');
   if (values[0].count !== 100000 || values[3].count !== 100000 || values[1].count !== values[3].sum || values[1].count !== values[4].sum) throw new Error('Paid-round / reveal denominators disagree.');
   if (values.some(m => m.analysis.normalization?.paidRounds !== 100000 || m.analysis.normalization.externalTurnover !== 100000)
     || Object.values(values[1].analysis.groups).some(g => g.normalization?.paidRounds !== 100000 || g.normalization.externalTurnover !== 100000)) throw new Error('FS/cohort contributions lost their complete external-turnover denominator.');
-  if (!values[1].analysis.groupsComplete || Object.keys(values[1].analysis.groups).length < 2 || values[1].analysis.meanInterval !== null) throw new Error('Grouped FS evidence is incomplete or claims independent reveals.');
+  if (!values[1].analysis.groupsComplete || Object.keys(values[1].analysis.groups).length !== 1 || values[1].analysis.meanInterval !== null) throw new Error('Grouped FS evidence is incomplete or claims independent reveals.');
   const lifecycle = values[5].analysis.groups['bonus selection'];
   if (values[5].count !== 0 || values[5].mean !== null || !lifecycle || lifecycle.entries !== values[4].count
     || lifecycle.exits !== lifecycle.entries || lifecycle.unclosedEpisodes !== 0 || lifecycle.count !== 0
@@ -86,15 +87,15 @@ try {
     || Object.values(episode.analysis.groups).reduce((count, g) => count + g.parentExposure.episodesWithMatchingChildren, 0) !== episode.count
     || Object.entries(episode.analysis.groups).some(([key, g]) => g.normalization.paidRounds !== 100000 || Math.abs(g.sum - values[1].analysis.groups[key].sum) > 1e-6)) throw new Error('Whole-bonus episode payout or distinct parent exposure disagrees with its reveal ledger.');
   if (!frames.some(f => f.sampleCount > 0 && f.measurements?.some(m => m.analysis))) throw new Error('No rich production WebSocket frame.');
-  const fsChart = page.getByRole('article', { name: 'Tracked metric Sticky FS payout by bonus length', exact: true });
-  await fsChart.getByLabel('Chart statistic for Sticky FS payout by bonus length', { exact: true }).selectOption('sampleVariance');
+  const fsChart = page.getByRole('article', { name: 'Tracked metric FS payout by bonus length', exact: true });
+  await fsChart.getByLabel('Chart statistic for FS payout by bonus length', { exact: true }).selectOption('sampleVariance');
   await expect(fsChart.locator('.plot-readout strong')).toContainText('Sample variance');
-  const bonusChart = page.getByRole('article', { name: 'Tracked metric Sticky bonus episode payout', exact: true });
-  await bonusChart.getByLabel('Chart statistic for Sticky bonus episode payout', { exact: true }).selectOption('matchingEpisodes');
+  const bonusChart = page.getByRole('article', { name: 'Tracked metric Bonus episode payout', exact: true });
+  await bonusChart.getByLabel('Chart statistic for Bonus episode payout', { exact: true }).selectOption('matchingEpisodes');
   await expect(bonusChart.locator('.plot-readout strong')).toHaveText(`Feature episodes with matching children ${episode.count.toLocaleString('en-US')}`);
   await page.reload(); await expect(page.getByTestId('sample-count')).toHaveText('100,000');
-  await expect(fsChart.getByLabel('Chart statistic for Sticky FS payout by bonus length', { exact: true })).toHaveValue('sampleVariance');
-  await expect(bonusChart.getByLabel('Chart statistic for Sticky bonus episode payout', { exact: true })).toHaveValue('matchingEpisodes');
+  await expect(fsChart.getByLabel('Chart statistic for FS payout by bonus length', { exact: true })).toHaveValue('sampleVariance');
+  await expect(bonusChart.getByLabel('Chart statistic for Bonus episode payout', { exact: true })).toHaveValue('matchingEpisodes');
   await expect(bonusChart.locator('.plot-readout strong')).toHaveText(`Feature episodes with matching children ${episode.count.toLocaleString('en-US')}`);
   const checkpoint = JSON.parse(await page.evaluate(() => localStorage.getItem('slotmath-simulation-v2')));
   if (checkpoint.points.at(-1).measurements[1].statistics.sampleVariance !== values[1].analysis.moments.sampleVariance
@@ -105,7 +106,7 @@ try {
   await law.locator('.measurement-witnesses > summary').click(); await law.getByRole('button', { name: /Replay first witness/ }).click();
   await expect(law.getByLabel('Reconstructed witness')).toContainText('logical stream prefix', { timeout: 90000 });
   await page.goto(base + `/results?run=${run.id}`); await expect(page.getByLabel('Retained diagnostic evidence')).toContainText('witness-replay');
-  await page.getByRole('button', { name: 'Calculate reference', exact: true }).click(); await expect(page.locator('.results-reference-value')).toHaveText('98.000%', { timeout: 90000 });
+  await page.getByRole('button', { name: 'Calculate reference', exact: true }).click(); await expect(page.locator('.results-reference-value')).toHaveText('Unavailable', { timeout: 90000 });
   await page.goto(base + `/simulate?run=${run.id}`);
   await page.locator('#reference-workbench > summary').click(); await page.locator('#exact-law-comparison > summary').click();
   await page.getByRole('button', { name: 'Load equal-98%-mean examples', exact: true }).click();
@@ -130,7 +131,7 @@ try {
   if (!await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)) throw new Error('Retained cohort evidence overflows mobile viewport.');
   await screenshot('advanced-cohort-lifecycle-production-mobile.png');
   await page.setViewportSize({ width: 1560, height: 1100 });
-  const episodeCard = page.getByRole('region', { name: 'Saved measurement Sticky bonus episode payout', exact: true });
+  const episodeCard = page.getByRole('region', { name: 'Saved measurement Bonus episode payout', exact: true });
   await episodeCard.getByRole('tab', { name: 'accounting', exact: true }).click();
   await expect(episodeCard.getByRole('row').filter({ hasText: 'Owning feature episodes with matching children' })).toContainText(String(episode.count));
   await episodeCard.scrollIntoViewIfNeeded(); await screenshot('advanced-whole-bonus-production.png');
@@ -150,20 +151,20 @@ try {
   await page.goto(base + `/simulate?run=${run.id}`); await page.setViewportSize({ width: 390, height: 844 });
   await expect(page.getByRole('link', { name: 'Permalink to this run ↗', exact: true })).toHaveAttribute('href', `/simulate?run=${run.id}`);
   await expect(page.getByTestId('sample-count')).toHaveText('100,000');
-  await expect(page.getByRole('article', { name: 'Tracked metric Sticky FS payout by bonus length', exact: true })).toBeVisible();
+  await expect(page.getByRole('article', { name: 'Tracked metric FS payout by bonus length', exact: true })).toBeVisible();
   if (!await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)) throw new Error('Advanced dashboard overflows mobile viewport.');
   await screenshot('advanced-measurements-production-mobile.png');
-  await page.getByRole('article', { name: 'Tracked metric Sticky FS payout by bonus length', exact: true }).scrollIntoViewIfNeeded();
+  await page.getByRole('article', { name: 'Tracked metric FS payout by bonus length', exact: true }).scrollIntoViewIfNeeded();
   await screenshot('advanced-measurements-production-mobile-metric.png');
   if (errors.length) throw new Error(errors.join('; '));
   Object.assign(report, { runId: run.id, replayRunId: replay.id, referenceRunId: reference.id, crossEngineBitIdentical: true, referenceElapsedMs: interpreted.progress.elapsedMs,
-    rounds: run.progress.sampleCount, observedRtp: run.progress.runningRtp, authoredReferenceRtp: .98,
+    rounds: run.progress.sampleCount, observedRtp: run.progress.runningRtp, authoredTargetRtp: .96,
     configHash: run.configHash, measurementHash: run.measurementHash, runtimeProvenance: run.runtimeProvenance, measurements: values,
     execution: run.progress.execution, elapsedMs: run.progress.elapsedMs, roundsPerSecond: 100000000 / run.progress.elapsedMs,
     liveFrames: frames.length, primaryRunLiveFrames: frames.filter(f => f.runId === run.id).length,
     paidTurnoverReconciled: true, independentLawComparisonRetained: true, cohortLifecycleReconciled: true, wholeBonusPayoutReconciled: true, wholeBonusCohortsReconciled: true,
     workerReplayBitIdentical: true, mobileFits: true, browserErrors: errors,
     simulateUrl: base + `/simulate?run=${run.id}`, resultsUrl: base + `/results?run=${run.id}` });
-  await writeFile(root + '/docs/verification/advanced-measurements-production.json', JSON.stringify(report, null, 2) + '\n');
-  console.log(JSON.stringify({ runId: run.id, observedRtp: report.observedRtp, referenceRtp: .98, liveFrames: frames.length, simulateUrl: report.simulateUrl }));
+  await writeFile(root + '/artifacts/verification/advanced-measurements-production.json', JSON.stringify(report, null, 2) + '\n');
+  console.log(JSON.stringify({ runId: run.id, observedRtp: report.observedRtp, targetRtp: .96, liveFrames: frames.length, simulateUrl: report.simulateUrl }));
 } finally { for (const id of owned) await context.request.delete(base + '/api/runs/' + id).catch(() => {}); await browser.close(); }

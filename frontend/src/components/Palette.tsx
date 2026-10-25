@@ -1,5 +1,6 @@
 import { useCallback } from 'react';
 import { Ic, NODE_ACCENT } from './Icons';
+import { useAppStore, NODE_DEFAULTS } from '../store';
 
 interface PaletteItem {
   id: string;
@@ -51,8 +52,16 @@ function PaletteRow({ item }: { item: PaletteItem }) {
   );
 
   return (
-    <div
+    <button
+      type="button"
       className="pal-item"
+      onClick={() => {
+        const state = useAppStore.getState();
+        const key = item.nodeType === 'library' ? `library:${item.extra?.mechanicName}` : item.nodeType;
+        const id = `node-${crypto.randomUUID()}`;
+        state.addNode({ id, type: item.nodeType, position: { x: 100, y: 100 + state.nodes.length * 40 }, data: { nodeType: item.nodeType as 'draw', label: item.label, ...NODE_DEFAULTS[key], ...item.extra } });
+        state.selectNode(id);
+      }}
       title={`${item.label} — ${item.sub}`}
       draggable
       onDragStart={onDragStart}
@@ -64,7 +73,7 @@ function PaletteRow({ item }: { item: PaletteItem }) {
         <div className="pt">{item.label}</div>
         <div className="ps">{item.sub}</div>
       </div>
-    </div>
+    </button>
   );
 }
 

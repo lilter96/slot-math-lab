@@ -1,3 +1,4 @@
+import { drawCardSummary } from '../../../lib/drawRows';
 import { memo, type FC } from 'react';
 import { Handle, Position } from '@xyflow/react';
 import type { GraphNodeData } from '../../../store';
@@ -6,8 +7,10 @@ import { Ic, NODE_ACCENT } from '../../Icons';
 import ProvBadge from '../../ProvBadge';
 import type { Provenance } from '../../ProvBadge';
 import { openMechanic } from '../../../lib/projectFiles';
+import { dataPorts } from '../../../lib/graphConnections';
 
 interface BaseNodeProps {
+  id: string;
   data: GraphNodeData;
   selected: boolean;
 }
@@ -24,32 +27,28 @@ const iconMap: Record<string, keyof typeof Ic> = {
   sink: 'sink',
 };
 
-const BaseNodeCard: FC<BaseNodeProps> = ({ data, selected }) => {
+const BaseNodeCard: FC<BaseNodeProps> = ({ id, data, selected }) => {
   const accent = NODE_ACCENT[data.nodeType] ?? 'var(--text)';
   const iconKey = iconMap[data.nodeType] ?? 'draw';
   const IconC = Ic[iconKey];
   const lvlCls = data.level === 'b' ? 'node-lvl b' : data.level === 'c' ? 'node-lvl plugin' : 'node-lvl';
   const lvlTxt = data.level === 'b' ? 'expr' : data.level === 'c' ? 'plugin' : 'L0';
-  // Draw nodes generate values — they have no input handles
-  const hasIn = data.nodeType !== 'draw' || !!(data.backendNode as { inputs?: object } | undefined)?.inputs;
-  const hasOut = data.nodeType !== 'sink' && data.nodeType !== 'branch' && data.nodeType !== 'loop';
-  const backendNode = data.backendNode as { inputs?: Record<string, unknown>; outputs?: Record<string, unknown> } | undefined;
-  const inputPorts = Object.keys(backendNode?.inputs ?? {});
-  const outputPorts = Object.keys(backendNode?.outputs ?? {});
+  const inputPorts = dataPorts(id, data, 'inputs');
+  const outputPorts = dataPorts(id, data, 'outputs');
   const liveRtp = useAppStore((s) => s.liveRtp);
   const liveProvenance = useAppStore((s) => s.liveProvenance);
   const canOpen = useAppStore(s => !!(s.tables.mechanics as Record<string, unknown>)?.[String(data.mechanicName)]);
-  const rtpProvenance: Provenance | null = liveProvenance === 'Exact'
+  const rtpProvenance: Provenance | null = liveRtp == null ? null : liveProvenance === 'Exact'
     ? { kind: 'Exact' }
     : liveProvenance === 'ExactInterval' ? { kind: 'ExactInterval' }
     : liveProvenance === 'ExactWithMassLoss' ? { kind: 'ExactWithMassLoss' }
     : liveProvenance === 'Sampled'
-      ? { kind: 'Sampled', n: 0 }
+      ? { kind: 'Sampled' }
       : null;
 
   return (
     <div className={'node' + (selected ? ' selected' : '')} style={{ '--sel': accent } as React.CSSProperties}>
-      {hasIn && (inputPorts.length ? inputPorts.map((id, index) => <Handle key={id} id={id} type="target" position={Position.Left} className="port in" style={{ top: `${(index + 1) * 100 / (inputPorts.length + 1)}%` }} />) : <Handle type="target" position={Position.Left} className="port in" />)}
+      {inputPorts.map((port, index) => <Handle key={port.id} id={port.id} type="target" position={Position.Left} className="port in" title={`${port.id}: ${port.type}`} style={{ top: `${(index + 1) * 100 / (inputPorts.length + 1)}%` }} />)}
       <div className="node-head">
         <span className="node-ic" style={{ '--nc': accent } as React.CSSProperties}><IconC /></span>
         <div className="node-tt">
@@ -61,15 +60,11 @@ const BaseNodeCard: FC<BaseNodeProps> = ({ data, selected }) => {
       <div className="node-body">
         {data.nodeType === 'draw' && (() => {
           const dw = Array.isArray(data.drawWeights) ? data.drawWeights as { outcomeId: string; weight: number; value: number }[] : [];
-          if (dw.length === 0) {
-            return <div className="mini-row"><span className="k">mode</span><span className="v" style={{ color: 'var(--faint)' }}>unconfigured</span></div>;
-          }
-          const total = dw.reduce((s, w) => s + w.weight, 0);
-          const exp = total > 0 ? dw.reduce((s, w) => s + w.value * w.weight, 0) / total : 0;
+          const summary = drawCardSummary(data);
           return (
             <>
               <div className="mini-row"><span className="k">outcomes</span><span className="v">{dw.length}</span></div>
-              <div className="mini-row"><span className="k">E[value]</span><span className="v" style={{ color: 'var(--exact)' }}>{exp.toFixed(2)}</span></div>
+              <div className="mini-row" data-testid="draw-source-summary"><span className="k">{summary.label}</span><span className="v" title={summary.value} style={{ minWidth: 0, whiteSpace: 'normal', overflowWrap: 'anywhere', textAlign: 'right' }}>{summary.value.includes('/') ? <>{summary.value.split('/')[0]}/<wbr />{summary.value.split('/')[1]}</> : summary.value}</span></div>
               {data.stateWriteKey && (
                 <div className="mini-row">
                   <span className="k">→ state</span>
@@ -118,30 +113,14 @@ const BaseNodeCard: FC<BaseNodeProps> = ({ data, selected }) => {
         {data.nodeType === 'sink' && (
           <div className="mini-row">
             <span className="k">RTP</span>
-            <span className="v" style={{ color: liveRtp != null ? 'var(--exact)' : 'var(--faint)', fontSize: 13 }}>
+            <span className="v" style={{ color: liveRtp != null ? liveProvenance === 'Sampled' ? 'var(--sampled)' : 'var(--text)' : 'var(--faint)', fontSize: 13 }}>
               {liveRtp != null ? `${(liveRtp * 100).toFixed(2)}%` : '—'}
             </span>
             {rtpProvenance && <ProvBadge p={rtpProvenance} mini />}
           </div>
         )}
       </div>
-      {hasOut && (outputPorts.length ? outputPorts.map((id, index) => <Handle key={id} id={id} type="source" position={Position.Right} className="port out" style={{ top: `${(index + 1) * 100 / (outputPorts.length + 1)}%` }} />) : <Handle type="source" position={Position.Right} className="port out" />)}
-      {data.nodeType === 'branch' && (
-        <>
-          <Handle id="true" type="source" position={Position.Right}
-            style={{ top: '33%' }} className="port out" />
-          <Handle id="false" type="source" position={Position.Right}
-            style={{ top: '67%' }} className="port out" />
-        </>
-      )}
-      {data.nodeType === 'loop' && (
-        <>
-          <Handle id="body" type="source" position={Position.Right}
-            style={{ top: '35%' }} className="port out" />
-          <Handle id="exit" type="source" position={Position.Right}
-            style={{ top: '65%' }} className="port out" />
-        </>
-      )}
+      {outputPorts.map((port, index) => <Handle key={port.id} id={port.id} type="source" position={Position.Right} className="port out" title={`${port.id}: ${port.type}`} style={{ top: `${(index + 1) * 100 / (outputPorts.length + 1)}%` }} />)}
     </div>
   );
 };

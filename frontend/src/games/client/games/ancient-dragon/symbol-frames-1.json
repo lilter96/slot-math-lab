@@ -1,0 +1,26 @@
+{
+  "GOLDDRAGON": {
+    "x": 58,
+    "y": 4,
+    "width": 544,
+    "height": 614
+  },
+  "GREENDRAGON": {
+    "x": 680,
+    "y": 7,
+    "width": 523,
+    "height": 620
+  },
+  "FISH": {
+    "x": 85,
+    "y": 631,
+    "width": 490,
+    "height": 598
+  },
+  "TURTLE": {
+    "x": 653,
+    "y": 668,
+    "width": 587,
+    "height": 545
+  }
+}

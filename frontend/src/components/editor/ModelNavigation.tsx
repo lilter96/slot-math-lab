@@ -1,49 +1,56 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useAppStore } from '../../store';
-import { loadProject, openMechanic, rootProject } from '../../lib/projectFiles';
-import { createExpectationGraph } from '../../games/doghouse/expectationGraph';
-import { DEFAULT_FEATURES, useFeaturesQuery } from '../../api/hooks';
+import { exportProject, loadProject, reuseMechanic, rootProject } from '../../lib/projectFiles';
+import { extractSubgraph, type ComposableGraph } from '../../lib/subgraphComposition';
 import ProjectDataEditor from './ProjectDataEditor';
+import StarterLibrary from './StarterLibrary';
+import MechanicTree from './MechanicTree';
+import { closeMechanic } from '../../lib/projectFiles';
+import { useModelProjection } from '../../hooks/useModelProjection';
 
 export default function ModelNavigation() {
-  const tables = useAppStore(s => s.tables), trail = useAppStore(s => s.graphTrail);
-  const verificationSource = useAppStore(s => s.verificationSource);
-  const activeNodeCount = useAppStore(s => s.nodes.length);
-  const [showData, setShowData] = useState(false), [error, setError] = useState('');
-  const navigate = useNavigate();
-  const features = useFeaturesQuery().data ?? DEFAULT_FEATURES;
-  const proof = tables.uiAnalysisKind === 'expectationProof';
-  const source = proof ? verificationSource : trail[0]?.graph;
-  const mechanics = (source?.mechanics ?? tables.mechanics) as Record<string, { nodes: unknown[] }> | undefined;
-  if (!mechanics?.['dog-base-spin']) return null;
-  const rootNodeCount = Array.isArray(source?.nodes) ? source.nodes.length : activeNodeCount;
-  const totalNodeCount = rootNodeCount + Object.values(mechanics).reduce((sum, graph) => sum + graph.nodes.length, 0);
-  const target = Number(((source?.initialState ?? tables.initialState) as Record<string, unknown>)?.targetRtpPercent ?? 98);
-  const openGame = () => {
-    if (proof && verificationSource) {
-      loadProject(verificationSource); useAppStore.setState({ verificationSource: null, graphTrail: [] });
-    } else rootProject();
+  const trail = useAppStore(state => state.graphTrail);
+  const name = useAppStore(state => state.configName);
+  const [showData, setShowData] = useState(false);
+  const [subgraphName, setSubgraphName] = useState('');
+  const [search, setSearch] = useState('');
+  const [compositionError, setCompositionError] = useState<string | null>(null);
+  const source = trail[0]?.graph;
+  const graph = useModelProjection();
+  const extract = () => {
+    try {
+      const current = useAppStore.getState();
+      const ids = current.nodes.filter(node => node.selected).map(node => node.id);
+      if (!ids.length && current.selectedNodeId) ids.push(current.selectedNodeId);
+      const graph = exportProject();
+      if (!graph) throw new Error('Add and select atoms first.');
+      const updated = extractSubgraph(graph as ComposableGraph, subgraphName, ids, `subgraph-${crypto.randomUUID()}`);
+      // Stay at the same nesting level. Full-game export saves this definition and its parent together.
+      loadProject(updated);
+      setSubgraphName('');
+      setCompositionError(null);
+    } catch (error) { setCompositionError(error instanceof Error ? error.message : String(error)); }
   };
-  const open = (name: string) => { openGame(); openMechanic(name); setError(''); };
   return <>
-    <div className="model-navigation" data-testid="model-navigation">
-      <div className="model-navigation-heading"><b>The Dog House · target {target}%</b><span>{proof ? 'Exact RTP & calibration graph' : trail.length ? trail.map(x => x.mechanic).join(' / ') : `Complete game model · ${totalNodeCount} nodes in ${Object.keys(mechanics).length + 1} editable graphs`}</span></div>
-      <div className="model-navigation-actions" aria-label="Game model graphs">
-        <button className="btn" aria-label="Open full game graph" onClick={openGame}>Full game</button>
-        <button className="btn" aria-label="Open base game graph" onClick={() => open('dog-base-spin')}>Base reels · {mechanics['dog-base-spin'].nodes.length} nodes</button>
-        <button className="btn" aria-label="Open payline graph" onClick={() => open('dog-line')}>Paylines & payouts · {mechanics['dog-line'].nodes.length} nodes</button>
-        <button className="btn" aria-label="Open free spins graph" onClick={() => open('dog-free-spin')}>Free spins & Sticky Wilds · {mechanics['dog-free-spin'].nodes.length} nodes</button>
-        <button className="btn" aria-label="Open reel and payout tables" onClick={() => { openGame(); setShowData(true); }}>Reels / paytable</button>
-        <button className="btn" aria-label="Open exact RTP and calibration graph" disabled={proof} onClick={() => {
-          try { openGame(); const game = rootProject(); if (!game) return; const reference = createExpectationGraph(game);
-            useAppStore.setState({ verificationSource: game, graphTrail: [] }); loadProject(reference); useAppStore.getState().selectNode('rtp-total'); setError('');
-          } catch (e) { setError(e instanceof Error ? e.message : 'Cannot construct the expectation proof'); }
-        }}>Exact RTP / calibration</button>
-        {features.play && <button className="btn primary" onClick={() => { openGame(); navigate('/play'); }}>Play this model</button>}
+    <aside className="model-navigation mechanic-explorer" data-testid="model-navigation" aria-label="Mechanic explorer">
+      <div className="model-navigation-heading"><b>{String(source?.name ?? name ?? 'Untitled')}</b><span>Mechanics</span></div>
+      <div className="model-navigation-actions">
+        <button className="btn" aria-label="Open full game graph" onClick={() => rootProject()}>Full game</button>
+        <button className="btn" aria-label="Open model data tables" onClick={() => { rootProject(); setShowData(true); }}>Data tables</button>
       </div>
-      {error && <p role="alert">{error}</p>}
-    </div>
-    {showData && <ProjectDataEditor initialTable="linePaytable" onClose={() => setShowData(false)} />}
+      {trail.length > 0 && <div className="mechanic-context"><p>{trail.map(item => item.mechanic).join(' / ')}</p><button className="btn" onClick={closeMechanic}>Save & return</button><button className="btn" title="Connect a new reference to the full game" onClick={() => reuseMechanic(trail.at(-1)!.mechanic)}>Reuse this subgraph</button></div>}
+      <label className="mechanic-search">Find mechanic<input className="inp" type="search" aria-label="Find subgraph" placeholder="Name or description" value={search} onChange={event => setSearch(event.target.value)} /></label>
+      {graph && <MechanicTree graph={graph} search={search} />}
+      <StarterLibrary />
+      <details className="extract-disclosure"><summary>Extract selected atoms</summary>
+      <div className="model-navigation-actions model-navigation-extract">
+        <input className="inp" aria-label="Name for extraction" placeholder="Name for selected atoms" value={subgraphName} onChange={event => setSubgraphName(event.target.value)} />
+        <button className="btn" onClick={extract} disabled={!subgraphName.trim()} title="Move selected atoms into one editable definition. Connections, expressions and data are retained.">Extract selection</button>
+        <span className="hint">Shift-select atoms, name their subgraph, then reuse its definition.</span>
+      </div>
+      </details>
+      {compositionError && <p role="alert">{compositionError}</p>}
+    </aside>
+    {showData && <ProjectDataEditor onClose={() => setShowData(false)} />}
   </>;
 }

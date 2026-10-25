@@ -1,0 +1,26 @@
+{
+  "FAN": {
+    "x": 49,
+    "y": 68,
+    "width": 570,
+    "height": 541
+  },
+  "LOTUSFLOWER": {
+    "x": 647,
+    "y": 75,
+    "width": 576,
+    "height": 469
+  },
+  "YINYANG": {
+    "x": 62,
+    "y": 638,
+    "width": 512,
+    "height": 522
+  },
+  "INNER": {
+    "x": 719,
+    "y": 623,
+    "width": 440,
+    "height": 555
+  }
+}

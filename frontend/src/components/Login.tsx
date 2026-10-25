@@ -1,13 +1,13 @@
+import { getBrowserIdentity } from '../lib/browserIdentity';
 import { useEffect, useState } from 'react';
-export default function Login() {
-  const [required, setRequired] = useState(false);
+export default function Login({ forceRequired = false }: { forceRequired?: boolean }) {
+  const [required, setRequired] = useState(() => forceRequired || (getBrowserIdentity().required && !getBrowserIdentity().authenticated));
   const [userId, setUserId] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   useEffect(() => {
     const expired = () => { setRequired(true); setError('Session expired. Sign in to recover your existing run.'); };
     window.addEventListener('slotmath:auth-required', expired);
-    void fetch('/api/auth/status').then(r => r.json()).then(s => setRequired(s.required && !s.authenticated)).catch(() => {});
     return () => window.removeEventListener('slotmath:auth-required', expired);
   }, []);
   if (!required) return null;

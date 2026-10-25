@@ -1,0 +1,30 @@
+.verification-workbench { min-width: 0; overflow: hidden; }
+.verification-workbench > .simulation-card-head { padding: 24px; border-bottom: 0; }
+.verification-workbench > .measurement-tabs { display: flex; gap: 8px; flex-wrap: wrap; padding: 0 24px 20px; margin: 0; border-bottom: 1px solid var(--line); }
+.verification-workbench .measurement-tabs .btn { min-height: 40px; background: transparent; border-color: transparent; color: var(--muted); }
+.verification-workbench .measurement-tabs .btn[aria-selected="true"] { color: var(--sampled); background: var(--sampled-dim); border-color: var(--line-2); }
+.verification-tool-panel { padding: 24px; min-width: 0; }
+.verification-tool-panel p { color: var(--muted); font-size: 14px; line-height: 1.65; margin: 0 0 20px; max-width: 85ch; }
+.verification-tool-panel fieldset { min-width: 0; border: 1px solid var(--line); border-radius: 8px; padding: 20px; margin: 24px 0; background: var(--bg); }
+.verification-tool-panel legend { color: var(--text); font-size: 14px; font-weight: 500; padding: 0 8px; }
+.verification-tool-panel .measurement-form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px 24px; align-items: start; }
+.verification-tool-panel label { display: flex; flex-direction: column; align-items: stretch; gap: 8px; color: var(--muted); font-size: 13px; line-height: 1.5; min-width: 0; }
+.verification-tool-panel label.measurement-checkbox { flex-direction: row; align-items: center; margin: 8px 0; }
+.verification-tool-panel input:not([type="checkbox"]), .verification-tool-panel select, .verification-tool-panel textarea { display: block; box-sizing: border-box; width: 100%; min-width: 0; min-height: 40px; padding: 9px 12px; border: 1px solid var(--line-2); border-radius: 6px; background: var(--bg-1); color: var(--text); font: 13px var(--sans); color-scheme: dark; }
+.verification-tool-panel input[type="checkbox"] { accent-color: var(--sampled); width: 18px; height: 18px; flex-shrink: 0; }
+.verification-tool-panel input:focus-visible, .verification-tool-panel select:focus-visible, .verification-workbench button:focus-visible { outline: 2px solid var(--sl-focus); outline-offset: 2px; }
+.verification-tool-panel small { color: var(--muted); font-size: 12px; line-height: 1.5; }
+.verification-tool-panel > div > .btn { margin: 0 8px 8px 0; min-height: 40px; }
+.verification-tool-panel .results-table input { min-width: 90px; }
+.verification-tool-panel fieldset > .measurement-form-grid + .measurement-form-grid { padding-top: 20px; margin-top: 20px; border-top: 1px solid var(--line); }
+@media (max-width: 768px) {
+  .verification-workbench > .simulation-card-head, .verification-tool-panel { padding: 20px 16px; }
+  .verification-workbench > .measurement-tabs { padding: 0 16px 16px; }
+  .verification-tool-panel .measurement-form-grid { grid-template-columns: 1fr; }
+  .verification-tool-panel fieldset { padding: 16px; }
+  .verification-tool-panel input:not([type="checkbox"]), .verification-tool-panel select, .verification-workbench .btn { min-height: 44px; }
+}
+
+.verification-workbench .btn:disabled { opacity: 1; color: var(--muted); background: var(--bg-2); border: 1px solid var(--line); cursor: not-allowed; }
+.verification-tool-panel fieldset > .btn { margin-top: 12px; }
+.verification-tool-panel fieldset > .btn + .btn { margin-left: 8px; }

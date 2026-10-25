@@ -50,3 +50,10 @@ test('Results rejects persisted tracked aggregates that disagree with the live s
   run.resultJson = JSON.stringify({ ...result, measurements: [{ ...snapshot, mean: 33 }] }); p.resultJson = run.resultJson;
   expect(inspectRun(run).issues).toContain('Persisted tracked measurements differ from the pinned run snapshot.');
 });
+
+test('Measurement AST JSON rejects original unsafe numeric tokens and preserves exact string constants', async () => {
+  const { metricExpression } = await import('../src/lib/measurements/model');
+  expect(() => metricExpression('{"exprType":"constant","kind":"Integer","value":9007199254740993}', 'ast')).toThrow(/exact browser range/);
+  expect(metricExpression('{"exprType":"constant","kind":"Integer","value":"9223372036854775807"}', 'ast').value).toBe('9223372036854775807');
+  expect(metricExpression('{"exprType":"constant","kind":"Rational","value":"1/3"}', 'visual').value).toBe('1/3');
+});

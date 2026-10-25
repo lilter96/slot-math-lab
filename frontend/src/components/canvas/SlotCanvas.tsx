@@ -1,29 +1,31 @@
-import { useCallback, useRef, useEffect } from 'react';
+import { useCallback, useRef, useEffect, useState } from 'react';
 import {
   ReactFlow,
   ReactFlowProvider,
   Background,
-  Controls,
   useNodesInitialized,
   useReactFlow,
   type Connection,
   type Node,
+  type Viewport,
 } from '@xyflow/react';
 import { useAppStore, NODE_DEFAULTS, type GraphNodeData } from '../../store';
 import { nodeTypes } from './nodes';
 import CanvasToolbar from './CanvasToolbar';
 import type { GraphNode } from '../../store';
 import { openMechanic } from '../../lib/projectFiles';
+import { confirmGraphDelete } from '../../lib/confirmGraphDelete';
 
+const cameras = new Map<string, Viewport>();
 function FitLoadedGraph() {
   const initialized = useNodesInitialized();
-  const { fitView } = useReactFlow();
-  const graphKey = useAppStore(s => `${s.configName}:${s.graphTrail.map(x => x.mechanic).join('/')}:${s.nodes.map(x => x.id).join(',')}`);
+  const { fitView, setViewport } = useReactFlow();
+  const graphKey = useAppStore(s => `${s.projectId ?? s.tables.id ?? s.configName}:${s.graphTrail.map(x => x.mechanic).join('/')}`);
   useEffect(() => {
     if (!initialized) return;
-    const frame = requestAnimationFrame(() => { void fitView({ padding: 0.15, maxZoom: 1 }); });
+    const frame = requestAnimationFrame(() => { const saved = cameras.get(graphKey); if (saved) void setViewport(saved); else void fitView({ padding: 0.15, maxZoom: 1 }); });
     return () => cancelAnimationFrame(frame);
-  }, [initialized, graphKey, fitView]);
+  }, [initialized, graphKey, fitView, setViewport]);
   return null;
 }
 
@@ -35,7 +37,12 @@ const defaultEdgeOptions = {
   },
 };
 
-export default function SlotCanvas() {
+function CanvasSurface() {
+  const { screenToFlowPosition } = useReactFlow();
+  const [smallScreen, setSmallScreen] = useState(() => window.matchMedia('(max-width: 767px)').matches);
+  const interactive = useAppStore(s => s.canvasInteractive);
+  const graphKey = useAppStore(s => `${s.projectId ?? s.tables.id ?? s.configName}:${s.graphTrail.map(x => x.mechanic).join('/')}`);
+  useEffect(() => { const query = window.matchMedia('(max-width: 767px)'); const update = () => setSmallScreen(query.matches); query.addEventListener('change', update); return () => query.removeEventListener('change', update); }, []);
   const nodes = useAppStore((s) => s.nodes);
   const edges = useAppStore((s) => s.edges);
   const onNodesChange = useAppStore((s) => s.onNodesChange);
@@ -46,7 +53,6 @@ export default function SlotCanvas() {
   const edgeError = useAppStore((s) => s.edgeValidationError);
   const setEdgeError = useAppStore((s) => s.setEdgeValidationError);
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
-  const idCounter = useRef(0);
 
   const onNodeClick = useCallback(
     (_: React.MouseEvent, node: Node) => {
@@ -72,8 +78,8 @@ export default function SlotCanvas() {
       if (!type) return;
       const wrapper = reactFlowWrapper.current;
       if (!wrapper) return;
-      const bounds = wrapper.getBoundingClientRect();
-      const id = `node-${++idCounter.current}`;
+      if (smallScreen || !interactive) return;
+      const id = `node-${crypto.randomUUID()}`;
 
       // For library (catalog) nodes, extra data contains the mechanicName
       let extra: Record<string, string> = {};
@@ -91,7 +97,7 @@ export default function SlotCanvas() {
       const newNode: GraphNode = {
         id,
         type: type as string,
-        position: { x: e.clientX - bounds.left - 80, y: e.clientY - bounds.top - 20 },
+        position: screenToFlowPosition({ x: e.clientX, y: e.clientY }),
         data: {
           nodeType: type as GraphNodeData['nodeType'],
           label: defaults.label ?? type,
@@ -101,17 +107,17 @@ export default function SlotCanvas() {
       };
       addNode(newNode);
     },
-    [addNode],
+    [addNode, screenToFlowPosition, smallScreen, interactive],
   );
 
   return (
-    <ReactFlowProvider>
     <div ref={reactFlowWrapper} className="canvas-wrap" style={{ flex: 1 }}>
       <ReactFlow
         nodes={nodes}
         edges={edges}
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
+        onBeforeDelete={async ({ nodes: removedNodes, edges: removedEdges }) => confirmGraphDelete(removedNodes.length, removedEdges.length)}
         onConnect={(conn: Connection) => {
           setEdgeError(null);
           onConnect(conn);
@@ -126,10 +132,14 @@ export default function SlotCanvas() {
         onDrop={onDrop}
         nodeTypes={nodeTypes}
         defaultEdgeOptions={defaultEdgeOptions}
+        onlyRenderVisibleElements
         fitView
         minZoom={0.1}
         maxZoom={2}
-        deleteKeyCode={['Backspace', 'Delete']}
+        nodesDraggable={!smallScreen && interactive}
+        nodesConnectable={!smallScreen && interactive}
+        onMoveEnd={(_, viewport) => { cameras.set(graphKey, viewport); if (cameras.size > 50) cameras.delete(cameras.keys().next().value!); }}
+        deleteKeyCode={smallScreen || !interactive ? null : ['Backspace', 'Delete']}
         multiSelectionKeyCode="Shift"
         selectionKeyCode="Shift"
         style={{ background: 'var(--bg-canvas)' }}
@@ -140,16 +150,9 @@ export default function SlotCanvas() {
           size={1}
           color="oklch(0.32 0.014 255)"
         />
-        <Controls
-          style={{
-            background: 'var(--bg-1)',
-            border: '1px solid var(--line)',
-            borderRadius: '9px',
-            boxShadow: 'var(--shadow)',
-          }}
-        />
       </ReactFlow>
-      <CanvasToolbar />
+      <CanvasToolbar canConnect={!smallScreen && interactive} />
+      {smallScreen && <p className="mobile-graph-notice" role="status">Graph movement and connections are read only on this screen. Open on desktop for full authoring.</p>}
       {edgeError && (
         <div
           style={{
@@ -188,6 +191,7 @@ export default function SlotCanvas() {
       )}
       <div className="canvas-hint">drag nodes · scroll to zoom · hold space to pan</div>
     </div>
-    </ReactFlowProvider>
   );
 }
+
+export default function SlotCanvas() { return <ReactFlowProvider><CanvasSurface /></ReactFlowProvider>; }

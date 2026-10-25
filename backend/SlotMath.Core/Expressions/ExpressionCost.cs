@@ -17,30 +17,94 @@ namespace SlotMath.Core.Expressions;
 public static class ExpressionCost
 {
     /// <summary>
-    /// Weight applied to a bounded fold/map/filter body to reflect that it runs
-    /// once per array element (D16: fold cost = arrayLength · bodyCost). A static,
-    /// conservative bound on array length for the static op-count estimate.
+    ///     Historical estimate for state-key forms without explicit bounds.
+    ///     New bounded forms charge their declared MaxItems, including nested work.
     /// </summary>
     private const int BoundedIterationFactor = 64;
 
     /// <summary>Total static operation count of the expression tree (D15).</summary>
-    public static long Compute(Expression expr) => expr switch
+    public static long Compute(Expression expr) => Compute(expr, 0);
+
+    private static long Add(long left, long right) => left > long.MaxValue - right ? long.MaxValue : left + right;
+
+    private static long Multiply(long value, int count) =>
+        count < 0 || value == long.MaxValue || (count != 0 && value > long.MaxValue / count)
+            ? long.MaxValue
+            : value * count;
+
+    private static long Compute(Expression expr, int depth)
     {
-        ConstantExpr => 1,
-        FieldAccessExpr => 1,
-        NotExpr n => 1 + Compute(n.Expr),
-        BinaryExpr b => 1 + Compute(b.Left) + Compute(b.Right),
-        CompareExpr c => 1 + Compute(c.Left) + Compute(c.Right),
-        IfExpr i => 1 + Compute(i.Condition) + Compute(i.ThenExpr) + Compute(i.ElseExpr),
-        AggregateExpr a => 1 + BoundedIterationFactor * (
-            (a.Predicate is null ? 0 : Compute(a.Predicate)) +
-            (a.ValueExpr is null ? 0 : Compute(a.ValueExpr))),
-        CallExpr call => 1 + call.Args.Sum(Compute),
-        MapExpr m => 1 + BoundedIterationFactor * Compute(m.Body),
-        FilterExpr f => 1 + BoundedIterationFactor * Compute(f.Predicate),
-        FoldExpr fold => 1 + Compute(fold.Init) + BoundedIterationFactor * Compute(fold.Body),
-        _ => 1,
-    };
+        if (depth > 128)
+        {
+            return long.MaxValue;
+        }
+
+        long Child(Expression? value)
+        {
+            return value is null ? 0 : Compute(value, depth + 1);
+        }
+
+        long Sum(IEnumerable<Expression> values)
+        {
+            long result = 0;
+            foreach (Expression value in values)
+            {
+                result = Add(result, Child(value));
+            }
+
+            return result;
+        }
+
+        long Iteration(Expression collection, long body, long init = 0)
+        {
+            CollectionInput input = CollectionInputs.Of(collection);
+            var bound = input.MaxItems ?? BoundedIterationFactor;
+            return Add(Add(1, Add(Child(input.Source), init)),
+                Multiply(input.MaxItems is null ? body : Add(1, body), bound));
+        }
+
+        return expr switch
+        {
+            ConstantExpr or FieldAccessExpr or LocalExpr => 1,
+            LetExpr e => Add(1, Add(Child(e.Value), Child(e.Body))),
+            RecordExpr e => Add(1, Sum(e.Fields.Select(field => field.Value))),
+            TupleExpr e => Add(1, Sum(e.Items)),
+            ProjectExpr e => Add(1, Child(e.Value)),
+            ReachableExpr e => Add(Add(Add(Child(e.Adjacency), Child(e.Allowed)), Child(e.Seeds)),
+                e.VertexCount is >= 0 and <= ReachabilityData.MaxVertices ? 1 + 2L * e.VertexCount : long.MaxValue),
+            ScanExpr e => Add(Child(e.Source), e.MaxItems is >= 0 and <= CollectionInputs.MaxItems
+                ? 1L + e.MaxItems
+                : long.MaxValue),
+            SegmentedCompactExpr e => Add(Add(Child(e.Keep), Child(e.Boundaries)),
+                e.MaxItems is >= 0 and <= CollectionInputs.MaxItems &&
+                e.MaxSegments is >= 0 and <= CollectionInputs.MaxItems
+                    ? 2L + 3L * e.MaxItems + 2L * e.MaxSegments
+                    : long.MaxValue),
+            ScatterExpr e => Add(Add(Add(Child(e.Target), Child(e.Indices)), Child(e.Values)),
+                e.MaxItems is >= 0 and <= CollectionInputs.MaxItems &&
+                e.MaxUpdates is >= 0 and <= CollectionInputs.MaxItems
+                    ? 1L + e.MaxItems + 3L * e.MaxUpdates
+                    : long.MaxValue),
+            PartitionIndicesExpr e => Add(Child(e.Labels),
+                e.MaxItems is >= 0 and <= CollectionInputs.MaxItems &&
+                e.BucketCount is >= 0 and <= CollectionInputs.MaxItems
+                    ? 1L + 2L * e.MaxItems + e.BucketCount
+                    : long.MaxValue),
+            NotExpr e => Add(1, Child(e.Expr)),
+            BinaryExpr e => Add(1, Add(Child(e.Left), Child(e.Right))),
+            CompareExpr e => Add(1, Add(Child(e.Left), Child(e.Right))),
+            IfExpr e => Add(1, Add(Child(e.Condition), Add(Child(e.ThenExpr), Child(e.ElseExpr)))),
+            AggregateExpr e => Iteration(e, Add(Child(e.Predicate), Child(e.ValueExpr))),
+            BitSetExpr e => Add(1, Sum(e.Args)),
+            CallExpr e => Add(1, Sum(e.Args)),
+            MapExpr e => Iteration(e, Child(e.Body)),
+            FilterExpr e => Iteration(e, Child(e.Predicate)),
+            FoldExpr e => e.WhileCondition is not null && e.MaxItems is null
+                ? long.MaxValue
+                : Iteration(e, Add(Child(e.WhileCondition), Child(e.Body)), Child(e.Init)),
+            _ => 1
+        };
+    }
 
     /// <summary>True when the expression's static cost is within the D16 budget.</summary>
     public static bool WithinBudget(Expression expr, out long cost)

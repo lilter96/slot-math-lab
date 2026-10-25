@@ -1,146 +1,223 @@
-import { create } from 'zustand';
-import { LIMITS } from '../lib/limits';
-import type { Node, Edge, Connection, OnNodesChange, OnEdgesChange, NodeChange, EdgeChange } from '@xyflow/react';
+import {assertModelNumbers, parseModelJson} from '../lib/modelJson';
+import {create} from 'zustand';
+import {browserStorageKey} from '../lib/browserIdentity';
+import {type AuthoringViews, parseAuthoringViews} from '../lib/authoring/viewMetadata';
+import {LIMITS} from '../lib/limits';
+import {connectionError, nodePorts} from '../lib/graphConnections';
+import {
+    applyEdgeChanges,
+    applyNodeChanges,
+    type Connection,
+    type Edge,
+    type EdgeChange,
+    type Node,
+    type NodeChange,
+    type OnEdgesChange,
+    type OnNodesChange,
+} from '@xyflow/react';
 
-export type TabId = 'build' | 'simulate' | 'results' | 'export' | 'play';
+const INSPECTOR_PIN_KEY = browserStorageKey('slotmath-inspector-pinned');
+const TABLE_DENSITY_KEY = browserStorageKey('slotmath-table-density');
+
+function initialDensity(): Density {
+    try {
+        return typeof window !== 'undefined' && localStorage.getItem(TABLE_DENSITY_KEY) === 'compact' ? 'compact' : 'regular';
+    } catch {
+        return 'regular';
+    }
+}
+
+const initialInspectorPinned = (() => {
+    try {
+        return typeof window !== 'undefined' && localStorage.getItem(INSPECTOR_PIN_KEY) === 'true';
+    } catch {
+        return false;
+    }
+})();
+
+export type TabId =
+    'projects'
+    | 'overview'
+    | 'data'
+    | 'studio'
+    | 'machine'
+    | 'features'
+    | 'build'
+    | 'simulate'
+    | 'results'
+    | 'export'
+    | 'debug'
+    | 'play';
 export type Mood = 'slate' | 'ocean' | 'violet' | 'steel';
 export type Density = 'compact' | 'regular';
 
 export interface Tweaks {
-  accent: string;
-  mood: Mood;
-  grid: boolean;
-  flow: boolean;
-  density: Density;
+    accent: string;
+    mood: Mood;
+    grid: boolean;
+    flow: boolean;
+    density: Density;
 }
 
 // ── Graph state (for @xyflow/react canvas) ──────────────────────────
 
 export interface DrawWeightEntry {
-  outcomeId: string;
-  weight: number;
-  /** Numeric value produced when this outcome is drawn. Any integer — not necessarily monetary. */
-  value: number;
+    outcomeId: string;
+    weight: number;
+    /** Numeric value produced when this outcome is drawn. Any integer — not necessarily monetary. */
+    value: number;
 }
 
 export interface GraphNodeData {
-  label: string;
-  nodeType: 'draw' | 'state' | 'loop' | 'branch' | 'map' | 'evaluator' | 'transform' | 'library' | 'sink';
-  sub?: string;
-  level?: 'a' | 'b' | 'c';
-  /** Loop-specific config */
-  iterations?: number;
-  terminationExpr?: string;
-  /** Evaluator config */
-  evaluatorKind?: 'lines' | 'ways' | 'cluster' | 'scatter' | 'plugin';
-  /** Expression on weight/multiplier ports */
-  expression?: string;
-  /** Draw node: inline weighted outcomes (no ReelSets needed) */
-  drawWeights?: DrawWeightEntry[];
-  /** State node operation */
-  stateOp?: 'get' | 'put' | 'modify';
-  /** State key for Get/Put/Modify nodes */
-  stateKey?: string;
-  /** Transform/evaluator ID for Map nodes (level a: 'lines'|'ways'|etc; level c: 'plugin:pluginId') */
-  transformId?: string;
-  /** Weight expression ID for Draw level (b) */
-  weightExpressionId?: string;
-  /** Draw node: when set, writes the drawn outcomeId to this state key */
-  stateWriteKey?: string;
-  /** Plugin ID when evaluatorKind === 'plugin' */
-  pluginId?: string;
-  /** Library (catalog mechanic) node: the catalog mechanic name */
-  mechanicName?: string;
-  [key: string]: unknown;
+    label: string;
+    nodeType: 'draw' | 'state' | 'loop' | 'branch' | 'map' | 'evaluator' | 'transform' | 'library' | 'sink';
+    sub?: string;
+    level?: 'a' | 'b' | 'c';
+    /** Loop-specific config */
+    iterations?: number;
+    terminationExpr?: string;
+    /** Evaluator config */
+    evaluatorKind?: 'lines' | 'ways' | 'cluster' | 'scatter' | 'plugin';
+    /** Expression on weight/multiplier ports */
+    expression?: string;
+    /** Draw node: inline weighted outcomes (no ReelSets needed) */
+    drawWeights?: DrawWeightEntry[];
+    /** State node operation */
+    stateOp?: 'get' | 'put' | 'modify';
+    /** State key for Get/Put/Modify nodes */
+    stateKey?: string;
+    /** Transform/evaluator ID for Map nodes (level a: 'lines'|'ways'|etc; level c: 'plugin:pluginId') */
+    transformId?: string;
+    /** Weight expression ID for Draw level (b) */
+    weightExpressionId?: string;
+    /** Draw node: when set, writes the drawn outcomeId to this state key */
+    stateWriteKey?: string;
+    /** Plugin ID when evaluatorKind === 'plugin' */
+    pluginId?: string;
+    /** Library (catalog mechanic) node: the catalog mechanic name */
+    mechanicName?: string;
+
+    [key: string]: unknown;
 }
 
 export type GraphNode = Node<GraphNodeData>;
-export type GraphEdge = Edge<{ metric?: string }>;
+export type GraphEdge = Edge<{ metric?: string; backendEdge?: Record<string, unknown> }>;
 
 export interface GraphState {
-  tables: Record<string, unknown>;
-  nodes: GraphNode[];
-  edges: GraphEdge[];
-  selectedNodeId: string | null;
-  selectNode: (id: string | null) => void;
-  onNodesChange: OnNodesChange<GraphNode>;
-  onEdgesChange: OnEdgesChange<GraphEdge>;
-  addNode: (node: GraphNode) => void;
-  removeNode: (id: string) => void;
-  onConnect: (connection: Connection) => void;
-  setNodeData: (id: string, data: Partial<GraphNodeData>) => void;
-  edgeValidationError: string | null;
-  setEdgeValidationError: (err: string | null) => void;
-  limitError: string | null;
-  setLimitError: (err: string | null) => void;
-  /** Auth state for multi-tenancy */
-  isAuthenticated: boolean;
-  userDisplayName: string | null;
-  setAuth: (authenticated: boolean, name?: string | null) => void;
+    tables: Record<string, unknown>;
+    nodes: GraphNode[];
+    edges: GraphEdge[];
+    selectedNodeId: string | null;
+    /** Canvas interactivity lock — false freezes dragging/connecting/selection. */
+    canvasInteractive: boolean;
+    inspectorOpen: boolean;
+    inspectorPinned: boolean;
+    setInspectorOpen: (value: boolean) => void;
+    setInspectorPinned: (value: boolean) => void;
+    setCanvasInteractive: (value: boolean) => void;
+    selectNode: (id: string | null) => void;
+    onNodesChange: OnNodesChange<GraphNode>;
+    onEdgesChange: OnEdgesChange<GraphEdge>;
+    addNode: (node: GraphNode) => void;
+    removeNode: (id: string) => void;
+    onConnect: (connection: Connection) => void;
+    setNodeData: (id: string, data: Partial<GraphNodeData>) => void;
+    edgeValidationError: string | null;
+    setEdgeValidationError: (err: string | null) => void;
+    limitError: string | null;
+    setLimitError: (err: string | null) => void;
+    /** Auth state for multi-tenancy */
+    isAuthenticated: boolean;
+    userDisplayName: string | null;
+    setAuth: (authenticated: boolean, name?: string | null) => void;
 }
 
 export const NODE_DEFAULTS: Record<string, Partial<GraphNodeData>> = {
-  draw: { label: 'Draw', sub: 'Weighted choice', level: 'a' },
-  state: { label: 'State', sub: 'Get / Put / Modify', level: 'a', stateOp: 'get', stateKey: '' },
-  loop: { label: 'Loop', sub: 'Fixpoint + stop', level: 'a', iterations: 5, terminationExpr: '' },
-  branch: { label: 'Branch', sub: 'Bind + conditional', level: 'a' },
-  map: { label: 'Map', sub: 'Transform result', level: 'a' },
-  evaluator: { label: 'Evaluator', sub: 'IEvaluator', level: 'a', evaluatorKind: 'lines' },
-  transform: { label: 'Transform', sub: 'ITransform', level: 'a' },
-  sink: { label: 'Sink', sub: 'Metrics output', level: 'a', winCap: 10000 },
-  // Catalog (library) mechanics — one entry per built-in subgraph
-  'library:scatter':     { label: 'Scatter',      sub: 'Catalog mechanic', level: 'a', nodeType: 'library', mechanicName: 'scatter' },
-  'library:lines':       { label: 'Lines',         sub: 'Catalog mechanic', level: 'a', nodeType: 'library', mechanicName: 'lines' },
-  'library:ways':        { label: 'Ways',          sub: 'Catalog mechanic', level: 'a', nodeType: 'library', mechanicName: 'ways' },
-  'library:cascade':     { label: 'Cascade',       sub: 'Catalog mechanic', level: 'a', nodeType: 'library', mechanicName: 'cascade' },
-  'library:sticky-wild': { label: 'Sticky Wild',   sub: 'Catalog mechanic', level: 'a', nodeType: 'library', mechanicName: 'sticky-wild' },
-  'library:hold-and-win':{ label: 'Hold & Win',    sub: 'Catalog mechanic', level: 'a', nodeType: 'library', mechanicName: 'hold-and-win' },
+    draw: {label: 'Draw', sub: 'Weighted choice', level: 'a'},
+    state: {label: 'State', sub: 'Get / Put / Modify', level: 'a', stateOp: 'get', stateKey: ''},
+    loop: {label: 'Loop', sub: 'Fixpoint + stop', level: 'a', iterations: 5, terminationExpr: ''},
+    branch: {label: 'Branch', sub: 'Bind + conditional', level: 'a'},
+    map: {label: 'Map', sub: 'Transform result', level: 'a'},
+    evaluator: {label: 'Evaluator', sub: 'IEvaluator', level: 'a', evaluatorKind: 'lines'},
+    transform: {label: 'Transform', sub: 'ITransform', level: 'a'},
+    sink: {label: 'Sink', sub: 'Metrics output', level: 'a', winCap: 10000},
+    // Catalog (library) mechanics — one entry per built-in subgraph
+    'library:scatter': {
+        label: 'Scatter',
+        sub: 'Catalog mechanic',
+        level: 'a',
+        nodeType: 'library',
+        mechanicName: 'scatter'
+    },
+    'library:lines': {label: 'Lines', sub: 'Catalog mechanic', level: 'a', nodeType: 'library', mechanicName: 'lines'},
+    'library:ways': {label: 'Ways', sub: 'Catalog mechanic', level: 'a', nodeType: 'library', mechanicName: 'ways'},
+    'library:cascade': {
+        label: 'Cascade',
+        sub: 'Catalog mechanic',
+        level: 'a',
+        nodeType: 'library',
+        mechanicName: 'cascade'
+    },
+    'library:sticky-wild': {
+        label: 'Sticky Wild',
+        sub: 'Catalog mechanic',
+        level: 'a',
+        nodeType: 'library',
+        mechanicName: 'sticky-wild'
+    },
+    'library:hold-and-win': {
+        label: 'Hold & Win',
+        sub: 'Catalog mechanic',
+        level: 'a',
+        nodeType: 'library',
+        mechanicName: 'hold-and-win'
+    },
 };
 
 // ── Connection validation ──────────────────────────────────────────
 
 /** Valid port-to-port connections. sink has no output. */
 const VALID_CONNECTIONS: Record<string, string[]> = {
-  draw: ['sink', 'map', 'state', 'evaluator', 'transform', 'library', 'loop', 'branch'],
-  state: ['draw', 'evaluator', 'transform', 'library', 'loop', 'branch', 'map', 'sink'],
-  loop: ['evaluator', 'transform', 'library', 'draw', 'branch', 'map', 'sink'],
-  branch: ['evaluator', 'transform', 'library', 'draw', 'loop', 'map', 'sink'],
-  map: ['evaluator', 'transform', 'library', 'draw', 'loop', 'branch', 'sink'],
-  evaluator: ['transform', 'library', 'loop', 'branch', 'map', 'sink'],
-  transform: ['evaluator', 'transform', 'library', 'loop', 'branch', 'map', 'sink'],
-  library: ['evaluator', 'transform', 'library', 'loop', 'branch', 'map', 'sink'],
-  sink: [],
+    draw: ['sink', 'map', 'state', 'evaluator', 'transform', 'library', 'loop', 'branch'],
+    state: ['draw', 'evaluator', 'transform', 'library', 'loop', 'branch', 'map', 'sink'],
+    loop: ['evaluator', 'transform', 'library', 'draw', 'branch', 'map', 'sink'],
+    branch: ['evaluator', 'transform', 'library', 'draw', 'loop', 'map', 'sink'],
+    map: ['evaluator', 'transform', 'library', 'draw', 'loop', 'branch', 'sink'],
+    evaluator: ['transform', 'library', 'loop', 'branch', 'map', 'sink'],
+    transform: ['evaluator', 'transform', 'library', 'loop', 'branch', 'map', 'sink'],
+    library: ['evaluator', 'transform', 'library', 'loop', 'branch', 'map', 'sink'],
+    sink: [],
 };
 
 export function validateConnection(
-  sourceType: string,
-  targetType: string,
+    sourceType: string,
+    targetType: string,
 ): string | null {
-  if (sourceType === 'sink') {
-    return 'Sink nodes have no output ports.';
-  }
-  const valid = VALID_CONNECTIONS[sourceType];
-  if (!valid || !valid.includes(targetType)) {
-    return `Cannot connect ${sourceType} → ${targetType}. Valid targets for ${sourceType}: ${(valid || []).join(', ') || 'none'}.`;
-  }
-  return null;
+    if (sourceType === 'sink') {
+        return 'Sink nodes have no output ports.';
+    }
+    const valid = VALID_CONNECTIONS[sourceType];
+    if (!valid || !valid.includes(targetType)) {
+        return `Cannot connect ${sourceType} → ${targetType}. Valid targets for ${sourceType}: ${(valid || []).join(', ') || 'none'}.`;
+    }
+    return null;
 }
 
 // ── Custom Mechanics ───────────────────────────────────────────────
 
 export interface CustomMechanic {
-  id: string;
-  name: string;
-  description?: string;
-  nodes: GraphNode[];
-  edges: GraphEdge[];
-  createdAt: string;
+    id: string;
+    name: string;
+    description?: string;
+    nodes: GraphNode[];
+    edges: GraphEdge[];
+    createdAt: string;
 }
 
 export interface MechanicsState {
-  mechanics: CustomMechanic[];
-  addMechanic: (m: CustomMechanic) => void;
-  removeMechanic: (id: string) => void;
+    mechanics: CustomMechanic[];
+    addMechanic: (m: CustomMechanic) => void;
+    removeMechanic: (id: string) => void;
 }
 
 // ── Plugins ────────────────────────────────────────────────────────
@@ -148,211 +225,499 @@ export interface MechanicsState {
 export type PluginContract = 'IEvaluator' | 'ITransform' | 'WeightSource';
 
 export interface PluginEntry {
-  pluginId: string;
-  contract: PluginContract;
-  version?: string;
-  isConformant: boolean;
-  conformanceNote?: string;
-  /** When a plugin is used, the game must be flagged sampled-regime */
-  forcesSampledRegime: boolean;
+    pluginId: string;
+    contract: PluginContract;
+    version?: string;
+    isConformant: boolean;
+    conformanceNote?: string;
+    /** When a plugin is used, the game must be flagged sampled-regime */
+    forcesSampledRegime: boolean;
 }
 
 export interface PluginsState {
-  plugins: PluginEntry[];
-  registerPlugin: (p: PluginEntry) => void;
-  removePlugin: (id: string) => void;
-  setPluginsFromBackend: (plugins: PluginEntry[]) => void;
-  backendAvailable: boolean;
-  setBackendAvailable: (v: boolean) => void;
+    plugins: PluginEntry[];
+    registerPlugin: (p: PluginEntry) => void;
+    removePlugin: (id: string) => void;
+    setPluginsFromBackend: (plugins: PluginEntry[]) => void;
+    backendAvailable: boolean;
+    setBackendAvailable: (v: boolean) => void;
 }
 
 export interface MechanicsSyncState {
-  setMechanicsFromBackend: (mechanics: CustomMechanic[]) => void;
+    setMechanicsFromBackend: (mechanics: CustomMechanic[]) => void;
 }
 
 // ── Store ──────────────────────────────────────────────────────────
 
+export type ProjectDraft =
+    Pick<AppState, 'nodes' | 'edges' | 'tables' | 'graphTrail' | 'verificationSource' | 'configName' | 'authoringDraft' | 'resultsDraft'>
+    & { updatedAt: string; authoringViews?: AuthoringViews | null };
+
 export interface AppState extends GraphState, MechanicsState, PluginsState, MechanicsSyncState {
-  resultsDraft: Pick<AppState, 'nodes' | 'edges' | 'tables' | 'graphTrail' | 'verificationSource' | 'configName'> | null;
-  graphTrail: { graph: Record<string, unknown>; mechanic: string }[];
-  verificationSource: Record<string, unknown> | null;
-  tab: TabId;
-  setTab: (tab: TabId) => void;
-  configName: string | null;
-  setConfigName: (name: string | null) => void;
-  tweaks: Tweaks;
-  setTweak: <K extends keyof Tweaks>(key: K, value: Tweaks[K]) => void;
-  /** Live metrics from /evaluate/light — shown on sink node and MetricStrip */
-  liveRtp: number | null;
-  liveProvenance: 'Exact' | 'ExactInterval' | 'ExactWithMassLoss' | 'Sampled' | 'NeedsFullRun' | null;
-  setLiveMetrics: (rtp: number | null, provenance: 'Exact' | 'ExactInterval' | 'ExactWithMassLoss' | 'Sampled' | 'NeedsFullRun' | null) => void;
+    projectId: string | null;
+    projects: Record<string, ProjectDraft>;
+    authoringViews: AuthoringViews | null;
+    authoringDraft: Pick<AppState, 'nodes' | 'edges' | 'tables' | 'graphTrail' | 'verificationSource' | 'configName' | 'selectedNodeId'> & {
+        projectId?: string | null
+    } | null;
+    resultsDraft: Pick<AppState, 'nodes' | 'edges' | 'tables' | 'graphTrail' | 'verificationSource' | 'configName'> & {
+        projectId?: string | null
+    } | null;
+    graphTrail: { graph: Record<string, unknown>; mechanic: string }[];
+    verificationSource: Record<string, unknown> | null;
+    tab: TabId;
+    setTab: (tab: TabId) => void;
+    configName: string | null;
+    setConfigName: (name: string | null) => void;
+    tweaks: Tweaks;
+    setTweak: <K extends keyof Tweaks>(key: K, value: Tweaks[K]) => void;
+    /** Live metrics from /evaluate/light — shown on sink node and MetricStrip */
+    liveRtp: number | null;
+    liveProvenance: 'Exact' | 'ExactInterval' | 'ExactWithMassLoss' | 'Sampled' | 'NeedsFullRun' | null;
+    setLiveMetrics: (rtp: number | null, provenance: 'Exact' | 'ExactInterval' | 'ExactWithMassLoss' | 'Sampled' | 'NeedsFullRun' | null) => void;
 }
 
 export const MOOD_HUE: Record<Mood, number> = {
-  slate: 255,
-  ocean: 230,
-  violet: 290,
-  steel: 210,
+    slate: 255,
+    ocean: 230,
+    violet: 290,
+    steel: 210,
 };
 
 export const useAppStore = create<AppState>((set, get) => ({
-  resultsDraft: null,
-  graphTrail: [],
-  verificationSource: null,
-  tab: 'build',
-  setTab: (tab) => set({ tab }),
-  configName: 'Untitled',
-  setConfigName: (name) => set({ configName: name }),
-  tweaks: {
-    accent: '#46d39a',
-    mood: 'slate',
-    grid: true,
-    flow: true,
-    density: 'regular',
-  },
-  setTweak: (key, value) =>
-    set((s) => ({ tweaks: { ...s.tweaks, [key]: value } })),
+    projectId: null,
+    projects: {},
+    authoringViews: null,
+    authoringDraft: null,
+    resultsDraft: null,
+    graphTrail: [],
+    verificationSource: null,
+    tab: 'build',
+    setTab: (tab) => set({tab}),
+    configName: 'Untitled',
+    setConfigName: (name) => set({configName: name}),
+    tweaks: {
+        accent: '#46d39a',
+        mood: 'slate',
+        grid: true,
+        flow: true,
+        density: initialDensity(),
+    },
+    setTweak: (key, value) => {
+        set((s) => ({tweaks: {...s.tweaks, [key]: value}}));
+        if (key === 'density') {
+            try {
+                localStorage.setItem(TABLE_DENSITY_KEY, String(value));
+            } catch { /* The preference remains usable in memory. */
+            }
+        }
+    },
 
-  // ── Live metrics ─────────────────────────────────────────────────
-  liveRtp: null,
-  liveProvenance: null,
-  setLiveMetrics: (rtp, provenance) => set({ liveRtp: rtp, liveProvenance: provenance }),
+    // ── Live metrics ─────────────────────────────────────────────────
+    liveRtp: null,
+    liveProvenance: null,
+    setLiveMetrics: (rtp, provenance) => set({liveRtp: rtp, liveProvenance: provenance}),
 
-  // ── Graph state ─────────────────────────────────────────────────
-  tables: {},
-  nodes: [],
-  edges: [],
-  selectedNodeId: null,
-  selectNode: (id) => set({ selectedNodeId: id }),
-  edgeValidationError: null,
-  setEdgeValidationError: (err) => set({ edgeValidationError: err }),
-  limitError: null,
-  setLimitError: (err) => set({ limitError: err }),
-  isAuthenticated: false,
-  userDisplayName: null,
-  setAuth: (authenticated, name) => set({ isAuthenticated: authenticated, userDisplayName: name ?? null }),
+    // ── Graph state ─────────────────────────────────────────────────
+    tables: {},
+    nodes: [],
+    edges: [],
+    selectedNodeId: null,
+    // Canvas interactivity lock. When false the graph is read-only: React Flow
+    // gets nodesDraggable/nodesConnectable/elementsSelectable = false, which
+    // lets the user pan and inspect without disturbing the layout.
+    canvasInteractive: true,
+    inspectorOpen: initialInspectorPinned,
+    inspectorPinned: initialInspectorPinned,
+    setInspectorOpen: (value) => set({inspectorOpen: value}),
+    setInspectorPinned: (value) => {
+        try {
+            localStorage.setItem(INSPECTOR_PIN_KEY, String(value));
+        } catch { /* Preferences remain usable without browser storage. */
+        }
+        set({inspectorPinned: value, inspectorOpen: value || !!get().selectedNodeId});
+    },
+    setCanvasInteractive: (value) => set({canvasInteractive: value}),
+    // NOTE: `selectedNodeId` drives the inspector and is deliberately
+    // single-valued, while React Flow's `node.selected` flags are N-valued
+    // (Shift-multi-select, selection box, edges). Do NOT couple the two here:
+    // earlier code rewrote every node's flag on programmatic selection, which
+    // destroyed Shift multi-selection because onNodeClick fires after React
+    // Flow has already applied the additive selection changes.
+    selectNode: (id) => set({selectedNodeId: id, inspectorOpen: get().inspectorPinned || !!id}),
+    edgeValidationError: null,
+    setEdgeValidationError: (err) => set({edgeValidationError: err}),
+    limitError: null,
+    setLimitError: (err) => set({limitError: err}),
+    isAuthenticated: false,
+    userDisplayName: null,
+    setAuth: (authenticated, name) => set({isAuthenticated: authenticated, userDisplayName: name ?? null}),
 
-  onNodesChange: (changes: NodeChange<GraphNode>[]) =>
-    set((s) => ({ nodes: applyNodeChanges(changes, s.nodes) })),
+    onNodesChange: (changes: NodeChange<GraphNode>[]) =>
+        set((s) => {
+            const nodes = applyNodeChanges(changes, s.nodes);
+            // Defensive cleanup: if any nodes were removed, drop their connected
+            // edges too. React Flow normally emits matching edge-removal changes,
+            // but this keeps the invariant regardless of RF version/behaviour.
+            const removedIds = changes
+                .filter((ch): ch is Extract<NodeChange<GraphNode>, { type: 'remove' }> => ch.type === 'remove')
+                .map((ch) => ch.id);
+            let edges = removedIds.length
+                ? s.edges.filter((e) => !removedIds.includes(e.source) && !removedIds.includes(e.target))
+                : s.edges;
 
-  onEdgesChange: (changes: EdgeChange<GraphEdge>[]) =>
-    set((s) => ({ edges: applyEdgeChanges(changes, s.edges) })),
+            // A node selection must not leave a stale edge selection behind:
+            // Delete/Backspace acts on every selected element, so a leftover edge
+            // would be removed alongside the focused node.
+            const hasSelectChange = changes.some((ch) => ch.type === 'select');
+            let selectedNodeId = s.selectedNodeId;
+            if (hasSelectChange) {
+                if (s.edges.some((e) => e.selected)) {
+                    edges = edges.map((e) => (e.selected ? {...e, selected: false} : e));
+                }
+                // Reconcile single-node selection with the inspector. Skip the
+                // multi-node case (Shift-click / selection box): the inspector is
+                // single-valued, so it must not latch onto an arbitrary member of a
+                // multi-selection, and Delete must keep acting on the whole set.
+                const selectedIds = nodes.filter((n) => n.selected).map((n) => n.id);
+                selectedNodeId = selectedIds.length === 1 ? selectedIds[0] : null;
+            }
 
-  addNode: (node) => {
-    const s = get();
-    if (s.nodes.length >= LIMITS.maxNodes) {
-      set({ limitError: `Cannot add node: max ${LIMITS.maxNodes} nodes reached. Simplify the graph.` });
-      return;
-    }
-    set({ nodes: [...s.nodes, node], limitError: null });
-  },
+            // Keep the inspector in sync: a keyboard deletion of the inspected node
+            // must clear the selection, mirroring removeNode().
+            if (removedIds.length && selectedNodeId !== null && removedIds.includes(selectedNodeId)) {
+                selectedNodeId = null;
+            }
+            return {
+                nodes,
+                edges,
+                selectedNodeId, ...(hasSelectChange || removedIds.length ? {inspectorOpen: s.inspectorPinned || !!selectedNodeId} : {})
+            };
+        }),
 
-  removeNode: (id) =>
-    set((s) => ({
-      nodes: s.nodes.filter((n) => n.id !== id),
-      edges: s.edges.filter((e) => e.source !== id && e.target !== id),
-      selectedNodeId: s.selectedNodeId === id ? null : s.selectedNodeId,
-    })),
+    onEdgesChange: (changes: EdgeChange<GraphEdge>[]) =>
+        set((s) => ({edges: applyEdgeChanges(changes, s.edges)})),
 
-  onConnect: (connection) => {
-    const { nodes, setEdgeValidationError } = get();
-    const source = nodes.find((n) => n.id === connection.source);
-    const target = nodes.find((n) => n.id === connection.target);
-    if (!source || !target) return;
+    addNode: (node) => {
+        const s = get();
+        if (s.nodes.length >= LIMITS.maxNodes) {
+            set({limitError: `Cannot add node: max ${LIMITS.maxNodes} nodes reached. Simplify the graph.`});
+            return;
+        }
+        set({nodes: [...s.nodes, node], limitError: null});
+    },
 
-    const edgeCount = get().edges.length;
-    if (edgeCount >= LIMITS.maxEdges) {
-      set({ limitError: `Cannot add edge: max ${LIMITS.maxEdges} edges reached. Reduce connections.` });
-      return;
-    }
+    removeNode: (id) =>
+        set((s) => ({
+            nodes: s.nodes.filter((n) => n.id !== id),
+            edges: s.edges.filter((e) => e.source !== id && e.target !== id),
+            selectedNodeId: s.selectedNodeId === id ? null : s.selectedNodeId,
+            inspectorOpen: s.selectedNodeId === id ? s.inspectorPinned : s.inspectorOpen,
+        })),
 
-    const err = validateConnection(
-      source.data?.nodeType ?? 'draw',
-      target.data?.nodeType ?? 'sink',
-    );
-    if (err) {
-      setEdgeValidationError(err);
-      return;
-    }
-    setEdgeValidationError(null);
-    set((s) => ({
-      edges: [
-        ...s.edges,
-        {
-          id: `e-${connection.source}-${connection.target}`,
-          source: connection.source,
-          target: connection.target,
-          sourceHandle: connection.sourceHandle ?? undefined,
-          targetHandle: connection.targetHandle ?? undefined,
-          type: 'provenance',
-        } as GraphEdge,
-      ],
-    }));
-  },
+    onConnect: (connection) => {
+        const {nodes, edges, setEdgeValidationError} = get();
+        const source = nodes.find((n) => n.id === connection.source);
+        const target = nodes.find((n) => n.id === connection.target);
+        const err = connectionError(nodes, edges, connection);
+        if (err) {
+            setEdgeValidationError(err);
+            return;
+        }
+        if (!source || !target) return;
+        setEdgeValidationError(null);
 
-  setNodeData: (id, data) =>
-    set((s) => ({
-      nodes: s.nodes.map((n) =>
-        n.id === id ? { ...n, data: { ...n.data, ...data } } : n,
-      ),
-    })),
+        const edgeCount = get().edges.length;
+        if (edgeCount >= LIMITS.maxEdges) {
+            set({limitError: `Cannot add edge: max ${LIMITS.maxEdges} edges reached. Reduce connections.`});
+            return;
+        }
 
-  // ── Mechanics ───────────────────────────────────────────────────
-  mechanics: [],
-  addMechanic: (m) => set((s) => ({ mechanics: [...s.mechanics, m] })),
-  removeMechanic: (id) => set((s) => ({ mechanics: s.mechanics.filter((m) => m.id !== id) })),
+        set((s) => ({
+            edges: [
+                ...s.edges,
+                {
+                    id: `e-${crypto.randomUUID()}`,
+                    source: connection.source,
+                    target: connection.target,
+                    sourceHandle: connection.sourceHandle ?? nodePorts(source, 'outputs')[0]?.id,
+                    targetHandle: connection.targetHandle ?? nodePorts(target, 'inputs')[0]?.id,
+                    type: 'provenance',
+                } as GraphEdge,
+            ],
+        }));
+    },
 
-  // ── Plugins ─────────────────────────────────────────────────────
-  plugins: [],
-  registerPlugin: (p) => set((s) => ({ plugins: [...s.plugins, p] })),
-  removePlugin: (id) => set((s) => ({ plugins: s.plugins.filter((p) => p.pluginId !== id) })),
-  setPluginsFromBackend: (plugins) => set({ plugins }),
-  backendAvailable: false,
-  setBackendAvailable: (v) => set({ backendAvailable: v }),
-  setMechanicsFromBackend: (mechanics) => set({ mechanics }),
+    setNodeData: (id, data) =>
+        set((s) => ({
+            nodes: s.nodes.map((n) =>
+                n.id === id ? {...n, data: {...n.data, ...data}} : n,
+            ),
+        })),
 
-  // ── Table data (used by live metrics) ───────────────────────────
+    // ── Mechanics ───────────────────────────────────────────────────
+    mechanics: [],
+    addMechanic: (m) => set((s) => ({mechanics: [...s.mechanics, m]})),
+    removeMechanic: (id) => set((s) => ({mechanics: s.mechanics.filter((m) => m.id !== id)})),
+
+    // ── Plugins ─────────────────────────────────────────────────────
+    plugins: [],
+    registerPlugin: (p) => set((s) => ({plugins: [...s.plugins, p]})),
+    removePlugin: (id) => set((s) => ({plugins: s.plugins.filter((p) => p.pluginId !== id)})),
+    setPluginsFromBackend: (plugins) => set({plugins}),
+    backendAvailable: false,
+    setBackendAvailable: (v) => set({backendAvailable: v}),
+    setMechanicsFromBackend: (mechanics) => set({mechanics}),
+
+    // ── Table data (used by live metrics) ───────────────────────────
 }));
 
-// ── Minimal Node/Edge change handlers (avoid heavy immer dependency) ─
-
-function applyNodeChanges(
-  changes: NodeChange<GraphNode>[],
-  nodes: GraphNode[],
-): GraphNode[] {
-  let next = [...nodes];
-  for (const ch of changes) {
-    if (ch.type === 'position' && ch.position) {
-      const idx = next.findIndex((n) => n.id === ch.id);
-      if (idx >= 0) {
-        next[idx] = { ...next[idx], position: ch.position };
-      }
-    } else if (ch.type === 'remove') {
-      next = next.filter((n) => n.id !== ch.id);
-    }
-  }
-  return next;
+// ── Draft persistence (debounced) ───────────────────────────────────
+// NOTE: previously we stringified the whole graph into localStorage on
+// every store change (including every mousemove during a node drag),
+// which blocked the main thread and made dragging visibly janky. We now
+// debounce the write so dragging stays smooth; a `beforeunload` flush
+// keeps the last state from being lost on tab close.
+// React Flow's `selected` is transient interaction state, not model data.
+// It must never be persisted or restored: a restored flag produces a phantom
+// canvas selection while `selectedNodeId` stays null, so Delete removes a
+// node the inspector does not report as selected.
+export function withoutSelection<T extends { selected?: boolean }>(items: T[] | undefined): T[] | undefined {
+    if (!items?.some((item) => item.selected)) return items;
+    return items.map((item) => {
+        if (!item.selected) return item;
+        const rest = {...item};
+        delete rest.selected;
+        return rest;
+    });
 }
 
-function applyEdgeChanges(
-  changes: EdgeChange<GraphEdge>[],
-  edges: GraphEdge[],
-): GraphEdge[] {
-  let next = [...edges];
-  for (const ch of changes) {
-    if (ch.type === 'remove') {
-      next = next.filter((e) => e.id !== ch.id);
-    }
-  }
-  return next;
+/** Preserve editor positions and an open mechanic as well as the canonical model. */
+export function captureProjectDraft(s = useAppStore.getState()): ProjectDraft {
+    const {
+        nodes,
+        edges,
+        tables,
+        graphTrail,
+        verificationSource,
+        configName,
+        authoringDraft,
+        resultsDraft,
+        authoringViews
+    } = s;
+    return {
+        nodes: withoutSelection(nodes) ?? [],
+        edges,
+        tables,
+        graphTrail,
+        verificationSource,
+        configName,
+        authoringDraft,
+        resultsDraft, ...(authoringViews ? {authoringViews: parseAuthoringViews(authoringViews)} : {}),
+        updatedAt: new Date().toISOString()
+    };
+}
+
+export function retainCurrentProject() {
+    const s = useAppStore.getState();
+    if (s.projectId) useAppStore.setState({projects: {...s.projects, [s.projectId]: captureProjectDraft(s)}});
+}
+
+export function activateProject(id: string) {
+    retainCurrentProject();
+    const project = useAppStore.getState().projects[id];
+    if (!project) throw new Error('Project not found in this workspace');
+    useAppStore.setState({
+        ...project,
+        authoringViews: parseAuthoringViews(project.authoringViews),
+        projectId: id,
+        selectedNodeId: null,
+        inspectorOpen: useAppStore.getState().inspectorPinned,
+        liveRtp: null,
+        liveProvenance: null
+    });
+}
+
+let draftStorageError: string | null = null;
+let draftRecovery: string | null = null;
+
+export interface DraftSaveState {
+    status: 'idle' | 'pending' | 'saved' | 'error';
+    projectId: string | null;
+    error: string | null
+}
+
+let draftSaveState: DraftSaveState = {status: 'idle', projectId: null, error: null};
+let flushPendingProjectSave = () => {
+};
+
+/** Explicit semantic commits must persist before returning; canvas motion remains debounced. */
+export function flushProjectDraftSave() {
+    flushPendingProjectSave();
+}
+
+export function getDraftSaveState() {
+    return draftSaveState;
+}
+
+function reportDraftSave(status: DraftSaveState['status'], error: string | null = null) {
+    const projectId = useAppStore.getState().projectId;
+    if (draftSaveState.status === status && draftSaveState.projectId === projectId && draftSaveState.error === error) return;
+    draftSaveState = {status, projectId, error};
+    window.dispatchEvent(new CustomEvent('slotmath:draft-save', {detail: draftSaveState}));
+}
+
+export function getDraftRecovery() {
+    return draftRecovery;
+}
+
+const recoveryMessage = 'A stored workspace could not be opened safely. Its original JSON is retained as a recovery copy; new projects can be edited separately.';
+
+export function getDraftStorageError() {
+    return draftStorageError;
+}
+
+function reportDraftStorageError(message: string | null) {
+    if (draftStorageError === message) return;
+    draftStorageError = message;
+    window.dispatchEvent(new CustomEvent('slotmath:draft-storage', {detail: message}));
 }
 
 if (typeof window !== 'undefined') {
-  try {
-    const draft = JSON.parse(localStorage.getItem('slotmath-draft-v1') ?? 'null');
-    if (draft && Array.isArray(draft.nodes) && Array.isArray(draft.edges)) useAppStore.setState({ nodes: draft.nodes, edges: draft.edges, tables: draft.tables ?? {}, graphTrail: draft.graphTrail ?? [], verificationSource: draft.verificationSource ?? null, configName: draft.configName ?? 'Untitled', resultsDraft: draft.resultsDraft ?? null });
-  } catch { /* a corrupt draft never prevents opening the editor */ }
-  useAppStore.subscribe(s => {
-    try { localStorage.setItem('slotmath-draft-v1', JSON.stringify({ nodes: s.nodes, edges: s.edges, tables: s.tables, graphTrail: s.graphTrail, verificationSource: s.verificationSource, configName: s.configName, resultsDraft: s.resultsDraft })); } catch { /* export remains available when browser storage is full */ }
-  });
+    const DRAFT_KEY = browserStorageKey('slotmath-draft-v1');
+    const SAVE_DEBOUNCE_MS = 400;
+    let saveTimer: number | undefined;
+    let writesBlocked = false;
+    const RECOVERY_POINTER = `${DRAFT_KEY}:recovery-current`;
+    try {
+        const key = localStorage.getItem(RECOVERY_POINTER);
+        if (key?.startsWith(`${DRAFT_KEY}:recovery:`)) draftRecovery = localStorage.getItem(key);
+        if (draftRecovery !== null) reportDraftStorageError(recoveryMessage);
+    } catch { /* Recovery lookup never prevents opening an in-memory workspace. */
+    }
+
+    const persistNow = () => {
+        if (writesBlocked) return;
+        const s = useAppStore.getState();
+        try {
+            const snapshot = {
+                projectId: s.projectId,
+                authoringViews: s.authoringViews,
+                projects: s.projectId ? {...s.projects, [s.projectId]: captureProjectDraft(s)} : s.projects,
+                nodes: withoutSelection(s.nodes),
+                edges: s.edges,
+                tables: s.tables,
+                graphTrail: s.graphTrail,
+                verificationSource: s.verificationSource,
+                configName: s.configName,
+                // `resultsDraft` embeds a second copy of the editor graph, so it needs
+                // the same sanitisation as the top-level nodes.
+                authoringDraft: s.authoringDraft ? {
+                    ...s.authoringDraft,
+                    nodes: withoutSelection(s.authoringDraft.nodes),
+                    selectedNodeId: null
+                } : null,
+                resultsDraft: s.resultsDraft
+                    ? {...s.resultsDraft, nodes: withoutSelection(s.resultsDraft.nodes)}
+                    : s.resultsDraft,
+            };
+            assertModelNumbers(snapshot);
+            localStorage.setItem(DRAFT_KEY, JSON.stringify(snapshot));
+            reportDraftStorageError(draftRecovery !== null ? recoveryMessage : null);
+            reportDraftSave('saved');
+        } catch {
+            const error = 'Browser storage could not save the latest edits. Keep this page open and download JSON or save a server version from Export.';
+            reportDraftStorageError(error);
+            reportDraftSave('error', error);
+        }
+    };
+
+    const schedulePersist = () => {
+        const s = useAppStore.getState();
+        if (!s.projectId && s.nodes.length) {
+            useAppStore.setState({projectId: crypto.randomUUID()});
+            return;
+        }
+        if (writesBlocked) {
+            reportDraftSave('error', draftStorageError);
+            return;
+        }
+        // A newly opened/imported project needs a durable recovery base before any unload event.
+        // Later edits keep the debounce, including canvas dragging.
+        if (draftSaveState.projectId !== s.projectId || draftSaveState.status === 'idle') {
+            if (saveTimer !== undefined) clearTimeout(saveTimer);
+            saveTimer = undefined;
+            persistNow();
+            return;
+        }
+        reportDraftSave('pending');
+        if (saveTimer !== undefined) clearTimeout(saveTimer);
+        saveTimer = window.setTimeout(() => {
+            saveTimer = undefined;
+            persistNow();
+        }, SAVE_DEBOUNCE_MS);
+    };
+
+    let stored: string | null = null;
+    try {
+        stored = localStorage.getItem(DRAFT_KEY);
+        if (stored !== null && stored !== 'null') {
+            const draft = parseModelJson(stored) as Partial<AppState>;
+            if (!Array.isArray(draft.nodes) || !Array.isArray(draft.edges)) throw new Error('Stored workspace is missing graph arrays.');
+            useAppStore.setState({
+                projectId: draft.projectId ?? (draft.nodes.length ? crypto.randomUUID() : null),
+                projects: draft.projects ?? {},
+                authoringViews: parseAuthoringViews(draft.authoringViews),
+                nodes: withoutSelection(draft.nodes) ?? [],
+                edges: draft.edges,
+                tables: draft.tables ?? {},
+                graphTrail: draft.graphTrail ?? [],
+                verificationSource: draft.verificationSource ?? null,
+                configName: draft.configName === null ? null : draft.configName ?? 'Untitled',
+                resultsDraft: draft.resultsDraft ?? null,
+                authoringDraft: draft.authoringDraft ?? null
+            });
+            reportDraftSave('saved');
+        }
+    } catch {
+        if (stored !== null) {
+            const original = stored;
+            const alreadyRetained = draftRecovery === original;
+            draftRecovery = original;
+            try {
+                if (!alreadyRetained) {
+                    const key = `${DRAFT_KEY}:recovery:${crypto.randomUUID()}`;
+                    localStorage.setItem(key, original);
+                    if (localStorage.getItem(key) !== original) throw new Error('Recovery write failed.');
+                    localStorage.setItem(RECOVERY_POINTER, key);
+                    if (localStorage.getItem(RECOVERY_POINTER) !== key) throw new Error('Recovery pointer write failed.');
+                }
+                reportDraftStorageError(recoveryMessage);
+            } catch {
+                writesBlocked = true;
+                reportDraftStorageError('Stored workspace could not be opened or backed up in browser storage. Autosave is paused to preserve the original. Download its JSON below; new edits remain in memory.');
+            }
+        } else {
+            writesBlocked = true;
+            reportDraftStorageError('Browser storage could not be read. New edits remain in memory; download JSON from Export.');
+        }
+    }
+
+    if (writesBlocked) reportDraftSave('error', draftStorageError);
+    useAppStore.subscribe(schedulePersist);
+    const flushPendingDraft = () => {
+        // Only flush when this tab actually has a pending write. Unconditionally
+        // flushing on unload would let an untouched tab overwrite a newer draft
+        // persisted by another tab with its stale in-memory state.
+        if (saveTimer === undefined) return;
+        clearTimeout(saveTimer);
+        saveTimer = undefined;
+        persistNow();
+    };
+    flushPendingProjectSave = flushPendingDraft;
+    window.addEventListener('beforeunload', flushPendingDraft);
+    window.addEventListener('pagehide', flushPendingDraft);
+    document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'hidden') flushPendingDraft();
+    });
 }

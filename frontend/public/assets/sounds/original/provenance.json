@@ -1,0 +1,73 @@
+{
+  "source": "compose-game-audio.py",
+  "thirdPartyRecordings": false,
+  "sampleRate": 48000,
+  "assets": [
+    {
+      "file": "dragon-sanctuary.mp3",
+      "seconds": 98.462,
+      "targetLufs": -22,
+      "synthesis": "Original oscillators and seeded noise"
+    },
+    {
+      "file": "forest-afterglow.mp3",
+      "seconds": 106.667,
+      "targetLufs": -22,
+      "synthesis": "Original oscillators and seeded noise"
+    },
+    {
+      "file": "steel-horizon.mp3",
+      "seconds": 83.478,
+      "targetLufs": -22,
+      "synthesis": "Original oscillators and seeded noise"
+    },
+    {
+      "file": "win-soft.mp3",
+      "seconds": 0.8,
+      "targetLufs": -19,
+      "synthesis": "Original oscillators and seeded noise"
+    },
+    {
+      "file": "win-major.mp3",
+      "seconds": 1.5,
+      "targetLufs": -19,
+      "synthesis": "Original oscillators and seeded noise"
+    },
+    {
+      "file": "feature-rise.mp3",
+      "seconds": 1.5,
+      "targetLufs": -19,
+      "synthesis": "Original oscillators and seeded noise"
+    },
+    {
+      "file": "card-reveal.mp3",
+      "seconds": 0.8,
+      "targetLufs": -19,
+      "synthesis": "Original oscillators and seeded noise"
+    },
+    {
+      "file": "spin-soft.mp3",
+      "seconds": 0.27,
+      "targetLufs": -20,
+      "synthesis": "Original oscillators and seeded noise"
+    },
+    {
+      "file": "reel-settle.mp3",
+      "seconds": 0.11,
+      "targetLufs": -20,
+      "synthesis": "Original oscillators and seeded noise"
+    },
+    {
+      "file": "launch-air.mp3",
+      "seconds": 0.5,
+      "targetLufs": -20,
+      "synthesis": "Original oscillators and seeded noise"
+    },
+    {
+      "file": "impact-soft.mp3",
+      "seconds": 0.45,
+      "targetLufs": -20,
+      "synthesis": "Original oscillators and seeded noise"
+    }
+  ]
+}

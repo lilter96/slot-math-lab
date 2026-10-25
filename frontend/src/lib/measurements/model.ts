@@ -1,3 +1,4 @@
+import { parseModelJson } from '../modelJson';
 import { parseExpression, type ExpressionAst } from '../expressionParser';
 import { formatNumber, formatPercent } from '../numberFormat';
 import type { MeasurementAnalysis, MeasurementOptions } from './analysis';
@@ -35,9 +36,9 @@ export function chartReducer(metric: Pick<MetricDraft, 'options' | 'chartStatist
 }
 export function metricExpression(source: string, mode: 'expression' | 'ast' | 'visual'): ExpressionAst {
   if (mode === 'expression') return parseExpression(source);
-  const value = JSON.parse(source);
+  const value = parseModelJson(source);
   if (!value || typeof value.exprType !== 'string') throw new Error('AST must be an object with exprType.');
-  return value;
+  return value as ExpressionAst;
 }
 export function definition(d: MetricDraft): MeasurementDefinition {
   if (!d.name.trim() || d.name.length > 80) throw new Error('Give the metric a name (up to 80 characters).');

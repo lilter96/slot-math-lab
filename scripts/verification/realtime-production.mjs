@@ -1,9 +1,10 @@
 import { waitForRunLaunch } from './requests.mjs';
 import { chromium } from '../../frontend/node_modules/playwright/index.mjs';
 import { expect } from '../../frontend/node_modules/@playwright/test/index.mjs';
-import { readFile, writeFile } from 'node:fs/promises';
+import { readFile, writeFile, mkdir } from 'node:fs/promises';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
+await mkdir(new URL('../../artifacts/verification/', import.meta.url), { recursive: true });
 const root = fileURLToPath(new URL('../..', import.meta.url));
 const base = process.env.REALTIME_BASE_URL, container = process.env.REALTIME_CRASH_CONTAINER;
 if (!base || !container) throw new Error('Set REALTIME_BASE_URL and REALTIME_CRASH_CONTAINER. This verification kills and restarts the specified API container.');
@@ -39,7 +40,7 @@ async function create(spins) {
 const count = async () => Number((await page.getByTestId('sample-count').innerText()).replaceAll(',', ''));
 const get = async id => (await context.request.get(base + '/api/runs/' + id)).json();
 try {
-  await page.goto(base + '/build?project=dog-house'); await signIn();
+  await page.goto(base + '/build?project=nine-lives'); await signIn();
   await page.getByRole('button', { name: 'Open full game graph', exact: true }).waitFor();
   await page.getByRole('tab', { name: 'Simulate', exact: true }).click();
   const run = await create(10000000);
@@ -79,17 +80,17 @@ try {
   await expect(page.getByTestId('sample-count')).toHaveText(recovered.progress.sampleCount.toLocaleString());
   report.crashRecovery.reloadStable = true;
   const style = await page.addStyleTag({ content: 'body{height:auto!important;overflow:auto!important}#root,.app{height:auto!important;min-height:100vh}.simulation-workspace{overflow:visible!important}' });
-  await page.screenshot({ path: root + '/docs/verification/realtime-crash-production.png', fullPage: true }); await style.evaluate(node => node.remove());
+  await page.screenshot({ path: root + '/artifacts/verification/realtime-crash-production.png', fullPage: true }); await style.evaluate(node => node.remove());
   const started = Date.now(), complete = await create(100000);
   await expect(page.locator('.run-status')).toHaveText('completed', { timeout: 30000 });
   const stored = await get(complete.id), result = JSON.parse(stored.resultJson);
-  if (result.rtp !== 0.9967189999999915 || result.sampleCount !== 100000) throw new Error('Deterministic RTP changed');
+  if (Math.abs(result.rtp - 1.043479) > 1e-12 || result.sampleCount !== 100000) throw new Error('Deterministic RTP changed');
   report.completeRun = { runId: complete.id, elapsedMs: result.elapsedMs, wallMs: Date.now() - started, roundCount: result.sampleCount,
     observedRtp: result.rtp, sameDeterministicMath: true, resultDeliveredInline: frames.some(p => p.runId === complete.id && p.status === 'completed' && p.resultJson),
     revision: stored.sequence, graphHash: complete.configHash, seed: complete.seed, streamScheme: complete.streamScheme };
   report.browserErrors = errors;
   if (errors.length) throw new Error('Browser errors: ' + errors.join(', '));
-  await writeFile(root + '/docs/verification/realtime-production.json', JSON.stringify(report, null, 2) + '\n');
+  await writeFile(root + '/artifacts/verification/realtime-production.json', JSON.stringify(report, null, 2) + '\n');
   console.log(JSON.stringify(report));
 } finally {
   for (const id of ownedRuns) await context.request.delete(base + '/api/runs/' + id).catch(() => {});

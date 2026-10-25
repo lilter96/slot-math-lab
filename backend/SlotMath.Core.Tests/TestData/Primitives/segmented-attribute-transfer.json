@@ -1,0 +1,325 @@
+{
+    "schemaVersion": "1.0.0",
+    "id": "generic-segment-transfer",
+    "initialState": {
+        "keep": [
+            true,
+            false,
+            true,
+            false,
+            true,
+            true
+        ],
+        "boundaries": [
+            0,
+            3,
+            6
+        ],
+        "symbols": [
+            "A",
+            "B",
+            "C",
+            "D",
+            "E",
+            "F"
+        ],
+        "multipliers": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6
+        ],
+        "held": [
+            true,
+            false,
+            false,
+            false,
+            true,
+            false
+        ]
+    },
+    "nodes": [
+        {
+            "nodeType": "modifyState",
+            "id": "transfer",
+            "expressionId": "transfer",
+            "outputKey": "transferred",
+            "inputs": {
+                "state": {
+                    "name": "state",
+                    "type": "State"
+                }
+            },
+            "outputs": {
+                "state": {
+                    "name": "state",
+                    "type": "State"
+                }
+            }
+        },
+        {
+            "nodeType": "modifyState",
+            "id": "pay",
+            "expressionId": "pay",
+            "outputKey": "win",
+            "inputs": {
+                "state": {
+                    "name": "state",
+                    "type": "State"
+                }
+            },
+            "outputs": {
+                "state": {
+                    "name": "state",
+                    "type": "State"
+                }
+            }
+        },
+        {
+            "nodeType": "metricsSink",
+            "id": "sink",
+            "winStateKey": "win",
+            "winCap": 100,
+            "inputs": {
+                "state": {
+                    "name": "state",
+                    "type": "State"
+                }
+            }
+        }
+    ],
+    "edges": [
+        {
+            "id": "transferpay",
+            "sourceNodeId": "transfer",
+            "sourcePort": "state",
+            "targetNodeId": "pay",
+            "targetPort": "state"
+        },
+        {
+            "id": "paysink",
+            "sourceNodeId": "pay",
+            "sourcePort": "state",
+            "targetNodeId": "sink",
+            "targetPort": "state"
+        }
+    ],
+    "expressions": {
+        "transfer": {
+            "exprType": "let",
+            "name": "plan",
+            "value": {
+                "exprType": "segmentedCompact",
+                "keep": {
+                    "exprType": "fieldAccess",
+                    "target": "state",
+                    "path": [
+                        "keep"
+                    ]
+                },
+                "boundaries": {
+                    "exprType": "fieldAccess",
+                    "target": "state",
+                    "path": [
+                        "boundaries"
+                    ]
+                },
+                "packing": "End",
+                "maxItems": 6,
+                "maxSegments": 2
+            },
+            "body": {
+                "exprType": "record",
+                "fields": [
+                    {
+                        "name": "symbols",
+                        "value": {
+                            "exprType": "map",
+                            "source": {
+                                "exprType": "local",
+                                "name": "plan",
+                                "path": [
+                                    "sources"
+                                ]
+                            },
+                            "maxItems": 6,
+                            "itemName": "i",
+                            "itemType": "Number",
+                            "body": {
+                                "exprType": "if",
+                                "condition": {
+                                    "exprType": "compare",
+                                    "op": "Lt",
+                                    "left": {
+                                        "exprType": "fieldAccess",
+                                        "target": "state",
+                                        "path": [
+                                            "i"
+                                        ]
+                                    },
+                                    "right": {
+                                        "exprType": "constant",
+                                        "kind": "Integer",
+                                        "value": "0"
+                                    }
+                                },
+                                "thenExpr": {
+                                    "exprType": "constant",
+                                    "kind": "String",
+                                    "value": "new"
+                                },
+                                "elseExpr": {
+                                    "exprType": "call",
+                                    "function": "index",
+                                    "args": [
+                                        {
+                                            "exprType": "fieldAccess",
+                                            "target": "state",
+                                            "path": [
+                                                "symbols"
+                                            ]
+                                        },
+                                        {
+                                            "exprType": "fieldAccess",
+                                            "target": "state",
+                                            "path": [
+                                                "i"
+                                            ]
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    {
+                        "name": "multipliers",
+                        "value": {
+                            "exprType": "map",
+                            "source": {
+                                "exprType": "local",
+                                "name": "plan",
+                                "path": [
+                                    "sources"
+                                ]
+                            },
+                            "maxItems": 6,
+                            "itemName": "i",
+                            "itemType": "Number",
+                            "body": {
+                                "exprType": "if",
+                                "condition": {
+                                    "exprType": "compare",
+                                    "op": "Lt",
+                                    "left": {
+                                        "exprType": "fieldAccess",
+                                        "target": "state",
+                                        "path": [
+                                            "i"
+                                        ]
+                                    },
+                                    "right": {
+                                        "exprType": "constant",
+                                        "kind": "Integer",
+                                        "value": "0"
+                                    }
+                                },
+                                "thenExpr": {
+                                    "exprType": "constant",
+                                    "kind": "Integer",
+                                    "value": "0"
+                                },
+                                "elseExpr": {
+                                    "exprType": "call",
+                                    "function": "index",
+                                    "args": [
+                                        {
+                                            "exprType": "fieldAccess",
+                                            "target": "state",
+                                            "path": [
+                                                "multipliers"
+                                            ]
+                                        },
+                                        {
+                                            "exprType": "fieldAccess",
+                                            "target": "state",
+                                            "path": [
+                                                "i"
+                                            ]
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    {
+                        "name": "held",
+                        "value": {
+                            "exprType": "map",
+                            "source": {
+                                "exprType": "local",
+                                "name": "plan",
+                                "path": [
+                                    "sources"
+                                ]
+                            },
+                            "maxItems": 6,
+                            "itemName": "i",
+                            "itemType": "Number",
+                            "body": {
+                                "exprType": "if",
+                                "condition": {
+                                    "exprType": "compare",
+                                    "op": "Lt",
+                                    "left": {
+                                        "exprType": "fieldAccess",
+                                        "target": "state",
+                                        "path": [
+                                            "i"
+                                        ]
+                                    },
+                                    "right": {
+                                        "exprType": "constant",
+                                        "kind": "Integer",
+                                        "value": "0"
+                                    }
+                                },
+                                "thenExpr": {
+                                    "exprType": "constant",
+                                    "kind": "Boolean",
+                                    "value": "false"
+                                },
+                                "elseExpr": {
+                                    "exprType": "call",
+                                    "function": "index",
+                                    "args": [
+                                        {
+                                            "exprType": "fieldAccess",
+                                            "target": "state",
+                                            "path": [
+                                                "held"
+                                            ]
+                                        },
+                                        {
+                                            "exprType": "fieldAccess",
+                                            "target": "state",
+                                            "path": [
+                                                "i"
+                                            ]
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    }
+                ]
+            }
+        },
+        "pay": {
+            "exprType": "constant",
+            "kind": "Integer",
+            "value": "2"
+        }
+    }
+}

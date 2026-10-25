@@ -1,12 +1,17 @@
+using System.Globalization;
 using System.Text;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using System.Threading.RateLimiting;
 using Hangfire;
 using Hangfire.MemoryStorage;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.IdentityModel.Tokens;
+using Npgsql;
 using OpenTelemetry.Metrics;
 using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
@@ -14,6 +19,7 @@ using SlotMath.Api.Features.Ai;
 using SlotMath.Api.Features.Auth;
 using SlotMath.Api.Features.Configs;
 using SlotMath.Api.Features.Evaluate;
+using SlotMath.Api.Features.Evaluate.EvaluationStrategies;
 using SlotMath.Api.Features.PersistedConfigs;
 using SlotMath.Api.Features.Play;
 using SlotMath.Api.Features.Plugins;
@@ -23,7 +29,7 @@ using SlotMath.Api.Infrastructure;
 using SlotMath.Api.Persistence;
 using SlotMath.Core.Plugins;
 
-var builder = WebApplication.CreateBuilder(args);
+WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 
 // ── OpenTelemetry ─────────────────────────────────────────────────────
 builder.Services.AddOpenTelemetry()
@@ -45,21 +51,33 @@ builder.Services.AddOpenTelemetry()
 // Structured logging via OTEL (traces + metrics already configured above)
 
 // ── JWT Authentication (G29) ──────────────────────────────────────────
-var localMode = builder.Environment.IsDevelopment() || builder.Environment.IsEnvironment("CI") || builder.Environment.IsEnvironment("Testing");
-var jwtSecret = builder.Configuration["JWT:Secret"] ?? (localMode ? JwtAuth.DefaultSecret : throw new InvalidOperationException("JWT:Secret is required in production."));
+var localMode = builder.Environment.IsDevelopment() || builder.Environment.IsEnvironment("CI") ||
+                builder.Environment.IsEnvironment("Testing");
+var jwtSecret = builder.Configuration["JWT:Secret"] ?? (localMode
+    ? JwtAuth.DefaultSecret
+    : throw new InvalidOperationException("JWT:Secret is required in production."));
 if (!localMode && (Encoding.UTF8.GetByteCount(jwtSecret) < 32 || jwtSecret == JwtAuth.DefaultSecret))
+{
     throw new InvalidOperationException("JWT:Secret must be at least 32 bytes and unique in production.");
-if (!localMode && string.IsNullOrWhiteSpace(builder.Configuration["Auth:User"]))
-    throw new InvalidOperationException("Auth:User is required in production.");
-if (!localMode && string.IsNullOrWhiteSpace(builder.Configuration["Auth:PasswordHash"]))
-    throw new InvalidOperationException("Auth:PasswordHash is required in production.");
+}
+
+var accounts = new AuthAccounts(builder.Configuration);
+if (!localMode && !accounts.HasAccounts)
+{
+    throw new InvalidOperationException("Auth:Users or Auth:User / Auth:PasswordHash is required in production.");
+}
+
+builder.Services.AddSingleton(accounts);
 if (!localMode)
+{
     builder.Services.AddSingleton(new EncryptedSnapshots(
         builder.Configuration["Storage:Directory"] ?? "/data",
-        builder.Configuration["Storage:Key"] ?? throw new InvalidOperationException("Storage:Key is required in production.")));
+        builder.Configuration["Storage:Key"] ??
+        throw new InvalidOperationException("Storage:Key is required in production.")));
+}
 
 // ── Feature flags (read once at startup; a flag change requires a restart) ──
-var features = FeatureFlags.Read(builder.Configuration, localMode);
+FeatureFlags features = FeatureFlags.Read(builder.Configuration, localMode);
 builder.Services.AddSingleton(features);
 var jwtIssuer = builder.Configuration["JWT:Issuer"] ?? JwtAuth.DefaultIssuer;
 var jwtKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSecret));
@@ -71,7 +89,11 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         {
             OnMessageReceived = context =>
             {
-                if (context.Request.Cookies.TryGetValue("slotmath_session", out var token)) context.Token = token;
+                if (context.Request.Cookies.TryGetValue("slotmath_session", out var token))
+                {
+                    context.Token = token;
+                }
+
                 return Task.CompletedTask;
             }
         };
@@ -83,7 +105,7 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             ValidIssuer = jwtIssuer,
             ValidateAudience = false,
             ValidateLifetime = true,
-            ClockSkew = TimeSpan.FromMinutes(2),
+            ClockSkew = TimeSpan.FromMinutes(2)
         };
     });
 
@@ -93,25 +115,45 @@ builder.Services.AddRateLimiter(options =>
     options.RejectionStatusCode = 429;
     options.OnRejected = (context, _) =>
     {
-        if (context.Lease.TryGetMetadata(MetadataName.RetryAfter, out var delay))
-            context.HttpContext.Response.Headers.RetryAfter = Math.Ceiling(delay.TotalSeconds).ToString(System.Globalization.CultureInfo.InvariantCulture);
+        if (context.Lease.TryGetMetadata(MetadataName.RetryAfter, out TimeSpan delay))
+        {
+            context.HttpContext.Response.Headers.RetryAfter = Math.Ceiling(delay.TotalSeconds)
+                .ToString(CultureInfo.InvariantCulture);
+        }
+
         return ValueTask.CompletedTask;
     };
-    options.AddConcurrencyLimiter("compute", policy => { policy.PermitLimit = 2; policy.QueueLimit = 0; });
+    options.AddConcurrencyLimiter("compute", policy =>
+    {
+        policy.PermitLimit = 2;
+        policy.QueueLimit = 0;
+    });
     options.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(context =>
         RateLimitPartition.GetFixedWindowLimiter(context.Connection.RemoteIpAddress?.ToString() ?? "local", _ =>
-            new FixedWindowRateLimiterOptions { PermitLimit = 120, Window = TimeSpan.FromMinutes(1), QueueLimit = 0 }));
+            new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 120,
+                Window = TimeSpan.FromMinutes(1),
+                QueueLimit = 0
+            }));
 });
 
 // ── DI ────────────────────────────────────────────────────────────────
 // Rate limiter + validation
 builder.Services.AddSingleton<SimpleRateLimiter>();
 
+// Graph evaluation strategies
+builder.Services.AddScoped<IEvaluationStrategy, ExactOrPrunedEvaluationStrategy>();
+builder.Services.AddScoped<IEvaluationStrategy, SampledEvaluationStrategy>();
+builder.Services.AddScoped<IEvaluationStrategy, HybridEvaluationStrategy>();
+
 // In-memory stores (fast path, always available)
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddSingleton<RequestOwnership>();
 builder.Services.AddSingleton<InMemoryConfigStore>();
 builder.Services.AddSingleton<InMemoryRunStore>();
-builder.Services.AddSingleton<SlotMath.Api.Features.Runs.ExperimentStore>();
-builder.Services.AddTransient<SlotMath.Api.Features.Runs.ExperimentJobService>();
+builder.Services.AddSingleton<ExperimentStore>();
+builder.Services.AddTransient<ExperimentJobService>();
 builder.Services.AddSingleton<PluginHost>();
 builder.Services.AddSingleton<CompiledGraphCache>();
 builder.Services.AddSingleton<IResultCache, InMemoryResultCache>();
@@ -120,11 +162,11 @@ builder.Services.AddSingleton<IResultCache, InMemoryResultCache>();
 // A job that is still running after FetchNextJobTimeout is handed to a second
 // worker. The default is 30 minutes; the largest run takes hours.
 builder.Services.AddHangfire(config =>
-    config.UseMemoryStorage(new MemoryStorageOptions { FetchNextJobTimeout = TimeSpan.FromDays(7) }));
-builder.Services.AddHangfireServer(options =>
-{
-    options.WorkerCount = Math.Min(2, Environment.ProcessorCount);
-});
+    config.UseMemoryStorage(new MemoryStorageOptions
+    {
+        FetchNextJobTimeout = TimeSpan.FromDays(7)
+    }));
+builder.Services.AddHangfireServer(options => { options.WorkerCount = Math.Min(2, Environment.ProcessorCount); });
 
 // SignalR (real-time progress streaming)
 builder.Services.AddSignalR(options =>
@@ -140,7 +182,7 @@ builder.Services.AddTransient<RunJobService>();
 
 // EF Core + Postgres (persistence path)
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
-    ?? "Host=localhost;Port=5433;Database=slotmath;Username=slotmath;Password=slotmath";
+                       ?? "Host=localhost;Port=5433;Database=slotmath;Username=slotmath;Password=slotmath";
 builder.Services.AddDbContext<SlotMathDbContext>(options =>
     options.UseNpgsql(connectionString));
 
@@ -157,10 +199,7 @@ if (!string.IsNullOrWhiteSpace(redisConnection))
 builder.Services.AddScoped<ConfigPersistenceService>();
 
 // HttpClient for Anthropic API (AI gateway)
-builder.Services.AddHttpClient("anthropic", client =>
-{
-    client.Timeout = TimeSpan.FromSeconds(90);
-});
+builder.Services.AddHttpClient("anthropic", client => { client.Timeout = TimeSpan.FromSeconds(90); });
 
 // ── Health checks ─────────────────────────────────────────────────────
 builder.Services.AddHealthChecks()
@@ -168,7 +207,7 @@ builder.Services.AddHealthChecks()
     {
         try
         {
-            using var conn = new Npgsql.NpgsqlConnection(connectionString);
+            using var conn = new NpgsqlConnection(connectionString);
             conn.Open();
             return HealthCheckResult.Healthy("PostgreSQL is reachable");
         }
@@ -176,7 +215,7 @@ builder.Services.AddHealthChecks()
         {
             return HealthCheckResult.Unhealthy("PostgreSQL is not reachable", ex);
         }
-    }, tags: new[] { "db", "postgres" });
+    }, new[] { "db", "postgres" });
 
 // ── RFC-7807 Problem Details ──────────────────────────────────────────
 builder.Services.AddProblemDetails(options =>
@@ -189,10 +228,11 @@ builder.Services.AddProblemDetails(options =>
 });
 
 // ── OpenAPI ───────────────────────────────────────────────────────────
-builder.Services.ConfigureHttpJsonOptions(options => options.SerializerOptions.NumberHandling = System.Text.Json.Serialization.JsonNumberHandling.Strict);
+builder.Services.ConfigureHttpJsonOptions(options =>
+    options.SerializerOptions.NumberHandling = JsonNumberHandling.Strict);
 builder.Services.AddOpenApi();
 
-var app = builder.Build();
+WebApplication app = builder.Build();
 
 // ── Authentication + Authorization middleware (G29) ───────────────────
 app.UseAuthentication();
@@ -201,16 +241,27 @@ if (!localMode)
 {
     app.Use(async (context, next) =>
     {
-        var path = context.Request.Path;
-        if ((path.StartsWithSegments("/api") && !path.StartsWithSegments("/api/auth") && !path.StartsWithSegments("/api/features")) || path.StartsWithSegments("/hubs"))
+        PathString path = context.Request.Path;
+        if ((path.StartsWithSegments("/api") && !path.StartsWithSegments("/api/auth") &&
+             !path.StartsWithSegments("/api/features")) || path.StartsWithSegments("/hubs"))
         {
-            if (!JwtAuth.IsAuthenticated(context.User)) { context.Response.StatusCode = 401; return; }
+            if (!JwtAuth.IsAuthenticated(context.User))
+            {
+                context.Response.StatusCode = 401;
+                return;
+            }
+
             if (context.Request.Method != "GET" && path.StartsWithSegments("/api/plugins"))
-            { context.Response.StatusCode = 403; return; }
+            {
+                context.Response.StatusCode = 403;
+                return;
+            }
         }
+
         await next(context);
     });
 }
+
 app.UseRateLimiter();
 
 // ── RFC-7807 error handling ───────────────────────────────────────────
@@ -218,11 +269,11 @@ app.UseStatusCodePages();
 app.UseExceptionHandler(new ExceptionHandlerOptions
 {
     AllowStatusCode404Response = true,
-    ExceptionHandlingPath = null, // use built-in problem details
+    ExceptionHandlingPath = null // use built-in problem details
 });
 
 // ── Auto-apply migrations ─────────────────────────────────────────────
-using (var scope = app.Services.CreateScope())
+using (IServiceScope scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<SlotMathDbContext>();
     await db.Database.EnsureCreatedAsync();
@@ -235,13 +286,16 @@ app.UseOpenTelemetryPrometheusScrapingEndpoint();
 app.MapOpenApi();
 
 // ── Hangfire dashboard (dev only) ──────────────────────────────────────
-if (localMode) app.UseHangfireDashboard();
+if (localMode)
+{
+    app.UseHangfireDashboard();
+}
 
 // ── SignalR hub ────────────────────────────────────────────────────────
 app.MapHub<RunHub>("/hubs/runs", options => options.CloseOnAuthenticationExpiration = true);
 
 // ── Health endpoints ───────────────────────────────────────────────────
-app.MapHealthChecks("/health", new Microsoft.AspNetCore.Diagnostics.HealthChecks.HealthCheckOptions
+app.MapHealthChecks("/health", new HealthCheckOptions
 {
     Predicate = _ => true,
     ResponseWriter = async (context, report) =>
@@ -255,12 +309,12 @@ app.MapHealthChecks("/health", new Microsoft.AspNetCore.Diagnostics.HealthChecks
                 name = e.Key,
                 status = e.Value.Status.ToString(),
                 description = e.Value.Description,
-                duration = e.Value.Duration.ToString(),
+                duration = e.Value.Duration.ToString()
             }),
-            totalDuration = report.TotalDuration.ToString(),
+            totalDuration = report.TotalDuration.ToString()
         };
-        await context.Response.WriteAsJsonAsync(result, System.Text.Json.JsonSerializerOptions.Web);
-    },
+        await context.Response.WriteAsJsonAsync(result, JsonSerializerOptions.Web);
+    }
 });
 
 app.MapGet("/ready", async (SlotMathDbContext db) =>
@@ -268,12 +322,16 @@ app.MapGet("/ready", async (SlotMathDbContext db) =>
     try
     {
         await db.Database.CanConnectAsync();
-        return Results.Ok(new { ready = true, postgres = "connected" });
+        return Results.Ok(new
+        {
+            ready = true,
+            postgres = "connected"
+        });
     }
     catch
     {
         return Results.Problem(
-            detail: "PostgreSQL database is not reachable.",
+            "PostgreSQL database is not reachable.",
             statusCode: 503,
             title: "Service Unavailable");
     }
@@ -289,14 +347,24 @@ app.MapConfigs();
 app.MapValidate();
 app.MapEvaluate().RequireRateLimiting("compute");
 app.MapGraphEvaluation();
-if (features.Play) app.MapPlay();
+if (features.Play)
+{
+    app.MapPlay();
+}
+
 app.MapRuns(configStore, runStore, pluginHost);
 // Plugins are never loaded from disk at startup; with the flag off the plugin
 // endpoints are not registered at all and answer 404.
-if (features.Plugins) app.MapPlugins(pluginHost);
+if (features.Plugins)
+{
+    app.MapPlugins(pluginHost);
+}
 
 // Persistence-backed config endpoints (auth required for save/load, G29)
-if (localMode) app.MapPersistedConfigs();
+if (localMode)
+{
+    app.MapPersistedConfigs();
+}
 
 // AI gateway (G26) + lint/explain; auto-tune (G27/G28) has its own flag.
 if (features.Ai)
@@ -305,7 +373,11 @@ if (features.Ai)
     app.MapLint();
     app.MapExplain();
 }
-if (features.AutoTune) app.MapAutoTune();
+
+if (features.AutoTune)
+{
+    app.MapAutoTune();
+}
 
 // Flags are public product metadata: the UI reads them to hide disabled
 // features, so this endpoint stays reachable without a login.
@@ -314,7 +386,7 @@ app.MapGet("/api/features", () => Results.Ok(new
     ai = features.Ai,
     autoTune = features.AutoTune,
     plugins = features.Plugins,
-    play = features.Play,
+    play = features.Play
 }));
 
 app.Run();

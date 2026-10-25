@@ -2,7 +2,7 @@ namespace SlotMath.Core;
 
 // ═══════════════════════════════════════════════════════════════════════════
 //  SlotMathConstants — the single strongly-typed home for every normative
-//  constant in the PRD (CLAUDE.md v3.1).  Changing a value here is a PRD
+//  constant in the PRD (docs/SYSTEM.ru.md#numbers).  Changing a value here is a PRD
 //  change: the Definitions D1–D25 are the contract.  The frontend mirror
 //  lives at frontend/src/constants.ts and MUST be kept in lock-step.
 // ═══════════════════════════════════════════════════════════════════════════

@@ -1,10 +1,12 @@
+using System.Text.Json;
 using SlotMath.Core.Expressions;
 using SlotMath.Core.Model;
 using SlotMath.Core.Plugins;
+using SlotMath.Core.Random;
 
 namespace SlotMath.Core.Compiler;
 
-using SlotMathConstants = SlotMath.Core.SlotMathConstants;
+using SlotMathConstants = SlotMathConstants;
 
 // ═══════════════════════════════════════════════════════════════════════════
 //  GraphValidator — validates a graph config before compilation
@@ -21,7 +23,7 @@ using SlotMathConstants = SlotMath.Core.SlotMathConstants;
 public static class GraphValidator
 {
     /// <summary>
-    /// Validate a graph config. Returns empty list if valid.
+    ///     Validate a graph config. Returns empty list if valid.
     /// </summary>
     public static IReadOnlyList<CompileError> Validate(
         GraphConfig config,
@@ -29,23 +31,88 @@ public static class GraphValidator
         TypeCheckContext? typeCheckContext = null)
     {
         var errors = new List<CompileError>();
+        (GraphConfig distributed, IReadOnlyList<CompileError> distributionErrors) =
+            DistributionResolver.Resolve(config);
+        if (distributionErrors.Count > 0)
+        {
+            return distributionErrors;
+        }
+
+        config = distributed;
+        foreach (DrawNode draw in config.Nodes.OfType<DrawNode>())
+        {
+            if (draw.WeightVectorExpressionId is not null
+                && (draw.WeightExpressionId is not null || draw.BoundDistributions is not null
+                                                        || draw.DrawWeights is not
+                                                        {
+                                                            Length: > 0 and <= ExactWeightVector
+                                                                .MaxLength
+                                                        }))
+            {
+                errors.Add(new CompileError
+                {
+                    Code = ErrorCodes.InvalidGraph,
+                    NodeId = draw.Id,
+                    Message =
+                        "A weight vector requires 1..4096 fixed outcomes and cannot also select a family or legacy computed weights."
+                });
+            }
+
+            try
+            {
+                DrawData.Validate(DrawData.Rows(draw));
+            }
+            catch (Exception exception) when (exception is ArgumentException or FormatException
+                                                  or ExpressionEvaluationException or DivideByZeroException
+                                                  or OverflowException)
+            {
+                errors.Add(new CompileError
+                {
+                    Code = ErrorCodes.InvalidGraph,
+                    NodeId = draw.Id,
+                    Message = exception.Message
+                });
+            }
+        }
+
+        if (errors.Count > 0)
+        {
+            return errors;
+        }
+
         try
         {
             EvidenceInput.Validate(config.EvidenceInputs ?? []);
-            foreach (var sink in config.Nodes.OfType<MetricsSinkNode>()) sink.Settlement?.Validate();
+            foreach (MetricsSinkNode sink in config.Nodes.OfType<MetricsSinkNode>())
+            {
+                sink.Settlement?.Validate();
+            }
+
             if (config.Nodes.OfType<MetricsSinkNode>().Any(s => s.Settlement is not null)
                 && (config.InitialState?.Keys.Any(MonetarySettlement.EvidenceKeys.Contains) == true
-                    || config.Nodes.OfType<ModifyStateNode>().Any(n => MonetarySettlement.EvidenceKeys.Contains(n.OutputKey))))
+                    || config.Nodes.OfType<ModifyStateNode>()
+                        .Any(n => MonetarySettlement.EvidenceKeys.Contains(n.OutputKey))
+                    || config.Nodes.OfType<DrawManyNode>()
+                        .Any(n => MonetarySettlement.EvidenceKeys.Contains(n.OutputKey))))
+            {
                 throw new ArgumentException("Settlement evidence fields are reserved and cannot be authored.");
+            }
         }
-        catch (ArgumentException ex) { errors.Add(new CompileError { Code = ErrorCodes.InvalidGraph, Message = ex.Message }); }
+        catch (ArgumentException ex)
+        {
+            errors.Add(new CompileError
+            {
+                Code = ErrorCodes.InvalidGraph,
+                Message = ex.Message
+            });
+        }
 
         if (config.Nodes.Length == 0)
         {
             errors.Add(new CompileError
             {
                 Code = ErrorCodes.InvalidGraph,
-                Message = "Graph has no nodes.",
+                Message = "Graph has no nodes."
             });
             return errors;
         }
@@ -57,40 +124,88 @@ public static class GraphValidator
         ValidateEdgeTypes(config, errors);
 
         // 3. Build adjacency and validate cycles / reachability
-        var adjacency = BuildAdjacency(config);
+        AdjacencyInfo adjacency = BuildAdjacency(config);
         ValidateAcyclicityAndReachability(config, adjacency, errors);
 
         // Resolve named references before checking the expression they denote.
         // References are compile-time syntax, never permissive state paths.
-        foreach (var (name, expression) in config.Expressions ?? new())
+        foreach (var (name, expression) in config.Expressions ?? new Dictionary<string, Expression>())
+        {
+            if (expression is null)
+            {
+                errors.Add(new CompileError
+                {
+                    Code = ErrorCodes.ExpressionTypeError,
+                    Message = $"Expression '{name}' cannot be null."
+                });
+                continue;
+            }
+
             if (!ExpressionCost.WithinBudget(expression, out var cost))
+            {
                 errors.Add(new CompileError
                 {
                     Code = ErrorCodes.ExpressionBudgetExceeded,
-                    Message = $"Expression '{name}' has static cost {cost}, exceeding {SlotMathConstants.Expression.MaxOps} operations."
+                    Message =
+                        $"Expression '{name}' has static cost {cost}, exceeding {SlotMathConstants.Expression.MaxOps} operations."
                 });
-        if (errors.Any(e => e.Code == ErrorCodes.ExpressionBudgetExceeded)) return errors;
-        try { config = ExpressionResolver.Resolve(config); }
-        catch (CompilationException ex)
+            }
+        }
+
+        if (errors.Any(e => e.Code is ErrorCodes.ExpressionBudgetExceeded or ErrorCodes.ExpressionTypeError))
         {
-            errors.Add(new CompileError { NodeId = ex.NodeId, Code = ex.ErrorCode, Message = ex.Message });
             return errors;
         }
-        catch (System.Text.Json.JsonException)
+
+        try
+        {
+            config = ExpressionResolver.Resolve(config);
+        }
+        catch (CompilationException ex)
+        {
+            errors.Add(new CompileError
+            {
+                NodeId = ex.NodeId,
+                Code = ex.ErrorCode,
+                Message = ex.Message
+            });
+            return errors;
+        }
+        catch (JsonException)
         {
             errors.Add(new CompileError
             {
                 Code = ErrorCodes.ExpressionTypeError,
-                Message = "An expression exceeds the supported serialization depth or contains invalid reference data."
+                Message =
+                    "An expression exceeds the supported serialization depth or contains invalid reference data."
             });
             return errors;
         }
+
         // 4. Expression type-checking
         ValidateExpressions(config, typeCheckContext, errors);
-        foreach (var loop in config.Nodes.OfType<LoopNode>().Where(l => l.ExitReason is not null))
+        foreach (LoopNode loop in config.Nodes.OfType<LoopNode>().Where(l => l.ExitReason is not null))
         {
-            if (ExpressionCost.Compute(loop.ExitReason!) > 1000) errors.Add(new CompileError { NodeId = loop.Id, Code = ErrorCodes.ExpressionBudgetExceeded, Message = "Loop exit classification exceeds its expression budget." });
-            foreach (var error in ExpressionTypeChecker.Check(loop.ExitReason!, typeCheckContext ?? BuildExpressionTypeContext(config), ExprType.String)) errors.Add(new CompileError { NodeId = loop.Id, Code = ErrorCodes.ExpressionTypeError, Message = error.Message });
+            if (ExpressionCost.Compute(loop.ExitReason!) > 1000)
+            {
+                errors.Add(new CompileError
+                {
+                    NodeId = loop.Id,
+                    Code = ErrorCodes.ExpressionBudgetExceeded,
+                    Message = "Loop exit classification exceeds its expression budget."
+                });
+            }
+
+            foreach (TypeCheckError error in ExpressionTypeChecker.Check(loop.ExitReason!,
+                         typeCheckContext ?? BuildExpressionTypeContext(config), ExprType.String))
+            {
+                errors.Add(new CompileError
+                {
+                    NodeId = loop.Id,
+                    Code = ErrorCodes.ExpressionTypeError,
+                    Message = error.Message
+                });
+            }
         }
 
         // 5. Plugin validation
@@ -106,7 +221,7 @@ public static class GraphValidator
 
     private static void ValidateLoopCaps(GraphConfig config, List<CompileError> errors)
     {
-        foreach (var loop in config.Nodes.OfType<LoopNode>())
+        foreach (LoopNode loop in config.Nodes.OfType<LoopNode>())
         {
             if (loop.MaxIterations < 1 || loop.MaxIterations > SlotMathConstants.Loop.CapMax)
             {
@@ -116,7 +231,7 @@ public static class GraphValidator
                     Code = ErrorCodes.OverMaxLoopCap,
                     Message =
                         $"Loop node '{loop.Id}' has iteration cap {loop.MaxIterations}, which must be in " +
-                        $"[1, {SlotMathConstants.Loop.CapMax}] (D6). Every Loop carries a mandatory, bounded cap.",
+                        $"[1, {SlotMathConstants.Loop.CapMax}] (D6). Every Loop carries a mandatory, bounded cap."
                 });
             }
         }
@@ -125,20 +240,24 @@ public static class GraphValidator
     // ── Subgraph reference graph: cycles (D7/G14) + nesting depth (D7) ────
 
     /// <summary>
-    /// Statically validate subgraph (LibraryNode → CustomMechanic) references
-    /// BEFORE inlining: reject circular references (A → B → A) and references
-    /// nested deeper than the D7 cap, each with a precise coded error (D20).
+    ///     Statically validate subgraph (LibraryNode → CustomMechanic) references
+    ///     BEFORE inlining: reject circular references (A → B → A) and references
+    ///     nested deeper than the D7 cap, each with a precise coded error (D20).
     /// </summary>
     public static IReadOnlyList<CompileError> ValidateSubgraphReferences(GraphConfig config)
     {
         var errors = new List<CompileError>();
         if (config.Mechanics is null || config.Mechanics.Count == 0)
+        {
             return errors;
+        }
 
         // mechanic name → the mechanic names its own LibraryNodes reference
         var refs = new Dictionary<string, List<string>>(StringComparer.Ordinal);
-        foreach (var (name, mechanic) in config.Mechanics)
+        foreach ((var name, CustomMechanic mechanic) in config.Mechanics)
+        {
             refs[name] = mechanic.Nodes.OfType<LibraryNode>().Select(l => l.MechanicName).ToList();
+        }
 
         // ── Cycle detection (DFS colouring) over defined mechanics ──
         var color = new Dictionary<string, int>(StringComparer.Ordinal); // 0=white 1=gray 2=black
@@ -146,15 +265,27 @@ public static class GraphValidator
 
         bool Dfs(string name)
         {
-            if (!refs.TryGetValue(name, out var children))
+            if (!refs.TryGetValue(name, out List<string>? children))
+            {
                 return false; // undefined mechanic — the inliner reports it
+            }
+
             color[name] = 1;
             foreach (var child in children)
             {
                 var c = color.GetValueOrDefault(child, 0);
-                if (c == 1) { cyclicMechanic = child; return true; }
-                if (c == 0 && Dfs(child)) return true;
+                if (c == 1)
+                {
+                    cyclicMechanic = child;
+                    return true;
+                }
+
+                if (c == 0 && Dfs(child))
+                {
+                    return true;
+                }
             }
+
             color[name] = 2;
             return false;
         }
@@ -162,44 +293,59 @@ public static class GraphValidator
         foreach (var name in refs.Keys)
         {
             if (color.GetValueOrDefault(name, 0) == 0 && Dfs(name))
+            {
                 break;
+            }
         }
 
         if (cyclicMechanic is not null)
         {
-            var offender = config.Nodes.OfType<LibraryNode>().FirstOrDefault()
-                ?? config.Mechanics.Values
-                    .SelectMany(m => m.Nodes.OfType<LibraryNode>())
-                    .FirstOrDefault(l => l.MechanicName == cyclicMechanic);
+            LibraryNode? offender = config.Nodes.OfType<LibraryNode>().FirstOrDefault()
+                                    ?? config.Mechanics.Values
+                                        .SelectMany(m => m.Nodes.OfType<LibraryNode>())
+                                        .FirstOrDefault(l => l.MechanicName == cyclicMechanic);
             errors.Add(new CompileError
             {
                 NodeId = offender?.Id,
                 Code = ErrorCodes.CircularSubgraphReference,
                 Message =
                     $"Circular subgraph reference detected involving mechanic '{cyclicMechanic}'. " +
-                    "Subgraph references must form a DAG (D7).",
+                    "Subgraph references must form a DAG (D7)."
             });
             return errors; // depth analysis is meaningless once a cycle exists
         }
 
         // ── Nesting depth (longest reference chain) ──
         var depthMemo = new Dictionary<string, int>(StringComparer.Ordinal);
+
         int Depth(string name)
         {
-            if (!refs.TryGetValue(name, out var children))
+            if (!refs.TryGetValue(name, out List<string>? children))
+            {
                 return 0;
+            }
+
             if (depthMemo.TryGetValue(name, out var cached))
+            {
                 return cached;
+            }
+
             var max = 0;
             foreach (var child in children)
+            {
                 max = System.Math.Max(max, Depth(child));
+            }
+
             return depthMemo[name] = 1 + max;
         }
 
-        foreach (var lib in config.Nodes.OfType<LibraryNode>())
+        foreach (LibraryNode lib in config.Nodes.OfType<LibraryNode>())
         {
             if (!config.Mechanics.ContainsKey(lib.MechanicName))
+            {
                 continue;
+            }
+
             var depth = Depth(lib.MechanicName);
             if (depth > SlotMathConstants.Budget.MaxSubgraphNestingDepth)
             {
@@ -209,7 +355,7 @@ public static class GraphValidator
                     Code = ErrorCodes.SubgraphNestingTooDeep,
                     Message =
                         $"Subgraph nesting depth {depth} at library node '{lib.Id}' exceeds the maximum " +
-                        $"of {SlotMathConstants.Budget.MaxSubgraphNestingDepth} (D7).",
+                        $"of {SlotMathConstants.Budget.MaxSubgraphNestingDepth} (D7)."
                 });
             }
         }
@@ -221,34 +367,36 @@ public static class GraphValidator
 
     private static void ValidateMetricsSink(GraphConfig config, List<CompileError> errors)
     {
-        var sinks = config.Nodes.OfType<MetricsSinkNode>().ToArray();
+        MetricsSinkNode[] sinks = config.Nodes.OfType<MetricsSinkNode>().ToArray();
 
         if (sinks.Length == 0)
         {
             errors.Add(new CompileError
             {
                 Code = ErrorCodes.MissingMetricsSink,
-                Message = "Graph must contain exactly one MetricsSink node, but none was found.",
+                Message = "Graph must contain exactly one MetricsSink node, but none was found."
             });
             return;
         }
 
         if (sinks.Length > 1)
         {
-            foreach (var sink in sinks)
+            foreach (MetricsSinkNode sink in sinks)
             {
                 errors.Add(new CompileError
                 {
                     NodeId = sink.Id,
                     Code = ErrorCodes.DuplicateMetricsSink,
-                    Message = $"Duplicate MetricsSink node '{sink.Id}'. A graph must contain exactly one MetricsSink.",
+                    Message =
+                        $"Duplicate MetricsSink node '{sink.Id}'. A graph must contain exactly one MetricsSink."
                 });
             }
+
             return;
         }
 
         // D6/D19: every game must declare a finite round win cap.
-        var sole = sinks[0];
+        MetricsSinkNode sole = sinks[0];
         if (sole.WinCap is null or <= 0)
         {
             errors.Add(new CompileError
@@ -256,19 +404,9 @@ public static class GraphValidator
                 NodeId = sole.Id,
                 Code = ErrorCodes.MissingWinCap,
                 Message = $"MetricsSink '{sole.Id}' must declare a positive WinCap (D6/D19). " +
-                          "Every game requires a finite round win cap for exact-path safety.",
+                          "Every game requires a finite round win cap for exact-path safety."
             });
         }
-    }
-
-    // ── 2. Cycles & reachability ────────────────────────────────────────
-
-    private sealed record AdjacencyInfo(
-        Dictionary<string, List<Edge>> Incoming,
-        Dictionary<string, List<Edge>> Outgoing,
-        HashSet<string> AllNodes)
-    {
-        public HashSet<string> EntryNodes { get; init; } = new();
     }
 
     private static AdjacencyInfo BuildAdjacency(GraphConfig config)
@@ -277,29 +415,46 @@ public static class GraphValidator
         var outgoing = new Dictionary<string, List<Edge>>();
         var allNodes = new HashSet<string>();
 
-        foreach (var node in config.Nodes)
+        foreach (Node node in config.Nodes)
         {
             allNodes.Add(node.Id);
             incoming[node.Id] = new List<Edge>();
             outgoing[node.Id] = new List<Edge>();
         }
 
-        foreach (var edge in config.Edges)
+        foreach (Edge edge in config.Edges)
         {
             // Add source and target to the node set even if they're not in config.Nodes
             // (they'll be flagged as invalid edges, but we need to not crash on them)
             if (!outgoing.ContainsKey(edge.SourceNodeId))
+            {
                 outgoing[edge.SourceNodeId] = new List<Edge>();
+            }
+
             if (!outgoing.ContainsKey(edge.TargetNodeId))
+            {
                 outgoing[edge.TargetNodeId] = new List<Edge>();
+            }
+
             if (!incoming.ContainsKey(edge.SourceNodeId))
+            {
                 incoming[edge.SourceNodeId] = new List<Edge>();
+            }
+
             if (!incoming.ContainsKey(edge.TargetNodeId))
+            {
                 incoming[edge.TargetNodeId] = new List<Edge>();
+            }
+
             if (!allNodes.Contains(edge.SourceNodeId))
+            {
                 allNodes.Add(edge.SourceNodeId);
+            }
+
             if (!allNodes.Contains(edge.TargetNodeId))
+            {
                 allNodes.Add(edge.TargetNodeId);
+            }
 
             outgoing[edge.SourceNodeId].Add(edge);
             incoming[edge.TargetNodeId].Add(edge);
@@ -308,7 +463,10 @@ public static class GraphValidator
         var entryNodes = new HashSet<string>(allNodes.Where(n =>
             incoming.ContainsKey(n) && incoming[n].Count == 0));
 
-        return new AdjacencyInfo(incoming, outgoing, allNodes) { EntryNodes = entryNodes };
+        return new AdjacencyInfo(incoming, outgoing, allNodes)
+        {
+            EntryNodes = entryNodes
+        };
     }
 
     private static void ValidateAcyclicityAndReachability(
@@ -320,7 +478,7 @@ public static class GraphValidator
         // Collect edges that are "back edges" through Loop nodes.
         // A Loop node's outgoing edges that go back to its body are allowed cycles.
         var loopBackEdges = new HashSet<string>();
-        foreach (var loopNode in config.Nodes.OfType<LoopNode>())
+        foreach (LoopNode loopNode in config.Nodes.OfType<LoopNode>())
         {
             // Any edge from this loop node to a node that feeds into it
             // is part of the loop body (allowed cycle).
@@ -331,35 +489,50 @@ public static class GraphValidator
         // DFS-based topological sort and cycle detection
         var state = new Dictionary<string, NodeColor>(); // White=unvisited, Gray=in-progress, Black=done
         foreach (var nodeId in adj.AllNodes)
+        {
             state[nodeId] = NodeColor.White;
+        }
 
         var topo = new List<string>();
-        bool hasCycle = false;
+        var hasCycle = false;
         string? cycleNode = null;
 
         void Dfs(string nodeId)
         {
-            if (!state.ContainsKey(nodeId)) return; // ghost node (referenced by edge but not in graph)
-            if (state[nodeId] == NodeColor.Black) return;
+            if (!state.ContainsKey(nodeId))
+            {
+                return; // ghost node (referenced by edge but not in graph)
+            }
+
+            if (state[nodeId] == NodeColor.Black)
+            {
+                return;
+            }
+
             if (state[nodeId] == NodeColor.Gray)
             {
                 // If all incoming edges to this node come from Loop nodes, it's an allowed cycle
-                bool allFromLoop = adj.Incoming[nodeId].All(e =>
+                var allFromLoop = adj.Incoming[nodeId].All(e =>
                     loopNodes.Contains(e.SourceNodeId) || loopBackEdges.Contains(e.Id));
                 if (!allFromLoop && !loopNodes.Contains(nodeId))
                 {
                     hasCycle = true;
                     cycleNode = nodeId;
                 }
+
                 return;
             }
 
             state[nodeId] = NodeColor.Gray;
 
-            foreach (var edge in adj.Outgoing[nodeId])
+            foreach (Edge edge in adj.Outgoing[nodeId])
             {
                 // Skip edges that are loop back edges
-                if (loopBackEdges.Contains(edge.Id)) continue;
+                if (loopBackEdges.Contains(edge.Id))
+                {
+                    continue;
+                }
+
                 Dfs(edge.TargetNodeId);
             }
 
@@ -385,7 +558,8 @@ public static class GraphValidator
                     {
                         NodeId = nodeId,
                         Code = ErrorCodes.UnreachableNode,
-                        Message = $"Node '{nodeId}' is not reachable from any entry point. All nodes must have a path from an entry node (nodes with no incoming edges).",
+                        Message =
+                            $"Node '{nodeId}' is not reachable from any entry point. All nodes must have a path from an entry node (nodes with no incoming edges)."
                     });
                 }
             }
@@ -397,12 +571,13 @@ public static class GraphValidator
             {
                 NodeId = cycleNode,
                 Code = ErrorCodes.CycleWithoutLoop,
-                Message = $"Cycle detected involving node '{cycleNode}'. Cycles are only allowed through explicit Loop nodes. Use a Loop node to create intentional cycles.",
+                Message =
+                    $"Cycle detected involving node '{cycleNode}'. Cycles are only allowed through explicit Loop nodes. Use a Loop node to create intentional cycles."
             });
         }
 
         // Check dead-end nodes: non-sink nodes with no path to the sink
-        var sinkNode = config.Nodes.OfType<MetricsSinkNode>().FirstOrDefault();
+        MetricsSinkNode? sinkNode = config.Nodes.OfType<MetricsSinkNode>().FirstOrDefault();
         if (sinkNode != null && !hasCycle)
         {
             // Build reverse reachability from sink
@@ -414,10 +589,12 @@ public static class GraphValidator
             while (sinkQueue.Count > 0)
             {
                 var current = sinkQueue.Dequeue();
-                foreach (var edge in adj.Incoming[current])
+                foreach (Edge edge in adj.Incoming[current])
                 {
                     if (reachesSink.Add(edge.SourceNodeId))
+                    {
                         sinkQueue.Enqueue(edge.SourceNodeId);
+                    }
                 }
             }
 
@@ -425,11 +602,14 @@ public static class GraphValidator
             // to reach the sink because the Loop node's exit edge carries their
             // accumulated result out.
             var loopBodyNodes = new HashSet<string>();
-            foreach (var loopNode in config.Nodes.OfType<LoopNode>())
+            foreach (LoopNode loopNode in config.Nodes.OfType<LoopNode>())
             {
-                var bodyStartEdge = adj.Outgoing[loopNode.Id]
+                Edge? bodyStartEdge = adj.Outgoing[loopNode.Id]
                     .FirstOrDefault(e => e.SourcePort == "body");
-                if (bodyStartEdge == null) continue;
+                if (bodyStartEdge == null)
+                {
+                    continue;
+                }
 
                 var bodyQueue = new Queue<string>();
                 bodyQueue.Enqueue(bodyStartEdge.TargetNodeId);
@@ -438,31 +618,45 @@ public static class GraphValidator
                 while (bodyQueue.Count > 0)
                 {
                     var curr = bodyQueue.Dequeue();
-                    foreach (var edge in adj.Outgoing[curr])
+                    foreach (Edge edge in adj.Outgoing[curr])
                     {
                         // A nested loop's exit is still inside this body. The owning loop is
                         // outside this traversal, so its own exit is never followed here.
                         if (loopBodyNodes.Add(edge.TargetNodeId))
+                        {
                             bodyQueue.Enqueue(edge.TargetNodeId);
+                        }
                     }
                 }
             }
 
             foreach (var nodeId in adj.AllNodes)
             {
-                if (nodeId == sinkNode.Id) continue;
+                if (nodeId == sinkNode.Id)
+                {
+                    continue;
+                }
 
-                var node = config.Nodes.FirstOrDefault(n => n.Id == nodeId);
+                Node? node = config.Nodes.FirstOrDefault(n => n.Id == nodeId);
 
                 // Skip ghost nodes (referenced by edges but not in config.Nodes)
                 // — they've already been reported by ValidateEdgeTypes.
-                if (node == null) continue;
+                if (node == null)
+                {
+                    continue;
+                }
 
                 // Skip MetricsSink (already handled)
-                if (node is MetricsSinkNode) continue;
+                if (node is MetricsSinkNode)
+                {
+                    continue;
+                }
 
                 // Skip loop body interior nodes — they terminate in the loop, not at sink
-                if (loopBodyNodes.Contains(nodeId)) continue;
+                if (loopBodyNodes.Contains(nodeId))
+                {
+                    continue;
+                }
 
                 if (!reachesSink.Contains(nodeId))
                 {
@@ -476,7 +670,8 @@ public static class GraphValidator
                             {
                                 NodeId = nodeId,
                                 Code = ErrorCodes.DeadEndNode,
-                                Message = $"Node '{nodeId}' is a dead end: it receives input but has no outgoing edges leading to the MetricsSink.",
+                                Message =
+                                    $"Node '{nodeId}' is a dead end: it receives input but has no outgoing edges leading to the MetricsSink."
                             });
                         }
                         else
@@ -485,7 +680,7 @@ public static class GraphValidator
                             {
                                 NodeId = nodeId,
                                 Code = ErrorCodes.UnreachableNode,
-                                Message = $"Node '{nodeId}' is disconnected: it has no incoming or outgoing edges.",
+                                Message = $"Node '{nodeId}' is disconnected: it has no incoming or outgoing edges."
                             });
                         }
                     }
@@ -507,75 +702,79 @@ public static class GraphValidator
         while (queue.Count > 0)
         {
             var current = queue.Dequeue();
-            foreach (var edge in adj.Incoming[current])
+            foreach (Edge edge in adj.Incoming[current])
             {
                 if (ancestors.Add(edge.SourceNodeId))
+                {
                     queue.Enqueue(edge.SourceNodeId);
+                }
             }
         }
 
         // Any edge from the loop node to an ancestor is a loop back edge
-        foreach (var edge in adj.Outgoing[loopNodeId])
+        foreach (Edge edge in adj.Outgoing[loopNodeId])
         {
             if (ancestors.Contains(edge.TargetNodeId))
+            {
                 loopBackEdges.Add(edge.Id);
+            }
         }
     }
-
-    private enum NodeColor { White, Gray, Black }
 
     // ── 3. Edge type compatibility ───────────────────────────────────────
 
     private static void ValidateEdgeTypes(GraphConfig config, List<CompileError> errors)
     {
-        var nodeMap = config.Nodes.ToDictionary(n => n.Id);
+        Dictionary<string, Node> nodeMap = config.Nodes.ToDictionary(n => n.Id);
 
-        foreach (var edge in config.Edges)
+        foreach (Edge edge in config.Edges)
         {
-            if (!nodeMap.TryGetValue(edge.SourceNodeId, out var sourceNode))
+            if (!nodeMap.TryGetValue(edge.SourceNodeId, out Node? sourceNode))
             {
                 errors.Add(new CompileError
                 {
                     EdgeId = edge.Id,
                     NodeId = edge.SourceNodeId,
                     Code = ErrorCodes.InvalidGraph,
-                    Message = $"Edge '{edge.Id}' references unknown source node '{edge.SourceNodeId}'.",
+                    Message = $"Edge '{edge.Id}' references unknown source node '{edge.SourceNodeId}'."
                 });
                 continue;
             }
 
-            if (!nodeMap.TryGetValue(edge.TargetNodeId, out var targetNode))
+            if (!nodeMap.TryGetValue(edge.TargetNodeId, out Node? targetNode))
             {
                 errors.Add(new CompileError
                 {
                     EdgeId = edge.Id,
                     NodeId = edge.TargetNodeId,
                     Code = ErrorCodes.InvalidGraph,
-                    Message = $"Edge '{edge.Id}' references unknown target node '{edge.TargetNodeId}'.",
+                    Message = $"Edge '{edge.Id}' references unknown target node '{edge.TargetNodeId}'."
                 });
                 continue;
             }
 
-            if (!sourceNode.Outputs.TryGetValue(edge.SourcePort, out var sourcePort))
+            if (!sourceNode.Outputs.TryGetValue(edge.SourcePort, out Port? sourcePort))
             {
                 errors.Add(new CompileError
                 {
                     EdgeId = edge.Id,
                     NodeId = edge.SourceNodeId,
                     Code = ErrorCodes.TypeMismatch,
-                    Message = $"Edge '{edge.Id}': source node '{edge.SourceNodeId}' has no output port '{edge.SourcePort}'.",
+                    Message =
+                        $"Edge '{edge.Id}': source node '{edge.SourceNodeId}' has no output port '{edge.SourcePort}'."
                 });
                 continue;
             }
 
-            if (!targetNode.Inputs.TryGetValue(edge.TargetPort, out var targetPort))
+            if (!targetNode.Inputs.TryGetValue(edge.TargetPort, out Port? targetPort))
             {
                 errors.Add(new CompileError
                 {
                     EdgeId = edge.Id,
                     NodeId = edge.TargetNodeId,
                     Code = ErrorCodes.TypeMismatch,
-                    Message = $"Edge '{edge.Id}': target node '{edge.TargetNodeId}' has no input port '{edge.TargetPort}'.",
+                    Message =
+                        $"Edge '{edge.Id}': target node '{edge.TargetNodeId}' has no input port '{edge.TargetPort}'."
                 });
                 continue;
             }
@@ -590,7 +789,8 @@ public static class GraphValidator
                         EdgeId = edge.Id,
                         NodeId = edge.SourceNodeId,
                         Code = ErrorCodes.TypeMismatch,
-                        Message = $"Edge '{edge.Id}': type mismatch — source port '{edge.SourcePort}' is {sourcePort.Type} but target port '{edge.TargetPort}' is {targetPort.Type}.",
+                        Message =
+                            $"Edge '{edge.Id}': type mismatch — source port '{edge.SourcePort}' is {sourcePort.Type} but target port '{edge.TargetPort}' is {targetPort.Type}."
                     });
                 }
             }
@@ -603,7 +803,7 @@ public static class GraphValidator
         {
             (PortType.Symbol, PortType.String) => true,
             (PortType.Boolean, PortType.Trigger) => true,
-            _ => false,
+            _ => false
         };
     }
 
@@ -612,33 +812,40 @@ public static class GraphValidator
     private static void ValidateExpressions(
         GraphConfig config, TypeCheckContext? typeCheckContext, List<CompileError> errors)
     {
-        foreach (var node in config.Nodes)
+        foreach (Node node in config.Nodes)
         {
             var reference = node switch
             {
-                DrawNode d => d.WeightExpressionId,
+                DrawNode d => d.WeightVectorExpressionId ?? d.DistributionIndexExpressionId ?? d.WeightExpressionId,
+                DrawManyNode batch => batch.CountExpressionId,
                 ModifyStateNode m => m.ExpressionId,
                 BranchNode b => b.ConditionId,
                 LoopNode l => l.StopConditionId,
-                _ => null,
+                _ => null
             };
             if (reference is not null && (config.Expressions is null || !config.Expressions.ContainsKey(reference)))
+            {
                 errors.Add(new CompileError
                 {
                     NodeId = node.Id,
                     Code = ErrorCodes.ExpressionTypeError,
                     Message = $"Expression '{reference}' does not exist."
                 });
+            }
         }
-        if (config.Expressions == null || config.Expressions.Count == 0) return;
 
-        var ctx = typeCheckContext ?? BuildExpressionTypeContext(config);
+        if (config.Expressions == null || config.Expressions.Count == 0)
+        {
+            return;
+        }
+
+        TypeCheckContext ctx = typeCheckContext ?? BuildExpressionTypeContext(config);
 
         // Build a map from expression name to nodes that reference it
         var exprToNodes = new Dictionary<string, List<string>>();
-        foreach (var node in config.Nodes)
+        foreach (Node node in config.Nodes)
         {
-            foreach (var (_, port) in node.Inputs)
+            foreach ((_, Port port) in node.Inputs)
             {
                 if (port.DefaultValue is FieldAccessExpr fa
                     && fa.Target == "state"
@@ -647,30 +854,37 @@ public static class GraphValidator
                 {
                     var exprName = fa.Path[1];
                     if (!exprToNodes.ContainsKey(exprName))
+                    {
                         exprToNodes[exprName] = new List<string>();
+                    }
+
                     if (!exprToNodes[exprName].Contains(node.Id))
+                    {
                         exprToNodes[exprName].Add(node.Id);
+                    }
                 }
             }
         }
 
         // Check named expressions
-        foreach (var (name, expr) in config.Expressions)
+        foreach ((var name, Expression expr) in config.Expressions)
         {
             // Try to find which node references this expression
             string? referencingNode = null;
-            exprToNodes.TryGetValue(name, out var nodes);
+            exprToNodes.TryGetValue(name, out List<string>? nodes);
             if (nodes is { Count: > 0 })
+            {
                 referencingNode = nodes[0];
+            }
 
-            var exprErrors = ExpressionTypeChecker.Check(expr, ctx);
-            foreach (var exprError in exprErrors)
+            IReadOnlyList<TypeCheckError> exprErrors = ExpressionTypeChecker.Check(expr, ctx);
+            foreach (TypeCheckError exprError in exprErrors)
             {
                 errors.Add(new CompileError
                 {
                     NodeId = referencingNode,
                     Code = ErrorCodes.ExpressionTypeError,
-                    Message = $"Expression '{name}': {exprError.Message}",
+                    Message = $"Expression '{name}': {exprError.Message}"
                 });
             }
 
@@ -683,29 +897,30 @@ public static class GraphValidator
                     Code = ErrorCodes.ExpressionBudgetExceeded,
                     Message =
                         $"Expression '{name}' has static cost {cost}, exceeding the per-leaf budget of " +
-                        $"{SlotMathConstants.Expression.MaxOps} operations (D16).",
+                        $"{SlotMathConstants.Expression.MaxOps} operations (D16)."
                 });
             }
         }
 
         // Check expression-valued ports on nodes
-        foreach (var node in config.Nodes)
+        foreach (Node node in config.Nodes)
         {
-            foreach (var (portName, port) in node.Inputs)
+            foreach ((var portName, Port port) in node.Inputs)
             {
                 if (port.DefaultValue != null)
                 {
-                    var targetType = PortTypeToExprType(port.Type);
+                    ExprType? targetType = PortTypeToExprType(port.Type);
                     if (targetType != null)
                     {
-                        var exprErrors = ExpressionTypeChecker.Check(port.DefaultValue, ctx, targetType.Value);
-                        foreach (var exprError in exprErrors)
+                        IReadOnlyList<TypeCheckError> exprErrors =
+                            ExpressionTypeChecker.Check(port.DefaultValue, ctx, targetType.Value);
+                        foreach (TypeCheckError exprError in exprErrors)
                         {
                             errors.Add(new CompileError
                             {
                                 NodeId = node.Id,
                                 Code = ErrorCodes.ExpressionTypeError,
-                                Message = $"Node '{node.Id}', port '{portName}' expression: {exprError.Message}",
+                                Message = $"Node '{node.Id}', port '{portName}' expression: {exprError.Message}"
                             });
                         }
                     }
@@ -715,29 +930,115 @@ public static class GraphValidator
             // Check expression references on nodes
             switch (node)
             {
-                case DrawNode d when d.WeightExpressionId != null:
-                    if (config.Expressions.TryGetValue(d.WeightExpressionId, out var wExpr))
+                case DrawManyNode { CountExpressionId: { } countId } batch:
+                    if (config.Expressions.TryGetValue(countId, out Expression? countExpression))
                     {
-                        var wErrors = ExpressionTypeChecker.Check(wExpr, ctx);
-                        foreach (var e in wErrors)
-                            errors.Add(new CompileError { NodeId = node.Id, Code = ErrorCodes.ExpressionTypeError, Message = $"Draw weight expression: {e.Message}" });
+                        foreach (TypeCheckError error in ExpressionTypeChecker.Check(countExpression, ctx,
+                                     ExprType.Number))
+                        {
+                            errors.Add(new CompileError
+                            {
+                                NodeId = batch.Id,
+                                Code = ErrorCodes.ExpressionTypeError,
+                                Message = $"DrawMany count: {error.Message}"
+                            });
+                        }
                     }
+
+                    break;
+                case DrawNode { WeightVectorExpressionId: { } vectorId } draw:
+                    if (config.Expressions.TryGetValue(vectorId, out Expression? vectorExpression))
+                    {
+                        IReadOnlyList<TypeCheckError> vectorErrors =
+                            ExpressionTypeChecker.Check(vectorExpression, ctx, ExprType.Array);
+                        foreach (TypeCheckError error in vectorErrors)
+                        {
+                            errors.Add(new CompileError
+                            {
+                                NodeId = draw.Id,
+                                Code = ErrorCodes.ExpressionTypeError,
+                                Message = $"Weight vector: {error.Message}"
+                            });
+                        }
+
+                        if (vectorErrors.Count == 0 && ArrayExpressionTypes.Infer(vectorExpression, ctx).ItemType !=
+                            ExprType.Number)
+                        {
+                            errors.Add(new CompileError
+                            {
+                                NodeId = draw.Id,
+                                Code = ErrorCodes.ExpressionTypeError,
+                                Message = "A weight vector requires a known homogeneous Number array."
+                            });
+                        }
+                    }
+
+                    break;
+                case DrawNode { DistributionIndexExpressionId: { } selector } draw:
+                    if (config.Expressions.TryGetValue(selector, out Expression? indexExpression))
+                    {
+                        foreach (TypeCheckError error in ExpressionTypeChecker.Check(indexExpression, ctx,
+                                     ExprType.Number))
+                        {
+                            errors.Add(new CompileError
+                            {
+                                NodeId = draw.Id,
+                                Code = ErrorCodes.ExpressionTypeError,
+                                Message = $"Distribution selector: {error.Message}"
+                            });
+                        }
+                    }
+
+                    break;
+                case DrawNode d when d.WeightExpressionId != null:
+                    if (config.Expressions.TryGetValue(d.WeightExpressionId, out Expression? wExpr))
+                    {
+                        IReadOnlyList<TypeCheckError> wErrors = ExpressionTypeChecker.Check(wExpr, ctx);
+                        foreach (TypeCheckError e in wErrors)
+                        {
+                            errors.Add(new CompileError
+                            {
+                                NodeId = node.Id,
+                                Code = ErrorCodes.ExpressionTypeError,
+                                Message = $"Draw weight expression: {e.Message}"
+                            });
+                        }
+                    }
+
                     break;
                 case LoopNode l when l.StopConditionId != null:
-                    if (config.Expressions.TryGetValue(l.StopConditionId, out var sExpr))
+                    if (config.Expressions.TryGetValue(l.StopConditionId, out Expression? sExpr))
                     {
-                        var sErrors = ExpressionTypeChecker.Check(sExpr, ctx, ExprType.Boolean);
-                        foreach (var e in sErrors)
-                            errors.Add(new CompileError { NodeId = node.Id, Code = ErrorCodes.ExpressionTypeError, Message = $"Loop stop condition: {e.Message}" });
+                        IReadOnlyList<TypeCheckError> sErrors =
+                            ExpressionTypeChecker.Check(sExpr, ctx, ExprType.Boolean);
+                        foreach (TypeCheckError e in sErrors)
+                        {
+                            errors.Add(new CompileError
+                            {
+                                NodeId = node.Id,
+                                Code = ErrorCodes.ExpressionTypeError,
+                                Message = $"Loop stop condition: {e.Message}"
+                            });
+                        }
                     }
+
                     break;
                 case BranchNode b when b.ConditionId != null:
-                    if (config.Expressions.TryGetValue(b.ConditionId, out var cExpr))
+                    if (config.Expressions.TryGetValue(b.ConditionId, out Expression? cExpr))
                     {
-                        var cErrors = ExpressionTypeChecker.Check(cExpr, ctx, ExprType.Boolean);
-                        foreach (var e in cErrors)
-                            errors.Add(new CompileError { NodeId = node.Id, Code = ErrorCodes.ExpressionTypeError, Message = $"Branch condition: {e.Message}" });
+                        IReadOnlyList<TypeCheckError> cErrors =
+                            ExpressionTypeChecker.Check(cExpr, ctx, ExprType.Boolean);
+                        foreach (TypeCheckError e in cErrors)
+                        {
+                            errors.Add(new CompileError
+                            {
+                                NodeId = node.Id,
+                                Code = ErrorCodes.ExpressionTypeError,
+                                Message = $"Branch condition: {e.Message}"
+                            });
+                        }
                     }
+
                     break;
             }
         }
@@ -750,12 +1051,12 @@ public static class GraphValidator
             PortType.Number => ExprType.Number,
             PortType.Boolean => ExprType.Boolean,
             PortType.String => ExprType.String,
-            _ => null,
+            _ => null
         };
     }
 
     /// <summary>
-    /// Build a TypeCheckContext that includes named expressions as accessible state fields.
+    ///     Build a TypeCheckContext that includes named expressions as accessible state fields.
     /// </summary>
     private static TypeCheckContext BuildExpressionTypeContext(GraphConfig config)
     {
@@ -769,7 +1070,7 @@ public static class GraphValidator
             {
                 Name = "expressions",
                 Type = ExprType.Number,
-                Description = "Named expressions accessible via expressions.<name>",
+                Description = "Named expressions accessible via expressions.<name>"
             });
         }
 
@@ -777,9 +1078,13 @@ public static class GraphValidator
         // from what the graph writes (board+dims, data arrays, ModifyState outputs
         // typed by their writer expression, loop counters/accumulators), with
         // author-declared StateSchema entries as optional explicit overrides.
-        foreach (var fd in StateSchemaDeriver.Derive(config))
+        foreach (FieldDescriptor fd in StateSchemaDeriver.Derive(config))
+        {
             if (seen.Add(fd.Name))
+            {
                 stateFields.Add(fd);
+            }
+        }
 
         return new TypeCheckContext
         {
@@ -787,7 +1092,7 @@ public static class GraphValidator
             BoardFields = TypeCheckContext.Default.BoardFields,
             StateFields = stateFields,
             CellFields = TypeCheckContext.Default.CellFields,
-            DecorationTypes = TypeCheckContext.Default.DecorationTypes,
+            DecorationTypes = TypeCheckContext.Default.DecorationTypes
         };
     }
 
@@ -797,7 +1102,7 @@ public static class GraphValidator
         GraphConfig config, PluginHost? pluginHost, List<CompileError> errors)
     {
         // Collect plugin references from nodes
-        foreach (var node in config.Nodes)
+        foreach (Node node in config.Nodes)
         {
             if (node is MapNode map && map.TransformId != null && map.TransformId.StartsWith("plugin:"))
             {
@@ -809,26 +1114,29 @@ public static class GraphValidator
                     {
                         NodeId = node.Id,
                         Code = ErrorCodes.PluginNotFound,
-                        Message = $"Node '{node.Id}' references plugin '{pluginId}' but no PluginHost is available.",
+                        Message =
+                            $"Node '{node.Id}' references plugin '{pluginId}' but no PluginHost is available."
                     });
                     continue;
                 }
 
                 // Transform plugins bypass conformance (ITransform has no harness yet)
                 if (pluginHost.TryGetTransform(pluginId) != null)
+                {
                     continue;
+                }
 
                 var (canSelect, reason) = pluginHost.CanSelect(pluginId);
                 if (!canSelect)
                 {
-                    var entry = pluginHost.TryGetEntry(pluginId);
+                    PluginEntry? entry = pluginHost.TryGetEntry(pluginId);
                     if (entry == null)
                     {
                         errors.Add(new CompileError
                         {
                             NodeId = node.Id,
                             Code = ErrorCodes.PluginNotFound,
-                            Message = $"Node '{node.Id}' references plugin '{pluginId}' which is not registered.",
+                            Message = $"Node '{node.Id}' references plugin '{pluginId}' which is not registered."
                         });
                     }
                     else
@@ -837,7 +1145,8 @@ public static class GraphValidator
                         {
                             NodeId = node.Id,
                             Code = ErrorCodes.PluginNotConformant,
-                            Message = $"Node '{node.Id}' references plugin '{pluginId}' which is not conformant: {reason}",
+                            Message =
+                                $"Node '{node.Id}' references plugin '{pluginId}' which is not conformant: {reason}"
                         });
                     }
                 }
@@ -847,11 +1156,14 @@ public static class GraphValidator
         // Also check PluginReference[] in config
         if (config.Plugins != null)
         {
-            foreach (var pluginRef in config.Plugins)
+            foreach (PluginReference pluginRef in config.Plugins)
             {
-                if (pluginHost == null) continue;
+                if (pluginHost == null)
+                {
+                    continue;
+                }
 
-                var entry = pluginHost.TryGetEntry(pluginRef.PluginId);
+                PluginEntry? entry = pluginHost.TryGetEntry(pluginRef.PluginId);
                 if (entry == null)
                 {
                     // Plugin referenced in config but not found in host
@@ -862,7 +1174,7 @@ public static class GraphValidator
                 if (!entry.IsConformant)
                 {
                     // Find which node uses this plugin
-                    foreach (var node in config.Nodes)
+                    foreach (Node node in config.Nodes)
                     {
                         if (node is MapNode map && map.TransformId == $"plugin:{pluginRef.PluginId}")
                         {
@@ -870,12 +1182,30 @@ public static class GraphValidator
                             {
                                 NodeId = node.Id,
                                 Code = ErrorCodes.PluginNotConformant,
-                                Message = $"Node '{node.Id}' references plugin '{pluginRef.PluginId}' which has not passed conformance validation.",
+                                Message =
+                                    $"Node '{node.Id}' references plugin '{pluginRef.PluginId}' which has not passed conformance validation."
                             });
                         }
                     }
                 }
             }
         }
+    }
+
+    // ── 2. Cycles & reachability ────────────────────────────────────────
+
+    private sealed record AdjacencyInfo(
+        Dictionary<string, List<Edge>> Incoming,
+        Dictionary<string, List<Edge>> Outgoing,
+        HashSet<string> AllNodes)
+    {
+        public HashSet<string> EntryNodes { get; init; } = new();
+    }
+
+    private enum NodeColor
+    {
+        White,
+        Gray,
+        Black
     }
 }

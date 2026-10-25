@@ -1,0 +1,26 @@
+{
+  "RADAR_TURN_0": {
+    "x": 85,
+    "y": 40,
+    "width": 566,
+    "height": 430
+  },
+  "RADAR_TURN_1": {
+    "x": 805,
+    "y": 65,
+    "width": 652,
+    "height": 408
+  },
+  "RADAR_TURN_2": {
+    "x": 325,
+    "y": 503,
+    "width": 202,
+    "height": 475
+  },
+  "RADAR_TURN_3": {
+    "x": 882,
+    "y": 515,
+    "width": 530,
+    "height": 452
+  }
+}

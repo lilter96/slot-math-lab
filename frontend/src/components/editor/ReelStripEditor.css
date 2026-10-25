@@ -1,0 +1,18 @@
+.reel-pagination { display: flex; align-items: end; gap: 16px; flex-wrap: wrap; margin: 16px 0; }
+.reel-pagination label { display: grid; gap: 8px; }
+.reel-table-scroll { max-height: 65vh; margin-bottom: 16px; }
+.reel-data-table td { min-width: 180px; text-align: left; }
+.reel-data-table tbody th, .reel-data-table tbody td { padding: 1px 6px; }
+.reel-data-table td select { width: 100%; min-height: 36px; }
+.reel-data-table th:first-child { position: sticky; left: 0; background: var(--bg-2); z-index: 1; }
+.reel-data-table thead th { z-index: 2; text-align: left; }
+.reel-data-table thead th:first-child { z-index: 3; }
+.reel-cell-actions { display: flex; gap: 4px; flex-wrap: wrap; margin: 8px 0 12px; }
+.reel-selection-tools { padding: 8px 0; }
+.reel-data-table select[data-changed="true"] { border-color: var(--epsilon); }
+.reel-cell-actions button { min-width: 36px; min-height: 36px; padding: 4px 8px; }
+.reel-editor > details { margin: 16px 0; }
+.reel-editor > details > summary { cursor: pointer; padding: 8px 0; }
+@media (max-width: 767px) {
+  .reel-editor button, .reel-editor .reel-data-table td select, .reel-editor select, .model-data-page .draw-source-select .inp { min-height: 44px; }
+}
