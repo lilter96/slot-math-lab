@@ -604,3 +604,53 @@ method name misleadingly reports no samples despite a successful tool exit.
 Full-symbol annotations contain the actual instruction samples. These findings
 motivate generic state-scalar replacement and control-flow compilation; they
 are not evidence of a game-wide gain for either proposal.
+
+
+## Scalar replacement of proven mask state
+
+Within a straight run, IR read/write effects identify repeated writes and reads
+after writes to fields already proven to remain finite masks throughout the
+program. Native code keeps these fields in UInt64 locals, materializing only at
+value boundaries and when publishing the latest completed write in finally.
+Initial loads occur only when the original run reads before writing. Self-touches
+still publish typed state. Wide masks retain bit 63. Opaque evaluators and finite
+precomputation probes decline this promotion because they observe frame cells.
+No new expression, atom, mechanic dispatch or authoring change is introduced.
+
+All three source files received both Rider profiles, followed by Release solution
+build, scoped format, 310 affected Core cases, three small exact-model laws and
+1,950 unfiltered complete payout/state/RNG/next-word comparisons. All pass.
+A short native source-map diagnostic confirms application to six Super run
+bindings: four share the symbol-preparation method and two the removed-state
+completion method. This is straight-run replacement, not whole-loop compilation.
+
+Frozen admitted aggregate and cleaned mask-local kernels run identical JSON,
+CPU 2/one worker, normal .NET tiering/PGO and Tiered sampling. ABBA processes and
+round schedules are unchanged. Every outcome and loop-termination statistic
+matches exactly; allocation per round is unchanged.
+
+| Complete configuration | Before rounds/s | After rounds/s | Ratio |
+| --- | ---: | ---: | ---: |
+| ancient-dragon | 341,961 | 346,090 | 1.012 |
+| nine-lives | 461,152 | 454,410 | 0.985 |
+| nine-lives.buy | 26,395 | 26,346 | 0.998 |
+| woodland-whisper | 311,638 | 322,968 | 1.036 |
+| woodland-whisper.buy | 23,683 | 24,638 | 1.040 |
+| x7-club | 455,929 | 465,225 | 1.020 |
+| x7-club.buy | 194,747 | 197,822 | 1.016 |
+| le-militare.spin | 244,150 | 249,538 | 1.022 |
+| le-militare.standard | 18,883 | 19,118 | 1.012 |
+| le-militare.super | 5,452 | 5,492 | 1.007 |
+| le-militare.elite | 7,583 | 7,707 | 1.016 |
+| le-militare.chance | 159,477 | 161,001 | 1.010 |
+| le-militare.air-raid | 212,217 | 212,529 | 1.001 |
+| le-militare.siege.spin | 243,713 | 248,124 | 1.018 |
+| le-militare.recon.spin | 239,078 | 241,516 | 1.010 |
+
+Woodland Whisper has a disjoint 3.6% gain; the other fourteen timing ranges
+intersect, including Nine Lives at 0.985x. These establish no separated gain or
+regression for those configurations. The earlier four-case preflight's Ancient
+Dragon 3.4% separated gain does not reproduce as a separated all-game result
+(1.012x, overlapping); it is not counted as an established improvement.
+Super is effectively neutral (1.007x, overlapping). The remaining target requires
+substantially less work in whole control regions and collection execution.

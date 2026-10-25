@@ -82,6 +82,7 @@ internal sealed class SamplingOperands(
     internal int EliminatedStateStores { get; init; }
     internal int ReusedCollectionBuffers { get; init; }
     internal int FusedCollectionPasses { get; init; }
+    internal int PromotedMaskFields { get; init; }
 }
 
 // Bound data for an ordinary scalar Draw. Sampling preserves its two RNG
@@ -614,6 +615,10 @@ internal sealed class SamplingCodegen
     private readonly Dictionary<string, (LxParameter Value, int Id)> _lexical = new(StringComparer.Ordinal);
     private readonly bool _literalOperands;
     private readonly List<LxParameter> _locals = [];
+
+    private readonly Dictionary<int, (LxParameter Value, LxParameter Dirty, bool Inline, bool Initial)>
+        _maskLocals = [];
+
     private readonly HashSet<int> _normalizedWrites = [];
     private readonly List<long> _numbers = [];
     private readonly LxParameter _operands = Lx.Parameter(typeof(SamplingOperands), "operands");
@@ -628,6 +633,7 @@ internal sealed class SamplingCodegen
     private readonly List<int> _slots = [];
     private readonly List<string> _texts = [];
     private readonly List<ExprValue> _values = [];
+    private bool _blockedMaskLocals;
     private CollectionBufferAnalysis? _buffers;
     private int _eliminatedStateStores;
     private int _fusedCollectionPasses;
@@ -688,6 +694,19 @@ internal sealed class SamplingCodegen
     private Lx Write(Expression expression, int destination, bool integer, bool inlineMask = false,
         int? reuseGroup = null, bool deferStore = false)
     {
+        if (_maskLocals.TryGetValue(destination,
+                out (LxParameter Value, LxParameter Dirty, bool Inline, bool Initial) promoted))
+        {
+            if (!integer && KnownMask(expression))
+            {
+                _shape.Append("local-mask-write:").Append(destination).Append(';');
+                return Lx.Block(Lx.Assign(promoted.Value, KnownMaskValue(expression)),
+                    Lx.Assign(promoted.Dirty, Lx.Constant(true)), Lx.Empty());
+            }
+
+            _blockedMaskLocals = true;
+        }
+
         inlineMask = inlineMask && !integer && KnownMask(expression);
         _shape.Append(inlineMask ? "write-inline-mask(" : integer ? "write-integer(" : "write(");
         LxParameter result = Local(typeof(ExprValue));
@@ -758,9 +777,22 @@ internal sealed class SamplingCodegen
         SamplingOperands Operands) CompileRun(
             SamplingExpressions owner, Func<string, int> slot, IReadOnlyList<Node> nodes,
             IReadOnlyDictionary<string, Expression> expressions, BigInteger scale, bool discardOutput = false,
-            Func<DrawNode, SamplingDraw>? bindDraw = null)
+            Func<DrawNode, SamplingDraw>? bindDraw = null, bool promoteMasks = true)
     {
         var generator = new SamplingCodegen(owner, slot, true);
+        if (promoteMasks)
+        {
+            foreach (var (field, initial) in SamplingMaskLocals.Find(nodes, owner.Ir, owner.IsMaskField))
+            {
+                var destination = slot(field);
+                var inline = owner.IsInlineMaskField(field);
+                generator._maskLocals.Add(destination,
+                    (generator.Local(typeof(ulong)), generator.Local(typeof(bool)), inline, initial));
+                generator._shape.Append("promote-mask:").Append(destination).Append(':')
+                    .Append(inline).Append(':').Append(initial).Append(';');
+            }
+        }
+
         var reuse = ScalarReusePlan.Build(nodes, expressions, owner.Ir,
             admit: node => node.OutputKey is null || !owner.IsInlineMaskField(node.OutputKey));
         var deferred = DeferredStorePlan.Build(nodes, expressions, owner.Ir);
@@ -789,10 +821,13 @@ internal sealed class SamplingCodegen
                         } field && field.Path[0] == modify.OutputKey)
                     {
                         generator._shape.Append("touch;");
-                        body.Add(Lx.Call(generator._frame,
-                            typeof(SamplingFrame).GetMethod(nameof(SamplingFrame.Touch))!,
-                            generator.Operand(nameof(SamplingOperands.Slots), generator._slots, destination),
-                            generator.Text(field.Path[0])));
+                        body.Add(generator._maskLocals.TryGetValue(destination,
+                            out (LxParameter Value, LxParameter Dirty, bool Inline, bool Initial) promoted)
+                            ? Lx.Block(Lx.Assign(promoted.Dirty, Lx.Constant(true)), Lx.Empty())
+                            : Lx.Call(generator._frame,
+                                typeof(SamplingFrame).GetMethod(nameof(SamplingFrame.Touch))!,
+                                generator.Operand(nameof(SamplingOperands.Slots), generator._slots, destination),
+                                generator.Text(field.Path[0])));
                         generator._readableWrites.Add(destination);
                         generator._normalizedWrites.Add(destination);
                     }
@@ -828,6 +863,15 @@ internal sealed class SamplingCodegen
             }
         }
 
+        // Opaque evaluators and finite-table probes observe frame state directly.
+        // Retain ordinary stores for such runs rather than publish speculatively.
+        if (generator._maskLocals.Count != 0 && (generator._blockedMaskLocals ||
+                                                 generator._closures.Count != 0 ||
+                                                 generator._precomputations.Count != 0))
+        {
+            return CompileRun(owner, slot, nodes, expressions, scale, discardOutput, bindDraw, false);
+        }
+
         body.Add(discardOutput ? Lx.Constant(null, typeof(object)) : input);
         Lx execute = Lx.Block(body);
         if (generator._deferredStores.Count != 0)
@@ -841,6 +885,30 @@ internal sealed class SamplingCodegen
                     generator.Operand(nameof(SamplingOperands.Slots), generator._slots, destination));
                 publish.Add(Lx.IfThen(pending.Present,
                     Lx.Call(cell, typeof(SamplingCell).GetMethod(nameof(SamplingCell.SetTyped))!, pending.Value)));
+            }
+
+            initialize.Add(Lx.TryFinally(execute, Lx.Block(publish)));
+            execute = Lx.Block(initialize);
+        }
+
+        if (generator._maskLocals.Count != 0)
+        {
+            var initialize = new List<Lx>();
+            var publish = new List<Lx>();
+            foreach ((var destination, (LxParameter Value, LxParameter Dirty, bool Inline, bool Initial) promoted) in
+                     generator._maskLocals)
+            {
+                IndexExpression cell = Lx.ArrayAccess(Lx.Field(generator._frame, nameof(SamplingFrame.Cells)),
+                    generator.Operand(nameof(SamplingOperands.Slots), generator._slots, destination));
+                initialize.Add(Lx.Assign(promoted.Dirty, Lx.Constant(false)));
+                if (promoted.Initial)
+                {
+                    initialize.Add(Lx.Assign(promoted.Value, Lx.Property(cell, nameof(SamplingCell.StoredMask))));
+                }
+
+                publish.Add(Lx.IfThen(promoted.Dirty, Lx.Call(cell,
+                    typeof(SamplingCell).GetMethod(nameof(SamplingCell.SetTyped))!,
+                    generator.MaskLocalValue(promoted.Value, promoted.Inline))));
             }
 
             initialize.Add(Lx.TryFinally(execute, Lx.Block(publish)));
@@ -878,8 +946,13 @@ internal sealed class SamplingCodegen
         InvariantScalarValues = _invariantScalarValues,
         EliminatedStateStores = _eliminatedStateStores,
         ReusedCollectionBuffers = _reusedCollectionBuffers,
-        FusedCollectionPasses = _fusedCollectionPasses
+        FusedCollectionPasses = _fusedCollectionPasses,
+        PromotedMaskFields = _maskLocals.Count
     };
+
+    private Lx MaskLocalValue(Lx value, bool inline) => inline
+        ? Lx.Call(NumberOf, Lx.Convert(value, typeof(long)))
+        : Lx.Call(SetOp(nameof(BitSetOperations.Value)), value);
 
     private LxParameter Local(Type type)
     {
@@ -1138,6 +1211,13 @@ internal sealed class SamplingCodegen
                 {
                     _shape.Append(binding.Shape);
                     return binding.Read(field.Path[0]);
+                }
+
+                if (_maskLocals.TryGetValue(_slot(field.Path[0]),
+                        out (LxParameter Value, LxParameter Dirty, bool Inline, bool Initial) promoted))
+                {
+                    _shape.Append("local-mask-value:").Append(_slot(field.Path[0])).Append(';');
+                    return MaskLocalValue(promoted.Value, promoted.Inline);
                 }
 
                 _shape.Append("field;");
@@ -2214,6 +2294,13 @@ internal sealed class SamplingCodegen
         if (expression is FieldAccessExpr { Target: null or "state" or "board", Path.Length: 1 } stored
             && !_bindings.ContainsKey(stored.Path[0]) && _owner.IsMaskField(stored.Path[0]))
         {
+            if (_maskLocals.TryGetValue(_slot(stored.Path[0]),
+                    out (LxParameter Value, LxParameter Dirty, bool Inline, bool Initial) promoted))
+            {
+                _shape.Append("local-mask-read:").Append(_slot(stored.Path[0])).Append(';');
+                return promoted.Value;
+            }
+
             var inline = _owner.IsInlineMaskField(stored.Path[0]);
             return Form(inline ? "inline-mask-state" : "mask-state", () =>
             {
@@ -2515,6 +2602,14 @@ internal sealed class SamplingCodegen
             {
                 _shape.Append("integer-").Append(binding.Shape);
                 return integer;
+            }
+
+            if (!_bindings.ContainsKey(field.Path[0]) &&
+                _maskLocals.TryGetValue(_slot(field.Path[0]),
+                    out (LxParameter Value, LxParameter Dirty, bool Inline, bool Initial) promoted))
+            {
+                _shape.Append("local-mask-integer:").Append(_slot(field.Path[0])).Append(';');
+                return Lx.Convert(promoted.Value, typeof(long));
             }
 
             return Form("integer-state", () => Lx.Property(Lx.Property(Lx.ArrayAccess(
