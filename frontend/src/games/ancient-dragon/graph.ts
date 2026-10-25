@@ -1,12 +1,14 @@
 import fullModel from './model.json' with {type: 'json'};
 import {add, div, gte, lte, num, state, sub, when} from '../shared/graph/expr';
 import {Flow, gameGraph, Mechanics} from '../shared/graph/flow';
-import {lineSpin, lineSpinState} from '../shared/graph/mechanics/line-spin';
+import {lineSpinState} from '../shared/graph/mechanics/line-spin';
 import {linePayTable, paylineState} from '../shared/graph/mechanics/paylines';
 import {lineEvaluation, lineEvaluationState} from '../shared/graph/mechanics/line-evaluation';
-import {reelState, spinReels, type ReelSet} from '../shared/graph/mechanics/reels';
-import {scatterPay, scatterPayTable} from '../shared/graph/mechanics/scatter';
+import {reelState, type ReelSet} from '../shared/graph/mechanics/reels';
+import {scatterPayTable} from '../shared/graph/mechanics/scatter';
 import {gameTables} from '../shared/graph/tables';
+import {PackedVector} from '../shared/graph/packed-vector';
+import {packedLineSpin, packedReelState} from '../shared/graph/mechanics/packed-line-spin';
 
 export type AncientDragonModel = typeof fullModel;
 
@@ -32,13 +34,13 @@ export function createAncientDragonGraph(model: AncientDragonModel = fullModel, 
         name: 'spin-reels', stripKey: 'reel', rows: ROWS,
         strips: Object.values(model.reel_strips).map(strip => strip.map(id))
     };
+    const vector = new PackedVector('boardPacked', reels.strips.length * ROWS, names.length);
     const pays = Object.fromEntries(Object.entries(model.paytable).map(([name, row]) => [id(name), row]));
     const scatterPays = scatterPayTable(model.scatter_paytable.YINYANG, reels.strips.length * ROWS);
 
-    const spin = mechanics.add(lineSpin({
-        reels: mechanics.add(spinReels(reels)),
-        paylines: mechanics.add(lineEvaluation(model.paylines, ROWS)),
-        scatterPay: mechanics.add(scatterPay()),
+    const spin = mechanics.add(packedLineSpin(mechanics, {
+        reels, vector,
+        paylines: mechanics.add(lineEvaluation(model.paylines, ROWS, offset => vector.readOffset(offset))),
         scatter: SCATTER, mystery: {placeholder: MYSTERY, outcomes: [...mysteryWeights]},
     }));
     // The original game has no win cap. The sink's cap is the most the round can pay at all, so it never cuts a win.
@@ -64,6 +66,7 @@ export function createAncientDragonGraph(model: AncientDragonModel = fullModel, 
         .use('base-spin', 'Paid spin · 5 reels, 25 lines', spin)
         .record('trace-left', 'Remember the free spins awarded', 'spinFreeSpinsLeft', awarded)
         .onlyIf('trigger', `${TRIGGER}+ scatters start the free spins`, gte(state('scatterCount'), num(TRIGGER)), freeSpins)
+        .write('final-board', 'Last field of the round', 'board', vector.decode())
         .write('credits', 'Round win as a multiple of the total bet', 'winCredits', div(state('roundCoins'), state('roundCost')))
         .sink('round', 'Round payout & RTP', 'winCredits', roundCap);
 
@@ -78,12 +81,12 @@ export function createAncientDragonGraph(model: AncientDragonModel = fullModel, 
             mysterySymbol: '',
             winCredits: 0,
             spinFreeSpinsLeft: [],
-            ...reelState(reels), ...Object.fromEntries(reels.strips.map((_, reel) => [`stop${reel}`, '0'])),
+            ...vector.initialState(), ...packedReelState(reels, vector), ...reelState(reels), ...Object.fromEntries(reels.strips.map((_, reel) => [`stop${reel}`, '0'])),
             ...paylineState(WILD, linePayTable({
                 symbolCount: names.length,
                 wild: WILD,
                 pays
-            })), ...lineSpinState(), ...lineEvaluationState(model.paylines, ROWS),
+            })), ...lineSpinState(), ...lineEvaluationState(model.paylines, ROWS, cell => -cell * vector.bits),
         },
         tables: gameTables({
             names,

@@ -1,20 +1,20 @@
 import fullModel from './model.json' with {type: 'json'};
 import {add, and, div, length, lte, min, not, num, state, sub} from '../shared/graph/expr';
 import {Flow, gameGraph, Mechanics} from '../shared/graph/flow';
-import {lineSpin, lineSpinState} from '../shared/graph/mechanics/line-spin';
+import {lineSpinState} from '../shared/graph/mechanics/line-spin';
 import {linePayTable, paylineState} from '../shared/graph/mechanics/paylines';
 import {lineEvaluation, lineEvaluationState} from '../shared/graph/mechanics/line-evaluation';
 import {pickBonus, pickBonusState, type PickCard} from '../shared/graph/mechanics/pick-bonus';
 import {
     reelState,
     showingState,
-    spinReels,
-    spinReelsShowing,
     type ReelSet,
     type Showing
 } from '../shared/graph/mechanics/reels';
-import {scatterPay, scatterPayTable} from '../shared/graph/mechanics/scatter';
+import {scatterPayTable} from '../shared/graph/mechanics/scatter';
 import {gameTables} from '../shared/graph/tables';
+import {PackedVector} from '../shared/graph/packed-vector';
+import {packedLineSpin, packedReelState} from '../shared/graph/mechanics/packed-line-spin';
 
 export type WoodlandWhisperModel = typeof fullModel;
 
@@ -60,17 +60,17 @@ export function createWoodlandWhisperGraph(model: WoodlandWhisperModel = fullMod
         symbolName: model.symbols.scatter,
         atLeast: TRIGGER
     };
+    const vector = new PackedVector('boardPacked', reels.strips.length * ROWS, names.length);
     const pays = Object.fromEntries(Object.entries(model.paytable).map(([name, row]) => [id(name), row]));
     const scatterPays = scatterPayTable(model.scatter_paytable.COIN, reels.strips.length * ROWS);
     const evaluation = {
-        paylines: mechanics.add(lineEvaluation(model.paylines, ROWS)),
-        scatterPay: mechanics.add(scatterPay()),
+        paylines: mechanics.add(lineEvaluation(model.paylines, ROWS, offset => vector.readOffset(offset))),
         scatter: SCATTER,
         mystery: {placeholder: MYSTERY, outcomes: [...mysteryWeights]},
         multiplierKey: 'spinMultiplier',
         trigger: {count: TRIGGER, key: 'bonusDue'},
     };
-    const spin = mechanics.add(lineSpin({...evaluation, reels: mechanics.add(spinReels(reels))}));
+    const spin = mechanics.add(packedLineSpin(mechanics, {...evaluation, reels, vector}));
 
     const awardFreeSpins = mechanics.add(new Flow()
         .use('pick', 'Pick bonus: turn cards until two match', mechanics.add(pickBonus(mechanics, cards)))
@@ -98,16 +98,17 @@ export function createWoodlandWhisperGraph(model: WoodlandWhisperModel = fullMod
     const roundCap = Math.ceil(bestSpin * (1 + FREE_MULTIPLIER * FREE_SPIN_CAP) * TOTAL_BET / ROUND_COST);
     const root = new Flow();
     if (buy)
-        root.use('bought-spin', `Bought spin · ${TRIGGER}+ ${model.symbols.scatter}s are certain`, mechanics.add(lineSpin({
+        root.use('bought-spin', `Bought spin · ${TRIGGER}+ ${model.symbols.scatter}s are certain`, mechanics.add(packedLineSpin(mechanics, {
             ...evaluation,
-            reels: mechanics.add(spinReelsShowing(reels, triggering)), name: 'bought-spin',
+            reels, vector, showing: triggering, name: 'bought-spin',
             description: `The spin a bought feature opens with: an ordinary spin, given that it shows ${TRIGGER} or more ${model.symbols.scatter}s.`
         })))
             .use('feature', 'Pick bonus and free spins', freeSpins);
     else
         root.use('base-spin', `Paid spin · 5 reels, ${model.paylines.length} lines`, spin)
             .onlyIf('trigger', `${TRIGGER}+ ${model.symbols.scatter}s start the pick bonus and the free spins`, state('bonusDue'), freeSpins);
-    root.write('credits', buy ? 'Round win as a multiple of the price paid' : 'Round win as a multiple of the total bet', 'winCredits', div(state('roundCoins'), state('roundCost')))
+    root.write('final-board', 'Last field of the round', 'board', vector.decode())
+        .write('credits', buy ? 'Round win as a multiple of the price paid' : 'Round win as a multiple of the total bet', 'winCredits', div(state('roundCoins'), state('roundCost')))
         .sink('round', 'Round payout & RTP', 'winCredits', roundCap);
 
     return gameGraph({
@@ -124,12 +125,12 @@ export function createWoodlandWhisperGraph(model: WoodlandWhisperModel = fullMod
             mysterySymbol: '',
             winCredits: 0,
             pickSpins: [],
-            ...reelState(reels), ...Object.fromEntries(reels.strips.map((_, reel) => [`stop${reel}`, '0'])), ...(buy ? showingState(reels, triggering) : {}),
+            ...vector.initialState(), ...packedReelState(reels, vector), ...reelState(reels), ...Object.fromEntries(reels.strips.map((_, reel) => [`stop${reel}`, '0'])), ...(buy ? showingState(reels, triggering) : {}),
             ...paylineState(WILD, linePayTable({
                 symbolCount: names.length,
                 wild: WILD,
                 pays
-            })), ...lineSpinState(), ...lineEvaluationState(model.paylines, ROWS), ...pickBonusState(cards),
+            })), ...lineSpinState(), ...lineEvaluationState(model.paylines, ROWS, cell => -cell * vector.bits), ...pickBonusState(cards),
         },
         tables: gameTables({
             names,

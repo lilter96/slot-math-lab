@@ -249,3 +249,74 @@ source/fixture files received Reformat Code then Full Cleanup, with CLI evidence
 for C# and exact-file solution scope evidence for authoring/JSON. Scoped ESLint,
 TypeScript checking and the 38-fixture source check pass. Pre/post-cleanup full
 JSON values match the timed snapshots. No product UI files were changed.
+
+
+## Full game-graph rebuild: packed fields and pick state
+
+Ancient Dragon and both Woodland configurations now compose a finite-vector
+representation from existing exact integer, Let/Local and bitset expressions.
+No kernel primitive, named mechanic evaluator or product UI change is involved.
+Each reel stop indexes immutable local-window data. The same mystery draw and
+scalar reel stops run in their original order, then shifts assemble the field.
+Symbol replacement and scatter counts operate on its bits. The line program
+reads cells at precomputed bit offsets, avoiding coordinate arithmetic at runtime.
+All existing expression budgets remain enforced; none was raised.
+
+Analyses materialize the final field once per complete round; played traces
+lazily decode every recorded field. Pick bonuses retain a set of previously
+turned card kinds, materializing the original boolean vector once after the
+bonus. They draw the same cards in the same order and stop by the same rule.
+Exact large constants are decimal strings derived from BigInt; floating-point
+serialization must not round a 60-bit field mask.
+
+A fresh comparison uses one identical accepted kernel and the preceding
+line-rewrite JSON versus packed JSON. CPU 2, one worker, Tiered sampling and
+normal .NET tiering/PGO; ABBA four processes with three measurements each,
+discarding the first (four retained per version). Paid configurations use
+262,144 warm-up and 1,048,576 measured complete rounds; bought uses 32,768 and
+16,384. Every outcome statistic and every loop-termination row matches without
+filtering. No change to the definition of a complete round is made.
+
+| Complete configuration | Previous rounds/s | Packed rounds/s | Ratio | Retained ranges, previous / packed |
+| --- | ---: | ---: | ---: | --- |
+| Ancient Dragon | 394,954 | 434,421 | 1.100 | 390,093–400,873 / 422,089–443,753 |
+| Woodland Whisper paid | 364,456 | 405,621 | 1.113 | 352,884–376,659 / 396,497–414,806 |
+| Woodland Whisper buy | 27,816 | 35,464 | 1.275 | 27,584–28,187 / 34,950–36,206 |
+
+All three ranges are disjoint in this shared-host experiment. These measurements
+do not establish dedicated server capacity or completion of the all-game target.
+Measured allocation changes only slightly: 33.36->33.07, 27.48->26.96 and
+61.29->58.06 bytes/round respectively. Most removed buffers were already pooled.
+
+A separate work diagnostic replays 1,024 independent streams after 512 warm-ups
+and counts existing arena requests of lengths 1..64, including retained buffers.
+Paid Woodland requests/elements fall 2.303/34.355 -> 1.009/15.088 per round;
+bought falls 34.641/499.316 -> 2.123/26.230 (93.9% fewer requests, 94.7% fewer
+requested elements). Payout and actual RNG words match. These counters exclude
+arrays outside that arena and do not measure physical instructions or throughput.
+The smaller speed gain is consistent with removing pooled array work while
+line evaluation and the remaining feature execution still cost time.
+
+The authored node totals are 51 for Ancient and 64/96 for Woodland paid/buy,
+versus original 72 and 89/120. Canonical UTF-8 JSON is currently 99,444 and
+107,807/142,526 bytes, larger than original 59,337 and 68,508/102,750.
+Repeated expression bodies and added immutable data still need compacting.
+Neither fewer nodes nor fewer buffers satisfies the entire graph-size target.
+
+Validation passes 23 selected game/oracle/trace cases and three small exact laws,
+retaining their original rational RTPs and budgets. The generic vector oracle
+exhausts all 4,096 four-cell base-eight words in three tiers, and probes each
+position/value plus mixed and maximum 63-bit words independently. A separate
+774 old/new round comparison retains payout, every original state field, RNG
+audit and following RNG word, with trace off and on. All 24 original client
+trace rows retain every existing field and win; only boardPacked and, where
+applicable, pickSeenBits are added. Original-server goldens and game models are
+unchanged. Both cleanup profiles cover all 19 changed source/fixture files;
+scoped ESLint, TypeScript, C# format and all 39 exported fixtures pass. No full
+suite or integration run was required. A TypeScript constructor-syntax failure
+was corrected without relaxing compiler settings or changing generated graphs.
+
+Next work remains backend execution and mathematical authoring: compact the
+repeated expression syntax, then rebuild cluster/cascade/combat and hold/boost
+compositions, including their dependent models and starters. Product UI and
+editor bindings remain deferred until speed and graph reduction are achieved.
