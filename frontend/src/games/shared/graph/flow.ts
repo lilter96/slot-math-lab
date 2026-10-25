@@ -40,7 +40,13 @@ export class Flow {
     private readonly bodies: GraphNode[] = [];
     private readonly edges: GraphEdge[] = [];
     private readonly expressions: Record<string, Expr> = {};
-    private readonly batches = new Map<GraphNode, { rows: DistributionAsset[]; schedule: number[]; count?: number }>();
+    private readonly batches = new Map<GraphNode, {
+        rows: DistributionAsset[];
+        schedule: number[];
+        count?: number;
+        countExpressionId?: string;
+        maxCount?: number;
+    }>();
     private tail: [nodeId: string, port: string] | undefined;
     private pending: [nodeId: string, port: string][] = [];
 
@@ -112,13 +118,24 @@ export class Flow {
         return this.batch(id, label, key, count === 0 ? [] : [outcomes], count === 0 ? undefined : count);
     }
 
+    /** Draw an expression-bounded number of samples from one ordered distribution. */
+    drawManyDynamic(id: string, label: string, key: string, count: Expr, maxCount: number,
+                    outcomes: readonly Outcome[]): this {
+        if (!Number.isInteger(maxCount) || maxCount < 0 || maxCount > 4096)
+            throw new Error('A dynamic ordered draw maximum must be an integer from 0 to 4096');
+        const countExpressionId = `${id}-count`;
+        this.expressions[countExpressionId] = count;
+        return this.batch(id, label, key, [outcomes], undefined, {countExpressionId, maxCount});
+    }
+
     /** An explicit schedule: each table draws once, in this exact order. */
     drawManySchedule(id: string, label: string, key: string, schedule: readonly (readonly Outcome[])[]): this {
         if (schedule.length > 4096) throw new Error('An ordered draw schedule accepts at most 4096 entries');
         return this.batch(id, label, key, schedule);
     }
 
-    private batch(id: string, label: string, key: string, source: readonly (readonly Outcome[])[], count?: number): this {
+    private batch(id: string, label: string, key: string, source: readonly (readonly Outcome[])[], count?: number,
+                  dynamic?: { countExpressionId: string; maxCount: number }): this {
         const rows: DistributionAsset[] = [], schedule: number[] = [],
             identities = new Map<readonly Outcome[], number>();
         for (const outcomes of source) {
@@ -143,7 +160,7 @@ export class Flow {
             outputs: statePort
         };
         this.step(node);
-        this.batches.set(node, {rows, schedule, ...(count === undefined ? {} : {count})});
+        this.batches.set(node, {rows, schedule, ...(count === undefined ? {} : {count}), ...dynamic});
         return this;
     }
 
@@ -247,8 +264,12 @@ export class Flow {
                 return id;
             });
             return {
-                ...node, ...(batch.count === undefined ? {distributionIds: batch.schedule.map(index => ids[index])}
-                    : {distributionId: ids[0], count: batch.count})
+                ...node,
+                ...(batch.countExpressionId !== undefined
+                    ? {distributionId: ids[0], countExpressionId: batch.countExpressionId, maxCount: batch.maxCount}
+                    : batch.count === undefined
+                        ? {distributionIds: batch.schedule.map(index => ids[index])}
+                        : {distributionId: ids[0], count: batch.count})
             };
         });
         return {

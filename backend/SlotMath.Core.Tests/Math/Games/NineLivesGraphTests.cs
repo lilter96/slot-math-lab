@@ -237,7 +237,15 @@ public class NineLivesGraphTests(ITestOutputHelper output)
         }
 
         Assert.Equal(Weights("bonusWeights"), Draw("free-board", Cells));
-        Assert.Equal(Weights("refillWeights"), Draw("drop-symbol"));
+        DrawManyNode refill = Assert.Single(graph.Mechanics!["tumble"].Nodes.OfType<DrawManyNode>());
+        Assert.Equal("drops", refill.OutputKey);
+        Assert.Null(refill.Count);
+        Assert.Equal(Cells, refill.MaxCount);
+        Assert.NotNull(refill.CountExpressionId);
+        Assert.NotNull(refill.DistributionId);
+        Assert.Null(refill.DistributionIds);
+        Assert.Equal(Weights("refillWeights"), graph.Distributions![refill.DistributionId!].Outcomes
+            .ToDictionary(outcome => outcome.OutcomeId, outcome => outcome.Weight));
         Assert.Equal(
             config.GetProperty("prizes").EnumerateArray()
                 .ToDictionary(prize => prize[0].GetInt64().ToString(), prize => prize[1].GetInt64()),

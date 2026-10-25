@@ -1,14 +1,13 @@
 import {
     add,
-    append,
     at,
     choose,
-    emptyArray,
     eq,
     filterOver,
     gt,
     gte,
     inSet,
+    iteration,
     intersect,
     length,
     lt,
@@ -115,14 +114,6 @@ export const cascadeState = ({
     ...Object.fromEntries(cascadeTrace.map(key => [key, []])),
 });
 
-/** One new symbol: it is drawn and waits above the board with the others. */
-function dropSymbol(refill: readonly Outcome[]): Mechanic {
-    return new Flow()
-        .draw('symbol', 'Draw the symbol that drops in', 'dropSymbol', refill)
-        .write('drop', 'It waits above the board with the others', 'drops', append('drops', state('dropSymbol')))
-        .mechanic('drop-symbol', 'Draws one new symbol for an empty cell.');
-}
-
 /**
  * Removes the cells of the set `removed` from `board`: the symbols above them fall to the bottom of their column
  * and new symbols drop in from the top. New symbols come column by column from the left, and in a column the
@@ -160,10 +151,14 @@ export function tumble(mechanics: Mechanics, spec: Tumble): Mechanic {
     }
     let fresh: Expr;
     if ('cells' in refill) {
-        // Never more than every cell of the board, and one pass of slack so that the limit is never what ends the loop.
-        flow.write('empty', 'No new symbol has dropped yet', 'drops', emptyArray())
-            .repeat('refill', 'Draw a new symbol for every cell left empty', cells + 1, mechanics.add(dropSymbol(refill.cells)),
-                {until: gte(length('drops'), sizeOf(state('removed'))), bodyLabel: 'One new symbol'});
+        flow.drawManyDynamic('refill-draws', 'Draw one new symbol for every empty cell', 'drops',
+            sizeOf(state('removed')), cells, refill.cells)
+            .write('last-drop', 'Keep the last dropped symbol in state', 'dropSymbol',
+                when(eq(length('drops'), num(0)), state('dropSymbol'), at('drops', sub(length('drops'), num(1)))));
+        const progress = mechanics.add(new Flow()
+            .mechanic('refill-progress', 'One ordered refill completion for each empty cell.'));
+        flow.repeat('refill', 'Complete the per-cell refill loop', cells + 1, progress,
+            {until: gte(iteration('refill'), length('drops')), bodyLabel: 'One refilled cell'});
         fresh = at('drops', lookup ? add(emptyThrough, sourceRow) : dropped);
     } else {
         // A reel with empty cells stops again, and the symbols from the stop on fill them: the first one lands lowest,

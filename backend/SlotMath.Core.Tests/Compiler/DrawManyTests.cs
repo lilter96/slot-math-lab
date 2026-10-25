@@ -263,6 +263,12 @@ public class DrawManyTests
             foreach (var count in new[] { 0, 1, 30, 64, 65 })
             {
                 cases.Add((Repeat(count), count, Enumerable.Repeat("a", count).ToArray()));
+                cases.Add((Repeat(65) with
+                {
+                    Count = null,
+                    CountExpressionId = "count",
+                    MaxCount = 65
+                }, count, Enumerable.Repeat("a", count).ToArray()));
             }
 
             string[] schedule = ["a", "b", "a", "b"];
@@ -347,6 +353,81 @@ public class DrawManyTests
         {
             SamplingOptions.Tier = previous;
         }
+    }
+
+    [Fact]
+    public void UnknownDynamicCountSupportKeepsOutOfRangeMassAsAnExactFailure()
+    {
+        var source = new GraphConfig
+        {
+            SchemaVersion = "1.0.0",
+            Distributions = Assets(),
+            Expressions = new Dictionary<string, Expression>
+            {
+                ["batch-count"] = Field("count"),
+                ["win"] = new CallExpr
+                {
+                    Function = "length",
+                    Args = [Field("items")]
+                }
+            },
+            Nodes =
+            [
+                new DrawNode
+                {
+                    Id = "count-draw",
+                    StateWriteKey = "count",
+                    DrawWeights = Enumerable.Range(0, 65).Select(value => new DrawWeight
+                    {
+                        OutcomeId = "count-" + value,
+                        Weight = 1,
+                        Value = value,
+                        StateValue = Number(value)
+                    }).ToArray(),
+                    Inputs = Ports(),
+                    Outputs = Ports()
+                },
+                new DrawManyNode
+                {
+                    Id = "batch",
+                    OutputKey = "items",
+                    DistributionId = "a",
+                    CountExpressionId = "batch-count",
+                    MaxCount = 30,
+                    Inputs = Ports(),
+                    Outputs = Ports()
+                },
+                new ModifyStateNode
+                {
+                    Id = "win",
+                    OutputKey = "win",
+                    ExpressionId = "win",
+                    Inputs = Ports(),
+                    Outputs = Ports()
+                },
+                new MetricsSinkNode
+                {
+                    Id = "sink",
+                    WinStateKey = "win",
+                    WinCap = 30,
+                    Inputs = Ports()
+                }
+            ],
+            Edges =
+            [
+                Edge("count-draw", "batch"), Edge("batch", "win"), Edge("win", "sink")
+            ]
+        };
+        CompileResult compiled = new GraphCompiler().Compile(source);
+        Assert.True(compiled.IsValid, string.Join(';', compiled.Errors));
+
+        StructuredExactResult result = StructuredExactEvaluator.Evaluate(compiled,
+            new StructuredExactOptions
+            {
+                Evidence = StructuredEvidence.Mean
+            });
+        Assert.False(result.Succeeded);
+        Assert.Contains("fail", result.DeclinedReason, StringComparison.OrdinalIgnoreCase);
     }
 
     [Theory]

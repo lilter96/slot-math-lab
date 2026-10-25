@@ -4288,46 +4288,14 @@
                 }
             }
         },
-        "drop-symbol": {
-            "name": "drop-symbol",
-            "description": "Draws one new symbol for an empty cell.",
+        "refill-progress": {
+            "name": "refill-progress",
+            "description": "One ordered refill completion for each empty cell.",
             "nodes": [
                 {
-                    "nodeType": "draw",
-                    "id": "symbol",
-                    "label": "Draw the symbol that drops in",
-                    "stateWriteKey": "dropSymbol",
-                    "inputs": {
-                        "state": {
-                            "name": "state",
-                            "type": "State"
-                        }
-                    },
-                    "outputs": {
-                        "state": {
-                            "name": "state",
-                            "type": "State"
-                        }
-                    },
-                    "drawWeights": [
-                        {
-                            "outcomeId": "1",
-                            "weight": 2,
-                            "value": 0
-                        },
-                        {
-                            "outcomeId": "2",
-                            "weight": 1,
-                            "value": 0
-                        }
-                    ]
-                },
-                {
-                    "nodeType": "modifyState",
-                    "id": "drop",
-                    "label": "It waits above the board with the others",
-                    "outputKey": "drops",
-                    "expressionId": "drop",
+                    "nodeType": "getState",
+                    "id": "done",
+                    "label": "Done",
                     "inputs": {
                         "state": {
                             "name": "state",
@@ -4342,37 +4310,8 @@
                     }
                 }
             ],
-            "edges": [
-                {
-                    "id": "symbol.state->drop",
-                    "sourceNodeId": "symbol",
-                    "sourcePort": "state",
-                    "targetNodeId": "drop",
-                    "targetPort": "state"
-                }
-            ],
-            "expressions": {
-                "drop": {
-                    "exprType": "call",
-                    "function": "append",
-                    "args": [
-                        {
-                            "exprType": "fieldAccess",
-                            "target": "state",
-                            "path": [
-                                "drops"
-                            ]
-                        },
-                        {
-                            "exprType": "fieldAccess",
-                            "target": "state",
-                            "path": [
-                                "dropSymbol"
-                            ]
-                        }
-                    ]
-                }
-            }
+            "edges": [],
+            "expressions": {}
         },
         "tumble": {
             "name": "tumble",
@@ -4417,11 +4356,32 @@
                     }
                 },
                 {
-                    "nodeType": "modifyState",
-                    "id": "empty",
-                    "label": "No new symbol has dropped yet",
+                    "nodeType": "drawMany",
+                    "id": "refill-draws",
+                    "label": "Draw one new symbol for every empty cell",
                     "outputKey": "drops",
-                    "expressionId": "empty",
+                    "inputs": {
+                        "state": {
+                            "name": "state",
+                            "type": "State"
+                        }
+                    },
+                    "outputs": {
+                        "state": {
+                            "name": "state",
+                            "type": "State"
+                        }
+                    },
+                    "distributionId": "mechanic/tumble/refill-draws/row-1",
+                    "countExpressionId": "refill-draws-count",
+                    "maxCount": 4
+                },
+                {
+                    "nodeType": "modifyState",
+                    "id": "last-drop",
+                    "label": "Keep the last dropped symbol in state",
+                    "outputKey": "dropSymbol",
+                    "expressionId": "last-drop",
                     "inputs": {
                         "state": {
                             "name": "state",
@@ -4438,7 +4398,7 @@
                 {
                     "nodeType": "loop",
                     "id": "refill",
-                    "label": "Draw a new symbol for every cell left empty",
+                    "label": "Complete the per-cell refill loop",
                     "maxIterations": 5,
                     "stopConditionId": "refill-until",
                     "inputs": {
@@ -4480,8 +4440,8 @@
                 {
                     "nodeType": "library",
                     "id": "refill-pass",
-                    "label": "One new symbol",
-                    "mechanicName": "drop-symbol",
+                    "label": "One refilled cell",
+                    "mechanicName": "refill-progress",
                     "inputs": {
                         "state": {
                             "name": "state",
@@ -4506,15 +4466,22 @@
                     "targetPort": "state"
                 },
                 {
-                    "id": "column-removed.state->empty",
+                    "id": "column-removed.state->refill-draws",
                     "sourceNodeId": "column-removed",
                     "sourcePort": "state",
-                    "targetNodeId": "empty",
+                    "targetNodeId": "refill-draws",
                     "targetPort": "state"
                 },
                 {
-                    "id": "empty.state->refill",
-                    "sourceNodeId": "empty",
+                    "id": "refill-draws.state->last-drop",
+                    "sourceNodeId": "refill-draws",
+                    "sourcePort": "state",
+                    "targetNodeId": "last-drop",
+                    "targetPort": "state"
+                },
+                {
+                    "id": "last-drop.state->refill",
+                    "sourceNodeId": "last-drop",
                     "sourcePort": "state",
                     "targetNodeId": "refill",
                     "targetPort": "state"
@@ -4613,17 +4580,97 @@
                         ]
                     }
                 },
-                "empty": {
-                    "exprType": "fieldAccess",
-                    "target": "state",
-                    "path": [
-                        "emptyArray"
+                "refill-draws-count": {
+                    "exprType": "bitset",
+                    "op": "Count",
+                    "args": [
+                        {
+                            "exprType": "fieldAccess",
+                            "target": "state",
+                            "path": [
+                                "removed"
+                            ]
+                        }
                     ]
+                },
+                "last-drop": {
+                    "exprType": "if",
+                    "condition": {
+                        "exprType": "compare",
+                        "op": "Eq",
+                        "left": {
+                            "exprType": "call",
+                            "function": "length",
+                            "args": [
+                                {
+                                    "exprType": "fieldAccess",
+                                    "target": "state",
+                                    "path": [
+                                        "drops"
+                                    ]
+                                }
+                            ]
+                        },
+                        "right": {
+                            "exprType": "constant",
+                            "kind": "Integer",
+                            "value": "0"
+                        }
+                    },
+                    "thenExpr": {
+                        "exprType": "fieldAccess",
+                        "target": "state",
+                        "path": [
+                            "dropSymbol"
+                        ]
+                    },
+                    "elseExpr": {
+                        "exprType": "call",
+                        "function": "index",
+                        "args": [
+                            {
+                                "exprType": "fieldAccess",
+                                "target": "state",
+                                "path": [
+                                    "drops"
+                                ]
+                            },
+                            {
+                                "exprType": "binary",
+                                "op": "Sub",
+                                "left": {
+                                    "exprType": "call",
+                                    "function": "length",
+                                    "args": [
+                                        {
+                                            "exprType": "fieldAccess",
+                                            "target": "state",
+                                            "path": [
+                                                "drops"
+                                            ]
+                                        }
+                                    ]
+                                },
+                                "right": {
+                                    "exprType": "constant",
+                                    "kind": "Integer",
+                                    "value": "1"
+                                }
+                            }
+                        ]
+                    }
                 },
                 "refill-until": {
                     "exprType": "compare",
                     "op": "Gte",
                     "left": {
+                        "exprType": "fieldAccess",
+                        "target": "state",
+                        "path": [
+                            "__iter_refill__"
+                        ]
+                    },
+                    "right": {
                         "exprType": "call",
                         "function": "length",
                         "args": [
@@ -4632,19 +4679,6 @@
                                 "target": "state",
                                 "path": [
                                     "drops"
-                                ]
-                            }
-                        ]
-                    },
-                    "right": {
-                        "exprType": "bitset",
-                        "op": "Count",
-                        "args": [
-                            {
-                                "exprType": "fieldAccess",
-                                "target": "state",
-                                "path": [
-                                    "removed"
                                 ]
                             }
                         ]
@@ -7174,6 +7208,21 @@
         "columns": 2
     },
     "distributions": {
+        "mechanic/tumble/refill-draws/row-1": {
+            "name": "Draw one new symbol for every empty cell",
+            "outcomes": [
+                {
+                    "outcomeId": "1",
+                    "weight": 2,
+                    "value": 0
+                },
+                {
+                    "outcomeId": "2",
+                    "weight": 1,
+                    "value": 0
+                }
+            ]
+        },
         "mechanic/free-board/cells/row-1": {
             "name": "Draw every cell in board order",
             "outcomes": [

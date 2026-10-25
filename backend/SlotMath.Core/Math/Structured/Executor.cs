@@ -1315,9 +1315,30 @@ internal sealed partial class SymbolicExecutor
         Term count = batch.Count is { } fixedCount
             ? _f.Const(ExprValue.Number(fixedCount))
             : Statement(Expression(batch.CountExpressionId)!, state, $"drawMany '{batch.Id}' count");
-        ExprValue[] possible = count is ConstTerm constant ? [constant.Value]
-            : count.Vals is { Length: <= 256 } values ? values
-            : throw Declined($"drawMany '{batch.Id}' has no bounded finite count support");
+        ExprValue[] possible;
+        var countSupportIsComplete = true;
+        if (count is ConstTerm constant)
+        {
+            possible = [constant.Value];
+        }
+        else if (count.Vals is { } values)
+        {
+            possible = values.Length <= 256
+                ? values
+                : throw Declined($"drawMany '{batch.Id}' has too many possible counts");
+        }
+        else if (batch.MaxCount is { } maxCount && maxCount < 256)
+        {
+            // Candidate lengths are bounded by the node contract; keep the original selector partial so an
+            // invalid reachable count remains an error instead of silently discarding its probability mass.
+            possible = Enumerable.Range(0, maxCount + 1).Select(value => ExprValue.Number(value)).ToArray();
+            countSupportIsComplete = false;
+        }
+        else
+        {
+            throw Declined($"drawMany '{batch.Id}' has no bounded finite count support");
+        }
+
         int[] counts;
         try
         {
@@ -1362,7 +1383,7 @@ internal sealed partial class SymbolicExecutor
             outputs[index] = length == 0 ? input : channels[length - 1];
         }
 
-        Term selector = _f.Index(count, positions, true);
+        Term selector = _f.Index(count, positions, countSupportIsComplete);
         Term output = _f.Sel(selector, outputs);
         Record(output, $"drawMany '{batch.Id}' count lookup");
         state = new Dictionary<string, Field>(state, StringComparer.Ordinal)
