@@ -465,3 +465,70 @@ the current scalar implementation, not a game throughput measurement or a
 universal hardware bound. Preserving each logical stream while batching/vectorizing
 execution is a necessary area to investigate toward the remaining target.
 The one-million complete-round goal for every configuration is still unmet.
+
+## Native reads from immutable integer tables
+
+The compiler prepares a private Int64 snapshot and signed result bounds for
+already proven immutable numeric arrays, up to 65,536 entries. Integer consumers
+read the machine value directly, allowing surrounding arithmetic, comparisons
+and indices to retain their bounded integer representation. Consumers requiring
+an ExprValue keep the existing array read, avoiding an unbox/rebox cycle.
+Data belongs to operands rather than shared generated code. Mutable, mixed,
+wide or fractional arrays decline preparation; lexical aliases invalidate facts
+or use the general plan. No DSL function, atom or mechanic dispatch is added.
+
+Prepared reads share the existing integer-position and bounds validation.
+Review caught an opaque IReadOnlyList ordering edge: invalid/fractional positions
+must fail before its Count getter is evaluated. The original order is preserved
+and independently tested with a throwing Count implementation. Empty arrays,
+signed extremes, snapshot ownership, lazy parents, operand errors, scalar-cache
+resets, mutable inputs and shared code with different data also have regressions.
+
+Final validation passed 248 affected Core cases, three small exact-model laws,
+Release solution build and scoped formatting. All five files received both
+required Rider profiles; two revised files received both again. Separate frozen
+kernels match all 1,950 complete payout/state/RNG/next-word transcripts across
+all 15 full configurations, traced/untraced, including UInt64.MaxValue. State
+and loop evidence have no comparison exceptions. Original game JSON is unchanged.
+
+### Complete maintained games on one worker
+
+Both kernels run identical current JSON on CPU 2, normal .NET tiering/PGO and
+Tiered sampling, in ABBA process order. Each process measures three repetitions
+and discards its first. Paid entries and X7 buy warm 262,144 and measure
+1,048,576 rounds; other buys warm/measure 65,536. Super/Elite warm 32,768 and
+measure 16,384; Standard warms/measures 32,768. All outcome statistics and every
+loop-termination statistic match exactly without filtering.
+
+| Complete configuration | Before rounds/s | After rounds/s | Ratio |
+| --- | ---: | ---: | ---: |
+| ancient-dragon | 340,045 | 341,543 | 1.004 |
+| nine-lives | 448,455 | 456,308 | 1.018 |
+| nine-lives.buy | 25,100 | 25,670 | 1.023 |
+| woodland-whisper | 311,234 | 314,250 | 1.010 |
+| woodland-whisper.buy | 24,054 | 24,280 | 1.009 |
+| x7-club | 447,668 | 444,428 | 0.993 |
+| x7-club.buy | 186,926 | 188,463 | 1.008 |
+| le-militare.spin | 234,235 | 237,067 | 1.012 |
+| le-militare.standard | 17,707 | 18,117 | 1.023 |
+| le-militare.super | 5,121 | 5,276 | 1.030 |
+| le-militare.elite | 7,178 | 7,341 | 1.023 |
+| le-militare.chance | 151,867 | 154,746 | 1.019 |
+| le-militare.air-raid | 200,991 | 207,508 | 1.032 |
+| le-militare.siege.spin | 236,017 | 239,746 | 1.016 |
+| le-militare.recon.spin | 228,494 | 231,767 | 1.014 |
+
+Eight timing ranges are disjoint improvements. The other seven overlap and
+establish no gain or regression. Allocation per round is unchanged; preparation
+adds bounded model-level storage. These are shared-host kernel measurements,
+including complete awarded/bought features, not API capacity guarantees.
+
+The SIMD RNG draft remains unshipped. An isolated four-stream raw-word probe
+preserves active-lane words, audit hashes, committed state and the following word.
+It measures roughly 1.48 billion words/s versus 1.12 billion for four scalar
+streams; a local-state bulk-output probe measures about 1.44 billion and provides
+no additional gain. These primitive results do not establish game throughput or
+justify changing logical chunking/stream order. A first overlapping build/timing
+run and an incomplete table comparison against an obsolete baseline are excluded
+from performance evidence. Corrected isolated/current-baseline results are above.
+The one-million complete-round target remains outstanding for all configurations.

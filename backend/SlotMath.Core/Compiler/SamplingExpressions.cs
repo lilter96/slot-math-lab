@@ -32,6 +32,8 @@ internal sealed class SamplingExpressions(
     private static readonly IReadOnlyDictionary<string, ExprValue> None = new Dictionary<string, ExprValue>();
     private readonly IReadOnlyDictionary<string, ExprValue> _constants = constants ?? None;
     private readonly IReadOnlySet<string> _inlineMaskFields = inlineMaskFields ?? SamplingMaskState.None;
+
+    private readonly ConcurrentDictionary<string, SamplingIntegerTable?> _integerTables = new(StringComparer.Ordinal);
     private readonly IReadOnlySet<string> _maskFields = maskFields ?? SamplingMaskState.None;
 
     // Code is generated while other workers evaluate, so lookups must tolerate a concurrent insert.
@@ -73,6 +75,9 @@ internal sealed class SamplingExpressions(
     internal bool IsMaskField(string name) => _maskFields.Contains(name);
 
     internal bool IsInlineMaskField(string name) => _inlineMaskFields.Contains(name);
+
+    internal SamplingIntegerTable? IntegerTable(string name) => _integerTables.GetOrAdd(name,
+        key => _constants.TryGetValue(key, out ExprValue source) ? SamplingIntegerTable.Prepare(source) : null);
 
     internal bool TryConstant(Expression expression, out ExprValue value)
     {

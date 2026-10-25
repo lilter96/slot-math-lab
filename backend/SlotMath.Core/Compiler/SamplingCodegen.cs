@@ -60,12 +60,14 @@ internal sealed class SamplingOperands(
     SamplingDraw[] draws,
     FiniteTable[] precomputations,
     ReachabilityData.Prepared[] reachabilities,
+    SamplingIntegerTable[] integerTables,
     Func<SamplingFrame, ExprValue>[] closures,
     SamplingExpressions owner)
 {
     public readonly ExprValue[][] Arrays = arrays;
     public readonly Func<SamplingFrame, ExprValue>[] Closures = closures;
     public readonly SamplingDraw[] Draws = draws;
+    public readonly SamplingIntegerTable[] IntegerTables = integerTables;
     public readonly long[] Numbers = numbers;
     public readonly SamplingExpressions Owner = owner;
     public readonly string[][] Paths = paths;
@@ -599,6 +601,7 @@ internal sealed class SamplingCodegen
     private readonly Dictionary<int, (LxParameter Value, LxParameter Present)> _deferredStores = [];
     private readonly List<SamplingDraw> _draws = [];
     private readonly LxParameter _frame = Lx.Parameter(typeof(SamplingFrame), "frame");
+    private readonly List<SamplingIntegerTable> _integerTables = [];
     private readonly Dictionary<string, (LxParameter Value, int Id)> _lexical = new(StringComparer.Ordinal);
     private readonly bool _literalOperands;
     private readonly List<LxParameter> _locals = [];
@@ -859,7 +862,7 @@ internal sealed class SamplingCodegen
 
     private SamplingOperands Operands() => new([.. _slots], [.. _texts], [.. _paths], [.. _numbers], [.. _values],
         [.. _arrays],
-        [.. _draws], [.. _precomputations], [.. _reachabilities], [.. _closures], _owner)
+        [.. _draws], [.. _precomputations], [.. _reachabilities], [.. _integerTables], [.. _closures], _owner)
     {
         PrecomputedExpressions = _precomputedExpressions,
         ReusedScalarEvaluations = _reusedScalarEvaluations,
@@ -2417,6 +2420,9 @@ internal sealed class SamplingCodegen
                 return TryIntegerRange(division.Left, out SamplingIntegerRange numerator, depth + 1) &&
                        TryIntegerRange(division.Right, out SamplingIntegerRange denominator, depth + 1) &&
                        SamplingIntegerRange.TryFloorDivide(numerator, denominator, out range);
+            case CallExpr call when TryIntegerTable(call, out SamplingIntegerTable table):
+                range = table.Range;
+                return true;
             case IfExpr branch:
                 if (TryIntegerRange(branch.ThenExpr, out SamplingIntegerRange yes, depth + 1) &&
                     TryIntegerRange(branch.ElseExpr, out SamplingIntegerRange no, depth + 1))
@@ -2478,6 +2484,11 @@ internal sealed class SamplingCodegen
             });
         }
 
+        if (expression is CallExpr call && TryIntegerTable(call, out SamplingIntegerTable table))
+        {
+            return IntegerTableRead(call, table);
+        }
+
         if (expression is CallExpr { Args: [BinaryExpr division] })
         {
             return Form("integer-floor-divide", () => Lx.Call(Op(nameof(SamplingOps.FloorDivideInteger)),
@@ -2531,7 +2542,9 @@ internal sealed class SamplingCodegen
                 return Form(function, () => Lx.Call(Collection(nameof(CollectionFunctions.Length)), Value(args[0])));
             case ("contains", 2): return Binary(Collection(nameof(CollectionFunctions.Contains)));
             case ("index", 2):
-                if (_owner.TryConstant(_owner.Reduce(args[0]), out ExprValue source) && source.ItemsArray is { } items)
+                if (_owner.Reduce(args[0]) is FieldAccessExpr { Path.Length: 1 } sourceField &&
+                    !_bindings.ContainsKey(sourceField.Path[0]) &&
+                    _owner.TryConstant(sourceField, out ExprValue source) && source.ItemsArray is { } items)
                 {
                     if (TryBoundValue(args[1], out ExprValue position) && position.IsInlineInteger
                                                                        && (ulong)position.InlineInteger <
@@ -2580,6 +2593,33 @@ internal sealed class SamplingCodegen
                 Lx.Constant(function), first, second, Lx.Constant(args.Length)));
             return Lx.Block(typeof(ExprValue), statements);
         });
+    }
+
+    private bool TryIntegerTable(CallExpr call, out SamplingIntegerTable table)
+    {
+        table = null!;
+        if (call.Args.Length != 2 || !string.Equals(call.Function, "index", StringComparison.OrdinalIgnoreCase) ||
+            _owner.Reduce(call.Args[0]) is not FieldAccessExpr
+            {
+                Target: null or "state" or "board", Path.Length: 1
+            } field ||
+            _bindings.ContainsKey(field.Path[0]) || _owner.IntegerTable(field.Path[0]) is not { } prepared)
+        {
+            return false;
+        }
+
+        table = prepared;
+        return true;
+    }
+
+    private Lx IntegerTableRead(CallExpr call, SamplingIntegerTable table)
+    {
+        var integer = KnownInteger(call.Args[1]);
+        return Form(integer ? "integer-table-index" : "integer-table-checked-index", () =>
+            Lx.Call(Operand(nameof(SamplingOperands.IntegerTables), _integerTables, table),
+                typeof(SamplingIntegerTable).GetMethod(nameof(SamplingIntegerTable.Read), Any,
+                    [integer ? typeof(long) : typeof(ExprValue)])!,
+                integer ? IntegerValue(call.Args[1]) : Value(call.Args[1])));
     }
 
     // append(append(append(base, a), b), c) builds one array instead of three.
