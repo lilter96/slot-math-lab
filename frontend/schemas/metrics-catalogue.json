@@ -3,7 +3,7 @@
   "status": "researched requirements; not an implemented API contract",
   "researchedAt": "2026-10-09",
   "reviewedCommit": "217f8ca",
-  "specification": "MATH_VERIFICATION_METRICS.md",
+  "specification": "docs/SYSTEM.ru.md#measurements",
   "columns": ["id", "name", "definition", "unit", "currentCoverage", "priority"],
   "coverage": {
     "live": "Available in the current sampled API and user interface for its documented population.",

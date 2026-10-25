@@ -51,7 +51,7 @@ test('Incomplete expression edits remain recoverable across invalid edits, reloa
   for (const [width, height] of [[1440, 900], [1280, 800], [1024, 768], [390, 844]]) {
     await page.setViewportSize({ width, height });
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
-    await page.screenshot({ path: path.resolve('../docs/design/qa', `serialization-error-${test.info().project.name}-${width}.png`) });
+    await page.screenshot({ path: path.resolve('../artifacts/ui', `serialization-error-${test.info().project.name}-${width}.png`) });
   }
   expect(errors).toEqual([]);
 });

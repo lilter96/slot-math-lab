@@ -49,7 +49,7 @@ test('Real WebSocket updates during execution, reload restores run, cancellation
     await expect(page.getByTestId('live-hit-frequency')).not.toHaveText('—');
     await expect(page.getByRole('img', {name: /RTP convergence chart/})).toHaveAttribute('aria-label', /[1-9]\d* observations/);
     for (const m of messages.filter(m => m.sampleCount > 0)) expect(m.histogram.reduce((sum, b) => sum + b.count, 0)).toBe(m.sampleCount);
-    await page.screenshot({path: '../docs/verification/simulation-live.png', fullPage: true});
+    await page.screenshot({path: '../artifacts/verification/simulation-live.png', fullPage: true});
     await page.reload();
     await expect(page.getByTestId('stream-status')).toContainText('WebSocket live', {timeout: 70000});
     await expect(page.getByTestId('sample-count')).not.toHaveText('0');
@@ -183,7 +183,7 @@ test('Mobile simulation dashboard fits viewport and exposes controls and charts'
     await expect(page.getByRole('heading', {name: 'RTP convergence'})).toBeVisible();
     await expect(page.getByText('Target RTP', {exact: true}).locator('..')).toContainText('96.000%');
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
-    await page.screenshot({path: '../docs/verification/simulation-mobile.png', fullPage: true});
+    await page.screenshot({path: '../artifacts/verification/simulation-mobile.png', fullPage: true});
     await page.getByRole('heading', {name: 'Payout distribution'}).scrollIntoViewIfNeeded();
     await expect(page.getByRole('heading', {name: 'Payout distribution'})).toBeInViewport();
     await expect.poll(() => page.getByRole('img', {name: /RTP convergence chart/}).evaluate((svg: SVGSVGElement) => svg.getScreenCTM()!.a * parseFloat(getComputedStyle(svg.querySelector('.plot-label')!).fontSize))).toBeGreaterThanOrEqual(9.5);

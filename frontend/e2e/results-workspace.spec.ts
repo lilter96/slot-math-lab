@@ -169,7 +169,7 @@ test('Nine Lives reports sampled evidence and unavailable exact RTP with distrib
     await expect(page.locator('.results-rtp-hero').getByText('Authored target', {exact: false})).toContainText('96.000%');
     await page.getByRole('button', {name: 'Calculate reference', exact: true}).click();
     await expect(page.locator('.results-reference .results-source-tag')).toHaveText('Unavailable', {timeout: 30000});
-    await page.screenshot({path: '../docs/verification/results-overview.png', fullPage: true});
+    await page.screenshot({path: '../artifacts/verification/results-overview.png', fullPage: true});
     await page.getByLabel('RTP tolerance in percentage points').fill('0');
     await expect(page.getByTestId('results-assessment')).toHaveText('Set a valid tolerance');
     await page.getByRole('tab', {name: 'Distribution', exact: true}).click();
@@ -178,7 +178,7 @@ test('Nine Lives reports sampled evidence and unavailable exact RTP with distrib
     await expect(page.getByRole('img', {name: /Cumulative payout probability/})).toBeVisible();
     await page.getByText(/Inspect \d+ nonempty bins/).click();
     await expect(page.getByRole('columnheader', {name: 'Cumulative', exact: true})).toBeVisible();
-    await page.screenshot({path: '../docs/verification/results-distribution.png', fullPage: true});
+    await page.screenshot({path: '../artifacts/verification/results-distribution.png', fullPage: true});
     await page.getByRole('tab', {name: 'Distribution', exact: true}).focus();
     await page.keyboard.press('End');
     await expect(page.getByRole('tab', {
@@ -194,7 +194,7 @@ test('Nine Lives reports sampled evidence and unavailable exact RTP with distrib
         await expect(panel).toBeInViewport();
     }
     await page.getByLabel('Result sections').getByRole('tab', {name: 'Overview', exact: true}).click();
-    await page.screenshot({path: '../docs/verification/results-mobile.png', fullPage: true});
+    await page.screenshot({path: '../artifacts/verification/results-mobile.png', fullPage: true});
     await expect(page.getByRole('button', {name: 'Open proof in constructor ↗', exact: true})).toHaveCount(0);
     expect(errors).toEqual([]);
 });

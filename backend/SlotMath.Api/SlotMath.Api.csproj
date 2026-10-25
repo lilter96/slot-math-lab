@@ -29,7 +29,7 @@
     <!-- Sampling workers allocate about 1 KB per round. Server GC's default
          dynamic adaptation (DATAS) keeps gen0 small and collects ten times as
          often, which costs about a quarter of multi-worker throughput
-         (docs/PERFORMANCE.md). Fixed per-core heaps do not. -->
+         (docs/SYSTEM.ru.md#performance). Fixed per-core heaps do not. -->
     <ServerGarbageCollection>true</ServerGarbageCollection>
     <GarbageCollectionAdaptationMode>0</GarbageCollectionAdaptationMode>
   </PropertyGroup>

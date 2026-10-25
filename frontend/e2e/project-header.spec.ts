@@ -61,7 +61,7 @@ test('Signed-in header fits long project names and all actions at requested size
         await expect(page.getByRole('button', {name: 'Sign out', exact: true})).toBeVisible();
         await expect(page.getByRole('button', {name: 'Appearance settings', exact: true})).toBeVisible();
         expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
-        await page.screenshot({path: path.resolve('../docs/design/qa', `project-header-${width}.png`), fullPage: true});
+        await page.screenshot({path: path.resolve('../artifacts/ui', `project-header-${width}.png`), fullPage: true});
     }
 });
 
@@ -92,5 +92,5 @@ test('Phone graph retains a usable viewport and selected-node review under the v
     await expect(page.getByRole('link', {name: 'Choose project', exact: true})).toBeInViewport();
     await expect(page.getByRole('status').filter({hasText: 'read only'})).toBeVisible();
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
-    await page.screenshot({path: path.resolve('../docs/design/qa', 'project-header-phone-graph.png'), fullPage: true});
+    await page.screenshot({path: path.resolve('../artifacts/ui', 'project-header-phone-graph.png'), fullPage: true});
 });

@@ -84,9 +84,9 @@ test('Actual numeric-table captures retain full values and usable targets at fou
     expect(input).toBeGreaterThanOrEqual(width === 390 ? 44 : 36);
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
     observations.push({ width, height, row, input });
-    await page.screenshot({ path: path.resolve('../docs/design/qa', `table-contract-${width}.png`), fullPage: true });
+    await page.screenshot({ path: path.resolve('../artifacts/ui', `table-contract-${width}.png`), fullPage: true });
   }
-  await writeFile(path.resolve('../docs/design/qa/table-contract-captures.json'), JSON.stringify(observations, null, 2));
+  await writeFile(path.resolve('../artifacts/ui/table-contract-captures.json'), JSON.stringify(observations, null, 2));
 });
 
 test('Payout tables keep raw scaled values and usable fields at four sizes', async ({ page }) => {
@@ -101,7 +101,7 @@ test('Payout tables keep raw scaled values and usable fields at four sizes', asy
     await expect(page.getByLabel('Coins for 5 cells')).toHaveValue('1');
     expect((await page.getByLabel('Coins for 5 cells').boundingBox())!.height).toBeGreaterThanOrEqual(width === 390 ? 44 : 36);
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
-    await page.screenshot({ path: path.resolve('../docs/design/qa', `table-contract-payout-${width}.png`), fullPage: true });
+    await page.screenshot({ path: path.resolve('../artifacts/ui', `table-contract-payout-${width}.png`), fullPage: true });
     if (width === 1440) {
       await page.getByRole('button', { name: 'Copy raw payout for 5 cells', exact: true }).click();
       expect(await page.evaluate(() => (window as unknown as { copiedPayout: string }).copiedPayout)).toBe('1/20');
@@ -125,6 +125,6 @@ test('Reel tables honor regular and compact density without shrinking symbol tar
     await page.setViewportSize({ width, height });
     expect((await page.getByLabel('Reel 1 symbol at 0', { exact: true }).boundingBox())!.height).toBeGreaterThanOrEqual(width === 390 ? 44 : 36);
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
-    await page.screenshot({ path: path.resolve('../docs/design/qa', `table-contract-reel-${width}.png`), fullPage: true });
+    await page.screenshot({ path: path.resolve('../artifacts/ui', `table-contract-reel-${width}.png`), fullPage: true });
   }
 });

@@ -300,7 +300,7 @@ for (const caseId of ['ancient-dragon/ordinary', 'woodland-whisper/bought', 'x7-
 });
 test('Full-page visual review captures all states, table, lower sections and responsive inspector', async ({page}) => {
     test.setTimeout(120000);
-    const folder = '../docs/design/graph-studios/evidence/m4-designer-visual';
+    const folder = '../artifacts/ui/graph-studios/m4-designer-visual';
     await mkdir(folder, {recursive: true});
     const manifest: unknown[] = [];
     for (const viewport of [{width: 1440, height: 900}, {width: 1280, height: 800}, {
@@ -356,7 +356,7 @@ test('Full-page visual review captures all states, table, lower sections and res
 });
 test('Imported family visual review covers root, nested editor, table and lower evidence on desktop and phone', async ({page}) => {
     test.setTimeout(180000);
-    const folder = '../docs/design/graph-studios/evidence/m5-imported-designer-visual';
+    const folder = '../artifacts/ui/graph-studios/m5-imported-designer-visual';
     await mkdir(folder, {recursive: true});
     const manifest: unknown[] = [];
     for (const caseId of ['ancient-dragon/ordinary', 'woodland-whisper/bought', 'x7-club/bought', 'nine-lives-tgslots/bought', 'le-militare/siege/spin']) for (const width of [1440, 390]) {

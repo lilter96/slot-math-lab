@@ -7,10 +7,10 @@ async function review(page: import('./fixtures').Page, state: string) {
     for (const [name, selector] of [['heading', '.projects-heading'], ['library', '.projects-library'], ['import', '.project-import'], ['storage', '.projects-storage'], ['templates', '.project-templates'], ['server', '.projects-server'], ['footer', '.projects-footer']]) {
       await page.locator(selector).scrollIntoViewIfNeeded();
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
-      await page.screenshot({ path: `../docs/design/qa/projects-page-${test.info().project.name}-${state}-${name}-${width}.png` });
+      await page.screenshot({ path: `../artifacts/ui/projects-page-${test.info().project.name}-${state}-${name}-${width}.png` });
     }
     if (width === 390) for (const [index, card] of (await page.locator('.template-row').all()).entries()) {
-      await card.scrollIntoViewIfNeeded(); await page.screenshot({ path: `../docs/design/qa/projects-template-${test.info().project.name}-${index}.png` });
+      await card.scrollIntoViewIfNeeded(); await page.screenshot({ path: `../artifacts/ui/projects-template-${test.info().project.name}-${index}.png` });
     }
   }
 }

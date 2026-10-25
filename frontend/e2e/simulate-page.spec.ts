@@ -5,7 +5,7 @@ async function capture(page: Page, state: string) {
     for (const [name, selector] of [['setup', '.simulation-setup'], ['progress', '.simulation-progress'], ['metrics', '.simulation-metrics'], ['convergence', '.convergence-card'], ['distribution', '.simulation-two-columns'], ['measurements', '.measurement-workspace:not(.reference-workbench)'], ['reference', '.reference-workbench'], ['planning', '#sample-planning'], ['footer', '.simulation-page-footer']]) {
       const target = page.locator(selector).first(); if (!await target.count()) continue;
       await target.scrollIntoViewIfNeeded(); expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
-      await page.screenshot({ path: `../docs/design/qa/simulate-page-${test.info().project.name}-${state}-${name}-${width}.png` });
+      await page.screenshot({ path: `../artifacts/ui/simulate-page-${test.info().project.name}-${state}-${name}-${width}.png` });
     }
   }
 }
@@ -21,29 +21,29 @@ test('Complete Simulate page keeps run results above analysis and supports all e
     for (const [width, height] of [[1440, 900], [390, 844]]) {
       await page.setViewportSize({ width, height }); await page.locator('.execution-configuration').scrollIntoViewIfNeeded();
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
-      await page.screenshot({ path: `../docs/design/qa/simulate-execution-${test.info().project.name}-${regime}-${width}.png` });
+      await page.screenshot({ path: `../artifacts/ui/simulate-execution-${test.info().project.name}-${regime}-${width}.png` });
     }
   }
   await page.getByLabel('Execution regime', { exact: true }).selectOption('independentRounds');
   await page.getByRole('button', { name: '＋ Track metric', exact: true }).click();
   await page.getByLabel('Metric name').fill('Paid round payout');
-  await page.screenshot({ path: `../docs/design/qa/simulate-metric-dialog-${test.info().project.name}.png` });
+  await page.screenshot({ path: `../artifacts/ui/simulate-metric-dialog-${test.info().project.name}.png` });
   await saveMeasurement(page);
   for (const button of ['Create component accounting plan', 'Configure verification profile']) {
     await page.getByRole('button', { name: button, exact: true }).click();
     await expect(page.getByRole('dialog')).toBeVisible();
-    await page.screenshot({ path: `../docs/design/qa/simulate-dialog-${test.info().project.name}-${button.split(' ')[0]}.png` });
+    await page.screenshot({ path: `../artifacts/ui/simulate-dialog-${test.info().project.name}-${button.split(' ')[0]}.png` });
     await page.getByRole('dialog').getByRole('button', { name: 'Cancel', exact: true }).click();
   }
   await page.getByRole('button', { name: 'Customize dashboard', exact: true }).click();
   await page.locator('.measurement-display').first().scrollIntoViewIfNeeded();
-  await page.screenshot({ path: `../docs/design/qa/simulate-dashboard-settings-${test.info().project.name}.png` });
+  await page.screenshot({ path: `../artifacts/ui/simulate-dashboard-settings-${test.info().project.name}.png` });
   await page.locator('#reference-workbench > summary').click();
   for (const type of ['distribution', 'markov', 'stationary']) {
     await page.getByLabel('Reference model type').selectOption(type);
     await page.getByRole('button', { name: 'Load independent example', exact: true }).click();
     await page.locator('.reference-workbench').scrollIntoViewIfNeeded();
-    await page.screenshot({ path: `../docs/design/qa/simulate-reference-${test.info().project.name}-${type}.png` });
+    await page.screenshot({ path: `../artifacts/ui/simulate-reference-${test.info().project.name}-${type}.png` });
   }
   const planning = page.getByText('Plan sufficient observations · precision, rare events and repeated monitoring', { exact: true });
   await planning.click();
@@ -62,14 +62,14 @@ test('Complete Simulate page keeps run results above analysis and supports all e
     if (tool === 'Verified sampling design') await panel.getByRole('button', { name: 'Load independent two-atom example', exact: true }).click();
     if (tool === 'Resource-stop impact') await panel.getByRole('button', { name: 'Add state', exact: true }).click();
     await panel.scrollIntoViewIfNeeded();
-    await page.screenshot({ path: `../docs/design/qa/simulate-verification-${test.info().project.name}-${tool.split(' ')[0]}.png` });
+    await page.screenshot({ path: `../artifacts/ui/simulate-verification-${test.info().project.name}-${tool.split(' ')[0]}.png` });
   }
   await capture(page, 'completed');
 });
 test('An empty workspace cannot launch a pretend model and unavailable linked runs remain recoverable', async ({ page }) => {
   await page.goto('/simulate'); await expect(page.getByRole('link', { name: 'Open My projects', exact: true })).toHaveAttribute('href', '/projects');
   await expect(page.getByRole('button', { name: /start run/i })).toBeDisabled(); await expect(page.getByTestId('live-rtp')).toHaveText('—');
-  await page.screenshot({ path: `../docs/design/qa/simulate-empty-${test.info().project.name}.png` });
+  await page.screenshot({ path: `../artifacts/ui/simulate-empty-${test.info().project.name}.png` });
   await page.route('**/api/runs/missing/evidence', route => route.fulfill({ status: 404, json: { error: 'Saved private run unavailable.' } }));
   await page.goto('/simulate?run=missing'); await expect(page.getByRole('alert')).toContainText('Saved private run unavailable');
   await expect(page.getByRole('button', { name: 'Retry saved run', exact: true })).toBeVisible();

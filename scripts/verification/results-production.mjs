@@ -1,8 +1,9 @@
 import { waitForRunLaunch } from './requests.mjs';
 import { chromium } from '../../frontend/node_modules/playwright/index.mjs';
 import { expect } from '../../frontend/node_modules/@playwright/test/index.mjs';
-import { readFile, writeFile } from 'node:fs/promises';
+import { readFile, writeFile, mkdir } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
+await mkdir(new URL('../../artifacts/verification/', import.meta.url), { recursive: true });
 const root = fileURLToPath(new URL('../..', import.meta.url));
 const base = process.env.RESULTS_BASE_URL;
 if (!base) throw new Error('Set RESULTS_BASE_URL to the production deployment to verify.');
@@ -12,7 +13,7 @@ const page = await context.newPage(), errors = [], owned = [], report = { checke
 page.on('pageerror', err => errors.push(err.message));
 async function capture(name) {
   const style = await page.addStyleTag({ content: 'body{height:auto!important;overflow:auto!important}#root,.app{height:auto!important;min-height:100vh}.results-workspace{overflow:visible!important}' });
-  await page.screenshot({ path: root + '/docs/verification/' + name, fullPage: true }); await style.evaluate(node => node.remove());
+  await page.screenshot({ path: root + '/artifacts/verification/' + name, fullPage: true }); await style.evaluate(node => node.remove());
 }
 try {
   report.anonymousArchiveBlocked = (await context.request.get(base + '/api/runs')).status() === 401;
@@ -21,9 +22,9 @@ try {
   await page.getByLabel('Username').fill(process.env.RESULTS_USER ?? 'operator');
   await page.getByLabel('Password').fill((await readFile(process.env.RESULTS_PASSWORD_FILE ?? root + '/production-secrets/operator-password.txt', 'utf8')).trim());
   await Promise.all([page.waitForNavigation({ waitUntil: 'networkidle' }), page.getByRole('button', { name: 'Sign in', exact: true }).click()]);
-  // Select retained, previously verified production evidence when available.
-  const previous = JSON.parse(await readFile(root + '/docs/verification/realtime-production.json', 'utf8'));
-  const id = process.env.RESULTS_RUN_ID ?? previous.completeRun.runId;
+  // Use an explicit saved run, or a fresh report from realtime verification.
+  const id = process.env.RESULTS_RUN_ID
+    ?? JSON.parse(await readFile(root + '/artifacts/verification/realtime-production.json', 'utf8')).completeRun.runId;
   const source = await (await context.request.get(base + `/api/runs/${id}/evidence`)).json();
   if (!source.inputVerified || source.run.status !== 'completed' || source.model.name !== 'Nine Lives' || source.pinnedConfig?.initialState?.entryBuy === true) throw new Error('A completed pinned Nine Lives production run is required. Run realtime-production.mjs first or set RESULTS_RUN_ID.');
   await page.goto(base + `/results?run=${id}`);
@@ -70,7 +71,7 @@ try {
   report.mobileSectionsVerified = 4; report.browserErrors = errors;
   if (errors.length) throw new Error(errors.join(', '));
   report.resultsUrl = base + `/results?run=${id}`; report.comparisonUrl = base + `/results?run=${replay.id}&view=compare&compare=${id}`;
-  await writeFile(root + '/docs/verification/results-production.json', JSON.stringify(report, null, 2) + '\n');
+  await writeFile(root + '/artifacts/verification/results-production.json', JSON.stringify(report, null, 2) + '\n');
   console.log(JSON.stringify(report));
 } finally {
   for (const id of owned) await context.request.delete(base + '/api/runs/' + id).catch(() => {});

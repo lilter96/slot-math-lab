@@ -1,9 +1,10 @@
 import { waitForRunLaunch, saveMeasurement } from './requests.mjs';
 import { chromium } from '../../frontend/node_modules/playwright/index.mjs';
 import { expect } from '../../frontend/node_modules/@playwright/test/index.mjs';
-import { readFile, writeFile } from 'node:fs/promises';
+import { readFile, writeFile, mkdir } from 'node:fs/promises';
 import { createHash } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
+await mkdir(new URL('../../artifacts/verification/', import.meta.url), { recursive: true });
 
 const root = fileURLToPath(new URL('../..', import.meta.url)), base = process.env.REALTIME_BASE_URL;
 if (!base) throw new Error('Set REALTIME_BASE_URL to the authenticated deployment.');
@@ -156,7 +157,7 @@ try {
 finally {
   await page.goto('about:blank').catch(() => {});
   for (const id of owned) await cancel(id);
-  await writeFile(root + '/docs/verification/' + (process.env.REALTIME_REPORT_FILE ?? 'ws-negotiation-production.json'), JSON.stringify(report, null, 2) + '\n');
+  await writeFile(root + '/artifacts/verification/' + (process.env.REALTIME_REPORT_FILE ?? 'ws-negotiation-production.json'), JSON.stringify(report, null, 2) + '\n');
   await browser.close();
 }
 console.log(JSON.stringify({ success: report.success, run: report.run.id, quotas: report.quotas,

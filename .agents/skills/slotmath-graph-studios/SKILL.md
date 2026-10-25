@@ -9,13 +9,16 @@ This is a project-specific authoring/quality contract. Follow applicable reposit
 
 ## Read progressively
 
-At task start read `docs/design/graph-studios/START_CODEX.md`, `00_MAIN_AUDIT.md`, `01_GRAPH_EDITING_CONTRACT.md`, and `04_EXECUTION_AND_ACCEPTANCE.md` from that directory. During Studio work read `02_REEL_PAYTABLE_STUDIO.md`; during machine work read `03_STATE_MACHINE_DESIGNER.md`. After context compaction read STATUS.md and relevant source changes, not all old design plans again.
+Read the relevant sections of `docs/SYSTEM.ru.md`: private projects (`#projects`),
+editors (`#editors`), graph/expressions (`#graph`, `#expressions`) and verification (`#testing`).
+Inspect the corresponding source bindings, lifecycle transformations and tests before editing.
+After context compaction, review the current task state and source diff.
 
-Inspect the actual checkout and fetched main. Preserve existing work and data. The audit is pinned to a snapshot, not a promise the local branch matches it.
+Inspect the actual checkout and fetched main. Preserve existing work and data. The system description does not replace inspecting the actual local implementation.
 
 ## Non-negotiable output
 
-Deliver Studio first, State Machine second, for the multi-game product: Ancient Dragon, Woodland Whisper, X7 Club, Nine Lives TGSlots, Le Militare and relevant variants. Reference Nine Lives is separate. Existing custom graphs remain intact; unresolved operations are explicit and locally bounded.
+Work within the requested Studio or State Machine scope for the multi-game product: Ancient Dragon, Woodland Whisper, X7 Club, Nine Lives TGSlots, Le Militare and relevant variants. Reference Nine Lives is separate. Existing custom graphs remain intact; unresolved operations are explicit and locally bounded.
 
 The existing GraphConfig is the sole executable authority. Both views read source bindings and commit validated atomic graph changes. Never create a second math engine, add named game dispatch to Core/compiler/API, or add unauthorized atoms. State-machine cycles lower to existing Loop control, exclusive transitions to Branch chains—not ordinary graph fan-out.
 
@@ -23,8 +26,8 @@ Paytable metadata is not enough: synchronize actual runtime state/expressions an
 
 ## Process and quality
 
-Use installed frontend-design for visual execution; only claim ui-ux-pro-max use when it exists. Build the concrete workspaces in the specs, not generic dashboard cards. Complete meaningful feature slices, with graph tests at the lowest correct layer and full-page visual inspection after coherent surfaces. Keep controls styled independently of route order.
+Use installed frontend-design for visual execution; only claim ui-ux-pro-max use when it exists. Use the maintained system description and concrete source bindings to guide the requested workspace changes. Complete meaningful feature slices, with graph tests at the lowest correct layer and full-page visual inspection after coherent surfaces. Keep controls styled independently of route order.
 
 There are three independent gates: mathematical/source correctness, actual user workflows, and visual/interaction quality. A green render test or a screenshot command is not evidence for all three. Use real compiler/play/run calls for edit-and-execute proof. Never regenerate independent expected game data to hide a regression.
 
-Maintain one STATUS.md and the acceptance matrix evidence. Report real tool/cleanup blockers, do not disable policy or retry unchanged broken tools forever. Preserve task isolation and do not auto-push/merge/deploy. Stop after these two workspaces or a specific genuine blocker; do not resume unrelated roadmap items.
+Keep acceptance evidence in ignored artifacts and summarize results in the task or PR notes. Report real tooling blockers; do not retry unchanged broken tools indefinitely. Preserve task isolation and do not auto-push/merge/deploy. Stop after these two workspaces or a specific genuine blocker; do not resume unrelated roadmap items.

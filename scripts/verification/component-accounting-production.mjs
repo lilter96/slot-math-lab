@@ -1,8 +1,9 @@
 import { saveValidatedDialog, waitForRunLaunch } from './requests.mjs';
 import { chromium } from '../../frontend/node_modules/playwright/index.mjs';
 import { expect } from '../../frontend/node_modules/@playwright/test/index.mjs';
-import { readFile, writeFile } from 'node:fs/promises';
+import { readFile, writeFile, mkdir } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
+await mkdir(new URL('../../artifacts/verification/', import.meta.url), { recursive: true });
 const root = fileURLToPath(new URL('../..', import.meta.url)), base = process.env.MEASUREMENTS_BASE_URL;
 if (!base) throw new Error('Set MEASUREMENTS_BASE_URL to the authenticated deployment.');
 const browser = await chromium.launch({ executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE });
@@ -56,10 +57,10 @@ try {
   await page.goto(base + `/results?run=${run.id}`); await page.evaluate(() => localStorage.clear()); await page.reload();
   const panel = page.locator('#component-accounting'); await panel.evaluate(el => { el.open = true; }); await panel.getByLabel('Accounting result cohort').selectOption({ label: 'all' });
   await expect(panel.getByLabel('Component reconciliation result')).toHaveAttribute('data-accounting-status', 'noObservedViolations');
-  await panel.scrollIntoViewIfNeeded(); await page.screenshot({ path: root + '/docs/verification/component-accounting-production-desktop.png' });
+  await panel.scrollIntoViewIfNeeded(); await page.screenshot({ path: root + '/artifacts/verification/component-accounting-production-desktop.png' });
   await page.setViewportSize({ width: 390, height: 844 });
   if (!(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1))) throw new Error('Mobile accounting overflows the viewport.');
-  await panel.locator('summary').first().scrollIntoViewIfNeeded(); await page.screenshot({ path: root + '/docs/verification/component-accounting-production-mobile.png' });
+  await panel.locator('summary').first().scrollIntoViewIfNeeded(); await page.screenshot({ path: root + '/artifacts/verification/component-accounting-production-mobile.png' });
   Object.assign(report, { runId: run.id, referenceRunId: canonical.id, measurements: 8, count: r.count, varianceDiagonal: r.componentVarianceSum, twiceCrossCovariances: r.twiceCovarianceSum, observedTotalVariance: r.totalSampleVariance, exactViolations: r.exactViolations,
     workerAndEngineBitIdentical: true, emptyBrowserRestored: true, mobileVerified: true, runtimeProvenance: run.runtimeProvenance, retainedArtifact: artifact.id, resultsUrl: base + `/results?run=${run.id}` });
   // Whole-round base and bonus contributions are already capped by the graph.
@@ -84,7 +85,7 @@ try {
   Object.assign(report, { nineLivesRunId: nineLives.id, nineLivesReferenceRunId: nineLivesReference.id, authoredRtp: .96, observedRtp: nineLives.progress.runningRtp, capHits: nineLives.progress.capHits, nineLivesAccountingStatus: cap.output.report.status,
     nineLivesExactViolations: cap.output.report.exactViolations, nineLivesEngineAndWorkerBitIdentical: true, richPrimaryFrames: primaryFrames.length, richFrames: frames.length, simulateUrl: base + `/simulate?run=${nineLives.id}` });
   if (errors.length) throw new Error('Browser errors: ' + errors.join('; '));
-  report.browserErrors = []; await writeFile(root + '/docs/verification/component-accounting-production.json', JSON.stringify(report, null, 2) + '\n');
+  report.browserErrors = []; await writeFile(root + '/artifacts/verification/component-accounting-production.json', JSON.stringify(report, null, 2) + '\n');
   console.log(JSON.stringify({ runId: run.id, nineLivesRunId: nineLives.id, observedRtp: report.observedRtp, authoredRtp: .96, simulateUrl: report.simulateUrl }));
 } finally {
   await page.goto('about:blank').catch(() => {});

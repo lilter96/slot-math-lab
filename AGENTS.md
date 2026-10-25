@@ -2,7 +2,7 @@
 
 ## Project Structure & Module Organization
 
-`backend/SlotMath.Core` contains the math kernel; `SlotMath.Api` hosts ASP.NET Core endpoints. The corresponding `.Tests` projects contain xUnit tests, and `SlotMath.Benchmarks` measures throughput. `frontend/src` contains React/TypeScript code; `frontend/public` holds static assets. Frontend tests live in `frontend/unit` and `frontend/e2e`. Architecture and acceptance contracts live in `docs/PRD.md`; verification guidance lives in `docs/TESTING.md`. CI workflows are under `.github/workflows`.
+`backend/SlotMath.Core` contains the math kernel; `SlotMath.Api` hosts ASP.NET Core endpoints. The corresponding `.Tests` projects contain xUnit tests, and `SlotMath.Benchmarks` measures throughput. `frontend/src` contains React/TypeScript code; `frontend/public` holds static assets. Frontend tests live in `frontend/unit` and `frontend/e2e`. The implemented system and verification workflow are documented in `docs/SYSTEM.ru.md`. CI workflows are under `.github/workflows`.
 
 ## Build, Test, and Development Commands
 
@@ -26,11 +26,11 @@ From `frontend`:
 
 Each user can own many private projects, games, models and personal materials. Start at **My projects**; do not automatically create or select one game for a fresh workspace. Nine Lives is a reference fixture, not the universal game schema. Derive geometry, symbols, mechanics and editor capabilities from the selected model.
 
-For new persistence and asynchronous operations, follow the data scope table in `docs/design/PRIVATE_WORKSPACES.md`: user ownership, editable project identity and evaluated configuration/source identity are separate boundaries.
+For new persistence and asynchronous operations, follow the data scope table in `docs/SYSTEM.ru.md#projects`: user ownership, editable project identity and evaluated configuration/source identity are separate boundaries.
 
 Keep project identity separate from authored model/template IDs. Switching projects must preserve each project's edits and nested context; independent template copies must not share mutable editing state. Scope browser storage to verified user identity and enforce ownership of server configurations, runs, experiments and realtime access. Never show another project's result as current evidence.
 
-Sharing, collaboration, public links, invitations, teams and publication are deferred. Preserve personal JSON export/import and legacy inbound import compatibility. Browser drafts autosave locally; server version saving is explicit. Do not claim automatic cross-device synchronization or large-scale capacity without implementation and evidence. See `docs/design/PRIVATE_WORKSPACES.md` for current behavior and limits.
+Sharing, collaboration, public links, invitations, teams and publication are deferred. Preserve personal JSON export/import and legacy inbound import compatibility. Browser drafts autosave locally; server version saving is explicit. Do not claim automatic cross-device synchronization or large-scale capacity without implementation and evidence. See `docs/SYSTEM.ru.md#projects` for current behavior and limits.
 
 ## Coding Style & Naming Conventions
 
@@ -50,33 +50,9 @@ During game migrations, use the existing atoms and expression capabilities. Do n
 
 When existing atoms cannot express an operation, document the gap and propose the smallest generally useful atom or expression capability separately. Implement it only after explicit user authorization, with a documented contract and tests independent of any game. Implement the mechanic itself in editable JSON subgraphs. Performance work must optimize generic atoms, expressions, or control flow and must not recognize a game, mechanic, or authored graph pattern. Existing fast-path exceptions in architecture documents do not authorize new exceptions; obtain explicit user authorization before proposing any exception to this rule.
 
-## Mandatory Reformat and Full Cleanup
-
-After every code change, run **Reformat Code**, then **Built-in: Full Cleanup**, on all source files you touched, including new files, before final validation or delivery. Repeat after subsequent edits. Scope both passes to your task's files; never clean the entire repository or another agent's changes.
-
-Automatic Rider cleanup hooks are disabled. Do not install SessionStart/Stop cleanup hooks or force continuation after cleanup. The retired script is an inert compatibility entry point for sessions that cached its old command. Formatting and relevant tests remain part of delivery.
-
-Use Rider's rules: `backend/.editorconfig` takes precedence over JetBrains settings; `.config/rider-cleanup.DotSettings` preserves the Full Cleanup selection read from the owner's Rider 2026.1 settings. No custom formatting overrides were found there. Respect additional solution-shared settings if introduced.
-
-For backend files, restore the pinned JetBrains tool (`dotnet tool restore`) and build the solution first. From the repository root, replace the example include paths with every touched backend source file:
-
-```sh
-dotnet build backend/SlotMathLab.slnx
-dotnet jb cleanupcode backend/SlotMathLab.slnx \
-  --settings=.config/rider-cleanup.DotSettings \
-  --profile="Built-in: Reformat Code" \
-  --include="SlotMath.Core/Example.cs;SlotMath.Api/Example.cs"
-dotnet jb cleanupcode backend/SlotMathLab.slnx \
-  --settings=.config/rider-cleanup.DotSettings \
-  --profile="Built-in: Full Cleanup" \
-  --include="SlotMath.Core/Example.cs;SlotMath.Api/Example.cs"
-```
-
-Include paths are relative to the solution directory. Full Cleanup requires solution context; standalone file mode only reformats. `dotnet format` alone does not satisfy this requirement. For frontend files outside the .NET solution, run Rider's Reformat Code and Full Cleanup on the selected files, then scoped ESLint checks. Rider 2026.1.2's standalone `format.sh` fails with `solution can't be null` in this workspace; do not repeatedly retry that command. Use the verified solution-context workflow in [docs/RIDER_FRONTEND_CLEANUP.md](docs/RIDER_FRONTEND_CLEANUP.md), with an exact task-file manifest and both built-in profiles. If Rider/tooling cannot execute a required pass, explicitly report the blocker and the uncleaned files; never claim cleanup succeeded. Review cleanup diffs for behavior changes, then run relevant tests and formatting checks.
-
 ## Testing Guidelines
 
-Use `*Tests.cs` for xUnit tests and `*.spec.ts` for Playwright tests. Add mathematical regressions at the lowest appropriate layer, with pinned seeds and independent expected results. Preserve the PRD's PRNG/constants contract. CI has no numeric coverage threshold. Retain failure evidence.
+Use `*Tests.cs` for xUnit tests and `*.spec.ts` for Playwright tests. Add mathematical regressions at the lowest appropriate layer, with pinned seeds and independent expected results. Preserve the implemented PRNG/constants contract documented in `docs/SYSTEM.ru.md#numbers`. CI has no numeric coverage threshold. Retain failure evidence.
 
 ### Test Selection and Run Frequency (Mandatory)
 
@@ -94,9 +70,8 @@ Keep screenshots, contact sheets, test logs, browser reports, generated audit JS
 
 ## Commit & Pull Request Guidelines
 
-History favors imperative, descriptive subjects such as “Document feature flags.” Keep commits focused. PRs should explain behavior changes and validation, link relevant issues or PRD sections, and include screenshots for visual changes. Pass applicable CI checks before merging.
+History favors imperative, descriptive subjects such as “Document feature flags.” Keep commits focused. PRs should explain behavior changes and validation, link relevant issues or system documentation sections, and include screenshots for visual changes. Pass applicable CI checks before merging.
 
 ## Concurrent Task Workspaces
 
-Use one folder and task branch per conversation. Create unique worktrees from fetched `origin/main`, for example `git worktree add -b task/<name> ../slot-math-lab-worktrees/<name> origin/main`. Never modify another agent's checkout. Isolate service ports and writable runtime data.
-Until these instructions and `.config`/`.codex` tooling are committed upstream, copy them from the base checkout into each new task workspace before editing; preserve any existing instructions, tool manifests, or hooks.
+Use one folder and task branch per conversation. Create unique worktrees from fetched `origin/main`, for example `git worktree add -b task/<name> ../slot-math-lab-worktrees/<name> origin/main`. Never modify another checkout. Isolate service ports and writable runtime data.

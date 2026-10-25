@@ -22,7 +22,7 @@ test('Complete Results page supports archive, four sections, responsive layout a
       await page.getByLabel('Result sections').getByRole('tab', { name, exact: true }).click();
       await expect(page.getByRole('tabpanel', { name, exact: true })).toBeVisible();
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
-      await page.screenshot({ path: `../docs/design/qa/results-page-${test.info().project.name}-${name.toLowerCase()}-${width}.png` });
+      await page.screenshot({ path: `../artifacts/ui/results-page-${test.info().project.name}-${name.toLowerCase()}-${width}.png` });
       if (name === 'Overview') {
         const tools = page.getByRole('region', { name: 'Verification experiments' });
         for (const tool of ['Parameters & policies', 'Verified sampling design', 'Resource-stop impact', 'Rule / spec / asset evidence']) {
@@ -33,11 +33,11 @@ test('Complete Results page supports archive, four sections, responsive layout a
           if (tool === 'Resource-stop impact') await tools.getByRole('button', { name: 'Add state', exact: true }).click();
 
           expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
-          await tools.screenshot({ path: `../docs/design/qa/results-tools-${test.info().project.name}-${tool.split(' ')[0].toLowerCase()}-${width}.png` });
+          await tools.screenshot({ path: `../artifacts/ui/results-tools-${test.info().project.name}-${tool.split(' ')[0].toLowerCase()}-${width}.png` });
           if (width === 390) {
             for (const [index, group] of (await tools.locator('fieldset').all()).entries()) {
               await group.scrollIntoViewIfNeeded();
-              await page.screenshot({ path: `../docs/design/qa/results-tool-fields-${test.info().project.name}-${tool.split(' ')[0].toLowerCase()}-${index}.png` });
+              await page.screenshot({ path: `../artifacts/ui/results-tool-fields-${test.info().project.name}-${tool.split(' ')[0].toLowerCase()}-${index}.png` });
             }
           }
 
@@ -45,11 +45,11 @@ test('Complete Results page supports archive, four sections, responsive layout a
         const enumeration = page.locator('.graph-measurement-reference');
         if (!await enumeration.evaluate(element => element.hasAttribute('open'))) await enumeration.locator('summary').first().click();
         await enumeration.scrollIntoViewIfNeeded();
-        await page.screenshot({ path: `../docs/design/qa/results-enumeration-${test.info().project.name}-${width}.png` });
+        await page.screenshot({ path: `../artifacts/ui/results-enumeration-${test.info().project.name}-${width}.png` });
         await page.locator('.execution-report').scrollIntoViewIfNeeded();
-        await page.screenshot({ path: `../docs/design/qa/results-exposure-${test.info().project.name}-${width}.png` });
+        await page.screenshot({ path: `../artifacts/ui/results-exposure-${test.info().project.name}-${width}.png` });
         await page.locator('.results-report-footer').scrollIntoViewIfNeeded();
-        await page.screenshot({ path: `../docs/design/qa/results-bottom-${test.info().project.name}-${width}.png` });
+        await page.screenshot({ path: `../artifacts/ui/results-bottom-${test.info().project.name}-${width}.png` });
       }
 
     }
@@ -69,12 +69,12 @@ test('Results empty and unavailable states give a useful recovery path', async (
   await page.route('**/api/runs?*', route => route.fulfill({ json: { items: [], total: 0, completed: 0, active: 0, partial: 0, failed: 0, nextCursor: null } }));
   await page.goto('/results'); await expect(page.getByRole('heading', { name: 'Your calculation history starts here' })).toBeVisible();
   await expect(page.getByRole('link', { name: 'Start a simulation', exact: true })).toHaveAttribute('href', '/simulate');
-  await page.screenshot({ path: `../docs/design/qa/results-page-${test.info().project.name}-empty.png` });
+  await page.screenshot({ path: `../artifacts/ui/results-page-${test.info().project.name}-empty.png` });
   await page.route('**/api/runs/missing/evidence', route => route.fulfill({ status: 404, json: { error: 'This private run is unavailable.' } }));
   await page.route('**/api/runs/missing', route => route.fulfill({ status: 404, json: { error: 'This private run is unavailable.' } }));
   await page.goto('/results?run=missing'); await expect(page.getByRole('alert')).toContainText('private run is unavailable');
   await expect(page.getByRole('button', { name: 'Retry this run', exact: true })).toBeVisible();
-  await page.screenshot({ path: `../docs/design/qa/results-page-${test.info().project.name}-unavailable.png` });
+  await page.screenshot({ path: `../artifacts/ui/results-page-${test.info().project.name}-unavailable.png` });
 });
 
  test('Unsupported pinned model response shows a recoverable Results error without rounded evidence', async ({ page }) => {

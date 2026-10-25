@@ -15,7 +15,7 @@ import type {ModelGraph} from '../src/lib/modelProjection';
 const corpus = graphStudiosCorpus().graphs;
 const visualPhase = process.env.PR19_VISUAL_PHASE ?? 'after';
 const visualOrigin = process.env.PR19_VISUAL_ORIGIN ?? '';
-const evidence = '../docs/design/graph-studios/evidence/pr19-acceptance';
+const evidence = '../artifacts/ui/graph-studios/pr19-acceptance';
 
 async function open(page: Page, graph: ModelGraph, route = '/model/studio', origin = '') {
     await page.goto(origin + '/build');

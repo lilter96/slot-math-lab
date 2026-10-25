@@ -1,12 +1,13 @@
 import { waitForRunLaunch, saveMeasurement } from './requests.mjs';
 import { chromium } from '../../frontend/node_modules/playwright/index.mjs';
 import { expect } from '../../frontend/node_modules/@playwright/test/index.mjs';
-import { readFile, writeFile } from 'node:fs/promises';
+import { readFile, writeFile, mkdir } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
+await mkdir(new URL('../../artifacts/verification/', import.meta.url), { recursive: true });
 const root = fileURLToPath(new URL('../..', import.meta.url));
 const base = process.env.MEASUREMENTS_BASE_URL;
 if (!base) throw new Error('Set MEASUREMENTS_BASE_URL to the deployment to verify.');
-const sourceId = process.env.MEASUREMENTS_SOURCE_RUN ?? new URL(JSON.parse(await readFile(root + '/docs/verification/results-production.json', 'utf8')).resultsUrl).searchParams.get('run');
+const sourceId = process.env.MEASUREMENTS_SOURCE_RUN ?? new URL(JSON.parse(await readFile(root + '/artifacts/verification/results-production.json', 'utf8')).resultsUrl).searchParams.get('run');
 const browser = await chromium.launch({ executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE });
 const context = await browser.newContext({ ignoreHTTPSErrors: true, viewport: { width: 1560, height: 1100 } });
 const page = await context.newPage(), errors = [], owned = [], report = { checkedAt: new Date().toISOString(), endpoint: base, sourceRunId: sourceId };
@@ -22,7 +23,7 @@ async function completed(id) {
 }
 async function capture(name) {
   const style = await page.addStyleTag({ content: 'body{height:auto!important;overflow:auto!important}#root,.app{height:auto!important;min-height:100vh}.simulation-workspace{overflow:visible!important}' });
-  await page.screenshot({ path: root + '/docs/verification/' + name, fullPage: true }); await style.evaluate(node => node.remove());
+  await page.screenshot({ path: root + '/artifacts/verification/' + name, fullPage: true }); await style.evaluate(node => node.remove());
 }
 async function metric(name, nodeId, value, unit, filter) {
   await page.getByRole('button', { name: '＋ Track metric', exact: true }).click(); await page.getByLabel('Metric name').fill(name);
@@ -102,7 +103,7 @@ try {
   report.mobileAverageOnlyVerified = true; await capture('measurements-production-mobile.png');
   report.browserErrors = errors; if (errors.length) throw new Error(errors.join('; '));
   report.simulateUrl = base + `/simulate?run=${run.id}`; report.resultsUrl = base + `/results?run=${run.id}`;
-  await writeFile(root + '/docs/verification/measurements-production.json', JSON.stringify(report, null, 2) + '\n'); console.log(JSON.stringify(report));
+  await writeFile(root + '/artifacts/verification/measurements-production.json', JSON.stringify(report, null, 2) + '\n'); console.log(JSON.stringify(report));
 } finally {
   for (const id of owned) await context.request.delete(base + '/api/runs/' + id).catch(() => {});
   await browser.close();

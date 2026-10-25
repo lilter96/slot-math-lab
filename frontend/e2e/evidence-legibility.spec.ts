@@ -18,7 +18,7 @@ test('Simulation controls and evidence labels remain readable with phone-size ta
         }
         expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
         await page.screenshot({
-            path: path.resolve('../docs/design/qa', `evidence-legibility-simulate-${width}.png`),
+            path: path.resolve('../artifacts/ui', `evidence-legibility-simulate-${width}.png`),
             fullPage: true
         });
     }
@@ -36,7 +36,7 @@ test('Export exposes the complete source fingerprint inside the phone content wi
         expect(await page.locator('.code-block').evaluate(element => parseFloat(getComputedStyle(element).fontSize))).toBeGreaterThanOrEqual(12);
         expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
         await page.screenshot({
-            path: path.resolve('../docs/design/qa', `evidence-legibility-export-${width}.png`),
+            path: path.resolve('../artifacts/ui', `evidence-legibility-export-${width}.png`),
             fullPage: true
         });
     }
@@ -63,7 +63,7 @@ test('Actual saved Results evidence has readable method/status labels at four si
         expect(Math.min(...sizes)).toBeGreaterThanOrEqual(12);
         expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
         await page.screenshot({
-            path: path.resolve('../docs/design/qa', `evidence-legibility-results-${width}.png`),
+            path: path.resolve('../artifacts/ui', `evidence-legibility-results-${width}.png`),
             fullPage: true
         });
     }
@@ -85,7 +85,7 @@ test('Actual trace indices remain readable and recorded hit positions visible on
         expect(Math.min(...sizes)).toBeGreaterThanOrEqual(12);
         expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
         await page.screenshot({
-            path: path.resolve('../docs/design/qa', `evidence-legibility-debug-${width}.png`),
+            path: path.resolve('../artifacts/ui', `evidence-legibility-debug-${width}.png`),
             fullPage: true
         });
     }

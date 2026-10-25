@@ -1,8 +1,9 @@
 import { waitForRunLaunch, saveMeasurement } from './requests.mjs';
 import { chromium } from '../../frontend/node_modules/playwright/index.mjs';
 import { expect } from '../../frontend/node_modules/@playwright/test/index.mjs';
-import { readFile, writeFile } from 'node:fs/promises';
+import { readFile, writeFile, mkdir } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
+await mkdir(new URL('../../artifacts/verification/', import.meta.url), { recursive: true });
 const root = fileURLToPath(new URL('../..', import.meta.url));
 const base = process.env.MEASUREMENTS_BASE_URL;
 if (!base) throw new Error('Set MEASUREMENTS_BASE_URL to the authenticated deployment.');
@@ -46,7 +47,7 @@ async function finished(id) {
   await expect.poll(async () => (await get('/api/runs/' + id)).status, { timeout: 900000, intervals: [1000, 2000] }).toBe('completed');
   return get('/api/runs/' + id);
 }
-async function screenshot(name) { await page.screenshot({ path: root + '/docs/verification/' + name, fullPage: true }); }
+async function screenshot(name) { await page.screenshot({ path: root + '/artifacts/verification/' + name, fullPage: true }); }
 try {
   report.anonymousBlocked = (await context.request.post(base + '/api/runs/measurements/schema', { data: { config: {} } })).status() === 401;
   if (!report.anonymousBlocked) throw new Error('Measurement API is anonymously accessible.');
@@ -164,6 +165,6 @@ try {
     paidTurnoverReconciled: true, independentLawComparisonRetained: true, cohortLifecycleReconciled: true, wholeBonusPayoutReconciled: true, wholeBonusCohortsReconciled: true,
     workerReplayBitIdentical: true, mobileFits: true, browserErrors: errors,
     simulateUrl: base + `/simulate?run=${run.id}`, resultsUrl: base + `/results?run=${run.id}` });
-  await writeFile(root + '/docs/verification/advanced-measurements-production.json', JSON.stringify(report, null, 2) + '\n');
+  await writeFile(root + '/artifacts/verification/advanced-measurements-production.json', JSON.stringify(report, null, 2) + '\n');
   console.log(JSON.stringify({ runId: run.id, observedRtp: report.observedRtp, targetRtp: .96, liveFrames: frames.length, simulateUrl: report.simulateUrl }));
 } finally { for (const id of owned) await context.request.delete(base + '/api/runs/' + id).catch(() => {}); await browser.close(); }

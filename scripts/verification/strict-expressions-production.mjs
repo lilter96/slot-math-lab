@@ -1,9 +1,10 @@
 import { saveMeasurement, waitForRunLaunch } from './requests.mjs';
 import { chromium } from '../../frontend/node_modules/playwright/index.mjs';
 import { expect } from '../../frontend/node_modules/@playwright/test/index.mjs';
-import { readFile, writeFile } from 'node:fs/promises';
+import { readFile, writeFile, mkdir } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { createHash } from 'node:crypto';
+await mkdir(new URL('../../artifacts/verification/', import.meta.url), { recursive: true });
 
 const root = fileURLToPath(new URL('../..', import.meta.url)), base = process.env.MEASUREMENTS_BASE_URL;
 if (!base) throw new Error('Set MEASUREMENTS_BASE_URL to the authenticated deployment.');
@@ -85,7 +86,7 @@ try {
   const report = { checkedAt: new Date().toISOString(), endpoint: base, specification: 'Each settled round contains values=[1/2,1/4] and text=H. Numeric index yields 1/2; tonumber(tostring(1/3))-1/3 is exactly zero; explicit conversion of H yields one invalid observation and no numeric statistic.',
     faultScope: 'Browser-injected six-second snapshot quota rejection; accepted API runs, archives, exports and producer artifacts are real.',
     frontendAsset: asset, frontendSha256: createHash('sha256').update(bytes).digest('hex'), runs: records, browserErrors: errors };
-  await writeFile(process.env.MEASUREMENTS_REPORT_FILE ?? root + '/docs/verification/strict-expressions-production.json', JSON.stringify(report, null, 2) + '\n');
+  await writeFile(process.env.MEASUREMENTS_REPORT_FILE ?? root + '/artifacts/verification/strict-expressions-production.json', JSON.stringify(report, null, 2) + '\n');
   console.log(JSON.stringify({ runId: records[0].runId, enginesAgree: true, browserErrors: errors, simulateUrl: base + '/simulate?run=' + records[0].runId }));
 } finally {
   await page.goto('about:blank').catch(() => {});

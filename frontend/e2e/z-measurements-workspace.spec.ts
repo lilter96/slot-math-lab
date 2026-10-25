@@ -99,7 +99,7 @@ test('UI configures a scoped FS metric; real engine, durable export, display con
     await expect(page.locator('.run-status')).toHaveText('completed', {timeout: 70000});
     const final = await (await getWithQuota(page.request, `/api/runs/${replayRun.id}`)).json();
     expect(final.progress.measurements[0]).toMatchObject(bundle.progress.measurements[0]);
-    await page.screenshot({path: '../docs/verification/measurements-scoped.png', fullPage: true});
+    await page.screenshot({path: '../artifacts/verification/measurements-scoped.png', fullPage: true});
 });
 test('Editor rejects unknown fields through compiler, and valid empty scopes remain undefined', async ({page}) => {
     await prepare(page);
@@ -140,7 +140,7 @@ test('Metric editor and customizable workspace fit mobile, preserve draft across
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
     await page.reload();
     await expect(page.getByRole('article', {name: 'Tracked metric Free spin payout'})).toBeVisible();
-    await page.screenshot({path: '../docs/verification/measurements-mobile.png', fullPage: true});
+    await page.screenshot({path: '../artifacts/verification/measurements-mobile.png', fullPage: true});
 });
 test('Scoped measurements use real sockets, survive HTTP recovery and reload, and retain the cancelled prefix', async ({
                                                                                                                            page,

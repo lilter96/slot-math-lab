@@ -30,7 +30,7 @@ test('Numeric rows retain their source on invalid input and export supported dec
   for (const [width, height] of [[1440, 900], [1280, 800], [1024, 768], [390, 844]]) {
     await page.setViewportSize({ width, height });
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
-    await page.screenshot({ path: path.resolve('../docs/design/qa', `raw-number-${test.info().project.name}-${width}.png`) });
+    await page.screenshot({ path: path.resolve('../artifacts/ui', `raw-number-${test.info().project.name}-${width}.png`) });
   }
   const rejected = await exported(page); expect(rejected).toMatchObject(model);
   await page.getByRole('button', { name: 'Edit project data and expressions', exact: true }).click();

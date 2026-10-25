@@ -99,7 +99,7 @@ test('Generation dialog traps keyboard focus, fits four sizes and restores the t
     await page.setViewportSize({ width, height });
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
     expect((await dialog.getByRole('button', { name: 'Close', exact: true }).boundingBox())!.height).toBeGreaterThanOrEqual(44);
-    await page.screenshot({ path: `../docs/design/qa/ai-dialog-${test.info().project.name}-${width}.png` });
+    await page.screenshot({ path: `../artifacts/ui/ai-dialog-${test.info().project.name}-${width}.png` });
   }
   await page.keyboard.press('Escape'); await expect(dialog).toHaveCount(0); await expect(trigger).toBeFocused();
 });

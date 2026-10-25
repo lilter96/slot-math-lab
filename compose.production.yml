@@ -35,7 +35,7 @@ services:
     mem_limit: 2g
     # A run may use eight sampling workers (ValidationLimits.MaxRunWorkers). With
     # fewer CPUs than workers the quota throttles them: 4 workers on 2 CPUs
-    # measure slower than 2 workers on 2 CPUs (docs/PERFORMANCE.md).
+    # measure slower than 2 workers on 2 CPUs (docs/SYSTEM.ru.md#performance).
     cpus: 8
   frontend:
     build:

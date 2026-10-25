@@ -14,7 +14,7 @@ test('Reference demo labels and replay/game controls meet legibility and target 
     expect(Math.min(...targets)).toBeGreaterThanOrEqual(44);
     await expect(page.getByRole('link', { name: 'Choose project', exact: true })).toBeVisible();
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
-    await page.screenshot({ path: path.resolve('../docs/design/qa', `reference-legibility-${width}.png`), fullPage: true });
+    await page.screenshot({ path: path.resolve('../artifacts/ui', `reference-legibility-${width}.png`), fullPage: true });
   }
 });
 

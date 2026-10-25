@@ -1,9 +1,10 @@
 import { saveMeasurement, waitForRunLaunch, waitForDeployment } from './requests.mjs';
 import { chromium } from '../../frontend/node_modules/playwright/index.mjs';
 import { expect } from '../../frontend/node_modules/@playwright/test/index.mjs';
-import { readFile, writeFile } from 'node:fs/promises';
+import { readFile, writeFile, mkdir } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { createHash } from 'node:crypto';
+await mkdir(new URL('../../artifacts/verification/', import.meta.url), { recursive: true });
 
 const root = fileURLToPath(new URL('../..', import.meta.url)), base = process.env.MEASUREMENTS_BASE_URL;
 if (!base) throw new Error('Set MEASUREMENTS_BASE_URL to the authenticated deployment.');
@@ -91,7 +92,7 @@ try {
   }
   expect(errors).toEqual([]);
   const asset = await page.locator('script[type=module][src]').first().getAttribute('src'), bytes = await (await context.request.get(base + asset)).body();
-  await writeFile(process.env.MEASUREMENTS_REPORT_FILE ?? root + '/docs/verification/record-values-production.json', JSON.stringify({ checkedAt: new Date().toISOString(), endpoint: base,
+  await writeFile(process.env.MEASUREMENTS_REPORT_FILE ?? root + '/artifacts/verification/record-values-production.json', JSON.stringify({ checkedAt: new Date().toISOString(), endpoint: base,
     specification: 'A 1:3 weighted choice selects one record through a typed filter and index. Awards 1/4 and 7/4 have probabilities 1/4 and 3/4; EV=11/8. Nested history retains values 1 or 3. An unused null remains null; a scalar suffix must fail compilation.',
     frontendAsset: asset, frontendSha256: createHash('sha256').update(bytes).digest('hex'), richWebSocketFrames: frames.filter(frame => frame.measurements?.length).length,
     runs, browserErrors: errors }, null, 2) + '\n');

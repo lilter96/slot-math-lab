@@ -190,7 +190,7 @@ test('Connection authoring fits requested viewport sizes with explicit mobile li
         } else await expect(trigger).toBeDisabled();
         expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
         await page.screenshot({
-            path: path.resolve('../docs/design/qa', `keyboard-connection-${width}.png`),
+            path: path.resolve('../artifacts/ui', `keyboard-connection-${width}.png`),
             fullPage: true
         });
     }

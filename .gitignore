@@ -34,7 +34,6 @@ appsettings.*.json
 !appsettings.Production.json
 .playwright-mcp/
 *.png
-!docs/verification/lab-demo-play.png
 # Screenshots are ignored above; the art of the ported games is not a screenshot.
 !frontend/public/assets/**/*.png
 
@@ -42,10 +41,9 @@ production-secrets/
 frontend/test-results/
 frontend/playwright-report/
 __pycache__/
-# Generated design/QA output stays local; keep maintained summaries in docs/design.
-/docs/design/qa/
-/docs/design/graph-studios/evidence/
-/docs/design/graph-studios/PR19_PUBLICATION_CHECKPOINT.md
 frontend/.workbench-playwright.config.ts
 
 frontend/.cross-browser-playwright.config.ts
+
+# Generated verification reports, browser captures and local diagnostics.
+/artifacts/

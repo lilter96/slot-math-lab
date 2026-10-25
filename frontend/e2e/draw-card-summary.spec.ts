@@ -26,7 +26,7 @@ test('Canvas Draw mean is the exact authored fraction, wraps on all sizes and pr
         await page.getByRole('button', {name: 'Close inspector', exact: true}).click();
         await expect(summary).toBeVisible();
         expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
-        await page.screenshot({path: path.resolve('../docs/design/qa', `draw-card-${test.info().project.name}-${width}.png`)});
+        await page.screenshot({path: path.resolve('../artifacts/ui', `draw-card-${test.info().project.name}-${width}.png`)});
     }
     const download = page.waitForEvent('download');
     await page.getByRole('button', {name: 'Export project', exact: true}).click();
@@ -91,6 +91,6 @@ test('Long exact fractions wrap inside the Draw card at every supported viewport
             return element.scrollWidth <= element.clientWidth + 1 && bounds.height > Number.parseFloat(getComputedStyle(element).fontSize) * 1.8
                 && bounds.right <= row.right + 1 && bounds.left >= row.left - 1;
         })).toBe(true);
-        await page.screenshot({path: path.resolve('../docs/design/qa', `draw-card-long-${test.info().project.name}-${width}.png`)});
+        await page.screenshot({path: path.resolve('../artifacts/ui', `draw-card-long-${test.info().project.name}-${width}.png`)});
     }
 });

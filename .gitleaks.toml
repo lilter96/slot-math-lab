@@ -2,7 +2,8 @@
 # Extends the built-in rules and allowlists specific files whose "api key" matches are
 # content hashes / test fixtures, not secrets (SHA-256 fingerprints in generated reports).
 # Allowlists cover exact committed files. New files remain scanned even when stored
-# alongside generated reports. Add only reviewed non-secret fingerprints here.
+# alongside generated reports. Historical report paths remain for full-history scans.
+# New reports belong in ignored artifacts; add only reviewed non-secret fingerprints here.
 
 [extend]
 useDefault = true

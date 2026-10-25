@@ -1,9 +1,10 @@
 import { waitForRunLaunch } from './requests.mjs';
 import { chromium } from '../../frontend/node_modules/playwright/index.mjs';
 import { expect } from '../../frontend/node_modules/@playwright/test/index.mjs';
-import { readFile, writeFile } from 'node:fs/promises';
+import { readFile, writeFile, mkdir } from 'node:fs/promises';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
+await mkdir(new URL('../../artifacts/verification/', import.meta.url), { recursive: true });
 const root = fileURLToPath(new URL('../..', import.meta.url));
 const base = process.env.REALTIME_BASE_URL, container = process.env.REALTIME_CRASH_CONTAINER;
 if (!base || !container) throw new Error('Set REALTIME_BASE_URL and REALTIME_CRASH_CONTAINER. This verification kills and restarts the specified API container.');
@@ -79,7 +80,7 @@ try {
   await expect(page.getByTestId('sample-count')).toHaveText(recovered.progress.sampleCount.toLocaleString());
   report.crashRecovery.reloadStable = true;
   const style = await page.addStyleTag({ content: 'body{height:auto!important;overflow:auto!important}#root,.app{height:auto!important;min-height:100vh}.simulation-workspace{overflow:visible!important}' });
-  await page.screenshot({ path: root + '/docs/verification/realtime-crash-production.png', fullPage: true }); await style.evaluate(node => node.remove());
+  await page.screenshot({ path: root + '/artifacts/verification/realtime-crash-production.png', fullPage: true }); await style.evaluate(node => node.remove());
   const started = Date.now(), complete = await create(100000);
   await expect(page.locator('.run-status')).toHaveText('completed', { timeout: 30000 });
   const stored = await get(complete.id), result = JSON.parse(stored.resultJson);
@@ -89,7 +90,7 @@ try {
     revision: stored.sequence, graphHash: complete.configHash, seed: complete.seed, streamScheme: complete.streamScheme };
   report.browserErrors = errors;
   if (errors.length) throw new Error('Browser errors: ' + errors.join(', '));
-  await writeFile(root + '/docs/verification/realtime-production.json', JSON.stringify(report, null, 2) + '\n');
+  await writeFile(root + '/artifacts/verification/realtime-production.json', JSON.stringify(report, null, 2) + '\n');
   console.log(JSON.stringify(report));
 } finally {
   for (const id of ownedRuns) await context.request.delete(base + '/api/runs/' + id).catch(() => {});

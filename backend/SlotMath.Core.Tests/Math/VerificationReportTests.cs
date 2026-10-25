@@ -1,16 +1,16 @@
 using System.Numerics;
-using System.Text;
+using System.Text.Json;
 using SlotMath.Core.Math;
 using SlotMath.Core.Monad;
 
 namespace SlotMath.Core.Tests.Math;
 
 // ═══════════════════════════════════════════════════════════════════════════
-//  G32 — VERIFICATION.md regenerator + standing proof gate
+//  Exact reference-fixture report and standing proof gate
 //
 //  Computes every D9 reference fixture through the exact engine and asserts the
 //  result matches the contract's closed form (rational equality, or the REF-B
-//  enclosure), then regenerates VERIFICATION.md. If any fixture drifts from its
+//  enclosure), then writes an ignored JSON report. If any fixture drifts from its
 //  D9 closed form this test fails — the standing proof that the math is right.
 // ═══════════════════════════════════════════════════════════════════════════
 
@@ -20,7 +20,7 @@ public class VerificationReportTests
         string Fixture, string Quantity, string Expected, string Computed, string Provenance, bool Match);
 
     [Fact]
-    public void Verification_RegeneratesDoc_AndMatchesD9ClosedForms()
+    public void Verification_RegeneratesReport_AndMatchesD9ClosedForms()
     {
         var rows = new List<Row>();
 
@@ -68,27 +68,8 @@ public class VerificationReportTests
         Assert.All(rows, r => Assert.True(
             r.Match, $"{r.Fixture} — {r.Quantity}: expected {r.Expected}, computed {r.Computed} [{r.Provenance}]"));
 
-        // ── Regenerate VERIFICATION.md ──
-        TryWriteRepoFile("VERIFICATION.md", BuildMarkdown(rows));
-    }
-
-    private static string BuildMarkdown(IReadOnlyList<Row> rows)
-    {
-        var sb = new StringBuilder();
-        sb.AppendLine("# VERIFICATION — D9 reference fixtures");
-        sb.AppendLine();
-        sb.AppendLine("**Auto-generated** by `VerificationReportTests` (G32). Every figure below is computed");
-        sb.AppendLine("by the exact engine and checked against its D9 closed form on each CI run — the");
-        sb.AppendLine("standing proof that the math is right. Amounts are exact rationals (`n/d`, D1).");
-        sb.AppendLine();
-        sb.AppendLine("| Fixture | Quantity | Expected (D9) | Computed | Provenance | Match |");
-        sb.AppendLine("|---------|----------|---------------|----------|------------|-------|");
-        foreach (var r in rows)
-            sb.AppendLine($"| {r.Fixture} | {r.Quantity} | `{r.Expected}` | `{r.Computed}` | {r.Provenance} | {(r.Match ? "✅" : "❌")} |");
-        sb.AppendLine();
-        sb.AppendLine("All computations use exact `BigInteger` rationals (invariant 1); REF-C is checked");
-        sb.AppendLine("against an independent brute-force enumerator that imports nothing from `SlotMath.Core`.");
-        return sb.ToString();
+        TryWriteRepoFile("artifacts/verification/reference-fixtures.json",
+            JsonSerializer.Serialize(rows, new JsonSerializerOptions { WriteIndented = true }) + Environment.NewLine);
     }
 
     private static void TryWriteRepoFile(string fileName, string content)
@@ -96,10 +77,14 @@ public class VerificationReportTests
         try
         {
             var dir = new DirectoryInfo(AppContext.BaseDirectory);
-            while (dir is not null && !File.Exists(Path.Combine(dir.FullName, "CLAUDE.md")))
+            while (dir is not null && !File.Exists(Path.Combine(dir.FullName, "backend", "SlotMathLab.slnx")))
                 dir = dir.Parent;
             if (dir is not null)
-                File.WriteAllText(Path.Combine(dir.FullName, fileName), content);
+            {
+                var path = Path.Combine(dir.FullName, fileName);
+                Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+                File.WriteAllText(path, content);
+            }
         }
         catch
         {

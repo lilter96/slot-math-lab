@@ -42,7 +42,7 @@ for (const [kind, model] of [['native', native], ['legacy', legacy]] as const) {
       await value.scrollIntoViewIfNeeded();
       expect(await value.evaluate(element => { const field = element.getBoundingClientRect(), viewport = element.closest('table')!.parentElement!.getBoundingClientRect(); return field.left >= viewport.left - 1 && field.right <= viewport.right + 1; })).toBe(true);
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
-      await page.screenshot({ path: path.resolve('../docs/design/qa', `inspector-number-${kind}-${test.info().project.name}-${width}.png`) });
+      await page.screenshot({ path: path.resolve('../artifacts/ui', `inspector-number-${kind}-${test.info().project.name}-${width}.png`) });
     }
   });
   test(`${kind} Inspector caps reject fractions and range violations without replacing the previous node values`, async ({ page }) => {

@@ -52,7 +52,7 @@ test('established sockets recover repeatedly with stable run identity and cumula
   await expect(page.getByTestId('stream-status')).toContainText('3 reconnects');
   const final = await stopped(page, request, run.id);
   expect(final.configHash).toBe(run.configHash); expect(final.seed).toBe(run.seed);
-  await page.screenshot({ path: '../docs/verification/realtime-recovered.png', fullPage: true });
+  await page.screenshot({ path: '../artifacts/verification/realtime-recovered.png', fullPage: true });
 });
 
 test('negotiation quota delays survive SignalR wrapping and manual wake without retrying early', async ({ page, request }) => {

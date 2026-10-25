@@ -1,8 +1,9 @@
 import { saveValidatedDialog, waitForRunLaunch, saveMeasurement } from './requests.mjs';
 import { chromium } from '../../frontend/node_modules/playwright/index.mjs';
 import { expect } from '../../frontend/node_modules/@playwright/test/index.mjs';
-import { readFile, writeFile } from 'node:fs/promises';
+import { readFile, writeFile, mkdir } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
+await mkdir(new URL('../../artifacts/verification/', import.meta.url), { recursive: true });
 const root = fileURLToPath(new URL('../..', import.meta.url)), base = process.env.MEASUREMENTS_BASE_URL;
 if (!base) throw new Error('Set MEASUREMENTS_BASE_URL to the authenticated deployment.');
 const browser = await chromium.launch({ executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE });
@@ -72,9 +73,9 @@ try {
   Object.assign(report, { probabilityRunId: probabilityRun.id, probabilityStatus: probability.output.report.status, numericMean: probabilityRun.progress.measurements[0].mean, nonzeroProbability: probabilityRow.evidence.observed, probabilityInterval: probabilityRow.interval });
   await page.goto(base + `/results?run=${run.id}`); await page.evaluate(() => localStorage.clear()); await page.reload();
   await expect(page.getByLabel('Verification profile result')).toHaveAttribute('data-profile-status', 'criteriaMet');
-  await page.locator('#verification-profile').scrollIntoViewIfNeeded(); await page.screenshot({ path: root + '/docs/verification/verification-profile-production-desktop.png' });
+  await page.locator('#verification-profile').scrollIntoViewIfNeeded(); await page.screenshot({ path: root + '/artifacts/verification/verification-profile-production-desktop.png' });
   await page.setViewportSize({ width: 390, height: 844 }); if (!(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1))) throw new Error('Profile mobile viewport overflow.');
-  await page.locator('#verification-profile > summary').scrollIntoViewIfNeeded(); await page.screenshot({ path: root + '/docs/verification/verification-profile-production-mobile.png' });
+  await page.locator('#verification-profile > summary').scrollIntoViewIfNeeded(); await page.screenshot({ path: root + '/artifacts/verification/verification-profile-production-mobile.png' });
   Object.assign(report, { fixtureRunId: run.id, fixtureReferenceRunId: reference.id, fixtureStatus: fixture.output.report.status, fixtureProfileHash: run.verificationProfileHash, fixtureAllocatedAlpha: fixture.output.report.allocatedAlpha,
     fixtureArtifact: fixture.id, engineAndWorkerBitIdentical: true, emptyBrowserRestored: true, mobileVerified: true });
   await page.setViewportSize({ width: 1560, height: 1100 }); await page.goto(base + '/build?project=nine-lives'); await expect(page.locator('.react-flow__node')).toHaveCount(4); await page.getByRole('tab', { name: 'Simulate', exact: true }).click();
@@ -110,7 +111,7 @@ try {
     independentIntervalVerified: true, nineLivesEngineAndWorkerBitIdentical: true, richPrimaryFrames: rich.length, richFrames: frames.length, runtimeProvenance: nineLives.runtimeProvenance,
     simulateUrl: base + `/simulate?run=${nineLives.id}`, resultsUrl: base + `/results?run=${nineLives.id}`, fixtureResultsUrl: base + `/results?run=${run.id}` });
   if (errors.length) throw new Error('Browser errors: ' + errors.join('; ')); report.browserErrors = [];
-  await writeFile(process.env.MEASUREMENTS_REPORT_FILE ?? root + '/docs/verification/verification-profile-production.json', JSON.stringify(report, null, 2) + '\n');
+  await writeFile(process.env.MEASUREMENTS_REPORT_FILE ?? root + '/artifacts/verification/verification-profile-production.json', JSON.stringify(report, null, 2) + '\n');
   console.log(JSON.stringify({ runId: nineLives.id, status: report.nineLivesProfileStatus, authoredRtp: .96, observedRtp: report.observedRtp, simulateUrl: report.simulateUrl }));
 } finally {
   await page.goto('about:blank').catch(() => {});

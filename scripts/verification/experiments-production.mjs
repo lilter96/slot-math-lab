@@ -1,8 +1,9 @@
 import { chromium } from '../../frontend/node_modules/playwright/index.mjs';
 import { expect } from '../../frontend/node_modules/@playwright/test/index.mjs';
-import { readFile, writeFile } from 'node:fs/promises';
+import { readFile, writeFile, mkdir } from 'node:fs/promises';
 import { createHash } from 'node:crypto';
 import { waitForDeployment } from './requests.mjs';
+await mkdir(new URL('../../artifacts/verification/', import.meta.url), { recursive: true });
 const base = process.env.MEASUREMENTS_BASE_URL;
 if (!base) throw new Error('Set MEASUREMENTS_BASE_URL.');
 const browser = await chromium.launch();
@@ -40,8 +41,8 @@ try {
   let report; await expect.poll(async () => { report = await get(`/api/runs/experiments/${experiment.id}`); return report.experiment.status; }, { timeout: 70000 }).toBe('completed');
   expect(report.runs.every(r => r.status === 'completed')).toBe(true);
   const evidence = await get(`/api/runs/${run.id}/evidence`); expect(evidence.inputVerified).toBe(true); expect(evidence.diagnostics.map(d => d.kind)).toEqual(expect.arrayContaining(['resource-impact', 'sampling-design']));
-  await page.reload(); await expect(page.getByRole('region', { name: 'Verification experiments' })).toBeVisible(); await page.screenshot({ path: 'docs/verification/native-experiments-production.png', fullPage: true });
+  await page.reload(); await expect(page.getByRole('region', { name: 'Verification experiments' })).toBeVisible(); await page.screenshot({ path: 'artifacts/verification/native-experiments-production.png', fullPage: true });
   expect(errors).toEqual([]); expect(frames.length).toBeGreaterThan(0);
-  await writeFile('docs/verification/native-experiments-production.json', JSON.stringify({ checkedAt: new Date().toISOString(), runId: run.id, experimentId: experiment.id, manifestSha256: experiment.manifestSha256, runtime: snapshot.runtimeProvenance, resource, sampling, report, inputVerified: evidence.inputVerified, websocketFrames: frames.length, browserErrors: errors }, null, 2) + '\n');
+  await writeFile('artifacts/verification/native-experiments-production.json', JSON.stringify({ checkedAt: new Date().toISOString(), runId: run.id, experimentId: experiment.id, manifestSha256: experiment.manifestSha256, runtime: snapshot.runtimeProvenance, resource, sampling, report, inputVerified: evidence.inputVerified, websocketFrames: frames.length, browserErrors: errors }, null, 2) + '\n');
   console.log(JSON.stringify({ runId: run.id, experimentId: experiment.id, websocketFrames: frames.length, browserErrors: errors.length }));
 } finally { await context.close(); await browser.close(); }

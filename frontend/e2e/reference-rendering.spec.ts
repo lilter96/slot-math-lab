@@ -49,5 +49,5 @@ test('Reference canvas renders all thirty initial cells with the correct distinc
     expect(cell.errors[cell.row], JSON.stringify(cell)).toBeLessThan(12);
     expect(Math.min(...cell.errors.filter((_, index) => index !== cell.row)) - cell.errors[cell.row]).toBeGreaterThan(3);
   }
-  await page.screenshot({ path: path.resolve('../docs/design/qa', `reference-rendering-${test.info().project.name}.png`), fullPage: true });
+  await page.screenshot({ path: path.resolve('../artifacts/ui', `reference-rendering-${test.info().project.name}.png`), fullPage: true });
 });
