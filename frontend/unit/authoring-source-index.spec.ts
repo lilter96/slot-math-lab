@@ -82,3 +82,24 @@ test('PutState declares its actual StateKey write rather than a ModifyState outp
     });
     expect(index.stateWrites.map(write => write.key)).toEqual(['actual', 'lookup']);
 });
+
+test('Ordered draws and directed reachability expose every authored read and output without unresolved effects', () => {
+    const model: ModelGraph = {
+        nodes: [{id: 'batch', nodeType: 'drawMany', outputKey: 'samples', countExpressionId: 'length'}],
+        expressions: {
+            length: {exprType: 'fieldAccess', target: 'state', path: ['quota']},
+            closure: {
+                exprType: 'reachable', vertexCount: 3,
+                adjacency: {exprType: 'fieldAccess', target: 'state', path: ['arcs']},
+                allowed: {exprType: 'fieldAccess', target: 'state', path: ['permitted']},
+                seeds: {exprType: 'fieldAccess', target: 'state', path: ['starts']}
+            }
+        }
+    };
+    const before = structuredClone(model), index = indexGraphSources(model);
+    expect(index.unresolvedEffects).toEqual([]);
+    expect(index.stateWrites.map(write => write.key)).toEqual(['samples']);
+    expect(index.stateReads.map(read => read.statePath)).toEqual([['quota'], ['arcs'], ['permitted'], ['starts']]);
+    expect(index.expressionReferences).toMatchObject([{id: 'length', resolved: true, statePaths: [['quota']]}]);
+    expect(model).toEqual(before);
+});

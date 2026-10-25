@@ -41,6 +41,9 @@ internal sealed class SamplingExpressions(
     private readonly ConcurrentDictionary<Expression, PrecomputationPlan> _precomputationPlans =
         new(ReferenceEqualityComparer.Instance);
 
+    private readonly ConcurrentDictionary<ReachableExpr, ReachabilityData.Prepared?> _reachabilityPlans =
+        new(ReferenceEqualityComparer.Instance);
+
     private readonly SamplingTier _tier = tier ?? SamplingOptions.Tier;
     internal SamplingShapes Shapes { get; } = shapes ?? new SamplingShapes();
     internal CompilerIr? Ir { get; } = ir;
@@ -48,6 +51,12 @@ internal sealed class SamplingExpressions(
     internal PrecomputationPlan Precomputation(Expression expression) => _precomputationPlans.GetOrAdd(expression,
         source => Shapes.Precomputations.Get(source,
             name => _constants.TryGetValue(name, out ExprValue value) ? value : null));
+
+    internal ReachabilityData.Prepared? Reachability(ReachableExpr expression) => _reachabilityPlans.GetOrAdd(
+        expression,
+        source => TryConstant(source.Adjacency, out ExprValue adjacency)
+            ? ReachabilityData.Prepare(adjacency, source.VertexCount)
+            : null);
 
     internal CollectionBufferAnalysis? Buffers(Expression expression)
     {
@@ -330,6 +339,11 @@ internal sealed class SamplingExpressions(
                 Func<SamplingFrame, ExprValue> adjacency = compile(reachable.Adjacency);
                 Func<SamplingFrame, ExprValue> allowed = compile(reachable.Allowed);
                 Func<SamplingFrame, ExprValue> seeds = compile(reachable.Seeds);
+                if (Reachability(reachable) is { } prepared)
+                {
+                    return frame => prepared.Evaluate(allowed(frame), seeds(frame), frame.CancellationToken);
+                }
+
                 return frame => ReachabilityData.Evaluate(adjacency(frame), allowed(frame), seeds(frame),
                     reachable.VertexCount, frame.CancellationToken);
             case ScatterExpr scatter:

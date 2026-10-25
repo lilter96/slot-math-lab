@@ -145,7 +145,7 @@ user's request to prioritize backend performance.
 
 ## Remaining work
 
-The next admitted migration uses a binary contribution mask in all eight Le
+The binary contribution migration uses a binary contribution mask in all eight Le
 Militare variants and their six small fixtures. Group sizing uses existing
 finite-set expressions; original numeric weights remain supported by the shared
 authoring helper. Final old/new complete-round measurements improve 1.21–1.41x
@@ -153,6 +153,23 @@ in the normal runtime, with all 2,048 replay/RNG controls, selected regressions
 and the small exact control passing. [Backend performance](BACKEND_PERFORMANCE.md)
 records the hardware profile, rejected control-flow experiments, geometry oracle,
 source changes and measurement conditions. This does not achieve the final target.
+
+The prepared-adjacency follow-up now admits the existing Reachable atom into
+all ten full cluster configurations, eight small models and two authoring
+starters. It replaces the bounded growth subgraph, preserving first-seed order,
+wild claims and RNG draws. Each stored graph loses five nodes and each full
+configuration shrinks by 2,906 canonical bytes. Nine Lives becomes 136 → 131
+nodes (buy 125 → 120); Le Militare Super/Elite/Standard become 236 → 231 and
+its ordinary spin becomes 254 → 249. The two starter graphs shrink as well.
+
+The final 5,120 controls compare complete remaining state, payout and RNG,
+allowing only new immutable adjacency and precisely retired growth-loop fields.
+Original goldens are unchanged. Final normal-runtime paired measurements improve
+1.027–1.060x across all ten migrated full configurations, with disjoint ranges.
+The [performance report](BACKEND_PERFORMANCE.md#preparing-immutable-adjacency-and-reducing-component-graphs)
+records actual maintained inputs, longer paid measurements and the repeat profile.
+Payout editing supports the new graphs, binary or numeric weights and saved grid
+composition. Broader asset editor integration remains in the deferred UI work.
 
 Continue the backend toward the one-million target across all 15 cases, with
 real-game migrations and paired measurements per admitted capability. Retain

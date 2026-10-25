@@ -38,9 +38,13 @@ public sealed class ReachableOracleTests
                 }
 
                 ExprValue rows = ExprValue.Array(adjacency.Select(row => ExprValue.Number(Encode(row))).ToArray());
+                var prepared =
+                    Assert.IsType<ReachabilityData.Prepared>(ReachabilityData.Prepare(rows, count));
                 ExprValue result = ReachabilityData.Evaluate(rows, ExprValue.Number(Encode(allowed)),
                     ExprValue.Number(Encode(seeds)), count);
                 Assert.Equal(Encode(expected), result.AsInteger());
+                Assert.Equal(Encode(expected),
+                    prepared.Evaluate(ExprValue.Number(Encode(allowed)), ExprValue.Number(Encode(seeds))).AsInteger());
             }
         }
     }

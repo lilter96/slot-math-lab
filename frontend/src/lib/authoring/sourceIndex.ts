@@ -171,7 +171,8 @@ export function indexGraphSources(graph: ModelGraph): GraphSourceIndex {
                     write('rows');
                     write('cols');
                 }
-            } else if (['putState', 'data'].includes(node.nodeType)) write(node.stateKey);
+            } else if (node.nodeType === 'drawMany') write(node.outputKey);
+            else if (['putState', 'data'].includes(node.nodeType)) write(node.stateKey);
             else if (node.nodeType === 'modifyState') write(node.outputKey ?? '__modified__');
             else if (node.nodeType === 'loop') {
                 write(`__iter_${node.id}__`);
@@ -185,12 +186,12 @@ export function indexGraphSources(graph: ModelGraph): GraphSourceIndex {
                 path,
                 statePath: [node.winStateKey]
             });
-            if (!['draw', 'getState', 'putState', 'data', 'modifyState', 'loop', 'branch', 'library', 'metricsSink', 'map'].includes(node.nodeType)) unresolved(path, scope, `Unresolved node effects: ${node.nodeType}.`, true);
+            if (!['draw', 'drawMany', 'getState', 'putState', 'data', 'modifyState', 'loop', 'branch', 'library', 'metricsSink', 'map'].includes(node.nodeType)) unresolved(path, scope, `Unresolved node effects: ${node.nodeType}.`, true);
             if (node.nodeType === 'map') {
                 const ports = (direction: string) => object(node[direction]) && Object.values(node[direction]).some(port => object(port) && port.type === 'State');
                 if (ports('inputs') || ports('outputs')) unresolved(path, scope, 'A plugin/Map State contract needs an explicit dependency proof.', !!ports('outputs'));
             }
-            for (const field of ['expressionId', 'conditionId', 'stopConditionId', 'weightExpressionId']) if (typeof node[field] === 'string') pendingReferences.push({
+            for (const field of ['expressionId', 'conditionId', 'stopConditionId', 'weightExpressionId', 'countExpressionId']) if (typeof node[field] === 'string') pendingReferences.push({
                 id: node[field],
                 scope,
                 path: [...path, field]

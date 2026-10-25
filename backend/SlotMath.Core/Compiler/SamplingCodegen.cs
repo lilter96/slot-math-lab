@@ -59,6 +59,7 @@ internal sealed class SamplingOperands(
     ExprValue[][] arrays,
     SamplingDraw[] draws,
     FiniteTable[] precomputations,
+    ReachabilityData.Prepared[] reachabilities,
     Func<SamplingFrame, ExprValue>[] closures,
     SamplingExpressions owner)
 {
@@ -69,6 +70,7 @@ internal sealed class SamplingOperands(
     public readonly SamplingExpressions Owner = owner;
     public readonly string[][] Paths = paths;
     public readonly FiniteTable[] Precomputations = precomputations;
+    public readonly ReachabilityData.Prepared[] Reachabilities = reachabilities;
     public readonly int[] Slots = slots;
     public readonly string[] Texts = texts;
     public readonly ExprValue[] Values = values;
@@ -584,6 +586,7 @@ internal sealed class SamplingCodegen
     private readonly SamplingExpressions _owner;
     private readonly List<string[]> _paths = [];
     private readonly List<FiniteTable> _precomputations = [];
+    private readonly List<ReachabilityData.Prepared> _reachabilities = [];
     private readonly HashSet<int> _readableWrites = [];
     private readonly StringBuilder _shape = new();
     private readonly Func<string, int> _slot;
@@ -833,7 +836,7 @@ internal sealed class SamplingCodegen
 
     private SamplingOperands Operands() => new([.. _slots], [.. _texts], [.. _paths], [.. _numbers], [.. _values],
         [.. _arrays],
-        [.. _draws], [.. _precomputations], [.. _closures], _owner)
+        [.. _draws], [.. _precomputations], [.. _reachabilities], [.. _closures], _owner)
     {
         PrecomputedExpressions = _precomputedExpressions,
         ReusedScalarEvaluations = _reusedScalarEvaluations,
@@ -1027,10 +1030,24 @@ internal sealed class SamplingCodegen
                         Value(project.Value), Operand(nameof(SamplingOperands.Paths), _paths, project.Path),
                         Text("project")));
             case ReachableExpr reachable:
-                return Form("reachable:" + reachable.VertexCount, () => Lx.Call(
-                    typeof(ReachabilityData).GetMethod(nameof(ReachabilityData.Evaluate), Any)!,
-                    Value(reachable.Adjacency), Value(reachable.Allowed), Value(reachable.Seeds),
-                    Lx.Constant(reachable.VertexCount), Lx.Field(_frame, nameof(SamplingFrame.CancellationToken))));
+                return Form("reachable:" + reachable.VertexCount, () =>
+                {
+                    if (reachable.Adjacency is FieldAccessExpr { Path.Length: 1 } field &&
+                        !_bindings.ContainsKey(field.Path[0]) && _owner.Reachability(reachable) is { } prepared)
+                    {
+                        _shape.Append("prepared;");
+                        return Lx.Call(Operand(nameof(SamplingOperands.Reachabilities), _reachabilities, prepared),
+                            typeof(ReachabilityData.Prepared).GetMethod(nameof(ReachabilityData.Prepared.Evaluate),
+                                Any)!,
+                            Value(reachable.Allowed), Value(reachable.Seeds),
+                            Lx.Field(_frame, nameof(SamplingFrame.CancellationToken)));
+                    }
+
+                    _shape.Append("checked;");
+                    return Lx.Call(typeof(ReachabilityData).GetMethod(nameof(ReachabilityData.Evaluate), Any)!,
+                        Value(reachable.Adjacency), Value(reachable.Allowed), Value(reachable.Seeds),
+                        Lx.Constant(reachable.VertexCount), Lx.Field(_frame, nameof(SamplingFrame.CancellationToken)));
+                });
             case ScatterExpr scatter:
                 return Form("scatter:" + scatter.Mode + ":" + scatter.MaxItems + ":" + scatter.MaxUpdates, () =>
                 {

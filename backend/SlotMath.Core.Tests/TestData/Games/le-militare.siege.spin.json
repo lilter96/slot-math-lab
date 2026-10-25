@@ -2521,6 +2521,38 @@
             0,
             0
         ],
+        "clusterAdjacency": [
+            34,
+            69,
+            138,
+            276,
+            520,
+            1089,
+            2210,
+            4420,
+            8840,
+            16656,
+            34848,
+            70720,
+            141440,
+            282880,
+            532992,
+            1115136,
+            2263040,
+            4526080,
+            9052160,
+            17055744,
+            35684352,
+            72417280,
+            144834560,
+            289669120,
+            545783808,
+            68157440,
+            169869312,
+            339738624,
+            679477248,
+            285212672
+        ],
         "clusterMinSize": 6,
         "clusterSymbol": "0",
         "clusterCoins": 0,
@@ -5785,219 +5817,6 @@
                 }
             }
         },
-        "grow-group": {
-            "name": "grow-group",
-            "description": "One pass of growing a group: the cells that touch it side by side and can join it do.",
-            "nodes": [
-                {
-                    "nodeType": "modifyState",
-                    "id": "reach",
-                    "label": "The cells that touch the ones just reached, can join and are not in the group yet",
-                    "outputKey": "reached",
-                    "expressionId": "reach",
-                    "inputs": {
-                        "state": {
-                            "name": "state",
-                            "type": "State"
-                        }
-                    },
-                    "outputs": {
-                        "state": {
-                            "name": "state",
-                            "type": "State"
-                        }
-                    }
-                },
-                {
-                    "nodeType": "modifyState",
-                    "id": "join",
-                    "label": "They join the group",
-                    "outputKey": "group",
-                    "expressionId": "join",
-                    "inputs": {
-                        "state": {
-                            "name": "state",
-                            "type": "State"
-                        }
-                    },
-                    "outputs": {
-                        "state": {
-                            "name": "state",
-                            "type": "State"
-                        }
-                    }
-                }
-            ],
-            "edges": [
-                {
-                    "id": "reach.state->join",
-                    "sourceNodeId": "reach",
-                    "sourcePort": "state",
-                    "targetNodeId": "join",
-                    "targetPort": "state"
-                }
-            ],
-            "expressions": {
-                "reach": {
-                    "exprType": "bitset",
-                    "op": "Except",
-                    "args": [
-                        {
-                            "exprType": "bitset",
-                            "op": "Intersect",
-                            "args": [
-                                {
-                                    "exprType": "bitset",
-                                    "op": "Union",
-                                    "args": [
-                                        {
-                                            "exprType": "bitset",
-                                            "op": "Union",
-                                            "args": [
-                                                {
-                                                    "exprType": "bitset",
-                                                    "op": "Union",
-                                                    "args": [
-                                                        {
-                                                            "exprType": "bitset",
-                                                            "op": "Shift",
-                                                            "args": [
-                                                                {
-                                                                    "exprType": "bitset",
-                                                                    "op": "Intersect",
-                                                                    "args": [
-                                                                        {
-                                                                            "exprType": "fieldAccess",
-                                                                            "target": "state",
-                                                                            "path": [
-                                                                                "reached"
-                                                                            ]
-                                                                        },
-                                                                        {
-                                                                            "exprType": "constant",
-                                                                            "kind": "Integer",
-                                                                            "value": "519552495"
-                                                                        }
-                                                                    ]
-                                                                },
-                                                                {
-                                                                    "exprType": "constant",
-                                                                    "kind": "Integer",
-                                                                    "value": "1"
-                                                                }
-                                                            ]
-                                                        },
-                                                        {
-                                                            "exprType": "bitset",
-                                                            "op": "Shift",
-                                                            "args": [
-                                                                {
-                                                                    "exprType": "bitset",
-                                                                    "op": "Intersect",
-                                                                    "args": [
-                                                                        {
-                                                                            "exprType": "fieldAccess",
-                                                                            "target": "state",
-                                                                            "path": [
-                                                                                "reached"
-                                                                            ]
-                                                                        },
-                                                                        {
-                                                                            "exprType": "constant",
-                                                                            "kind": "Integer",
-                                                                            "value": "1039104990"
-                                                                        }
-                                                                    ]
-                                                                },
-                                                                {
-                                                                    "exprType": "constant",
-                                                                    "kind": "Integer",
-                                                                    "value": "-1"
-                                                                }
-                                                            ]
-                                                        }
-                                                    ]
-                                                },
-                                                {
-                                                    "exprType": "bitset",
-                                                    "op": "Shift",
-                                                    "args": [
-                                                        {
-                                                            "exprType": "fieldAccess",
-                                                            "target": "state",
-                                                            "path": [
-                                                                "reached"
-                                                            ]
-                                                        },
-                                                        {
-                                                            "exprType": "constant",
-                                                            "kind": "Integer",
-                                                            "value": "5"
-                                                        }
-                                                    ]
-                                                }
-                                            ]
-                                        },
-                                        {
-                                            "exprType": "bitset",
-                                            "op": "Shift",
-                                            "args": [
-                                                {
-                                                    "exprType": "fieldAccess",
-                                                    "target": "state",
-                                                    "path": [
-                                                        "reached"
-                                                    ]
-                                                },
-                                                {
-                                                    "exprType": "constant",
-                                                    "kind": "Integer",
-                                                    "value": "-5"
-                                                }
-                                            ]
-                                        }
-                                    ]
-                                },
-                                {
-                                    "exprType": "fieldAccess",
-                                    "target": "state",
-                                    "path": [
-                                        "joinable"
-                                    ]
-                                }
-                            ]
-                        },
-                        {
-                            "exprType": "fieldAccess",
-                            "target": "state",
-                            "path": [
-                                "group"
-                            ]
-                        }
-                    ]
-                },
-                "join": {
-                    "exprType": "bitset",
-                    "op": "Union",
-                    "args": [
-                        {
-                            "exprType": "fieldAccess",
-                            "target": "state",
-                            "path": [
-                                "group"
-                            ]
-                        },
-                        {
-                            "exprType": "fieldAccess",
-                            "target": "state",
-                            "path": [
-                                "reached"
-                            ]
-                        }
-                    ]
-                }
-            }
-        },
         "claim-group": {
             "name": "claim-group",
             "description": "A group that pays: its pay is added to the board's, and the wilds in it cannot be used by another symbol.",
@@ -6480,10 +6299,10 @@
                 },
                 {
                     "nodeType": "modifyState",
-                    "id": "alone",
-                    "label": "So far the group is that cell",
+                    "id": "complete",
+                    "label": "All allowed cells reachable from the seed",
                     "outputKey": "group",
-                    "expressionId": "alone",
+                    "expressionId": "complete",
                     "inputs": {
                         "state": {
                             "name": "state",
@@ -6498,10 +6317,11 @@
                     }
                 },
                 {
-                    "nodeType": "library",
-                    "id": "first-neighbors",
-                    "label": "Reach the first neighbors",
-                    "mechanicName": "grow-group",
+                    "nodeType": "modifyState",
+                    "id": "exhausted",
+                    "label": "The complete component has no pending frontier",
+                    "outputKey": "reached",
+                    "expressionId": "exhausted",
                     "inputs": {
                         "state": {
                             "name": "state",
@@ -6511,49 +6331,6 @@
                     "outputs": {
                         "state": {
                             "name": "state",
-                            "type": "State"
-                        }
-                    },
-                    "parameters": {}
-                },
-                {
-                    "nodeType": "library",
-                    "id": "second-neighbors",
-                    "label": "Reach the next neighbors",
-                    "mechanicName": "grow-group",
-                    "inputs": {
-                        "state": {
-                            "name": "state",
-                            "type": "State"
-                        }
-                    },
-                    "outputs": {
-                        "state": {
-                            "name": "state",
-                            "type": "State"
-                        }
-                    },
-                    "parameters": {}
-                },
-                {
-                    "nodeType": "loop",
-                    "id": "grow",
-                    "label": "Grow the group until no more cells can join",
-                    "maxIterations": 29,
-                    "stopConditionId": "grow-until",
-                    "inputs": {
-                        "state": {
-                            "name": "state",
-                            "type": "State"
-                        }
-                    },
-                    "outputs": {
-                        "body": {
-                            "name": "body",
-                            "type": "State"
-                        },
-                        "exit": {
-                            "name": "exit",
                             "type": "State"
                         }
                     }
@@ -6656,25 +6433,6 @@
                 },
                 {
                     "nodeType": "library",
-                    "id": "grow-pass",
-                    "label": "Grow",
-                    "mechanicName": "grow-group",
-                    "inputs": {
-                        "state": {
-                            "name": "state",
-                            "type": "State"
-                        }
-                    },
-                    "outputs": {
-                        "state": {
-                            "name": "state",
-                            "type": "State"
-                        }
-                    },
-                    "parameters": {}
-                },
-                {
-                    "nodeType": "library",
                     "id": "pays-yes",
                     "label": "A group that pays is claimed",
                     "mechanicName": "claim-group",
@@ -6695,44 +6453,23 @@
             ],
             "edges": [
                 {
-                    "id": "start.state->alone",
+                    "id": "start.state->complete",
                     "sourceNodeId": "start",
                     "sourcePort": "state",
-                    "targetNodeId": "alone",
+                    "targetNodeId": "complete",
                     "targetPort": "state"
                 },
                 {
-                    "id": "alone.state->first-neighbors",
-                    "sourceNodeId": "alone",
+                    "id": "complete.state->exhausted",
+                    "sourceNodeId": "complete",
                     "sourcePort": "state",
-                    "targetNodeId": "first-neighbors",
+                    "targetNodeId": "exhausted",
                     "targetPort": "state"
                 },
                 {
-                    "id": "first-neighbors.state->second-neighbors",
-                    "sourceNodeId": "first-neighbors",
+                    "id": "exhausted.state->grouped",
+                    "sourceNodeId": "exhausted",
                     "sourcePort": "state",
-                    "targetNodeId": "second-neighbors",
-                    "targetPort": "state"
-                },
-                {
-                    "id": "second-neighbors.state->grow",
-                    "sourceNodeId": "second-neighbors",
-                    "sourcePort": "state",
-                    "targetNodeId": "grow",
-                    "targetPort": "state"
-                },
-                {
-                    "id": "grow.body->grow-pass",
-                    "sourceNodeId": "grow",
-                    "sourcePort": "body",
-                    "targetNodeId": "grow-pass",
-                    "targetPort": "state"
-                },
-                {
-                    "id": "grow.exit->grouped",
-                    "sourceNodeId": "grow",
-                    "sourcePort": "exit",
                     "targetNodeId": "grouped",
                     "targetPort": "state"
                 },
@@ -6804,28 +6541,35 @@
                         }
                     ]
                 },
-                "alone": {
-                    "exprType": "fieldAccess",
-                    "target": "state",
-                    "path": [
-                        "reached"
-                    ]
-                },
-                "grow-until": {
-                    "exprType": "compare",
-                    "op": "Eq",
-                    "left": {
+                "complete": {
+                    "exprType": "reachable",
+                    "vertexCount": 30,
+                    "adjacency": {
+                        "exprType": "fieldAccess",
+                        "target": "state",
+                        "path": [
+                            "clusterAdjacency"
+                        ]
+                    },
+                    "allowed": {
+                        "exprType": "fieldAccess",
+                        "target": "state",
+                        "path": [
+                            "joinable"
+                        ]
+                    },
+                    "seeds": {
                         "exprType": "fieldAccess",
                         "target": "state",
                         "path": [
                             "reached"
                         ]
-                    },
-                    "right": {
-                        "exprType": "constant",
-                        "kind": "Integer",
-                        "value": "0"
                     }
+                },
+                "exhausted": {
+                    "exprType": "constant",
+                    "kind": "Integer",
+                    "value": "0"
                 },
                 "grouped": {
                     "exprType": "bitset",

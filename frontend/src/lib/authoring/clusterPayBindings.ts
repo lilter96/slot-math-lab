@@ -6,6 +6,7 @@ import {reelObject} from '../reelCommands';
 import {exactInteger, normalizedCredits} from './exactAmounts';
 import {matchReelShape, type ReelShape} from './reelShape';
 import {indexGraphSources} from './sourceIndex';
+import {visitStateReferences} from './expressionBindings';
 import type {PayBinding, PayoutCellEdit} from './payBindings';
 
 interface Entry {
@@ -97,6 +98,22 @@ function validTable(table: Table, graph: ModelGraph, cost: number, cells: number
             }));
 }
 
+function weightSources(graph: ModelGraph): Pick<ClusterBoard, 'weights' | 'weightsMask'>[] {
+    const arrays = new Set<string>(), masks = new Set<string>();
+    for (const definition of Object.values(definitions(graph))) for (const node of definition.nodes) {
+        if (node.outputKey !== 'groupSize') continue;
+        const ast = object(object(definition.expressions)?.[String(node.expressionId)]);
+        if (ast?.exprType === 'fold' && typeof ast.stateKey === 'string') arrays.add(ast.stateKey);
+        if (ast?.exprType === 'bitset') visitStateReferences(ast, read => {
+            if (!read.local && read.kind === 'field' && read.statePath.length === 1) masks.add(String(read.statePath[0]));
+        });
+    }
+    return [...[...arrays].map(weights => ({weights})), ...[...masks].map(weightsMask => ({weightsMask}))];
+}
+
+const traversal = (state: Record<string, unknown>): ClusterBoard['componentTraversal'] =>
+    state.clusterAdjacency === undefined ? 'grid' : 'adjacency';
+
 export function clusterPayBindings(graph: ModelGraph): PayBinding[] {
     const state = object(graph.initialState), geometry = object(graph.boardConfig),
         symbols = Array.isArray(graph.symbols) ? graph.symbols as { id: string; kind: string }[] : [];
@@ -120,20 +137,26 @@ export function clusterPayBindings(graph: ModelGraph): PayBinding[] {
             const positive = Object.values(pays).flatMap(row => Object.entries(row).filter(([, pay]) => pay > 0).map(([size]) => Number(size)));
             if (!positive.length) continue;
             minimum = Math.min(...positive);
-            const board: ClusterBoard = {columns, rows, wild, symbolCount: symbols.length, pays};
+            const board: ClusterBoard = {
+                columns,
+                rows,
+                wild,
+                symbolCount: symbols.length,
+                pays,
+                componentTraversal: traversal(state)
+            };
             const expectedState = clusterState(board);
             if (!same(state.clusterPays, expectedState.clusterPays) || state.clusterMinSize !== minimum) continue;
-            // Weighted helper contracts use an actual fold source; equal initial arrays do not establish identity.
-            const weightKeys = [...new Set(Object.values(definitions(graph)).flatMap(definition => definition.nodes.filter(node => node.outputKey === 'groupSize').flatMap(node => {
-                const ast = object(object(definition.expressions)?.[String(node.expressionId)]);
-                return ast?.exprType === 'fold' && typeof ast.stateKey === 'string' ? [ast.stateKey] : [];
-            })))];
-            for (const weights of [undefined, ...weightKeys]) matched.push(...closures(graph, {...board, ...(weights ? {weights} : {})}));
-            if (!matched.length || matched.some(match => !!match.board.weights !== !!matched[0].board.weights)) continue;
+            if (expectedState.clusterAdjacency && (!same(state.clusterAdjacency, expectedState.clusterAdjacency)
+                || index.stateWrites.some(write => write.key === 'clusterAdjacency'))) continue;
+            // Only an exact helper closure admits a weight source; equal initial values do not prove identity.
+            for (const weights of [{}, ...weightSources(graph)]) matched.push(...closures(graph, {...board, ...weights}));
+            const isWeighted = (match: Closure) => !!(match.board.weights || match.board.weightsMask);
+            if (!matched.length || matched.some(match => isWeighted(match) !== isWeighted(matched[0]))) continue;
             // A second custom reader must not be silently left with stale minimum/eligibility assumptions.
             const admitted = new Set(matched.flatMap(match => [...match.scopes.values()]));
             if (index.stateReads.some(read => ['clusterPays', 'clusterMinSize'].includes(String(read.statePath[0])) && !admitted.has(read.path[0] === 'mechanics' ? String(read.path[1]) : ''))) continue;
-            weighted = !!matched[0].board.weights;
+            weighted = isWeighted(matched[0]);
             scopes = [...admitted];
             roots = matched.map(match => match.root);
         } else if (Array.isArray(state.clusterPaytable)) {
@@ -283,19 +306,12 @@ export function reconcileClusterTable(graph: ModelGraph, next: ModelGraph, curre
             rows: Number(geometry.rows),
             wild: symbols.findIndex(symbol => symbol.kind === 'Wild'),
             symbolCount: symbols.length,
-            pays: originalPays
+            pays: originalPays,
+            componentTraversal: traversal(graph.initialState as Record<string, unknown>)
         };
         const original = closures(graph, originalBoard);
         if (current.cluster!.weighted) {
-            const index = indexGraphSources(graph),
-                weights = [...new Set(index.nodes.filter(source => source.node.outputKey === 'groupSize').flatMap(source => {
-                    const ast = object(object(source.scope ? definitions(graph)[source.scope].expressions : graph.expressions)?.[String(source.node.expressionId)]);
-                    return ast?.exprType === 'fold' && typeof ast.stateKey === 'string' ? [ast.stateKey] : [];
-                }))];
-            for (const weightsKey of weights) original.push(...closures(graph, {
-                ...originalBoard,
-                weights: weightsKey
-            }));
+            for (const weights of weightSources(graph)) original.push(...closures(graph, {...originalBoard, ...weights}));
         }
         const updatedBoard = {...originalBoard, pays, symbolCount: (next.symbols as unknown[]).length},
             updatedState = clusterState(updatedBoard);

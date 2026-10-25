@@ -66,6 +66,8 @@ public sealed class ReachableTests
         {
             var rows = Enumerable.Range(0, 3).Select(row => (encoded >> (3 * row)) & 7).ToArray();
             ExprValue adjacency = A(rows);
+            var prepared =
+                Assert.IsType<ReachabilityData.Prepared>(ReachabilityData.Prepare(adjacency, 3));
             for (var allowed = 0; allowed < 8; allowed++)
             {
                 var paths = new bool[3, 3];
@@ -101,6 +103,8 @@ public sealed class ReachableTests
                     }
 
                     Assert.Equal(expected, Run(adjacency, allowed, seeds, 3).AsInteger());
+                    Assert.Equal(expected,
+                        prepared.Evaluate(ExprValue.Number(allowed), ExprValue.Number(seeds)).AsInteger());
                 }
             }
         }
@@ -139,18 +143,238 @@ public sealed class ReachableTests
         ExprValue[] rows = Enumerable.Repeat(ExprValue.Number(0), 64).ToArray();
         rows[0] = ExprValue.Number(BigInteger.One << 63);
         ExprValue adjacency = ExprValue.Array(rows);
+        var prepared =
+            Assert.IsType<ReachabilityData.Prepared>(ReachabilityData.Prepare(adjacency, 64));
         for (var warmup = 0; warmup < 64; warmup++)
         {
             Run(adjacency, 1, 1, 64);
+            prepared.Evaluate(ExprValue.Number(1), ExprValue.Number(1));
         }
 
         var start = GC.GetAllocatedBytesForCurrentThread();
         for (var run = 0; run < 1024; run++)
         {
             Run(adjacency, 1, 1, 64);
+            prepared.Evaluate(ExprValue.Number(1), ExprValue.Number(1));
         }
 
         Assert.Equal(0, GC.GetAllocatedBytesForCurrentThread() - start);
+    }
+
+    [Fact]
+    public void PreparedAdjacencyOwnsItsSnapshotAndDeclinesInvalidConstants()
+    {
+        ExprValue[] rows = [ExprValue.Number(2), ExprValue.Number(4), ExprValue.Number(0)];
+        ExprValue adjacency = ExprValue.Array(rows);
+        var prepared =
+            Assert.IsType<ReachabilityData.Prepared>(ReachabilityData.Prepare(adjacency, 3));
+        rows[0] = ExprValue.Number(0);
+        Assert.Equal(7, prepared.Evaluate(ExprValue.Number(7), ExprValue.Number(1)).AsInteger());
+        Assert.Equal(1, Run(adjacency, 7, 1, 3).AsInteger());
+        Assert.Null(ReachabilityData.Prepare(A(0, 0, 8), 3));
+        Assert.Null(ReachabilityData.Prepare(A(0, 0), 3));
+        Assert.Null(ReachabilityData.Prepare(A(0, 0, 0), 65));
+        Assert.Null(ReachabilityData.Prepare(ExprValue.Number(0), 0));
+        Assert.Equal(0,
+            ReachabilityData.Prepare(A(), 0)!.Evaluate(ExprValue.Number(0), ExprValue.Number(0)).AsInteger());
+    }
+
+    private static (SamplingExpressions Owner, SamplingFrame Frame, Dictionary<string, int> Layout,
+        Func<SamplingFrame, ExprValue> Run) BindPrepared(Expression expression, SamplingTier tier,
+            ExprValue? adjacency, SamplingShapes? shapes = null)
+    {
+        var layout = new Dictionary<string, int>();
+
+        int Slot(string name)
+        {
+            if (!layout.TryGetValue(name, out var index))
+            {
+                layout[name] = index = layout.Count;
+            }
+
+            return index;
+        }
+
+        var constants = new Dictionary<string, ExprValue>();
+        if (adjacency is { } value)
+        {
+            constants["adjacency"] = value;
+        }
+
+        var owner = new SamplingExpressions(Slot, tier, constants, shapes);
+        Func<SamplingFrame, ExprValue> run = owner.Compile(expression);
+        var initial = new Dictionary<string, object?>
+        {
+            ["allowed"] = 7,
+            ["seeds"] = 1,
+            ["adjacency"] = new[] { 2, 4, 0 }
+        };
+        var frame = new SamplingFrame(layout, new SamplingCell[layout.Count], initial);
+        frame.Reset(default);
+        return (owner, frame, layout, run);
+    }
+
+    [Theory]
+    [InlineData(SamplingTier.Interpreted)]
+    [InlineData(SamplingTier.Tiered)]
+    [InlineData(SamplingTier.Compiled)]
+    public void PreparedShapesKeepDistinctDataAndMutableAdjacencyIsNeverPrepared(SamplingTier tier)
+    {
+        var shapes = new SamplingShapes();
+        ReachableExpr expression = R(3);
+        (SamplingExpressions Owner, SamplingFrame Frame, Dictionary<string, int> Layout, Func<SamplingFrame, ExprValue>
+            Run) first = BindPrepared(expression, tier, A(2, 4, 0), shapes);
+        (SamplingExpressions Owner, SamplingFrame Frame, Dictionary<string, int> Layout, Func<SamplingFrame, ExprValue>
+            Run) second = BindPrepared(expression, tier, A(0, 0, 0), shapes);
+        (SamplingExpressions Owner, SamplingFrame Frame, Dictionary<string, int> Layout, Func<SamplingFrame, ExprValue>
+            Run) mutable = BindPrepared(expression, tier, null, shapes);
+        Assert.NotNull(first.Owner.Reachability(expression));
+        Assert.NotNull(second.Owner.Reachability(expression));
+        Assert.Null(mutable.Owner.Reachability(expression));
+        for (var repeat = 0; repeat < 100; repeat++)
+        {
+            Assert.Equal(7, first.Run(first.Frame).AsInteger());
+            Assert.Equal(1, second.Run(second.Frame).AsInteger());
+            mutable.Frame.Cells[mutable.Layout["adjacency"]].SetTyped(repeat % 2 == 0 ? A(2, 4, 0) : A(0, 0, 0));
+            Assert.Equal(repeat % 2 == 0 ? 7 : 1, mutable.Run(mutable.Frame).AsInteger());
+        }
+
+        (Func<SamplingFrame, SamplingOperands?, ExprValue> Code, SamplingOperands Operands) native =
+            SamplingCodegen.CompileValue(first.Owner, name => first.Layout[name], expression);
+        Assert.Single(native.Operands.Reachabilities);
+        (Func<SamplingFrame, SamplingOperands?, ExprValue> Code, SamplingOperands Operands) checkedCode =
+            SamplingCodegen.CompileValue(mutable.Owner, name => mutable.Layout[name], expression);
+        Assert.Empty(checkedCode.Operands.Reachabilities);
+    }
+
+    [Theory]
+    [InlineData(SamplingTier.Interpreted)]
+    [InlineData(SamplingTier.Tiered)]
+    [InlineData(SamplingTier.Compiled)]
+    public void InvalidPreparedCandidatesKeepEagerOperandErrorOrder(SamplingTier tier)
+    {
+        ExprValue invalid = ExprValue.Array([ExprValue.String("bad")]);
+        Expression division = new BinaryExpr
+        {
+            Op = BinaryOp.Div,
+            Left = N(1),
+            Right = N(0)
+        };
+        foreach (Expression allowed in new[] { division, N(0) })
+        {
+            ReachableExpr expression = R(1) with
+            {
+                Allowed = allowed,
+                Seeds = S("missing")
+            };
+            (SamplingExpressions Owner, SamplingFrame Frame, Dictionary<string, int> Layout,
+                Func<SamplingFrame, ExprValue> Run) engine = BindPrepared(expression, tier, invalid);
+            var expected = Assert.Throws<ExpressionEvaluationException>(() => ExactExpressionEvaluator.Evaluate(
+                expression,
+                new EvalContext
+                {
+                    State = new Dictionary<string, object?>
+                    {
+                        ["adjacency"] = new object[] { "bad" }
+                    }
+                }));
+            var actual = Assert.Throws<ExpressionEvaluationException>(() => engine.Run(engine.Frame));
+            Assert.Equal(expected.Code, actual.Code);
+            Assert.Equal(expected.Location, actual.Location);
+            Assert.Null(engine.Owner.Reachability(expression));
+        }
+
+        ReachableExpr invalidRow = R(1) with
+        {
+            Allowed = N(0),
+            Seeds = N(0)
+        };
+        (SamplingExpressions Owner, SamplingFrame Frame, Dictionary<string, int> Layout, Func<SamplingFrame, ExprValue>
+            Run) fallback = BindPrepared(invalidRow, tier, invalid);
+        Assert.Equal("reachable.adjacency[0]",
+            Assert.Throws<ExpressionEvaluationException>(() => fallback.Run(fallback.Frame)).Location);
+    }
+
+    [Theory]
+    [InlineData(SamplingTier.Interpreted)]
+    [InlineData(SamplingTier.Tiered)]
+    [InlineData(SamplingTier.Compiled)]
+    public void PreparedTraversalRetainsCancellationAndLazyParents(SamplingTier tier)
+    {
+        (SamplingExpressions Owner, SamplingFrame Frame, Dictionary<string, int> Layout, Func<SamplingFrame, ExprValue>
+            Run) engine = BindPrepared(R(3), tier, A(2, 4, 0));
+        using var source = new CancellationTokenSource();
+        engine.Frame.CancellationToken = source.Token;
+        Assert.Equal(7, engine.Run(engine.Frame).AsInteger());
+        source.Cancel();
+        Assert.Throws<OperationCanceledException>(() => engine.Run(engine.Frame));
+        Expression badAllowed = R(3) with
+        {
+            Allowed = new BinaryExpr
+            {
+                Op = BinaryOp.Div,
+                Left = N(1),
+                Right = N(0)
+            }
+        };
+        (SamplingExpressions Owner, SamplingFrame Frame, Dictionary<string, int> Layout, Func<SamplingFrame, ExprValue>
+            Run) eager = BindPrepared(badAllowed, tier, A(2, 4, 0));
+        eager.Frame.CancellationToken = source.Token;
+        Assert.Equal(EvalErrorCodes.DivisionByZero,
+            Assert.Throws<ExpressionEvaluationException>(() => eager.Run(eager.Frame)).Code);
+        (SamplingExpressions Owner, SamplingFrame Frame, Dictionary<string, int> Layout, Func<SamplingFrame, ExprValue>
+            Run) lazy = BindPrepared(new IfExpr
+            {
+                Condition = new ConstantExpr
+                {
+                    Kind = ConstantKind.Boolean,
+                    Value = "false"
+                },
+                ThenExpr = badAllowed,
+                ElseExpr = N(11)
+            }, tier, A(2, 4, 0));
+        lazy.Frame.CancellationToken = source.Token;
+        Assert.Equal(11, lazy.Run(lazy.Frame).AsInteger());
+    }
+
+    [Theory]
+    [InlineData(SamplingTier.Interpreted)]
+    [InlineData(SamplingTier.Tiered)]
+    [InlineData(SamplingTier.Compiled)]
+    public void PreparedTraversalKeepsMaskErrorsAndUnsignedHighBitsExact(SamplingTier tier)
+    {
+        (SamplingExpressions Owner, SamplingFrame Frame, Dictionary<string, int> Layout, Func<SamplingFrame, ExprValue>
+            Run) engine = BindPrepared(R(3), tier, A(2, 4, 0));
+        foreach (var field in new[] { "allowed", "seeds" })
+        {
+            foreach (ExprValue invalid in new[]
+                     {
+                         ExprValue.String("1"), ExprValue.Number(-1), ExprValue.Rational(1, 2), ExprValue.Number(8),
+                         ExprValue.Number(BigInteger.One << 64)
+                     })
+            {
+                engine.Frame.Cells[engine.Layout["allowed"]].SetTyped(ExprValue.Number(7));
+                engine.Frame.Cells[engine.Layout["seeds"]].SetTyped(ExprValue.Number(1));
+                engine.Frame.Cells[engine.Layout[field]].SetTyped(invalid);
+                ExprValue allowed = engine.Frame.Cells[engine.Layout["allowed"]].Value;
+                ExprValue seeds = engine.Frame.Cells[engine.Layout["seeds"]].Value;
+                var expected =
+                    Assert.Throws<ExpressionEvaluationException>(() =>
+                        ReachabilityData.Evaluate(A(2, 4, 0), allowed, seeds, 3));
+                var actual = Assert.Throws<ExpressionEvaluationException>(() => engine.Run(engine.Frame));
+                Assert.Equal(expected.Code, actual.Code);
+                Assert.Equal(expected.Location, actual.Location);
+            }
+        }
+
+        ExprValue[] rows = Enumerable.Repeat(ExprValue.Number(0), 64).ToArray();
+        rows[0] = ExprValue.Number(BigInteger.One << 63);
+        rows[63] = ExprValue.Number(BigInteger.One << 62);
+        rows[62] = ExprValue.Number(1);
+        (SamplingExpressions Owner, SamplingFrame Frame, Dictionary<string, int> Layout, Func<SamplingFrame, ExprValue>
+            Run) wide = BindPrepared(R(64), tier, ExprValue.Array(rows));
+        wide.Frame.Cells[wide.Layout["allowed"]].SetTyped(ExprValue.Number(new BigInteger(ulong.MaxValue)));
+        Assert.Equal((BigInteger.One << 63) + (BigInteger.One << 62) + 1, wide.Run(wide.Frame).AsInteger());
     }
 
     [Theory]

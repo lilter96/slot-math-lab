@@ -12,7 +12,7 @@ export interface StateReference {
 
 const object = (value: unknown): value is Record<string, unknown> => !!value && typeof value === 'object' && !Array.isArray(value);
 export const stateNamespace = (target: unknown) => target === undefined || target === null || target === 'state' || target === 'board';
-const expressionTypes = new Set(['constant', 'fieldAccess', 'binary', 'compare', 'if', 'aggregate', 'not', 'call', 'bitset', 'fold', 'map', 'filter']);
+const expressionTypes = new Set(['constant', 'fieldAccess', 'binary', 'compare', 'if', 'aggregate', 'not', 'call', 'bitset', 'fold', 'map', 'filter', 'reachable']);
 
 /** Existing AST lexical scopes, shared by source inventory and private-field rewriting. No evaluation. */
 export function visitStateReferences(value: unknown, reference: (read: StateReference) => void,
@@ -66,6 +66,7 @@ export function visitStateReferences(value: unknown, reference: (read: StateRefe
         not: ['expr'],
         call: ['args'],
         bitset: ['args'],
+        reachable: ['adjacency', 'allowed', 'seeds'],
         fold: ['init', 'body'],
         map: ['body'],
         filter: ['predicate']

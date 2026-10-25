@@ -236,3 +236,83 @@ rounds removed that result; the longer repeated control and final maintained
 measurements both show a gain. The short run does not establish a steady-state
 regression or isolate a specific JIT cause. The one-million complete-round target
 remains open for every configuration.
+
+## Preparing immutable adjacency and reducing component graphs
+
+The first direct Reachable substitution repeated validation of every adjacency
+row on each call and was slower on the current games. The compiler now validates
+and snapshots a proven immutable adjacency field once. Each evaluation still
+checks its dynamic allowed/seed masks and performs the same directed traversal.
+Mutable fields and invalid constants retain the original checked execution,
+including eager operand errors and lazy parents. Cancellation checkpoints and
+the complete unsigned 64-vertex domain remain supported. Shared generated code
+keeps each configuration's adjacency in its own operands. This extends no DSL
+and recognizes no game, mechanic or authored graph pattern.
+
+The shared component authoring helper immediately uses this existing atom in
+all ten full cluster configurations, their eight small models and two authoring
+starters. A completion expression and frontier reset replace repeated growth;
+seed order, wild claims and payouts are unchanged. Each stored graph loses five
+nodes. Every full graph is 2,906 canonical UTF-8 bytes smaller, including its new
+constant adjacency data. Numeric JSON masks stay exact through 53 cells; larger
+JavaScript-authored boards retain grid expressions. The kernel still supports
+all 64 vertices. Explicit grid composition also preserves older saved contracts.
+
+All 5,120 old/new traced/untraced controls across the 20 maintained graphs match
+payout, remaining exported state, RNG audit and the following random word.
+Differences are limited to the constant adjacency table and the exact retired
+growth-loop iteration/wins/exit-reason fields. Original independent and server
+goldens remain unchanged; two derived client-state caches were refreshed.
+
+Final verification passed 81 affected Core cases and three small exact models
+with their original expected rationals and budgets. Source/payout authoring
+checks cover numeric and binary weights, renamed closures, old grid graphs,
+adjacency tampering, batch-output writes and expression dependencies. All 16
+focused unit cases pass. Two additional lifecycle controls pass; three asset
+editing lifecycle cases fail identically on the baseline commit and this branch.
+Their evidence is retained separately for the deferred editor work. The Release
+solution build, scoped formatting, scoped ESLint, app TypeScript and 38-fixture
+export check pass. Both required Rider profiles completed for all 34 touched
+sources; compatibility edits received both profiles again before final checks.
+
+### Final complete-round comparison
+
+Frozen original and prepared kernels run their respective actual maintained
+JSON on CPU 2, one worker, normal .NET tiering/PGO and Tiered sampling. Each ABBA
+process measures three repetitions and discards its first. Heavy features and
+Nine Lives buy warm 32,768 and measure 16,384 rounds; paid entries warm 262,144
+and measure 1,048,576. The longer paid schedule avoids treating short transient
+runs as steady-state estimates; it does not isolate a particular JIT cause.
+All outcome statistics and remaining loop evidence match. Every retired growth
+loop has zero model-limit completions. All ten retained timing ranges are disjoint.
+These are shared-host kernel observations, not API capacity guarantees.
+
+| Complete configuration | Before rounds/s | After rounds/s | Ratio |
+| --- | ---: | ---: | ---: |
+| le-militare.super | 3,937 | 4,057 | 1.030 |
+| le-militare.elite | 5,510 | 5,752 | 1.044 |
+| le-militare.standard | 14,069 | 14,715 | 1.046 |
+| le-militare.spin | 211,588 | 221,286 | 1.046 |
+| nine-lives | 435,969 | 448,769 | 1.029 |
+| nine-lives.buy | 24,537 | 25,212 | 1.028 |
+| le-militare.chance | 129,416 | 133,471 | 1.031 |
+| le-militare.air-raid | 180,855 | 189,438 | 1.047 |
+| le-militare.siege.spin | 209,681 | 222,194 | 1.060 |
+| le-militare.recon.spin | 206,315 | 213,766 | 1.036 |
+
+Allocation falls slightly, rather than becoming zero: Super changes from
+22,090 to 22,084 B/round and Nine Lives from 42.9 to 41.5 B/round. The complete
+round denominator is unchanged, including awarded or bought features.
+
+A fresh process-scoped hardware profile of the final Super configuration has no
+lost samples. The mapped settlement block accounts for 10.85%, loop control
+6.86%, pay/tumble preparation 5.90% and prepared reachability 3.03% of CPU samples.
+Several generated methods serve multiple source bindings; the symbol map retains
+all of them. Profiling runs are not used as throughput measurements. Board and
+cascade expression work remains the main area for subsequent backend changes.
+
+A separate flat-strip refill prototype preserved all state/RNG controls but
+slowed four full games by roughly 2–7%; it is not shipped. Forced inlining of
+the integer value constructor also failed its real-game controls. Neither a
+smaller graph nor an isolated helper speedup establishes a complete-round gain.
+The one-million complete-round target remains open for all 15 configurations.

@@ -7,6 +7,33 @@ internal static class ReachabilityData
 {
     internal const int MaxVertices = 64;
 
+    // Preparation is speculative. Invalid constants keep their original runtime
+    // validation, after all three operands have been evaluated.
+    internal static Prepared? Prepare(ExprValue adjacency, int vertexCount)
+    {
+        if (vertexCount is < 0 or > MaxVertices || adjacency.ItemsArray is not { } rows)
+        {
+            return null;
+        }
+
+        try
+        {
+            Evaluate(adjacency, ExprValue.Number(0), ExprValue.Number(0), vertexCount);
+        }
+        catch (ExpressionEvaluationException)
+        {
+            return null;
+        }
+
+        var neighbors = new ulong[vertexCount];
+        for (var vertex = 0; vertex < vertexCount; vertex++)
+        {
+            neighbors[vertex] = (ulong)rows[vertex].NumberNumerator;
+        }
+
+        return new Prepared(neighbors, vertexCount == 64 ? ulong.MaxValue : (1UL << vertexCount) - 1);
+    }
+
     internal static ExprValue Evaluate(ExprValue adjacency, ExprValue allowed, ExprValue seeds, int vertexCount,
         CancellationToken cancellationToken = default)
     {
@@ -56,6 +83,12 @@ internal static class ReachabilityData
             }
         }
 
+        return Traverse(neighbors, allowed, seeds, domain, cancellationToken);
+    }
+
+    private static ExprValue Traverse(ReadOnlySpan<ulong> neighbors, ExprValue allowed, ExprValue seeds, ulong domain,
+        CancellationToken cancellationToken)
+    {
         var permitted = InDomain(allowed, domain, "reachable.allowed");
         var reached = InDomain(seeds, domain, "reachable.seeds") & permitted;
         var pending = reached;
@@ -82,5 +115,23 @@ internal static class ReachabilityData
         }
 
         return mask;
+    }
+
+    internal sealed class Prepared(ulong[] neighbors, ulong domain)
+    {
+        internal ExprValue Evaluate(ExprValue allowed, ExprValue seeds, CancellationToken cancellationToken = default)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (cancellationToken.CanBeCanceled)
+            {
+                // Preserve the validation checkpoints of each immutable row.
+                for (var vertex = 0; vertex < neighbors.Length; vertex++)
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+                }
+            }
+
+            return Traverse(neighbors, allowed, seeds, domain, cancellationToken);
+        }
     }
 }

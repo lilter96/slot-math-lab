@@ -46,10 +46,15 @@ export interface ClusterBoard {
     weights?: string;
     /** An alternative to numeric weights: the mask of cells that contribute one; other cells contribute zero. */
     weightsMask?: string;
+    /** Select the previous grid composition when preserving a saved authoring contract. */
+    componentTraversal?: 'grid' | 'adjacency';
 }
 
 const hasWeights = (board: ClusterBoard) => Boolean(board.weights || board.weightsMask);
 const cellsOf = ({columns, rows}: ClusterBoard) => columns * rows;
+// JSON authored in JavaScript must keep every adjacency mask exact. Larger boards
+// retain the existing expression-based traversal rather than round a numeric mask.
+const hasPreparedAdjacency = (board: ClusterBoard) => board.componentTraversal !== 'grid' && cellsOf(board) <= 53;
 const symbolBoard = (board: ClusterBoard): SymbolBoard => ({cells: cellsOf(board), symbolCount: board.symbolCount});
 /** The fewest cells a group needs to pay. */
 const smallestGroup = ({pays}: ClusterBoard) =>
@@ -71,6 +76,15 @@ export function clusterState(board: ClusterBoard) {
     const {symbolCount, pays} = board, cells = cellsOf(board);
     return {
         clusterPays: Array.from({length: symbolCount}, (_, symbol) => Array.from({length: cells + 1}, (_, size) => pays[symbol]?.[size] ?? 0)).flat(),
+        ...(hasPreparedAdjacency(board) ? {
+            clusterAdjacency: Array.from({length: cells}, (_, cell) => {
+                const adjacent = [cell - board.rows, cell + board.rows];
+                if (cell % board.rows > 0) adjacent.push(cell - 1);
+                if (cell % board.rows < board.rows - 1) adjacent.push(cell + 1);
+                return adjacent.filter(neighbor => neighbor >= 0 && neighbor < cells)
+                    .reduce((mask, neighbor) => mask + 2 ** neighbor, 0);
+            })
+        } : {}),
         clusterMinSize: smallestGroup(board),
         clusterSymbol: '0',
         clusterCoins: 0,
@@ -132,16 +146,28 @@ function claimGroup(): Mechanic {
 /** One group of the symbol: it grows from one cell, its size is counted and looked up in the paytable. */
 function payGroup(mechanics: Mechanics, board: ClusterBoard): Mechanic {
     const cells = cellsOf(board);
-    return new Flow()
-        .write('start', 'A group starts from the first cell of the symbol that is in no group yet', 'reached', only(firstOf(state('ungrouped'))))
-        .write('alone', 'So far the group is that cell', 'group', state('reached'))
-        // Every pass but the last adds a cell, so a group is whole within as many passes as the board has cells. The
-        // loops here are given one pass more than they can need: a loop that uses up its whole limit is reported as
-        // cut short by the model.
-        .use('first-neighbors', 'Reach the first neighbors', mechanics.add(growGroup(board)))
-        .use('second-neighbors', 'Reach the next neighbors', mechanics.add(growGroup(board)))
-        .repeat('grow', 'Grow the group until no more cells can join', Math.max(1, cells - 1), mechanics.add(growGroup(board)),
-            {until: eq(state('reached'), num(0)), bodyLabel: 'Grow'})
+    const flow = new Flow()
+        .write('start', 'A group starts from the first cell of the symbol that is in no group yet', 'reached', only(firstOf(state('ungrouped'))));
+    if (hasPreparedAdjacency(board)) {
+        flow.write('complete', 'All allowed cells reachable from the seed', 'group', {
+            exprType: 'reachable',
+            vertexCount: cells,
+            adjacency: state('clusterAdjacency'),
+            allowed: state('joinable'),
+            seeds: state('reached')
+        })
+            .write('exhausted', 'The complete component has no pending frontier', 'reached', num(0));
+    } else {
+        flow.write('alone', 'So far the group is that cell', 'group', state('reached'))
+            // Every pass but the last adds a cell, so a group is whole within as many passes as the board has cells. The
+            // loops here are given one pass more than they can need: a loop that uses up its whole limit is reported as
+            // cut short by the model.
+            .use('first-neighbors', 'Reach the first neighbors', mechanics.add(growGroup(board)))
+            .use('second-neighbors', 'Reach the next neighbors', mechanics.add(growGroup(board)))
+            .repeat('grow', 'Grow the group until no more cells can join', Math.max(1, cells - 1), mechanics.add(growGroup(board)),
+                {until: eq(state('reached'), num(0)), bodyLabel: 'Grow'});
+    }
+    return flow
         .write('grouped', 'Its cells are in a group now', 'ungrouped', except(state('ungrouped'), state('group')))
         .write('size', 'Count the cells of the group, wilds included', 'groupSize', board.weightsMask
             ? sizeOf(intersect(state('group'), state(board.weightsMask)))
