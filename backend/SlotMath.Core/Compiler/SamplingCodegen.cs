@@ -1,4 +1,3 @@
-using System.Collections;
 using System.Collections.Concurrent;
 using System.Globalization;
 using System.Linq.Expressions;
@@ -629,7 +628,6 @@ internal sealed class SamplingCodegen
     private readonly List<FiniteTable> _precomputations = [];
     private readonly List<ReachabilityData.Prepared> _reachabilities = [];
     private readonly HashSet<int> _readableWrites = [];
-    private readonly Dictionary<string, ScalarRecordAccumulator> _scalarAccumulators = new(StringComparer.Ordinal);
     private readonly StringBuilder _shape = new();
     private readonly Func<string, int> _slot;
     private readonly List<int> _slots = [];
@@ -1080,11 +1078,6 @@ internal sealed class SamplingCodegen
             return Literal(unchanging);
         }
 
-        if (TryScalarProjection(expression, out Lx? scalarProjection))
-        {
-            return scalarProjection;
-        }
-
         switch (expression)
         {
             case LetExpr let:
@@ -1136,7 +1129,8 @@ internal sealed class SamplingCodegen
                 if (_lexical.TryGetValue(local.Name, out (LxParameter Value, int Id) lexical))
                 {
                     _shape.Append("local:").Append(lexical.Id).Append(';');
-                    return ProjectScalar(lexical.Value, local.Path, "local." + local.Name);
+                    return Lx.Call(typeof(LexicalValues).GetMethod(nameof(LexicalValues.Project), Any)!, lexical.Value,
+                        Operand(nameof(SamplingOperands.Paths), _paths, local.Path), Text("local." + local.Name));
                 }
 
                 _lexicalFrameUses++;
@@ -1379,217 +1373,9 @@ internal sealed class SamplingCodegen
             return Interpreted(original);
         }
 
-        return Form("record", () => ValidRecordNames(names)
-            ? OwnedRecord(names, fields.Select(Value).ToArray())
-            : Lx.Call(typeof(LexicalValues).GetMethod(nameof(LexicalValues.Record), Any)!,
-                Operand(nameof(SamplingOperands.Paths), _paths, names),
-                Lx.NewArrayInit(typeof(ExprValue), fields.Select(Value))));
-    }
-
-    private bool TryScalarProjection(Expression expression, out Lx value)
-    {
-        Expression? source = null;
-        string[] path = [];
-        var location = "project";
-        if (expression is ProjectExpr project)
-        {
-            source = project.Value;
-            path = project.Path;
-        }
-        else if (expression is FieldAccessExpr { Target: null or "state" or "board", Path.Length: >= 2 } field)
-        {
-            source = new FieldAccessExpr
-            {
-                Target = field.Target,
-                Path = [field.Path[0]]
-            };
-            path = field.Path[1..];
-            location = string.Join('.', field.Path);
-        }
-
-        if (source is FieldAccessExpr { Target: null or "state" or "board", Path.Length: 1 } stateField &&
-            _scalarAccumulators.TryGetValue(stateField.Path[0], out ScalarRecordAccumulator? accumulator) &&
-            _bindings.TryGetValue(stateField.Path[0], out IterationBinding? activeBinding) &&
-            ReferenceEquals(activeBinding, accumulator.Owner) &&
-            path.Length > 0 && accumulator.Fields.TryGetValue(path[0], out LxParameter? fieldValue))
-        {
-            var fieldIndex = Array.IndexOf(accumulator.Names, path[0]);
-            _shape.Append("scalar-acc-field:").Append(accumulator.Owner.Shape).Append(fieldIndex).Append(';');
-            value = ProjectScalar(fieldValue, path[1..], location);
-            return true;
-        }
-
-        value = null!;
-        return false;
-    }
-
-    private Lx ProjectScalar(Lx value, string[] path, string location) => path.Length == 0
-        ? Lx.Call(typeof(StateValues).GetMethod(nameof(StateValues.RequireReadable), Any)!, value, Text(location))
-        : Lx.Call(typeof(LexicalValues).GetMethod(nameof(LexicalValues.Project), Any)!, value,
-            Operand(nameof(SamplingOperands.Paths), _paths, path), Text(location));
-
-    private static bool TryRecordParts(Expression expression, out string[] names, out Expression[] values)
-    {
-        switch (expression)
-        {
-            case RecordExpr record:
-                names = record.Fields.Select(field => field.Name).ToArray();
-                values = record.Fields.Select(field => field.Value).ToArray();
-                return true;
-            case TupleExpr tuple:
-                names = LexicalValues.TupleNames(tuple.Items.Length);
-                values = tuple.Items;
-                return true;
-            default:
-                names = [];
-                values = [];
-                return false;
-        }
-    }
-
-    private static bool TryRecordBody(Expression expression, out List<LetExpr> lets, out string[] names,
-        out Expression[] values)
-    {
-        lets = [];
-        while (expression is LetExpr let)
-        {
-            lets.Add(let);
-            expression = let.Body;
-        }
-
-        return TryRecordParts(expression, out names, out values);
-    }
-
-    private static bool ValidRecordNames(string[] names) => names.Length <= LexicalValues.MaxFields &&
-                                                            names.All(name => !string.IsNullOrWhiteSpace(name)) &&
-                                                            names.Distinct(StringComparer.Ordinal).Count() ==
-                                                            names.Length;
-
-    private static bool ContainsWholeAccumulatorRead(Expression expression, string accumulatorName)
-    {
-        if (expression is FieldAccessExpr { Target: null or "state" or "board" } field &&
-            field.Path.Length > 0 && field.Path[0] == accumulatorName)
-        {
-            return field.Path.Length == 1;
-        }
-
-        if (expression is ProjectExpr { Path.Length: > 0 } project &&
-            project.Value is FieldAccessExpr { Target: null or "state" or "board", Path.Length: 1 } source &&
-            source.Path[0] == accumulatorName)
-        {
-            return false;
-        }
-
-        foreach (PropertyInfo property in expression.GetType().GetProperties(
-                     BindingFlags.Instance | BindingFlags.Public))
-        {
-            if (property.PropertyType == typeof(string) || property.PropertyType.IsPrimitive ||
-                property.PropertyType.IsEnum)
-            {
-                continue;
-            }
-
-            var child = property.GetValue(expression);
-            if (child is Expression childExpression && ContainsWholeAccumulatorRead(childExpression, accumulatorName))
-            {
-                return true;
-            }
-
-            if (child is IEnumerable children)
-            {
-                foreach (var item in children)
-                {
-                    if (item is Expression nested && ContainsWholeAccumulatorRead(nested, accumulatorName))
-                    {
-                        return true;
-                    }
-
-                    if (item is RecordFieldExpr recordField &&
-                        ContainsWholeAccumulatorRead(recordField.Value, accumulatorName))
-                    {
-                        return true;
-                    }
-                }
-            }
-        }
-
-        return false;
-    }
-
-    private Lx MaterializeRecord(string[] names, IReadOnlyList<LxParameter> values) =>
-        OwnedRecord(names, values.Cast<Lx>().ToArray());
-
-    private Lx OwnedRecord(string[] names, IReadOnlyList<Lx> values)
-    {
-        _shape.Append("owned-record:").Append(values.Count).Append(';');
-        LxParameter record = Local(typeof(SamplingRecord));
-        Lx fields = Lx.Field(record, nameof(SamplingRecord.Fields));
-        var steps = new List<Lx>
-        {
-            Lx.Assign(record, Lx.Call(_frame, typeof(SamplingFrame).GetMethod(nameof(SamplingFrame.NewRecord), Any)!,
-                Operand(nameof(SamplingOperands.Paths), _paths, names)))
-        };
-        for (var index = 0; index < values.Count; index++)
-        {
-            steps.Add(Lx.Assign(Lx.ArrayAccess(fields, Lx.Constant(index)), values[index]));
-        }
-
-        steps.Add(Lx.Call(record, typeof(SamplingRecord).GetMethod(nameof(SamplingRecord.Finish), Any)!));
-        return Lx.Block(steps);
-    }
-
-    private Lx CompileScalarRecordBody(IReadOnlyList<LetExpr> lets, Expression[] fields,
-        LxParameter[] stagedFields)
-    {
-        Lx Compile(int letIndex)
-        {
-            if (letIndex == lets.Count)
-            {
-                return Lx.Block(fields.Select((field, index) =>
-                    (Lx)Lx.Assign(stagedFields[index], Value(field))));
-            }
-
-            LetExpr let = lets[letIndex];
-            Lx initializer = Value(let.Value);
-            LxParameter lexicalValue = Local(typeof(ExprValue));
-            var hadPrevious = _lexical.TryGetValue(let.Name, out (LxParameter Value, int Id) previous);
-            var frameUsesBeforeBody = _lexicalFrameUses;
-            _lexical[let.Name] = (lexicalValue, ++_lexicalId);
-            Lx body;
-            try
-            {
-                body = Compile(letIndex + 1);
-            }
-            finally
-            {
-                if (hadPrevious)
-                {
-                    _lexical[let.Name] = previous;
-                }
-                else
-                {
-                    _lexical.Remove(let.Name);
-                }
-            }
-
-            if (frameUsesBeforeBody == _lexicalFrameUses)
-            {
-                _shape.Append("scalar-lexical-local;");
-                return Lx.Block(Lx.Assign(lexicalValue, initializer), body);
-            }
-
-            _shape.Append("scalar-lexical-frame;");
-            LxParameter previousFrame = Local(typeof(LexicalBinding));
-            Lx bindings = Lx.Field(_frame, nameof(SamplingFrame.Locals));
-            return Lx.Block(
-                Lx.Assign(lexicalValue, initializer),
-                Lx.Assign(previousFrame, bindings),
-                Lx.Assign(bindings,
-                    Lx.New(typeof(LexicalBinding).GetConstructors()[0], Text(let.Name), lexicalValue, previousFrame)),
-                Lx.TryFinally(body, Lx.Block(Lx.Assign(bindings, previousFrame), Lx.Empty())));
-        }
-
-        return Compile(0);
+        return Form("record", () => Lx.Call(typeof(LexicalValues).GetMethod(nameof(LexicalValues.Record), Any)!,
+            Operand(nameof(SamplingOperands.Paths), _paths, names),
+            Lx.NewArrayInit(typeof(ExprValue), fields.Select(Value))));
     }
 
     // Raw null bindings report null-value errors, whereas typed null state
@@ -1635,38 +1421,8 @@ internal sealed class SamplingCodegen
                 // Range propagation through a Fold phi value: every successful body
                 // path must produce a finite mask, assuming its accumulator is one.
                 var maskFold = init is not null && KnownMask(init) && KnownMask(body, accName, itemName, indexName);
-                string[] recordNames = [];
-                Expression[] initialFields = [];
-                List<LetExpr> recordLets = [];
-                string[] bodyNames = [];
-                Expression[] bodyFields = [];
-                var scalarRecordFold = init is not null && accName is not null &&
-                                       TryRecordParts(init, out recordNames, out initialFields) &&
-                                       TryRecordBody(body, out recordLets, out bodyNames,
-                                           out bodyFields) &&
-                                       recordNames.SequenceEqual(bodyNames, StringComparer.Ordinal) &&
-                                       ValidRecordNames(recordNames) &&
-                                       !ContainsWholeAccumulatorRead(body, accName!);
-                if (!scalarRecordFold)
-                {
-                    recordNames = [];
-                    initialFields = [];
-                    recordLets = [];
-                }
-
                 _shape.Append(maskFold ? "mask-accumulator;" : "value-accumulator;");
-                Lx? initial = init is null ? null :
-                    maskFold ? KnownMaskValue(init) :
-                    scalarRecordFold ? null : Value(init);
-                LxParameter[]? scalarValues = scalarRecordFold
-                    ? initialFields.Select(_ => Local(typeof(ExprValue))).ToArray()
-                    : null;
-                LxParameter[]? stagedScalarValues = scalarRecordFold
-                    ? bodyFields.Select(_ => Local(typeof(ExprValue))).ToArray()
-                    : null;
-                Lx[]? initialScalarExpressions = scalarRecordFold
-                    ? initialFields.Select(Value).ToArray()
-                    : null;
+                Lx? initial = init is null ? null : maskFold ? KnownMaskValue(init) : Value(init);
                 Lx? expressionSource = input.Source is null || virtualItem is not null ? null : Value(input.Source);
                 LxParameter source = Local(typeof(SamplingCell));
                 LxParameter typedItems = Local(typeof(ExprValue[]));
@@ -1742,7 +1498,6 @@ internal sealed class SamplingCodegen
                     accName is not null && _bindings.TryGetValue(accName, out IterationBinding? previousAcc)
                         ? previousAcc
                         : null;
-                _scalarAccumulators.TryGetValue(accName ?? string.Empty, out ScalarRecordAccumulator? parentScalarAcc);
                 _bindings.TryGetValue(itemName, out IterationBinding? parentItem);
                 IterationBinding? parentIndex =
                     indexName is not null && _bindings.TryGetValue(indexName, out IterationBinding? found)
@@ -1752,21 +1507,14 @@ internal sealed class SamplingCodegen
 
                 Lx AccumulatorValue()
                 {
-                    if (scalarRecordFold)
-                    {
-                        return MaterializeRecord(recordNames, scalarValues!);
-                    }
-
                     return maskFold ? Lx.Call(SetOp(nameof(BitSetOperations.Value)), accumulator!) : accumulator!;
                 }
 
                 IterationBinding? accBinding = accName is null
                     ? null
-                    : new IterationBinding($"acc:{iteration};", name => scalarRecordFold
-                        ? Lx.Call(readable, AccumulatorValue(), Text(name))
-                        : maskFold
-                            ? AccumulatorValue()
-                            : Lx.Call(readable, accumulator!, Text(name)), maskFold ? accumulator : null)
+                    : new IterationBinding($"acc:{iteration};", name => maskFold
+                        ? AccumulatorValue()
+                        : Lx.Call(readable, accumulator!, Text(name)), maskFold ? accumulator : null)
                     {
                         Probe = destination => Lx.Block(Lx.Assign(destination, AccumulatorValue()), Lx.Constant(true))
                     };
@@ -1805,12 +1553,6 @@ internal sealed class SamplingCodegen
                 if (accName is not null)
                 {
                     _bindings[accName] = accBinding!;
-                    if (scalarRecordFold)
-                    {
-                        _scalarAccumulators[accName] = new ScalarRecordAccumulator(recordNames, accBinding!,
-                            recordNames.Select((name, fieldIndex) => (name, Value: scalarValues![fieldIndex]))
-                                .ToDictionary(pair => pair.name, pair => pair.Value, StringComparer.Ordinal));
-                    }
                 }
 
                 _bindings[itemName] = itemBinding;
@@ -1853,16 +1595,7 @@ internal sealed class SamplingCodegen
                 _subexpressions = selectorSubexpressions;
                 try
                 {
-                    if (scalarRecordFold)
-                    {
-                        _shape.Append("scalar-record-fold;");
-                        selector = CompileScalarRecordBody(recordLets, bodyFields, stagedScalarValues!);
-                    }
-                    else
-                    {
-                        selector = filter ? Condition(body) : maskFold ? KnownMaskValue(body) : Value(body);
-                    }
-
+                    selector = filter ? Condition(body) : maskFold ? KnownMaskValue(body) : Value(body);
                     if (counting)
                     {
                         // Count still evaluates its selector (or validates the raw
@@ -1885,15 +1618,6 @@ internal sealed class SamplingCodegen
                     _subexpressions = parentSubexpressions;
                     if (accName is not null)
                     {
-                        if (parentScalarAcc is null)
-                        {
-                            _scalarAccumulators.Remove(accName);
-                        }
-                        else
-                        {
-                            _scalarAccumulators[accName] = parentScalarAcc;
-                        }
-
                         if (parentAcc is null)
                         {
                             _bindings.Remove(accName);
@@ -1928,12 +1652,9 @@ internal sealed class SamplingCodegen
 
                 if (whileCondition is not null && !maskFold)
                 {
-                    if (!scalarRecordFold)
-                    {
-                        selector = Lx.Call(
-                            typeof(CollectionInputs).GetMethod(nameof(CollectionInputs.CheckAccumulator), Any)!,
-                            selector, Lx.Property(result, nameof(ExprValue.Kind)));
-                    }
+                    selector = Lx.Call(
+                        typeof(CollectionInputs).GetMethod(nameof(CollectionInputs.CheckAccumulator), Any)!,
+                        selector, Lx.Property(result, nameof(ExprValue.Kind)));
                 }
 
                 var publish = itemBinding.NeedsFrame || accBinding?.NeedsFrame == true ||
@@ -1946,7 +1667,6 @@ internal sealed class SamplingCodegen
                                 Lx.Constant(operation), result, selected!, Lx.Equal(count, Lx.Constant(0)))),
                         Lx.PostIncrementAssign(count), Lx.Empty()) :
                     counting ? Lx.Block(selected!, Lx.PostIncrementAssign(count), Lx.Empty()) :
-                    scalarRecordFold ? Lx.Block(selector, Lx.Empty()) :
                     init is not null ? Lx.Block(Lx.Assign(result, selector), Lx.Empty()) : Lx.Block(
                         Lx.Assign(result, filter ? ItemValue() : selector),
                         Lx.Assign(Lx.ArrayAccess(values, count), result),
@@ -1984,23 +1704,10 @@ internal sealed class SamplingCodegen
 
                 if (accCell is not null)
                 {
-                    if (scalarRecordFold)
-                    {
-                        for (var fieldIndex = 0; fieldIndex < scalarValues!.Length; fieldIndex++)
-                        {
-                            steps.Add(Lx.Assign(scalarValues[fieldIndex],
-                                Lx.Call(typeof(SamplingCell).GetMethod(nameof(SamplingCell.NormalizeValue), Any)!,
-                                    stagedScalarValues![fieldIndex])));
-                        }
-                    }
-                    else
-                    {
-                        steps.Add(Lx.Assign(accumulator!, maskFold
-                            ? result
-                            : Lx.Condition(Lx.Property(result, nameof(ExprValue.ContainsSymbols)),
-                                Lx.Property(Lx.Call(typed, result), nameof(SamplingCell.Value)), result)));
-                    }
-
+                    steps.Add(Lx.Assign(accumulator!, maskFold
+                        ? result
+                        : Lx.Condition(Lx.Property(result, nameof(ExprValue.ContainsSymbols)),
+                            Lx.Property(Lx.Call(typed, result), nameof(SamplingCell.Value)), result)));
                     if (publish)
                     {
                         steps.Add(Lx.Assign(accCell, Lx.Call(typed, AccumulatorValue())));
@@ -2066,15 +1773,6 @@ internal sealed class SamplingCodegen
                 if (initial is not null)
                 {
                     initialize.Add(Lx.Assign(result, initial));
-                }
-
-                if (scalarRecordFold)
-                {
-                    for (var fieldIndex = 0; fieldIndex < initialScalarExpressions!.Length; fieldIndex++)
-                    {
-                        initialize.Add(Lx.Assign(stagedScalarValues![fieldIndex],
-                            initialScalarExpressions[fieldIndex]));
-                    }
                 }
 
                 if (virtualItem is not null)
@@ -2227,11 +1925,7 @@ internal sealed class SamplingCodegen
                 {
                     initialize.AddRange([
                         Lx.Assign(cursor, Lx.Constant(0)), execute,
-                        scalarRecordFold
-                            ? MaterializeRecord(recordNames, stagedScalarValues!)
-                            : maskFold
-                                ? Lx.Call(SetOp(nameof(BitSetOperations.Value)), result)
-                                : result
+                        maskFold ? Lx.Call(SetOp(nameof(BitSetOperations.Value)), result) : result
                     ]);
                     return Lx.Block(initialize);
                 }
@@ -3123,9 +2817,4 @@ internal sealed class SamplingCodegen
         public Lx? ShiftDistance { get; init; }
         public ExprValue? Constant { get; init; }
     }
-
-    private sealed record ScalarRecordAccumulator(
-        string[] Names,
-        IterationBinding Owner,
-        Dictionary<string, LxParameter> Fields);
 }

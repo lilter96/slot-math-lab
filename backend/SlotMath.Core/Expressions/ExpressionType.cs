@@ -263,11 +263,6 @@ public readonly struct ExprValue : IEquatable<ExprValue>
                 : (ushort)ExprType.Record, 0, copy);
     }
 
-    // Internal immutable ownership is established by the sampler's bounded arena.
-    // Public Record continues to copy caller-owned dictionaries.
-    internal static ExprValue RecordOwned(IReadOnlyDictionary<string, ExprValue> fields, bool containsSymbols)
-        => new(containsSymbols ? (ushort)((ushort)ExprType.Record | SymbolsFlag) : (ushort)ExprType.Record, 0, fields);
-
     public static ExprValue Null => new((ushort)ExprType.Null, 0, null);
 
     /// <summary>Convert the rational number to a single BigInteger (truncating division).</summary>
