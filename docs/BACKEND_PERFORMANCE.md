@@ -532,3 +532,56 @@ justify changing logical chunking/stream order. A first overlapping build/timing
 run and an incomplete table comparison against an obsolete baseline are excluded
 from performance evidence. Corrected isolated/current-baseline results are above.
 The one-million complete-round target remains outstanding for all configurations.
+
+
+## Native numeric aggregate loops
+
+A BCL reflection/IL inspection attributes the previous profile's
+`SamplingExpressions.Interpret` lambda `b__25` directly to the aggregate closure
+(2.88% self CPU), including its predicate, selector and exact combine calls.
+The compiler now lowers existing Sum, Product, Min and Max to native collection
+loops. It uses the same exact NumericFunctions combiner, keeps predicate/selector
+order, lazy filtered selectors, empty identities and located empty-extrema errors.
+Implicit selection retains the legacy integer-text parser and zero scores for
+other nonnumbers. Strict explicit selectors keep their existing sampled error
+order. Count is unchanged. There is no new DSL capability or game dispatch.
+
+Regressions cover independent wide/rational results, implicit integer and invalid
+text, filtered empties, selector failures, cancellation and binding restoration,
+shared operations, changed input arrays and nested same-name aliases. Both source
+files received Reformat Code and Full Cleanup. Final Release solution build,
+scoped format, 262 affected Core cases and three small exact models pass.
+All 1,950 frozen-kernel payout/full-state/RNG/next-word transcripts agree across
+15 configurations, with traced/untraced runs and UInt64.MaxValue; no comparison
+fields or loop statistics are filtered. Authored game JSON is unchanged.
+
+The same CPU 2/one-worker ABBA method and round schedules as the immutable-table
+comparison above apply. Normal .NET tiering/PGO and Tiered sampling remain on.
+All aggregate outcome and loop-termination statistics match exactly.
+
+| Complete configuration | Before rounds/s | After rounds/s | Ratio |
+| --- | ---: | ---: | ---: |
+| ancient-dragon | 343,940 | 338,700 | 0.985 |
+| nine-lives | 460,028 | 455,635 | 0.990 |
+| nine-lives.buy | 25,655 | 26,361 | 1.028 |
+| woodland-whisper | 313,637 | 312,001 | 0.995 |
+| woodland-whisper.buy | 23,941 | 23,888 | 0.998 |
+| x7-club | 452,000 | 446,753 | 0.988 |
+| x7-club.buy | 189,837 | 195,962 | 1.032 |
+| le-militare.spin | 239,874 | 244,828 | 1.021 |
+| le-militare.standard | 18,156 | 18,797 | 1.035 |
+| le-militare.super | 5,237 | 5,501 | 1.050 |
+| le-militare.elite | 7,359 | 7,665 | 1.042 |
+| le-militare.chance | 154,579 | 158,211 | 1.023 |
+| le-militare.air-raid | 206,100 | 210,716 | 1.022 |
+| le-militare.siege.spin | 240,985 | 244,129 | 1.013 |
+| le-militare.recon.spin | 231,685 | 237,614 | 1.026 |
+
+Seven configurations have disjoint improved timing ranges; seven overlap.
+The initial Ancient Dragon comparison has a disjoint 1.5% decrease despite using
+only the unchanged Count operation. A longer reversed-order BAAB control warms
+1,048,576 and measures 4,194,304 rounds per repetition: 342,034 -> 338,896 rounds/s
+(0.991x), with overlapping ranges 338,261–343,421 and 338,342–338,951. Both results
+are retained; this control establishes neither a gain nor a clearly separated
+regression. Allocation per round is unchanged. These shared-host measurements
+show incremental improvements, not the one-million complete-round acceptance.

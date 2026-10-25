@@ -318,6 +318,15 @@ internal sealed class SamplingDelegate<T>
 /// </summary>
 internal static class SamplingOps
 {
+    public static ExprValue DefaultAggregateValue(ExprValue value) => value.Kind == ExprType.String
+        ? ExprValue.Number(BigInteger.TryParse(value.StringValue!, NumberStyles.Integer, CultureInfo.InvariantCulture,
+            out BigInteger number)
+            ? number
+            : 0)
+        : value.Kind == ExprType.Number
+            ? value
+            : ExprValue.Number(0);
+
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool Truth(ExprValue value) => value.IsBoolean ? value.BoolValue : NotBoolean();
 
@@ -1150,6 +1159,17 @@ internal sealed class SamplingCodegen
                         Value = "true"
                     }, true,
                     counting: true, selectedValue: count.ValueExpr);
+            case AggregateExpr
+            {
+                Func: AggregateFunc.Sum or AggregateFunc.Product or AggregateFunc.Min or AggregateFunc.Max
+            } aggregate:
+                return Iterate(CollectionInputs.Of(aggregate), aggregate.ItemName, null,
+                    aggregate.Predicate ?? new ConstantExpr
+                    {
+                        Kind = ConstantKind.Boolean,
+                        Value = "true"
+                    }, true,
+                    counting: true, selectedValue: aggregate.ValueExpr, aggregation: aggregate.Func);
             case FoldExpr fold:
                 return Iterate(CollectionInputs.Of(fold), fold.ItemName, fold.IndexName, fold.Body, false, fold.Init,
                     fold.AccName, whileCondition: fold.WhileCondition);
@@ -1297,9 +1317,10 @@ internal sealed class SamplingCodegen
     private Lx Iterate(CollectionInput input, string itemName, string? indexName, Expression body, bool filter,
         Expression? init = null, string? accName = null, bool counting = false, Expression? selectedValue = null,
         Expression? ownerExpression = null, bool discardValues = false, LxParameter? captureLength = null,
-        ExprValue? virtualItem = null, LxParameter? virtualLength = null, Expression? whileCondition = null) =>
+        ExprValue? virtualItem = null, LxParameter? virtualLength = null, Expression? whileCondition = null,
+        AggregateFunc? aggregation = null) =>
         Form(
-            (counting ? "count" : init is not null ? "fold" : filter ? "filter" : "map") +
+            (aggregation?.ToString() ?? (counting ? "count" : init is not null ? "fold" : filter ? "filter" : "map")) +
             (indexName is null ? "-item" : "-indexed") + (whileCondition is null ? "" : "-while"), () =>
             {
                 var key = input.Key;
@@ -1502,7 +1523,9 @@ internal sealed class SamplingCodegen
                         if (selectedValue is null)
                         {
                             _shape.Append("default-selection;");
-                            selected = ItemValue();
+                            selected = aggregation is null
+                                ? ItemValue()
+                                : Lx.Call(Op(nameof(SamplingOps.DefaultAggregateValue)), ItemValue());
                         }
                         else
                         {
@@ -1558,6 +1581,11 @@ internal sealed class SamplingCodegen
                               indexBinding?.NeedsFrame == true;
                 _shape.Append(publish ? "published;" : "local;");
                 BlockExpression take = discardValues ? Lx.Block(selector, Lx.Empty()) :
+                    aggregation is { } operation ? Lx.Block(
+                        Lx.Assign(result,
+                            Lx.Call(typeof(NumericFunctions).GetMethod(nameof(NumericFunctions.Aggregate), Any)!,
+                                Lx.Constant(operation), result, selected!, Lx.Equal(count, Lx.Constant(0)))),
+                        Lx.PostIncrementAssign(count), Lx.Empty()) :
                     counting ? Lx.Block(selected!, Lx.PostIncrementAssign(count), Lx.Empty()) :
                     init is not null ? Lx.Block(Lx.Assign(result, selector), Lx.Empty()) : Lx.Block(
                         Lx.Assign(result, filter ? ItemValue() : selector),
@@ -1784,6 +1812,28 @@ internal sealed class SamplingCodegen
 
                 if (counting)
                 {
+                    if (aggregation is { } function)
+                    {
+                        initialize.AddRange([
+                            Lx.Assign(cursor, Lx.Constant(0)), Lx.Assign(count, Lx.Constant(0)),
+                            Lx.Assign(result, Literal(ExprValue.Number(function == AggregateFunc.Product ? 1 : 0))),
+                            execute
+                        ]);
+                        if (function is AggregateFunc.Min or AggregateFunc.Max)
+                        {
+                            initialize.Add(Lx.IfThen(Lx.Equal(count, Lx.Constant(0)), Lx.Throw(Lx.New(
+                                typeof(ExpressionEvaluationException).GetConstructor([
+                                    typeof(string), typeof(string), typeof(string)
+                                ])!,
+                                Text(EvalErrorCodes.EmptyMinMax),
+                                Text($"{function} over an empty array is undefined (D1)."),
+                                Text(function.ToString().ToLowerInvariant())))));
+                        }
+
+                        initialize.Add(result);
+                        return Lx.Block(initialize);
+                    }
+
                     initialize.AddRange([
                         Lx.Assign(cursor, Lx.Constant(0)), Lx.Assign(count, Lx.Constant(0)), execute,
                         Lx.Call(NumberOf, Lx.Convert(count, typeof(long)))
