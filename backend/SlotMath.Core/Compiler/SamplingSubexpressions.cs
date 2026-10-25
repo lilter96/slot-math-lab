@@ -103,6 +103,12 @@ internal sealed class SamplingSubexpressions
     }
 
     public Lx Emit(Expression expression, Func<Lx> lower, Action<string> shape)
+        => Emit(expression, lower, shape, typeof(ExprValue));
+
+    public Lx EmitInteger(Expression expression, Func<Lx> lower, Action<string> shape)
+        => Emit(expression, lower, shape, typeof(long));
+
+    private Lx Emit(Expression expression, Func<Lx> lower, Action<string> shape, Type type)
     {
         var key = Key(expression);
         var invariant = _invariants.Contains(key);
@@ -111,20 +117,22 @@ internal sealed class SamplingSubexpressions
             return lower();
         }
 
-        if (_entries.TryGetValue(key, out Entry? entry))
+        var storageKey = (type == typeof(long) ? "integer:" : "value:") + key;
+        var storageShape = type == typeof(long) ? "integer-" : "";
+        if (_entries.TryGetValue(storageKey, out Entry? entry))
         {
-            shape($"cache-read:{entry.Id};");
+            shape($"{storageShape}cache-read:{entry.Id};");
             return entry.Read;
         }
 
         var id = _nextId++;
-        shape(invariant ? $"invariant-cache:{id}(" : $"cache:{id}(");
+        shape(invariant ? $"{storageShape}invariant-cache:{id}(" : $"{storageShape}cache:{id}(");
         LxParameter present = _local(typeof(bool));
-        LxParameter value = _local(typeof(ExprValue));
+        LxParameter value = _local(type);
         Lx evaluate = lower();
         Lx read = Lx.Condition(present, value,
             Lx.Block(Lx.Assign(value, evaluate), Lx.Assign(present, Lx.Constant(true)), value));
-        _entries.Add(key, new Entry(id, present, value, read, invariant));
+        _entries.Add(storageKey, new Entry(id, present, value, read, invariant));
         shape(")");
         return read;
     }

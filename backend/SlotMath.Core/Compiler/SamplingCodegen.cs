@@ -387,6 +387,13 @@ internal static class SamplingOps
         return NumericFunctions.Call("floor", Div(l, r), default, 1);
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static long FloorDivideInteger(long numerator, long denominator)
+    {
+        var quotient = numerator / denominator;
+        return (numerator ^ denominator) < 0 && numerator % denominator != 0 ? quotient - 1 : quotient;
+    }
+
     private static void RequireNumbers(BinaryOp op, ExprValue l, ExprValue r)
     {
         if (l.Kind != ExprType.Number || r.Kind != ExprType.Number)
@@ -466,6 +473,22 @@ internal static class SamplingOps
         }
 
         return CollectionFunctions.Index(ExprValue.Array(items), position);
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static ExprValue IndexInteger(ExprValue array, long position)
+    {
+        return array.ItemsArray is { } items && (ulong)position < (ulong)items.Length
+            ? items[position]
+            : CollectionFunctions.Index(array, ExprValue.Number(position));
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static ExprValue IndexItemsInteger(ExprValue[] items, long position)
+    {
+        return (ulong)position < (ulong)items.Length
+            ? items[position]
+            : CollectionFunctions.Index(ExprValue.Array(items), ExprValue.Number(position));
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -916,6 +939,12 @@ internal sealed class SamplingCodegen
     {
         if (constant.IsInlineInteger)
         {
+            if (constant.InlineInteger == 0)
+            {
+                _shape.Append("zero-integer;");
+                return Lx.Default(typeof(ExprValue));
+            }
+
             _shape.Append("integer;");
             return Lx.Call(NumberOf, Operand(nameof(SamplingOperands.Numbers), _numbers, constant.InlineInteger));
         }
@@ -1161,6 +1190,11 @@ internal sealed class SamplingCodegen
             }:
                 return Form("bool", () => Lx.Call(BoolOf, Condition(expression)));
             case BinaryExpr { Op: BinaryOp.Add or BinaryOp.Sub or BinaryOp.Mul or BinaryOp.Div } binary:
+                if (KnownInteger(binary))
+                {
+                    return Form("integer-arithmetic-result", () => Lx.Call(NumberOf, IntegerValueCore(binary)));
+                }
+
                 return Form(binary.Op.ToString(), () =>
                 {
                     Lx left = Value(binary.Left);
@@ -2050,21 +2084,23 @@ internal sealed class SamplingCodegen
             return Lx.Call(SetOp(nameof(BitSetOperations.Value)), BitMask(set));
         }
 
-        return Form($"setnumber:{set.Op}", () =>
-        {
-            LxParameter mask = Local(typeof(ulong));
-            BinaryExpression assign = Lx.Assign(mask, MaskOperand(set.Args[0], 0));
-            MethodInfo method = typeof(BitOperations).GetMethod(
-                set.Op == BitSetOp.Count ? nameof(BitOperations.PopCount) : nameof(BitOperations.TrailingZeroCount),
-                [typeof(ulong)])!;
-            Lx count = Lx.Call(method, mask);
-            if (set.Op == BitSetOp.First)
-            {
-                count = Lx.Condition(Lx.Equal(mask, Lx.Constant(0UL)), Lx.Constant(-1), count);
-            }
+        return Form($"setnumber:{set.Op}", () => Lx.Call(NumberOf, BitSetInteger(set)));
+    }
 
-            return Lx.Block(assign, Lx.Call(NumberOf, Lx.Convert(count, typeof(long))));
-        });
+    private Lx BitSetInteger(BitSetExpr set)
+    {
+        LxParameter mask = Local(typeof(ulong));
+        BinaryExpression assign = Lx.Assign(mask, MaskOperand(set.Args[0], 0));
+        MethodInfo method = typeof(BitOperations).GetMethod(
+            set.Op == BitSetOp.Count ? nameof(BitOperations.PopCount) : nameof(BitOperations.TrailingZeroCount),
+            [typeof(ulong)])!;
+        Lx count = Lx.Call(method, mask);
+        if (set.Op == BitSetOp.First)
+        {
+            count = Lx.Condition(Lx.Equal(mask, Lx.Constant(0UL)), Lx.Constant(-1), count);
+        }
+
+        return Lx.Block(assign, Lx.Convert(count, typeof(long)));
     }
 
     private static bool IsMask(Expression expression) => expression is BitSetExpr
@@ -2327,30 +2363,92 @@ internal sealed class SamplingCodegen
         }
     }
 
-    private bool KnownInteger(Expression expression)
+    private bool KnownInteger(Expression expression) => TryIntegerRange(expression, out _);
+
+    private bool TryIntegerRange(Expression expression, out SamplingIntegerRange range, int depth = 0)
     {
-        expression = _owner.Reduce(expression);
-        if (TryBoundValue(expression, out ExprValue literal))
+        range = default;
+        if (depth > 128)
         {
-            return literal.IsInlineInteger;
+            return false;
         }
 
-        return expression switch
+        expression = _owner.Reduce(expression);
+        if (expression.Precompute is not null)
         {
-            FieldAccessExpr { Target: null or "state" or "board", Path.Length: 1 } field =>
-                _bindings.TryGetValue(field.Path[0], out IterationBinding? binding)
-                    ? binding.Integer is not null
-                    : _owner.IsInlineMaskField(field.Path[0]),
-            BitSetExpr { Args.Length: 1, Op: BitSetOp.Count or BitSetOp.First } => true,
-            _ => false
-        };
+            return false;
+        }
+
+        if (TryBoundValue(expression, out ExprValue literal))
+        {
+            if (!literal.IsInlineInteger)
+            {
+                return false;
+            }
+
+            range = new SamplingIntegerRange(literal.InlineInteger, literal.InlineInteger);
+            return true;
+        }
+
+        switch (expression)
+        {
+            case FieldAccessExpr { Target: null or "state" or "board", Path.Length: 1 } field:
+                if (_bindings.TryGetValue(field.Path[0], out IterationBinding? binding))
+                {
+                    range = new SamplingIntegerRange(0, int.MaxValue);
+                    return binding.Integer is not null;
+                }
+
+                range = new SamplingIntegerRange(0, long.MaxValue);
+                return _owner.IsInlineMaskField(field.Path[0]);
+            case BitSetExpr { Args.Length: 1, Op: BitSetOp.Count }:
+                range = new SamplingIntegerRange(0, 64);
+                return true;
+            case BitSetExpr { Args.Length: 1, Op: BitSetOp.First }:
+                range = new SamplingIntegerRange(-1, 63);
+                return true;
+            case BinaryExpr { Op: BinaryOp.Add or BinaryOp.Sub or BinaryOp.Mul } binary:
+                return TryIntegerRange(binary.Left, out SamplingIntegerRange left, depth + 1) &&
+                       TryIntegerRange(binary.Right, out SamplingIntegerRange right, depth + 1) &&
+                       SamplingIntegerRange.TryBinary(binary.Op, left, right, out range);
+            case CallExpr { Args.Length: 1 } call
+                when string.Equals(call.Function, "floor", StringComparison.OrdinalIgnoreCase)
+                     && call.Args[0] is BinaryExpr { Op: BinaryOp.Div } division:
+                return TryIntegerRange(division.Left, out SamplingIntegerRange numerator, depth + 1) &&
+                       TryIntegerRange(division.Right, out SamplingIntegerRange denominator, depth + 1) &&
+                       SamplingIntegerRange.TryFloorDivide(numerator, denominator, out range);
+            case IfExpr branch:
+                if (TryIntegerRange(branch.ThenExpr, out SamplingIntegerRange yes, depth + 1) &&
+                    TryIntegerRange(branch.ElseExpr, out SamplingIntegerRange no, depth + 1))
+                {
+                    range = new SamplingIntegerRange(System.Math.Min(yes.Minimum, no.Minimum),
+                        System.Math.Max(yes.Maximum, no.Maximum));
+                    return true;
+                }
+
+                return false;
+            default:
+                return false;
+        }
     }
 
     private Lx IntegerValue(Expression expression)
     {
         expression = _owner.Reduce(expression);
+        return _subexpressions?.EmitInteger(expression, () => IntegerValueCore(expression), text => _shape.Append(text))
+               ?? IntegerValueCore(expression);
+    }
+
+    private Lx IntegerValueCore(Expression expression)
+    {
+        expression = _owner.Reduce(expression);
         if (TryBoundValue(expression, out ExprValue literal))
         {
+            if (literal.InlineInteger == 0)
+            {
+                return Form("integer-zero", () => Lx.Constant(0L));
+            }
+
             return Form("integer-literal",
                 () => Operand(nameof(SamplingOperands.Numbers), _numbers, literal.InlineInteger));
         }
@@ -2369,8 +2467,30 @@ internal sealed class SamplingCodegen
                 nameof(SamplingCell.StoredValue)), nameof(ExprValue.InlineInteger)));
         }
 
-        return Form("integer-result",
-            () => Lx.Property(BitSetValue((BitSetExpr)expression), nameof(ExprValue.InlineInteger)));
+        if (expression is BinaryExpr binary)
+        {
+            return Form("integer-" + binary.Op, () => binary.Op switch
+            {
+                BinaryOp.Add => Lx.Add(IntegerValue(binary.Left), IntegerValue(binary.Right)),
+                BinaryOp.Sub => Lx.Subtract(IntegerValue(binary.Left), IntegerValue(binary.Right)),
+                BinaryOp.Mul => Lx.Multiply(IntegerValue(binary.Left), IntegerValue(binary.Right)),
+                _ => throw new InvalidOperationException("An unproven integer operation reached code generation.")
+            });
+        }
+
+        if (expression is CallExpr { Args: [BinaryExpr division] })
+        {
+            return Form("integer-floor-divide", () => Lx.Call(Op(nameof(SamplingOps.FloorDivideInteger)),
+                IntegerValue(division.Left), IntegerValue(division.Right)));
+        }
+
+        if (expression is IfExpr branch)
+        {
+            return Form("integer-if", () => Lx.Condition(Condition(branch.Condition),
+                IntegerValue(branch.ThenExpr), IntegerValue(branch.ElseExpr)));
+        }
+
+        return Form("integer-set", () => BitSetInteger((BitSetExpr)expression));
     }
 
     private Lx Call(CallExpr call)
@@ -2390,6 +2510,11 @@ internal sealed class SamplingCodegen
         switch (function, args.Length)
         {
             case ("floor", 1) when args[0] is BinaryExpr { Op: BinaryOp.Div } quotient:
+                if (KnownInteger(call))
+                {
+                    return Form("integer-floor-result", () => Lx.Call(NumberOf, IntegerValueCore(call)));
+                }
+
                 return Form("floor-divide", () => Lx.Call(Op(nameof(SamplingOps.FloorDivide)),
                     Value(quotient.Left), Value(quotient.Right)));
             case ("tonumber", 1):
@@ -2415,8 +2540,20 @@ internal sealed class SamplingCodegen
                         return Form("index-literal", () => Literal(items[position.InlineInteger]));
                     }
 
+                    if (KnownInteger(args[1]))
+                    {
+                        return Form("index-items-integer", () => Lx.Call(Op(nameof(SamplingOps.IndexItemsInteger)),
+                            Operand(nameof(SamplingOperands.Arrays), _arrays, items), IntegerValue(args[1])));
+                    }
+
                     return Form("index-items", () => Lx.Call(Op(nameof(SamplingOps.IndexItems)),
                         Operand(nameof(SamplingOperands.Arrays), _arrays, items), Value(args[1])));
+                }
+
+                if (KnownInteger(args[1]))
+                {
+                    return Form("index-integer", () => Lx.Call(Op(nameof(SamplingOps.IndexInteger)),
+                        Value(args[0]), IntegerValue(args[1])));
                 }
 
                 return Binary(Op(nameof(SamplingOps.Index)));

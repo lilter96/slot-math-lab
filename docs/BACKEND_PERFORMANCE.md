@@ -316,3 +316,84 @@ slowed four full games by roughly 2–7%; it is not shipped. Forced inlining of
 the integer value constructor also failed its real-game controls. Neither a
 smaller graph nor an isolated helper speedup establishes a complete-round gain.
 The one-million complete-round target remains open for all 15 configurations.
+
+## Bounded integer lowering in sampled expressions
+
+A native instruction profile of the maintained Super configuration shows
+repeated value construction and 16-byte temporary copies in settlement/index
+arithmetic. The sampling compiler now proves signed Int64 bounds through
+literals, iterator indices, established mask fields, set cardinality/first,
+addition, subtraction, multiplication, floor division by a nonzero singleton
+divisor, and conditionals. Every arithmetic intermediate must fit, not merely
+the final result. Compile-time bound calculations use BigInteger.
+
+Admitted expressions use machine integers until a value boundary. Index helpers
+accept proven integer positions and retain the original checked fallback.
+Cardinality and first-set-bit operations produce a machine integer directly in
+integer contexts. Lazy scalar reuse stores these results separately from boxed
+values, with distinct cache keys/code shapes and the same per-iteration and
+per-invocation resets. Zero literals lower to the exact default integer value;
+other literals retain their parameter bindings. Precomputation annotations keep
+the existing finite-table path. Unknown ranges, overflow, proper rationals,
+wide integers and malformed operands retain the exact implementation and its
+located errors. No public atom, expression name or mechanic dispatch is added.
+
+The source game JSON is unchanged: existing compositions receive this generic
+lowering automatically. Original server replays and played traces remain
+unchanged. Final verification passed 166 affected Core tests, Release solution
+build, scoped formatting and both required cleanup profiles for all four
+sources. Two subsequently edited files received both profiles again. Independent
+signed-floor, overflow, UInt64 high-bit/empty-set, lazy/error-order, alias/reset
+and shared-code tests accompany the change.
+
+Separate frozen kernels replayed all 15 full configurations, 65 seeds including
+UInt64.MaxValue, traced and untraced. All 1,950 payout, complete exported-state,
+RNG-audit and following-word transcripts match without state exceptions. The
+comparison uses a typed canonical SHA-256 transcript across processes.
+
+### All-game complete-round comparison
+
+Both kernels use identical maintained JSON, one worker pinned to CPU 2, normal
+.NET tiering/PGO, Tiered sampling, live updates and full statistics. Each ABBA
+process runs three repetitions and discards its first. Paid entries and X7 buy
+warm 262,144 rounds and measure 1,048,576; other buys warm/measure 65,536.
+Le Super/Elite warm 32,768 and measure 16,384; Standard measures 32,768.
+Every outcome statistic and every loop-termination statistic match exactly.
+Nothing is filtered from these comparisons.
+
+The first Nine Lives buy series showed a 1.1% loss. A longer affected-case
+control warms 131,072 and measures 262,144 rounds per repetition. Its retained
+ranges overlap: 25,039–25,112 before and 24,976–25,069 after. No stable gain or
+regression is established there; the table uses this longer control. This
+experiment does not isolate a particular JIT or scheduling cause. The initial
+candidate with boxed set results was superseded by direct integer set lowering.
+
+| Complete configuration | Before rounds/s | After rounds/s | Ratio |
+| --- | ---: | ---: | ---: |
+| ancient-dragon | 310,981 | 336,948 | 1.084 |
+| nine-lives | 447,419 | 451,286 | 1.009 |
+| nine-lives.buy | 25,075 | 25,043 | 0.999 |
+| woodland-whisper | 277,284 | 312,353 | 1.126 |
+| woodland-whisper.buy | 21,204 | 24,101 | 1.137 |
+| x7-club | 393,559 | 450,159 | 1.144 |
+| x7-club.buy | 186,818 | 189,486 | 1.014 |
+| le-militare.spin | 218,512 | 232,289 | 1.063 |
+| le-militare.standard | 14,658 | 15,646 | 1.067 |
+| le-militare.super | 4,056 | 4,327 | 1.067 |
+| le-militare.elite | 5,686 | 6,067 | 1.067 |
+| le-militare.chance | 133,397 | 144,919 | 1.086 |
+| le-militare.air-raid | 187,532 | 196,387 | 1.047 |
+| le-militare.siege.spin | 221,486 | 232,613 | 1.050 |
+| le-militare.recon.spin | 213,506 | 226,766 | 1.062 |
+
+Twelve configurations have disjoint improved timing ranges. Nine Lives, its buy
+and X7 buy are neutral holdouts with overlapping ranges. Allocation is largely
+unchanged; this removes instruction/value movement overhead, not all allocation.
+These are shared-host observations rather than API capacity guarantees. Bought
+and awarded features remain part of their complete round.
+
+A separate attempt to cache every numeric literal as a prepared ExprValue slowed
+Nine Lives by 3.2% with disjoint ranges and is excluded. Another authored
+weighted-count upper-bound prototype improved heavy Le cases by 3–5% but changed
+private untraced group scratch state; it remains outside maintained graphs.
+The one-million complete-round goal for all 15 configurations remains open.
