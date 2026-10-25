@@ -171,6 +171,18 @@ records actual maintained inputs, longer paid measurements and the repeat profil
 Payout editing supports the new graphs, binary or numeric weights and saved grid
 composition. Broader asset editor integration remains in the deferred UI work.
 
+The stationary-carried follow-up removes one further node from all eight full
+and six small Le Militare definitions, keeping every exported field. Free-spin
+held flags cover complete protected columns and remain unchanged by gravity;
+the source composer omits their redundant settlement. Existing finite-set
+expressions replace free-spin held-cell exclusion. Paid and one-row fallback
+behavior is preserved. All 3,584 complete-state/RNG controls match without
+exceptions, and original client/server goldens stay unchanged. Actual maintained
+heavy modes improve 1.13–1.19x on the accepted integer-lowering kernel, with
+allocation reductions. The [performance report](BACKEND_PERFORMANCE.md#stationary-carried-flags-in-authored-games)
+records all eight results, neutral ordinary/air-raid timing ranges, geometry
+regressions, cleanup and exact-model validation.
+
 Continue the backend toward the one-million target across all 15 cases, with
 real-game migrations and paired measurements per admitted capability. Retain
 exact arithmetic, source/replay identity and the complete-round denominator.

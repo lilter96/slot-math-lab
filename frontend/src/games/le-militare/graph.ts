@@ -3,6 +3,7 @@ import {
     add,
     and,
     at,
+    cellSet,
     countOver,
     div,
     emptyArray,
@@ -19,6 +20,7 @@ import {
     mapOver,
     max,
     min,
+    moved,
     mul,
     num,
     only,
@@ -28,6 +30,7 @@ import {
     sub,
     sumOver,
     toNumber,
+    union,
     when
 } from '../shared/graph/expr';
 import {Flow, gameGraph, Mechanics} from '../shared/graph/flow';
@@ -185,11 +188,15 @@ export function createLeMilitareGraph(model: LeMilitareModel = fullModel, option
         .record('trace-held', 'Remember the held cells', 'lookHeld', state('held'))
         .mechanic('combat', `Combat on the board: a reel that shows a ${launcherName} arms and turns ${wildName}; while any reel is armed, every ${planeName} is shot down, becomes a ${wildName} and adds a multiplier.`));
 
+    // A giant contributes only its top cell. Its other rows and their one-row upward shift cover the whole held column.
+    const nonCounting = except(cellSet(Array.from({length: CELLS}, (_, cell) => cell)), state('countedCells'));
+    const heldGiants = union(nonCounting, moved(nonCounting, -1));
+    const removeHeld = foldOver('held', state('removed'), when(eq(item, num(1)), except(state('acc'), only(place)), state('acc')), numbered);
     const pays = mechanics.add(new Flow()
         .use('combat', 'Combat', combat)
         .use('clusters', 'Pay the groups on the board', mechanics.add(clusterPays(mechanics, clusters)))
         .write('held', 'A held cell stays on the board when its group pays', 'removed',
-            foldOver('held', state('removed'), when(eq(item, num(1)), except(state('acc'), only(place)), state('acc')), numbered))
+            ROWS > 1 ? when(eq(state('bonus'), num(1)), except(state('removed'), heldGiants), removeHeld) : removeHeld)
         .mechanic('combat-pays', 'Looks at a board: the combat comes first, then the groups pay. Held cells stay on the board.'));
 
     const payStep = new Flow()
@@ -200,7 +207,7 @@ export function createLeMilitareGraph(model: LeMilitareModel = fullModel, option
     const paying = mechanics.add(payStep.mechanic('pay-step', 'Pays one step of a cascade: its groups are added to what the spin has paid.'));
 
     /** The cascade of a spin on one set of reels: what leaves the board is filled again from those reels. */
-    const cascading = (kind: 'paid' | 'free', reels: ReelSet) => mechanics.add(cascade(mechanics, {
+    const cascading = (kind: 'paid' | 'free', reels: ReelSet, carriedState: Carried = held) => mechanics.add(cascade(mechanics, {
         name: `${kind}-cascade`, maxSteps: model.cascade.max_steps,
         pays: {mechanic: pays, label: 'Combat, then pay the groups on the board', coins: 'clusterCoins'},
         onStep: {mechanic: paying, label: 'Pay the step'},
@@ -212,7 +219,7 @@ export function createLeMilitareGraph(model: LeMilitareModel = fullModel, option
                         columns: COLUMNS,
                         rows: ROWS,
                         refill: {reels},
-                        carried: [held]
+                        carried: [carriedState]
                     })))
                 .write('scatters', `Count the ${scatterName}s that dropped in: those on the board now, less those that stayed`, 'scatterCount',
                     add(state('scatterCount'), sub(countOver('board', eq(item, str(SCATTER))), countOver('survivors', eq(item, str(SCATTER))))))
@@ -298,7 +305,10 @@ export function createLeMilitareGraph(model: LeMilitareModel = fullModel, option
         .use('reels', 'Every reel stops', mechanics.add(spinReels(freeReels, mechanics)))
         .write('giants', `Every cell of an armed reel is a ${wildName}`, 'board', mapOver('board', when(eq(at('armed', reel), num(1)), str(WILD), item), {index: 'place'}))
         .write('held', 'Armed reels are held: they stay through every cascade', 'held', mapOver('held', at('armed', reel), numbered))
-        .write('counts', 'An armed reel counts as one cell of a group', 'countedCells', countedCells), cascading('free', freeReels))
+        .write('counts', 'An armed reel counts as one cell of a group', 'countedCells', countedCells), cascading('free', freeReels, {
+        ...held,
+        stationary: true
+    }))
         .write('retrigger', `${TRIGGER}+ ${scatterName}s award more free spins (${awardText}), unless the round has reached its limit`, 'freeSpins',
             when(capped, state('freeSpins'), add(state('freeSpins'), awarded)))
         .mechanic('free-spin', 'One free spin: armed reels are giant wilds that stay, the board cascades, and the multiplier keeps growing from spin to spin.'));

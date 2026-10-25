@@ -5428,74 +5428,159 @@
             ],
             "expressions": {
                 "held": {
-                    "exprType": "fold",
-                    "stateKey": "held",
-                    "accName": "acc",
-                    "itemName": "item",
-                    "indexName": "place",
-                    "itemType": "Number",
-                    "init": {
-                        "exprType": "fieldAccess",
-                        "target": "state",
-                        "path": [
-                            "removed"
-                        ]
-                    },
-                    "body": {
-                        "exprType": "if",
-                        "condition": {
-                            "exprType": "compare",
-                            "op": "Eq",
-                            "left": {
-                                "exprType": "fieldAccess",
-                                "target": "state",
-                                "path": [
-                                    "item"
-                                ]
-                            },
-                            "right": {
-                                "exprType": "constant",
-                                "kind": "Integer",
-                                "value": "1"
-                            }
-                        },
-                        "thenExpr": {
-                            "exprType": "bitset",
-                            "op": "Except",
-                            "args": [
-                                {
-                                    "exprType": "fieldAccess",
-                                    "target": "state",
-                                    "path": [
-                                        "acc"
-                                    ]
-                                },
-                                {
-                                    "exprType": "bitset",
-                                    "op": "Shift",
-                                    "args": [
-                                        {
-                                            "exprType": "constant",
-                                            "kind": "Integer",
-                                            "value": "1"
-                                        },
-                                        {
-                                            "exprType": "fieldAccess",
-                                            "target": "state",
-                                            "path": [
-                                                "place"
-                                            ]
-                                        }
-                                    ]
-                                }
-                            ]
-                        },
-                        "elseExpr": {
+                    "exprType": "if",
+                    "condition": {
+                        "exprType": "compare",
+                        "op": "Eq",
+                        "left": {
                             "exprType": "fieldAccess",
                             "target": "state",
                             "path": [
-                                "acc"
+                                "bonus"
                             ]
+                        },
+                        "right": {
+                            "exprType": "constant",
+                            "kind": "Integer",
+                            "value": "1"
+                        }
+                    },
+                    "thenExpr": {
+                        "exprType": "bitset",
+                        "op": "Except",
+                        "args": [
+                            {
+                                "exprType": "fieldAccess",
+                                "target": "state",
+                                "path": [
+                                    "removed"
+                                ]
+                            },
+                            {
+                                "exprType": "bitset",
+                                "op": "Union",
+                                "args": [
+                                    {
+                                        "exprType": "bitset",
+                                        "op": "Except",
+                                        "args": [
+                                            {
+                                                "exprType": "constant",
+                                                "kind": "Integer",
+                                                "value": "15"
+                                            },
+                                            {
+                                                "exprType": "fieldAccess",
+                                                "target": "state",
+                                                "path": [
+                                                    "countedCells"
+                                                ]
+                                            }
+                                        ]
+                                    },
+                                    {
+                                        "exprType": "bitset",
+                                        "op": "Shift",
+                                        "args": [
+                                            {
+                                                "exprType": "bitset",
+                                                "op": "Except",
+                                                "args": [
+                                                    {
+                                                        "exprType": "constant",
+                                                        "kind": "Integer",
+                                                        "value": "15"
+                                                    },
+                                                    {
+                                                        "exprType": "fieldAccess",
+                                                        "target": "state",
+                                                        "path": [
+                                                            "countedCells"
+                                                        ]
+                                                    }
+                                                ]
+                                            },
+                                            {
+                                                "exprType": "constant",
+                                                "kind": "Integer",
+                                                "value": "-1"
+                                            }
+                                        ]
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    "elseExpr": {
+                        "exprType": "fold",
+                        "stateKey": "held",
+                        "accName": "acc",
+                        "itemName": "item",
+                        "indexName": "place",
+                        "itemType": "Number",
+                        "init": {
+                            "exprType": "fieldAccess",
+                            "target": "state",
+                            "path": [
+                                "removed"
+                            ]
+                        },
+                        "body": {
+                            "exprType": "if",
+                            "condition": {
+                                "exprType": "compare",
+                                "op": "Eq",
+                                "left": {
+                                    "exprType": "fieldAccess",
+                                    "target": "state",
+                                    "path": [
+                                        "item"
+                                    ]
+                                },
+                                "right": {
+                                    "exprType": "constant",
+                                    "kind": "Integer",
+                                    "value": "1"
+                                }
+                            },
+                            "thenExpr": {
+                                "exprType": "bitset",
+                                "op": "Except",
+                                "args": [
+                                    {
+                                        "exprType": "fieldAccess",
+                                        "target": "state",
+                                        "path": [
+                                            "acc"
+                                        ]
+                                    },
+                                    {
+                                        "exprType": "bitset",
+                                        "op": "Shift",
+                                        "args": [
+                                            {
+                                                "exprType": "constant",
+                                                "kind": "Integer",
+                                                "value": "1"
+                                            },
+                                            {
+                                                "exprType": "fieldAccess",
+                                                "target": "state",
+                                                "path": [
+                                                    "place"
+                                                ]
+                                            }
+                                        ]
+                                    }
+                                ]
+                            },
+                            "elseExpr": {
+                                "exprType": "fieldAccess",
+                                "target": "state",
+                                "path": [
+                                    "acc"
+                                ]
+                            }
                         }
                     }
                 }
@@ -10379,25 +10464,6 @@
                     }
                 },
                 {
-                    "nodeType": "modifyState",
-                    "id": "settle-held",
-                    "label": "The held cells fall with their symbols",
-                    "outputKey": "held",
-                    "expressionId": "settle-held",
-                    "inputs": {
-                        "state": {
-                            "name": "state",
-                            "type": "State"
-                        }
-                    },
-                    "outputs": {
-                        "state": {
-                            "name": "state",
-                            "type": "State"
-                        }
-                    }
-                },
-                {
                     "nodeType": "library",
                     "id": "stop-0",
                     "label": "Reel 1 stops for its new symbols",
@@ -10557,13 +10623,6 @@
                     "sourceNodeId": "reel-1",
                     "sourcePort": "false",
                     "targetNodeId": "settle",
-                    "targetPort": "state"
-                },
-                {
-                    "id": "settle.state->settle-held",
-                    "sourceNodeId": "settle",
-                    "sourcePort": "state",
-                    "targetNodeId": "settle-held",
                     "targetPort": "state"
                 }
             ],
@@ -11307,225 +11366,6 @@
                                     }
                                 ]
                             }
-                        }
-                    }
-                },
-                "settle-held": {
-                    "exprType": "map",
-                    "stateKey": "held",
-                    "itemName": "item",
-                    "indexName": "place",
-                    "itemType": "Number",
-                    "body": {
-                        "exprType": "if",
-                        "condition": {
-                            "exprType": "compare",
-                            "op": "Gte",
-                            "left": {
-                                "exprType": "call",
-                                "function": "index",
-                                "args": [
-                                    {
-                                        "exprType": "fieldAccess",
-                                        "target": "state",
-                                        "path": [
-                                            "settledSources"
-                                        ]
-                                    },
-                                    {
-                                        "exprType": "binary",
-                                        "op": "Add",
-                                        "left": {
-                                            "exprType": "binary",
-                                            "op": "Mul",
-                                            "left": {
-                                                "exprType": "constant",
-                                                "kind": "Integer",
-                                                "value": "2"
-                                            },
-                                            "right": {
-                                                "exprType": "call",
-                                                "function": "index",
-                                                "args": [
-                                                    {
-                                                        "exprType": "fieldAccess",
-                                                        "target": "state",
-                                                        "path": [
-                                                            "columnRemoved"
-                                                        ]
-                                                    },
-                                                    {
-                                                        "exprType": "call",
-                                                        "function": "index",
-                                                        "args": [
-                                                            {
-                                                                "exprType": "fieldAccess",
-                                                                "target": "state",
-                                                                "path": [
-                                                                    "cellColumn"
-                                                                ]
-                                                            },
-                                                            {
-                                                                "exprType": "fieldAccess",
-                                                                "target": "state",
-                                                                "path": [
-                                                                    "place"
-                                                                ]
-                                                            }
-                                                        ]
-                                                    }
-                                                ]
-                                            }
-                                        },
-                                        "right": {
-                                            "exprType": "call",
-                                            "function": "index",
-                                            "args": [
-                                                {
-                                                    "exprType": "fieldAccess",
-                                                    "target": "state",
-                                                    "path": [
-                                                        "boardRows"
-                                                    ]
-                                                },
-                                                {
-                                                    "exprType": "fieldAccess",
-                                                    "target": "state",
-                                                    "path": [
-                                                        "place"
-                                                    ]
-                                                }
-                                            ]
-                                        }
-                                    }
-                                ]
-                            },
-                            "right": {
-                                "exprType": "constant",
-                                "kind": "Integer",
-                                "value": "0"
-                            }
-                        },
-                        "thenExpr": {
-                            "exprType": "call",
-                            "function": "index",
-                            "args": [
-                                {
-                                    "exprType": "fieldAccess",
-                                    "target": "state",
-                                    "path": [
-                                        "held"
-                                    ]
-                                },
-                                {
-                                    "exprType": "binary",
-                                    "op": "Add",
-                                    "left": {
-                                        "exprType": "call",
-                                        "function": "index",
-                                        "args": [
-                                            {
-                                                "exprType": "fieldAccess",
-                                                "target": "state",
-                                                "path": [
-                                                    "columnStart"
-                                                ]
-                                            },
-                                            {
-                                                "exprType": "fieldAccess",
-                                                "target": "state",
-                                                "path": [
-                                                    "place"
-                                                ]
-                                            }
-                                        ]
-                                    },
-                                    "right": {
-                                        "exprType": "call",
-                                        "function": "index",
-                                        "args": [
-                                            {
-                                                "exprType": "fieldAccess",
-                                                "target": "state",
-                                                "path": [
-                                                    "settledSources"
-                                                ]
-                                            },
-                                            {
-                                                "exprType": "binary",
-                                                "op": "Add",
-                                                "left": {
-                                                    "exprType": "binary",
-                                                    "op": "Mul",
-                                                    "left": {
-                                                        "exprType": "constant",
-                                                        "kind": "Integer",
-                                                        "value": "2"
-                                                    },
-                                                    "right": {
-                                                        "exprType": "call",
-                                                        "function": "index",
-                                                        "args": [
-                                                            {
-                                                                "exprType": "fieldAccess",
-                                                                "target": "state",
-                                                                "path": [
-                                                                    "columnRemoved"
-                                                                ]
-                                                            },
-                                                            {
-                                                                "exprType": "call",
-                                                                "function": "index",
-                                                                "args": [
-                                                                    {
-                                                                        "exprType": "fieldAccess",
-                                                                        "target": "state",
-                                                                        "path": [
-                                                                            "cellColumn"
-                                                                        ]
-                                                                    },
-                                                                    {
-                                                                        "exprType": "fieldAccess",
-                                                                        "target": "state",
-                                                                        "path": [
-                                                                            "place"
-                                                                        ]
-                                                                    }
-                                                                ]
-                                                            }
-                                                        ]
-                                                    }
-                                                },
-                                                "right": {
-                                                    "exprType": "call",
-                                                    "function": "index",
-                                                    "args": [
-                                                        {
-                                                            "exprType": "fieldAccess",
-                                                            "target": "state",
-                                                            "path": [
-                                                                "boardRows"
-                                                            ]
-                                                        },
-                                                        {
-                                                            "exprType": "fieldAccess",
-                                                            "target": "state",
-                                                            "path": [
-                                                                "place"
-                                                            ]
-                                                        }
-                                                    ]
-                                                }
-                                            }
-                                        ]
-                                    }
-                                }
-                            ]
-                        },
-                        "elseExpr": {
-                            "exprType": "constant",
-                            "kind": "Integer",
-                            "value": "0"
                         }
                     }
                 }

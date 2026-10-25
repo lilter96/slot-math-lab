@@ -397,3 +397,71 @@ Nine Lives by 3.2% with disjoint ranges and is excluded. Another authored
 weighted-count upper-bound prototype improved heavy Le cases by 3–5% but changed
 private untraced group scratch state; it remains outside maintained graphs.
 The one-million complete-round goal for all 15 configurations remains open.
+
+## Stationary carried flags in authored games
+
+The next migration removes repeated work in the actual Le Militare graphs.
+During free spins, held flags cover complete armed columns. Paid cells exclude
+held cells, so those columns have no removals. Other columns contain only zero
+flags and refill with zero. Ordinary gravity therefore leaves the entire held
+vector unchanged. The generic Carried authoring option `stationary` lets a caller
+state that invariant: the composer omits the settlement write while retaining
+survivor bookkeeping. The kernel receives ordinary editable JSON, without a new
+atom, evaluator or mechanic-specific branch. Paid-spin carried values still move.
+
+The existing binary contribution mask also identifies held giants: below-top
+cells excluded from counting, union their one-row upward shift, cover exactly
+the armed columns. In free spins with at least two rows, held-cell exclusion is
+one mask subtraction instead of a per-cell fold. Paid rounds and one-row boards
+retain the original fold. Arming updates the contribution mask before payout.
+
+All eight full and six small configurations were regenerated immediately. Each
+loses one stored node; full Super shrinks from 231 to 230 nodes and 287,868 to
+286,185 canonical UTF-8 bytes. No state fields are retired or added. Original
+server/math goldens and derived client traces remain unchanged. All 3,584
+traced/untraced seeded comparisons preserve payout, complete exported state,
+RNG audit and the following word, without exceptions. Every outcome and loop
+statistic is also identical in the paired performance runs.
+
+The maintained regressions evaluate the authored protection against independent
+cell flags for every armed pattern, removal basis/mixed masks and bonus mode,
+then exhaust every permitted column-removal pattern through the ordinary carried
+operation. Full and small boards are covered. Final validation passed 30 affected
+Core cases, the small Standard exact law in its original budget, nine payout
+editing cases, Release solution build, scoped formatting, two-file ESLint, app
+TypeScript and 38-fixture export check. Both required cleanup profiles completed
+for all 17 sources; the TS/JSON scope used the isolated solution-item workflow.
+
+### Actual maintained full configurations
+
+One frozen accepted integer-lowering kernel runs both versions of the actual
+maintained JSON. CPU 2, one worker, normal .NET tiering/PGO and Tiered sampling
+remain in force. Each ABBA process measures three repetitions and discards its
+first. Super/Elite warm 32,768 and measure 16,384 complete rounds; Standard
+warms/measures 32,768. Other entries warm 262,144 and measure 1,048,576.
+
+| Complete configuration | Before rounds/s | After rounds/s | Ratio | Before B/round | After B/round |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| le-militare.super | 4,313 | 5,113 | 1.185 | 22,082.3 | 14,552.5 |
+| le-militare.elite | 6,102 | 7,189 | 1.178 | 7,949.2 | 4,657.7 |
+| le-militare.standard | 15,697 | 17,677 | 1.126 | 473.0 | 304.8 |
+| le-militare.spin | 233,595 | 235,750 | 1.009 | 31.1 | 29.5 |
+| le-militare.chance | 143,955 | 150,290 | 1.044 | 123.0 | 89.7 |
+| le-militare.air-raid | 199,801 | 200,709 | 1.005 | 41.7 | 39.9 |
+| le-militare.siege.spin | 230,918 | 234,786 | 1.017 | 32.1 | 30.3 |
+| le-militare.recon.spin | 225,474 | 228,943 | 1.015 | 32.2 | 30.1 |
+
+Six configurations have disjoint improved timing ranges. Ordinary spin and air
+raid ranges overlap; their small median increases establish no throughput gain.
+Their allocations still fall. These remain shared-host kernel observations.
+The complete-round denominator includes all awarded or bought features.
+
+A separate work-budget diagnostic audits 1,024 complete rounds per selected
+configuration. Nine Lives buy averages about 1,520 64-bit PRNG words per round;
+Super averages about 579. A million such bought rounds would require about
+1.52 billion words/second. A separate unaudited tight scalar-generator control
+measures about 1.26 billion words/second on this host. This is a diagnostic of
+the current scalar implementation, not a game throughput measurement or a
+universal hardware bound. Preserving each logical stream while batching/vectorizing
+execution is a necessary area to investigate toward the remaining target.
+The one-million complete-round goal for every configuration is still unmet.
