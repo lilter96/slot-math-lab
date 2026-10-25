@@ -585,3 +585,22 @@ only the unchanged Count operation. A longer reversed-order BAAB control warms
 are retained; this control establishes neither a gain nor a clearly separated
 regression. Allocation per round is unchanged. These shared-host measurements
 show incremental improvements, not the one-million complete-round acceptance.
+
+
+A fresh hardware profile of the admitted aggregate kernel uses the actual Super
+JSON, normal runtime settings, one worker on CPU 2 and the 32,768-round warm-up
+marker. The aggregate closure is absent from the hot symbols. Loop management
+accounts for 9.19% self CPU; major generated runs account for 5.85–7.59% each.
+The separately timed hardware-counter interval records about 3.00 instructions
+per cycle and 0.49% branch misses. These intervals do not contain synchronized
+round counts, so no instructions-per-round or profiled throughput is inferred.
+There are no lost CPU samples and the host perf policy remains unchanged.
+
+Disassembly annotations of the generated runs confirm repeated frame-cell
+loads/bounds checks and substantial stack initialization. The five-node symbol
+preparation run reserves a 0x2f8-byte frame. perf annotate requires the complete
+CLR symbol spelling, including its generated signature; filtering by the short
+method name misleadingly reports no samples despite a successful tool exit.
+Full-symbol annotations contain the actual instruction samples. These findings
+motivate generic state-scalar replacement and control-flow compilation; they
+are not evidence of a game-wide gain for either proposal.
