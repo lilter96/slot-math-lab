@@ -539,3 +539,207 @@ y и сохранения проверок типов и ошибок. Нужн�
 два воспроизводимых скрипта анализа. Полные парные performance reports:
 `/tmp/graph-refactor-evidence/paired-v2/`. Эти сгенерированные данные остаются
 вне Git согласно политике репозитория.
+
+## Proposed generic primitive: finite-set Compress
+
+The current packed Ancient Dragon line evaluator still repeats a recursive
+prefix expression for every authored payline. A 15-second EventPipe capture on
+the completed one-worker round attributed 44.10% self CPU to a generated
+segment containing line analysis, last-line accounting, scatter/payout writes,
+and trace writes. This is a grouped attribution, not a claim that lines alone
+consume that share. Previous packed-field work improved full-round throughput
+10.0% on Ancient and 11.3% on paid Woodland while the canonical JSON grew.
+Repository instructions require a separate proposal and explicit approval
+before adding an atom; the operation below is therefore a candidate contract,
+not an accepted kernel change. Profiled end-to-end timings remain the
+acceptance gate.
+
+For two unsigned finite masks `source` and `selector` in `[0, 2^64 - 1]`, let
+`p[0] < p[1] < ... < p[m-1]` be the positions of the set bits in `selector`.
+`Compress(source, selector)` returns a mask whose bit `k` equals source bit
+`p[k]`, for `0 <= k < m`; every higher result bit is zero. Thus it gathers the
+selected source bits in ascending position order into consecutive low bits.
+Source bits outside `selector` are ignored. In particular,
+`Compress(1<<63, 1<<63) == 1`; the selector's population count does not bound
+which source positions may be selected. A zero selector returns zero, and an
+all-one selector returns `source`.
+
+The primitive is proposed as an appended `BitSetOp` member, so existing enum
+ordinals remain stable. It accepts exactly two existing mask operands, returns
+an exact mask, and keeps their eager left-to-right evaluation, conversion,
+range checking, and error locations (`bitset.args[0]` / `bitset.args[1]`). No
+game, symbol width, grid geometry, or graph-pattern dispatch belongs in the
+kernel. The compiled implementation can use BMI2 PEXT when available and a
+portable exact fallback elsewhere. Without a useful static selector bound,
+shape propagation conservatively reports width 64; a known selector and
+source bound can safely refine the result. Exact constants must never pass
+through JavaScript floating-point serialization.
+
+This first operation covers the demonstrated gather use. Its inverse,
+`Deposit`, is deliberately deferred: a future use case must establish that
+generic scatter/placement is needed and benchmark its interaction with current
+gravity LUTs and segmented compaction. The game migration itself remains an
+editable JSON subgraph composed from generic expressions.
+
+The first authored payoff experiment gathered each entire line and then ran
+two SWAR comparisons, wildcard extraction, `First`, and descriptor arithmetic
+for every line. Its 774 differential comparisons matched payouts, all original
+state, RNG audit, and next RNG word. Yet the same-current-Core ABBA full-round
+comparison lost throughput: Ancient 385,245->238,335 rounds/s (0.619 ratio),
+Woodland paid 368,973->196,859 (0.534), and Woodland buy 29,496->15,321 (0.519).
+All outcome and loop statistics still matched; allocation changed only by a
+few bytes. These ranges were disjoint. The grouped profile moved to 59.78%
+self in a generated segment that includes line, scatter, payout, and trace
+work, so it does not isolate `Compress`. The whole-line SWAR composition was
+rejected.
+
+A second, disposable prototype kept the lazy prefix algorithm and used one
+`Compress` gather per line. Against the accepted packed lazy-prefix graphs, an
+ABBA run on the same rebuilt Core showed overlapping throughput ranges and no
+demonstrated gain: Ancient 364,468->361,963 rounds/s (0.993 ratio), Woodland
+buy 29,784->28,910 (0.971), and paid Woodland 324,733->314,966 (0.970).
+Every measured outcome and loop statistic matched; bytes per round were
+unchanged within 0.004 bytes. Canonical JSON shrank only 4.6%, 3.2%, and 4.2%
+relative to the accepted packed graphs, which themselves remained about 60%,
+34%, and 51% larger than the original graphs. The retained-rate ranges
+overlapped in all three cases. This prototype was removed from the worktree;
+the accepted packed graphs remain unchanged. The trial does not justify adding
+the atom to the kernel for payline evaluation.
+
+Focused `sol_advisor` review caught and corrected one proposed edge rule before
+implementation: only `Deposit` ignores source bits above `popcount(selector)`;
+`Compress` still sees a selected source bit at position 63 even with a one-bit
+selector. The decision to implement Compress alone follows the demonstrated
+payline gather; inverse placement is not yet proven necessary. The consultation
+changed the boundary test and avoided adding an unused second operation. Token
+usage and precise call duration were not exposed by the advisor tool.
+
+The disposable implementation passed its standalone contract test, which
+compared every pair of eight-bit source and selector values against an
+independent position-enumeration oracle in all sampling tiers. It also checked
+software fallback, bit 63, maximum masks, sparse/dense selectors, and malformed
+operands/error order. The hybrid game's differential tests compared payout,
+every previous state field, RNG audit, and the next RNG word; a selected
+49-test regression set passed. Those implementation tests were rolled back
+with the prototype and are not part of the current branch. Reconsider this
+atom if profiling a different generic operation, such as finite-set compaction,
+shows that bit gathering is required and a prototype demonstrates an
+end-to-end benefit. The expression-tree UI operation list remains deferred.
+
+## Generic dynamic `DrawMany` for cell refills
+
+The verified Nine Lives TGSlots buy profile showed repeated refill work in the
+generic cell-based `tumble`: a 30-cell, single-worker round averaged 1,519.75
+RNG words and 2,498.71 small-arena expression elements; the old refill loop
+completed 2,222,722 scalar iterations across 16,384 sampled rounds. A 15-second
+EventPipe capture attributed stack residence to `SamplingDraw.Pick`, the
+refill subgraph, and the fused settle/trace/count group. These are managed
+stack samples, not hardware self-CPU. The `PollGC` frame was not treated as GC
+cost; measured GC pauses were zero.
+
+The generic `Tumble` authoring now uses the existing dynamic `DrawMany` atom
+with count `sizeOf(removed)` and maximum `columns * rows`. It samples through
+the same `SamplingDraw.Pick` in the same order, publishes `drops` once, and
+restores the old `dropSymbol` value from the last drop. A small no-draw refill
+progress loop retains the old loop identity and completion fields: removing
+the loop changed `__exitReason_refill` in observable state even though the
+board and RNG matched. Its bound remains `cells + 1`; it stops after exactly
+the number of batched drops. The extra loop is a compatibility cost and can
+be reconsidered only with a generic contract for loop evidence and state.
+Cancellation checkpoints are coarser inside the batch: for this 30-cell
+board, cancellation arriving after the first check may allow the current
+refill batch to consume up to 30 draws before it is observed. The sampler
+excludes the interrupted round from payout statistics, but its uncommitted
+partial frame is not claimed to match the old per-draw loop.
+
+Dynamic `DrawMany` initially made the small exact Nine Lives models decline
+because `Structured.Executor.BatchDraw` required enumerated count support.
+The generic exact path now uses candidate lengths `0..MaxCount` only when the
+maximum has at most 256 values, and selects them with a partial index. It does
+not mark that range as proven support: a count outside the declared bounds
+still produces an error. The focused negative test supplies 65 equiprobable counts from 0 through 64
+with maximum 30 and confirms that Structured Exact declines instead
+of dropping invalid probability mass. Small paid and bought models still
+match the same exact rational values. Larger unknown count domains continue
+to decline; no approximation or RTP correction is used.
+
+Focused `sol_advisor` review confirmed successful-run RNG equality through the
+shared sampler and identified two required semantics: retain `dropSymbol` on a
+zero count, and do not infer a total count range from `MaxCount`. The exact
+follow-up required a partial selector so invalid values remain errors. This
+changed the state-preservation design and exact fallback. Token usage and
+precise elapsed time were not exposed by the advisor runtime.
+
+Same-Core Release ABBA measurements on CPU 2, one worker, Tiered defaults,
+four processes per graph in ABBA order, three repeats per process with the
+first discarded, compared every payout/statistic and loop-evidence row:
+
+| Graph | Scalar refill median | Batched refill median | Ratio | Bytes/round |
+| --- | ---: | ---: | ---: | ---: |
+| Nine Lives paid | 440,581 (437,868–442,032) | 468,955 (465,936–473,114) | 1.064× | 41.53 → 40.77 |
+| Nine Lives buy | 25,513 (25,222–25,577) | 27,888 (26,902–28,139) | 1.093× | 70.74 → 66.45 |
+
+Each retained range is disjoint. A separate differential check replayed 129
+seeds including `UInt64.MaxValue`, with tracing both off and on, for each
+configuration: **516 comparisons** matched payout, every original state
+field, the full RNG audit and the next RNG word. The source exporter verified
+all 39 fixtures; scoped ESLint, TypeScript/Vite build, 20 targeted Core tests,
+Reformat Code and Full Cleanup passed. The build printed existing dependency
+annotation and chunk-size warnings.
+
+Canonical JSON grew from 111,506 to 112,211 bytes for paid and 104,495 to
+105,200 for buy; total graph-node counts stayed 131 and 120. This change
+improves throughput but does not reduce graph size. The post-change profile
+still shows substantial work in the free-spin pass, cascade settle/trace,
+cluster pay reads, and `SamplingDrawMany`; these are the next profiler-guided
+targets. Evidence is retained outside Git under
+`/tmp/modern-primitives-evidence/game-rewrite/nine-lives-drawmany/`.
+
+## Le Militare Super survivor-filter experiment
+
+A fresh clean baseline for `le-militare.super` is 4,660 rounds/s (4,568–4,668)
+and 14,552 B/round on one worker pinned to CPU 2, Tiered runtime. The 15-second
+EventPipe profile used graph SHA
+`ffb5fc4490a6046dc786ad8940ce20312363a5a5faf264b70d8a7eff36fbb912`. Its top
+graph run group combines pay-step traces, `emptyBefore`, `columnRemoved`, and
+both `survivors` filters; the group had 9.19% self and 21.25% inclusive stack
+residence. This is diagnostic grouping, not a per-node instruction
+attribution. Per-round arena diagnostics measured 360.47 small-array requests,
+7,547.01 requested elements, 35.70 unretained small arrays and 578.88 RNG
+words. GC pauses in the throughput baseline were about 2 ms per 1.7 s sample;
+`PollGC` profile residence was not used as GC cost.
+
+The isolated prototype filtered an identity position array once and gathered
+the old board and carried `held` arrays through those positions. It retained
+the original five-row settling LUT and all previous output fields. The
+exhaustive Tumble column-pattern test and 46 targeted Le Militare tests passed,
+including exact small models, original replays, traces and cross-tier/worker
+reproducibility. Same-Core ABBA measurements compared every outcome and loop
+statistic: 4,625 rounds/s (4,603–4,718) for the original graph versus 4,671
+(4,521–4,952) for the prototype, a 1.010 ratio with overlapping ranges.
+Allocation increased from 14,553 to 14,778 B/round. Canonical JSON grew from
+286,185 to 287,313 bytes and the source plus mechanic node count rose from 230
+to 232. The experiment was removed: it did not establish a performance win
+and made the graph larger.
+
+The focused Sol review recommended this as the smaller experiment than
+replacing the LUT with `SegmentedCompact`, but only with fixed aligned board
+and carried-array lengths. It also warned that malformed mismatched arrays
+could observe a different error order. The experiment confirmed the valid
+game cases but did not add a general malformed-array compatibility test. The
+advice narrowed the prototype; the measured result rejected it. Token usage
+and exact advisor elapsed time were not exposed.
+
+### Ordered component state-machine experiment and record execution
+
+The Le Militare experiment replaced the nested symbol/component graph loops with a bounded Fold state machine. A transition either selected the first unpaid symbol or processed its next reachable component. A private pending flag retained symbol order and wild claims. There were at most `cells + payingSymbols` transitions: every group consumed a distinct seed from its symbol's cells. Twelve-transition chunks stayed below the existing 10,000-operation expression budget; the outer chunk loop had one iteration of slack.
+
+The candidate passed 528 successful round comparisons across eight Le configurations, trace off/on, seeds 0–31 and UInt64.MaxValue. Payout, every original gameplay/scratch field, RNG audit and continuation matched. Counters and evidence of the replaced cluster loops intentionally differed; this was not complete old-state or cancellation-state equivalence.
+
+It was rejected as the production composition. Matched diagnostic runs used one worker pinned to CPU 2, the same Release Core, Compiled tier, 4,096 warm-up rounds and two 4,096-round measurements. The existing graph reached 4,737–4,776 full rounds/s; the final candidate reached 2,555–2,719. Its canonical JSON also grew. Le's production graph was restored. These are diagnostic observations, not a claim of a speedup or achievement of the million-round target.
+
+Allocation profiling exposed a generic execution gap: materializing record accumulators constructed dictionary entries, boxed ExprValue values, arrays and copied dictionaries. Record-fold scalar replacement keeps normalized read fields separate from raw next-result fields, preserving simultaneous recurrence and final Symbol kinds. It accepts matching static Record/Tuple schemas and Let chains, preserves interpreted-child publication/restoration, and otherwise keeps the existing path. Owned record rentals now share immutable ordinal layouts and reuse bounded per-round payloads. Typed record projection avoids boxing. Measurements, collectors and persistent state disable the arena; state export recursively detaches values. Public ExprValue.Record continues to copy caller-owned collections. Malformed record names retain the original eager evaluation and validation path.
+
+The candidate's allocations fell from approximately 517 KB to 15.6 KB per round, but that did not make its CPU execution competitive. The generic mechanisms are independently regression-tested; the graph rewrite is not adopted merely because its allocations improved. Further work should measure native control-flow regions and mask publication rather than repeat the same record-based game migration.
+
+Two focused Sol reviews in this stage examined scalar replacement and owned-record lifetime. They led to fallback/restoration, recursive normalization, alias, shape-cache, exceptional construction, export and pool-budget tests. They did not resolve the CPU performance blocker. Advisor token use and exact consultation wall time were not exposed/recorded. Raw diagnostics and the rejected candidate remain in the local `le-fold-components` evidence directory, outside Git.

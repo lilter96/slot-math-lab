@@ -72,6 +72,9 @@ internal struct SamplingCell
         Readable = value.Kind != ExprType.Null;
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal static ExprValue NormalizeValue(ExprValue value) => value.ContainsSymbols ? NormalizeStored(value) : value;
+
     private static readonly object[] SmallIntegers = Enumerable.Range(0, 256).Select(value => (object)value).ToArray();
 
     // Preserve raw Int32 counter semantics while reusing immutable boxes.
@@ -313,6 +316,10 @@ internal sealed class SamplingFrame
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal SamplingRecord NewRecord(string[] names) => _arrays is { } arena
+        ? arena.RentRecord(names)
+        : new SamplingRecord(new SamplingRecord.Shape(names));
+
     internal ExprValue[] NewArray(int length) => _arrays is { } arena ? arena.Rent(length) : new ExprValue[length];
 
     internal ExprValue[] ResizeArray(ExprValue[] values, int count)
@@ -477,11 +484,22 @@ internal sealed class SamplingArrayArena
     private readonly int[] _cursors = new int[MaxLength + 1];
     private int _elements;
     private Dictionary<int, LargeBucket>? _large;
+    private int _recordCount;
+    private int _recordElements;
+    private Dictionary<string[], RecordBucket>? _records;
     private int _retained;
 
     internal void Reset()
     {
         Array.Clear(_cursors);
+        if (_records is not null)
+        {
+            foreach (RecordBucket bucket in _records.Values)
+            {
+                bucket.Cursor = 0;
+            }
+        }
+
         if (_large is not null)
         {
             foreach (LargeBucket bucket in _large.Values)
@@ -523,6 +541,29 @@ internal sealed class SamplingArrayArena
         return values;
     }
 
+    internal SamplingRecord RentRecord(string[] names)
+    {
+        RecordBucket? bucket = _records?.GetValueOrDefault(names);
+        if (bucket is not null && bucket.Cursor < bucket.Values.Count)
+        {
+            return bucket.Values[bucket.Cursor++];
+        }
+
+        SamplingRecord.Shape shape = bucket?.Shape ?? new SamplingRecord.Shape(names);
+        var record = new SamplingRecord(shape);
+        if (_recordCount < MaxBuffers && names.Length <= MaxElements - _recordElements)
+        {
+            _records ??= new Dictionary<string[], RecordBucket>(ReferenceEqualityComparer.Instance);
+            bucket ??= _records[names] = new RecordBucket(shape);
+            bucket.Values.Add(record);
+            bucket.Cursor++;
+            _recordCount++;
+            _recordElements += names.Length;
+        }
+
+        return record;
+    }
+
     private ExprValue[] RentLarge(int length)
     {
         if ((uint)length > MaxCachedLength)
@@ -553,6 +594,13 @@ internal sealed class SamplingArrayArena
         }
 
         return values;
+    }
+
+    private sealed class RecordBucket(SamplingRecord.Shape shape)
+    {
+        internal readonly SamplingRecord.Shape Shape = shape;
+        internal readonly List<SamplingRecord> Values = [];
+        internal int Cursor;
     }
 
     private sealed class LargeBucket
