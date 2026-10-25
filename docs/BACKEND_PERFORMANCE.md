@@ -654,3 +654,77 @@ Dragon 3.4% separated gain does not reproduce as a separated all-game result
 (1.012x, overlapping); it is not counted as an established improvement.
 Super is effectively neutral (1.007x, overlapping). The remaining target requires
 substantially less work in whole control regions and collection execution.
+
+
+## Why complete rounds range from hundreds of thousands to a few thousand per second
+
+The accepted mask-local kernel's full15 comparison isolates one worker on CPU 2,
+normal .NET tiering/PGO and Tiered sampling. Compilation and warm-up are outside
+the measured intervals. A counted round includes the whole awarded/bought
+feature, all free spins, cascades and settlement. Rates below are the median of
+four retained measurements. Loop work comes from the matching new-1 retained
+measurement; every repetition has identical outcome and loop statistics.
+
+| Configuration | Complete rounds/s | Microseconds/complete round |
+| --- | ---: | ---: |
+| woodland-whisper | 322,968 | 3.10 |
+| nine-lives | 454,410 | 2.20 |
+| le-militare.spin | 249,538 | 4.01 |
+| nine-lives.buy | 26,346 | 37.96 |
+| le-militare.standard | 19,118 | 52.31 |
+| le-militare.elite | 7,707 | 129.75 |
+| le-militare.super | 5,492 | 182.08 |
+
+Within Le Militare, loop evidence provides an actual count of cluster-payout
+passes: sum CompletedInvocations for each clusters/symbol loop. This counts
+payout evaluations on initial fields and fields after cascades. It does not
+pretend an entire bought feature is one such evaluation.
+
+| Le configuration | Free spins/round | Extra cascade steps/round | Field payout evaluations/round | Equivalent field evaluations/s | Normalized us/field evaluation |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| le-militare.spin | 0.062 | 0.256 | 1.317 | 328,728 | 3.042 |
+| le-militare.standard | 9.097 | 6.317 | 16.414 | 313,809 | 3.187 |
+| le-militare.elite | 17.227 | 21.933 | 40.160 | 309,513 | 3.231 |
+| le-militare.super | 21.342 | 33.695 | 56.036 | 307,751 | 3.249 |
+
+The normalized column divides full round time by counted payout passes; it
+includes all other round work and is not an independently timed isolated board
+primitive. Super's complete-round cost is 45.44x ordinary Le, while its field
+work is 42.54x and normalized cost is 1.068x. The main observed rate difference
+therefore tracks work per round. A similar mechanism appears within Woodland:
+ordinary play averages 0.100 awarded free spins/round, bought play averages
+14.040; their complete-round costs are 3.10 and 40.59 microseconds.
+
+Super averages 21.342 free spins (18–48 in this measured set), 33.695 extra
+cascade steps, 381.031 symbol-loop iterations and 267.423 component-loop
+iterations per complete round. Its total across all nested loop levels is
+707.740 iterations in 341.647 loop invocations, compared with ordinary Le's
+16.124 iterations in 5.088 invocations. These nested-level totals are workload
+counters, not additional paid/free spins or cascades.
+
+Work volume does not excuse avoidable execution costs. The hardware profile
+above exposes loop administration, frame loads/bounds checks, large temporary
+frames, repeated typed-value boundaries, array materialization and GC write
+barriers. Woodland's 3x5 paylines and Le's 5x6 cascading cluster/combat model
+also have different payout algorithms. Source graph node count alone omits
+repeated loop executions and work inside map/fold/aggregate expressions.
+
+In a representative Super interval, CPU time is 3,013.078 ms for 3,013.729 ms
+wall time; GC pauses total 2.943 ms, or 0.098%. Ordinary Le allocates 29.50 B/round,
+Super 14,552.49 B/round. Temporary-array initialization and write barriers still
+cost CPU even with short GC pauses. These kernel measurements do not include
+API, database or network time. Short pauses and near-one-core CPU use do not
+support explaining this gap as GC stalls or external I/O.
+
+A separate 1,024-round audited diagnostic averages 24.37 RNG words/ordinary Le
+round, 578.88/Super, 81.76/Nine Lives paid and 1,519.75/Nine Lives buy. This is a
+separate seed/stream sample, not word counts reconstructed from the throughput
+batch. RNG count helps describe feature workload; a tight raw-generator probe
+does not establish its share of time in a full game.
+
+The acceptance unit remains a complete configured round. At the current average
+Super workload, one million complete rounds/s would require about 56 million
+field payout evaluations/s and 579 million RNG words/s, plus other work. One
+million internal field evaluations/s would correspond to about 17,846 complete
+Super rounds/s with the current workload. The target requires major reductions
+in execution work as well as more efficient generic control/data handling.
